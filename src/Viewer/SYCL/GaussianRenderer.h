@@ -21,6 +21,7 @@
 #include "Viewer/Core/Camera.h"
 #include "Viewer/SYCL/radixsort/RadixSorter.h"
 #include "AbstractRenderer.h"
+#include "Viewer/Core/RenderDefinitions.h"
 
 namespace VkRender {
 
@@ -70,7 +71,7 @@ namespace VkRender {
 
         void setup(const VkRender::AbstractRenderer::InitializeInfo &initInfo);
 
-        void render(const VkRender::AbstractRenderer::RenderInfo &info);
+        void render(const AbstractRenderer::RenderInfo &info, const VkRender::RenderUtils *pUtils);
 
         uint8_t *getImage();
 
@@ -117,6 +118,8 @@ namespace VkRender {
         sycl::buffer<uint32_t, 1> keysBuffer{0};
         sycl::buffer<uint32_t, 1> valuesBuffer{0};
 
+        sycl::event finishedRenderEvent;
+
 
         sycl::buffer<GaussianPoint, 1> pointsBuffer{0};
         sycl::buffer<uint32_t, 1> numTilesTouchedBuffer{0};
@@ -129,6 +132,7 @@ namespace VkRender {
 
         sycl::buffer<uint8_t, 3> pngImageBuffer{sycl::range<3>()};
         sycl::buffer<uint8_t, 3> imageBuffer{sycl::range<3>()};
+        sycl::buffer<uint8_t, 3> imageBuffer2{sycl::range<3>()};
         uint32_t width{}, height{};
         std::vector<uint8_t> flattenedImage;
     };

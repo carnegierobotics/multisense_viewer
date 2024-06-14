@@ -67,8 +67,20 @@ void ImageViewer::update() {
     info.debug =  btn;
 #ifdef SYCL_ENABLED
     if (m_context->findEntityByName(splatEntity)){
-        m_renderer->render(info);
+        auto startRender = std::chrono::high_resolution_clock::now();
+
+        m_renderer->render(info, &m_context->renderUtils);
+
+        auto endRender = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> durationRender = endRender - startRender;
+        auto startUpdateTexture = std::chrono::high_resolution_clock::now();
+
         m_syclRenderTarget->updateTextureFromBuffer(m_renderer->getImage(), m_renderer->getImageSize());
+
+        auto endUpdateTexture = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> durationUpdateTexture = endUpdateTexture - startUpdateTexture;
+
+        Log::Logger::getInstance()->traceWithFrequency("tag123", 100, "Render: {}ms, update {}us", std::chrono::duration_cast<std::chrono::milliseconds>(durationRender).count(), std::chrono::duration_cast<std::chrono::microseconds>(durationUpdateTexture).count());
     }
 #endif
 

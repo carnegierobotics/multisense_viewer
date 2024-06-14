@@ -62,6 +62,30 @@ namespace VkRender {
                (e > 143) * 0x7FFF; // sign : normalized : denormalized : saturate
     }
 
+    //Test for correctness
+    bool ValidationTest(std::vector<uint32_t> &keys, uint32_t size, uint32_t testIterations) {
+        printf("Beginning VALIDATION tests at size %u and %u iterations. \n", size, testIterations);
+        int testsPassed = 0;
+        for (uint32_t i = 1; i <= testIterations; ++i) {
+            bool isCorrect = true;
+            for (uint32_t k = 1; k < keys.size(); ++k) {
+                auto kBig = keys[k];
+                auto kSmall = keys[k - 1];
+                if (kBig < kSmall) {
+                    isCorrect = false;
+                    break;
+                }
+            }
+            if (isCorrect)
+                testsPassed++;
+            else
+                printf("Test iteration %d failed. \n", i);
+        }
+        printf("%d/%d tests passed.\n", testsPassed, testIterations);
+
+        return testsPassed == testIterations;
+    }
+
 
     uint8_t *GaussianRenderer::getImage() {
         return m_image;
@@ -106,8 +130,6 @@ namespace VkRender {
         //gs = loadFromFile("/home/magnus/crl/multisense_viewer/3dgs_insect.ply", 1);
         loadedPly = false;
         setupBuffers(initInfo.camera);
-
-        radixSorter = std::make_unique<crl::RadixSorter>(queue);
         //simpleRasterizer(camera, false);
     }
 
@@ -127,15 +149,16 @@ namespace VkRender {
         colorOutputBuffer = {sycl::range<1>(gs.getSize())};
         activeGSBuffer = {sycl::range<1>(gs.getSize())};
         imageBuffer = {sycl::range<3>(camera->m_height, camera->m_width, 4)};
+        imageBuffer2 = {sycl::range<3>(camera->m_height, camera->m_width, 4)};
         width = camera->m_width;
         height = camera->m_height;
 
 
-        keysBuffer = sycl::buffer<uint32_t, 1> ((1 << 21)); // Adjust size later
-        valuesBuffer = sycl::buffer<uint32_t, 1> ((1 << 21));  // Adjust size later
+        keysBuffer = sycl::buffer<uint32_t, 1>((1 << 21)); // Adjust size later
+        valuesBuffer = sycl::buffer<uint32_t, 1>((1 << 21));  // Adjust size later
 
-        pointsBuffer = sycl::buffer<GaussianPoint, 1> (sycl::range<1>(gs.getSize()));
-        numTilesTouchedBuffer = sycl::buffer<uint32_t, 1> (sycl::range<1>(gs.getSize()));
+        pointsBuffer = sycl::buffer<GaussianPoint, 1>(sycl::range<1>(gs.getSize()));
+        numTilesTouchedBuffer = sycl::buffer<uint32_t, 1>(sycl::range<1>(gs.getSize()));
         numTilesTouchedInclusiveSumBuffer = sycl::buffer<uint32_t, 1>(sycl::range<1>(gs.getSize()));
 
     }
@@ -256,58 +279,38 @@ namespace VkRender {
         std::cout << oss.str();
     }
 
-    void parallel_inclusive_scan(sycl::queue& queue, sycl::buffer<uint32_t, 1>& inputBuffer, sycl::buffer<uint32_t, 1>& outputBuffer, size_t size) {
-        // Step 1: Up-Sweep (Reduce) Phase
-        for (size_t stride = 1; stride < size; stride *= 2) {
-            queue.submit([&](sycl::handler &cgh) {
-                auto input = inputBuffer.get_access<sycl::access::mode::read_write>(cgh);
-                cgh.parallel_for<class UpSweep>(sycl::range<1>(size / (2 * stride)), [=](sycl::id<1> idx) {
-                    size_t i = idx[0] * 2 * stride;
-                    if (i + 2 * stride - 1 < size) {
-                        input[i + 2 * stride - 1] += input[i + stride - 1];
-                    }
-                });
-            }).wait();
-        }
 
-        // Step 2: Set last element to 0 for the down-sweep phase
-        queue.submit([&](sycl::handler &cgh) {
-            auto input = inputBuffer.get_access<sycl::access::mode::read_write>(cgh);
-            cgh.single_task<class SetLastElementZero>([=]() {
-                input[size - 1] = 0;
-            });
-        }).wait();
+    struct ImageState {
+        std::vector<glm::ivec2> ranges;
+    };
 
-        // Step 3: Down-Sweep Phase
-        for (size_t stride = size / 2; stride >= 1; stride /= 2) {
-            queue.submit([&](sycl::handler &cgh) {
-                auto input = inputBuffer.get_access<sycl::access::mode::read_write>(cgh);
-                cgh.parallel_for<class DownSweep>(sycl::range<1>(size / (2 * stride)), [=](sycl::id<1> idx) {
-                    size_t i = idx[0] * 2 * stride;
-                    if (i + 2 * stride - 1 < size) {
-                        int t = input[i + stride - 1];
-                        input[i + stride - 1] = input[i + 2 * stride - 1];
-                        input[i + 2 * stride - 1] += t;
-                    }
-                });
-            }).wait();
-        }
+    void identifyTileRanges(int L, const std::vector<uint32_t> &point_list_keys, ImageState &imgState) {
+        // Initialize ranges with -1 to indicate uninitialized ranges
+        imgState.ranges.resize(L, glm::ivec2(-1, -1));
 
-        // Step 4: Convert Exclusive to Inclusive Scan
-        queue.submit([&](sycl::handler &cgh) {
-            auto input = inputBuffer.get_access<sycl::access::mode::read>(cgh);
-            auto output = outputBuffer.get_access<sycl::access::mode::write>(cgh);
-            cgh.parallel_for<class InclusiveScan>(sycl::range<1>(size), [=](sycl::id<1> idx) {
-                if (idx[0] == 0) {
-                    output[idx] = input[idx];
-                } else {
-                    output[idx] = input[idx] + input[idx - 1];
+        for (int idx = 0; idx < point_list_keys.size(); ++idx) {
+            uint32_t key = point_list_keys[idx];
+            uint16_t currentTile = key >> 16;
+            if (currentTile >= 3600)
+                continue;
+
+            if (idx == 0) {
+                imgState.ranges[currentTile].x = 0;
+            } else {
+                uint16_t prevtile = point_list_keys[idx - 1] >> 16;
+                if (currentTile != prevtile) {
+                    imgState.ranges[prevtile].y = idx;
+                    imgState.ranges[currentTile].x = idx;
                 }
-            });
-        }).wait();
+            }
+
+            if (idx == point_list_keys.size() - 1) {
+                imgState.ranges[currentTile].y = point_list_keys.size();
+            }
+        }
     }
 
-    void GaussianRenderer::render(const VkRender::AbstractRenderer::RenderInfo &info) {
+    void GaussianRenderer::render(const AbstractRenderer::RenderInfo &info, const VkRender::RenderUtils *renderUtils) {
         auto *camera = info.camera;
         auto params = getHtanfovxyFocal(camera->m_Fov, camera->m_height, camera->m_width);
         glm::mat4 viewMatrix = camera->matrices.view;
@@ -323,355 +326,441 @@ namespace VkRender {
         const uint32_t tileHeight = 16;
         glm::vec3 tileGrid((imageWidth + BLOCK_X - 1) / BLOCK_X, (imageHeight + BLOCK_Y - 1) / BLOCK_Y, 1);
 
+        uint32_t gridSize = tileGrid.x * tileGrid.y;
 
 
         // Start timing
         auto startPreprocess = std::chrono::high_resolution_clock::now();
+        {
+            queue.submit([&](sycl::handler &h) {
+                auto scales = scalesBuffer.get_access<sycl::access::mode::read>(h);
+                auto quaternions = quaternionBuffer.get_access<sycl::access::mode::read>(h);
+                auto positions = positionBuffer.get_access<sycl::access::mode::read>(h);
+                auto shs = sphericalHarmonicsBuffer.get_access<sycl::access::mode::read>(h);
+                auto opacitiesAccess = opacityBuffer.get_access<sycl::access::mode::read>(h);
 
-        queue.submit([&](sycl::handler &h) {
-            auto scales = scalesBuffer.get_access<sycl::access::mode::read>(h);
-            auto quaternions = quaternionBuffer.get_access<sycl::access::mode::read>(h);
-            auto positions = positionBuffer.get_access<sycl::access::mode::read>(h);
-            auto shs = sphericalHarmonicsBuffer.get_access<sycl::access::mode::read>(h);
-            auto opacitiesAccess = opacityBuffer.get_access<sycl::access::mode::read>(h);
+                auto pointsBufferAccess = pointsBuffer.get_access<sycl::access::mode::write>(h);
+                auto numTilesTouchedAccess = numTilesTouchedBuffer.get_access<sycl::access::mode::write>(h);
 
-            auto pointsBufferAccess = pointsBuffer.get_access<sycl::access::mode::write>(h);
-            auto numTilesTouchedAccess = numTilesTouchedBuffer.get_access<sycl::access::mode::write>(h);
+                uint32_t shDim = gs.getShDim();
 
-            uint32_t shDim = gs.getShDim();
+                h.parallel_for(sycl::range<1>(gs.getSize()), [=](sycl::id<1> idx) {
 
-            h.parallel_for(sycl::range<1>(gs.getSize()), [=](sycl::id<1> idx) {
-                glm::vec3 scale = scales[idx];
-                glm::quat q = quaternions[idx];
-                glm::vec3 position = positions[idx];
+                    numTilesTouchedAccess[idx] = 0;
 
-                glm::vec4 posView = viewMatrix * glm::vec4(position, 1.0f);
-                glm::vec4 posClip = projectionMatrix * posView;
-                glm::vec3 posNDC = glm::vec3(posClip) / posClip.w;
+                    glm::vec3 scale = scales[idx];
+                    glm::quat q = quaternions[idx];
+                    glm::vec3 position = positions[idx];
 
-                glm::vec3 threshold(1.0f);
-                // Manually compute absolute values
-                glm::vec3 pos_screen_abs = glm::vec3(
-                        std::abs(posNDC.x),
-                        std::abs(posNDC.y),
-                        std::abs(posNDC.z)
-                );
-                if (glm::any(glm::greaterThan(pos_screen_abs, threshold))) {
-                    //screenPos[idx] = glm::vec4(-100.0f, -100.0f, -100.0f, 1.0f);
-                    //sycl::ext::oneapi::experimental::printf("Culled: x = %f, y = %f, z = %f\n", position.x, position.y, position.z);
-                    //activeGSAccess[idx] = false;
-                    return;
-                }
-                float pixPosX = ((posNDC.x + 1.0f) * imageWidth - 1.0f) * 0.5f;
-                float pixPosY = ((posNDC.y + 1.0f) * imageHeight - 1.0f) * 0.5f;
-                auto screenPosPoint = glm::vec3(pixPosX, pixPosY, posNDC.z);
+                    glm::vec4 posView = viewMatrix * glm::vec4(position, 1.0f);
+                    glm::vec4 posClip = projectionMatrix * posView;
+                    glm::vec3 posNDC = glm::vec3(posClip) / posClip.w;
 
-                // Which tile does this gaussian belong to?
-                uint32_t tileID = calculateTileID(pixPosX, pixPosY, imageWidth, tileWidth, tileHeight);
-                //activeGSAccess[idx] = true;
-                // Calculate which tile
-
-                glm::mat3 cov3D = computeCov3D(scale, q);
-                //covariances[idx] = cov3D;
-
-                glm::vec3 cov2D = computeCov2D(posView, cov3D, viewMatrix, params, false);
-                //covariances2D[idx] = cov2D;
-
-                // Invert covariance (EWA)
-                float determinant = cov2D.x * cov2D.z - (cov2D.y * cov2D.y);
-                if (determinant != 0) {
-                    float invDeterminant = 1 / determinant;
-
-                    // Compute extent in screen space (by finding eigenvalues of
-                    // 2D covariance matrix). Use extent to compute a bounding rectangle
-                    // of screen-space tiles that this Gaussian overlaps with. Quit if
-                    // rectangle covers 0 tiles.
-
-                    float mid = 0.5f * (cov2D.x + cov2D.z);
-                    float lambda1 = mid + std::sqrt(std::max(0.1f, mid * mid - determinant));
-                    float lambda2 = mid - std::sqrt(std::max(0.1f, mid * mid - determinant));
-                    float my_radius = my_ceil(3.f * std::sqrt(std::max(lambda1, lambda2)));
-                    glm::vec2 rect_min, rect_max;
-                    getRect(screenPosPoint, my_radius, rect_min, rect_max, tileGrid);
-                    if ((rect_max.x - rect_min.x) * (rect_max.y - rect_min.y) == 0)
+                    glm::vec3 threshold(1.0f);
+                    // Manually compute absolute values
+                    glm::vec3 pos_screen_abs = glm::vec3(
+                            std::abs(posNDC.x),
+                            std::abs(posNDC.y),
+                            std::abs(posNDC.z)
+                    );
+                    if (glm::any(glm::greaterThan(pos_screen_abs, threshold))) {
+                        //screenPos[idx] = glm::vec4(-100.0f, -100.0f, -100.0f, 1.0f);
+                        //sycl::ext::oneapi::experimental::printf("Culled: x = %f, y = %f, z = %f\n", position.x, position.y, position.z);
+                        //activeGSAccess[idx] = false;
                         return;
-
-                    glm::vec3 dir = glm::normalize(position - camPos);
-                    glm::vec3 color =
-                            SH_C0 * glm::vec3(shs[idx * shDim + 0], shs[idx * shDim + 1], shs[idx * shDim + 2]);
-                    color += 0.5f;
-
-                    auto conic = glm::vec3(cov2D.z * invDeterminant, -cov2D.y * invDeterminant,
-                                           cov2D.x * invDeterminant);
-                    //screenPos[idx] = glm::vec4(screenPosPoint, 1.0f);
-                    //conicAccess[idx] = conic;
-                    //colorOutput[idx] = color;
-
-                    pointsBufferAccess[idx].depth = posNDC.z;
-                    pointsBufferAccess[idx].radius = my_radius;
-                    pointsBufferAccess[idx].conic = conic;
-                    pointsBufferAccess[idx].screenPos = screenPosPoint;
-                    pointsBufferAccess[idx].color = color;
-                    pointsBufferAccess[idx].opacityBuffer = opacitiesAccess[idx];
-                    // How many tiles we access
-                    // rect_min/max are in tile space
-                    numTilesTouchedAccess[idx] = static_cast<int>((rect_max.y - rect_min.y) *
-                                                                  (rect_max.x - rect_min.x));
-                }
-            });
-        }).wait();
-        // Stop timing
-        auto endPreprocess = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double> durationPreprocess = endPreprocess - startPreprocess;
-
-        auto startInclusiveSum = std::chrono::high_resolution_clock::now();
-        // Submit a command group to the queue
-        /*
-        queue.submit([&](sycl::handler &cgh) {
-            // Get access to the buffer on the device
-            auto data_acc = numTilesTouchedBuffer.get_access<sycl::access::mode::read>(cgh);
-            auto inclusiveSumAccess = numTilesTouchedInclusiveSumBuffer.get_access<sycl::access::mode::write>(cgh);
-            // Perform inclusive scan on the buffer
-            cgh.parallel_for<class InclusiveScanKernel>(sycl::range<1>(gs.getSize()), [=](sycl::id<1> idx) {
-                // Perform an inclusive scan using a local variable for temporary storage
-                int sum = 0;
-                for (size_t i = 0; i <= idx[0]; ++i) {
-                    sum += data_acc[i];
-                }
-                inclusiveSumAccess[idx] = sum;
-
-                auto sum = sycl::ext::oneapi::experimental::inclusive_scan(data_acc.get_pointer(), data_acc.get_pointer() + gs.getSize(), inclusiveSumAccess.get_pointer());
-
-            });
-        }).wait();
-        */
-
-        parallel_inclusive_scan(queue, numTilesTouchedBuffer, numTilesTouchedInclusiveSumBuffer, numTilesTouchedBuffer.size());
-
-        auto endInclusiveSum = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double> durationInclusiveSum = endInclusiveSum - startInclusiveSum;
-
-
-        auto startAccumulation = std::chrono::high_resolution_clock::now();
-
-        queue.submit([&](sycl::handler &cgh) {
-            auto keysAcc = keysBuffer.get_access<sycl::access::mode::write>(cgh);
-            auto valuesAcc = valuesBuffer.get_access<sycl::access::mode::write>(cgh);
-
-            auto inclusiveSumAccess = numTilesTouchedInclusiveSumBuffer.get_access<sycl::access::mode::read>(cgh);
-            auto gaussianAccess = pointsBuffer.get_access<sycl::access::mode::read>(cgh);
-            cgh.parallel_for<class GaussianProcessing>(sycl::range<1>(gs.getSize()), [=](sycl::id<1> idx) {
-                uint32_t i = idx.get(0);
-                const auto &gaussian = gaussianAccess[i];
-                uint32_t numRendered = inclusiveSumAccess[inclusiveSumAccess.size() - 1];
-
-                if (gaussian.radius > 0) {
-                    uint32_t off = (i == 0) ? 0 : inclusiveSumAccess[i - 1];
-                    glm::ivec2 rect_min, rect_max;
-                    getRect(gaussian.screenPos, gaussian.radius, rect_min, rect_max, tileGrid);
-                    for (int y = rect_min.y; y < rect_max.y; ++y) {
-                        for (int x = rect_min.x; x < rect_max.x; ++x) {
-                            if (off >= numRendered) {
-                                break;
-                            }
-                            uint32_t key = static_cast<uint32_t>(y) * static_cast<uint32_t>(tileGrid.x) + x;
-                            key <<= 16;
-                            key |= float_to_half(gaussian.depth);
-                            keysAcc[off] = key;
-                            valuesAcc[off] = i;
-
-                            /*
-                            if (valuesAcc[off] >= 3600)
-                                sycl::ext::oneapi::experimental::printf("valuesAcc: %u off: %u\n", valuesAcc[off], off);
-
-                            */
-                            ++off;
-                        }
                     }
-                }
-            });
-        }).wait();
-        auto endAccumulation = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double> durationAccumulation = endAccumulation - startAccumulation;
+                    float pixPosX = ((posNDC.x + 1.0f) * imageWidth - 1.0f) * 0.5f;
+                    float pixPosY = ((posNDC.y + 1.0f) * imageHeight - 1.0f) * 0.5f;
+                    auto screenPosPoint = glm::vec3(pixPosX, pixPosY, posNDC.z);
 
+                    glm::mat3 cov3D = computeCov3D(scale, q);
+                    glm::vec3 cov2D = computeCov2D(posView, cov3D, viewMatrix, params, false);
 
-        /*
-        if (numTilesTouchedInclusiveSumBuffer.get_host_access()[numTilesTouchedInclusiveSumBuffer.size()] <= 0) {
-            auto hostImageAccessor = imageBuffer.get_host_access();
-            m_image = hostImageAccessor.get_pointer();
-            return;
-        }
-        */
+                    // Invert covariance (EWA)
+                    float determinant = cov2D.x * cov2D.z - (cov2D.y * cov2D.y);
+                    if (determinant != 0) {
+                        float invDeterminant = 1 / determinant;
 
-        auto startSorting = std::chrono::high_resolution_clock::now();
+                        // Compute extent in screen space (by finding eigenvalues of
+                        // 2D covariance matrix). Use extent to compute a bounding rectangle
+                        // of screen-space tiles that this Gaussian overlaps with. Quit if
+                        // rectangle covers 0 tiles.
 
-        //VkRender::crl::performOneSweep(queue, numRendered, keysBuffer, valuesBuffer);
-        radixSorter->performOneSweep(numTilesTouchedInclusiveSumBuffer, keysBuffer, valuesBuffer);
-        queue.wait();
-        /*
-        {
-            std::vector<uint32_t> keysHost(keysBuffer.size());
-            std::vector<uint32_t> valuesHost(valuesBuffer.size());
-            // Copy data back to host
-            auto keysHostAcc = keysBuffer.get_host_access();
-            for (size_t i = 0; i < keysHostAcc.size(); ++i) {
-                keysHost[i] = keysHostAcc[i];
-            }
-            auto valuesHostAcc = valuesBuffer.get_host_access();
-            for (size_t i = 0; i < valuesHostAcc.size(); ++i) {
-                valuesHost[i] = valuesHostAcc[i];
-                if (valuesHost[i] >= 3600) {
-                    printf("Error %zu, %d\n", i, valuesHost[i]);
-                }
-            }
-            VkRender::crl::ValidationTest(keysHost, keysBuffer.size(), 2);
-        }
-         */
+                        float mid = 0.5f * (cov2D.x + cov2D.z);
+                        float lambda1 = mid + std::sqrt(std::max(0.1f, mid * mid - determinant));
+                        float lambda2 = mid - std::sqrt(std::max(0.1f, mid * mid - determinant));
+                        float my_radius = my_ceil(3.f * std::sqrt(std::max(lambda1, lambda2)));
+                        glm::vec2 rect_min, rect_max;
+                        getRect(screenPosPoint, my_radius, rect_min, rect_max, tileGrid);
+                        if ((rect_max.x - rect_min.x) * (rect_max.y - rect_min.y) == 0)
+                            return;
 
+                        glm::vec3 dir = glm::normalize(position - camPos);
+                        glm::vec3 color =
+                                SH_C0 * glm::vec3(shs[idx * shDim + 0], shs[idx * shDim + 1], shs[idx * shDim + 2]);
+                        color += 0.5f;
 
-        auto endSorting = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double> durationSorting = endSorting - startSorting;
-
-        auto startIdentification = std::chrono::high_resolution_clock::now();
-
-        sycl::buffer<glm::ivec2, 1> rangesBuffer(tileGrid.x * tileGrid.y);
-
-        // IdentifyTileRanges
-        {
-            queue.submit([&](sycl::handler &cgh) {
-                auto keysAcc = keysBuffer.get_access<sycl::access::mode::read>(cgh);
-                auto rangesAcc = rangesBuffer.get_access<sycl::access::mode::read_write>(cgh);
-
-                cgh.parallel_for<class IdentifyTileRanges>(sycl::range<1>(rangesBuffer.size()), [=](sycl::id<1> idx) {
-                    int i = idx[0];
-                    rangesAcc[i] = glm::ivec2(-1, -1);
-                    uint32_t key = keysAcc[i];
-                    uint32_t currtile = key >> 16;
-
-                    if (i == 0) {
-                        rangesAcc[currtile].x = 0;
-                    } else {
-                        uint32_t prevtile = keysAcc[i - 1] >> 16;
-                        if (currtile != prevtile) {
-                            rangesAcc[prevtile].y = i;
-                            rangesAcc[currtile].x = i;
-                        }
-                    }
-
-                    if (i == keysAcc.size() - 1) {
-                        rangesAcc[currtile].y = keysAcc.size();
+                        auto conic = glm::vec3(cov2D.z * invDeterminant, -cov2D.y * invDeterminant,
+                                               cov2D.x * invDeterminant);
+                        pointsBufferAccess[idx].depth = posNDC.z;
+                        pointsBufferAccess[idx].radius = my_radius;
+                        pointsBufferAccess[idx].conic = conic;
+                        pointsBufferAccess[idx].screenPos = screenPosPoint;
+                        pointsBufferAccess[idx].color = color;
+                        pointsBufferAccess[idx].opacityBuffer = opacitiesAccess[idx];
+                        // How many tiles we access
+                        // rect_min/max are in tile space
+                        numTilesTouchedAccess[idx] = static_cast<int>((rect_max.y - rect_min.y) *
+                                                                      (rect_max.x - rect_min.x));
                     }
                 });
-            });
-        }
+            }).wait();
+            // Stop timing
+            auto endPreprocess = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> durationPreprocess = endPreprocess - startPreprocess;
 
-        auto endIdentification = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double> durationIdentification = endIdentification - startIdentification;
+            auto startInclusiveSum = std::chrono::high_resolution_clock::now();
 
-        // Compute the global work size ensuring it is a multiple of the local work size
-        sycl::range<2> localWorkSize(tileHeight, tileWidth);
-        size_t globalWidth = ((imageWidth + localWorkSize[0] - 1) / localWorkSize[0]) * localWorkSize[0];
-        size_t globalHeight = ((imageHeight + localWorkSize[1] - 1) / localWorkSize[1]) * localWorkSize[1];
-        sycl::range<2> globalWorkSize(globalHeight, globalWidth);
-        uint32_t horizontal_blocks = (imageWidth + tileWidth - 1) / tileWidth;
+            //parallel_inclusive_scan(queue, numTilesTouchedBuffer, numTilesTouchedInclusiveSumBuffer, numTilesTouchedBuffer.size());
+            uint32_t numRendered;
 
+            /*
+            queue.submit([&](sycl::handler &h) {
+                // Accessors for buffers
+                uint32_t n = numTilesTouchedBuffer.size();
+                auto g_odata_acc = numTilesTouchedInclusiveSumBuffer.get_access<sycl::access::mode::write>(h);
+                auto g_idata_acc = numTilesTouchedBuffer.get_access<sycl::access::mode::read>(h);
 
-        auto startRasterize = std::chrono::high_resolution_clock::now();
-        queue.submit([&](sycl::handler &h) {
-            uint32_t numPoints = gs.getSize();
-            auto rangesBufferAccess = rangesBuffer.get_access<sycl::access::mode::read>(h);
-            auto gaussianBufferAccess = pointsBuffer.get_access<sycl::access::mode::read>(h);
-            auto pointListKeysBufferAccess = keysBuffer.get_access<sycl::access::mode::read>(h);
-            auto pointListBufferAccess = valuesBuffer.get_access<sycl::access::mode::read>(h);
+                // Local memory for shared data
+                sycl::local_accessor<float, 1> temp(n * 2, h);
 
-            auto imageAccessor = imageBuffer.get_access<sycl::access::mode::write>(h);
+                h.parallel_for<class scan_kernel>(sycl::nd_range<1>(n, n), [=](sycl::nd_item<1> item) {
+                    int thid = item.get_local_id(0);
+                    int pout = 0, pin = 1;
 
-            h.parallel_for(sycl::nd_range<2>(globalWorkSize, localWorkSize), [=](sycl::nd_item<2> item) {
-                auto globalID = item.get_global_id(); // Get global indices of the work item
-                auto localID = item.get_local_id(); // Get global indices of the work item
-                auto group = item.get_group();
-                uint32_t row = globalID[0];
-                uint32_t col = globalID[1];
+                    // Load input into shared memory
+                    temp[pout * n + thid] = g_idata_acc[thid];
+                    item.barrier(sycl::access::fence_space::local_space);
 
-
-                if (row < imageHeight && col < imageWidth) {
-                    //uint32_t tileId = calculateTileID(row, col, imageWidth, tileWidth, tileHeight);
-                    //uint32_t tileId = calculateTileID(row, col, imageWidth, tileWidth, tileHeight);
-                    uint32_t groupRow = row / 16;
-                    uint32_t groupCol = col / 16;
-                    uint32_t tileId = groupRow * horizontal_blocks + groupCol;
-
-                    // Ensure tileId is within bounds
-                    if (tileId >= rangesBufferAccess.size()) {
-                        sycl::ext::oneapi::experimental::printf(
-                                "TileId %u out of bounds (max %u ). groupRow %u, groupCol %u, horizontal_blocks %u, imageWidth %u \n",
-                                tileId, static_cast<uint32_t>(rangesBufferAccess.size() - 1), groupRow, groupCol,
-                                horizontal_blocks, imageWidth);
-                        return;
+                    for (int offset = 1; offset < n; offset *= 2) {
+                        pout = 1 - pout; // swap double buffer indices
+                        pin = 1 - pout;
+                        if (thid >= offset)
+                            temp[pout * n + thid] = temp[pin * n + thid] + temp[pin * n + thid - offset];
+                        else
+                            temp[pout * n + thid] = temp[pin * n + thid];
+                        item.barrier(sycl::access::fence_space::local_space);
                     }
-                    //size_t tileId = group.get_group_id(1) * horizontal_blocks + group.get_group_id(0);
-                    glm::ivec2 range = rangesBufferAccess[tileId];
-                    // Initialize helper variables
-                    float T = 1.0f;
-                    float C[3] = {0};
-                    if (range.x >= 0 && range.y >= 0) {
-                        //sycl::ext::oneapi::experimental::printf("Range: (x, y): (%d, %d), in Tile %d, pixel (row,col): (%u,%u)\n", range.x, range.y, tileId, row, col);
 
-                        for (int listIndex = range.x; listIndex < range.y; ++listIndex) {
-                            uint32_t index = pointListBufferAccess[listIndex];
-                            const GaussianPoint &point = gaussianBufferAccess[index];
-                            //if (index >= numPoints || listIndex >= 3600)
-                            //    continue;
-                            //sycl::ext::oneapi::experimental::printf("ListIndex: %u index: %u\n", listIndex, index);
+                    g_odata_acc[thid] = temp[pout * n + thid]; // write output
+                });
+            }).wait();
+            */
+            const auto &numTilesTouchedHost = numTilesTouchedBuffer.get_host_access<>();
+            std::vector<uint32_t> numTilesTouchedSum(numTilesTouchedBuffer.size());
+            numTilesTouchedSum[0] = numTilesTouchedHost[0];
+            for (size_t i = 1; i < numTilesTouchedHost.size(); ++i) {
+                numTilesTouchedSum[i] = numTilesTouchedSum[i - 1] + numTilesTouchedHost[i];
+            }
+
+            numTilesTouchedInclusiveSumBuffer = sycl::buffer<uint32_t, 1>(numTilesTouchedSum.data(),
+                                                                          numTilesTouchedSum.size());
 
 
-                            // Perform processing on the point and update the image
-                            // Example: Set the pixel to a specific value
-                            glm::vec2 pos = point.screenPos;
-                            // Calculate the exponent term
-                            glm::vec2 diff = glm::vec2(col, row) - pos;
-                            glm::vec3 c = point.conic;
-                            glm::mat2 V(c.x, c.y, c.y, c.z);
-                            float power = -0.5f * glm::dot(diff, V * diff);
-                            //float power = -0.5f * ((c.x * dx * dx + c.z * dy * dy) - c.y * dx * dy);
-                            //double power = -((std::pow(dx, 2) / (2 * std::pow(c.x, 2))) + (std::pow(dy, 2) / (2 * std::pow(c.y, 2))));
-                            if (power > 0.0f) {
-                                continue;
+            auto endInclusiveSum = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> durationInclusiveSum = endInclusiveSum - startInclusiveSum;
+
+            numRendered = numTilesTouchedInclusiveSumBuffer.get_host_access().get_pointer()[gs.getSize() - 1];
+
+            auto startAccumulation = std::chrono::high_resolution_clock::now();
+
+            /*
+            {
+                std::vector<uint32_t> inclusiveSum(numTilesTouchedInclusiveSumBuffer.size());
+                auto inclusiveSumAcc = numTilesTouchedInclusiveSumBuffer.get_host_access();
+                for (size_t i = 0; i < inclusiveSumAcc.size(); ++i) {
+                    inclusiveSum[i] = inclusiveSumAcc[i];
+                }
+                auto numRendered2 = inclusiveSum[inclusiveSum.size() - 1];
+
+                const auto &numTilesTouchedHost = numTilesTouchedBuffer.get_host_access<>();
+                for (size_t i = 1; i < numTilesTouchedHost.size(); ++i) {
+                    numTilesTouchedHost[i] += numTilesTouchedHost[i - 1];
+                }
+                int k2 = 0;
+            }
+            */
+
+            {
+                std::vector<uint32_t> gaussian_keys_unsorted;  // Adjust size later
+                std::vector<uint32_t> gaussian_values_unsorted;  // Adjust size later
+
+                gaussian_keys_unsorted.resize(numRendered);
+                gaussian_values_unsorted.resize(numRendered);
+
+                const auto &gaussianBufferHost = pointsBuffer.get_host_access<>();
+                auto inclusiveSumAcc = numTilesTouchedInclusiveSumBuffer.get_host_access();
+                for (int idx = 0; idx < gs.getSize(); ++idx) {
+                    const auto &gaussian = gaussianBufferHost[idx];
+
+                    // Generate no key/value pair for invisible Gaussians
+                    if (gaussian.radius > 0) {
+                        // Find this Gaussian's offset in buffer for writing keys/values.
+                        uint32_t off = (idx == 0) ? 0 : inclusiveSumAcc[idx - 1];
+                        glm::ivec2 rect_min, rect_max;
+
+                        getRect(gaussian.screenPos, gaussian.radius, rect_min, rect_max, tileGrid);
+
+                        // For each tile that the bounding rect overlaps, emit a key/value pair.
+                        for (int y = rect_min.y; y < rect_max.y; ++y) {
+                            for (int x = rect_min.x; x < rect_max.x; ++x) {
+                                if (off < numRendered) {
+                                    uint32_t key = y * tileGrid.x + x;
+                                    if (key >= gridSize) {
+                                        key = 0;
+                                    }
+                                    key <<= 16;
+                                    uint16_t half = float_to_half(gaussian.depth);
+                                    key |= half;
+                                    gaussian_keys_unsorted[off] = key;
+                                    gaussian_values_unsorted[off] = static_cast<uint32_t>(idx);
+                                } else {
+                                    int notGreat = 1;
+                                }
+                                ++off;
                             }
-                            float alpha = std::min(0.99f, point.opacityBuffer * expf(power));
-
-                            if (alpha < 1.0f / 255.0f)
-                                continue;
-
-                            float test_T = T * (1 - alpha);
-                            if (test_T < 0.0001f) {
-                                continue;
-                            }
-                            // Eq. (3) from 3D Gaussian splatting paper.
-                            for (int ch = 0; ch < 3; ch++) {
-                                C[ch] += point.color[ch] * alpha * T;
-                            }
-                            T = test_T;
                         }
                     }
-                    imageAccessor[row][col][0] = static_cast<uint8_t>((C[0] + T * 0.0f) * 255.0f);
-                    imageAccessor[row][col][1] = static_cast<uint8_t>((C[1] + T * 0.0f) * 255.0f);
-                    imageAccessor[row][col][2] = static_cast<uint8_t>((C[2] + T * 0.0f) * 255.0f);
-                    imageAccessor[row][col][3] = static_cast<uint8_t>(255.0f);
-                } // endif
-            });
-        });
+                }
+            }
 
-        auto endRasterization = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double> durationRasterization = endRasterization - startRasterize;
 
-        queue.wait();
+            keysBuffer = sycl::buffer<uint32_t, 1>(numRendered); // Adjust size later
+            valuesBuffer = sycl::buffer<uint32_t, 1>(numRendered);  // Adjust size later
 
-        std::chrono::duration<double> totalDuration = endRasterization - startPreprocess;
-        printDurations(durationRasterization, durationIdentification, durationSorting, durationAccumulation,
-                       durationPreprocess, durationInclusiveSum, totalDuration);
-        auto hostImageAccessor = imageBuffer.get_host_access();
-        m_image = hostImageAccessor.get_pointer();
+            queue.submit([&](sycl::handler &cgh) {
+                auto keysAcc = keysBuffer.get_access<sycl::access::mode::write>(cgh);
+                auto valuesAcc = valuesBuffer.get_access<sycl::access::mode::write>(cgh);
+
+                auto inclusiveSumAccess = numTilesTouchedInclusiveSumBuffer.get_access<sycl::access::mode::read>(cgh);
+                auto gaussianAccess = pointsBuffer.get_access<sycl::access::mode::read>(cgh);
+                cgh.parallel_for<class GaussianProcessing>(sycl::range<1>(gs.getSize()), [=](sycl::id<1> idx) {
+                    uint32_t i = idx.get(0);
+                    const auto &gaussian = gaussianAccess[i];
+
+                    if (gaussian.radius > 0) {
+                        uint32_t off = (i == 0) ? 0 : inclusiveSumAccess[i - 1];
+                        glm::ivec2 rect_min, rect_max;
+                        getRect(gaussian.screenPos, gaussian.radius, rect_min, rect_max, tileGrid);
+                        for (int y = rect_min.y; y < rect_max.y; ++y) {
+                            for (int x = rect_min.x; x < rect_max.x; ++x) {
+                                if (off >= numRendered) {
+                                    break;
+                                }
+                                uint32_t key = static_cast<uint16_t>(y) * static_cast<uint16_t>(tileGrid.x) + x;
+                                if (key >= gridSize) {
+                                    key = 0;
+                                }
+                                key <<= 16;
+                                uint16_t half = float_to_half(gaussian.depth);
+                                key |= half;
+                                keysAcc[off] = key;
+                                valuesAcc[off] = i;
+                                ++off;
+                            }
+                        }
+                    }
+                });
+            }).wait();
+            auto endAccumulation = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> durationAccumulation = endAccumulation - startAccumulation;
+
+
+            /*
+            if (numTilesTouchedInclusiveSumBuffer.get_host_access()[numTilesTouchedInclusiveSumBuffer.size()] <= 0) {
+                auto hostImageAccessor = imageBuffer.get_host_access();
+                m_image = hostImageAccessor.get_pointer();
+                return;
+            }
+            */
+
+
+            auto startSorting = std::chrono::high_resolution_clock::now();
+            radixSorter = std::make_unique<crl::RadixSorter>(queue, numRendered);
+
+            radixSorter->performOneSweep(numRendered, keysBuffer, valuesBuffer);
+            queue.wait();
+
+            {
+                std::vector<uint32_t> keysHost(keysBuffer.size());
+                std::vector<uint32_t> valuesHost(valuesBuffer.size());
+                // Copy data back to host
+                auto keysHostAcc = keysBuffer.get_host_access();
+                uint64_t sum = 0;
+                for (size_t i = 0; i < keysBuffer.size(); ++i) {
+                    keysHost[i] = keysHostAcc[i];
+                    sum += keysHost[i];
+                }
+                /*
+                auto valuesHostAcc = valuesBuffer.get_host_access();
+                for (size_t i = 0; i < valuesHostAcc.size(); ++i) {
+                    valuesHost[i] = valuesHostAcc[i];
+                    if (valuesHost[i] >= 3600) {
+                        printf("Error %zu, %d\n", i, valuesHost[i]);
+                    }
+                }
+                */
+                if (ValidationTest(keysHost, keysHost.size(), 2)) {
+                    int yes = 1;
+                } else {
+                    int no = 1;
+                }
+            }
+
+
+            auto endSorting = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> durationSorting = endSorting - startSorting;
+
+            auto startIdentification = std::chrono::high_resolution_clock::now();
+
+            sycl::buffer<glm::ivec2, 1> rangesBuffer(tileGrid.x * tileGrid.y);
+
+            // IdentifyTileRanges
+            {
+                queue.submit([&](sycl::handler &cgh) {
+                    auto keysAcc = keysBuffer.get_access<sycl::access::mode::read>(cgh);
+                    auto rangesAcc = rangesBuffer.get_access<sycl::access::mode::read_write>(cgh);
+
+                    cgh.parallel_for<class TileRanges>(sycl::range<1>(rangesBuffer.size()), [=](sycl::id<1> idx) {
+                        int i = idx[0];
+                        rangesAcc[i] = glm::ivec2(-1, -1);
+                        uint32_t key = keysAcc[i];
+                        uint16_t currTile = key >> 16;
+                        if (currTile < 3600) {
+                            if (i == 0) {
+                                rangesAcc[currTile].x = 0;
+                            } else {
+                                uint16_t prevTile = keysAcc[i - 1] >> 16;
+                                if (currTile != prevTile) {
+                                    rangesAcc[prevTile].y = i;
+                                    rangesAcc[currTile].x = i;
+                                }
+                            }
+
+                            if (i == keysAcc.size() - 1) {
+                                rangesAcc[currTile].y = keysAcc.size();
+                            }
+                        }
+                    });
+                }).wait();
+            }
+            auto endIdentification = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> durationIdentification = endIdentification - startIdentification;
+
+            ImageState imgState;
+            {
+                std::vector<uint32_t> keys(keysBuffer.size());
+                auto keysAcc = keysBuffer.get_host_access();
+                for (size_t i = 0; i < keysAcc.size(); ++i) {
+                    keys[i] = keysAcc[i];
+                }
+                identifyTileRanges(tileGrid.x * tileGrid.y, keys, imgState);
+                rangesBuffer = sycl::buffer<glm::ivec2, 1>{imgState.ranges.data(), imgState.ranges.size()};
+            }
+            // Compute the global work size ensuring it is a multiple of the local work size
+            sycl::range<2> localWorkSize(tileHeight, tileWidth);
+            size_t globalWidth = ((imageWidth + localWorkSize[0] - 1) / localWorkSize[0]) * localWorkSize[0];
+            size_t globalHeight = ((imageHeight + localWorkSize[1] - 1) / localWorkSize[1]) * localWorkSize[1];
+            sycl::range<2> globalWorkSize(globalHeight, globalWidth);
+            uint32_t horizontal_blocks = (imageWidth + tileWidth - 1) / tileWidth;
+
+            auto startRasterize = std::chrono::high_resolution_clock::now();
+            queue.submit([&](sycl::handler &h) {
+                auto rangesBufferAccess = rangesBuffer.get_access<sycl::access::mode::read>(h);
+                auto gaussianBufferAccess = pointsBuffer.get_access<sycl::access::mode::read>(h);
+                auto pointListBufferAccess = valuesBuffer.get_access<sycl::access::mode::read>(h);
+                auto imageAccessor = imageBuffer.get_access<sycl::access::mode::write>(h);
+                uint32_t numPoints = gs.getSize();
+                h.parallel_for(sycl::nd_range<2>(globalWorkSize, localWorkSize), [=](sycl::nd_item<2> item) {
+                    auto globalID = item.get_global_id(); // Get global indices of the work item
+                    uint32_t row = globalID[0];
+                    uint32_t col = globalID[1];
+
+
+                    if (row < imageHeight && col < imageWidth) {
+                        //uint32_t tileId = calculateTileID(row, col, imageWidth, tileWidth, tileHeight);
+                        //uint32_t tileId = calculateTileID(row, col, imageWidth, tileWidth, tileHeight);
+                        uint32_t groupRow = row / 16;
+                        uint32_t groupCol = col / 16;
+                        uint32_t tileId = groupRow * horizontal_blocks + groupCol;
+
+                        // Ensure tileId is within bounds
+                        if (tileId >= rangesBufferAccess.size()) {
+                            sycl::ext::oneapi::experimental::printf(
+                                    "TileId %u out of bounds (max %u ). groupRow %u, groupCol %u, horizontal_blocks %u, imageWidth %u \n",
+                                    tileId, static_cast<uint32_t>(rangesBufferAccess.size() - 1), groupRow, groupCol,
+                                    horizontal_blocks, imageWidth);
+                            return;
+                        }
+                        //size_t tileId = group.get_group_id(1) * horizontal_blocks + group.get_group_id(0);
+                        glm::ivec2 range = rangesBufferAccess[tileId];
+                        // Initialize helper variables
+                        float T = 1.0f;
+                        float C[3] = {0};
+                        if (range.x >= 0 && range.y >= 0) {
+
+                            for (int listIndex = range.x; listIndex < range.y; ++listIndex) {
+                                uint32_t index = pointListBufferAccess[listIndex];
+                                const GaussianPoint &point = gaussianBufferAccess[index];
+                                if (index >= numPoints || listIndex >= 3600)
+                                    continue;
+                                //sycl::ext::oneapi::experimental::printf("ListIndex: %u index: %u\n", listIndex, index);
+
+
+                                // Perform processing on the point and update the image
+                                // Example: Set the pixel to a specific value
+                                glm::vec2 pos = point.screenPos;
+                                // Calculate the exponent term
+                                glm::vec2 diff = glm::vec2(col, row) - pos;
+                                glm::vec3 c = point.conic;
+                                glm::mat2 V(c.x, c.y, c.y, c.z);
+                                float power = -0.5f * glm::dot(diff, V * diff);
+                                if (power > 0.0f) {
+                                    continue;
+                                }
+                                float alpha = std::min(0.99f, point.opacityBuffer * expf(power));
+                                if (alpha < 1.0f / 255.0f)
+                                    continue;
+                                float test_T = T * (1 - alpha);
+                                if (test_T < 0.0001f) {
+                                    continue;
+                                }
+                                // Eq. (3) from 3D Gaussian splatting paper.
+                                for (int ch = 0; ch < 3; ch++) {
+                                    C[ch] += point.color[ch] * alpha * T;
+                                }
+                                T = test_T;
+                            }
+                        }
+                        imageAccessor[row][col][0] = static_cast<uint8_t>((C[0] + T * 0.0f) * 255.0f);
+                        imageAccessor[row][col][1] = static_cast<uint8_t>((C[1] + T * 0.0f) * 255.0f);
+                        imageAccessor[row][col][2] = static_cast<uint8_t>((C[2] + T * 0.0f) * 255.0f);
+                        imageAccessor[row][col][3] = static_cast<uint8_t>(255.0f);
+                    } // endif
+                });
+            }).wait();
+
+            auto endRasterization = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> durationRasterization = endRasterization - startRasterize;
+
+            std::chrono::duration<double> totalDuration = endRasterization - startPreprocess;
+
+            printDurations(durationRasterization, durationIdentification, durationSorting, durationAccumulation,
+                           durationPreprocess, durationInclusiveSum, totalDuration);
+        }
+
+        m_image = imageBuffer.get_host_access().get_pointer();
+        // Use `image` as needed
     }
 
     GaussianRenderer::GaussianPoints GaussianRenderer::loadNaive() {

@@ -91,7 +91,7 @@ namespace VkRender::crl {
                                      sycl::buffer<uint32_t, 1> &passHistogramBuffer,
                                      sycl::buffer<uint32_t, 1> &indexBuffer,
                                      uint32_t radixShift, uint32_t binningThreadBlocks, uint32_t binningThreads,
-                                     sycl::buffer<uint32_t, 1> &inclusiveSumBuffer) {
+                                     uint32_t size) {
 
 
         queue.submit([&](sycl::handler &h) {
@@ -105,14 +105,11 @@ namespace VkRender::crl {
             auto valuesAltAcc = valuesAltBuffer.get_access<sycl::access::mode::read_write>(h);
             auto passHistogramAcc = passHistogramBuffer.get_access<sycl::access::mode::read_write>(h);
 
-            auto inclusiveSumAccess = inclusiveSumBuffer.get_access<sycl::access_mode::read>(h);
-
             // Kernel code
             h.parallel_for<class digit_binning>(
                     sycl::nd_range<1>(sycl::range<1>(binningThreads * binningThreadBlocks),
                                       sycl::range<1>(binningThreads)),
                     [=](sycl::nd_item<1> item) {
-                        uint32_t size = inclusiveSumAccess[inclusiveSumAccess.size() - 1];
 
                         uint32_t threadIdx = item.get_local_id(0);
                         uint32_t blockIdx = item.get_group(0);
@@ -327,16 +324,16 @@ namespace VkRender::crl {
                         }
                     });
 
-        });
+        }).wait();
 
     }
 
     class RadixSorter {
 
     public:
-        RadixSorter(sycl::queue &_queue) {
+        RadixSorter(sycl::queue &_queue, uint32_t size) {
             queue = _queue;
-            uint32_t size = (1 << 21);
+            //uint32_t size = (1 << 21);
 
             binningThreadblocks = (size + partitionSize - 1) / partitionSize;
             globalHistThreadblocks = (size + globalHistPartitionSize - 1) / globalHistPartitionSize;
@@ -417,7 +414,7 @@ namespace VkRender::crl {
 
 
     public:
-        void performOneSweep(sycl::buffer<uint32_t, 1> &inclusiveSumBuffer, sycl::buffer<uint32_t, 1> &sortBuffer,
+        void performOneSweep(uint32_t size, sycl::buffer<uint32_t, 1> &sortBuffer,
                              sycl::buffer<uint32_t, 1> &valuesBuffer) {
                 // GlobalHistogram
                 queue.submit([&](sycl::handler &h) {
@@ -429,7 +426,6 @@ namespace VkRender::crl {
                     auto sortAcc = sortBuffer.get_access<sycl::access_mode::read_write>(h);
                     auto globalHistAcc = globalHistogramBuffer.get_access<sycl::access_mode::read_write>(h);
 
-                    auto inclusiveSumAccess = inclusiveSumBuffer.get_access<sycl::access_mode::read>(h);
                     // Kernel code
                     h.parallel_for<class global_histogram_kernel>(
                             sycl::nd_range<1>(sycl::range<1>(globalHistThreads * globalHistThreadblocks),
@@ -439,8 +435,6 @@ namespace VkRender::crl {
                                 uint32_t blockDim = item.get_local_range(0);
                                 uint32_t blockIdx = item.get_group(0);
                                 uint32_t gridDim = item.get_group_range(0);
-
-                                uint32_t size = inclusiveSumAccess[inclusiveSumAccess.size() - 1];
 
 
                                 // Clear shared memory
@@ -592,7 +586,7 @@ namespace VkRender::crl {
                                     }
                                 }
                             });
-                });
+                }).wait();
 
 
                 /// SCAN PASS
@@ -650,27 +644,26 @@ namespace VkRender::crl {
                                         break;
                                 }
                             });
-                });
+                }).wait();
 
                 // DIGIT BINNING PASSES
 
                 DigitBinningPassFunc(queue, sortBuffer, sortAltBuffer, valuesBuffer, valuesAltBuffer,
                                      firstPassHistogramBuffer, indexBuffer, 0,
-                                     binningThreadblocks, binningThreads, inclusiveSumBuffer);
+                                     binningThreadblocks, binningThreads, size);
 
                 DigitBinningPassFunc(queue, sortAltBuffer, sortBuffer, valuesAltBuffer, valuesBuffer,
                                      secPassHistogramBuffer, indexBuffer, 8,
-                                     binningThreadblocks, binningThreads, inclusiveSumBuffer);
+                                     binningThreadblocks, binningThreads, size);
 
                 DigitBinningPassFunc(queue, sortBuffer, sortAltBuffer, valuesBuffer, valuesAltBuffer,
                                      thirdPassHistogramBuffer, indexBuffer, 16,
-                                     binningThreadblocks, binningThreads, inclusiveSumBuffer);
+                                     binningThreadblocks, binningThreads, size);
 
                 DigitBinningPassFunc(queue, sortAltBuffer, sortBuffer, valuesAltBuffer, valuesBuffer,
                                      fourthPassHistogramBuffer, indexBuffer, 24,
-                                     binningThreadblocks, binningThreads, inclusiveSumBuffer);
+                                     binningThreadblocks, binningThreads, size);
 
-            queue.wait();
         }
     };
 }

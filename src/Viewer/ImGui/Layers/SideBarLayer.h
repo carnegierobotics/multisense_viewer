@@ -62,6 +62,11 @@ namespace VkRender {
                     }
                 }
 
+                if (e.hasComponent<TransformComponent>()) {
+                    auto& transform = e.getComponent<TransformComponent>();
+                    ImGui::Checkbox("Flip Up", &transform.getFlipUpOption());
+                }
+
                 if (ImGui::SmallButton(("Delete ##" + tag.Tag).c_str())) {
                     handles->m_context->markEntityForDestruction(Entity(entity, handles->m_context));
                 }

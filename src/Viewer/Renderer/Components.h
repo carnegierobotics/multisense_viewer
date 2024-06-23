@@ -30,13 +30,13 @@ namespace VkRender {
 
         IDComponent(const IDComponent &) = default;
 
-        explicit IDComponent(const UUID &uuid) : ID(uuid) {}
+        explicit IDComponent(const UUID &uuid) : ID(uuid) {
+        }
 
         // Explicitly define the copy assignment operator
         IDComponent &operator=(const IDComponent &other) {
             return *this;
         }
-
     };
 
     struct TagComponent {
@@ -47,7 +47,6 @@ namespace VkRender {
         TagComponent(const TagComponent &other) = default;
 
         TagComponent &operator=(const TagComponent &other) = default;
-
     };
 
     struct TransformComponent {
@@ -65,11 +64,14 @@ namespace VkRender {
 
             glm::quat quaternion;
         };
+
         RotationType type;
 
         glm::vec3 translation = {0.0f, 0.0f, 0.0f};
         glm::vec3 rotation = {0.0f, 0.0f, 0.0f};
         glm::vec3 scale = {1.0f, 1.0f, 1.0f};
+
+        bool m_flipUpAxis = false;
 
         TransformComponent() = default;
 
@@ -97,20 +99,39 @@ namespace VkRender {
             quaternion = q;
             type = RotationType::Quaternion;
         }
+
         void setPosition(const glm::vec3 &v) {
             translation = v;
+        }
+
+        void setFlipUpOption(const bool flipUp) {
+            m_flipUpAxis = flipUp;
+        }
+
+        bool &getFlipUpOption() {
+            return m_flipUpAxis;
         }
 
         glm::mat4 getRotMat() const {
             if (type == RotationType::Euler) {
                 glm::vec3 radiansEuler = glm::radians(glm::vec3(euler.pitch, euler.yaw, euler.roll));
                 glm::quat q = glm::quat(radiansEuler);
-                return glm::toMat4(q);
-            } else {
-                return glm::toMat4(quaternion);
+                glm::mat4 rot = glm::toMat4(q);
+                if (m_flipUpAxis) {
+                    glm::mat4 m_flipUpRotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f),
+                                                                   glm::vec3(1.0f, 0.0f, 0.0f));
+                    rot = m_flipUpRotationMatrix * rot;
+                }
+                return rot;
             }
+            glm::mat4 rot = glm::toMat4(quaternion);
+            if (m_flipUpAxis) {
+                glm::mat4 m_flipUpRotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f),
+                                                               glm::vec3(1.0f, 0.0f, 0.0f));
+                rot = m_flipUpRotationMatrix * rot;
+            }
+            return rot;
         }
-
     };
 
 
@@ -118,7 +139,8 @@ namespace VkRender {
         const Camera *camera;
         bool drawGizmo = true;
 
-        explicit CameraComponent(Camera *cam) : camera(cam) {}
+        explicit CameraComponent(Camera *cam) : camera(cam) {
+        }
 
         // Explicitly define the copy assignment operator
         CameraComponent &operator=(const CameraComponent &other) {
@@ -155,6 +177,7 @@ namespace VkRender {
         enum class BodyType {
             Static = 0, Dynamic, Kinematic
         };
+
         BodyType Type = BodyType::Static;
         bool FixedRotation = false;
 
@@ -195,9 +218,9 @@ namespace VkRender {
     };
 
     using AllComponents =
-            ComponentGroup<TransformComponent,
-                    CameraComponent, ScriptComponent,
-                    Rigidbody2DComponent, TextComponent>;
+    ComponentGroup<TransformComponent,
+        CameraComponent, ScriptComponent,
+        Rigidbody2DComponent, TextComponent>;
 
     DISABLE_WARNING_POP
 }

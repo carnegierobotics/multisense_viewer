@@ -759,6 +759,7 @@ namespace VkRender {
 
             auto entity = createEntity(filename.replace_extension().string());
             auto &component = entity.addComponent<OBJModelComponent>(guiManager->handles.m_paths.importFilePath, renderUtils.device);
+
             entity.addComponent<DefaultGraphicsPipelineComponent2>(&renderUtils).bind(component);
             entity.addComponent<DepthRenderPassComponent>();
         }

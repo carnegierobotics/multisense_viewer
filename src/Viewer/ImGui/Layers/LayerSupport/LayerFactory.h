@@ -5,7 +5,7 @@
 #ifndef MULTISENSE_VIEWER_LAYERFACTORY_H
 #define MULTISENSE_VIEWER_LAYERFACTORY_H
 
-#include "Viewer/ImGui/Layers/Layer.h"
+#include "Viewer/ImGui/Layers/LayerSupport/Layer.h"
 #include <memory>
 #include <string>
 

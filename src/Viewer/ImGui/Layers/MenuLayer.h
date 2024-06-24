@@ -5,7 +5,7 @@
 #ifndef MULTISENSE_VIEWER_MENULAYER_H
 #define MULTISENSE_VIEWER_MENULAYER_H
 
-#include "Viewer/ImGui/Layers/Layer.h"
+#include "Viewer/ImGui/Layers/LayerSupport/Layer.h"
 
 /** Is attached to the renderer through the GuiManager and instantiated in the GuiManager Constructor through
  *         pushLayer<[LayerName]>();

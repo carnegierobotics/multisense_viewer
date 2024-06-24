@@ -38,14 +38,12 @@
 
 #include <future>
 
-#include "Viewer/ImGui/Layers/Layer.h"
+#include "Viewer/ImGui/Layers/LayerSupport/Layer.h"
 #include "Viewer/Core/RendererConfig.h"
 #include "Viewer/Renderer/UsageMonitor.h"
 
 class DebugWindow : public VkRender::Layer {
 public:
-    UsageMonitor usageMonitor;
-
 // Usage:
 //  static ExampleAppLog my_log;
 //  my_log.AddLog("Hello %d world\n", 123);
@@ -231,7 +229,7 @@ public:
 
         if (ImGui::Checkbox("Send Logs on exit", &user.sendUsageLogOnExit)) {
             update = true;
-            usageMonitor.setSetting("send_usage_log_on_exit", Utils::boolToString(user.sendUsageLogOnExit));
+            handles->usageMonitor->setSetting("send_usage_log_on_exit", Utils::boolToString(user.sendUsageLogOnExit));
             handles->usageMonitor->userClickAction("Send Logs on exit", "Checkbox",
                                                    ImGui::GetCurrentWindow()->Name);
         }
@@ -247,12 +245,12 @@ public:
         static bool sendUserLog = false;
         sendUserLog = ImGui::Button("Send user log");
         if (sendUserLog) {
-            sendUserLogFuture = std::async(std::launch::async, &DebugWindow::sendUsageLog, this);
+            sendUserLogFuture = std::async(std::launch::async, &DebugWindow::sendUsageLog, this, handles);
             handles->usageMonitor->userClickAction("Send user log", "Button", ImGui::GetCurrentWindow()->Name);
         }
 
         if (ImGui::Button("Reset consent")) {
-            usageMonitor.setSetting("ask_user_consent_to_collect_statistics", "true");
+            handles->usageMonitor->setSetting("ask_user_consent_to_collect_statistics", "true");
             handles->usageMonitor->userClickAction("Reset statistics consent", "Button",
                                                    ImGui::GetCurrentWindow()->Name);
             user.askForUsageLoggingPermissions = true;
@@ -278,7 +276,7 @@ public:
                     itemIdIndex = n;
                     auto level = Utils::getLogLevelEnumFromString(items[n]);
                     user.logLevel = level;
-                    usageMonitor.setSetting("log_level", items[n]);
+                    handles->usageMonitor->setSetting("log_level", items[n]);
                     update |= true;
                     handles->usageMonitor->userClickAction("Set Log level", "combo",
                                                            ImGui::GetCurrentWindow()->Name);
@@ -313,8 +311,8 @@ public:
 
     }
 
-    void sendUsageLog() {
-        usageMonitor.sendUsageLog();
+    void sendUsageLog(VkRender::GuiObjectHandles *handles) {
+        handles->usageMonitor->sendUsageLog();
     }
 
 

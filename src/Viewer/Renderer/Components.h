@@ -12,12 +12,10 @@
 #define GLM_ENABLE_EXPERIMENTAL
 
 #include <glm/gtx/quaternion.hpp>
-#include <utility>
-
 #include "Viewer/Core/Camera.h"
 #include "Viewer/Core/UUID.h"
-#include "Viewer/Scripts/Private/Base.h"
-#include "Viewer/Scripts/Private/ScriptBuilder.h"
+#include "Viewer/Scripts/ScriptSupport/Base.h"
+#include "Viewer/Scripts/ScriptSupport/ScriptBuilder.h"
 
 namespace VkRender {
     DISABLE_WARNING_PUSH

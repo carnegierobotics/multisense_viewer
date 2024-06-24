@@ -72,10 +72,10 @@ namespace VkRender {
                     }
                     break;
                 case 500:
-                    Log::Logger::getInstance()->info("Status code 500. Server error: {}", res->body);
+                    Log::Logger::getInstance()->warning("Status code 500. Server error: {}", res->reason);
                     break;
                 case 404:
-                    Log::Logger::getInstance()->info("Error 404.Not found {}", res->body);
+                    Log::Logger::getInstance()->error("Error 404.Not found {}", res->body);
             }
         } else {
             auto err = res.error();

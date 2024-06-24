@@ -76,7 +76,7 @@ set(SOURCE_FILES
         src/Viewer/Renderer/ApplicationUserSetting.h
 
         src/Viewer/ImGui/Widgets.cpp
-        src/Viewer/ImGui/Layers/LayerFactory.cpp
+        src/Viewer/ImGui/Layers/LayerSupport/LayerFactory.cpp
         src/Viewer/ImGui/GuiManager.cpp
         src/Viewer/ImGui/AdditionalWindows/DebugWindow.h
 
@@ -84,12 +84,9 @@ set(SOURCE_FILES
         src/Viewer/Tools/Logger.cpp
         src/Viewer/Tools/ThreadPool.h
 
-        src/Viewer/Scripts/Private/ScriptUtils.h
+        src/Viewer/Scripts/ScriptSupport/ScriptUtils.h
         src/Viewer/Scripts/Renderer3D/DefaultScene.cpp
-        src/Viewer/Scripts/Renderer3D/MultiSense.cpp
         src/Viewer/Scripts/Renderer3D/Example/Example3D.cpp
-        src/Viewer/Scripts/Renderer3D/ImageViewer.cpp
-        src/Viewer/Scripts/Renderer3D/DataCapture.cpp
 )
 
 

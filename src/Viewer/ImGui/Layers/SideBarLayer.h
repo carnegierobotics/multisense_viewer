@@ -5,8 +5,8 @@
 #ifndef MULTISENSE_VIEWER_SIDEBARLAYER_H
 #define MULTISENSE_VIEWER_SIDEBARLAYER_H
 
-#include "Viewer/ImGui/Layers/Layer.h"
-#include "Viewer/ImGui/Layers/LayerUtils.h"
+#include "Viewer/ImGui/Layers/LayerSupport/Layer.h"
+#include "Viewer/ImGui/Layers/LayerSupport/LayerUtils.h"
 
 #include "Viewer/Renderer/Components/GLTFModelComponent.h"
 #include "Viewer/Renderer/Components/CameraGraphicsPipelineComponent.h"

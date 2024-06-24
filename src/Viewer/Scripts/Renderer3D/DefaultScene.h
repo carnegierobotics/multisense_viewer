@@ -5,7 +5,7 @@
 #ifndef MULTISENSE_VIEWER_DEFAULTSCENE_H
 #define MULTISENSE_VIEWER_DEFAULTSCENE_H
 
-#include "Viewer/Scripts/Private/ScriptBuilder.h"
+#include "Viewer/Scripts/ScriptSupport/ScriptBuilder.h"
 
 
 class DefaultScene: public VkRender::Base, public VkRender::RegisteredInFactory<DefaultScene>

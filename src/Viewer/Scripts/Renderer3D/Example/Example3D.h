@@ -5,7 +5,7 @@
 #ifndef MULTISENSE_VIEWER_EXAMPLE_3D_H
 #define MULTISENSE_VIEWER_EXAMPLE_3D_H
 
-#include "Viewer/Scripts/Private/ScriptBuilder.h"
+#include "Viewer/Scripts/ScriptSupport/ScriptBuilder.h"
 
 
 class Example3D: public VkRender::Base, public VkRender::RegisteredInFactory<Example3D>

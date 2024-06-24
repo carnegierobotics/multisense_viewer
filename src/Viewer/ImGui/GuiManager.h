@@ -41,20 +41,18 @@
 #include <type_traits>
 #include <memory>
 #include <vector>
-#include <functional>
 #include <glm/vec2.hpp>
 
 
 #include <imgui_internal.h>
 
 #include "Viewer/Tools/Utils.h"
-#include "Viewer/Tools/Populate.h"
 #include "Viewer/Core/Texture.h"
 #include "Viewer/Core/VulkanDevice.h"
 #include "Viewer/Core/RenderDefinitions.h"
-#include "Viewer/ImGui/Layers/Layer.h"
+#include "Viewer/ImGui/Layers/LayerSupport/Layer.h"
 #include "Viewer/ImGui/Widgets.h"
-#include "Viewer/ImGui/Layers/LayerFactory.h"
+#include "Viewer/ImGui/Layers/LayerSupport/LayerFactory.h"
 
 namespace VkRender {
     class GuiManager {

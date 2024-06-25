@@ -3,12 +3,15 @@
 #include <Viewer/ImGui/Layers/LayerSupport/Layer.h>
 
 static void drawWelcomeScreen(VkRender::GuiObjectHandles *uiContext) {
+    // IF we do not have any active cameras we can just draw welcome screen
 
+    // Welcome screen
     ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLGray421);
-    // Begin the sidebar as a child window
-    ImGui::SetNextWindowPos(ImVec2(uiContext->info->sidebarWidth, 0.0f));
-    ImGui::BeginChild("WelcomeScreen", ImVec2(uiContext->info->width - uiContext->info->sidebarWidth, uiContext->info->height), false,
+    ImGui::SetCursorPos(ImVec2(uiContext->info->sidebarWidth, 0.0f));
+    ImGui::BeginChild("WelcomeScreen",
+                      ImVec2(uiContext->info->width - uiContext->info->sidebarWidth, uiContext->info->height), false,
                       ImGuiWindowFlags_NoScrollWithMouse);
+
 
     ImGui::EndChild();
     ImGui::PopStyleColor();

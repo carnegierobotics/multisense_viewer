@@ -99,7 +99,7 @@ namespace VkRender {
         /** @brief aspect ratio of window surface */
         float aspect{};
         /**@brief Width of sidebar*/
-        float sidebarWidth = 300.0f;
+        float sidebarWidth = 250.0f;
 
         float menuBarHeight = 25.0f;
         /**@brief Width debug window*/

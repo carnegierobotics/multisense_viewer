@@ -33,20 +33,18 @@
  * Significant history (date, user, action):
  *   2022-4-9, mgjerde@carnegierobotics.com, Created file.
  **/
-
-
 #include <array>
 #include <stb_image_write.h>
 
 #include "Viewer/Renderer/Renderer.h"
 #include "Viewer/Renderer/Entity.h"
 
-#include "Viewer/Renderer/Components.h"
 #include "Viewer/Tools/Utils.h"
 #include "Viewer/Tools/Populate.h"
 #include "Viewer/Tools/Macros.h"
 #include "Viewer/Core/UUID.h"
 
+#include "Viewer/Renderer/Components.h"
 #include "Viewer/Renderer/Components/GLTFModelComponent.h"
 #include "Viewer/Renderer/Components/SkyboxGraphicsPipelineComponent.h"
 #include "Viewer/Renderer/Components/DefaultPBRGraphicsPipelineComponent.h"
@@ -263,14 +261,14 @@ namespace VkRender {
             scissor = Populate::rect2D(static_cast<int32_t>(subWindowWidth),
                                        static_cast<int32_t>(subWindowHeight), 0, 0);
         } else {
-            float windowHeight = m_Height;
+            float windowHeight = static_cast<float>(m_Height);
             if (guiManager->handles.enableSecondaryView) {
-                windowHeight = m_Height / 2;
+                windowHeight = static_cast<float>(m_Height) / 2;
             }
 
             float subWindowWidth = static_cast<float>(m_Width) - guiManager->handles.info->sidebarWidth;
 
-            viewport = Populate::viewport(static_cast<float>(subWindowWidth),
+            viewport = Populate::viewport(subWindowWidth,
                                           windowHeight, 0.0f, 1.0f);
 
             scissor = Populate::rect2D(subWindowWidth, windowHeight, 0, 0);

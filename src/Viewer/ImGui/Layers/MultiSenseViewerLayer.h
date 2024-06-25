@@ -6,6 +6,7 @@
 #define WELCOMESCREENLAYER_H
 
 #include "MultiSenseViewerLayers/Sidebar.h"
+#include "MultiSenseViewerLayers/WelcomeScreen.h"
 #include "Viewer/ImGui/Layers/LayerSupport/Layer.h"
 
 /** Is attached to the renderer through the GuiManager and instantiated in the GuiManager Constructor through
@@ -47,6 +48,11 @@ namespace VkRender {
 
             // Keep all logic inside each function call. Call each element here for a nice orderly overview
             drawSideBar(uiContext);
+            // Draw welcome screen
+            drawWelcomeScreen(uiContext);
+            // Draw Main preview page, after we obtained a successfull connection
+            // Draw the 2D view (Camera stream, layouts etc..)
+            // Draw the 3D View
 
 
             ImGui::End();

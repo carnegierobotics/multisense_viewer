@@ -116,12 +116,10 @@ namespace VkRender {
 
         // GuiManager framework
         std::vector<std::shared_ptr<Layer>> m_LayerStack{};
-
         // Textures
         std::vector<Texture2D> iconTextures;
         std::vector<Texture2D> fontTexture;
         std::unique_ptr<Texture2D> gifTexture[99];
-
         // Vulkan resources for rendering the UI
         //Buffer vertexBuffer;
         //Buffer indexBuffer;
@@ -133,8 +131,6 @@ namespace VkRender {
         std::vector<int32_t> indexCount{};
 
         uint32_t updatedBufferIndex = 0;
-        //int32_t vertexCount = 0;
-        //int32_t indexCount = 0;
 
         VkPipelineCache pipelineCache{};
         VkPipelineLayout pipelineLayout{};
@@ -147,7 +143,6 @@ namespace VkRender {
 
         std::vector<VkShaderModule> shaderModules{};
         VulkanDevice *device = nullptr;
-        std::shared_ptr<VkRender::ThreadPool> pool;
         std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> saveSettingsTimer;
 
         ImFont *loadFontFromFileName(std::string file, float fontSize);

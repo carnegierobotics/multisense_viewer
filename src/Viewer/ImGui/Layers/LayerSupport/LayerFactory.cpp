@@ -8,6 +8,7 @@
 #include "Viewer/ImGui/AdditionalWindows/NewVersionAvailable.h"
 #include "Viewer/ImGui/Layers/SideBarLayer.h"
 #include "Viewer/ImGui/Layers/MenuLayer.h"
+#include "Viewer/ImGui/Layers/MultiSenseViewerLayer.h"
 
 namespace VkRender {
 
@@ -17,8 +18,9 @@ namespace VkRender {
         if (layerName == "LayerExample") return std::make_shared<LayerExample>();
         if (layerName == "DebugWindow") return std::make_shared<DebugWindow>();
         if (layerName == "NewVersionAvailable") return std::make_shared<NewVersionAvailable>();
+        if (layerName == "MultiSenseViewerLayer") return std::make_shared<MultiSenseViewerLayer>();
         //if (layerName == "SideBarLayer") return std::make_shared<SideBarLayer>();
-        //if (layerName == "MenuLayer") return std::make_shared<MenuLayer>();
+        if (layerName == "MenuLayer") return std::make_shared<MenuLayer>();
 
         return nullptr; // or throw an exception if an unknown layer is requested
     }

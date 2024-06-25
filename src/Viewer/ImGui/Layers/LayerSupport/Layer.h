@@ -57,6 +57,7 @@ namespace VkRender {
 
     class Renderer;
 
+
     /** @brief Set of Default colors */
     namespace Colors {
         static const ImVec4 green(0.26f, 0.42f, 0.31f, 1.0f);

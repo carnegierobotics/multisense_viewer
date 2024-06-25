@@ -48,6 +48,8 @@
 
 #include "Viewer/ImGui/GuiManager.h"
 
+#include <ranges>
+
 
 namespace VkRender {
 
@@ -75,7 +77,6 @@ namespace VkRender {
         auto &userSetting = RendererConfig::getInstance().getUserSetting();
         handles.enableSecondaryView = userSetting.editorUiState.enableSecondaryView;
         handles.fixAspectRatio = userSetting.editorUiState.fixAspectRatio;
-
 
         ImGui::CreateContext();
         ImGuiIO io = ImGui::GetIO();
@@ -106,7 +107,6 @@ namespace VkRender {
         VkDescriptorPoolCreateInfo poolCreateInfo = Populate::descriptorPoolCreateInfo(poolSizes, setCount);
         CHECK_RESULT(vkCreateDescriptorPool(device->m_LogicalDevice, &poolCreateInfo, nullptr, &descriptorPool));
 
-
         io.GetClipboardTextFn = ImGuiGlfwGetClipboardText;
         io.SetClipboardTextFn = ImGuiGlfwSetClipboardText;
 
@@ -129,28 +129,34 @@ namespace VkRender {
         handles.info->font24 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 24);
         io.Fonts->SetTexID(reinterpret_cast<ImTextureID>(fontDescriptors[fontCount - 1]));
 
-        imageIconDescriptors.resize(10);
-        handles.info->imageButtonTextureDescriptor.resize(10);
-        iconTextures.reserve(10);
-        loadImGuiTextureFromFileName(Utils::getTexturePath().append("icon_preview.png").string(), 0);
-        loadImGuiTextureFromFileName(Utils::getTexturePath().append("icon_information.png").string(), 1);
-        loadImGuiTextureFromFileName(Utils::getTexturePath().append("icon_configure.png").string(), 2);
-        loadImGuiTextureFromFileName(Utils::getTexturePath().append("icon_auto_configure.png").string(), 3);
-        loadImGuiTextureFromFileName(Utils::getTexturePath().append("icon_manual_configure.png").string(), 4);
-        loadImGuiTextureFromFileName(Utils::getTexturePath().append("icon_playback.png").string(), 5);
-        loadImGuiTextureFromFileName(Utils::getTexturePath().append("icon_single_layout.png").string(), 6);
-        loadImGuiTextureFromFileName(Utils::getTexturePath().append("icon_double_layout.png").string(), 7);
-        loadImGuiTextureFromFileName(Utils::getTexturePath().append("icon_quad_layout.png").string(), 8);
-        loadImGuiTextureFromFileName(Utils::getTexturePath().append("icon_nine_layout.png").string(), 9);
+        auto iconFileNames = std::vector{
+            "icon_preview.png",
+            "icon_information.png",
+            "icon_configure.png",
+            "icon_auto_configure.png",
+            "icon_manual_configure.png",
+            "icon_playback.png",
+            "icon_single_layout.png",
+            "icon_double_layout.png",
+            "icon_quad_layout.png",
+            "icon_nine_layout.png"
+        };
+        // Reserve space for icon textures
+        iconTextures.reserve(iconFileNames.size());
+        handles.info->imageButtonTextureDescriptor.resize(iconFileNames.size());
+        imageIconDescriptors.resize(iconFileNames.size());
+        // Base path for the texture files
+        std::filesystem::path texturePath = Utils::getTexturePath();
+        // Load textures using the filenames
+        for (std::size_t index = 0; index < iconFileNames.size(); ++index) {
+            const auto& filename = iconFileNames[index];
+            loadImGuiTextureFromFileName(texturePath / filename, index);
+        }
 
-        pushLayer("SideBarLayer");
-        pushLayer("MenuLayer");
         pushLayer("LayerExample");
         pushLayer("DebugWindow");
         pushLayer("NewVersionAvailable");
-
-        pool = std::make_shared<VkRender::ThreadPool>(1); // Create thread-pool with 1 thread.
-        handles.pool = pool;
+        pushLayer("MultiSenseViewerLayer");
 
         // setup graphics pipeline
         VkShaderModule vtxModule{};

@@ -28,9 +28,6 @@ namespace VkRender {
 
         }
 
-
-
-
         /** Called once per frame **/
         void onUIRender(VkRender::GuiObjectHandles *uiContext) override {
             bool pOpen = true;
@@ -54,19 +51,13 @@ namespace VkRender {
             // Draw the 2D view (Camera stream, layouts etc..)
             // Draw the 3D View
 
-
             ImGui::End();
             ImGui::PopStyleVar();
             ImGui::PopStyleVar();
             ImGui::PopStyleColor();
-
-
-
         }
-
         /** Called once upon this object destruction **/
         void onDetach() override {
-
         }
     };
 

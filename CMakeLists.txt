@@ -89,6 +89,10 @@ set(SOURCE_FILES
         src/Viewer/Scripts/Renderer3D/Example/Example3D.cpp
         src/Viewer/ImGui/Layers/MultiSenseViewerLayers/Sidebar.h
         src/Viewer/ImGui/Layers/MultiSenseViewerLayers/WelcomeScreen.h
+        src/Viewer/Modules/LibMultiSense/MultiSenseInterface.cpp
+        src/Viewer/Modules/LibMultiSense/MultiSenseInterface.h
+        src/Viewer/Modules/LibMultiSense/CommonHeader.h
+        src/Viewer/ImGui/Layers/MultiSenseViewerLayers/ConfigurationPage.h
 )
 
 

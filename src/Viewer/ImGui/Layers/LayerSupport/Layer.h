@@ -51,10 +51,10 @@
 #include "Viewer/Renderer/UsageMonitor.h"
 #include "Viewer/Core/RenderDefinitions.h"
 #include "Viewer/Core/KeyInput.h"
+#include "Viewer/Modules/LibMultiSense/MultiSenseInterface.h"
 #include "Viewer/Tools/ThreadPool.h"
 
 namespace VkRender {
-
     class Renderer;
 
 
@@ -100,6 +100,7 @@ namespace VkRender {
         float aspect{};
         /**@brief Width of sidebar*/
         float sidebarWidth = 250.0f;
+        float controlAreaWidth = 440.0f, controlAreaHeight = height;
 
         float menuBarHeight = 25.0f;
         /**@brief Width debug window*/
@@ -123,11 +124,23 @@ namespace VkRender {
         /**@brief Font types used throughout the gui. usage: ImGui::PushFont(font13).. Initialized in GuiManager class */
         ImFont *font8{}, *font13{}, *font15, *font18{}, *font24{};
 
+        /** @brief
+        * Container to hold animated gif images
+        */
+        struct {
+            ImTextureID image[20]{};
+            uint32_t id{};
+            uint32_t lastFrame = 0;
+            uint32_t width{};
+            uint32_t height{};
+            uint32_t imageSize{};
+            uint32_t totalFrames{};
+            uint32_t *delay{};
+        } gif{};
+
         /** @brief Containing descriptor handles for each image button texture */
         std::vector<ImTextureID> imageButtonTextureDescriptor;
-
     };
-
 
 
     /** @brief block for simulated camera, Mostly used for testing  */
@@ -136,12 +149,14 @@ namespace VkRender {
         bool enabled = false;
         bool selected = false;
         int currentItemSelected = 0;
+
         struct Info {
             /** @brief 3D view camera type for this device. Arcball or first person view controls) */
             int type = 0;
             /** @brief Reset 3D view camera position and rotation */
             bool reset = false;
         };
+
         std::unordered_map<std::string, Info> info;
     };
 
@@ -155,11 +170,14 @@ namespace VkRender {
         bool updateGLTFPath = false;
     };
 
+
     /** @brief Handle which is the MAIN link between ''frontend and backend'' */
     struct GuiObjectHandles {
         /** @brief Handle for current devices located in sidebar */
         /** @brief GUI window info used for creation and updating */
         std::unique_ptr<GuiLayerUpdateInfo> info{};
+        std::unique_ptr<MultiSenseInterface> crl{};
+
 
         const Input *input{};
         std::array<float, 4> clearColor{};
@@ -183,7 +201,6 @@ namespace VkRender {
             clearColor[1] = 0.878f;
             clearColor[2] = 0.862f;
             clearColor[3] = 1.0f;
-
         }
 
         /** @brief Reference to threadpool held by GuiManager */
@@ -207,9 +224,7 @@ namespace VkRender {
      * To add an additional UI layer see \refitem LayerExample.
      */
     class Layer {
-
     public:
-
         virtual ~Layer() = default;
 
         /** @brief
@@ -238,8 +253,6 @@ namespace VkRender {
          */
         virtual void onFinishedRender() = 0;
     };
-
-
 }
 
 #endif //MULTISENSE_LAYER_H

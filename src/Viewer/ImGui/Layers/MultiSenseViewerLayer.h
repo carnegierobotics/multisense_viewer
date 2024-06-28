@@ -5,6 +5,7 @@
 #ifndef WELCOMESCREENLAYER_H
 #define WELCOMESCREENLAYER_H
 
+#include "MultiSenseViewerLayers/ConfigurationPage.h"
 #include "MultiSenseViewerLayers/Sidebar.h"
 #include "MultiSenseViewerLayers/WelcomeScreen.h"
 #include "Viewer/ImGui/Layers/LayerSupport/Layer.h"
@@ -48,6 +49,7 @@ namespace VkRender {
             // Draw welcome screen
             drawWelcomeScreen(uiContext);
             // Draw Main preview page, after we obtained a successfull connection
+            drawConfigurationPage(uiContext);
             // Draw the 2D view (Camera stream, layouts etc..)
             // Draw the 3D View
 

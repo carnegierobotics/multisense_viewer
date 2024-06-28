@@ -119,7 +119,7 @@ namespace VkRender {
         // Textures
         std::vector<Texture2D> iconTextures;
         std::vector<Texture2D> fontTexture;
-        std::unique_ptr<Texture2D> gifTexture[99];
+        std::unique_ptr<Texture2D> gifTexture[99]; // Hold up to 99 frames
         // Vulkan resources for rendering the UI
         //Buffer vertexBuffer;
         //Buffer indexBuffer;
@@ -146,6 +146,8 @@ namespace VkRender {
         std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> saveSettingsTimer;
 
         ImFont *loadFontFromFileName(std::string file, float fontSize);
+
+        void loadAnimatedGif(const std::string &file);
 
         void loadImGuiTextureFromFileName(const std::string &file, uint32_t i);
     };

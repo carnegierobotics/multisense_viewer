@@ -115,7 +115,7 @@ namespace VkRender {
 
         try {
             // Create a queue using the CPU device selector
-            queue = sycl::queue(gpuSelector, sycl::property::queue::in_order());
+            queue = sycl::queue(cpuSelector, sycl::property::queue::in_order());
             // Use the queue for your computation
         } catch (const sycl::exception &e) {
             Log::Logger::getInstance()->warning("GPU device not found");

@@ -11,8 +11,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Set application version
 set(VERSION_MAJOR "1")
-set(VERSION_MINOR "1")
-set(VERSION_PATCH "4")
+set(VERSION_MINOR "2")
+set(VERSION_PATCH "0")
 set(ARCHITECTURE "amd64")
 
 # Set install directory
@@ -76,9 +76,12 @@ set(SOURCE_FILES
         src/Viewer/Renderer/ApplicationUserSetting.h
 
         src/Viewer/ImGui/Widgets.cpp
-        src/Viewer/ImGui/Layers/LayerSupport/LayerFactory.cpp
         src/Viewer/ImGui/GuiManager.cpp
         src/Viewer/ImGui/AdditionalWindows/DebugWindow.h
+        src/Viewer/ImGui/Layers/MultiSenseViewerLayers/Sidebar.h
+        src/Viewer/ImGui/Layers/MultiSenseViewerLayers/WelcomeScreen.h
+        src/Viewer/ImGui/Layers/MultiSenseViewerLayers/ConfigurationPage.h
+        src/Viewer/ImGui/Layers/LayerSupport/LayerFactory.cpp
 
         src/Viewer/Tools/StbInclude.cpp
         src/Viewer/Tools/Logger.cpp
@@ -87,16 +90,15 @@ set(SOURCE_FILES
         src/Viewer/Scripts/ScriptSupport/ScriptUtils.h
         src/Viewer/Scripts/Renderer3D/DefaultScene.cpp
         src/Viewer/Scripts/Renderer3D/Example/Example3D.cpp
-        src/Viewer/ImGui/Layers/MultiSenseViewerLayers/Sidebar.h
-        src/Viewer/ImGui/Layers/MultiSenseViewerLayers/WelcomeScreen.h
-        src/Viewer/Modules/LibMultiSense/MultiSenseInterface.cpp
-        src/Viewer/Modules/LibMultiSense/MultiSenseInterface.h
+
+        src/Viewer/Modules/LibMultiSense/MultiSenseRendererBridge.cpp
         src/Viewer/Modules/LibMultiSense/CommonHeader.h
-        src/Viewer/ImGui/Layers/MultiSenseViewerLayers/ConfigurationPage.h
+        src/Viewer/Modules/LibMultiSense/LibMultiSenseConnector.cpp
+        src/Viewer/Modules/LibMultiSense/MultiSenseTaskManager.cpp
 )
 
 
-set(LIBRARIES "Vulkan::Vulkan;glfw;imgui;tiff;ktx;nlohmann_json::nlohmann_json;httplib::httplib;tinyobjloader;GPUOpen::VulkanMemoryAllocator;tinyply;")
+set(LIBRARIES "Vulkan::Vulkan;glfw;imgui;tiff;ktx;nlohmann_json::nlohmann_json;httplib::httplib;tinyobjloader;GPUOpen::VulkanMemoryAllocator;tinyply;MultiSense;")
 
 # Copy Assets folders to output directory
 file(GLOB ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/Assets/*")

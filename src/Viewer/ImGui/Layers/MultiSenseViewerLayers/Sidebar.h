@@ -1,5 +1,6 @@
 #ifndef SIDEBAR_H
 #define SIDEBAR_H
+
 #include <Viewer/ImGui/Layers/LayerSupport/Layer.h>
 
 #include "Viewer/Modules/LibMultiSense/CommonHeader.h"
@@ -24,7 +25,7 @@ namespace VkRender {
 
         if (ImGui::BeginPopupModal("add_device_modal", nullptr,
                                    ImGuiWindowFlags_NoDecoration)) {
-            MultiSenseProfileInfo profileInfo;
+            MultiSense::MultiSenseProfileInfo profileInfo;
             /** HEADER FIELD */
             ImVec2 popupDrawPos = ImGui::GetCursorScreenPos();
             ImVec2 headerPosMax = popupDrawPos;
@@ -98,8 +99,8 @@ namespace VkRender {
                                        uiContext->info->imageButtonTextureDescriptor[3], ImVec2(33.0f, 31.0f), uv0, uv1,
                                        tint_col)) {
                 Log::Logger::getInstance()->info(
-                    "User clicked AUTO_CONNECT. Tab is {}, 0 = none, 1 = AutoConnect, 2 = ManualConnect",
-                    connectMethodSelector);
+                        "User clicked AUTO_CONNECT. Tab is {}, 0 = none, 1 = AutoConnect, 2 = ManualConnect",
+                        connectMethodSelector);
                 uiContext->usageMonitor->userClickAction("Automatic", "ImageButtonText",
                                                          ImGui::GetCurrentWindow()->Name);
             }
@@ -108,8 +109,8 @@ namespace VkRender {
                                        uiContext->info->imageButtonTextureDescriptor[4], ImVec2(40.0f, 40.0f), uv0, uv1,
                                        tint_col)) {
                 Log::Logger::getInstance()->info(
-                    "User clicked MANUAL_CONNECT. Tab is {}, 0 = none, 1 = AutoConnect, 2 = ManualConnect",
-                    connectMethodSelector);
+                        "User clicked MANUAL_CONNECT. Tab is {}, 0 = none, 1 = AutoConnect, 2 = ManualConnect",
+                        connectMethodSelector);
                 uiContext->usageMonitor->userClickAction("Manual", "ImageButtonText", ImGui::GetCurrentWindow()->Name);
             }
             ImGui::PopFont();
@@ -139,7 +140,8 @@ namespace VkRender {
                                                ImGuiInputTextFlags_CharsScientific |
                                                ImGuiInputTextFlags_AutoSelectAll |
                                                ImGuiInputTextFlags_CharsNoBlank);
-                ImGui::Dummy(ImVec2(0.0f, 15.0f)); {
+                ImGui::Dummy(ImVec2(0.0f, 15.0f));
+                {
                     ImGui::Dummy(ImVec2(20.0f, 0.0f));
                     ImGui::SameLine();
                     ImGui::PushStyleColor(ImGuiCol_Text, Colors::CRLTextGray);
@@ -151,10 +153,11 @@ namespace VkRender {
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));
 
                 static int interfaceIndex = 0;
-                std::string previewValue = "Current Adapter";
-                std::vector<std::string> interfaceNameList = uiContext->crl->getAvailableAdapterList();
-                //if (!adapters.empty())
-                //    m_Entry.interfaceName = adapters[ethernetComboIndex].networkAdapter;
+                std::vector<std::string> interfaceNameList = uiContext->multiSenseRendererBridge->getAvailableAdapterList();
+                if (interfaceNameList.empty()) {
+                    interfaceNameList.emplace_back("No adapter available");
+                }
+                std::string previewValue = interfaceNameList[interfaceIndex];
                 static ImGuiComboFlags flags = 0;
                 ImGui::Dummy(ImVec2(20.0f, 5.0f));
                 ImGui::SameLine();
@@ -167,7 +170,7 @@ namespace VkRender {
                             interfaceIndex = static_cast<uint32_t>(n);
                             uiContext->usageMonitor->userClickAction("SelectAdapter", "combo",
                                                                      ImGui::GetCurrentWindow()->Name);
-                            uiContext->crl->setSelectedAdapter(interfaceNameList[n]);
+                            uiContext->multiSenseRendererBridge->setSelectedAdapter(interfaceNameList[interfaceIndex]);
                         }
                         // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
                         if (is_selected)
@@ -176,6 +179,8 @@ namespace VkRender {
                     ImGui::EndCombo();
                 }
                 ImGui::PopStyleColor(2); // ImGuiCol_FrameBg
+
+                profileInfo.ifName = interfaceNameList[interfaceIndex]; // interfaceIndex is static variable so will always reflect latest set value
             }
 
             ////** CANCEL/CONNECT FIELD BEGINS HERE*/
@@ -200,7 +205,7 @@ namespace VkRender {
                 uiContext->usageMonitor->userClickAction("Connect", "button",
                                                          ImGui::GetCurrentWindow()->Name);
 
-                uiContext->crl->addNewProfile(profileInfo);
+                uiContext->multiSenseRendererBridge->addNewProfile(profileInfo);
                 ImGui::CloseCurrentPopup();
             }
 
@@ -226,7 +231,41 @@ namespace VkRender {
         ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLDarkGray425);
         std::default_random_engine rng;
         float sidebarElementHeight = 140.0f;
-        for (auto &profile: uiContext->crl->getProfileList()) {
+        for (auto &profile: uiContext->multiSenseRendererBridge->getProfileList()) {
+
+            // Color the sidebar and window depending on the connection state. Must be found before we start drawing the window containing the profile.
+            std::string buttonIdentifier = "InvalidConnectionState";
+            switch (profile.connectionState) {
+                case MultiSense::MULTISENSE_DISCONNECTED:
+                    buttonIdentifier = "Disconnected";
+                    ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLGray424);
+                    ImGui::PushStyleColor(ImGuiCol_Button, Colors::CRLRed);
+                    break;
+                case MultiSense::MULTISENSE_UNAVAILABLE:
+                    buttonIdentifier = "Unavailable";
+                    ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLGray424);
+                    ImGui::PushStyleColor(ImGuiCol_Button, Colors::CRLDarkGray425);
+                    break;
+
+                case MultiSense::MULTISENSE_CONNECTED:
+                    buttonIdentifier = "Active";
+                    ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLGray421);
+                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.26f, 0.42f, 0.31f, 1.0f));
+                    break;
+
+                case MultiSense::MULTISENSE_CONNECTION_IN_PROGRESS:
+                case MultiSense::MULTISENSE_JUST_ADDED:
+                    buttonIdentifier = "Connecting";
+                    ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLGray424);
+                    ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::CRLBlueIsh);
+                    break;
+
+                default:
+                    buttonIdentifier = "Default state";
+                    ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLGray424);
+                    ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::CRLBlueIsh);
+            }
+            // Connect button
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
             std::string winId = profile.createInfo.profileName + "Child" + std::to_string(rng());;
             ImGui::BeginChild(winId.c_str(), ImVec2(uiContext->info->sidebarWidth, sidebarElementHeight),
@@ -289,11 +328,9 @@ namespace VkRender {
             ImVec4 tint_col = ImVec4(1.0f, 1.0f, 1.0f, 0.3f); // No tint
 
 
-            // Connect button
-            std::string buttonIdentifier = "ButtonIdentifier";
-            static size_t gifFrameIndex = 0;
             bool clicked;
-            if (buttonIdentifier == "Connecting") {
+            static size_t gifFrameIndex = 0;
+            if (profile.connectionState == MultiSense::MULTISENSE_CONNECTION_IN_PROGRESS) {
                 clicked = ImGui::ButtonWithGif(buttonIdentifier.c_str(), ImVec2(ImGui::GetFontSize() * 10, 35.0f),
                                                uiContext->info->gif.image[gifFrameIndex], ImVec2(35.0f, 35.0f),
                                                uv0,
@@ -303,6 +340,8 @@ namespace VkRender {
                 clicked = ImGui::Button(buttonIdentifier.c_str(),
                                         ImVec2(ImGui::GetFontSize() * 10, ImGui::GetFontSize() * 2));
             }
+
+            ImGui::PopStyleColor(2);
 
             gifFrameIndex++;
 

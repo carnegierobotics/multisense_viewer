@@ -122,20 +122,23 @@ namespace Log {
     }
 
     std::string Logger::getCurrentTime() {
-        //Current date/time based on current time
-        // Convert current time to string
-        std::time_t currentTime = std::time(nullptr);
-        char timeString[26];
+        // Get the current time with milliseconds precision
+        auto now = std::chrono::system_clock::now();
+        auto now_time_t = std::chrono::system_clock::to_time_t(now);
+        auto now_ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
 
+        // Convert current time to string excluding the year
+        std::tm timeInfo{};
 #ifdef _WIN32
-        ctime_s(timeString, sizeof(timeString), &currentTime);
+        localtime_s(&timeInfo, &now_time_t);
 #else
-        std::strcpy(timeString, std::ctime(&currentTime));
+        localtime_r(&now_time_t, &timeInfo);
 #endif
 
-        // Last character of currentTime is "\n", so remove it
-        std::string currentTimeStr(timeString);
-        return currentTimeStr.substr(0, currentTimeStr.size() - 1);
+        std::ostringstream oss;
+        oss << std::put_time(&timeInfo, "%a %b %d %H:%M:%S") << '.' << std::setw(3) << std::setfill('0') << now_ms.count();
+
+        return oss.str();
     }
 
 // Interface for Error Log

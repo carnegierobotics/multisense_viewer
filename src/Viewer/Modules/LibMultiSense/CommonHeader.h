@@ -8,17 +8,19 @@
 #include <string>
 #include <vector>
 
-namespace VkRender {
+namespace VkRender::MultiSense {
     typedef enum MultiSenseConnectionState {
         MULTISENSE_DISCONNECTED =                  0x00,
         MULTISENSE_CONNECTED =                     0x01,
         MULTISENSE_CONNECTION_IN_PROGRESS =        0x02,
         MULTISENSE_JUST_ADDED =                    0x04,
+        MULTISENSE_CHANNEL_BUSY =                  0x08,
+        MULTISENSE_UNAVAILABLE =                   0x0F,
     } MultiSenseConnectionState;
 
     struct MultiSenseProfileInfo {
-        std::string profileName = "Default profile name";
-        std::string ethernetDescription = "Default ehternet";
+        std::string profileName = "Default profile";
+        std::string ifName = "Default Ethernet";
         std::string cameraModel = "MultiSense Model";
         std::string serialNumber = "Serial Number";
         std::string inputIP = "10.66.171.21";
@@ -26,7 +28,7 @@ namespace VkRender {
         MultiSenseProfileInfo() {
             // Reserve memory in case user inputs are long
             profileName.reserve(128);
-            ethernetDescription.reserve(128);
+            ifName.reserve(128);
             cameraModel.reserve(128);
             serialNumber.reserve(128);
             inputIP.reserve(24);

@@ -51,7 +51,7 @@
 #include "Viewer/Renderer/UsageMonitor.h"
 #include "Viewer/Core/RenderDefinitions.h"
 #include "Viewer/Core/KeyInput.h"
-#include "Viewer/Modules/LibMultiSense/MultiSenseInterface.h"
+#include "Viewer/Modules/LibMultiSense/MultiSenseRendererBridge.h"
 #include "Viewer/Tools/ThreadPool.h"
 
 namespace VkRender {
@@ -99,7 +99,7 @@ namespace VkRender {
         /** @brief aspect ratio of window surface */
         float aspect{};
         /**@brief Width of sidebar*/
-        float sidebarWidth = 250.0f;
+        float sidebarWidth = 200.0f;
         float controlAreaWidth = 440.0f, controlAreaHeight = height;
 
         float menuBarHeight = 25.0f;
@@ -176,7 +176,7 @@ namespace VkRender {
         /** @brief Handle for current devices located in sidebar */
         /** @brief GUI window info used for creation and updating */
         std::unique_ptr<GuiLayerUpdateInfo> info{};
-        std::unique_ptr<MultiSenseInterface> crl{};
+        std::unique_ptr<MultiSense::MultiSenseRendererBridge> multiSenseRendererBridge{};
 
 
         const Input *input{};

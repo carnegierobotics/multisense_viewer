@@ -8,10 +8,12 @@
 #include <string>
 #include <vector>
 
-#include "CommonHeader.h"
+#include "Viewer/Tools/AdapterUtils.h"
+#include "Viewer/Modules/LibMultiSense/MultiSenseTaskManager.h"
+#include "Viewer/Modules/LibMultiSense/CommonHeader.h"
 
-namespace VkRender {
-    class MultiSenseInterface {
+namespace VkRender::MultiSense {
+    class MultiSenseRendererBridge {
     public:
         std::vector<std::string> getAvailableAdapterList();
 
@@ -24,7 +26,9 @@ namespace VkRender {
         void update();
 
     private:
-        std::vector<MultiSenseDevice> m_multisenseDevices;
+        std::vector<MultiSenseDevice> m_multiSenseDevices;
+        AdapterUtils m_adapterUtils;
+        MultiSenseTaskManager m_multiSenseTaskManager;
     };
 }
 

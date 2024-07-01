@@ -71,7 +71,7 @@ namespace VkRender {
         vertexCount.resize(imageCount);
 
         handles.info = std::make_unique<GuiLayerUpdateInfo>();
-        handles.crl = std::make_unique<MultiSenseInterface>();
+        handles.multiSenseRendererBridge = std::make_unique<MultiSense::MultiSenseRendererBridge>();
         handles.info->deviceName = device->m_Properties.deviceName;
         handles.info->title = "MultiSense Viewer";
         // Load UI info from file:
@@ -339,7 +339,7 @@ namespace VkRender {
             saveSettingsTimer = std::chrono::steady_clock::now();
         }
 
-        handles.crl->update(); // TODO reconsider if we should call crl updates here?
+        handles.multiSenseRendererBridge->update(); // TODO reconsider if we should call crl updates here?
     }
 
 

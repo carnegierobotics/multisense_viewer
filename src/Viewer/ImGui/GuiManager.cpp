@@ -72,6 +72,7 @@ namespace VkRender {
 
         handles.info = std::make_unique<GuiLayerUpdateInfo>();
         handles.multiSenseRendererBridge = std::make_unique<MultiSense::MultiSenseRendererBridge>();
+        handles.multiSenseRendererGigEVisionBridge = std::make_unique<MultiSense::MultiSenseRendererGigEVisionBridge>();
         handles.info->deviceName = device->m_Properties.deviceName;
         handles.info->title = "MultiSense Viewer";
         // Load UI info from file:

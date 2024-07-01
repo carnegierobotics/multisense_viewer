@@ -38,7 +38,7 @@ namespace VkRender::MultiSense {
     struct sensorData {
         uint32_t exposure = 20000;
         uint32_t fps = 30;
-        float gain = 2.2f;;
+        float gain = 2.2f;
     };
 
     struct MultiSenseDevice {

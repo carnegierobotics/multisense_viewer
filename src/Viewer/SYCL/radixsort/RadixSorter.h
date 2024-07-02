@@ -271,12 +271,14 @@ namespace VkRender::crl {
                                     }
                                 } else {
                                     s_localHistogram[threadIdx] = passHistogramAcc[threadIdx] >> 2;
-
                                 }
                             }
                             item.barrier(sycl::access::fence_space::local_space);
 
                             const uint32_t partEnd = BIN_PART_START + BIN_PART_SIZE;
+
+                            //sycl::ext::oneapi::experimental::printf("Start: %u, stop: %u, increment: %u\n", threadIdx + BIN_PART_START, partEnd, blockDim);
+
                             for (uint32_t i = threadIdx + BIN_PART_START; i < partEnd; i += blockDim) {
                                 uint32_t key, value;
                                 uint32_t offset;
@@ -306,9 +308,13 @@ namespace VkRender::crl {
                                         sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::local_space> atomicRef(
                                                 s_localHistogram[bin]);
                                         preIncrementVal = atomicRef.fetch_add(val);
-
                                     }
-                                    uint32_t firstSetBit = __builtin_ctz(warpFlags);
+                                    uint32_t firstSetBit;
+                                    if (warpFlags == 0)
+                                        firstSetBit = 0;
+                                    else
+                                        firstSetBit = __builtin_ctz(warpFlags);
+
                                     dummy = sycl::select_from_group(subGroup, preIncrementVal,
                                                                     firstSetBit);
                                     if (warpIndex == k) {
@@ -324,17 +330,14 @@ namespace VkRender::crl {
                         }
                     });
 
-        }).wait();
+        });
 
     }
 
     class RadixSorter {
 
     public:
-        RadixSorter(sycl::queue &_queue, uint32_t size) {
-            queue = _queue;
-            //uint32_t size = (1 << 21);
-
+        RadixSorter(sycl::queue &_queue, uint32_t size) : queue(_queue){
             binningThreadblocks = (size + partitionSize - 1) / partitionSize;
             globalHistThreadblocks = (size + globalHistPartitionSize - 1) / globalHistPartitionSize;
             sortAltBuffer = sycl::buffer<uint32_t, 1>(size);
@@ -349,7 +352,7 @@ namespace VkRender::crl {
 
         }
 
-    private:
+    public:
 
         const uint32_t radix = 256;
         const uint32_t radixPasses = 4;
@@ -368,11 +371,11 @@ namespace VkRender::crl {
         sycl::buffer<uint32_t, 1> thirdPassHistogramBuffer{0};
         sycl::buffer<uint32_t, 1> fourthPassHistogramBuffer{0};
         sycl::buffer<uint32_t, 1> indexBuffer{0};
-        sycl::queue queue;
+        sycl::queue& queue;
 
 
 //Test for correctness
-        void ValidationTest(std::vector<uint32_t> &keys, uint32_t size, uint32_t testIterations) {
+        void validationTest(std::vector<uint32_t> &keys, uint32_t size, uint32_t testIterations) {
             printf("Beginning VALIDATION tests at size %u and %u iterations. \n", size, testIterations);
             int testsPassed = 0;
             for (uint32_t i = 1; i <= testIterations; ++i) {
@@ -390,12 +393,32 @@ namespace VkRender::crl {
             }
             printf("%d/%d tests passed.\n", testsPassed, testIterations);
         }
+//Test for correctness
+        void validationTest(sycl::buffer<uint32_t, 1> &keys, uint32_t size, uint32_t testIterations) {
+            printf("Beginning VALIDATION tests at size %u and %u iterations. \n", size, testIterations);
+            int testsPassed = 0;
+            auto keysAcc = keys.get_host_access();
+            for (uint32_t i = 1; i <= testIterations; ++i) {
+                bool isCorrect = true;
+                for (uint32_t k = 1; k < keys.size(); ++k) {
+                    if (keysAcc[k] < keysAcc[k - 1]) {
+                        isCorrect = false;
+                        break;
+                    }
+                }
+                if (isCorrect)
+                    testsPassed++;
+                else
+                    printf("Test iteration %d failed. \n", i);
+            }
+            printf("%d/%d tests passed.\n", testsPassed, testIterations);
+        }
 
         void printKeyValue(const std::vector<uint32_t> &key, const std::vector<uint32_t> &value, uint32_t num = 128) {
             // Print the keys
             std::cout << "Key:   ";
             for (size_t i = 0; i < key.size(); ++i) {
-                std::cout << std::setw(4) << key[i] << " ";
+                std::cout << std::setw(10) << key[i] << " ";
                 if (i >= num - 1 || i >= key.size()) {
                     break;
                 }
@@ -404,7 +427,7 @@ namespace VkRender::crl {
             // Print the values
             std::cout << "Value: ";
             for (size_t i = 0; i < value.size(); ++i) {
-                std::cout << std::setw(4) << value[i] << " ";
+                std::cout << std::setw(10) << value[i] << " ";
                 if (i >= num - 1 || i >= key.size()) {
                     break;
                 }
@@ -416,253 +439,262 @@ namespace VkRender::crl {
     public:
         void performOneSweep(uint32_t size, sycl::buffer<uint32_t, 1> &sortBuffer,
                              sycl::buffer<uint32_t, 1> &valuesBuffer) {
-                // GlobalHistogram
-                queue.submit([&](sycl::handler &h) {
-                    // Shared memory allocations
-                    sycl::local_accessor<uint32_t, 1> s_globalHistFirst(sycl::range<1>(RADIX * 2), h);
-                    sycl::local_accessor<uint32_t, 1> s_globalHistSec(sycl::range<1>(RADIX * 2), h);
-                    sycl::local_accessor<uint32_t, 1> s_globalHistThird(sycl::range<1>(RADIX * 2), h);
-                    sycl::local_accessor<uint32_t, 1> s_globalHistFourth(sycl::range<1>(RADIX * 2), h);
-                    auto sortAcc = sortBuffer.get_access<sycl::access_mode::read_write>(h);
-                    auto globalHistAcc = globalHistogramBuffer.get_access<sycl::access_mode::read_write>(h);
+            // GlobalHistogram
+            if (sortBuffer.size() <= 0)
+                return;
 
-                    // Kernel code
-                    h.parallel_for<class global_histogram_kernel>(
-                            sycl::nd_range<1>(sycl::range<1>(globalHistThreads * globalHistThreadblocks),
-                                              sycl::range<1>(globalHistThreads)),
-                            [=](sycl::nd_item<1> item) {
-                                uint32_t threadIdx = item.get_local_id(0);
-                                uint32_t blockDim = item.get_local_range(0);
-                                uint32_t blockIdx = item.get_group(0);
-                                uint32_t gridDim = item.get_group_range(0);
+            queue.submit([&](sycl::handler &h) {
+                // Shared memory allocations
+                sycl::local_accessor<uint32_t, 1> s_globalHistFirst(sycl::range<1>(RADIX * 2), h);
+                sycl::local_accessor<uint32_t, 1> s_globalHistSec(sycl::range<1>(RADIX * 2), h);
+                sycl::local_accessor<uint32_t, 1> s_globalHistThird(sycl::range<1>(RADIX * 2), h);
+                sycl::local_accessor<uint32_t, 1> s_globalHistFourth(sycl::range<1>(RADIX * 2), h);
+                auto sortAcc = sortBuffer.get_access<sycl::access_mode::read_write>(h);
+                auto globalHistAcc = globalHistogramBuffer.get_access<sycl::access_mode::read_write>(h);
 
+                // Kernel code
+                h.parallel_for<class global_histogram_kernel>(
+                        sycl::nd_range<1>(sycl::range<1>(globalHistThreads * globalHistThreadblocks),
+                                          sycl::range<1>(globalHistThreads)),
+                        [=](sycl::nd_item<1> item) {
+                            uint32_t threadIdx = item.get_local_id(0);
+                            uint32_t blockDim = item.get_local_range(0);
+                            uint32_t blockIdx = item.get_group(0);
+                            uint32_t gridDim = item.get_group_range(0);
 
-                                // Clear shared memory
-                                for (uint32_t i = threadIdx; i < RADIX * 2; i += blockDim) {
-                                    s_globalHistFirst[i] = 0;
-                                    s_globalHistSec[i] = 0;
-                                    s_globalHistThird[i] = 0;
-                                    s_globalHistFourth[i] = 0;
-                                }
-                                item.barrier(sycl::access::fence_space::local_space);
+                            // Clear shared memory
+                            for (uint32_t i = threadIdx; i < RADIX * 2; i += blockDim) {
+                                s_globalHistFirst[i] = 0;
+                                s_globalHistSec[i] = 0;
+                                s_globalHistThird[i] = 0;
+                                s_globalHistFourth[i] = 0;
 
-                                // Histogram
-                                {
-                                    // 64 threads : 1 histogram in shared memory
-                                    uint32_t *s_wavesHistFirst = &s_globalHistFirst[threadIdx / 64 * RADIX];
-                                    uint32_t *s_wavesHistSec = &s_globalHistSec[threadIdx / 64 * RADIX];
-                                    uint32_t *s_wavesHistThird = &s_globalHistThird[threadIdx / 64 * RADIX];
-                                    uint32_t *s_wavesHistFourth = &s_globalHistFourth[threadIdx / 64 * RADIX];
+                            }
+                            item.barrier(sycl::access::fence_space::local_space);
 
-                                    if (blockIdx < gridDim - 1) {
+                            // Histogram
+                            {
+                                // 64 threads : 1 histogram in shared memory
+                                uint32_t *s_wavesHistFirst = &s_globalHistFirst[threadIdx / 64 * RADIX];
+                                uint32_t *s_wavesHistSec = &s_globalHistSec[threadIdx / 64 * RADIX];
+                                uint32_t *s_wavesHistThird = &s_globalHistThird[threadIdx / 64 * RADIX];
+                                uint32_t *s_wavesHistFourth = &s_globalHistFourth[threadIdx / 64 * RADIX];
 
-                                        const uint32_t partEnd = (blockIdx + 1) * G_HIST_VEC_SIZE;
+                                if (blockIdx < gridDim - 1) {
 
-                                        for (uint32_t i = threadIdx + (blockIdx * G_HIST_VEC_SIZE);
-                                             i < partEnd; i += blockDim) {
+                                    const uint32_t partEnd = (blockIdx + 1) * G_HIST_VEC_SIZE;
 
-                                            uint4 t[1] = {
-                                                    reinterpret_cast<uint4 *>(sortAcc.get_multi_ptr<sycl::access::decorated::no>().get())[i]};
+                                    for (uint32_t i = threadIdx + (blockIdx * G_HIST_VEC_SIZE);
+                                         i < partEnd; i += blockDim) {
 
-                                            {
-                                                sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::local_space> s_wavesHistFirst_atomic(
-                                                        s_wavesHistFirst[reinterpret_cast<uint8_t *>(t)[0]]);
-                                                s_wavesHistFirst_atomic.fetch_add(1);
+                                        uint4 t[1] = {
+                                                reinterpret_cast<uint4 *>(sortAcc.get_multi_ptr<sycl::access::decorated::no>().get())[i]};
 
-                                                sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::local_space> s_wavesHistSec_atomic(
-                                                        s_wavesHistSec[reinterpret_cast<uint8_t *>(t)[1]]);
-                                                s_wavesHistSec_atomic.fetch_add(1);
+                                        {
+                                            sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::local_space> s_wavesHistFirst_atomic(
+                                                    s_wavesHistFirst[reinterpret_cast<uint8_t *>(t)[0]]);
+                                            s_wavesHistFirst_atomic.fetch_add(1);
 
-                                                sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::local_space> s_wavesHistThird_atomic(
-                                                        s_wavesHistThird[reinterpret_cast<uint8_t *>(t)[2]]);
-                                                s_wavesHistThird_atomic.fetch_add(1);
+                                            sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::local_space> s_wavesHistSec_atomic(
+                                                    s_wavesHistSec[reinterpret_cast<uint8_t *>(t)[1]]);
+                                            s_wavesHistSec_atomic.fetch_add(1);
 
-                                                sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::local_space> s_wavesHistFourth_atomic(
-                                                        s_wavesHistFourth[reinterpret_cast<uint8_t *>(t)[3]]);
-                                                s_wavesHistFourth_atomic.fetch_add(1);
-                                            }
-                                            {
-                                                sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::local_space> s_wavesHistFirst_atomic(
-                                                        s_wavesHistFirst[reinterpret_cast<uint8_t *>(t)[4]]);
-                                                s_wavesHistFirst_atomic.fetch_add(1);
+                                            sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::local_space> s_wavesHistThird_atomic(
+                                                    s_wavesHistThird[reinterpret_cast<uint8_t *>(t)[2]]);
+                                            s_wavesHistThird_atomic.fetch_add(1);
 
-                                                sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::local_space> s_wavesHistSec_atomic(
-                                                        s_wavesHistSec[reinterpret_cast<uint8_t *>(t)[5]]);
-                                                s_wavesHistSec_atomic.fetch_add(1);
+                                            sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::local_space> s_wavesHistFourth_atomic(
+                                                    s_wavesHistFourth[reinterpret_cast<uint8_t *>(t)[3]]);
+                                            s_wavesHistFourth_atomic.fetch_add(1);
+                                        }
+                                        {
+                                            sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::local_space> s_wavesHistFirst_atomic(
+                                                    s_wavesHistFirst[reinterpret_cast<uint8_t *>(t)[4]]);
+                                            s_wavesHistFirst_atomic.fetch_add(1);
 
-                                                sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::local_space> s_wavesHistThird_atomic(
-                                                        s_wavesHistThird[reinterpret_cast<uint8_t *>(t)[6]]);
-                                                s_wavesHistThird_atomic.fetch_add(1);
+                                            sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::local_space> s_wavesHistSec_atomic(
+                                                    s_wavesHistSec[reinterpret_cast<uint8_t *>(t)[5]]);
+                                            s_wavesHistSec_atomic.fetch_add(1);
 
-                                                sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::local_space> s_wavesHistFourth_atomic(
-                                                        s_wavesHistFourth[reinterpret_cast<uint8_t *>(t)[7]]);
-                                                s_wavesHistFourth_atomic.fetch_add(1);
-                                            }
-                                            {
-                                                sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::local_space> s_wavesHistFirst_atomic(
-                                                        s_wavesHistFirst[reinterpret_cast<uint8_t *>(t)[8]]);
-                                                s_wavesHistFirst_atomic.fetch_add(1);
+                                            sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::local_space> s_wavesHistThird_atomic(
+                                                    s_wavesHistThird[reinterpret_cast<uint8_t *>(t)[6]]);
+                                            s_wavesHistThird_atomic.fetch_add(1);
 
-                                                sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::local_space> s_wavesHistSec_atomic(
-                                                        s_wavesHistSec[reinterpret_cast<uint8_t *>(t)[9]]);
-                                                s_wavesHistSec_atomic.fetch_add(1);
+                                            sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::local_space> s_wavesHistFourth_atomic(
+                                                    s_wavesHistFourth[reinterpret_cast<uint8_t *>(t)[7]]);
+                                            s_wavesHistFourth_atomic.fetch_add(1);
+                                        }
+                                        {
+                                            sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::local_space> s_wavesHistFirst_atomic(
+                                                    s_wavesHistFirst[reinterpret_cast<uint8_t *>(t)[8]]);
+                                            s_wavesHistFirst_atomic.fetch_add(1);
 
-                                                sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::local_space> s_wavesHistThird_atomic(
-                                                        s_wavesHistThird[reinterpret_cast<uint8_t *>(t)[10]]);
-                                                s_wavesHistThird_atomic.fetch_add(1);
+                                            sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::local_space> s_wavesHistSec_atomic(
+                                                    s_wavesHistSec[reinterpret_cast<uint8_t *>(t)[9]]);
+                                            s_wavesHistSec_atomic.fetch_add(1);
 
-                                                sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::local_space> s_wavesHistFourth_atomic(
-                                                        s_wavesHistFourth[reinterpret_cast<uint8_t *>(t)[11]]);
-                                                s_wavesHistFourth_atomic.fetch_add(1);
-                                            }
-                                            {
-                                                sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::local_space> s_wavesHistFirst_atomic(
-                                                        s_wavesHistFirst[reinterpret_cast<uint8_t *>(t)[12]]);
-                                                s_wavesHistFirst_atomic.fetch_add(1);
+                                            sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::local_space> s_wavesHistThird_atomic(
+                                                    s_wavesHistThird[reinterpret_cast<uint8_t *>(t)[10]]);
+                                            s_wavesHistThird_atomic.fetch_add(1);
 
-                                                sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::local_space> s_wavesHistSec_atomic(
-                                                        s_wavesHistSec[reinterpret_cast<uint8_t *>(t)[13]]);
-                                                s_wavesHistSec_atomic.fetch_add(1);
+                                            sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::local_space> s_wavesHistFourth_atomic(
+                                                    s_wavesHistFourth[reinterpret_cast<uint8_t *>(t)[11]]);
+                                            s_wavesHistFourth_atomic.fetch_add(1);
+                                        }
+                                        {
+                                            sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::local_space> s_wavesHistFirst_atomic(
+                                                    s_wavesHistFirst[reinterpret_cast<uint8_t *>(t)[12]]);
+                                            s_wavesHistFirst_atomic.fetch_add(1);
 
-                                                sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::local_space> s_wavesHistThird_atomic(
-                                                        s_wavesHistThird[reinterpret_cast<uint8_t *>(t)[14]]);
-                                                s_wavesHistThird_atomic.fetch_add(1);
+                                            sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::local_space> s_wavesHistSec_atomic(
+                                                    s_wavesHistSec[reinterpret_cast<uint8_t *>(t)[13]]);
+                                            s_wavesHistSec_atomic.fetch_add(1);
 
-                                                sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::local_space> s_wavesHistFourth_atomic(
-                                                        s_wavesHistFourth[reinterpret_cast<uint8_t *>(t)[15]]);
-                                                s_wavesHistFourth_atomic.fetch_add(1);
-                                            }
+                                            sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::local_space> s_wavesHistThird_atomic(
+                                                    s_wavesHistThird[reinterpret_cast<uint8_t *>(t)[14]]);
+                                            s_wavesHistThird_atomic.fetch_add(1);
+
+                                            sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::local_space> s_wavesHistFourth_atomic(
+                                                    s_wavesHistFourth[reinterpret_cast<uint8_t *>(t)[15]]);
+                                            s_wavesHistFourth_atomic.fetch_add(1);
                                         }
                                     }
+                                }
 
-                                    if (blockIdx == gridDim - 1) {
-                                        for (uint32_t i = threadIdx + (blockIdx * G_HIST_PART_SIZE);
-                                             i < size; i += blockDim) {
-                                            uint32_t t[1] = {
-                                                    reinterpret_cast<uint32_t *>(sortAcc.get_multi_ptr<sycl::access::decorated::no>().get())[i]};
+                                if (blockIdx == gridDim - 1) {
+                                    for (uint32_t i = threadIdx + (blockIdx * G_HIST_PART_SIZE);
+                                         i < size; i += blockDim) {
+                                        uint32_t t[1] = {
+                                                reinterpret_cast<uint32_t *>(sortAcc.get_multi_ptr<sycl::access::decorated::no>().get())[i]};
 
-                                            {
-                                                sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::local_space> s_wavesHistFirst_atomic(
-                                                        s_wavesHistFirst[reinterpret_cast<uint8_t *>(t)[0]]);
-                                                s_wavesHistFirst_atomic.fetch_add(1);
+                                        {
+                                            sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::local_space> s_wavesHistFirst_atomic(
+                                                    s_wavesHistFirst[reinterpret_cast<uint8_t *>(t)[0]]);
+                                            s_wavesHistFirst_atomic.fetch_add(1);
 
-                                                sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::local_space> s_wavesHistSec_atomic(
-                                                        s_wavesHistSec[reinterpret_cast<uint8_t *>(t)[1]]);
-                                                s_wavesHistSec_atomic.fetch_add(1);
+                                            sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::local_space> s_wavesHistSec_atomic(
+                                                    s_wavesHistSec[reinterpret_cast<uint8_t *>(t)[1]]);
+                                            s_wavesHistSec_atomic.fetch_add(1);
 
-                                                sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::local_space> s_wavesHistThird_atomic(
-                                                        s_wavesHistThird[reinterpret_cast<uint8_t *>(t)[2]]);
-                                                s_wavesHistThird_atomic.fetch_add(1);
+                                            sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::local_space> s_wavesHistThird_atomic(
+                                                    s_wavesHistThird[reinterpret_cast<uint8_t *>(t)[2]]);
+                                            s_wavesHistThird_atomic.fetch_add(1);
 
-                                                sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::local_space> s_wavesHistFourth_atomic(
-                                                        s_wavesHistFourth[reinterpret_cast<uint8_t *>(t)[3]]);
-                                                s_wavesHistFourth_atomic.fetch_add(1);
-                                            }
+                                            sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::local_space> s_wavesHistFourth_atomic(
+                                                    s_wavesHistFourth[reinterpret_cast<uint8_t *>(t)[3]]);
+                                            s_wavesHistFourth_atomic.fetch_add(1);
                                         }
                                     }
-
-                                    item.barrier(sycl::access::fence_space::local_space);
-                                    // Reduce and add to device
-                                    for (uint32_t i = threadIdx; i < RADIX; i += blockDim) {
-
-                                        sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::global_space> globalHistFirst_atomic(
-                                                globalHistAcc[i]);
-                                        globalHistFirst_atomic.fetch_add(
-                                                s_globalHistFirst[i] + s_globalHistFirst[i + RADIX]);
-
-                                        sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::global_space> globalHistSec_atomic(
-                                                globalHistAcc[i + SEC_RADIX_START]);
-                                        globalHistSec_atomic.fetch_add(s_globalHistSec[i] + s_globalHistSec[i + RADIX]);
-
-                                        sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::global_space> globalHistThird_atomic(
-                                                globalHistAcc[i + THIRD_RADIX_START]);
-                                        globalHistThird_atomic.fetch_add(
-                                                s_globalHistThird[i] + s_globalHistThird[i + RADIX]);
-
-                                        sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::global_space> globalHistFourth_atomic(
-                                                globalHistAcc[i + FOURTH_RADIX_START]);
-                                        globalHistFourth_atomic.fetch_add(
-                                                s_globalHistFourth[i] + s_globalHistFourth[i + RADIX]);
-                                    }
                                 }
-                            });
-                }).wait();
 
-
-                /// SCAN PASS
-
-                queue.submit([&](sycl::handler &h) {
-                    // Device memory allocations
-                    sycl::local_accessor<uint32_t, 1> s_scan(sycl::range<1>(RADIX), h);
-                    auto globalHistogramAcc = globalHistogramBuffer.get_access<sycl::access::mode::read>(h);
-                    auto firstPassHistogramAcc = firstPassHistogramBuffer.get_access<sycl::access::mode::write>(h);
-                    auto secPassHistogramAcc = secPassHistogramBuffer.get_access<sycl::access::mode::write>(h);
-                    auto thirdPassHistogramAcc = thirdPassHistogramBuffer.get_access<sycl::access::mode::write>(h);
-                    auto fourthPassHistogramAcc = fourthPassHistogramBuffer.get_access<sycl::access::mode::write>(h);
-                    // Kernel code
-                    h.parallel_for<class scan_hists_kernel>(
-                            sycl::nd_range<1>(sycl::range<1>(radixPasses * radix), sycl::range<1>(radix)),
-                            [=](sycl::nd_item<1> item) {
-                                uint32_t threadIdx = item.get_local_id(0);
-                                uint32_t blockIdx = item.get_group(0);
-                                auto subGroup = item.get_sub_group();
-
-                                s_scan[threadIdx] = InclusiveWarpScanCircularShift(subGroup,
-                                                                                   globalHistogramAcc[threadIdx +
-                                                                                                      blockIdx *
-                                                                                                      RADIX]);
                                 item.barrier(sycl::access::fence_space::local_space);
+                                // Reduce and add to device
+                                for (uint32_t i = threadIdx; i < RADIX; i += blockDim) {
 
-                                uint32_t reduction = (threadIdx < (RADIX >> LANE_LOG)) ? s_scan[threadIdx << LANE_LOG]
-                                                                                       : 0;
-                                uint32_t result = ActiveExclusiveWarpScan(subGroup, reduction);
-                                if (threadIdx < (RADIX >> LANE_LOG))
-                                    s_scan[threadIdx << LANE_LOG] = result;
-                                item.barrier(sycl::access::fence_space::local_space);
+                                    sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::global_space> globalHistFirst_atomic(
+                                            globalHistAcc[i]);
+                                    globalHistFirst_atomic.fetch_add(
+                                            s_globalHistFirst[i] + s_globalHistFirst[i + RADIX]);
 
+                                    sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::global_space> globalHistSec_atomic(
+                                            globalHistAcc[i + SEC_RADIX_START]);
+                                    globalHistSec_atomic.fetch_add(s_globalHistSec[i] + s_globalHistSec[i + RADIX]);
 
-                                uint32_t res = getLaneId(subGroup) ? sycl::select_from_group(subGroup,
-                                                                                             s_scan[threadIdx - 1], 1)
-                                                                   : 0;
-                                uint32_t histRes = s_scan[threadIdx] + res;
-                                histRes = histRes << 2 | FLAG_INCLUSIVE;
+                                    sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::global_space> globalHistThird_atomic(
+                                            globalHistAcc[i + THIRD_RADIX_START]);
+                                    globalHistThird_atomic.fetch_add(
+                                            s_globalHistThird[i] + s_globalHistThird[i + RADIX]);
 
-                                switch (blockIdx) {
-                                    case 0:
-                                        firstPassHistogramAcc[threadIdx] = histRes;
-                                        break;
-                                    case 1:
-                                        secPassHistogramAcc[threadIdx] = histRes;
-                                        break;
-                                    case 2:
-                                        thirdPassHistogramAcc[threadIdx] = histRes;
-                                        break;
-                                    case 3:
-                                        fourthPassHistogramAcc[threadIdx] = histRes;
-                                        break;
-                                    default:
-                                        break;
+                                    sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::global_space> globalHistFourth_atomic(
+                                            globalHistAcc[i + FOURTH_RADIX_START]);
+                                    globalHistFourth_atomic.fetch_add(
+                                            s_globalHistFourth[i] + s_globalHistFourth[i + RADIX]);
                                 }
-                            });
-                }).wait();
+                            }
+                        });
+            });
 
-                // DIGIT BINNING PASSES
+            /// SCAN PASS
+            queue.submit([&](sycl::handler &h) {
+                // Device memory allocations
+                sycl::local_accessor<uint32_t, 1> s_scan(sycl::range<1>(RADIX), h);
+                auto globalHistogramAcc = globalHistogramBuffer.get_access<sycl::access::mode::read>(h);
+                auto firstPassHistogramAcc = firstPassHistogramBuffer.get_access<sycl::access::mode::write>(h);
+                auto secPassHistogramAcc = secPassHistogramBuffer.get_access<sycl::access::mode::write>(h);
+                auto thirdPassHistogramAcc = thirdPassHistogramBuffer.get_access<sycl::access::mode::write>(h);
+                auto fourthPassHistogramAcc = fourthPassHistogramBuffer.get_access<sycl::access::mode::write>(h);
+                // Kernel code
+                h.parallel_for<class scan_hists_kernel>(
+                        sycl::nd_range<1>(sycl::range<1>(radixPasses * radix), sycl::range<1>(radix)),
+                        [=](sycl::nd_item<1> item) {
+                            uint32_t threadIdx = item.get_local_id(0);
+                            uint32_t blockIdx = item.get_group(0);
+                            auto subGroup = item.get_sub_group();
 
-                DigitBinningPassFunc(queue, sortBuffer, sortAltBuffer, valuesBuffer, valuesAltBuffer,
-                                     firstPassHistogramBuffer, indexBuffer, 0,
-                                     binningThreadblocks, binningThreads, size);
+                            s_scan[threadIdx] = InclusiveWarpScanCircularShift(subGroup,
+                                                                               globalHistogramAcc[threadIdx +
+                                                                                                  blockIdx *
+                                                                                                  RADIX]);
+                            item.barrier(sycl::access::fence_space::local_space);
 
-                DigitBinningPassFunc(queue, sortAltBuffer, sortBuffer, valuesAltBuffer, valuesBuffer,
-                                     secPassHistogramBuffer, indexBuffer, 8,
-                                     binningThreadblocks, binningThreads, size);
+                            uint32_t reduction = (threadIdx < (RADIX >> LANE_LOG)) ? s_scan[threadIdx << LANE_LOG]
+                                                                                   : 0;
+                            uint32_t result = ActiveExclusiveWarpScan(subGroup, reduction);
+                            if (threadIdx < (RADIX >> LANE_LOG))
+                                s_scan[threadIdx << LANE_LOG] = result;
+                            item.barrier(sycl::access::fence_space::local_space);
 
-                DigitBinningPassFunc(queue, sortBuffer, sortAltBuffer, valuesBuffer, valuesAltBuffer,
-                                     thirdPassHistogramBuffer, indexBuffer, 16,
-                                     binningThreadblocks, binningThreads, size);
+                            uint32_t res = getLaneId(subGroup) ? sycl::select_from_group(subGroup,
+                                                                                         s_scan[threadIdx - 1], 1) : 0;
 
-                DigitBinningPassFunc(queue, sortAltBuffer, sortBuffer, valuesAltBuffer, valuesBuffer,
-                                     fourthPassHistogramBuffer, indexBuffer, 24,
-                                     binningThreadblocks, binningThreads, size);
+                            uint32_t histRes = s_scan[threadIdx] + res;
+                            histRes = histRes << 2 | FLAG_INCLUSIVE;
+
+                            switch (blockIdx) {
+                                case 0:
+                                    firstPassHistogramAcc[threadIdx] = histRes;
+                                    break;
+                                case 1:
+                                    secPassHistogramAcc[threadIdx] = histRes;
+                                    break;
+                                case 2:
+                                    thirdPassHistogramAcc[threadIdx] = histRes;
+                                    break;
+                                case 3:
+                                    fourthPassHistogramAcc[threadIdx] = histRes;
+                                    break;
+                                default:
+                                    break;
+                            }
+                        });
+            });
+
+
+            // Submit a kernel to initialize the buffer with zeros
+            queue.submit([&](sycl::handler &cgh) {
+                auto acc = indexBuffer.get_access<sycl::access::mode::write>(cgh);
+                cgh.parallel_for<class init_kernel>(sycl::range<1>(RADIX), [=](sycl::id<1> idx) {
+                    acc[idx] = 0;
+                });
+            });
+
+            // DIGIT BINNING PASSES
+            DigitBinningPassFunc(queue, sortBuffer, sortAltBuffer, valuesBuffer, valuesAltBuffer,
+                                 firstPassHistogramBuffer, indexBuffer, 0,
+                                 binningThreadblocks, binningThreads, size);
+
+            DigitBinningPassFunc(queue, sortAltBuffer, sortBuffer, valuesAltBuffer, valuesBuffer,
+                                 secPassHistogramBuffer, indexBuffer, 8,
+                                 binningThreadblocks, binningThreads, size);
+
+            DigitBinningPassFunc(queue, sortBuffer, sortAltBuffer, valuesBuffer, valuesAltBuffer,
+                                 thirdPassHistogramBuffer, indexBuffer, 16,
+                                 binningThreadblocks, binningThreads, size);
+
+            DigitBinningPassFunc(queue, sortAltBuffer, sortBuffer, valuesAltBuffer, valuesBuffer,
+                                 fourthPassHistogramBuffer, indexBuffer, 24,
+                                 binningThreadblocks, binningThreads, size);
+
 
         }
     };

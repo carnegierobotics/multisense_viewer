@@ -29,9 +29,9 @@ namespace VkRender {
             glm::vec3 screenPos{};
             uint32_t tileArea = 0;
             uint32_t tileInclusiveSum = 0;
-            glm::vec2 bbMin, bbMax;
+            glm::ivec2 bbMin, bbMax;
             float depth = 0.0f;
-            float radius = 0.0f;
+            int radius = 0;
         };
 
         struct CameraParams {
@@ -80,6 +80,8 @@ namespace VkRender {
 
         void setupBuffers(const VkRender::Camera *camera);
 
+        void singleOneSweep();
+
     private:
 
         CameraParams getHtanfovxyFocal(float fovy, float h, float w) {
@@ -93,11 +95,11 @@ namespace VkRender {
 
     private:
         VkRender::AbstractRenderer::InitializeInfo m_initInfo;
-        uint8_t *m_image{};
+        uint8_t *m_image = nullptr;
 
         sycl::queue queue{};
         sycl::buffer<glm::vec3, 1> positionBuffer{0};
-        sycl::buffer<glm::vec3, 1> scalesBuffer{0};
+        glm::vec3* scalesBuffer = nullptr;
         sycl::buffer<glm::quat, 1> quaternionBuffer{0};
         sycl::buffer<float, 1> opacityBuffer{0};
         sycl::buffer<float, 1> sphericalHarmonicsBuffer{0};
@@ -110,13 +112,12 @@ namespace VkRender {
 
         sycl::buffer<uint32_t, 1> keysBuffer{0};
         sycl::buffer<uint32_t, 1> valuesBuffer{0};
-
-        sycl::event finishedRenderEvent;
-
+        sycl::buffer<glm::ivec2, 1> rangesBuffer{0};
 
         sycl::buffer<GaussianPoint, 1> pointsBuffer{0};
         sycl::buffer<uint32_t, 1> numTilesTouchedBuffer{0};
         sycl::buffer<uint32_t, 1> numTilesTouchedInclusiveSumBuffer{0};
+        std::vector<uint32_t> numTilesTouchedInclusiveSumVec;
         // Optimization buffers
         sycl::buffer<bool, 1> activeGSBuffer{0};
 
@@ -128,6 +129,22 @@ namespace VkRender {
         sycl::buffer<uint8_t, 3> imageBuffer2{sycl::range<3>()};
         uint32_t width{}, height{};
         std::vector<uint8_t> flattenedImage;
+
+        std::chrono::duration<double>
+        preprocess(glm::mat4 viewMatrix, glm::mat4 projectionMatrix, uint32_t imageWidth, uint32_t imageHeight,
+                   glm::vec3 camPos, glm::vec3 tileGrid, CameraParams params);
+
+        std::chrono::duration<double> inclusiveSum(uint32_t *numRendered);
+
+        std::chrono::duration<double>
+        duplicateGaussians(uint32_t numRendered, const glm::vec3 &tileGrid, uint32_t gridSize);
+
+        std::chrono::duration<double> sortGaussians(uint32_t numRendered);
+
+        std::chrono::duration<double> rasterizeGaussians();
+
+
+        std::chrono::duration<double> identifyTileRanges(uint32_t numTiles, uint32_t numRendered);
     };
 
 }

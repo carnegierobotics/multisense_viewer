@@ -10,10 +10,6 @@
 #include <glm/gtc/quaternion.hpp>
 #include <cstdint>
 
-#define SH_C0 0.28209479177387814f
-#define BLOCK_X 16
-#define BLOCK_Y 16
-
 namespace Rasterizer {
 
 
@@ -37,12 +33,12 @@ namespace Rasterizer {
     };
 
     struct PreprocessInfo{
-        glm::mat4 viewMatrix;
-        glm::mat4 projectionMatrix;
-        uint32_t width, height;
-        CameraParams params;
-        glm::vec3 tileGrid;
-        glm::vec3 camPos;
+        glm::mat4 viewMatrix{};
+        glm::mat4 projectionMatrix{};
+        uint32_t width = 0, height = 0;
+        CameraParams params{};
+        glm::vec3 tileGrid{};
+        glm::vec3 camPos{};
         uint32_t shDim = 0;
     };
 
@@ -88,7 +84,7 @@ namespace Rasterizer {
     }
 
     static void getRect(const glm::vec2 p, int max_radius, glm::ivec2 &rect_min, glm::ivec2 &rect_max,
-                        glm::vec3 grid = glm::vec3(0.0f)) {
+                        glm::vec3 grid = glm::vec3(0.0f), float BLOCK_X = 16, float BLOCK_Y = 16) {
         rect_min = {
                 std::min(static_cast<int>(grid.x), std::max(0, static_cast<int>(((p.x - max_radius) / BLOCK_X)))),
                 std::min(static_cast<int>(grid.y), std::max(0, static_cast<int>(((p.y - max_radius) / BLOCK_Y))))

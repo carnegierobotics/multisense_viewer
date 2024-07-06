@@ -42,18 +42,16 @@ void ImageViewer::setup() {
    // m_gaussianRenderer->setupBuffers(m_context->getCamera());
     m_renderer = std::make_unique<VkRender::GaussianRenderer>();
 
-    Widgets::make()->button(WIDGET_PLACEMENT_RENDERER3D, "SortGPU", &btn);
     splatEntity = "Default 3DGS model";
     m_context->createEntity(splatEntity);
     m_renderer->setup(initInfo);
 #endif
 
-    Widgets::make()->button(WIDGET_PLACEMENT_RENDERER3D, "Render 3DGS", &renderImage);
+    Widgets::make()->checkbox(WIDGET_PLACEMENT_RENDERER3D, "Render 3DGS", &renderImage);
 }
 
 void ImageViewer::onWindowResize(const VkRender::GuiObjectHandles *uiHandle) {
-    Widgets::make()->button(WIDGET_PLACEMENT_RENDERER3D, "SortGPU", &btn);
-    Widgets::make()->button(WIDGET_PLACEMENT_RENDERER3D, "Render 3DGS", &renderImage);
+    Widgets::make()->checkbox(WIDGET_PLACEMENT_RENDERER3D, "Render 3DGS", &renderImage);
 
 }
 
@@ -84,7 +82,7 @@ void ImageViewer::update() {
         auto endUpdateTexture = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> durationUpdateTexture = endUpdateTexture - startUpdateTexture;
 
-        Log::Logger::getInstance()->traceWithFrequency("tag123", 100, "Render: {}ms, update {}us", std::chrono::duration_cast<std::chrono::milliseconds>(durationRender).count(), std::chrono::duration_cast<std::chrono::microseconds>(durationUpdateTexture).count());
+        Log::Logger::getInstance()->trace("Full Render: {}ms, update  tex{}us", std::chrono::duration_cast<std::chrono::milliseconds>(durationRender).count(), std::chrono::duration_cast<std::chrono::microseconds>(durationUpdateTexture).count());
     }
 
 #endif

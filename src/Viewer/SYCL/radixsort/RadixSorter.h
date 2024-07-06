@@ -26,8 +26,6 @@ namespace VkRender {
             sortAltBuffer = sycl::malloc_device<uint32_t>(size, queue);
             valuesAltBuffer = sycl::malloc_device<uint32_t>(size, queue);
 
-            m_size = size;
-
             globalHistogramBuffer = sycl::malloc_device<uint32_t>(RADIX * radixPasses, queue);
             firstPassHistogramBuffer = sycl::malloc_device<uint32_t>(RADIX * binningThreadblocks, queue);
             secPassHistogramBuffer = sycl::malloc_device<uint32_t>(RADIX * binningThreadblocks, queue);
@@ -59,7 +57,6 @@ namespace VkRender {
 
 
     public:
-        uint32_t m_size;
         const uint32_t radix = 256;
         const uint32_t radixPasses = 4;
         const uint32_t partitionSize = 7680;
@@ -104,9 +101,9 @@ namespace VkRender {
 
 
     public:
-        void performOneSweep(uint32_t *sortBuffer,
-                             uint32_t *valuesBuffer) {
-
+        void performOneSweep(uint32_t *sortBuffer, uint32_t *valuesBuffer, uint32_t numRendered) {
+            binningThreadblocks = (numRendered + partitionSize - 1) / partitionSize;
+            globalHistThreadblocks = (numRendered + globalHistPartitionSize - 1) / globalHistPartitionSize;
 
             queue.submit([&](sycl::handler &h) {
                 // Shared memory allocations
@@ -124,7 +121,7 @@ namespace VkRender {
                                                                    s_globalHistFourth,
                                                                    sortBuffer,
                                                                    globalHistogramBuffer,
-                                                                   m_size));
+                                                                   numRendered));
             }).wait();
 
 
@@ -187,7 +184,7 @@ namespace VkRender {
                                                       s_localHistogram,
                                                       sortBuffer, sortAltBuffer, valuesBuffer,
                                                       valuesAltBuffer,
-                                                      indexBuffer, firstPassHistogramBuffer, 0, m_size);
+                                                      indexBuffer, firstPassHistogramBuffer, 0, numRendered);
                 h.parallel_for(range, [=](sycl::nd_item<1> item) [[sycl::reqd_sub_group_size(32)]] {
                     functor(item);
                 });
@@ -207,7 +204,7 @@ namespace VkRender {
                                                       s_localHistogram,
                                                       sortAltBuffer, sortBuffer, valuesAltBuffer,
                                                       valuesBuffer,
-                                                      indexBuffer, secPassHistogramBuffer, 8, m_size);
+                                                      indexBuffer, secPassHistogramBuffer, 8, numRendered);
                 h.parallel_for(range, [=](sycl::nd_item<1> item) [[sycl::reqd_sub_group_size(32)]] {
                     functor(item);
                 });
@@ -223,7 +220,7 @@ namespace VkRender {
                                                       s_localHistogram,
                                                       sortBuffer, sortAltBuffer, valuesBuffer,
                                                       valuesAltBuffer,
-                                                      indexBuffer, thirdPassHistogramBuffer, 16, m_size);
+                                                      indexBuffer, thirdPassHistogramBuffer, 16, numRendered);
                 h.parallel_for(range, [=](sycl::nd_item<1> item) [[sycl::reqd_sub_group_size(32)]] {
                     functor(item);
                 });
@@ -239,7 +236,7 @@ namespace VkRender {
                                                       s_localHistogram,
                                                       sortAltBuffer, sortBuffer, valuesAltBuffer,
                                                       valuesBuffer,
-                                                      indexBuffer, fourthPassHistogramBuffer, 24, m_size);
+                                                      indexBuffer, fourthPassHistogramBuffer, 24, numRendered);
                 h.parallel_for(range, [=](sycl::nd_item<1> item) [[sycl::reqd_sub_group_size(32)]] {
                     functor(item);
                 });

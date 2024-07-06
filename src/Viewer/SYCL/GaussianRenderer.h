@@ -15,6 +15,7 @@
 #include "AbstractRenderer.h"
 #include "Viewer/Core/RenderDefinitions.h"
 #include "RasterizerUtils.h"
+#include "Viewer/SYCL/radixsort/RadixSorter.h"
 
 namespace VkRender {
 
@@ -45,20 +46,13 @@ namespace VkRender {
         }
 
         void setup(const VkRender::AbstractRenderer::InitializeInfo &initInfo);
-
         void render(const AbstractRenderer::RenderInfo &info, const VkRender::RenderUtils *pUtils);
-
         uint8_t *getImage();
-
         uint32_t getImageSize();
-
         GaussianRenderer::GaussianPoints gs;
     public:
-        static GaussianPoints loadNaive();
 
         static GaussianPoints loadFromFile(std::filesystem::path path, int i);
-
-        bool loadedPly = false;
 
         void setupBuffers(const VkRender::Camera *camera);
 
@@ -78,45 +72,14 @@ namespace VkRender {
         Rasterizer::GaussianPoint *pointsBuffer = nullptr;
         uint32_t *numTilesTouchedBuffer = nullptr;
         uint32_t *pointOffsets = nullptr;
+        uint32_t* keysBuffer = nullptr;
+        uint32_t* valuesBuffer = nullptr;
 
-        uint32_t* keysBuffer{0};
-        uint32_t* valuesBuffer{0};
+        glm::ivec2* rangesBuffer = nullptr;
+        uint8_t* imageBuffer = nullptr;
+        std::unique_ptr<Sorter> sorter;
 
-        sycl::buffer<glm::vec3, 1> covariance2DBuffer{0};
-        sycl::buffer<glm::vec3, 1> conicBuffer{0};
-        sycl::buffer<glm::vec3, 1> screenPosBuffer{0};
-        sycl::buffer<glm::mat3, 1> covarianceBuffer{0};
-        sycl::buffer<glm::vec3, 1> colorOutputBuffer{0};
-
-
-        sycl::buffer<glm::ivec2, 1> rangesBuffer{0};
-
-
-        sycl::buffer<uint32_t, 1> numTilesTouchedInclusiveSumBuffer{0};
-        // Optimization buffers
-        sycl::buffer<bool, 1> activeGSBuffer{0};
-
-        sycl::buffer<uint8_t, 3> pngImageBuffer{sycl::range<3>()};
-        sycl::buffer<uint8_t, 3> imageBuffer{sycl::range<3>()};
-        sycl::buffer<uint8_t, 3> imageBuffer2{sycl::range<3>()};
         uint32_t width{}, height{};
-        std::vector<uint8_t> flattenedImage;
-
-        std::chrono::duration<double>
-        preprocess(glm::mat4 viewMatrix, glm::mat4 projectionMatrix, uint32_t imageWidth, uint32_t imageHeight,
-                   glm::vec3 camPos, glm::vec3 tileGrid, Rasterizer::CameraParams params);
-
-        std::chrono::duration<double> inclusiveSum(uint32_t *numRendered);
-
-        std::chrono::duration<double>
-        duplicateGaussians(uint32_t numRendered, const glm::vec3 &tileGrid, uint32_t gridSize);
-
-        std::chrono::duration<double> sortGaussians(uint32_t numRendered);
-
-        std::chrono::duration<double> rasterizeGaussians();
-
-
-        std::chrono::duration<double> identifyTileRanges(uint32_t numTiles, uint32_t numRendered);
 
         void clearBuffers();
     };

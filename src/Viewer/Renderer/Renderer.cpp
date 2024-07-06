@@ -134,9 +134,16 @@ namespace VkRender {
 
         std::ifstream infile(Utils::getAssetsPath().append("Generated/Scripts.txt").string());
         std::string line;
+        if (!infile) {
+            Log::Logger::getInstance()->error("Unable to open file: Generated/Scripts.txt");
+            return;
+        }
+
+        Log::Logger::getInstance()->info("Reading Generated/Scripts.txt file");
         while (std::getline(infile, line)) {
-            // Skip comment # line
-            if (line.find('#') != std::string::npos || line.find("Skybox") != std::string::npos)
+            Log::Logger::getInstance()->info("{}", line);
+            // Skip empty lines, comment lines, or lines containing "Skybox"
+            if (line.empty() || line[0] == '#' || line.find("Skybox") != std::string::npos)
                 continue;
             availableScriptNames.emplace_back(line);
         }

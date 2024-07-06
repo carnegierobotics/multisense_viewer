@@ -6,6 +6,9 @@
 
 
 #include "Viewer/Tools/Utils.h"
+#include "Rasterizer.h"
+#include "Viewer/SYCL/radixsort/RadixSorter.h"
+
 #include <filesystem>
 #include <tinyply.h>
 #include <glm/gtc/type_ptr.hpp>
@@ -109,91 +112,92 @@ namespace VkRender {
         //simpleRasterizer(camera, false);
     }
 
+    void GaussianRenderer::clearBuffers() {
+        sycl::free(positionBuffer, queue);
+        sycl::free(scalesBuffer, queue);
+        sycl::free(quaternionBuffer, queue);
+        sycl::free(opacityBuffer, queue);
+        sycl::free(sphericalHarmonicsBuffer, queue);
+        sycl::free(numTilesTouchedBuffer, queue);
+        sycl::free(pointsBuffer, queue);
+    }
+
     void GaussianRenderer::setupBuffers(const VkRender::Camera *camera) {
         Log::Logger::getInstance()->info("Loaded {} Gaussians", gs.getSize());
+        try {
+            uint32_t numPoints = gs.getSize();
 
-        uint32_t numPoints = gs.getSize();
-        //scalesBuffer = sycl::malloc_device<glm::vec3>(numPoints, queue);
-        //queue.memcpy(scalesBuffer, gs.scales.data(), numPoints * sizeof(glm::vec3)).wait();
+            positionBuffer = sycl::malloc_device<glm::vec3>(numPoints, queue);
+            scalesBuffer = sycl::malloc_device<glm::vec3>(numPoints, queue);
+            quaternionBuffer = sycl::malloc_device<glm::quat>(numPoints, queue);
+            opacityBuffer = sycl::malloc_device<float>(numPoints, queue);
+            sphericalHarmonicsBuffer = sycl::malloc_device<float>(numPoints, queue);
 
-        /*
-        queue.submit([&](sycl::handler& h) {
+            queue.memcpy(positionBuffer, gs.positions.data(), numPoints * sizeof(glm::vec3));
+            queue.memcpy(scalesBuffer, gs.scales.data(), numPoints * sizeof(glm::vec3));
+            queue.memcpy(quaternionBuffer, gs.quats.data(), numPoints * sizeof(glm::quat));
+            queue.memcpy(opacityBuffer, gs.opacities.data(), numPoints * sizeof(float));
+            queue.memcpy(sphericalHarmonicsBuffer, gs.sphericalHarmonics.data(), numPoints * sizeof(float));
+            queue.wait_and_throw();
 
-
-            sycl::local_accessor<glm::vec3, 1> scalesBufferAccess(numPoints, h);
-
-
-            h.parallel_for(sycl::range<1>(numPoints), [=](sycl::id<1> i) {
-                scalesBufferAccess[i] = glm::vec3(i[0] * 2.0f);
-            });
-        }).wait();
-        */
-
-        positionBuffer = {gs.positions.data(), sycl::range<1>(gs.getSize())};
-        quaternionBuffer = {gs.quats.data(), sycl::range<1>(gs.getSize())};
-        opacityBuffer = {gs.opacities.data(), sycl::range<1>(gs.getSize())};
-        sphericalHarmonicsBuffer = {gs.sphericalHarmonics.data(), sycl::range<1>(gs.sphericalHarmonics.size())};
-
-        // Create a buffer to store the resulting 2D covariance vectors
-        covariance2DBuffer = {sycl::range<1>(gs.getSize())};
-        conicBuffer = {sycl::range<1>(gs.getSize())};
-        screenPosBuffer = sycl::buffer<glm::vec3, 1>{sycl::range<1>(gs.getSize())};
-        covarianceBuffer = {sycl::range<1>(gs.getSize())};
-        colorOutputBuffer = {sycl::range<1>(gs.getSize())};
-        activeGSBuffer = {sycl::range<1>(gs.getSize())};
-        imageBuffer = {sycl::range<3>(camera->m_height, camera->m_width, 4)};
-        imageBuffer2 = {sycl::range<3>(camera->m_height, camera->m_width, 4)};
-        width = camera->m_width;
-        height = camera->m_height;
+            numTilesTouchedBuffer = sycl::malloc_device<uint32_t>(numPoints, queue);
+            pointOffsets = sycl::malloc_device<uint32_t>(numPoints, queue);
+            pointsBuffer = sycl::malloc_device<Rasterizer::GaussianPoint>(numPoints, queue);
 
 
-        rangesBuffer = sycl::buffer<glm::ivec2>(16 * 16);
-        pointsBuffer = sycl::buffer<GaussianPoint>(gs.getSize());
-        numTilesTouchedInclusiveSumBuffer = sycl::buffer<uint32_t>(gs.getSize());
-        numTilesTouchedBuffer = sycl::buffer<uint32_t>(gs.getSize());
+            // Create a buffer to store the resulting 2D covariance vectors
+            covariance2DBuffer = {sycl::range<1>(gs.getSize())};
+            conicBuffer = {sycl::range<1>(gs.getSize())};
+            screenPosBuffer = sycl::buffer<glm::vec3, 1>{sycl::range<1>(gs.getSize())};
+            covarianceBuffer = {sycl::range<1>(gs.getSize())};
+            colorOutputBuffer = {sycl::range<1>(gs.getSize())};
+            activeGSBuffer = {sycl::range<1>(gs.getSize())};
+            imageBuffer = {sycl::range<3>(camera->m_height, camera->m_width, 4)};
+            imageBuffer2 = {sycl::range<3>(camera->m_height, camera->m_width, 4)};
+            width = camera->m_width;
+            height = camera->m_height;
 
 
+            rangesBuffer = sycl::buffer<glm::ivec2>(16 * 16);
+            numTilesTouchedInclusiveSumBuffer = sycl::buffer<uint32_t>(gs.getSize());
+
+
+            // Get the device associated with the queue
+            sycl::device device = queue.get_device();
+
+            // Query and print the maximum work group size
+            size_t max_work_group_size = device.get_info<sycl::info::device::max_work_group_size>();
+            std::cout << "Max work group size: " << max_work_group_size << std::endl;
+
+            // Query and print the maximum number of work items per dimension
+            sycl::id<2> max_work_item_sizes = device.get_info<sycl::info::device::max_work_item_sizes<2>>();
+            std::cout << "Max work item sizes: "
+                      << max_work_item_sizes[0] << " x "
+                      << max_work_item_sizes[1] << std::endl;
+
+            // Query and print the maximum number of compute units
+            size_t max_compute_units = device.get_info<sycl::info::device::max_compute_units>();
+            std::cout << "Max compute units: " << max_compute_units << std::endl;
+
+            auto sub_group_sizes = device.get_info<sycl::info::device::sub_group_sizes>();
+            std::cout << "Sub group sizes: ";
+            for (auto size: sub_group_sizes)
+                std::cout << size << " ";
+            std::cout << std::endl;
+
+        } catch (sycl::exception &e) {
+            std::cerr << "Caught a SYCL exception: " << e.what() << std::endl;
+            return;
+        } catch (std::exception &e) {
+            std::cerr << "Caught a standard exception: " << e.what() << std::endl;
+            return;
+        } catch (...) {
+            std::cerr << "Caught an unknown exception." << std::endl;
+            return;
+        }
+        queue.wait_and_throw();
     }
 
-    glm::mat3 computeCov3D(const glm::vec3 &scale, const glm::quat &q) {
-
-        glm::mat3 S(0.f);
-        S[0][0] = scale.x;
-        S[1][1] = scale.y;
-        S[2][2] = scale.z;
-        glm::mat3 R = glm::mat3_cast(q);
-        glm::mat3 St = glm::transpose(S);
-        glm::mat3 Rt = glm::transpose(R);
-        glm::mat3 Sigma = R * S * St * Rt;
-        return Sigma;
-
-    }
-
-    glm::vec3 computeCov2D(const glm::vec4 &pView,
-                           const glm::mat3 &cov3D, const glm::mat4 &viewMat,
-                           const GaussianRenderer::CameraParams &camera,
-                           bool debug = false) {
-        glm::vec4 t = pView;
-        const float limx = 1.3f * camera.tanFovX;
-        const float limy = 1.3f * camera.tanFovY;
-        const float txtz = t.x / t.z;
-        const float tytz = t.y / t.z;
-        t.x = std::min(limx, std::max(-limx, txtz)) * t.z;
-        t.y = std::min(limy, std::max(-limy, tytz)) * t.z;
-
-        float l = glm::length(pView);
-        glm::mat3 J = glm::mat3(camera.focalY / t.z, 0.0f, 0.0f,
-                                0.0f, camera.focalY / t.z, 0.0f,
-                                -(camera.focalY * t.x) / (t.z * t.z), -(camera.focalY * t.y) / (t.z * t.z), 0.0f);
-
-        auto W = glm::mat3(viewMat);
-        glm::mat3 T = J * W;
-        glm::mat3 cov = T * cov3D * glm::transpose(T);
-
-        cov[0][0] += 0.3f;
-        cov[1][1] += 0.3f;
-        return {cov[0][0], cov[1][0], cov[1][1]};
-    }
 
     void getRect(const glm::vec2 p, int max_radius, glm::ivec2 &rect_min, glm::ivec2 &rect_max,
                  glm::vec3 grid = glm::vec3(0.0f)) {
@@ -262,34 +266,29 @@ namespace VkRender {
 
     std::chrono::duration<double>
     GaussianRenderer::preprocess(glm::mat4 viewMatrix, glm::mat4 projectionMatrix, uint32_t imageWidth,
-                                 uint32_t imageHeight, glm::vec3 camPos, glm::vec3 tileGrid, CameraParams params) {
+                                 uint32_t imageHeight, glm::vec3 camPos, glm::vec3 tileGrid,
+                                 Rasterizer::CameraParams params) {
         auto startPreprocess = std::chrono::high_resolution_clock::now();
         size_t workGroupSize = 1;  // Larger than the number of items
         size_t numPoints = gs.getSize();
+
+        auto ptr = sycl::malloc_device<glm::vec3>(numPoints, queue);
+
+
+        /*
         queue.submit([&](sycl::handler &h) {
 
-            /*
-         auto quaternions = quaternionBuffer.get_access<sycl::access::mode::read>(h);
+            uint32_t shDim = gs.getShDim();
 
-         auto positions = positionBuffer.get_access<sycl::access::mode::read>(h);
-         auto shs = sphericalHarmonicsBuffer.get_access<sycl::access::mode::read>(h);
-         auto opacitiesAccess = opacityBuffer.get_access<sycl::access::mode::read>(h);
 
-                  auto pointsBufferAccess = pointsBuffer.get_access<sycl::access::mode::write>(h);
-                  auto numTilesTouchedAccess = numTilesTouchedBuffer.get_access<sycl::access::mode::write>(h);
+            h.parallel_for(sycl::range<1>(numPoints), [=, this](sycl::id<1> idx) {
+                auto& self = *this; // Rename `this` to `self`
 
-                  uint32_t shDim = gs.getShDim();
+                self.numTilesTouchedBuffer[idx] = 0;
 
-                  */
-
-            /*
-            h.parallel_for(sycl::range<1>(gs.getSize()), [=](sycl::id<1> idx) {
-
-                numTilesTouchedAccess[idx] = 0;
-
-                glm::vec3 scale = scales[idx];
-                glm::quat q = quaternions[idx];
-                glm::vec3 position = positions[idx];
+                glm::vec3 scale = self.scalesBuffer[idx];
+                glm::quat q = self.quaternionBuffer[idx];
+                glm::vec3 position = self.positionBuffer[idx];
 
                 glm::vec4 posView = viewMatrix * glm::vec4(position, 1.0f);
                 glm::vec4 posClip = projectionMatrix * posView;
@@ -341,7 +340,7 @@ namespace VkRender {
                     getRect(screenPosPoint, my_radius, rect_min, rect_max, tileGrid);
                     if ((rect_max.x - rect_min.x) * (rect_max.y - rect_min.y) == 0)
                         return;
-
+                    auto* shs = self.sphericalHarmonicsBuffer;
                     glm::vec3 dir = glm::normalize(position - camPos);
                     glm::vec3 color =
                             SH_C0 * glm::vec3(shs[idx * shDim + 0], shs[idx * shDim + 1], shs[idx * shDim + 2]);
@@ -351,24 +350,25 @@ namespace VkRender {
                                            cov2D.x * invDeterminant);
 
 
-                    pointsBufferAccess[idx].depth = posNDC.z;
-                    pointsBufferAccess[idx].radius = my_radius;
-                    pointsBufferAccess[idx].conic = conic;
-                    pointsBufferAccess[idx].screenPos = screenPosPoint;
-                    pointsBufferAccess[idx].color = color;
-                    pointsBufferAccess[idx].opacityBuffer = opacitiesAccess[idx];
+                    self.pointsBuffer[idx].depth = posNDC.z;
+                    self.pointsBuffer[idx].radius = my_radius;
+                    self.pointsBuffer[idx].conic = conic;
+                    self.pointsBuffer[idx].screenPos = screenPosPoint;
+                    self.pointsBuffer[idx].color = color;
+                    self.pointsBuffer[idx].opacityBuffer = self.opacityBuffer[idx];
                     // How many tiles we access
                     // rect_min/max are in tile space
 
-                    numTilesTouchedAccess[idx] = static_cast<int>((rect_max.y - rect_min.y) *
+                    self.numTilesTouchedBuffer[idx] = static_cast<int>((rect_max.y - rect_min.y) *
                                                                   (rect_max.x - rect_min.x));
 
                 }
             });
 
-            */
+
 
         }).wait_and_throw();
+         */
         // Stop timing
         auto endPreprocess = std::chrono::high_resolution_clock::now();
         return endPreprocess - startPreprocess;
@@ -377,21 +377,14 @@ namespace VkRender {
     std::chrono::duration<double> GaussianRenderer::inclusiveSum(uint32_t *numRendered) {
         auto startInclusiveSum = std::chrono::high_resolution_clock::now();
 
+        /*
         const auto &numTilesTouchedHost = numTilesTouchedBuffer.get_host_access<>();
         numTilesTouchedInclusiveSumVec.resize(gs.getSize());
         numTilesTouchedInclusiveSumVec[0] = numTilesTouchedHost[0];
         for (size_t i = 1; i < numTilesTouchedHost.size(); ++i) {
             numTilesTouchedInclusiveSumVec[i] = numTilesTouchedInclusiveSumVec[i - 1] + numTilesTouchedHost[i];
         }
-        *numRendered = numTilesTouchedInclusiveSumVec[gs.getSize() - 1];
-
-        numTilesTouchedInclusiveSumBuffer = sycl::buffer<uint32_t, 1>(numTilesTouchedInclusiveSumVec.data(),
-                                                                      numTilesTouchedInclusiveSumVec.size());
-
-        auto hostAccess = numTilesTouchedInclusiveSumBuffer.get_host_access();
-        std::cout << "Inclusive Sum: " << hostAccess[0] << " " << hostAccess[2] << " " << hostAccess[1] << " "
-                  << hostAccess[3] << ". num rendered: " << *numRendered << std::endl;
-
+        */
         auto endInclusiveSum = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> durationInclusiveSum = endInclusiveSum - startInclusiveSum;
         return durationInclusiveSum;
@@ -441,6 +434,7 @@ queue.submit([&](sycl::handler &h) {
         gaussian_keys_unsorted.resize(numRendered);
         gaussian_values_unsorted.resize(numRendered);
 
+        /*
         // Create buffers with the appropriate size
         keysBuffer = sycl::buffer<uint32_t>(numRendered); // Adjust size later
         valuesBuffer = sycl::buffer<uint32_t>(numRendered); // Adjust size later
@@ -453,7 +447,7 @@ queue.submit([&](sycl::handler &h) {
         }
         std::cout << std::endl;
         for (int idx = 0; idx < gs.getSize(); ++idx) {
-            const auto &gaussian = pointsBuffer.get_host_access()[idx];
+            const auto &gaussian = pointsBuffer[idx];
 
             // Generate no key/value pair for invisible Gaussians
             if (gaussian.radius > 0) {
@@ -484,13 +478,8 @@ queue.submit([&](sycl::handler &h) {
             }
         }
 
-        for (int i = 0; i < numRendered; ++i) {
-            auto val = keysBufferAcc[i];
-            if (val == 0) {
-                std::cout << val << " " << i << "  ";
+         */
 
-            }
-        }
 
         auto endAccumulation = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> durationAccumulation = endAccumulation - startAccumulation;
@@ -544,6 +533,7 @@ queue.submit([&](sycl::handler &cgh) {
 
     std::chrono::duration<double> GaussianRenderer::sortGaussians(uint32_t numRendered) {
         auto startSorting = std::chrono::high_resolution_clock::now();
+        /*
 
         auto gpuSelector = [](const sycl::device &dev) {
             if (dev.is_gpu()) {
@@ -594,10 +584,12 @@ queue.submit([&](sycl::handler &cgh) {
         rSorter.validationTest(keys, numRendered, 5);
 
         q.wait_and_throw();
-
+        */
         auto endSorting = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> durationSorting = endSorting - startSorting;
+
         return durationSorting;
+
     }
 
 
@@ -605,6 +597,7 @@ queue.submit([&](sycl::handler &cgh) {
     GaussianRenderer::identifyTileRanges(uint32_t numTiles, uint32_t numRendered) {
         auto startIdentification = std::chrono::high_resolution_clock::now();
 
+        /*
         auto rangesBufferAcc = rangesBuffer.get_host_access();
         auto keysBufferAcc = keysBuffer.get_host_access();
         // Initialize ranges with -1 to indicate uninitialized ranges
@@ -634,6 +627,7 @@ queue.submit([&](sycl::handler &cgh) {
         }
         //rangesBuffer = sycl::buffer<glm::ivec2, 1>{imgState.ranges.data(), imgState.ranges.size()};
 
+         */
         return std::chrono::high_resolution_clock::now() - startIdentification;
 
         /*
@@ -671,6 +665,9 @@ queue.submit([&](sycl::handler &cgh) {
     }
 
     std::chrono::duration<double> GaussianRenderer::rasterizeGaussians() {
+        auto startRasterize = std::chrono::high_resolution_clock::now();
+
+        /*
         const uint32_t imageWidth = width;
         const uint32_t imageHeight = height;
         const uint32_t tileWidth = 16;
@@ -683,10 +680,9 @@ queue.submit([&](sycl::handler &cgh) {
         sycl::range<2> globalWorkSize(globalHeight, globalWidth);
         uint32_t horizontal_blocks = (imageWidth + tileWidth - 1) / tileWidth;
 
-        auto startRasterize = std::chrono::high_resolution_clock::now();
         queue.submit([&](sycl::handler &h) {
             auto rangesBufferAccess = rangesBuffer.get_access<sycl::access::mode::read>(h);
-            auto gaussianBufferAccess = pointsBuffer.get_access<sycl::access::mode::read>(h);
+            GaussianPoint* gaussianBufferAccess;// = pointsBuffer.get_access<sycl::access::mode::read>(h);
             auto pointListBufferAccess = valuesBuffer.get_access<sycl::access::mode::read>(h);
             auto imageAccessor = imageBuffer.get_access<sycl::access::mode::write>(h);
             uint32_t numPoints = gs.getSize();
@@ -752,6 +748,7 @@ queue.submit([&](sycl::handler &cgh) {
             });
         }).wait();
 
+         */
         auto endRasterization = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> durationRasterization = endRasterization - startRasterize;
 
@@ -760,7 +757,7 @@ queue.submit([&](sycl::handler &cgh) {
 
     void GaussianRenderer::render(const AbstractRenderer::RenderInfo &info, const VkRender::RenderUtils *renderUtils) {
         auto *camera = info.camera;
-        auto params = getHtanfovxyFocal(camera->m_Fov, camera->m_height, camera->m_width);
+        auto params = Rasterizer::getHtanfovxyFocal(camera->m_Fov, camera->m_height, camera->m_width);
         glm::mat4 viewMatrix = camera->matrices.view;
         glm::mat4 projectionMatrix = camera->matrices.perspective;
         glm::vec3 camPos = camera->pose.pos;
@@ -775,21 +772,97 @@ queue.submit([&](sycl::handler &cgh) {
         uint32_t numTiles = tileGrid.x * tileGrid.y;
 
         auto startAll = std::chrono::high_resolution_clock::now();
-
         // Start timing
         // Preprocess
         try {
-            uint32_t numRendered = 658;
+            size_t numPoints = gs.getSize();
+            Rasterizer::PreprocessInfo scene{};
+            scene.projectionMatrix = projectionMatrix;
+            scene.viewMatrix = viewMatrix;
+            scene.params = params;
+            scene.camPos = camPos;
+            scene.tileGrid = tileGrid;
+            scene.height = height;
+            scene.width = width;
+            scene.shDim = gs.getShDim();
+            /*
+            queue.submit([&](sycl::handler &h) {
+
+                h.parallel_for(numPoints, Rasterizer::Preprocess(positionBuffer, scalesBuffer,
+                                                                 quaternionBuffer, opacityBuffer,
+                                                                 sphericalHarmonicsBuffer, numTilesTouchedBuffer,
+                                                                 pointsBuffer, &scene));
+            }).wait();
 
 
-            auto durationPreprocess = preprocess(viewMatrix, projectionMatrix, width, height, camPos, tileGrid, params);
+            queue.submit([&](sycl::handler &h) {
+                h.parallel_for(1, Rasterizer::InclusiveSum(numTilesTouchedBuffer, pointOffsets, numPoints));
+            });
 
-            auto durationInclusiveSum = inclusiveSum(&numRendered);
-            numRendered = 658;
+            queue.wait();
+            uint32_t numRendered = 0;
+            queue.memcpy(&numRendered, pointOffsets + (numPoints - 1), sizeof(uint32_t));
+            queue.wait();
+            //auto durationInclusiveSum = inclusiveSum(&numRendered);
+            keysBuffer = sycl::malloc_device<uint32_t>(numRendered, queue);
+            valuesBuffer = sycl::malloc_device<uint32_t>(numRendered, queue);
+            queue.submit([&](sycl::handler &h) {
+                h.parallel_for(numPoints,
+                               Rasterizer::DuplicateGaussians(pointsBuffer, pointOffsets, keysBuffer, valuesBuffer,
+                                                              numRendered, tileGrid));
+            });
+            queue.wait();
+            */
+            uint32_t numRendered = 0;
+            numRendered = 1 << 24;
+            std::vector<uint32_t> keys(numRendered);
 
-            auto durationAccumulation = duplicateGaussians(numRendered, tileGrid, numTiles);
 
-            auto durationSorting = sortGaussians(numRendered);
+            // Sort gaussians
+            {
+
+                std::random_device rd;
+                std::mt19937 gen(rd());
+                gen.seed(42);
+                Sorter sorter(queue, numRendered);
+                keysBuffer = sycl::malloc_device<uint32_t>(numRendered, queue);
+                valuesBuffer = sycl::malloc_device<uint32_t>(numRendered, queue);
+
+                std::uniform_int_distribution<uint32_t> dis(0, 1 << 25);
+                for (uint32_t i = 0; i < keys.size(); ++i) {
+                    keys[i] = dis(gen);
+                }
+/*
+                // Copy to host and view the keys
+                std::cout << "Keys unsorted:   ";
+                for (size_t i = 0; i < keys.size(); ++i) {
+                    std::cout << std::setw(3) << keys[i] << " ";
+                }                // sort on device
+                std::cout << std::endl;
+
+ */
+                // sort on device
+                queue.memcpy(keysBuffer, keys.data(), sizeof(uint32_t) * numRendered).wait();
+
+                sorter.performOneSweep(keysBuffer, valuesBuffer);
+                // copy back sorted keys to host and view
+                //queue.wait();
+                // Copy to host and view the keys
+                queue.memcpy(keys.data(), keysBuffer, sizeof(uint32_t) * numRendered).wait();
+
+
+
+                std::cout << "Keys sorted:   ";
+                for (size_t i = 0; i < keys.size(); ++i) {
+                    std::cout << std::setw(3) << keys[i] << " ";
+                }                // sort on device
+                std::cout << std::endl;
+
+
+                sorter.validationTest(keys, 5);
+                sycl::free(keysBuffer, queue);
+                sycl::free(valuesBuffer, queue);
+            }
 
             //auto durationIdentification = identifyTileRanges(numTiles, imgState);
 
@@ -797,6 +870,7 @@ queue.submit([&](sycl::handler &cgh) {
 
             //std::chrono::duration<double> totalDuration = std::chrono::high_resolution_clock::now() - startAll;
             //printDurations(durationRasterization, durationIdentification, durationSorting, durationAccumulation, durationPreprocess, durationInclusiveSum, totalDuration);
+
 
         } catch (sycl::exception &e) {
             std::cerr << "Caught a SYCL exception: " << e.what() << std::endl;
@@ -808,8 +882,6 @@ queue.submit([&](sycl::handler &cgh) {
             std::cerr << "Caught an unknown exception." << std::endl;
             return;
         }
-        //m_image = imageBuffer.get_host_access().get_pointer();
-        // Use `image` as needed
     }
 
     GaussianRenderer::GaussianPoints GaussianRenderer::loadNaive() {
@@ -965,106 +1037,6 @@ queue.submit([&](sycl::handler &cgh) {
     }
 
     void GaussianRenderer::singleOneSweep() {
-
-        // Initialize the key and value buffers with some data
-        // For demonstration, we'll use random data
-        std::random_device rd;
-        std::mt19937 gen(rd());
-        gen.seed(42);
-        std::uniform_int_distribution<uint32_t> dis(0, 1 << 26);
-
-
-        uint32_t size = 658;
-
-        // Create key and value buffers
-        std::vector<uint32_t> keys(size);
-        std::vector<uint32_t> values(size);
-
-        for (uint32_t i = 0; i < size; ++i) {
-            keys[i] = dis(gen);
-            values[i] = dis(gen);
-        }
-
-        auto cpuSelector = [](const sycl::device &dev) {
-            if (dev.is_cpu()) {
-                return 1; // Positive value to prefer GPU devices
-            } else {
-                return -1; // Negative value to reject non-GPU devices
-            }
-        };    // Define a callable device selector using a lambda
-        auto gpuSelector = [](const sycl::device &dev) {
-            if (dev.is_gpu()) {
-                return 1; // Positive value to prefer GPU devices
-            } else {
-                return -1; // Negative value to reject non-GPU devices
-            }
-        };
-        sycl::queue q;
-        try {
-            // Create a queue using the CPU device selector
-            q = sycl::queue(gpuSelector, sycl::property::queue::in_order());
-            // Use the queue for your computation
-        } catch (const sycl::exception &e) {
-            Log::Logger::getInstance()->warning("GPU device not found");
-            Log::Logger::getInstance()->info("Falling back to default device selector");
-            // Fallback to default device selector
-            q = sycl::queue(sycl::property::queue::in_order());
-        }
-        Log::Logger::getInstance()->info("Selected Device {}",
-                                         q.get_device().get_info<sycl::info::device::name>().c_str());
-
-        // Read info first:
-
-        // Get the device associated with the queue
-        sycl::device device = queue.get_device();
-
-        // Query and print the maximum work group size
-        size_t max_work_group_size = device.get_info<sycl::info::device::max_work_group_size>();
-        std::cout << "Max work group size: " << max_work_group_size << std::endl;
-
-        // Query and print the maximum number of work items per dimension
-        sycl::id<2> max_work_item_sizes = device.get_info<sycl::info::device::max_work_item_sizes<2>>();
-        std::cout << "Max work item sizes: "
-                  << max_work_item_sizes[0] << " x "
-                  << max_work_item_sizes[1] << std::endl;
-
-        // Query and print the maximum number of compute units
-        size_t max_compute_units = device.get_info<sycl::info::device::max_compute_units>();
-        std::cout << "Max compute units: " << max_compute_units << std::endl;
-
-        auto sub_group_sizes = device.get_info<sycl::info::device::sub_group_sizes>();
-        std::cout << "Sub group sizes: ";
-        for (auto size: sub_group_sizes)
-            std::cout << size << " ";
-        std::cout << std::endl;
-
-        crl::RadixSorter rSort(q, size);
-
-        try {
-            rSort.printKeyValue(keys, values);
-            {
-                sycl::buffer<uint32_t, 1> keysBuffer(keys.data(), size);
-                sycl::buffer<uint32_t, 1> valuesBuffer(values.data(), size);
-
-                rSort.performOneSweep(size, keysBuffer, valuesBuffer);
-            }
-            std::cout << "Sorted:\n";
-
-            rSort.printKeyValue(keys, values);
-            rSort.validationTest(keys, size, 5);
-
-        } catch (sycl::exception &e) {
-            std::cerr << "Caught a SYCL exception: " << e.what() << std::endl;
-            return;
-        } catch (std::exception &e) {
-            std::cerr << "Caught a standard exception: " << e.what() << std::endl;
-            return;
-        } catch (...) {
-            std::cerr << "Caught an unknown exception." << std::endl;
-            return;
-        }
-
-        Log::Logger::getInstance()->info("Perform singleOneSweep");
 
     }
 

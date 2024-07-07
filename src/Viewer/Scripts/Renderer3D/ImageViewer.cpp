@@ -24,7 +24,9 @@ void ImageViewer::setup() {
     auto &modelComponent = entity.addComponent<VkRender::OBJModelComponent>(
             Utils::getModelsPath() / "obj" / "quad.obj",
             m_context->renderUtils.device);
-    auto &res = entity.addComponent<VkRender::DefaultGraphicsPipelineComponent2>(&m_context->renderUtils, "SYCLRenderer.vert.spv", "SYCLRenderer.frag.spv");
+    auto &res = entity.addComponent<VkRender::DefaultGraphicsPipelineComponent2>(&m_context->renderUtils,
+                                                                                 "SYCLRenderer.vert.spv",
+                                                                                 "SYCLRenderer.frag.spv");
     res.bind(modelComponent);
     res.setTexture(&m_syclRenderTarget->m_descriptor);
 
@@ -34,12 +36,12 @@ void ImageViewer::setup() {
     initInfo.channels = 4;
     initInfo.camera = &camera;
     initInfo.context = m_context;
-    initInfo.imageSize = camera.m_height *  camera.m_width * 4; // RGBA-uint
+    initInfo.imageSize = camera.m_height * camera.m_width * 4; // RGBA-uint
 
 #ifdef SYCL_ENABLED
     std::filesystem::path filePath = "/home/magnus/crl/multisense_viewer/3dgs_insect.ply";
-        //m_gaussianRenderer->gs = GaussianRenderer::loadFromFile(filePath, 1);
-   // m_gaussianRenderer->setupBuffers(m_context->getCamera());
+    //m_gaussianRenderer->gs = GaussianRenderer::loadFromFile(filePath, 1);
+    // m_gaussianRenderer->setupBuffers(m_context->getCamera());
     m_renderer = std::make_unique<VkRender::GaussianRenderer>();
 
     splatEntity = "Default 3DGS model";
@@ -47,11 +49,13 @@ void ImageViewer::setup() {
     m_renderer->setup(initInfo);
 #endif
 
-    Widgets::make()->checkbox(WIDGET_PLACEMENT_RENDERER3D, "Render 3DGS", &renderImage);
+    Widgets::make()->checkbox(WIDGET_PLACEMENT_RENDERER3D, "3DGS Render", &render3dgs);
+    Widgets::make()->button(WIDGET_PLACEMENT_RENDERER3D, "3DGS Single image", &render3dgsImage);
 }
 
 void ImageViewer::onWindowResize(const VkRender::GuiObjectHandles *uiHandle) {
-    Widgets::make()->checkbox(WIDGET_PLACEMENT_RENDERER3D, "Render 3DGS", &renderImage);
+    Widgets::make()->checkbox(WIDGET_PLACEMENT_RENDERER3D, "3DGS Render", &render3dgs);
+    Widgets::make()->button(WIDGET_PLACEMENT_RENDERER3D, "3DGS Single image", &render3dgsImage);
 
 }
 
@@ -60,14 +64,14 @@ void ImageViewer::update() {
     auto &camera = m_context->getCamera();
     VkRender::AbstractRenderer::RenderInfo info{};
     info.camera = &camera;
-    info.debug =  btn;
+    info.debug = btn;
 #ifdef SYCL_ENABLED
 
-    if (btn){
+    if (btn) {
         m_renderer->singleOneSweep();
     }
 
-    if (renderImage && m_context->findEntityByName(splatEntity)){
+    if (render3dgsImage || render3dgs && m_context->findEntityByName(splatEntity)) {
         auto startRender = std::chrono::high_resolution_clock::now();
 
         m_renderer->render(info, &m_context->renderUtils);
@@ -82,7 +86,10 @@ void ImageViewer::update() {
         auto endUpdateTexture = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> durationUpdateTexture = endUpdateTexture - startUpdateTexture;
 
-        Log::Logger::getInstance()->trace("Full Render: {}ms, update  tex{}us", std::chrono::duration_cast<std::chrono::milliseconds>(durationRender).count(), std::chrono::duration_cast<std::chrono::microseconds>(durationUpdateTexture).count());
+        Log::Logger::getInstance()->trace("Full Render: {}ms, update  tex{}us",
+                                          std::chrono::duration_cast<std::chrono::milliseconds>(durationRender).count(),
+                                          std::chrono::duration_cast<std::chrono::microseconds>(
+                                                  durationUpdateTexture).count());
     }
 
 #endif

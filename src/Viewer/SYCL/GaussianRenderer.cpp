@@ -34,6 +34,7 @@
 namespace VkRender {
 
     uint8_t *GaussianRenderer::getImage() {
+        renderEvent.wait_and_throw();
         return m_image;
     }
 
@@ -49,12 +50,12 @@ namespace VkRender {
             // Create a queue using the CPU device selector
 #ifdef GPU_ENABLED
             auto gpuSelector = [](const sycl::device &dev) {
-            if (dev.is_gpu()) {
-                return 1; // Positive value to prefer GPU devices
-            } else {
-                return -1; // Negative value to reject non-GPU devices
-            }
-        };
+                if (dev.is_gpu()) {
+                    return 1; // Positive value to prefer GPU devices
+                } else {
+                    return -1; // Negative value to reject non-GPU devices
+                }
+            };
             queue = sycl::queue(gpuSelector, sycl::property::queue::in_order());
 #else
             auto cpuSelector = [](const sycl::device &dev) {
@@ -77,10 +78,9 @@ namespace VkRender {
 
         Log::Logger::getInstance()->info("Selected Device {}",
                                          queue.get_device().get_info<sycl::info::device::name>().c_str());
-        sorter = std::make_unique<Sorter>(queue, 1 << 23);
 
-        gs = loadFromFile(Utils::getModelsPath() / "3dgs" / "coordinates.ply", 1);
-        //gs = loadFromFile("/home/magnus/crl/multisense_viewer/3dgs_insect.ply", 1);
+        //gs = loadFromFile(Utils::getModelsPath() / "3dgs" / "coordinates.ply", 1);
+        gs = loadFromFile("/home/magnus/crl/multisense_viewer/3dgs_insect.ply", 10);
         setupBuffers(initInfo.camera);
         //simpleRasterizer(camera, false);
     }
@@ -96,6 +96,8 @@ namespace VkRender {
         sycl::free(imageBuffer, queue);
         sycl::free(rangesBuffer, queue);
 
+        sycl::free(keysBuffer, queue);
+        sycl::free(valuesBuffer, queue);
         free(m_image);
     }
 
@@ -122,6 +124,10 @@ namespace VkRender {
             pointOffsets = sycl::malloc_device<uint32_t>(numPoints, queue);
             pointsBuffer = sycl::malloc_device<Rasterizer::GaussianPoint>(numPoints, queue);
 
+            uint32_t sortBufferSize = (1 << 21);
+            keysBuffer = sycl::malloc_device<uint32_t>(sortBufferSize, queue);
+            valuesBuffer = sycl::malloc_device<uint32_t>(sortBufferSize, queue);
+            sorter = std::make_unique<Sorter>(queue, sortBufferSize);
 
             width = camera->m_width;
             height = camera->m_height;
@@ -129,30 +135,6 @@ namespace VkRender {
 
             m_image = reinterpret_cast<uint8_t *>(std::malloc(width * height * 4));
             rangesBuffer = sycl::malloc_device<glm::ivec2>((width / 16) * (height / 16), queue);
-
-
-            // Get the device associated with the queue
-            sycl::device device = queue.get_device();
-
-            // Query and print the maximum work group size
-            size_t max_work_group_size = device.get_info<sycl::info::device::max_work_group_size>();
-            std::cout << "Max work group size: " << max_work_group_size << std::endl;
-
-            // Query and print the maximum number of work items per dimension
-            sycl::id<2> max_work_item_sizes = device.get_info<sycl::info::device::max_work_item_sizes<2>>();
-            std::cout << "Max work item sizes: "
-                      << max_work_item_sizes[0] << " x "
-                      << max_work_item_sizes[1] << std::endl;
-
-            // Query and print the maximum number of compute units
-            size_t max_compute_units = device.get_info<sycl::info::device::max_compute_units>();
-            std::cout << "Max compute units: " << max_compute_units << std::endl;
-
-            auto sub_group_sizes = device.get_info<sycl::info::device::sub_group_sizes>();
-            std::cout << "Sub group sizes: ";
-            for (auto size: sub_group_sizes)
-                std::cout << size << " ";
-            std::cout << std::endl;
 
         } catch (sycl::exception &e) {
             std::cerr << "Caught a SYCL exception: " << e.what() << std::endl;
@@ -164,42 +146,11 @@ namespace VkRender {
             std::cerr << "Caught an unknown exception." << std::endl;
             return;
         }
+
+
         queue.wait_and_throw();
     }
 
-
-    void printDurations(
-            const std::chrono::duration<double> &durationRasterization,
-            const std::chrono::duration<double> &durationIdentification,
-            const std::chrono::duration<double> &durationSorting,
-            const std::chrono::duration<double> &durationAccumulation,
-            const std::chrono::duration<double> &durationPreprocess,
-            const std::chrono::duration<double> &durationInclusiveSum,
-            const std::chrono::duration<double> &durationTotal) {
-        // Convert durations to milliseconds
-        auto durationRasterizationMs = std::chrono::duration_cast<std::chrono::milliseconds>(durationRasterization);
-        auto durationIdentificationMs = std::chrono::duration_cast<std::chrono::milliseconds>(durationIdentification);
-        auto durationSortingMs = std::chrono::duration_cast<std::chrono::milliseconds>(durationSorting);
-        auto durationAccumulationMs = std::chrono::duration_cast<std::chrono::milliseconds>(durationAccumulation);
-        auto durationPreprocessUs = std::chrono::duration_cast<std::chrono::microseconds>(durationPreprocess);
-        auto durationInclusiveSumMs = std::chrono::duration_cast<std::chrono::milliseconds>(durationInclusiveSum);
-        auto durationTotalMs = std::chrono::duration_cast<std::chrono::milliseconds>(durationTotal);
-
-        // Create an output string stream to format the output
-        std::ostringstream oss;
-        oss << std::fixed << std::setprecision(3); // Set fixed-point notation and precision
-
-        oss << "Total Duration: " << durationTotalMs.count() << " ms\n";
-        oss << "Rasterization: " << durationRasterizationMs.count() << " ms\n";
-        oss << "Identification: " << durationIdentificationMs.count() << " ms\n";
-        oss << "Sorting: " << durationSortingMs.count() << " ms\n";
-        oss << "Accumulation: " << durationAccumulationMs.count() << " ms\n";
-        oss << "Preprocessing: " << durationPreprocessUs.count() << " us\n";
-        oss << "Inclusive Scan: " << durationInclusiveSumMs.count() << " ms\n\n";
-
-        // Print the formatted string
-        std::cout << oss.str();
-    }
 
 
     void GaussianRenderer::render(const AbstractRenderer::RenderInfo &info, const VkRender::RenderUtils *renderUtils) {
@@ -217,6 +168,9 @@ namespace VkRender {
         const uint32_t tileHeight = 16;
         glm::vec3 tileGrid((imageWidth + BLOCK_X - 1) / BLOCK_X, (imageHeight + BLOCK_Y - 1) / BLOCK_Y, 1);
         uint32_t numTiles = tileGrid.x * tileGrid.y;
+        auto startWaitForQueue = std::chrono::high_resolution_clock::now();
+        queue.wait();
+        std::chrono::duration<double, std::milli> waitForQueueDuration =  std::chrono::high_resolution_clock::now() - startWaitForQueue;
 
         auto startAll = std::chrono::high_resolution_clock::now();
         // Start timing
@@ -232,6 +186,7 @@ namespace VkRender {
             scene.height = height;
             scene.width = width;
             scene.shDim = gs.getShDim();
+            scene.shDegree = uint32_t(roundf(sqrtf(gs.getShDim())) - 1);
 
             auto startPreprocess = std::chrono::high_resolution_clock::now();
             queue.submit([&](sycl::handler &h) {
@@ -241,7 +196,7 @@ namespace VkRender {
                                                                                  sphericalHarmonicsBuffer,
                                                                                  numTilesTouchedBuffer,
                                                                                  pointsBuffer, &scene));
-            }).wait();
+            });
             auto endPreprocess = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double, std::milli> preprocessDuration = endPreprocess - startPreprocess;
             auto startInclusiveSum = std::chrono::high_resolution_clock::now();
@@ -250,17 +205,14 @@ namespace VkRender {
                 h.parallel_for(sycl::range<1>(1),
                                Rasterizer::InclusiveSum(numTilesTouchedBuffer, pointOffsets, numPoints));
             });
-            std::chrono::duration<double, std::milli> inclusiveSumDuration = std::chrono::high_resolution_clock::now() - startInclusiveSum;
 
-            queue.wait();
             uint32_t numRendered = 0;
             queue.memcpy(&numRendered, pointOffsets + (numPoints - 1), sizeof(uint32_t));
-            queue.wait();
             if (numRendered == 0)
                 return;
-            //auto durationInclusiveSum = inclusiveSum(&numRendered);
-            keysBuffer = sycl::malloc_device<uint32_t>(numRendered, queue);
-            valuesBuffer = sycl::malloc_device<uint32_t>(numRendered, queue);
+            std::chrono::duration<double, std::milli> inclusiveSumDuration =
+                    std::chrono::high_resolution_clock::now() - startInclusiveSum;
+
             auto startDuplicateGaussians = std::chrono::high_resolution_clock::now();
             queue.submit([&](sycl::handler &h) {
                 h.parallel_for<class duplicates>(sycl::range<1>(numPoints),
@@ -268,37 +220,33 @@ namespace VkRender {
                                                                                 valuesBuffer,
                                                                                 numRendered, tileGrid));
             });
-            queue.wait();
-            std::chrono::duration<double, std::milli> duplicateGaussiansDuration = std::chrono::high_resolution_clock::now() - startDuplicateGaussians;
+            std::chrono::duration<double, std::milli> duplicateGaussiansDuration =
+                    std::chrono::high_resolution_clock::now() - startDuplicateGaussians;
+
 
             auto startSorting = std::chrono::high_resolution_clock::now();
-
-            // Sort gaussians
-            {
-                sorter->performOneSweep(keysBuffer, valuesBuffer, numRendered);
-                queue.wait();
-                std::vector<uint32_t> keys(numRendered);
-            }
-            std::chrono::duration<double, std::milli> sortingDuration = std::chrono::high_resolution_clock::now() - startSorting;
-
+            sorter->performOneSweep(keysBuffer, valuesBuffer, numRendered);
+            //sorter->verifySort(keysBuffer, numRendered);
+            std::chrono::duration<double, std::milli> sortingDuration =
+                    std::chrono::high_resolution_clock::now() - startSorting;
 
             auto startIdentifyTileRanges = std::chrono::high_resolution_clock::now();
 
             queue.submit([&](sycl::handler &h) {
                 h.parallel_for(sycl::range<1>(numTiles),
                                Rasterizer::IdentifyTileRangesInit(rangesBuffer));
-            }).wait();
+            });
+
 
             queue.submit([&](sycl::handler &h) {
                 h.parallel_for<class IdentifyTileRanges>(numRendered,
                                                          Rasterizer::IdentifyTileRanges(rangesBuffer, keysBuffer,
                                                                                         numRendered));
             });
-            std::chrono::duration<double, std::milli> identifyTileRangesDuration = std::chrono::high_resolution_clock::now() - startIdentifyTileRanges;
+            std::chrono::duration<double, std::milli> identifyTileRangesDuration =
+                    std::chrono::high_resolution_clock::now() - startIdentifyTileRanges;
 
-            //std::chrono::duration<double> totalDuration = std::chrono::high_resolution_clock::now() - startAll;
-            //printDurations(durationRasterization, durationIdentification, durationSorting, durationAccumulation, durationPreprocess, durationInclusiveSum, totalDuration);
-            //auto durationRasterization = rasterizeGaussians();
+
             auto startRenderGaussians = std::chrono::high_resolution_clock::now();
 
             // Compute the global work size ensuring it is a multiple of the local work size
@@ -307,31 +255,43 @@ namespace VkRender {
             size_t globalHeight = ((imageHeight + localWorkSize[1] - 1) / localWorkSize[1]) * localWorkSize[1];
             sycl::range<2> globalWorkSize(globalHeight, globalWidth);
             uint32_t horizontal_blocks = (imageWidth + tileWidth - 1) / tileWidth;
-            queue.wait();
-            queue.submit([&](sycl::handler &h) {
+
+            renderEvent = queue.submit([&](sycl::handler &h) {
                 h.parallel_for<class RenderGaussians>(sycl::nd_range<2>(globalWorkSize, localWorkSize),
                                                       Rasterizer::RasterizeGaussians(rangesBuffer, keysBuffer,
                                                                                      valuesBuffer, pointsBuffer,
                                                                                      imageBuffer, numRendered,
                                                                                      imageWidth, imageHeight,
                                                                                      horizontal_blocks, numTiles));
-            }).wait();
-            std::chrono::duration<double, std::milli> renderGaussiansDuration = std::chrono::high_resolution_clock::now() - startRenderGaussians;
+            });
+            std::chrono::duration<double, std::milli> renderGaussiansDuration =
+                    std::chrono::high_resolution_clock::now() - startRenderGaussians;
 
 
-        // Copy back to host
-        queue.memcpy(m_image, imageBuffer, width * height * 4).wait();
-        sycl::free(keysBuffer, queue);
-        sycl::free(valuesBuffer, queue);
-        std::chrono::duration<double, std::milli> totalDuration = std::chrono::high_resolution_clock::now() - startAll;
+            auto startCopyImageToHost = std::chrono::high_resolution_clock::now();
 
-        Log::Logger::getInstance()->trace("3DGS Rendering: Preprocess: {}", preprocessDuration.count());
-        Log::Logger::getInstance()->trace("3DGS Rendering: Inclusive Sum: {}", inclusiveSumDuration.count());
-        Log::Logger::getInstance()->trace("3DGS Rendering: Duplicate Gaussians: {}", duplicateGaussiansDuration.count());
-        Log::Logger::getInstance()->trace("3DGS Rendering: Sorting: {}", sortingDuration.count());
-        Log::Logger::getInstance()->trace("3DGS Rendering: Identify Tile Ranges: {}", identifyTileRangesDuration.count());
-        Log::Logger::getInstance()->trace("3DGS Rendering: Render Gaussians: {}", renderGaussiansDuration.count());
-        Log::Logger::getInstance()->trace("3DGS Rendering: Total function duration: {}", totalDuration.count());
+            // Copy back to host
+            queue.memcpy(m_image, imageBuffer, width * height * 4);
+
+            std::chrono::duration<double, std::milli> copyImageDuration =
+                    std::chrono::high_resolution_clock::now() - startCopyImageToHost;
+
+            sorter->resetMemory();
+
+            std::chrono::duration<double, std::milli> totalDuration =
+                    std::chrono::high_resolution_clock::now() - startAll;
+
+            Log::Logger::getInstance()->trace("3DGS Rendering: Wait for ready queue: {}", waitForQueueDuration.count());
+            Log::Logger::getInstance()->trace("3DGS Rendering: Preprocess: {}", preprocessDuration.count());
+            Log::Logger::getInstance()->trace("3DGS Rendering: Inclusive Sum: {}", inclusiveSumDuration.count());
+            Log::Logger::getInstance()->trace("3DGS Rendering: Duplicate Gaussians: {}",
+                                              duplicateGaussiansDuration.count());
+            Log::Logger::getInstance()->trace("3DGS Rendering: Sorting: {}", sortingDuration.count());
+            Log::Logger::getInstance()->trace("3DGS Rendering: Identify Tile Ranges: {}",
+                                              identifyTileRangesDuration.count());
+            Log::Logger::getInstance()->trace("3DGS Rendering: Render Gaussians: {}", renderGaussiansDuration.count());
+            Log::Logger::getInstance()->trace("3DGS Rendering: Copy image to host: {}", copyImageDuration.count());
+            Log::Logger::getInstance()->trace("3DGS Rendering: Total function duration: {}", totalDuration.count());
 
         } catch (sycl::exception &e) {
             std::cerr << "Caught a SYCL exception: " << e.what() << std::endl;
@@ -435,6 +395,7 @@ namespace VkRender {
             }
         }
 
+
         // Process colors and spherical harmonics
         if (colors && harmonics) {
             const size_t numColorsBytes = colors->buffer.size_bytes();
@@ -445,17 +406,50 @@ namespace VkRender {
             std::vector<float> harmonicsBuffer(numVertices * harmonics_properties.size());
             std::memcpy(harmonicsBuffer.data(), harmonics->buffer.get(), numHarmonicsBytes);
 
-            for (size_t i = 0; i < numVertices; i += downSampleRate) {
-                data.sphericalHarmonics.push_back(colorBuffer[i * 3]);
-                data.sphericalHarmonics.push_back(colorBuffer[i * 3 + 1]);
-                data.sphericalHarmonics.push_back(colorBuffer[i * 3 + 2]);
+            // Extract DC components
+            std::vector<float> features_dc(numVertices * 3);
+            for (size_t i = 0; i < numVertices; ++i) {
+                features_dc[i * 3 + 0] = colorBuffer[i * 3 + 0];
+                features_dc[i * 3 + 1] = colorBuffer[i * 3 + 1];
+                features_dc[i * 3 + 2] = colorBuffer[i * 3 + 2];
+            }
 
-                for (size_t j = 0; j < harmonics_properties.size(); ++j) {
-                    data.sphericalHarmonics.push_back(harmonicsBuffer[i * harmonics_properties.size() + j]);
+            // Extract extra features
+            std::vector<float> features_extra(numVertices * harmonics_properties.size());
+            for (size_t i = 0; i < harmonics_properties.size(); ++i) {
+                const size_t offset = i * numVertices;
+                for (size_t j = 0; j < numVertices; ++j) {
+                    features_extra[j * harmonics_properties.size() + i] = harmonicsBuffer[
+                            j * harmonics_properties.size() + i];
+                }
+            }
+            uint32_t max_sh_degree = 3;
+
+            // Reshape and transpose features_extra
+            const size_t sh_coeffs = (max_sh_degree + 1) * (max_sh_degree + 1) - 1;
+            std::vector<float> reshaped_extra(numVertices * 3 * sh_coeffs);
+            for (size_t i = 0; i < numVertices; ++i) {
+                for (size_t j = 0; j < sh_coeffs; ++j) {
+                    for (size_t k = 0; k < 3; ++k) {
+                        reshaped_extra[(i * sh_coeffs + j) * 3 + k] = features_extra[(i * 3 + k) * sh_coeffs + j];
+                    }
                 }
             }
 
-            data.shDim = 3 + harmonics_properties.size();
+            // Combine features_dc and reshaped_extra
+            data.sphericalHarmonics.resize(numVertices * (3 + sh_coeffs));
+            for (size_t i = 0; i < numVertices; i += downSampleRate) {
+                for (size_t j = 0; j < 3; ++j) {
+                    data.sphericalHarmonics.push_back(features_dc[i * 3 + j]);
+                }
+                for (size_t j = 0; j < sh_coeffs; ++j) {
+                    for (size_t k = 0; k < 3; ++k) {
+                        data.sphericalHarmonics.push_back(reshaped_extra[(i * sh_coeffs + j) * 3 + k]);
+                    }
+                }
+            }
+
+            data.shDim = sh_coeffs;
         }
         return data;
     }

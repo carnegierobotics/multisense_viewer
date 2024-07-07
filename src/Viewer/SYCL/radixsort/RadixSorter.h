@@ -56,7 +56,7 @@ namespace VkRender {
         }
 
 
-    public:
+    private:
         const uint32_t radix = 256;
         const uint32_t radixPasses = 4;
         const uint32_t partitionSize = 7680;
@@ -75,19 +75,21 @@ namespace VkRender {
         uint32_t *fourthPassHistogramBuffer = nullptr;
         uint32_t *indexBuffer = nullptr;
         sycl::queue &queue;
-
+        sycl::event resetEvent;
 
 //Test for correctness
         void validationTest(std::vector<uint32_t> &keys, uint32_t testIterations) {
-            printf("Beginning VALIDATION tests at size %u and %u iterations. \n", keys.size(), testIterations);
+            //printf("Beginning VALIDATION tests at size %u and %u iterations. \n", keys.size(), testIterations);
             int testsPassed = 0;
+            uint32_t failIndex = 1;
+            bool isCorrect = true;
+
             for (uint32_t i = 1; i <= testIterations; ++i) {
-                bool isCorrect = true;
+                isCorrect = true;
                 for (uint32_t k = 1; k < keys.size(); ++k) {
                     if (keys[k] < keys[k - 1]) {
                         isCorrect = false;
-                        printf("Failed at: %u, keys: %u, %u,\n", k, keys[k], keys[k - 1]);
-
+                        failIndex = k;
                         break;
                     }
                 }
@@ -96,14 +98,46 @@ namespace VkRender {
                 else
                     printf("Test iteration %d failed. \n", i);
             }
-            printf("%d/%d tests passed.\n", testsPassed, testIterations);
+            Log::Logger::getInstance()->trace("Sorting: {}/{} tests passed.", testsPassed, testIterations);
+            if (!isCorrect)
+                Log::Logger::getInstance()->trace("Failed sorting at: {}. Key: {} and prevKey: {}", failIndex - 1,
+                                                  keys[failIndex], keys[failIndex - 1]);
         }
 
 
     public:
+
+        void resetMemory() {
+            // Fill the allocated memory with zeros
+            queue.fill(globalHistogramBuffer, 0x00, RADIX * radixPasses);
+            queue.fill(firstPassHistogramBuffer, 0x00, RADIX * binningThreadblocks);
+            queue.fill(secPassHistogramBuffer, 0x00, RADIX * binningThreadblocks);
+            queue.fill(thirdPassHistogramBuffer, 0x00, RADIX * binningThreadblocks);
+            queue.fill(fourthPassHistogramBuffer, 0x00, RADIX * binningThreadblocks);
+            queue.fill(indexBuffer, 0x00, radixPasses);
+        }
+
+        void verifySort(uint32_t *keysDevioce, uint32_t size) {
+            // copy keys back
+            auto start = std::chrono::high_resolution_clock::now();
+
+            std::vector<uint32_t> keys(size);
+            queue.memcpy(keys.data(), keysDevioce, size * sizeof(uint32_t)).wait();
+
+            validationTest(keys, 5);
+            std::chrono::duration<double, std::milli> verificationDuration =
+                    std::chrono::high_resolution_clock::now() - start;
+            Log::Logger::getInstance()->trace("3DGS Sorting: verification duration: {}", verificationDuration.count());
+
+        }
+
         void performOneSweep(uint32_t *sortBuffer, uint32_t *valuesBuffer, uint32_t numRendered) {
+            if (numRendered > (1 << 21))
+                return;
             binningThreadblocks = (numRendered + partitionSize - 1) / partitionSize;
             globalHistThreadblocks = (numRendered + globalHistPartitionSize - 1) / globalHistPartitionSize;
+
+            auto startGlobalHist = std::chrono::high_resolution_clock::now();
 
             queue.submit([&](sycl::handler &h) {
                 // Shared memory allocations
@@ -122,23 +156,13 @@ namespace VkRender {
                                                                    sortBuffer,
                                                                    globalHistogramBuffer,
                                                                    numRendered));
-            }).wait();
+            });
 
-
-            /*
-
-            std::vector<uint32_t> globalHist(radixPasses * radix);
-            // Copy to host and view the keys
-            queue.memcpy(globalHist.data(), globalHistogramBuffer, sizeof(uint32_t) * globalHist.size()).wait();
-            std::cout << "globalHist:  ";
-            for (size_t i = 0; i < globalHist.size(); ++i) {
-                std::cout << std::setw(4) << globalHist[i] << " ";
-            }                // sort on device
-            std::cout << std::endl;
-
-            */
-
+            std::chrono::duration<double, std::milli> globalHist =
+                    std::chrono::high_resolution_clock::now() - startGlobalHist;
             /// SCAN PASS
+            auto startScanPass = std::chrono::high_resolution_clock::now();
+
             queue.submit([&](sycl::handler &h) {
                 sycl::local_accessor<uint32_t, 1> s_scan(sycl::range<1>(RADIX * 2), h);
                 auto range = sycl::nd_range<1>(sycl::range<1>(radix * radixPasses), sycl::range<1>(radix));
@@ -150,30 +174,12 @@ namespace VkRender {
                     functor(item);
                 });
 
-            }).wait();
+            });
 
+            std::chrono::duration<double, std::milli> scanPass =
+                    std::chrono::high_resolution_clock::now() - startScanPass;
 
-            /*
-            std::vector<uint32_t> firstPassHist(RADIX * binningThreadblocks);
-            // Copy to host and view the keys
-            queue.memcpy(firstPassHist.data(), firstPassHistogramBuffer,
-                         sizeof(uint32_t) * firstPassHist.size()).wait();
-            std::cout << "firstPassHist(" << firstPassHist.size() << "): ";
-            for (unsigned int i: firstPassHist) {
-                std::cout << std::setw(4) << i << " ";
-            }
-            std::cout << std::endl;
-            std::vector<uint32_t> secPassHist(RADIX * binningThreadblocks);
-            // Copy to host and view the keys
-            queue.memcpy(secPassHist.data(), secPassHistogramBuffer,
-                         sizeof(uint32_t) * secPassHist.size()).wait();
-            std::cout << "secPassHist(" << sizeof(uint32_t) * secPassHist.size() << "): ";
-            for (unsigned int i: secPassHist) {
-                std::cout << std::setw(4) << i << " ";
-            }
-            std::cout << std::endl;
-*/
-
+            auto digitPassOne = std::chrono::high_resolution_clock::now();
 
             queue.submit([&](sycl::handler &h) {
                 sycl::local_accessor<uint32_t, 1> s_warpHistograms(sycl::range<1>(BIN_PART_SIZE), h);
@@ -189,10 +195,8 @@ namespace VkRender {
                     functor(item);
                 });
 
-            }).wait();
-
-            //queue.memcpy(sortBuffer, sortAltBuffer, m_size * sizeof(uint32_t));
-
+            });
+            auto digitPassTwo = std::chrono::high_resolution_clock::now();
 
             queue.submit([&](sycl::handler &h) {
                 sycl::local_accessor<uint32_t, 1> s_warpHistograms(sycl::range<1>(BIN_PART_SIZE), h);
@@ -208,8 +212,10 @@ namespace VkRender {
                 h.parallel_for(range, [=](sycl::nd_item<1> item) [[sycl::reqd_sub_group_size(32)]] {
                     functor(item);
                 });
+            });
 
-            }).wait();
+            auto digitPassThree = std::chrono::high_resolution_clock::now();
+
             queue.submit([&](sycl::handler &h) {
                 sycl::local_accessor<uint32_t, 1> s_warpHistograms(sycl::range<1>(BIN_PART_SIZE), h);
                 sycl::local_accessor<uint32_t, 1> s_localHistogram(sycl::range<1>(RADIX), h);
@@ -225,7 +231,10 @@ namespace VkRender {
                     functor(item);
                 });
 
-            }).wait();
+            });
+
+            auto digitPassFour = std::chrono::high_resolution_clock::now();
+
             queue.submit([&](sycl::handler &h) {
                 sycl::local_accessor<uint32_t, 1> s_warpHistograms(sycl::range<1>(BIN_PART_SIZE), h);
                 sycl::local_accessor<uint32_t, 1> s_localHistogram(sycl::range<1>(RADIX), h);
@@ -240,7 +249,23 @@ namespace VkRender {
                 h.parallel_for(range, [=](sycl::nd_item<1> item) [[sycl::reqd_sub_group_size(32)]] {
                     functor(item);
                 });
-            }).wait();
+            });
+
+            std::chrono::duration<double, std::milli> digitPassOneDuration =
+                    digitPassTwo - digitPassOne;
+            std::chrono::duration<double, std::milli> digitPassTwoDuration =
+                    digitPassThree - digitPassTwo;
+            std::chrono::duration<double, std::milli> digitPassThreeDuration =
+                    digitPassFour- digitPassThree;
+            std::chrono::duration<double, std::milli> digitPassFourDuration =
+                    std::chrono::high_resolution_clock::now() - digitPassFour;
+
+            Log::Logger::getInstance()->trace("3DGS Sorting: GlobalHistoGram: {}", globalHist.count());
+            Log::Logger::getInstance()->trace("3DGS Sorting: ScanPass: {}", scanPass.count());
+            Log::Logger::getInstance()->trace("3DGS Sorting: DigitBinningPass1: {}", digitPassOneDuration.count());
+            Log::Logger::getInstance()->trace("3DGS Sorting: DigitBinningPass2: {}", digitPassTwoDuration.count());
+            Log::Logger::getInstance()->trace("3DGS Sorting: DigitBinningPass3: {}", digitPassThreeDuration.count());
+            Log::Logger::getInstance()->trace("3DGS Sorting: DigitBinningPass4: {}", digitPassFourDuration.count());
 
         }
 

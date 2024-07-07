@@ -325,7 +325,7 @@ namespace VkRender {
         // Save to config file every 5 seconds
         if (std::chrono::duration_cast<std::chrono::duration<float >>(
                 std::chrono::steady_clock::now() - saveSettingsTimer).count() > 5.0f) {
-            Log::Logger::getInstance()->trace("Saving ImGui file: {}",
+            Log::Logger::getInstance()->traceWithFrequency("saveimgui", 12, "Saving ImGui file: {}",
                                               (Utils::getSystemCachePath() / "imgui.ini").string().c_str());
             ImGui::SaveIniSettingsToDisk((Utils::getSystemCachePath() / "imgui.ini").string().c_str());
             saveSettingsTimer = std::chrono::steady_clock::now();

@@ -72,7 +72,7 @@ namespace Rasterizer {
                 float mid = 0.5f * (cov2D.x + cov2D.z);
                 float lambda1 = mid + std::sqrt(std::max(0.1f, mid * mid - determinant));
                 float lambda2 = mid - std::sqrt(std::max(0.1f, mid * mid - determinant));
-                float my_radius = ceilf(2.0f * std::sqrt(std::max(lambda1, lambda2)));
+                float my_radius = ceilf(3.0f * std::sqrt(std::max(lambda1, lambda2)));
                 glm::ivec2 rect_min, rect_max;
 
                 getRect(screenPosPoint, static_cast<int>(my_radius), rect_min, rect_max, m_scene.tileGrid);
@@ -80,16 +80,18 @@ namespace Rasterizer {
                 if ((rect_max.x - rect_min.x) * (rect_max.y - rect_min.y) == 0)
                     return;
 
-                glm::vec3 dir = glm::normalize(position - m_scene.camPos);
-                float SH_C0 = 0.28209479177387814f;
+                //glm::vec3 color = computeColorFromSH(idx, position, m_scene.camPos, m_scene.shDegree, m_scene.shDim, m_sphericalHarmonics);
 
+                glm::vec3 color = glm::vec3(1.0f, 0.3f, 0.5f);
+                /*
+                float SH_C0 = 0.28209479177387814f;
                 glm::vec3 color =
                         SH_C0 * glm::vec3(m_sphericalHarmonics[i * m_scene.shDim + 0],
                                           m_sphericalHarmonics[i * m_scene.shDim + 1],
                                           m_sphericalHarmonics[i * m_scene.shDim + 2]);
 
                 color += 0.5f;
-
+                */
 
                 auto conic = glm::vec3(cov2D.z * invDeterminant, -cov2D.y * invDeterminant,
                                        cov2D.x * invDeterminant);
@@ -100,7 +102,7 @@ namespace Rasterizer {
                 m_points[i].conic = conic;
                 m_points[i].screenPos = screenPosPoint;
                 m_points[i].color = color;
-                m_points[i].opacityBuffer = m_opacities[i];
+                m_points[i].opacity = m_opacities[i];
                 // How many tiles we access
                 // rect_min/max are in tile space
 
@@ -205,7 +207,7 @@ namespace Rasterizer {
                         }
                         uint32_t key = static_cast<uint16_t>(y) * static_cast<uint16_t>(m_tileGrid.x) + x;
                         key <<= 16;
-                        uint16_t half = float_to_half(gaussian.depth);
+                        uint32_t half = float_to_half(gaussian.depth);
                         key |= half;
                         m_keys[off] = key;
                         m_values[off] = i;
@@ -344,7 +346,7 @@ namespace Rasterizer {
                         if (power > 0.0f) {
                             continue;
                         }
-                        float alpha = std::min(0.99f, point.opacityBuffer * expf(power));
+                        float alpha = std::min(0.99f, point.opacity * expf(power));
                         if (alpha < 1.0f / 255.0f)
                             continue;
                         float test_T = T * (1 - alpha);
@@ -361,9 +363,9 @@ namespace Rasterizer {
 
                 uint32_t baseIndex = (row * m_imageWidth + col) * 4;
 
-                m_imageBuffer[baseIndex] = static_cast<uint8_t>((C[0] + T * 0.0f) * 255.0f);
-                m_imageBuffer[baseIndex + 1] = static_cast<uint8_t>((C[1] + T * 0.0f) * 255.0f);
-                m_imageBuffer[baseIndex + 2] = static_cast<uint8_t>((C[2] + T * 0.0f) * 255.0f);
+                m_imageBuffer[baseIndex] = static_cast<uint8_t>((C[0] + T * 0.85f) * 255.0f);
+                m_imageBuffer[baseIndex + 1] = static_cast<uint8_t>((C[1] + T * 0.85f) * 255.0f);
+                m_imageBuffer[baseIndex + 2] = static_cast<uint8_t>((C[2] + T * 0.85f) * 255.0f);
                 m_imageBuffer[baseIndex + 3] = static_cast<uint8_t>(255.0f); // Assuming full alpha for simplicity
             } // endif
         }

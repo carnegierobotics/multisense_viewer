@@ -44,7 +44,7 @@ public:
 
     std::unique_ptr<TextureVideo> m_syclRenderTarget;
     bool btn = false;
-    bool renderImage = false;
+    bool render3dgsImage = false, render3dgs = false;
     void onWindowResize(const VkRender::GuiObjectHandles *uiHandle) override;
 
 };

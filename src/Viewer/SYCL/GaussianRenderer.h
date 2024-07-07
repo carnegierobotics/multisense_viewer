@@ -29,13 +29,13 @@ namespace VkRender {
             std::vector<glm::vec3> scales;
             std::vector<float> opacities;
             std::vector<float> sphericalHarmonics;  // Add this line
-            uint32_t shDim = 3; // default rgb
+            uint32_t shDim = 1; // default rgb
             [[nodiscard]] uint32_t getSize() const {
                 return positions.size();
             }
 
             uint32_t getShDim() const {
-                return shDim;
+                return shDim; // TODO implement
             }
         };
 
@@ -80,7 +80,7 @@ namespace VkRender {
         std::unique_ptr<Sorter> sorter;
 
         uint32_t width{}, height{};
-
+        sycl::event renderEvent;
         void clearBuffers();
     };
 

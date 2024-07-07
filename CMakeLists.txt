@@ -5,12 +5,12 @@ option(ENABLE_SYCL "Compile with SYCL support. Provided that llvm-sycl clang++ i
 
 if (ENABLE_SYCL)
     #set(CMAKE_CXX_COMPILER "icpx")
-    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -g -O0 -fsycl-targets=nvptx64-nvidia-cuda")
+    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -g -O0")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -fsycl-targets=nvptx64-nvidia-cuda,spir64 -g")
     set(CMAKE_CXX_COMPILER "clang++")
+    add_compile_definitions(GPU_ENABLED)
 
     add_compile_definitions(SYCL_ENABLED)
-    add_compile_definitions(GPU_ENABLED)
     message(STATUS "SYCL support enabled. Compiler: ${CMAKE_CXX_COMPILER} Flags: ${CMAKE_CXX_FLAGS}")
 else()
     message(STATUS "SYCL support not enabled.")

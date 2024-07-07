@@ -82,8 +82,6 @@ namespace Rasterizer {
 
                 //glm::vec3 color = computeColorFromSH(idx, position, m_scene.camPos, m_scene.shDegree, m_scene.shDim, m_sphericalHarmonics);
 
-                glm::vec3 color = glm::vec3(1.0f, 0.3f, 0.5f);
-                /*
                 float SH_C0 = 0.28209479177387814f;
                 glm::vec3 color =
                         SH_C0 * glm::vec3(m_sphericalHarmonics[i * m_scene.shDim + 0],
@@ -91,7 +89,7 @@ namespace Rasterizer {
                                           m_sphericalHarmonics[i * m_scene.shDim + 2]);
 
                 color += 0.5f;
-                */
+
 
                 auto conic = glm::vec3(cov2D.z * invDeterminant, -cov2D.y * invDeterminant,
                                        cov2D.x * invDeterminant);
@@ -306,7 +304,6 @@ namespace Rasterizer {
             uint32_t threadIdx = item.get_local_id(0);
             uint32_t warpIndex = subGroup.get_local_linear_id();
             uint32_t warpSize = subGroup.get_max_local_range()[0];
-
             auto globalID = item.get_global_id(); // Get global indices of the work item
             uint32_t row = globalID[0];
             uint32_t col = globalID[1];
@@ -331,9 +328,9 @@ namespace Rasterizer {
 
                     for (int listIndex = range.x; listIndex < range.y; ++listIndex) {
                         uint32_t index = m_values[listIndex];
-                        const GaussianPoint &point = m_gaussianPoints[index];
                         if (index >= m_size || listIndex >= 3600)
                             continue;
+                        const GaussianPoint &point = m_gaussianPoints[index];
                         //sycl::ext::oneapi::experimental::printf("ListIndex: %u index: %u\n", listIndex, index);
                         // Perform processing on the point and update the image
                         // Example: Set the pixel to a specific value
@@ -363,9 +360,9 @@ namespace Rasterizer {
 
                 uint32_t baseIndex = (row * m_imageWidth + col) * 4;
 
-                m_imageBuffer[baseIndex] = static_cast<uint8_t>((C[0] + T * 0.85f) * 255.0f);
-                m_imageBuffer[baseIndex + 1] = static_cast<uint8_t>((C[1] + T * 0.85f) * 255.0f);
-                m_imageBuffer[baseIndex + 2] = static_cast<uint8_t>((C[2] + T * 0.85f) * 255.0f);
+                m_imageBuffer[baseIndex] = static_cast<uint8_t>((C[0] + T * 0.0f) * 255.0f);
+                m_imageBuffer[baseIndex + 1] = static_cast<uint8_t>((C[1] + T * 0.0f) * 255.0f);
+                m_imageBuffer[baseIndex + 2] = static_cast<uint8_t>((C[2] + T * 0.0f) * 255.0f);
                 m_imageBuffer[baseIndex + 3] = static_cast<uint8_t>(255.0f); // Assuming full alpha for simplicity
             } // endif
         }

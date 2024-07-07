@@ -46,8 +46,16 @@ void ImageViewer::setup() {
 
     splatEntity = "Default 3DGS model";
     m_context->createEntity(splatEntity);
-    m_renderer->setup(initInfo);
+#ifdef GPU_ENABLED
+    useCPU = false;
+#else
+    useCPU = true;
 #endif
+    m_renderer->setup(initInfo, useCPU);
+    prevDevice = useCPU;
+
+#endif
+    Widgets::make()->checkbox(WIDGET_PLACEMENT_RENDERER3D, "Use CPU", &useCPU);
 
     Widgets::make()->checkbox(WIDGET_PLACEMENT_RENDERER3D, "3DGS Render", &render3dgs);
     Widgets::make()->button(WIDGET_PLACEMENT_RENDERER3D, "3DGS Single image", &render3dgsImage);
@@ -61,6 +69,24 @@ void ImageViewer::onWindowResize(const VkRender::GuiObjectHandles *uiHandle) {
 
 
 void ImageViewer::update() {
+
+    if (useCPU != prevDevice) {
+        const auto &camera = m_context->getCamera();
+        VkRender::AbstractRenderer::InitializeInfo initInfo{};
+        initInfo.height = camera.m_height;
+        initInfo.width = camera.m_width;
+        initInfo.channels = 4;
+        initInfo.camera = &camera;
+        initInfo.context = m_context;
+        initInfo.imageSize = camera.m_height * camera.m_width * 4; // RGBA-uint
+
+        m_renderer = std::make_unique<VkRender::GaussianRenderer>();
+        splatEntity = "Default 3DGS model";
+        m_context->createEntity(splatEntity);
+        m_renderer->setup(initInfo, useCPU);
+    }
+    prevDevice = useCPU;
+
     auto &camera = m_context->getCamera();
     VkRender::AbstractRenderer::RenderInfo info{};
     info.camera = &camera;

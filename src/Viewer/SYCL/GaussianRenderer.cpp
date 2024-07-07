@@ -34,7 +34,6 @@
 namespace VkRender {
 
     uint8_t *GaussianRenderer::getImage() {
-        renderEvent.wait_and_throw();
         return m_image;
     }
 
@@ -43,12 +42,11 @@ namespace VkRender {
     }
 
 
-    void GaussianRenderer::setup(const VkRender::AbstractRenderer::InitializeInfo &initInfo) {
+    void GaussianRenderer::setup(const VkRender::AbstractRenderer::InitializeInfo &initInfo, bool useCPU) {
         m_initInfo = initInfo;
 
         try {
             // Create a queue using the CPU device selector
-#ifdef GPU_ENABLED
             auto gpuSelector = [](const sycl::device &dev) {
                 if (dev.is_gpu()) {
                     return 1; // Positive value to prefer GPU devices
@@ -56,8 +54,7 @@ namespace VkRender {
                     return -1; // Negative value to reject non-GPU devices
                 }
             };
-            queue = sycl::queue(gpuSelector, sycl::property::queue::in_order());
-#else
+
             auto cpuSelector = [](const sycl::device &dev) {
                 if (dev.is_cpu()) {
                     return 1; // Positive value to prefer GPU devices
@@ -65,8 +62,8 @@ namespace VkRender {
                     return -1; // Negative value to reject non-GPU devices
                 }
             };    // Define a callable device selector using a lambda
-            queue = sycl::queue(cpuSelector, sycl::property::queue::in_order());
-#endif
+
+            queue = sycl::queue(useCPU ? cpuSelector : gpuSelector, sycl::property::queue::in_order());
             // Use the queue for your computation
         } catch (const sycl::exception &e) {
             Log::Logger::getInstance()->warning("GPU device not found");
@@ -79,8 +76,8 @@ namespace VkRender {
         Log::Logger::getInstance()->info("Selected Device {}",
                                          queue.get_device().get_info<sycl::info::device::name>().c_str());
 
-        //gs = loadFromFile(Utils::getModelsPath() / "3dgs" / "coordinates.ply", 1);
-        gs = loadFromFile("/home/magnus/crl/multisense_viewer/3dgs_insect.ply", 10);
+        gs = loadFromFile(Utils::getModelsPath() / "3dgs" / "coordinates.ply", 1);
+        //gs = loadFromFile("/home/magnus/crl/multisense_viewer/3dgs_insect.ply", 100);
         setupBuffers(initInfo.camera);
         //simpleRasterizer(camera, false);
     }
@@ -124,7 +121,7 @@ namespace VkRender {
             pointOffsets = sycl::malloc_device<uint32_t>(numPoints, queue);
             pointsBuffer = sycl::malloc_device<Rasterizer::GaussianPoint>(numPoints, queue);
 
-            uint32_t sortBufferSize = (1 << 21);
+            uint32_t sortBufferSize = (1 << 25);
             keysBuffer = sycl::malloc_device<uint32_t>(sortBufferSize, queue);
             valuesBuffer = sycl::malloc_device<uint32_t>(sortBufferSize, queue);
             sorter = std::make_unique<Sorter>(queue, sortBufferSize);
@@ -168,14 +165,17 @@ namespace VkRender {
         const uint32_t tileHeight = 16;
         glm::vec3 tileGrid((imageWidth + BLOCK_X - 1) / BLOCK_X, (imageHeight + BLOCK_Y - 1) / BLOCK_Y, 1);
         uint32_t numTiles = tileGrid.x * tileGrid.y;
-        auto startWaitForQueue = std::chrono::high_resolution_clock::now();
-        queue.wait();
-        std::chrono::duration<double, std::milli> waitForQueueDuration =  std::chrono::high_resolution_clock::now() - startWaitForQueue;
 
-        auto startAll = std::chrono::high_resolution_clock::now();
         // Start timing
         // Preprocess
         try {
+            auto startAll = std::chrono::high_resolution_clock::now();
+
+            auto startWaitForQueue = std::chrono::high_resolution_clock::now();
+            queue.wait();
+            std::chrono::duration<double, std::milli> waitForQueueDuration =  std::chrono::high_resolution_clock::now() - startWaitForQueue;
+
+
             size_t numPoints = gs.getSize();
             Rasterizer::PreprocessInfo scene{};
             scene.projectionMatrix = projectionMatrix;
@@ -207,9 +207,11 @@ namespace VkRender {
             });
 
             uint32_t numRendered = 0;
-            queue.memcpy(&numRendered, pointOffsets + (numPoints - 1), sizeof(uint32_t));
+            queue.memcpy(&numRendered, pointOffsets + (numPoints - 1), sizeof(uint32_t)).wait();
+            Log::Logger::getInstance()->trace("3DGS Rendering: Total Gaussians: {}. {:.3f}M", numRendered, numRendered / 1e6);
             if (numRendered == 0)
                 return;
+
             std::chrono::duration<double, std::milli> inclusiveSumDuration =
                     std::chrono::high_resolution_clock::now() - startInclusiveSum;
 
@@ -237,7 +239,7 @@ namespace VkRender {
                                Rasterizer::IdentifyTileRangesInit(rangesBuffer));
             });
 
-
+            queue.wait();
             queue.submit([&](sycl::handler &h) {
                 h.parallel_for<class IdentifyTileRanges>(numRendered,
                                                          Rasterizer::IdentifyTileRanges(rangesBuffer, keysBuffer,
@@ -245,7 +247,6 @@ namespace VkRender {
             });
             std::chrono::duration<double, std::milli> identifyTileRangesDuration =
                     std::chrono::high_resolution_clock::now() - startIdentifyTileRanges;
-
 
             auto startRenderGaussians = std::chrono::high_resolution_clock::now();
 
@@ -269,10 +270,10 @@ namespace VkRender {
 
 
             auto startCopyImageToHost = std::chrono::high_resolution_clock::now();
-
+            queue.wait();
             // Copy back to host
             queue.memcpy(m_image, imageBuffer, width * height * 4);
-
+            queue.wait();
             std::chrono::duration<double, std::milli> copyImageDuration =
                     std::chrono::high_resolution_clock::now() - startCopyImageToHost;
 
@@ -365,8 +366,11 @@ namespace VkRender {
             std::memcpy(scaleBuffer.data(), scales->buffer.get(), numScalesBytes);
 
             for (size_t i = 0; i < numVertices; i += downSampleRate) {
-                data.scales.emplace_back(expf(scaleBuffer[i * 3]), expf(scaleBuffer[i * 3 + 1]),
-                                         expf(scaleBuffer[i * 3 + 2]));
+                float sx = expf(scaleBuffer[i * 3]) + 0.02f;
+                float sy = expf(scaleBuffer[i * 3 + 1]) + 0.02f;
+                float sz = expf(scaleBuffer[i * 3 + 2]) + 0.02f;
+
+                data.scales.emplace_back(sx, sy, sz);
             }
         }
 

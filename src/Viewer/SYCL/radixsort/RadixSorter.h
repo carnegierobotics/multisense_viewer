@@ -132,7 +132,7 @@ namespace VkRender {
         }
 
         void performOneSweep(uint32_t *sortBuffer, uint32_t *valuesBuffer, uint32_t numRendered) {
-            if (numRendered > (1 << 21))
+            if (numRendered > (1 << 25))
                 return;
             binningThreadblocks = (numRendered + partitionSize - 1) / partitionSize;
             globalHistThreadblocks = (numRendered + globalHistPartitionSize - 1) / globalHistPartitionSize;

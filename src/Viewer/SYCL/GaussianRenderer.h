@@ -45,7 +45,7 @@ namespace VkRender {
             clearBuffers();
         }
 
-        void setup(const VkRender::AbstractRenderer::InitializeInfo &initInfo);
+        void setup(const VkRender::AbstractRenderer::InitializeInfo &initInfo, bool useCPU = false);
         void render(const AbstractRenderer::RenderInfo &info, const VkRender::RenderUtils *pUtils);
         uint8_t *getImage();
         uint32_t getImageSize();

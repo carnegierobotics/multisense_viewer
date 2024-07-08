@@ -14,7 +14,7 @@ namespace VkRender::MultiSense {
         // check for new connection
         for (auto &device: m_multiSenseDevices) {
 
-            // Get connection state
+            // Get connection state from libmultisense
             device.connectionState = m_multiSenseTaskManager.connectionState();
 
 
@@ -43,13 +43,31 @@ namespace VkRender::MultiSense {
         // Provide status updates to UI
         device.createInfo = std::move(createInfo);
         m_multiSenseDevices.emplace_back(device);
-
         m_multiSenseTaskManager.connect(device);
-
     }
 
     std::vector<MultiSenseDevice> &MultiSenseRendererBridge::getProfileList() {
 
         return m_multiSenseDevices;
+    }
+
+    void MultiSenseRendererBridge::removeProfile(const MultiSenseDevice &profile) {
+        // erase-remove idiom
+        m_multiSenseDevices.erase(
+                std::remove_if(m_multiSenseDevices.begin(), m_multiSenseDevices.end(),
+                               [&profile](const MultiSenseDevice& device) {
+                                   return device.createInfo.profileName == profile.createInfo.profileName;
+                               }),
+                m_multiSenseDevices.end()
+        );
+    }
+
+    void MultiSenseRendererBridge::connect(const MultiSenseDevice &profile) {
+        // Check that we are not busy connection already of we are on the same device?
+        m_multiSenseTaskManager.connect(profile);
+    }
+    void MultiSenseRendererBridge::disconnect(const MultiSenseDevice &profile) {
+        // Check that we are not busy connection already of we are on the same device?
+        m_multiSenseTaskManager.disconnect();
     }
 }

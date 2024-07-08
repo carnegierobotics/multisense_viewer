@@ -14,7 +14,9 @@
 
 namespace VkRender {
 
+
     class MenuLayer : public VkRender::Layer {
+
     public:
         /** Called once upon this object creation**/
         void onAttach() override {
@@ -28,8 +30,9 @@ namespace VkRender {
 
 
         /** Called once per frame **/
-        void onUIRender(VkRender::GuiObjectHandles *handles) override {
+        void onUIRender(VkRender::GuiObjectHandles& handles) override {
 
+            /*
             // Push style variables
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.0f, 5.0f));
             ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10.0f, 10.0f));
@@ -65,6 +68,7 @@ namespace VkRender {
             ImGui::PopStyleVar(3);
             ImGui::PopStyleColor(5);
 
+            */
         }
 
         /** Called once upon this object destruction **/

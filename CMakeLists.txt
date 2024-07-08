@@ -78,9 +78,9 @@ set(SOURCE_FILES
         src/Viewer/ImGui/Widgets.cpp
         src/Viewer/ImGui/GuiManager.cpp
         src/Viewer/ImGui/AdditionalWindows/DebugWindow.h
-        src/Viewer/ImGui/Layers/MultiSenseViewerLayers/Sidebar.h
-        src/Viewer/ImGui/Layers/MultiSenseViewerLayers/WelcomeScreen.h
-        src/Viewer/ImGui/Layers/MultiSenseViewerLayers/ConfigurationPage.h
+        src/Viewer/ImGui/Layers/MultiSenseLayerSupport/Sidebar.h
+        src/Viewer/ImGui/Layers/MultiSenseLayerSupport/WelcomeScreen.h
+        src/Viewer/ImGui/Layers/MultiSenseLayerSupport/ConfigurationPage.h
         src/Viewer/ImGui/Layers/LayerSupport/LayerFactory.cpp
 
         src/Viewer/Tools/StbInclude.cpp

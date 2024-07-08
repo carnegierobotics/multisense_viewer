@@ -743,6 +743,7 @@ namespace VkRender {
 
         // Update GUI
         guiManager->handles.info->frameID = frameID;
+        guiManager->handles.info->applicationRuntime = runTime;
         guiManager->update((frameCounter == 0), frameTimer, renderUtils.width, renderUtils.height, &input);
         for (auto entity: view) {
             auto &script = view.get<ScriptComponent>(entity);

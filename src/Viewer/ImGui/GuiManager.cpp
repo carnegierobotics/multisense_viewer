@@ -155,7 +155,9 @@ namespace VkRender {
         }
         loadAnimatedGif(Utils::getTexturePath().append("spinner.gif").string());
 
+#ifdef MULTISENSE_VIEWER_DEBUG
         pushLayer("LayerExample");
+#endif
         pushLayer("DebugWindow");
         pushLayer("NewVersionAvailable");
         pushLayer("MultiSenseViewerLayer");
@@ -324,7 +326,7 @@ namespace VkRender {
 
         {
             for (auto &layer: m_LayerStack) {
-                layer->onUIRender(&handles);
+                layer->onUIRender(handles);
             }
         }
         ImGui::Render();

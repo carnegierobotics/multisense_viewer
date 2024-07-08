@@ -20,6 +20,9 @@ namespace VkRender::MultiSense {
         void setSelectedAdapter(std::string adapterName);
 
         void addNewProfile(MultiSenseProfileInfo);
+        void removeProfile(const MultiSenseDevice& profile);
+        void connect(const MultiSenseDevice& profile);
+        void disconnect(const MultiSenseDevice& profile);
 
         std::vector<MultiSenseDevice> &getProfileList();
 

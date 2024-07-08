@@ -1329,8 +1329,8 @@ namespace VkRender {
             frameID++; // First frame will have id 1.
             glfwPollEvents();
             auto end = std::chrono::system_clock::now();
-            std::chrono::duration<float> elapsed_seconds = end - rendererStartTime;
-            runTime = elapsed_seconds.count();
+            std::chrono::duration<float, std::milli> elapsed_milliseconds = end - rendererStartTime;
+            runTime = elapsed_milliseconds.count();
             /** Give ImGui Reference to this frame's input events **/
             ImGuiIO &io = ImGui::GetIO();
             io.DisplaySize = ImVec2(static_cast<float>(m_Width), static_cast<float>(m_Height));

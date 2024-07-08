@@ -39,6 +39,7 @@ namespace VkRender {
 
         }
 
+        /*
         void processEntities(GuiObjectHandles *handles) {
             auto view = handles->m_context->m_registry.view<TagComponent>(
                     entt::exclude<VkRender::SkyboxGraphicsPipelineComponent, VkRender::ScriptComponent>);
@@ -329,7 +330,8 @@ namespace VkRender {
         }
 
 /** Called once per frame **/
-        void onUIRender(VkRender::GuiObjectHandles *handles) override {
+        void onUIRender(VkRender::GuiObjectHandles &handles) override {
+            /*
             if (!handles->renderer3D)
                 return;
             bool pOpen = true;
@@ -403,6 +405,7 @@ namespace VkRender {
                     }
                 }
             }
+   */
 
         }
 

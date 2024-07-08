@@ -119,6 +119,10 @@ namespace VkRender {
         float frameTimeMin = 9999.0f, frameTimeMax = 0.0f;
         /**@brief value for current frame timer*/
         float frameTimer{};
+
+        float applicationRuntime = 0.0f;
+
+
         /** @brief Current frame*/
         uint64_t frameID = 0;
         /**@brief Font types used throughout the gui. usage: ImGui::PushFont(font13).. Initialized in GuiManager class */
@@ -136,6 +140,7 @@ namespace VkRender {
             uint32_t imageSize{};
             uint32_t totalFrames{};
             uint32_t *delay{};
+            std::chrono::time_point<std::chrono::system_clock> lastUpdateTime = std::chrono::system_clock::now();
         } gif{};
 
         /** @brief Containing descriptor handles for each image button texture */
@@ -244,7 +249,7 @@ namespace VkRender {
          * Called per frame, but before each script (\refitem Example) is updated
          * @param handles a UI object handle to collect user input
          */
-        virtual void onUIRender(GuiObjectHandles *handles) = 0;
+        virtual void onUIRender(GuiObjectHandles& handles) = 0;
 
         /**
          * @brief Pure virtual must be overridden.

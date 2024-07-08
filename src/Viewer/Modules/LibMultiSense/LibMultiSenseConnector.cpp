@@ -51,15 +51,9 @@
 namespace VkRender::MultiSense {
 
     void LibMultiSenseConnector::connect(std::string ip, std::string adapterName) {
-        {
-            std::scoped_lock lock(m_channelMutex);
-            Log::Logger::getInstance()->info("Attempting to connect to ip: {}. Adapter is: {}", ip, adapterName);
-            state = MULTISENSE_CONNECTION_IN_PROGRESS;
-        }
+        Log::Logger::getInstance()->info("Attempting to connect to ip: {}. Adapter is: {}", ip, adapterName);
         std::scoped_lock lock(m_channelMutex);
-
         m_channel = std::make_unique<ChannelWrapper>(ip);
-
         if (m_channel->ptr() != nullptr) {
             crl::multisense::system::DeviceInfo devInfo;
             m_channel->ptr()->getDeviceInfo(devInfo);
@@ -75,6 +69,14 @@ namespace VkRender::MultiSense {
             state = MULTISENSE_UNAVAILABLE;
 
         }
+    }
+
+    void LibMultiSenseConnector::disconnect() {
+        Log::Logger::getInstance()->info("Disconnecting MultiSense channel");
+        std::scoped_lock lock(m_channelMutex);
+        m_channel.reset();
+        m_channel = nullptr;
+        state = MULTISENSE_DISCONNECTED;
     }
 
     bool LibMultiSenseConnector::start(const std::string &dataSourceStr, crl::multisense::RemoteHeadChannel channelID) {

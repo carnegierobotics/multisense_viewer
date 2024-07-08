@@ -55,6 +55,9 @@ namespace VkRender::MultiSense {
         void connect(const MultiSenseDevice &device) {
             m_threadPool->Push(MultiSenseTaskManager::connectTask, this, device);
         }
+        void disconnect() {
+            m_threadPool->Push(MultiSenseTaskManager::disconnectTask, this);
+        }
 
         MultiSenseConnectionState connectionState() {
             return m_camera.connectionState();
@@ -67,6 +70,10 @@ namespace VkRender::MultiSense {
         static void connectTask(void *ctx, const MultiSenseDevice &device) {
             auto *context = reinterpret_cast<MultiSenseTaskManager *>(ctx);
             context->m_camera.connect(device.createInfo.inputIP, device.createInfo.ifName);
+        }
+        static void disconnectTask(void *ctx) {
+            auto *context = reinterpret_cast<MultiSenseTaskManager *>(ctx);
+            context->m_camera.disconnect();
         }
 
     };

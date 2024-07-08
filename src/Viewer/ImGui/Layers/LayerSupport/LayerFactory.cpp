@@ -6,8 +6,8 @@
 #include "Viewer/ImGui/Layers/LayerSupport/LayerExample.h"
 #include "Viewer/ImGui/AdditionalWindows/DebugWindow.h"
 #include "Viewer/ImGui/AdditionalWindows/NewVersionAvailable.h"
-#include "Viewer/ImGui/Layers/SideBarLayer.h"
-#include "Viewer/ImGui/Layers/MenuLayer.h"
+#include "Viewer/ImGui/Layers/Renderer(old)/SideBarLayer.h"
+#include "Viewer/ImGui/Layers/Renderer(old)/MenuLayer.h"
 #include "Viewer/ImGui/Layers/MultiSenseViewerLayer.h"
 
 namespace VkRender {

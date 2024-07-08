@@ -12,8 +12,6 @@ namespace VkRender::MultiSense {
     typedef enum MultiSenseConnectionState {
         MULTISENSE_DISCONNECTED =                  0x00,
         MULTISENSE_CONNECTED =                     0x01,
-        MULTISENSE_CONNECTION_IN_PROGRESS =        0x02,
-        MULTISENSE_JUST_ADDED =                    0x04,
         MULTISENSE_CHANNEL_BUSY =                  0x08,
         MULTISENSE_UNAVAILABLE =                   0x0F,
     } MultiSenseConnectionState;

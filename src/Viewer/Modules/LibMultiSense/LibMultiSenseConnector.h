@@ -428,6 +428,8 @@ namespace VkRender::MultiSense {
             }
         }
 
+        void disconnect();
+
     private:
         std::unique_ptr<ChannelWrapper> m_channel{};
         CameraInfo m_channelInfo{};
@@ -469,6 +471,7 @@ namespace VkRender::MultiSense {
         void getIMUConfig(crl::multisense::RemoteHeadChannel channelID);
 
         void updateCameraInfo();
+
     };
 
 

@@ -11,7 +11,7 @@ namespace VkRender {
         AUTO_CONNECT = 2
     };
 
-    static void addPopup(GuiObjectHandles *uiContext) {
+    static void addPopup(GuiObjectHandles& uiContext) {
         float popupWidth = 550.0f;
         float popupHeight = 600.0f;
         ImGui::SetNextWindowSize(ImVec2(popupWidth, popupHeight), ImGuiCond_Always);
@@ -37,7 +37,7 @@ namespace VkRender {
             ImGui::GetWindowDrawList()->AddRectFilled(popupDrawPos, headerPosMax,
                                                       ImColor(Colors::CRLRed), 0.0f, 0);
 
-            ImGui::PushFont(uiContext->info->font24);
+            ImGui::PushFont(uiContext.info->font24);
             std::string title = "Connect to MultiSense";
             ImVec2 size = ImGui::CalcTextSize(title.c_str());
             float anchorPoint =
@@ -89,29 +89,29 @@ namespace VkRender {
             ImVec4 tint_col = ImVec4(1.0f, 1.0f, 1.0f, 1.0f); // No tint
 
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
-            //ImGui::BeginChild("IconChild", ImVec2(uiContext->info->popupWidth, 40.0f), false, ImGuiWindowFlags_NoDecoration);
+            //ImGui::BeginChild("IconChild", ImVec2(uiContext.info->popupWidth, 40.0f), false, ImGuiWindowFlags_NoDecoration);
             ImVec2 imageButtonSize(245.0f, 55.0f);
-            ImGui::PushFont(uiContext->info->font15);
+            ImGui::PushFont(uiContext.info->font15);
 
             static int connectMethodSelector = 0;
 
             if (ImGui::ImageButtonText("Automatic", &connectMethodSelector, AUTO_CONNECT, imageButtonSize,
-                                       uiContext->info->imageButtonTextureDescriptor[3], ImVec2(33.0f, 31.0f), uv0, uv1,
+                                       uiContext.info->imageButtonTextureDescriptor[3], ImVec2(33.0f, 31.0f), uv0, uv1,
                                        tint_col)) {
                 Log::Logger::getInstance()->info(
                         "User clicked AUTO_CONNECT. Tab is {}, 0 = none, 1 = AutoConnect, 2 = ManualConnect",
                         connectMethodSelector);
-                uiContext->usageMonitor->userClickAction("Automatic", "ImageButtonText",
+                uiContext.usageMonitor->userClickAction("Automatic", "ImageButtonText",
                                                          ImGui::GetCurrentWindow()->Name);
             }
             ImGui::SameLine(0, 30.0f);
             if (ImGui::ImageButtonText("Manual", &connectMethodSelector, MANUAL_CONNECT, imageButtonSize,
-                                       uiContext->info->imageButtonTextureDescriptor[4], ImVec2(40.0f, 40.0f), uv0, uv1,
+                                       uiContext.info->imageButtonTextureDescriptor[4], ImVec2(40.0f, 40.0f), uv0, uv1,
                                        tint_col)) {
                 Log::Logger::getInstance()->info(
                         "User clicked MANUAL_CONNECT. Tab is {}, 0 = none, 1 = AutoConnect, 2 = ManualConnect",
                         connectMethodSelector);
-                uiContext->usageMonitor->userClickAction("Manual", "ImageButtonText", ImGui::GetCurrentWindow()->Name);
+                uiContext.usageMonitor->userClickAction("Manual", "ImageButtonText", ImGui::GetCurrentWindow()->Name);
             }
             ImGui::PopFont();
             ImGui::PopStyleVar(3); // RadioButton
@@ -123,7 +123,7 @@ namespace VkRender {
                 // Threaded adapter search for manual connect
 
                 {
-                    ImGui::Dummy(ImVec2(0.0f, 5.0f));
+                    ImGui::Dummy(ImVec2(0.0f, 30.0f));
                     ImGui::Dummy(ImVec2(20.0f, 0.0f));
                     ImGui::SameLine();
                     ImGui::PushStyleColor(ImGuiCol_Text, Colors::CRLTextGray);
@@ -141,46 +141,50 @@ namespace VkRender {
                                                ImGuiInputTextFlags_AutoSelectAll |
                                                ImGuiInputTextFlags_CharsNoBlank);
                 ImGui::Dummy(ImVec2(0.0f, 15.0f));
-                {
-                    ImGui::Dummy(ImVec2(20.0f, 0.0f));
-                    ImGui::SameLine();
-                    ImGui::PushStyleColor(ImGuiCol_Text, Colors::CRLTextGray);
-                    ImGui::Text("Select network adapter:");
-                    ImGui::PopStyleColor();
-                    ImGui::Dummy(ImVec2(0.0f, 5.0f));
-                    ImGui::SameLine(0.0f, 10.0f);
-                }
-                ImGui::Dummy(ImVec2(0.0f, 5.0f));
+                ImGui::PopStyleColor();
+                /* // TODO Logic to set ethernet adapter. But is it required? Feature is only avaiable with LibMultiSense on Linux, on Windows the adapter cannot be specified
+               {
+                   ImGui::Dummy(ImVec2(20.0f, 0.0f));
+                   ImGui::SameLine();
+                   ImGui::PushStyleColor(ImGuiCol_Text, Colors::CRLTextGray);
+                   ImGui::Text("Select network adapter:");
+                   ImGui::PopStyleColor();
+                   ImGui::Dummy(ImVec2(0.0f, 5.0f));
+                   ImGui::SameLine(0.0f, 10.0f);
+               }
+               ImGui::Dummy(ImVec2(0.0f, 5.0f));
 
-                static int interfaceIndex = 0;
-                std::vector<std::string> interfaceNameList = uiContext->multiSenseRendererBridge->getAvailableAdapterList();
-                if (interfaceNameList.empty()) {
-                    interfaceNameList.emplace_back("No adapter available");
-                }
-                std::string previewValue = interfaceNameList[interfaceIndex];
-                static ImGuiComboFlags flags = 0;
-                ImGui::Dummy(ImVec2(20.0f, 5.0f));
-                ImGui::SameLine();
-                ImGui::SetNextItemWidth(popupWidth - 40.0f);
-                ImGui::PushStyleColor(ImGuiCol_PopupBg, Colors::CRLDarkGray425);
-                if (ImGui::BeginCombo("##SelectAdapter", previewValue.c_str(), flags)) {
-                    for (size_t n = 0; n < interfaceNameList.size(); n++) {
-                        const bool is_selected = (interfaceIndex == n);
-                        if (ImGui::Selectable(interfaceNameList[n].c_str(), is_selected)) {
-                            interfaceIndex = static_cast<uint32_t>(n);
-                            uiContext->usageMonitor->userClickAction("SelectAdapter", "combo",
-                                                                     ImGui::GetCurrentWindow()->Name);
-                            uiContext->multiSenseRendererBridge->setSelectedAdapter(interfaceNameList[interfaceIndex]);
-                        }
-                        // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-                        if (is_selected)
-                            ImGui::SetItemDefaultFocus();
-                    }
-                    ImGui::EndCombo();
-                }
-                ImGui::PopStyleColor(2); // ImGuiCol_FrameBg
 
-                profileInfo.ifName = interfaceNameList[interfaceIndex]; // interfaceIndex is static variable so will always reflect latest set value
+               static int interfaceIndex = 0;
+               std::vector<std::string> interfaceNameList = uiContext.multiSenseRendererBridge->getAvailableAdapterList();
+               if (interfaceNameList.empty()) {
+                   interfaceNameList.emplace_back("No adapter available");
+               }
+               std::string previewValue = interfaceNameList[interfaceIndex];
+               static ImGuiComboFlags flags = 0;
+               ImGui::Dummy(ImVec2(20.0f, 5.0f));
+               ImGui::SameLine();
+               ImGui::SetNextItemWidth(popupWidth - 40.0f);
+               ImGui::PushStyleColor(ImGuiCol_PopupBg, Colors::CRLDarkGray425);
+               if (ImGui::BeginCombo("##SelectAdapter", previewValue.c_str(), flags)) {
+                   for (size_t n = 0; n < interfaceNameList.size(); n++) {
+                       const bool is_selected = (interfaceIndex == n);
+                       if (ImGui::Selectable(interfaceNameList[n].c_str(), is_selected)) {
+                           interfaceIndex = static_cast<uint32_t>(n);
+                           uiContext.usageMonitor->userClickAction("SelectAdapter", "combo",
+                                                                    ImGui::GetCurrentWindow()->Name);
+                           uiContext.multiSenseRendererBridge->setSelectedAdapter(interfaceNameList[interfaceIndex]);
+                       }
+                       // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                       if (is_selected)
+                           ImGui::SetItemDefaultFocus();
+                   }
+                   ImGui::EndCombo();
+               }
+               ImGui::PopStyleColor(2); // ImGuiCol_FrameBg
+
+               profileInfo.ifName = interfaceNameList[interfaceIndex]; // interfaceIndex is static variable so will always reflect latest set value
+               */
             }
 
             ////** CANCEL/CONNECT FIELD BEGINS HERE*/
@@ -188,7 +192,7 @@ namespace VkRender {
             ImGui::SetCursorPos(ImVec2(0.0f, popupHeight - 50.0f));
             ImGui::Dummy(ImVec2(20.0f, 0.0f));
             ImGui::SameLine();
-            ImGui::PushFont(uiContext->info->font15);
+            ImGui::PushFont(uiContext.info->font15);
             bool btnCancel = ImGui::Button("Close", ImVec2(190.0f, 30.0f));
             ImGui::SameLine(0, 130.0f);
 
@@ -196,16 +200,16 @@ namespace VkRender {
             ImGui::PopFont();
 
             if (btnCancel) {
-                uiContext->usageMonitor->userClickAction("Cancel", "button",
+                uiContext.usageMonitor->userClickAction("Cancel", "button",
                                                          ImGui::GetCurrentWindow()->Name);
                 ImGui::CloseCurrentPopup();
             }
 
             if (btnConnect) {
-                uiContext->usageMonitor->userClickAction("Connect", "button",
+                uiContext.usageMonitor->userClickAction("Connect", "button",
                                                          ImGui::GetCurrentWindow()->Name);
 
-                uiContext->multiSenseRendererBridge->addNewProfile(profileInfo);
+                uiContext.multiSenseRendererBridge->addNewProfile(profileInfo);
                 ImGui::CloseCurrentPopup();
             }
 
@@ -215,23 +219,23 @@ namespace VkRender {
         ImGui::PopStyleVar(5); // popup style vars
     }
 
-    static void addDeviceButton(GuiObjectHandles *uiContext) {
-        ImGui::SetCursorPos(ImVec2(0.0f, uiContext->info->height - 50.0f));
+    static void addDeviceButton(GuiObjectHandles& uiContext) {
+        ImGui::SetCursorPos(ImVec2(0.0f, uiContext.info->height - 50.0f));
 
         ImGui::PushStyleColor(ImGuiCol_Button, Colors::CRLBlueIsh);
-        if (ImGui::Button("ADD DEVICE", ImVec2(uiContext->info->sidebarWidth, 35.0f))) {
+        if (ImGui::Button("ADD DEVICE", ImVec2(uiContext.info->sidebarWidth, 35.0f))) {
             ImGui::OpenPopup("add_device_modal");
-            uiContext->usageMonitor->userClickAction("ADD_DEVICE", "button", ImGui::GetCurrentWindow()->Name);
+            uiContext.usageMonitor->userClickAction("ADD_DEVICE", "button", ImGui::GetCurrentWindow()->Name);
         }
         ImGui::PopStyleColor();
     }
 
 
-    void drawProfilesInSidebar(GuiObjectHandles *uiContext) {
+    void drawProfilesInSidebar(GuiObjectHandles& uiContext) {
         ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLDarkGray425);
         std::default_random_engine rng;
         float sidebarElementHeight = 140.0f;
-        for (auto &profile: uiContext->multiSenseRendererBridge->getProfileList()) {
+        for (auto &profile: uiContext.multiSenseRendererBridge->getProfileList()) {
 
             // Color the sidebar and window depending on the connection state. Must be found before we start drawing the window containing the profile.
             std::string buttonIdentifier = "InvalidConnectionState";
@@ -253,24 +257,20 @@ namespace VkRender {
                     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.26f, 0.42f, 0.31f, 1.0f));
                     break;
 
-                case MultiSense::MULTISENSE_CONNECTION_IN_PROGRESS:
-                case MultiSense::MULTISENSE_JUST_ADDED:
-                    buttonIdentifier = "Connecting";
+                case MultiSense::MULTISENSE_CHANNEL_BUSY:
+                    buttonIdentifier = "Working...";
                     ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLGray424);
                     ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::CRLBlueIsh);
                     break;
-
-                default:
-                    buttonIdentifier = "Default state";
-                    ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLGray424);
-                    ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::CRLBlueIsh);
             }
             // Connect button
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
             std::string winId = profile.createInfo.profileName + "Child" + std::to_string(rng());;
-            ImGui::BeginChild(winId.c_str(), ImVec2(uiContext->info->sidebarWidth, sidebarElementHeight),
+            ImGui::BeginChild(winId.c_str(), ImVec2(uiContext.info->sidebarWidth, sidebarElementHeight),
                               false, ImGuiWindowFlags_NoDecoration);
+
             ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::CRLBlueIsh);
+            bool removeProfileButtonX = ImGui::SmallButton("X");
             ImGui::PopStyleColor();
 
             ImGui::SetCursorPos(ImVec2(0.0f, ImGui::GetCursorPosY()));
@@ -286,7 +286,7 @@ namespace VkRender {
             ImVec2 lineSize;
             // Profile Name
             {
-                ImGui::PushFont(uiContext->info->font24);
+                ImGui::PushFont(uiContext.info->font24);
                 lineSize = ImGui::CalcTextSize(profile.createInfo.profileName.c_str());
                 cursorPos.x = window_center.x - (lineSize.x / 2);
                 ImGui::SetCursorPos(cursorPos);
@@ -295,7 +295,7 @@ namespace VkRender {
             }
             // Camera Name
             {
-                ImGui::PushFont(uiContext->info->font13);
+                ImGui::PushFont(uiContext.info->font13);
                 lineSize = ImGui::CalcTextSize(profile.createInfo.cameraModel.c_str());
                 cursorPos.x = window_center.x - (lineSize.x / 2);
                 ImGui::SetCursorPos(ImVec2(cursorPos.x, ImGui::GetCursorPosY()));
@@ -304,7 +304,7 @@ namespace VkRender {
             }
             // Camera IP Address
             {
-                ImGui::PushFont(uiContext->info->font13);
+                ImGui::PushFont(uiContext.info->font13);
                 lineSize = ImGui::CalcTextSize(profile.createInfo.inputIP.c_str());
                 cursorPos.x = window_center.x - (lineSize.x / 2);
                 ImGui::SetCursorPos(ImVec2(cursorPos.x, ImGui::GetCursorPosY()));
@@ -316,7 +316,7 @@ namespace VkRender {
             // Status Button
             {
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));
-                ImGui::PushFont(uiContext->info->font18);
+                ImGui::PushFont(uiContext.info->font18);
                 //ImGuiStyle style = ImGui::GetStyle();
                 ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 12);
                 cursorPos.x = window_center.x - (ImGui::GetFontSize() * 10 / 2);
@@ -328,49 +328,65 @@ namespace VkRender {
             ImVec4 tint_col = ImVec4(1.0f, 1.0f, 1.0f, 0.3f); // No tint
 
 
-            bool clicked;
+            bool deviceButton;
             static size_t gifFrameIndex = 0;
-            if (profile.connectionState == MultiSense::MULTISENSE_CONNECTION_IN_PROGRESS) {
-                clicked = ImGui::ButtonWithGif(buttonIdentifier.c_str(), ImVec2(ImGui::GetFontSize() * 10, 35.0f),
-                                               uiContext->info->gif.image[gifFrameIndex], ImVec2(35.0f, 35.0f),
-                                               uv0,
-                                               uv1,
-                                               tint_col, VkRender::Colors::CRLBlueIsh);
+            if (profile.connectionState == MultiSense::MULTISENSE_CHANNEL_BUSY) {
+                deviceButton = ImGui::ButtonWithGif(buttonIdentifier.c_str(), ImVec2(ImGui::GetFontSize() * 10, 35.0f),
+                                                    uiContext.info->gif.image[gifFrameIndex], ImVec2(35.0f, 35.0f),
+                                                    uv0,
+                                                    uv1,
+                                                    tint_col, VkRender::Colors::CRLBlueIsh);
             } else {
-                clicked = ImGui::Button(buttonIdentifier.c_str(),
-                                        ImVec2(ImGui::GetFontSize() * 10, ImGui::GetFontSize() * 2));
+                deviceButton = ImGui::Button(buttonIdentifier.c_str(),
+                                             ImVec2(ImGui::GetFontSize() * 10, ImGui::GetFontSize() * 2));
             }
 
             ImGui::PopStyleColor(2);
 
-            gifFrameIndex++;
+            auto now = std::chrono::system_clock::now();
+            std::chrono::duration<float, std::milli> elapsed_milliseconds = now - uiContext.info->gif.lastUpdateTime;
 
-            if (gifFrameIndex >= uiContext->info->gif.totalFrames)
+            if (elapsed_milliseconds.count() >= 33.0) {
+                gifFrameIndex++;
+                uiContext.info->gif.lastUpdateTime = now;
+            }
+
+            if (gifFrameIndex >= uiContext.info->gif.totalFrames)
                 gifFrameIndex = 0;
 
             ImGui::PopFont();
             ImGui::PopStyleVar(2);
+
+            if (deviceButton && profile.connectionState != MultiSense::MULTISENSE_CONNECTED) {
+                uiContext.multiSenseRendererBridge->connect(profile);
+            } else if (deviceButton) {
+                uiContext.multiSenseRendererBridge->disconnect(profile);
+            }
+
+            if (removeProfileButtonX) {
+                uiContext.multiSenseRendererBridge->removeProfile(profile);
+            }
 
             ImGui::EndChild();
         }
         ImGui::PopStyleColor();
     }
 
-    void drawSideBar(GuiObjectHandles *uiContext) {
+    void drawSideBar(GuiObjectHandles& uiContext) {
         ImGui::SetCursorPos(ImVec2(0.0f, 0.0f));
 
         ImGui::PushStyleColor(ImGuiCol_ChildBg, Colors::CRLGray424Main);
         // Begin the sidebar as a child window
-        ImGui::BeginChild("Sidebar", ImVec2(uiContext->info->sidebarWidth, uiContext->info->height), false,
+        ImGui::BeginChild("Sidebar", ImVec2(uiContext.info->sidebarWidth, uiContext.info->height), false,
                           ImGuiWindowFlags_NoScrollWithMouse);
         addPopup(uiContext);
         //askUsageLoggingPermissionPopUp(uiContext);
         // Settings button
         {
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
-            if (ImGui::Button("Settings", ImVec2(uiContext->info->sidebarWidth, 17.0f))) {
-                uiContext->showDebugWindow = !uiContext->showDebugWindow;
-                uiContext->usageMonitor->userClickAction("Settings", "button", ImGui::GetCurrentWindow()->Name);
+            if (ImGui::Button("Settings", ImVec2(uiContext.info->sidebarWidth, 17.0f))) {
+                uiContext.showDebugWindow = !uiContext.showDebugWindow;
+                uiContext.usageMonitor->userClickAction("Settings", "button", ImGui::GetCurrentWindow()->Name);
             }
             ImGui::PopStyleVar();
         }
@@ -379,8 +395,8 @@ namespace VkRender {
         addDeviceButton(uiContext);
 
         // Add version number
-        ImGui::SetCursorPos(ImVec2(0.0f, uiContext->info->height - 10.0f));
-        ImGui::PushFont(uiContext->info->font8);
+        ImGui::SetCursorPos(ImVec2(0.0f, uiContext.info->height - 10.0f));
+        ImGui::PushFont(uiContext.info->font8);
         ImGui::Text("%s", (std::string("Ver: ") + RendererConfig::getInstance().getAppVersion()).c_str());
         ImGui::PopFont();
 

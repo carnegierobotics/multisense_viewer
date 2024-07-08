@@ -401,6 +401,7 @@ namespace VkRender {
 
 
         // Process colors and spherical harmonics
+        /*
         if (colors && harmonics) {
             const size_t numColorsBytes = colors->buffer.size_bytes();
             std::vector<float> colorBuffer(numVertices * 3);
@@ -453,7 +454,31 @@ namespace VkRender {
                 }
             }
 
-            data.shDim = sh_coeffs;
+            data.shDim = 3 + harmonics_properties.size();
+        }
+         */
+
+        // Process colors and spherical harmonics
+        if (colors && harmonics) {
+            const size_t numColorsBytes = colors->buffer.size_bytes();
+            std::vector<float> colorBuffer(numVertices * 3);
+            std::memcpy(colorBuffer.data(), colors->buffer.get(), numColorsBytes);
+
+            const size_t numHarmonicsBytes = harmonics->buffer.size_bytes();
+            std::vector<float> harmonicsBuffer(numVertices * harmonics_properties.size());
+            std::memcpy(harmonicsBuffer.data(), harmonics->buffer.get(), numHarmonicsBytes);
+
+            for (size_t i = 0; i < numVertices; i += downSampleRate) {
+                data.sphericalHarmonics.push_back(colorBuffer[i * 3]);
+                data.sphericalHarmonics.push_back(colorBuffer[i * 3 + 1]);
+                data.sphericalHarmonics.push_back(colorBuffer[i * 3 + 2]);
+
+                for (size_t j = 0; j < harmonics_properties.size(); ++j) {
+                    data.sphericalHarmonics.push_back(harmonicsBuffer[i * harmonics_properties.size() + j]);
+                }
+            }
+
+            data.shDim = 3 + harmonics_properties.size();
         }
         return data;
     }

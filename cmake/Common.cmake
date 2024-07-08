@@ -25,7 +25,24 @@ if (GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
         endif ()
     endif ()
 endif ()
+# Include the proprietary GigE-Vision Module
+if(PROPRIETARY_GIGEVISION_MODULE)
+    if(NOT GIGEVISION_MODULE_PATH)
+        message(FATAL_ERROR "GIGEVISION_MODULE_PATH is required when PROPRIETARY_GIGEVISION_MODULE is ON")
+    endif()
+    # Include directories for the proprietary module
+    include_directories(${GIGEVISION_MODULE_PATH}/include)
 
+    # Add the proprietary module library
+    # Assuming the proprietary module provides a library file, you can link it like this:
+    set(PROPRIETARY_MODULE_LIB ${GIGEVISION_MODULE_PATH}/lib/libcrlgev.a)
+
+    # Check if the library exists
+    if(NOT EXISTS ${PROPRIETARY_MODULE_LIB})
+        message(FATAL_ERROR "Proprietary module library not found at ${PROPRIETARY_MODULE_LIB}")
+    endif()
+
+endif()
 # Include Submodules into project.
 # Check if exists or display fatal error
 set(GLM_DIR external/glm)

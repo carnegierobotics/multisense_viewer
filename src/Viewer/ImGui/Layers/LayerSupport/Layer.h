@@ -53,6 +53,7 @@
 #include "Viewer/Core/KeyInput.h"
 #include "Viewer/Modules/LibMultiSense/MultiSenseRendererBridge.h"
 #include "Viewer/Tools/ThreadPool.h"
+#include "Viewer/Modules/GigE-Vision/MultiSenseRendererGigEVisionBridge.h"
 
 namespace VkRender {
     class Renderer;
@@ -182,6 +183,7 @@ namespace VkRender {
         /** @brief GUI window info used for creation and updating */
         std::unique_ptr<GuiLayerUpdateInfo> info{};
         std::unique_ptr<MultiSense::MultiSenseRendererBridge> multiSenseRendererBridge{};
+        std::unique_ptr<MultiSense::MultiSenseRendererGigEVisionBridge> multiSenseRendererGigEVisionBridge{};
 
 
         const Input *input{};

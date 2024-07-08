@@ -14,11 +14,11 @@ set(VERSION_MAJOR "1")
 set(VERSION_MINOR "2")
 set(VERSION_PATCH "0")
 set(ARCHITECTURE "amd64")
-
-# Set install directory
 set(INSTALL_DIRECTORY ${CMAKE_BINARY_DIR}/multisense_${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}_${ARCHITECTURE}/)
 
 option(BUILD_DOC "Build documentation" ON)
+option(PROPRIETARY_GIGEVISION_MODULE "Include the proprietary GigE-Vision module" OFF)
+set(GIGEVISION_MODULE_PATH "" CACHE PATH "Path to the proprietary GigE-Vision module")
 
 # Set default build type
 if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -38,9 +38,9 @@ include(cmake/CompilerWarnings.cmake)
 find_package(Doxygen)
 if (Doxygen_FOUND)
     add_subdirectory(docs)
-else()
+else ()
     message(STATUS "Doxygen not found, not building docs")
-endif()
+endif ()
 
 include_directories(src)
 include_directories(Assets)
@@ -97,6 +97,11 @@ set(SOURCE_FILES
         src/Viewer/Modules/LibMultiSense/MultiSenseTaskManager.cpp
 )
 
+if (PROPRIETARY_GIGEVISION_MODULE)
+    list(APPEND SOURCE_FILES
+            src/Viewer/Modules/GigE-Vision/MultiSenseRendererGigEVisionBridge.cpp
+    )
+endif ()
 
 set(LIBRARIES "Vulkan::Vulkan;glfw;imgui;tiff;ktx;nlohmann_json::nlohmann_json;httplib::httplib;tinyobjloader;GPUOpen::VulkanMemoryAllocator;tinyply;MultiSense;")
 
@@ -123,6 +128,10 @@ if (UNIX) # Linux
     target_link_libraries(MultiSense-Viewer ${LIBRARIES} ${GTK3_LIBRARIES} fmt::fmt)
 
     set_project_warnings(MultiSense-Viewer)
+
+    if (PROPRIETARY_GIGEVISION_MODULE)
+        target_link_libraries(MultiSense-Viewer ${PROPRIETARY_MODULE_LIB})
+    endif ()
 
     install(TARGETS MultiSense-Viewer RUNTIME DESTINATION ${INSTALL_DIRECTORY})
     install(DIRECTORY ${CMAKE_SOURCE_DIR}/Assets CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
@@ -152,7 +161,7 @@ if (WIN32)
             IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/external/openssl_1.1.1/lib/libcrypto.lib")
 
     add_executable(MultiSense-Viewer WIN32 ${SOURCE_FILES})
-    target_link_libraries(MultiSense-Viewer ${LIBRARIES}  libsll libcrypto fmt::fmt userenv.lib)
+    target_link_libraries(MultiSense-Viewer ${LIBRARIES} libsll libcrypto fmt::fmt userenv.lib)
 
     set_project_warnings(MultiSense-Viewer)
 
@@ -200,6 +209,6 @@ endif ()
 # Compile definitions
 if (CMAKE_BUILD_TYPE MATCHES "Release")
     target_compile_definitions(MultiSense-Viewer PRIVATE MULTISENSE_VIEWER_PRODUCTION)
-else()
+else ()
     target_compile_definitions(MultiSense-Viewer PRIVATE MULTISENSE_VIEWER_DEBUG)
 endif ()

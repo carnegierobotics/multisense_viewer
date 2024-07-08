@@ -156,7 +156,7 @@ namespace VkRender {
         }
         loadAnimatedGif(Utils::getTexturePath().append("spinner.gif").string());
 
-#ifdef MULTISENSE_VIEWER_DEBUG
+#ifdef VKRENDER_MULTISENSE_VIEWER_DEBUG
         pushLayer("LayerExample");
 #endif
         pushLayer("DebugWindow");

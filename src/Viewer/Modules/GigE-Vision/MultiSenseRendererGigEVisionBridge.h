@@ -8,16 +8,17 @@
 #include <string>
 #include <vector>
 
+#ifdef VKRENDER_GIGEVISION_ENABLED
 #include <libcrlgev/camera_obj.hh>
+#endif
 
 namespace VkRender::MultiSense {
     class MultiSenseRendererGigEVisionBridge {
     public:
         MultiSenseRendererGigEVisionBridge(){
 
-            device_obj cam_device;
-
-            cam_device.enumerate();
+            //device_obj cam_device;
+            //cam_device.enumerate();
 
         }
     };

@@ -235,7 +235,7 @@ public:
         }
 
 
-#ifdef MULTISENSE_VIEWER_DEBUG
+#ifdef VKRENDER_MULTISENSE_VIEWER_DEBUG
         static bool showDemo = false;
         ImGui::Checkbox("ShowDemo", &showDemo);
         if (showDemo)

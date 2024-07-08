@@ -43,7 +43,7 @@
 #include "Viewer/Tools/Populate.h"
 #include "Viewer/Tools/Utils.h"
 
-#ifndef MULTISENSE_VIEWER_PRODUCTION
+#ifndef VKRENDER_MULTISENSE_VIEWER_PRODUCTION
 
 #include "Viewer/Core/Validation.h"
 
@@ -51,7 +51,7 @@
 
 namespace VkRender {
     VulkanRenderer::VulkanRenderer(const std::string &title) {
-#ifdef MULTISENSE_VIEWER_PRODUCTION
+#ifdef VKRENDER_MULTISENSE_VIEWER_PRODUCTION
         settings.validation = false;
 #else
         settings.validation = true;
@@ -131,7 +131,7 @@ namespace VkRender {
         }
         const std::vector<const char *> validationLayers = {"VK_LAYER_KHRONOS_validation"};
         // The VK_LAYER_KHRONOS_validation contains all current validation functionality.
-#ifdef MULTISENSE_VIEWER_DEBUG
+#ifdef VKRENDER_MULTISENSE_VIEWER_DEBUG
         if (settings.validation) {
             // Check if this layer is available at instance level
             if (Validation::checkValidationLayerSupport(validationLayers)) {
@@ -156,7 +156,7 @@ namespace VkRender {
         pLogger->info("Vulkan Instance successfully created");
         // If requested, we flashing the default validation layers for debugging
         // If requested, we flashing the default validation layers for debugging
-#ifdef MULTISENSE_VIEWER_DEBUG
+#ifdef VKRENDER_MULTISENSE_VIEWER_DEBUG
 
         if (settings.validation) {
             // The report flags determine what type of messages for the layers will be displayed
@@ -301,7 +301,7 @@ namespace VkRender {
             vkDestroySemaphore(device, semaphore.renderComplete, nullptr);
             vkDestroySemaphore(device, semaphore.computeComplete, nullptr);
         }
-#ifdef MULTISENSE_VIEWER_DEBUG
+#ifdef VKRENDER_MULTISENSE_VIEWER_DEBUG
         if (settings.validation)
             Validation::DestroyDebugUtilsMessengerEXT(instance, debugUtilsMessenger, nullptr);
 #endif

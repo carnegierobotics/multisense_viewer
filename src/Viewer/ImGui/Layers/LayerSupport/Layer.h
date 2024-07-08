@@ -185,7 +185,6 @@ namespace VkRender {
         std::unique_ptr<MultiSense::MultiSenseRendererBridge> multiSenseRendererBridge{};
         std::unique_ptr<MultiSense::MultiSenseRendererGigEVisionBridge> multiSenseRendererGigEVisionBridge{};
 
-
         const Input *input{};
         std::array<float, 4> clearColor{};
         /** @brief Display the debug window */

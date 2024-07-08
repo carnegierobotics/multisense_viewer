@@ -208,7 +208,10 @@ endif ()
 
 # Compile definitions
 if (CMAKE_BUILD_TYPE MATCHES "Release")
-    target_compile_definitions(MultiSense-Viewer PRIVATE MULTISENSE_VIEWER_PRODUCTION)
-else ()
-    target_compile_definitions(MultiSense-Viewer PRIVATE MULTISENSE_VIEWER_DEBUG)
+    target_compile_definitions(MultiSense-Viewer PRIVATE VKRENDER_MULTISENSE_VIEWER_PRODUCTION)
+    if (PROPRIETARY_GIGEVISION_MODULE)
+        target_compile_definitions(MultiSense-Viewer PRIVATE VKRENDER_GIGEVISION_ENABLED)
+    endif()
+    else ()
+    target_compile_definitions(MultiSense-Viewer PRIVATE VKRENDER_MULTISENSE_VIEWER_DEBUG)
 endif ()

@@ -32,7 +32,7 @@ namespace Rasterizer {
         float focalY = 0;
     };
 
-    struct PreprocessInfo{
+    struct PreprocessInfo {
         glm::mat4 viewMatrix{};
         glm::mat4 projectionMatrix{};
         uint32_t width = 0, height = 0;
@@ -107,7 +107,8 @@ namespace Rasterizer {
         return {htanx, htany, focal_x, focal_y};
     }
 
-    static glm::vec3 computeColorFromSH(uint32_t idx, glm::vec3 pos, glm::vec3 camPos, uint32_t deg, uint32_t maxCoeffs, float* shs){
+    static glm::vec3
+    computeColorFromSH(uint32_t idx, glm::vec3 pos, glm::vec3 camPos, uint32_t deg, uint32_t maxCoeffs, float *shs) {
         const float SH_C0 = 0.28209479177387814f;
         const float SH_C1 = 0.4886025119029199f;
 
@@ -118,7 +119,7 @@ namespace Rasterizer {
                 -1.0925484305920792f,
                 0.5462742152960396f
         };
-         const float SH_C3[] = {
+        const float SH_C3[] = {
                 -0.5900435899266435f,
                 2.890611442640554f,
                 -0.4570457994644658f,
@@ -130,7 +131,7 @@ namespace Rasterizer {
 
 
         glm::vec3 dir = glm::normalize(pos - camPos);
-        glm::vec3* sh = ((glm::vec3*)shs) + idx * maxCoeffs;
+        glm::vec3 *sh = ((glm::vec3 *) shs) + idx * maxCoeffs;
         glm::vec3 result = SH_C0 * sh[0];
 
         if (deg > 0) {
@@ -139,8 +140,7 @@ namespace Rasterizer {
             float z = dir.z;
             result = result - SH_C1 * y * sh[1] + SH_C1 * z * sh[2] - SH_C1 * x * sh[3];
 
-            if (deg > 1)
-            {
+            if (deg > 1) {
                 float xx = x * x, yy = y * y, zz = z * z;
                 float xy = x * y, yz = y * z, xz = x * z;
                 result = result +
@@ -150,8 +150,7 @@ namespace Rasterizer {
                          SH_C2[3] * xz * sh[7] +
                          SH_C2[4] * (xx - yy) * sh[8];
 
-                if (deg > 2)
-                {
+                if (deg > 2) {
                     result = result +
                              SH_C3[0] * y * (3.0f * xx - yy) * sh[9] +
                              SH_C3[1] * xy * z * sh[10] +
@@ -167,6 +166,34 @@ namespace Rasterizer {
 
         return glm::max(result, 0.0f);
     }
+
+// Function to save image as PPM file
+    static void saveAsPPM(uint8_t* image, int width, int height, const std::string &filename) {
+        // Open file for writing in binary mode
+        std::ofstream ofs(filename, std::ios::binary);
+
+        if (!ofs) {
+            std::cerr << "Error: Could not open file for writing.\n";
+            return;
+        }
+
+        // Write the PPM header
+        ofs << "P6\n" << width << " " << height << "\n255\n";
+
+        // Write the image data
+        for (int i = 0; i < width * height; ++i) {
+            // Extract RGB from RGBA
+            ofs.put(image[i * 4]);
+            ofs.put(image[i * 4 + 1]);
+            ofs.put(image[i * 4 + 2]);
+        }
+
+        ofs.close();
+        if (!ofs) {
+            std::cerr << "Error: Could not write to file.\n";
+        }
+    }
 }
+
 
 #endif //MULTISENSE_VIEWER_RASTERIZERUTILS_H

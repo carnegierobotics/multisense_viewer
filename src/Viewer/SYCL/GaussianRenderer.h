@@ -9,12 +9,13 @@
 #include <cstdint>
 #include <vector>
 #include <glm/ext/quaternion_float.hpp>
-#include <sycl/sycl.hpp>
 #include <filesystem>
+#include <sycl/sycl.hpp>
+
 #include "Viewer/Core/Camera.h"
-#include "AbstractRenderer.h"
 #include "Viewer/Core/RenderDefinitions.h"
-#include "RasterizerUtils.h"
+#include "Viewer/SYCL/RasterizerUtils.h"
+#include "Viewer/SYCL/AbstractRenderer.h"
 #include "Viewer/SYCL/radixsort/RadixSorter.h"
 
 namespace VkRender {
@@ -62,7 +63,6 @@ namespace VkRender {
         VkRender::AbstractRenderer::InitializeInfo m_initInfo;
         uint8_t *m_image = nullptr;
 
-        sycl::queue queue{};
         glm::vec3 *positionBuffer = nullptr;
         glm::vec3 *scalesBuffer = nullptr;
         glm::quat *quaternionBuffer = nullptr;
@@ -81,7 +81,15 @@ namespace VkRender {
 
         uint32_t width{}, height{};
         sycl::event renderEvent;
+        sycl::queue queue{};
+
         void clearBuffers();
+
+        void logTimes(std::chrono::duration<double, std::milli> t1, std::chrono::duration<double, std::milli> t2,
+                      std::chrono::duration<double, std::milli> t3, std::chrono::duration<double, std::milli> t4,
+                      std::chrono::duration<double, std::milli> t5, std::chrono::duration<double, std::milli> t6,
+                      std::chrono::duration<double, std::milli> t7, std::chrono::duration<double, std::milli> t8,
+                      std::chrono::duration<double, std::milli> t9, bool error);
     };
 
 }

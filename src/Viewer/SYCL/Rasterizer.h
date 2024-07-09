@@ -80,7 +80,7 @@ namespace Rasterizer {
                 if ((rect_max.x - rect_min.x) * (rect_max.y - rect_min.y) == 0)
                     return;
 
-                //glm::vec3 color = computeColorFromSH(idx, position, m_scene.camPos, m_scene.shDegree, m_scene.shDim, m_sphericalHarmonics);
+                glm::vec3 color2 = computeColorFromSH(idx, position, m_scene.camPos, m_scene.shDegree, m_scene.shDim, m_sphericalHarmonics);
 
                 float SH_C0 = 0.28209479177387814f;
                 glm::vec3 color =
@@ -297,16 +297,22 @@ namespace Rasterizer {
         uint32_t m_numTiles;
     public:
         void operator()(sycl::nd_item<2> item) const {
-            auto subGroup = item.get_sub_group();
-            uint32_t blockIdx = item.get_group(0);
-            uint32_t blockDim = item.get_local_range(0);
             uint32_t gridDim = item.get_group_range(0);
-            uint32_t threadIdx = item.get_local_id(0);
-            uint32_t warpIndex = subGroup.get_local_linear_id();
-            uint32_t warpSize = subGroup.get_max_local_range()[0];
-            auto globalID = item.get_global_id(); // Get global indices of the work item
-            uint32_t row = globalID[0];
-            uint32_t col = globalID[1];
+            auto block = item.get_group();
+            // Get the global IDs
+            uint32_t global_id_x = item.get_global_id(1); // x-coordinate (column)
+            uint32_t global_id_y = item.get_global_id(0); // y-coordinate (row)
+            // Get the local IDs within the tile
+            uint32_t local_id_x = item.get_local_id(1);
+            uint32_t local_id_y = item.get_local_id(0);
+            // Get the group (tile) IDs
+            uint32_t group_id_x = item.get_group(1);
+            uint32_t group_id_y = item.get_group(0);
+            uint32_t global_linear_id = (global_id_y * (m_imageWidth) + global_id_x) * 4;
+            // Calculate the global pixel row and column
+            uint32_t row = global_id_y;
+            uint32_t col = global_id_x;
+
             if (row < m_imageHeight && col < m_imageWidth) {
                 uint32_t groupRow = row / 16;
                 uint32_t groupCol = col / 16;
@@ -358,13 +364,85 @@ namespace Rasterizer {
                     }
                 }
 
-                uint32_t baseIndex = (row * m_imageWidth + col) * 4;
-
-                m_imageBuffer[baseIndex] = static_cast<uint8_t>((C[0] + T * 0.0f) * 255.0f);
-                m_imageBuffer[baseIndex + 1] = static_cast<uint8_t>((C[1] + T * 0.0f) * 255.0f);
-                m_imageBuffer[baseIndex + 2] = static_cast<uint8_t>((C[2] + T * 0.0f) * 255.0f);
-                m_imageBuffer[baseIndex + 3] = static_cast<uint8_t>(255.0f); // Assuming full alpha for simplicity
+                m_imageBuffer[global_linear_id] = static_cast<uint8_t>((C[0] + T * 0.0f) * 255.0f);
+                m_imageBuffer[global_linear_id + 1] = static_cast<uint8_t>((C[1] + T * 0.0f) * 255.0f);
+                m_imageBuffer[global_linear_id + 2] = static_cast<uint8_t>((C[2] + T * 0.0f) * 255.0f);
+                m_imageBuffer[global_linear_id + 3] = static_cast<uint8_t>(255.0f); // Assuming full alpha for simplicity
             } // endif
+        }
+    };
+
+    class RasterizeGaussiansPerPixel {
+    public:
+        RasterizeGaussiansPerPixel(glm::ivec2 *ranges, uint32_t *keys, uint32_t *values, GaussianPoint *gaussianPoints,
+                                   uint8_t *imageBuffer, size_t size, uint32_t m_imageWidth, uint32_t imageHeight,
+                                   uint32_t horizontalBlocks, uint32_t numTiles)
+                : m_ranges(ranges), m_keys(keys), m_values(values), m_gaussianPoints(gaussianPoints),
+                  m_imageBuffer(imageBuffer), m_size(size),
+                  m_imageWidth(m_imageWidth), m_imageHeight(imageHeight), m_horizontalBlocks(horizontalBlocks),
+                  m_numTiles(numTiles) {}
+
+    private:
+        uint32_t *m_keys;
+        uint32_t *m_values;
+        glm::ivec2 *m_ranges;
+        GaussianPoint *m_gaussianPoints;
+        uint8_t *m_imageBuffer;
+
+        uint32_t m_size;
+        uint32_t m_imageWidth;
+        uint32_t m_imageHeight;
+        uint32_t m_horizontalBlocks;
+        uint32_t m_numTiles;
+    public:
+        void operator()(sycl::id<1> item) const {
+
+            uint32_t index = item.get(0) * 4;
+            uint32_t row = index / (m_imageWidth * 4);
+            uint32_t col = (index % (m_imageWidth * 4)) / 4;
+
+            if (row < m_imageHeight && col < m_imageWidth) {
+                //size_t tileId = group.get_group_id(1) * m_horizontalBlocks + group.get_group_id(0);
+                // Initialize helper variables
+                float T = 1.0f;
+                float C[3] = {0};
+
+                for (uint32_t gaussianIndex = 0; gaussianIndex < m_size; ++gaussianIndex) {
+                    const GaussianPoint &point = m_gaussianPoints[gaussianIndex];
+                    // Perform processing on the point and update the image
+                    // Example: Set the pixel to a specific value
+                    glm::vec2 pos = point.screenPos;
+                    // Calculate the exponent term
+                    glm::vec2 diff = pos - glm::vec2(col, row);
+                    glm::vec3 c = point.conic;
+                    glm::mat2 V(c.x, c.y, c.y, c.z);
+                    float power = -0.5f * glm::dot(diff, V * diff);
+                    if (power > 0.0f) {
+                        continue;
+                    }
+                    float alpha = point.opacity * expf(power);
+
+                    if (alpha < 1.0f / 255.0f)
+                        continue;
+
+                    float test_T = T * (1 - alpha);
+                    if (test_T < 0.0001f) {
+                        continue;
+                    }
+
+                    // Eq. (3) from 3D Gaussian splatting paper.
+                    for (int ch = 0; ch < 3; ch++) {
+                        C[ch] += point.color[ch] * alpha;
+                    }
+                    T = test_T;
+                }
+                //uint32_t baseIndex = (row * m_imageWidth + col) * 4;
+
+                m_imageBuffer[index] = static_cast<uint8_t>((C[0] + T * 0.0f) * 255.0f);
+                m_imageBuffer[index + 1] = static_cast<uint8_t>((C[1] + T * 0.0f) * 255.0f);
+                m_imageBuffer[index + 2] = static_cast<uint8_t>((C[2] + T * 0.0f) * 255.0f);
+                m_imageBuffer[index + 3] = static_cast<uint8_t>(255.0f); // Assuming full alpha for simplicity
+            }
         }
     };
 }

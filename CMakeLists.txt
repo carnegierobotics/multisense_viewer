@@ -5,9 +5,10 @@ option(ENABLE_SYCL "Compile with SYCL support. Provided that llvm-sycl clang++ i
 
 if (ENABLE_SYCL)
     set(CMAKE_CXX_COMPILER "icpx")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -g -O0")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -g -O0")  # Enable SSE4.1 and SSSE3 support. _mm_min_epi32 and _mm_shuffle_epi8 require specific SSE
     #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -fsycl-targets=nvptx64-nvidia-cuda,spir64 -g")
     #set(CMAKE_CXX_COMPILER "clang++")
+
     #add_compile_definitions(GPU_ENABLED)
 
     add_compile_definitions(SYCL_ENABLED)
@@ -109,13 +110,30 @@ set(SOURCE_FILES
         src/Viewer/Scripts/Renderer3D/DataCapture.cpp
 )
 
+# Define the libraries variable
+set(LIBRARIES
+        Vulkan::Vulkan
+        glfw
+        imgui
+        tiff
+        ktx
+        nlohmann_json::nlohmann_json
+        httplib::httplib
+        tinyobjloader
+        GPUOpen::VulkanMemoryAllocator
+        tinyply
+)
+
 if (ENABLE_SYCL)
     list(APPEND SOURCE_FILES src/Viewer/SYCL/GaussianRenderer.cpp)
     message(STATUS "SYCL: Adding Gaussian Renderer to source")
+
+    target_compile_options(ktx PRIVATE -msse4.1 -mssse3)
+    list(APPEND LIBRARIES sycl;)
+
 endif()
 
 
-set(LIBRARIES "Vulkan::Vulkan;glfw;imgui;tiff;ktx;nlohmann_json::nlohmann_json;httplib::httplib;tinyobjloader;GPUOpen::VulkanMemoryAllocator;tinyply;")
 
 # Copy Assets folders to output directory
 file(GLOB ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/Assets/*")

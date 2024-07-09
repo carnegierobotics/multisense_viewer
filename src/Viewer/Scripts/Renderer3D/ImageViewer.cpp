@@ -38,7 +38,6 @@ void ImageViewer::setup() {
     initInfo.context = m_context;
     initInfo.imageSize = camera.m_height * camera.m_width * 4; // RGBA-uint
 
-#ifdef SYCL_ENABLED
     std::filesystem::path filePath = "/home/magnus/crl/multisense_viewer/3dgs_insect.ply";
     //m_gaussianRenderer->gs = GaussianRenderer::loadFromFile(filePath, 1);
     // m_gaussianRenderer->setupBuffers(m_context->getCamera());
@@ -54,7 +53,6 @@ void ImageViewer::setup() {
     m_renderer->setup(initInfo, useCPU);
     prevDevice = useCPU;
 
-#endif
     Widgets::make()->checkbox(WIDGET_PLACEMENT_RENDERER3D, "Use CPU", &useCPU);
 
     Widgets::make()->checkbox(WIDGET_PLACEMENT_RENDERER3D, "3DGS Render", &render3dgs);
@@ -91,7 +89,6 @@ void ImageViewer::update() {
     VkRender::AbstractRenderer::RenderInfo info{};
     info.camera = &camera;
     info.debug = btn;
-#ifdef SYCL_ENABLED
 
     if (btn) {
         m_renderer->singleOneSweep();
@@ -118,24 +115,16 @@ void ImageViewer::update() {
                                                   durationUpdateTexture).count());
     }
 
-#endif
-
 }
 
 void ImageViewer::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
 
     if (uiHandle->m_paths.update3DGSPath) {
-#ifdef SYCL_ENABLED
         m_renderer->gs = VkRender::GaussianRenderer::loadFromFile(uiHandle->m_paths.importFilePath.string(), 1);
         splatEntity = uiHandle->m_paths.importFilePath.filename();
         m_renderer->setupBuffers(&m_context->getCamera());
         m_context->createEntity(splatEntity);
-#else
-        std::string filePath = uiHandle->m_paths.importFilePath.string();
-        Log::Logger::getInstance()->info("Loading new 3DGS file from {}", filePath.c_str());
-        //m_gaussianRenderer->gs = GaussianRenderer::loadFromFile(uiHandle->m_paths.importFilePath.string(), 1);
-        //m_gaussianRenderer->setupBuffers(m_context->getCamera());
-#endif
+
     }
 
 }

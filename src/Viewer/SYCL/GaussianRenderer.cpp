@@ -128,7 +128,7 @@ namespace VkRender {
 
             width = camera->m_width;
             height = camera->m_height;
-            imageBuffer = sycl::malloc_device<glm::uint8_t>(width * height * 4, queue);
+            imageBuffer = sycl::malloc_device<uint8_t>(width * height * 4, queue);
 
             m_image = reinterpret_cast<uint8_t *>(std::malloc(width * height * 4));
             rangesBuffer = sycl::malloc_device<glm::ivec2>((width / 16) * (height / 16), queue);
@@ -147,7 +147,6 @@ namespace VkRender {
 
         queue.wait_and_throw();
     }
-
 
 
     void GaussianRenderer::render(const AbstractRenderer::RenderInfo &info, const VkRender::RenderUtils *renderUtils) {
@@ -173,7 +172,8 @@ namespace VkRender {
 
             auto startWaitForQueue = std::chrono::high_resolution_clock::now();
             queue.wait();
-            std::chrono::duration<double, std::milli> waitForQueueDuration =  std::chrono::high_resolution_clock::now() - startWaitForQueue;
+            std::chrono::duration<double, std::milli> waitForQueueDuration =
+                    std::chrono::high_resolution_clock::now() - startWaitForQueue;
 
 
             size_t numPoints = gs.getSize();
@@ -208,7 +208,8 @@ namespace VkRender {
 
             uint32_t numRendered = 0;
             queue.memcpy(&numRendered, pointOffsets + (numPoints - 1), sizeof(uint32_t)).wait();
-            Log::Logger::getInstance()->trace("3DGS Rendering: Total Gaussians: {}. {:.3f}M", numRendered, numRendered / 1e6);
+            Log::Logger::getInstance()->trace("3DGS Rendering: Total Gaussians: {}. {:.3f}M", numRendered,
+                                              numRendered / 1e6);
             if (numRendered == 0)
                 return;
 
@@ -225,7 +226,7 @@ namespace VkRender {
             std::chrono::duration<double, std::milli> duplicateGaussiansDuration =
                     std::chrono::high_resolution_clock::now() - startDuplicateGaussians;
 
-
+            queue.fill(imageBuffer, static_cast<uint8_t>(0x00), width * height * 4);
             auto startSorting = std::chrono::high_resolution_clock::now();
             sorter->performOneSweep(keysBuffer, valuesBuffer, numRendered);
             //sorter->verifySort(keysBuffer, numRendered);
@@ -257,14 +258,31 @@ namespace VkRender {
             sycl::range<2> globalWorkSize(globalHeight, globalWidth);
             uint32_t horizontal_blocks = (imageWidth + tileWidth - 1) / tileWidth;
 
-            renderEvent = queue.submit([&](sycl::handler &h) {
-                h.parallel_for<class RenderGaussians>(sycl::nd_range<2>(globalWorkSize, localWorkSize),
+
+            queue.submit([&](sycl::handler &h) {
+                auto range = sycl::nd_range<2>(globalWorkSize, localWorkSize);
+                h.parallel_for<class RenderGaussians>(range,
                                                       Rasterizer::RasterizeGaussians(rangesBuffer, keysBuffer,
                                                                                      valuesBuffer, pointsBuffer,
                                                                                      imageBuffer, numRendered,
                                                                                      imageWidth, imageHeight,
                                                                                      horizontal_blocks, numTiles));
             });
+
+
+            /*
+            queue.submit([&](sycl::handler &h) {
+                sycl::range<1> globalWorkSize(imageHeight * imageWidth * 4);
+                sycl::range<1> localWorkSize(32);
+
+                h.parallel_for<class RenderGaussians>(sycl::range<1>(width * height),
+                                                      Rasterizer::RasterizeGaussiansPerPixel(rangesBuffer, keysBuffer,
+                                                                                     valuesBuffer, pointsBuffer,
+                                                                                     imageBuffer, numRendered,
+                                                                                     imageWidth, imageHeight,
+                                                                                     horizontal_blocks, numTiles));
+            });
+            */
             std::chrono::duration<double, std::milli> renderGaussiansDuration =
                     std::chrono::high_resolution_clock::now() - startRenderGaussians;
 
@@ -272,8 +290,11 @@ namespace VkRender {
             auto startCopyImageToHost = std::chrono::high_resolution_clock::now();
             queue.wait();
             // Copy back to host
+            auto* numbersDevice = reinterpret_cast<uint8_t*>(malloc(width * height * 4));
             queue.memcpy(m_image, imageBuffer, width * height * 4);
             queue.wait();
+
+            Rasterizer::saveAsPPM(m_image, width, height, "../output.ppm");
             std::chrono::duration<double, std::milli> copyImageDuration =
                     std::chrono::high_resolution_clock::now() - startCopyImageToHost;
 
@@ -282,17 +303,10 @@ namespace VkRender {
             std::chrono::duration<double, std::milli> totalDuration =
                     std::chrono::high_resolution_clock::now() - startAll;
 
-            Log::Logger::getInstance()->trace("3DGS Rendering: Wait for ready queue: {}", waitForQueueDuration.count());
-            Log::Logger::getInstance()->trace("3DGS Rendering: Preprocess: {}", preprocessDuration.count());
-            Log::Logger::getInstance()->trace("3DGS Rendering: Inclusive Sum: {}", inclusiveSumDuration.count());
-            Log::Logger::getInstance()->trace("3DGS Rendering: Duplicate Gaussians: {}",
-                                              duplicateGaussiansDuration.count());
-            Log::Logger::getInstance()->trace("3DGS Rendering: Sorting: {}", sortingDuration.count());
-            Log::Logger::getInstance()->trace("3DGS Rendering: Identify Tile Ranges: {}",
-                                              identifyTileRangesDuration.count());
-            Log::Logger::getInstance()->trace("3DGS Rendering: Render Gaussians: {}", renderGaussiansDuration.count());
-            Log::Logger::getInstance()->trace("3DGS Rendering: Copy image to host: {}", copyImageDuration.count());
-            Log::Logger::getInstance()->trace("3DGS Rendering: Total function duration: {}", totalDuration.count());
+            bool exceedTimeLimit = (totalDuration.count() > 500);
+            logTimes(waitForQueueDuration, preprocessDuration, inclusiveSumDuration, duplicateGaussiansDuration,
+                     sortingDuration, identifyTileRangesDuration, renderGaussiansDuration, copyImageDuration,
+                     totalDuration, exceedTimeLimit);
 
         } catch (sycl::exception &e) {
             std::cerr << "Caught a SYCL exception: " << e.what() << std::endl;
@@ -304,6 +318,45 @@ namespace VkRender {
             std::cerr << "Caught an unknown exception." << std::endl;
             return;
         }
+    }
+
+    void GaussianRenderer::logTimes(std::chrono::duration<double, std::milli> t1,
+                                    std::chrono::duration<double, std::milli> t2,
+                                    std::chrono::duration<double, std::milli> t3,
+                                    std::chrono::duration<double, std::milli> t4,
+                                    std::chrono::duration<double, std::milli> t5,
+                                    std::chrono::duration<double, std::milli> t6,
+                                    std::chrono::duration<double, std::milli> t7,
+                                    std::chrono::duration<double, std::milli> t8,
+                                    std::chrono::duration<double, std::milli> t9,
+                                    bool error) {
+        if (error) {
+            Log::Logger::getInstance()->error("3DGS Rendering: Wait for ready queue: {}", t1.count());
+            Log::Logger::getInstance()->error("3DGS Rendering: Preprocess: {}", t2.count());
+            Log::Logger::getInstance()->error("3DGS Rendering: Inclusive Sum: {}", t3.count());
+            Log::Logger::getInstance()->error("3DGS Rendering: Duplicate Gaussians: {}",
+                                              t4.count());
+            Log::Logger::getInstance()->error("3DGS Rendering: Sorting: {}", t5.count());
+            Log::Logger::getInstance()->error("3DGS Rendering: Identify Tile Ranges: {}",
+                                              t6.count());
+            Log::Logger::getInstance()->error("3DGS Rendering: Render Gaussians: {}", t7.count());
+            Log::Logger::getInstance()->error("3DGS Rendering: Copy image to host: {}", t8.count());
+            Log::Logger::getInstance()->error("3DGS Rendering: Total function duration: {}", t9.count());
+        } else {
+            Log::Logger::getInstance()->trace("3DGS Rendering: Wait for ready queue: {}", t1.count());
+            Log::Logger::getInstance()->trace("3DGS Rendering: Preprocess: {}", t2.count());
+            Log::Logger::getInstance()->trace("3DGS Rendering: Inclusive Sum: {}", t3.count());
+            Log::Logger::getInstance()->trace("3DGS Rendering: Duplicate Gaussians: {}",
+                                              t4.count());
+            Log::Logger::getInstance()->trace("3DGS Rendering: Sorting: {}", t5.count());
+            Log::Logger::getInstance()->trace("3DGS Rendering: Identify Tile Ranges: {}",
+                                              t6.count());
+            Log::Logger::getInstance()->trace("3DGS Rendering: Render Gaussians: {}", t7.count());
+            Log::Logger::getInstance()->trace("3DGS Rendering: Copy image to host: {}", t8.count());
+            Log::Logger::getInstance()->trace("3DGS Rendering: Total function duration: {}", t9.count());
+        }
+
+
     }
 
     GaussianRenderer::GaussianPoints GaussianRenderer::loadFromFile(std::filesystem::path path, int downSampleRate) {

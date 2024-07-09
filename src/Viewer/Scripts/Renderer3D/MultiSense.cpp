@@ -19,6 +19,7 @@ void MultiSense::setup() {
         skybox.addComponent<VkRender::SkyboxGraphicsPipelineComponent>(&m_context->renderUtils, modelComponent);
     }
 
+    /*
     {
         auto ent = m_context->createEntity("KS21");
         auto &component = ent.addComponent<VkRender::GLTFModelComponent>(Utils::getModelsPath() / "ks21_pbr.gltf",
@@ -31,6 +32,7 @@ void MultiSense::setup() {
 
 
     }
+     */
 
     {
         auto ent = m_context->createEntity("Coordinates");
@@ -86,7 +88,7 @@ void MultiSense::update() {
     if (coordinates) {
         auto &obj = coordinates.getComponent<VkRender::DefaultPBRGraphicsPipelineComponent>();
         auto &transform = coordinates.getComponent<VkRender::TransformComponent>();
-        transform.scale = glm::vec3(0.25f, 0.25f, 0.25f);
+        //transform.scale = glm::vec3(0.25f, 0.25f, 0.25f);
         transform.setEuler(90.0f, 0.0f, 0.0f);
 
         for (size_t i = 0; i < m_context->renderUtils.swapchainImages; ++i) {

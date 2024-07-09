@@ -178,19 +178,31 @@ endif ()
 
 # ExportScriptIncludes Generates ScriptHeader.h and Scripts.txt for automatic import of the script functionality in the viewer.
 function(ExportScriptIncludes)
+    set(SCRIPT_HEADER_FILE "${CMAKE_SOURCE_DIR}/Assets/Generated/ScriptHeader.h")
+    set(SCRIPTS_TXT_FILE "${CMAKE_SOURCE_DIR}/Assets/Generated/Scripts.txt")
+
+    # Remove if exists to start clean
+    if(EXISTS ${SCRIPT_HEADER_FILE})
+        file(REMOVE ${SCRIPT_HEADER_FILE})
+    endif()
+
+    if(EXISTS ${SCRIPTS_TXT_FILE})
+        file(REMOVE ${SCRIPTS_TXT_FILE})
+    endif()
+
     string(TIMESTAMP Today)
     file(GLOB_RECURSE SCRIPT_HEADERS RELATIVE "${CMAKE_SOURCE_DIR}/src" "${CMAKE_SOURCE_DIR}/src/Viewer/Scripts/*.h")
     list(FILTER SCRIPT_HEADERS EXCLUDE REGEX "/Private/")
-    file(WRITE ${CMAKE_SOURCE_DIR}/Assets/Generated/ScriptHeader.h "// Generated from Cmake ${Today} \n")
-    file(WRITE ${CMAKE_SOURCE_DIR}/Assets/Generated/Scripts.txt "# Generated from Cmake ${Today} \n")
+    file(WRITE ${SCRIPT_HEADER_FILE} "// Generated from Cmake ${Today} \n")
+    file(WRITE ${SCRIPTS_TXT_FILE} "# Generated from Cmake ${Today} \n")
     foreach (Src ${SCRIPT_HEADERS})
-        file(APPEND ${CMAKE_SOURCE_DIR}/Assets/Generated/ScriptHeader.h "\#include \"${Src}\"\n")
+        file(APPEND ${SCRIPT_HEADER_FILE} "\#include \"${Src}\"\n")
     endforeach (Src ${SCRIPT_HEADERS})
 
     foreach (Src ${SCRIPT_HEADERS})
         string(REGEX MATCH "[^\\/]+$" var ${Src})
         string(REGEX MATCH "^[^.]+" res ${var})
-        file(APPEND ${CMAKE_SOURCE_DIR}/Assets/Generated/Scripts.txt ${res} \n)
+        file(APPEND ${SCRIPTS_TXT_FILE} ${res} \n)
     endforeach (Src ${SCRIPT_HEADERS})
 endfunction()
 

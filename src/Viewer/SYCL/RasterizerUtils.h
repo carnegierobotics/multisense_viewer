@@ -18,8 +18,6 @@ namespace Rasterizer {
         glm::vec3 color{};
         glm::vec3 conic{};
         glm::vec3 screenPos{};
-        uint32_t tileArea = 0;
-        uint32_t tileInclusiveSum = 0;
         glm::ivec2 bbMin, bbMax;
         float depth = 0.0f;
         int radius = 0;
@@ -131,14 +129,15 @@ namespace Rasterizer {
 
 
         glm::vec3 dir = glm::normalize(pos - camPos);
-        glm::vec3 *sh = ((glm::vec3 *) shs) + idx * maxCoeffs;
-        glm::vec3 result = SH_C0 * sh[0];
+        float* sh = &shs[idx * maxCoeffs];
+
+        glm::vec3 result = SH_C0 * glm::vec3(sh[0], sh[1], sh[2]);
 
         if (deg > 0) {
             float x = dir.x;
             float y = dir.y;
             float z = dir.z;
-            result = result - SH_C1 * y * sh[1] + SH_C1 * z * sh[2] - SH_C1 * x * sh[3];
+            result = result - SH_C1 * y * glm::vec3(sh[3], sh[4], sh[5]) + SH_C1 * z *glm::vec3(sh[6], sh[7], sh[8]) - SH_C1 * x * glm::vec3(sh[9], sh[10], sh[11]);
 
             if (deg > 1) {
                 float xx = x * x, yy = y * y, zz = z * z;
@@ -164,7 +163,7 @@ namespace Rasterizer {
         }
         result += 0.5f;
 
-        return glm::max(result, 0.0f);
+        return glm::max(glm::min(result, 1.0f), 0.0f);
     }
 
 // Function to save image as PPM file

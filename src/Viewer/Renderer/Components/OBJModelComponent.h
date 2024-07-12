@@ -23,7 +23,7 @@ namespace VkRender {
     public:
         OBJModelComponent() = default;
 
-        OBJModelComponent(const OBJModelComponent &) = default;
+        OBJModelComponent(const OBJModelComponent &) = delete;
 
         OBJModelComponent &operator=(const OBJModelComponent &other) {
             return *this;

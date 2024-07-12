@@ -63,7 +63,7 @@ namespace VkRender {
                 }
             };    // Define a callable device selector using a lambda
 
-            queue = sycl::queue(useCPU ? cpuSelector : gpuSelector, sycl::property::queue::in_order());
+            queue = sycl::queue(useCPU ? cpuSelector : gpuSelector);
             // Use the queue for your computation
         } catch (const sycl::exception &e) {
             Log::Logger::getInstance()->warning("GPU device not found");
@@ -76,8 +76,8 @@ namespace VkRender {
         Log::Logger::getInstance()->info("Selected Device {}",
                                          queue.get_device().get_info<sycl::info::device::name>().c_str());
 
-        gs = loadFromFile(Utils::getModelsPath() / "3dgs" / "coordinates.ply", 1);
-        //gs = loadFromFile("/home/magnus/crl/multisense_viewer/3dgs_insect.ply", 100);
+        //gs = loadFromFile(Utils::getModelsPath() / "3dgs" / "coordinates.ply", 1);
+        gs = loadFromFile("/home/magnus/crl/multisense_viewer/3dgs_insect.ply", 1);
         setupBuffers(initInfo.camera);
         //simpleRasterizer(camera, false);
     }
@@ -175,6 +175,7 @@ namespace VkRender {
             std::chrono::duration<double, std::milli> waitForQueueDuration =
                     std::chrono::high_resolution_clock::now() - startWaitForQueue;
 
+            queue.fill(imageBuffer, static_cast<uint8_t>(0x00), width * height * 4);
 
             size_t numPoints = gs.getSize();
             Rasterizer::PreprocessInfo scene{};
@@ -186,9 +187,11 @@ namespace VkRender {
             scene.height = height;
             scene.width = width;
             scene.shDim = gs.getShDim();
-            scene.shDegree = uint32_t(roundf(sqrtf(gs.getShDim())) - 1);
+            scene.shDegree = 1.0;
 
             auto startPreprocess = std::chrono::high_resolution_clock::now();
+            queue.fill(numTilesTouchedBuffer, 0x00, numPoints).wait();
+
             queue.submit([&](sycl::handler &h) {
 
                 h.parallel_for(sycl::range<1>(numPoints), Rasterizer::Preprocess(positionBuffer, scalesBuffer,
@@ -196,117 +199,139 @@ namespace VkRender {
                                                                                  sphericalHarmonicsBuffer,
                                                                                  numTilesTouchedBuffer,
                                                                                  pointsBuffer, &scene));
-            });
+            }).wait();
+
             auto endPreprocess = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double, std::milli> preprocessDuration = endPreprocess - startPreprocess;
             auto startInclusiveSum = std::chrono::high_resolution_clock::now();
+            //queue.fill(pointOffsets, 0x00, numPoints).wait();
 
             queue.submit([&](sycl::handler &h) {
                 h.parallel_for(sycl::range<1>(1),
                                Rasterizer::InclusiveSum(numTilesTouchedBuffer, pointOffsets, numPoints));
-            });
+            }).wait();
 
-            uint32_t numRendered = 0;
+
+            uint32_t numRendered = 1;
             queue.memcpy(&numRendered, pointOffsets + (numPoints - 1), sizeof(uint32_t)).wait();
+            //printf("3DGS Rendering: Total Gaussians: %u. %uM\n", numRendered, numRendered / 1e6);
+
             Log::Logger::getInstance()->trace("3DGS Rendering: Total Gaussians: {}. {:.3f}M", numRendered,
                                               numRendered / 1e6);
-            if (numRendered == 0)
-                return;
-
-            std::chrono::duration<double, std::milli> inclusiveSumDuration =
-                    std::chrono::high_resolution_clock::now() - startInclusiveSum;
-
-            auto startDuplicateGaussians = std::chrono::high_resolution_clock::now();
-            queue.submit([&](sycl::handler &h) {
-                h.parallel_for<class duplicates>(sycl::range<1>(numPoints),
-                                                 Rasterizer::DuplicateGaussians(pointsBuffer, pointOffsets, keysBuffer,
-                                                                                valuesBuffer,
-                                                                                numRendered, tileGrid));
-            });
-            std::chrono::duration<double, std::milli> duplicateGaussiansDuration =
-                    std::chrono::high_resolution_clock::now() - startDuplicateGaussians;
-
-            queue.fill(imageBuffer, static_cast<uint8_t>(0x00), width * height * 4);
-            auto startSorting = std::chrono::high_resolution_clock::now();
-            sorter->performOneSweep(keysBuffer, valuesBuffer, numRendered);
-            //sorter->verifySort(keysBuffer, numRendered);
-            std::chrono::duration<double, std::milli> sortingDuration =
-                    std::chrono::high_resolution_clock::now() - startSorting;
-
-            auto startIdentifyTileRanges = std::chrono::high_resolution_clock::now();
-
-            queue.submit([&](sycl::handler &h) {
-                h.parallel_for(sycl::range<1>(numTiles),
-                               Rasterizer::IdentifyTileRangesInit(rangesBuffer));
-            });
-
-            queue.wait();
-            queue.submit([&](sycl::handler &h) {
-                h.parallel_for<class IdentifyTileRanges>(numRendered,
-                                                         Rasterizer::IdentifyTileRanges(rangesBuffer, keysBuffer,
-                                                                                        numRendered));
-            });
-            std::chrono::duration<double, std::milli> identifyTileRangesDuration =
-                    std::chrono::high_resolution_clock::now() - startIdentifyTileRanges;
-
-            auto startRenderGaussians = std::chrono::high_resolution_clock::now();
-
-            // Compute the global work size ensuring it is a multiple of the local work size
-            sycl::range<2> localWorkSize(tileHeight, tileWidth);
-            size_t globalWidth = ((imageWidth + localWorkSize[0] - 1) / localWorkSize[0]) * localWorkSize[0];
-            size_t globalHeight = ((imageHeight + localWorkSize[1] - 1) / localWorkSize[1]) * localWorkSize[1];
-            sycl::range<2> globalWorkSize(globalHeight, globalWidth);
-            uint32_t horizontal_blocks = (imageWidth + tileWidth - 1) / tileWidth;
+            if (numRendered > 0) {
 
 
-            queue.submit([&](sycl::handler &h) {
-                auto range = sycl::nd_range<2>(globalWorkSize, localWorkSize);
-                h.parallel_for<class RenderGaussians>(range,
-                                                      Rasterizer::RasterizeGaussians(rangesBuffer, keysBuffer,
-                                                                                     valuesBuffer, pointsBuffer,
-                                                                                     imageBuffer, numRendered,
-                                                                                     imageWidth, imageHeight,
-                                                                                     horizontal_blocks, numTiles));
-            });
+                std::chrono::duration<double, std::milli> inclusiveSumDuration =
+                        std::chrono::high_resolution_clock::now() - startInclusiveSum;
+
+                auto startDuplicateGaussians = std::chrono::high_resolution_clock::now();
+
+                queue.submit([&](sycl::handler &h) {
+                    h.parallel_for<class duplicates>(sycl::range<1>(numPoints),
+                                                     Rasterizer::DuplicateGaussians(pointsBuffer, pointOffsets,
+                                                                                    keysBuffer,
+                                                                                    valuesBuffer,
+                                                                                    numRendered, tileGrid));
+                }).wait();
+
+                std::chrono::duration<double, std::milli> duplicateGaussiansDuration =
+                        std::chrono::high_resolution_clock::now() - startDuplicateGaussians;
+                auto startSorting = std::chrono::high_resolution_clock::now();
+
+                /*
+                uint32_t numKeys = 1 << 13;
+                std::random_device rd;
+                std::mt19937 gen(rd());
+                gen.seed(42);
+                std::uniform_int_distribution<uint32_t> dis(0, 1 << 5);
+
+                std::vector<uint32_t> keys(numKeys);
+                for (auto &key: keys) {
+                    key = dis(gen);
+                }
+                queue.memcpy(keysBuffer, keys.data(), numKeys * sizeof(uint32_t));
+                //queue.memcpy(keys.data(), keysBuffer, numRendered * sizeof(uint32_t)).wait();
+                */
+
+                // Load keys
+                sorter->performOneSweep(keysBuffer, valuesBuffer, numRendered);
+                //sorter->verifySort(keysBuffer, numRendered); //, true, keys);
+                queue.wait();
+                sorter->resetMemory();
+                queue.wait();
 
 
-            /*
-            queue.submit([&](sycl::handler &h) {
-                sycl::range<1> globalWorkSize(imageHeight * imageWidth * 4);
-                sycl::range<1> localWorkSize(32);
+                std::chrono::duration<double, std::milli> sortingDuration =
+                        std::chrono::high_resolution_clock::now() - startSorting;
 
-                h.parallel_for<class RenderGaussians>(sycl::range<1>(width * height),
-                                                      Rasterizer::RasterizeGaussiansPerPixel(rangesBuffer, keysBuffer,
-                                                                                     valuesBuffer, pointsBuffer,
-                                                                                     imageBuffer, numRendered,
-                                                                                     imageWidth, imageHeight,
-                                                                                     horizontal_blocks, numTiles));
-            });
-            */
-            std::chrono::duration<double, std::milli> renderGaussiansDuration =
-                    std::chrono::high_resolution_clock::now() - startRenderGaussians;
+                auto startIdentifyTileRanges = std::chrono::high_resolution_clock::now();
+                queue.memset(rangesBuffer, static_cast<int>(0x00), numTiles * (sizeof(int) * 2)).wait();
+
+                queue.submit([&](sycl::handler &h) {
+                    h.parallel_for<class IdentifyTileRanges>(numRendered,
+                                                             Rasterizer::IdentifyTileRanges(rangesBuffer, keysBuffer,
+                                                                                            numRendered));
+                }).wait();
+                std::chrono::duration<double, std::milli> identifyTileRangesDuration =
+                        std::chrono::high_resolution_clock::now() - startIdentifyTileRanges;
+
+                auto startRenderGaussians = std::chrono::high_resolution_clock::now();
+                // Compute the global work size ensuring it is a multiple of the local work size
+                sycl::range<2> localWorkSize(tileHeight, tileWidth);
+                size_t globalWidth = ((imageWidth + localWorkSize[0] - 1) / localWorkSize[0]) * localWorkSize[0];
+                size_t globalHeight = ((imageHeight + localWorkSize[1] - 1) / localWorkSize[1]) * localWorkSize[1];
+                sycl::range<2> globalWorkSize(globalHeight, globalWidth);
+                uint32_t horizontal_blocks = (imageWidth + tileWidth - 1) / tileWidth;
 
 
-            auto startCopyImageToHost = std::chrono::high_resolution_clock::now();
-            queue.wait();
-            // Copy back to host
-            auto* numbersDevice = reinterpret_cast<uint8_t*>(malloc(width * height * 4));
-            queue.memcpy(m_image, imageBuffer, width * height * 4);
-            queue.wait();
+                queue.submit([&](sycl::handler &h) {
+                    auto range = sycl::nd_range<2>(globalWorkSize, localWorkSize);
+                    h.parallel_for<class RenderGaussians>(range,
+                                                          Rasterizer::RasterizeGaussians(rangesBuffer, keysBuffer,
+                                                                                         valuesBuffer, pointsBuffer,
+                                                                                         imageBuffer, numRendered,
+                                                                                         imageWidth, imageHeight,
+                                                                                         horizontal_blocks, numTiles));
+                }).wait();
 
-            Rasterizer::saveAsPPM(m_image, width, height, "../output.ppm");
-            std::chrono::duration<double, std::milli> copyImageDuration =
-                    std::chrono::high_resolution_clock::now() - startCopyImageToHost;
 
-            sorter->resetMemory();
+                /*
+                queue.submit([&](sycl::handler &h) {
+                    sycl::range<1> globalWorkSize(imageHeight * imageWidth * 4);
+                    sycl::range<1> localWorkSize(32);
 
-            std::chrono::duration<double, std::milli> totalDuration =
-                    std::chrono::high_resolution_clock::now() - startAll;
+                    h.parallel_for<class RenderGaussians>(sycl::range<1>(width * height),
+                                                          Rasterizer::RasterizeGaussiansPerPixel(rangesBuffer, keysBuffer,
+                                                                                         valuesBuffer, pointsBuffer,
+                                                                                         imageBuffer, numRendered,
+                                                                                         imageWidth, imageHeight,
+                                                                                         horizontal_blocks, numTiles));
+                });
+                */
+                std::chrono::duration<double, std::milli> renderGaussiansDuration =
+                        std::chrono::high_resolution_clock::now() - startRenderGaussians;
 
-            bool exceedTimeLimit = (totalDuration.count() > 500);
-            logTimes(waitForQueueDuration, preprocessDuration, inclusiveSumDuration, duplicateGaussiansDuration,
-                     sortingDuration, identifyTileRangesDuration, renderGaussiansDuration, copyImageDuration,
-                     totalDuration, exceedTimeLimit);
+
+                auto startCopyImageToHost = std::chrono::high_resolution_clock::now();
+                queue.memcpy(m_image, imageBuffer, width * height * 4);
+                queue.wait();
+
+                Rasterizer::saveAsPPM(m_image, width, height, "../output.ppm");
+                std::chrono::duration<double, std::milli> copyImageDuration =
+                        std::chrono::high_resolution_clock::now() - startCopyImageToHost;
+
+
+                std::chrono::duration<double, std::milli> totalDuration =
+                        std::chrono::high_resolution_clock::now() - startAll;
+
+                bool exceedTimeLimit = (totalDuration.count() > 500);
+                logTimes(waitForQueueDuration, preprocessDuration, inclusiveSumDuration, duplicateGaussiansDuration,
+                         sortingDuration, identifyTileRangesDuration, renderGaussiansDuration, copyImageDuration,
+                         totalDuration, exceedTimeLimit);
+
+            } else {
+                std::memset(m_image, static_cast<uint8_t>(0x00), width * height * 4);
+            }
 
         } catch (sycl::exception &e) {
             std::cerr << "Caught a SYCL exception: " << e.what() << std::endl;
@@ -419,9 +444,9 @@ namespace VkRender {
             std::memcpy(scaleBuffer.data(), scales->buffer.get(), numScalesBytes);
 
             for (size_t i = 0; i < numVertices; i += downSampleRate) {
-                float sx = expf(scaleBuffer[i * 3]) + 0.02f;
-                float sy = expf(scaleBuffer[i * 3 + 1]) + 0.02f;
-                float sz = expf(scaleBuffer[i * 3 + 2]) + 0.02f;
+                float sx = expf(scaleBuffer[i * 3]);
+                float sy = expf(scaleBuffer[i * 3 + 1]);
+                float sz = expf(scaleBuffer[i * 3 + 2]);
 
                 data.scales.emplace_back(sx, sy, sz);
             }
@@ -531,12 +556,21 @@ namespace VkRender {
                 }
             }
 
-            data.shDim = 3 + harmonics_properties.size();
+            data.shDim = harmonics_properties.size() + 3;
         }
         return data;
     }
 
     void GaussianRenderer::singleOneSweep() {
+
+    }
+
+    GaussianRenderer::~GaussianRenderer() {
+        clearBuffers();
+
+    }
+
+    GaussianRenderer::GaussianRenderer() {
 
     }
 

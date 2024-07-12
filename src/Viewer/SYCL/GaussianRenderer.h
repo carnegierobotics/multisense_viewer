@@ -16,10 +16,9 @@
 #include "Viewer/Core/RenderDefinitions.h"
 #include "Viewer/SYCL/RasterizerUtils.h"
 #include "Viewer/SYCL/AbstractRenderer.h"
-#include "Viewer/SYCL/radixsort/RadixSorter.h"
 
 namespace VkRender {
-
+    class Sorter;
 
     class GaussianRenderer {
     public:
@@ -40,11 +39,9 @@ namespace VkRender {
             }
         };
 
-        GaussianRenderer() = default;
+        GaussianRenderer();
 
-        ~GaussianRenderer() {
-            clearBuffers();
-        }
+        ~GaussianRenderer();
 
         void setup(const VkRender::AbstractRenderer::InitializeInfo &initInfo, bool useCPU = false);
         void render(const AbstractRenderer::RenderInfo &info, const VkRender::RenderUtils *pUtils);

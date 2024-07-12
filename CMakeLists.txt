@@ -4,12 +4,11 @@ option(WARNINGS_AS_ERRORS "Treat compiler warnings as errors" TRUE)
 option(ENABLE_SYCL "Compile with SYCL support. Provided that llvm-sycl clang++ is in path" FALSE)
 
 if (ENABLE_SYCL)
-    set(CMAKE_CXX_COMPILER "icpx")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -g -O0")  # Enable SSE4.1 and SSSE3 support. _mm_min_epi32 and _mm_shuffle_epi8 require specific SSE
-    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -fsycl-targets=nvptx64-nvidia-cuda,spir64 -g")
-    #set(CMAKE_CXX_COMPILER "clang++")
-
-    #add_compile_definitions(GPU_ENABLED)
+    #set(CMAKE_CXX_COMPILER "icpx")
+    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -g -O0")  # Enable SSE4.1 and SSSE3 support. _mm_min_epi32 and _mm_shuffle_epi8 require specific SSE
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -fsycl-targets=nvptx64-nvidia-cuda,spir64 -g")
+    set(CMAKE_CXX_COMPILER "clang++")
+    add_compile_definitions(GPU_ENABLED)
 
     add_compile_definitions(SYCL_ENABLED)
     message(STATUS "SYCL support enabled. Compiler: ${CMAKE_CXX_COMPILER} Flags: ${CMAKE_CXX_FLAGS}")

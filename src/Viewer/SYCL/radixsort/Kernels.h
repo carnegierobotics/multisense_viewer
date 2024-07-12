@@ -32,9 +32,9 @@
 //For the digit binning
 #define BIN_PART_SIZE       7680                                     //Partition tile size in k_DigitBinning
 #define BIN_HISTS_SIZE      4096                                    //Total size of warp histograms in shared memory in k_DigitBinning
-#define BIN_SUB_PART_SIZE   480*2                                      //Subpartition tile size of a single warp in k_DigitBinning
-#define BIN_WARPS           16/2                                        //Warps per threadblock in k_DigitBinning
-#define BIN_KEYS_PER_THREAD 15*2                                      //Keys per thread in k_DigitBinning
+#define BIN_SUB_PART_SIZE   480 * 2                                      //Subpartition tile size of a single warp in k_DigitBinning
+#define BIN_WARPS           16  / 2                                        //Warps per threadblock in k_DigitBinning
+#define BIN_KEYS_PER_THREAD 15  * 2                                      //Keys per thread in k_DigitBinning
 #define BIN_SUB_PART_START  (WARP_INDEX * BIN_SUB_PART_SIZE)        //Starting offset of a subpartition tile
 #define BIN_PART_START      (partitionIndex * BIN_PART_SIZE)        //Starting offset of a partition tile
 
@@ -405,8 +405,9 @@ namespace RadixSorter {
     class DigitBinningPass {
     public:
         DigitBinningPass(
-                sycl::local_accessor<uint32_t, 1> s_warpHistograms,
-                sycl::local_accessor<uint32_t, 1> s_localHistogram,
+                sycl::local_accessor<uint32_t, 1> warpHist,
+                sycl::local_accessor<uint32_t, 1> warpValueHist,
+                sycl::local_accessor<uint32_t, 1> localHist,
                 uint32_t *sortBuffer,
                 uint32_t *sortAltBuffer,
                 uint32_t *valuesBuffer,
@@ -415,8 +416,8 @@ namespace RadixSorter {
                 uint32_t *passHist,
                 uint32_t radixShift,
                 uint32_t size)
-                : s_warpHistograms(s_warpHistograms),
-                  s_localHistogram(s_localHistogram),
+                : s_warpHistograms(warpHist), s_warpValueHistograms(warpValueHist),
+                  s_localHistogram(localHist),
                   m_sortBuffer(sortBuffer),
                   m_sortAltBuffer(sortAltBuffer),
                   m_valuesBuffer(valuesBuffer),
@@ -429,6 +430,7 @@ namespace RadixSorter {
     private:
         // Member variables to store the passed arguments
         sycl::local_accessor<uint32_t, 1> s_warpHistograms;
+        sycl::local_accessor<uint32_t, 1> s_warpValueHistograms;
         sycl::local_accessor<uint32_t, 1> s_localHistogram;
         uint32_t *m_sortBuffer;
         uint32_t *m_sortAltBuffer;
@@ -442,13 +444,13 @@ namespace RadixSorter {
 
 
         void operator()(sycl::nd_item<1> item) const {
+
+
             auto subGroup = item.get_sub_group();
-            uint32_t blockIdx = item.get_group(0);
             uint32_t blockDim = item.get_local_range(0);
             uint32_t gridDim = item.get_group_range(0);
             uint32_t threadIdx = item.get_local_id(0);
-
-            uint32_t warpIndex = subGroup.get_local_linear_id();
+            uint32_t laneId = subGroup.get_local_linear_id();
             uint32_t warpSize = subGroup.get_max_local_range()[0];
 
             uint32_t warpBlockIndex = threadIdx / warpSize;
@@ -471,24 +473,27 @@ namespace RadixSorter {
             item.barrier(sycl::access::fence_space::local_space);
 
             const uint32_t partitionIndex = s_warpHistograms[BIN_PART_SIZE - 1];
-            //sycl::ext::oneapi::experimental::printf("threadIdx: %u, partitionIndex %u, gridDim: %u, indexAcc: %u\n", threadIdx, partitionIndex, gridDim, m_indexBuffer[m_radixShift >> 3]);
+
 
             //To handle input sizes not perfect multiples of the partition tile size
             if (partitionIndex < gridDim - 1) {
+
+
                 uint32_t keys[BIN_KEYS_PER_THREAD];
+                uint32_t values[BIN_KEYS_PER_THREAD];
 
                 uint32_t binSubPartStart = warpBlockIndex * BIN_SUB_PART_SIZE;
                 uint32_t binPartStart = partitionIndex * BIN_PART_SIZE;
 
-                for (uint32_t i = 0, t = warpIndex + binSubPartStart + binPartStart;
-                     i < BIN_KEYS_PER_THREAD; ++i, t += warpSize)
+                for (uint32_t i = 0, t = laneId + binSubPartStart + binPartStart;
+                     i < BIN_KEYS_PER_THREAD; ++i, t += warpSize) {
                     keys[i] = m_sortBuffer[t];
+                    values[i] = m_valuesBuffer[t];
+                }
 
                 uint16_t offsets[BIN_KEYS_PER_THREAD];
-
                 for (uint32_t i = 0; i < BIN_KEYS_PER_THREAD; ++i) {
                     unsigned warpFlags = 0xffffffff;
-
                     for (uint32_t k = 0; k < RADIX_LOG; ++k) {
                         const bool t = (keys[i] >> (k + m_radixShift)) & 1;
                         uint32_t t_mask = t ? 0 : 0xffffffff;
@@ -496,9 +501,7 @@ namespace RadixSorter {
                         sycl::ext::oneapi::group_ballot(subGroup, t).extract_bits(mask);
                         warpFlags &= mask ^ t_mask;
                     }
-
                     const uint32_t bits = sycl::popcount(warpFlags & getLaneMaskLt(subGroup));
-
                     uint32_t preIncrementVal;
                     if (bits == 0) {
                         uint32_t bin = keys[i] >> m_radixShift & RADIX_MASK;
@@ -510,11 +513,14 @@ namespace RadixSorter {
                         preIncrementVal = atomicRef.fetch_add(val);
 
                     }
-                    uint32_t firstSetBit = __builtin_ctz(warpFlags);
+                    uint32_t firstSetBit = warpFlags ? __builtin_ctz(warpFlags) : 0;
                     offsets[i] = sycl::select_from_group(subGroup, preIncrementVal, firstSetBit) + bits;
+
                 }
 
                 item.barrier(sycl::access::fence_space::local_space);
+
+
                 //exclusive prefix sum up the warp histograms
                 if (threadIdx < RADIX) {
                     uint32_t reduction = s_warpHistograms[threadIdx];
@@ -525,68 +531,78 @@ namespace RadixSorter {
                     sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::global_space> atomicRef(
                             m_passHist[threadIdx + (partitionIndex + 1) * RADIX]);
                     atomicRef.fetch_add(FLAG_REDUCTION | reduction << 2);
-
                     for (int i = 1; i < warpSize; i <<= 1) {
                         uint32_t t = sycl::shift_group_right(subGroup, reduction, i);
-                        if (warpIndex >= i) // Dont add on our first lane
+                        if (laneId >= i) {// Dont add on our first lane
                             reduction += t;
+                        }
                     }
-
                     uint32_t circular_val;
                     int last_value = sycl::permute_group_by_xor(subGroup, reduction,
                                                                 subGroup.get_max_local_range()[0] - 1);
                     reduction = sycl::shift_group_right(subGroup, reduction, 1);
-                    if (warpIndex == 0) {
+                    if (laneId == 0) {
                         circular_val = last_value;
                     } else {
                         circular_val = reduction;
                     }
-
                     s_localHistogram[threadIdx] = circular_val;
-
                 }
 
                 item.barrier(sycl::access::fence_space::local_space);
-                // Ensure all threads participate in this section
-                uint32_t reduction = (threadIdx < (RADIX >> LANE_LOG)) ? s_localHistogram[threadIdx << LANE_LOG] : 0;
+                // Active Exclusive Warp scan
                 uint32_t idx = threadIdx * warpSize;
 
-                for (int i = 1; i < warpSize; i <<= 1) {
-                    uint32_t t = sycl::shift_group_right(subGroup, reduction, i);
-                    if (warpIndex >= i)
-                        reduction += t;
+                uint32_t reduce;
+                reduce = idx < RADIX ? s_localHistogram[idx] : 0;
+                for (int i = 1; i <= 16; i <<= 1) { // 16 = LANE_COUNT >> 1
+                    uint32_t t = sycl::shift_group_right(subGroup, reduce, i);
+                    if (laneId >= i)
+                        reduce += t;
                 }
-                reduction = sycl::shift_group_right(subGroup, reduction, 1);
-                reduction = warpIndex ? reduction : 0;
-                if (idx < RADIX)
-                    s_localHistogram[idx] = reduction;
+                uint32_t exclude_reduce = sycl::shift_group_right(subGroup, reduce, 1);
+                uint32_t val = laneId ? exclude_reduce : 0;
+
+                if (idx < RADIX) {
+                    s_localHistogram[idx] = val;
+                }
+
                 item.barrier(sycl::access::fence_space::local_space);
 
+                //uint32_t res = (laneId) ? sycl::select_from_group(subGroup, s_localHistogram[threadIdx - 1], 1) : 0;
+                uint32_t res = 0;
+
+                if (laneId) {
+                    res = sycl::select_from_group(subGroup, s_localHistogram[threadIdx - 1], 1);
+                } else {
+                    sycl::select_from_group(subGroup, 0, 0);
+                }
 
                 // shuffl sync
-                if (threadIdx < RADIX && warpIndex) {
-                    s_localHistogram[threadIdx] += sycl::select_from_group(subGroup, s_localHistogram[threadIdx - 1],
-                                                                           1);
-                } else {
-                    sycl::select_from_group(subGroup, 0x00, 0);
+                if (threadIdx < RADIX) {
+                    s_localHistogram[threadIdx] += res;
                 }
-
                 item.barrier(sycl::access::fence_space::local_space);
+
+
                 //update offsets
 
                 if (warpBlockIndex) {
                     for (uint32_t i = 0; i < BIN_KEYS_PER_THREAD; ++i) {
-                        const uint32_t t2 = keys[i] >> m_radixShift & RADIX_MASK;
+                        const uint32_t t2 = (keys[i] >> m_radixShift) & RADIX_MASK;
                         offsets[i] += s_warpHist[t2] + s_localHistogram[t2];
+
                     }
                 } else {
-                    for (uint32_t i = 0; i < BIN_KEYS_PER_THREAD; ++i)
-                        offsets[i] += s_localHistogram[keys[i] >> m_radixShift & RADIX_MASK];
+                    for (uint32_t i = 0; i < BIN_KEYS_PER_THREAD; ++i) {
+                        offsets[i] += s_localHistogram[(keys[i] >> m_radixShift) & RADIX_MASK];
+                    }
                 }
                 item.barrier(sycl::access::fence_space::local_space);
 
                 for (uint32_t i = 0; i < BIN_KEYS_PER_THREAD; ++i) {
                     s_warpHistograms[offsets[i]] = keys[i];
+                    s_warpValueHistograms[offsets[i]] = values[i];
                 }
 
                 if (threadIdx < RADIX) {
@@ -612,21 +628,28 @@ namespace RadixSorter {
                 //scatter runs of keys into device memory
                 for (uint32_t i = threadIdx; i < BIN_PART_SIZE; i += blockDim) {
                     uint32_t altBufferIndex = s_localHistogram[s_warpHistograms[i] >> m_radixShift & RADIX_MASK] + i;
-                    uint32_t s_warpHist = s_warpHistograms[i];
 
-                    //sycl::ext::oneapi::experimental::printf("ThreadIdx: %u, i: %u,  altBufferIndex: %u, s_warpHist: %u\n",
-                    //                                        threadIdx, i, altBufferIndex, s_warpHist);
-                    m_sortAltBuffer[altBufferIndex] = s_warpHist;
+                    m_sortAltBuffer[altBufferIndex] = s_warpHistograms[i];
+                    m_valuesAltBuffer[altBufferIndex] = s_warpValueHistograms[i];
                 }
+
+
             }
+
             if (partitionIndex == gridDim - 1) {
                 // Immediately begin lookback
                 if (threadIdx < RADIX) {
                     if (partitionIndex) {
-
                         uint32_t reduction = 0;
                         for (uint32_t k = partitionIndex; k >= 0;) {
                             const uint32_t flagPayload = m_passHist[threadIdx + k * RADIX];
+
+                            //sycl::ext::oneapi::experimental::printf(
+                            //        "threadIdx: %d, k: %u, Partition: %u, index: %u, payload: %u\n",
+                            //        threadIdx, k, partitionIndex, threadIdx + k * RADIX,
+                            //        flagPayload);
+
+
                             if ((flagPayload & FLAG_MASK) == FLAG_INCLUSIVE) {
                                 reduction += flagPayload >> 2;
                                 s_localHistogram[threadIdx] = reduction;
@@ -639,14 +662,16 @@ namespace RadixSorter {
                         }
                     } else {
                         s_localHistogram[threadIdx] = m_passHist[threadIdx] >> 2;
-
                     }
                 }
+
                 item.barrier(sycl::access::fence_space::local_space);
 
-                const uint32_t partEnd = BIN_PART_START + BIN_PART_SIZE;
-                const uint32_t partStart = threadIdx + BIN_PART_START;
-                //sycl::ext::oneapi::experimental::printf("threadIdx: %d, Start: %u, stop: %u, increment: %u\n",threadIdx,  threadIdx + BIN_PART_START, partEnd, blockDim);
+                const uint32_t partEnd = partitionIndex * BIN_PART_SIZE + BIN_PART_SIZE;
+                const uint32_t partStart = threadIdx + partitionIndex * BIN_PART_SIZE;
+                //sycl::ext::oneapi::experimental::printf("threadIdx: %d, Start: %u, stop: %u, increment: %u\n",
+                //                                        threadIdx, threadIdx + partitionIndex * BIN_PART_SIZE, partEnd,
+                //                                        blockDim);
 
                 for (uint32_t i = partStart; i < partEnd; i += blockDim) {
                     uint32_t key, value;
@@ -660,7 +685,7 @@ namespace RadixSorter {
                         const bool t = (key >> (k + m_radixShift)) & 1;
                         uint32_t t_mask = t ? 0 : 0xffffffff;
                         uint32_t mask;
-                        sycl::ext::oneapi::group_ballot(subGroup, t).extract_bits(mask);
+                        sycl::ext::oneapi::group_ballot(item.get_sub_group(), t).extract_bits(mask);
                         warpFlags &= mask ^ t_mask;
                     }
                     const uint32_t bits = sycl::popcount(warpFlags & getLaneMaskLt(subGroup));
@@ -675,7 +700,7 @@ namespace RadixSorter {
                         if (increment) {
                             uint32_t bin = key >> m_radixShift & RADIX_MASK;
                             uint32_t val = sycl::popcount(warpFlags);
-                            sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::device, sycl::access::address_space::local_space> atomicRef(
+                            sycl::atomic_ref<uint32_t, sycl::memory_order::relaxed, sycl::memory_scope::work_group, sycl::access::address_space::local_space> atomicRef(
                                     s_localHistogram[bin]);
                             preIncrementVal = atomicRef.fetch_add(val);
 
@@ -683,25 +708,15 @@ namespace RadixSorter {
 
                         uint32_t firstSetBit = warpFlags ? __builtin_ctz(warpFlags) : 0;
 
-                        dummy = sycl::select_from_group(subGroup, preIncrementVal,
+                        dummy = sycl::select_from_group(item.get_sub_group(), preIncrementVal,
                                                         firstSetBit);
                         if (warpBlockIndex == k) {
                             offset = dummy + bits;
-
-                            /*
-                            if (i < m_size) {
-                                sycl::ext::oneapi::experimental::printf(
-                                        "i: %d, K: %u, Warp:%u, threadIdx: %u, key: %u, Offset: %d, preIncrementVal: %d, __ffs(warpFlags): %d, bits: %d\n",
-                                        i, k, warpBlockIndex, threadIdx, key, offset, preIncrementVal, firstSetBit,
-                                        bits);
-                            }
-                             */
 
                         }
                         item.barrier(sycl::access::fence_space::local_space);
                     }
                     if (i < m_size) {
-                        //if (key == 0)
                         m_sortAltBuffer[offset] = key;
                         m_valuesAltBuffer[offset] = value;
                     }

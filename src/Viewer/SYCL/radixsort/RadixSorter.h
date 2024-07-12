@@ -77,6 +77,18 @@ namespace VkRender {
         sycl::queue &queue;
         sycl::event resetEvent;
 
+        void printKeys(const std::vector<uint32_t> &key, uint32_t num = 128) {
+            // Print the keys
+            std::cout << "Key:   ";
+            for (size_t i = 0; i < key.size(); ++i) {
+                std::cout << std::setw(4) << key[i] << " ";
+                if (i >= num - 1 || i >= key.size()) {
+                    break;
+                }
+            }
+            std::cout << std::endl;
+        }
+
 //Test for correctness
         void validationTest(std::vector<uint32_t> &keys, uint32_t testIterations) {
             //printf("Beginning VALIDATION tests at size %u and %u iterations. \n", keys.size(), testIterations);
@@ -100,7 +112,7 @@ namespace VkRender {
             }
             Log::Logger::getInstance()->trace("Sorting: {}/{} tests passed.", testsPassed, testIterations);
             if (!isCorrect)
-                Log::Logger::getInstance()->trace("Failed sorting at: {}. Key: {} and prevKey: {}", failIndex - 1,
+                Log::Logger::getInstance()->trace("Failed sorting at index: {}. Key: {} < {} (key < key - 1)", failIndex - 1,
                                                   keys[failIndex], keys[failIndex - 1]);
         }
 
@@ -117,18 +129,31 @@ namespace VkRender {
             queue.fill(indexBuffer, 0x00, radixPasses);
         }
 
-        void verifySort(uint32_t *keysDevioce, uint32_t size) {
+        void verifySort(uint32_t *keysDevice, uint32_t size, bool print = false, std::vector<uint32_t> cpuKeys = {}) {
             // copy keys back
+
             auto start = std::chrono::high_resolution_clock::now();
 
             std::vector<uint32_t> keys(size);
-            queue.memcpy(keys.data(), keysDevioce, size * sizeof(uint32_t)).wait();
+            queue.wait();
+            queue.memcpy(keys.data(), keysDevice, size * sizeof(uint32_t)).wait();
 
             validationTest(keys, 5);
+            if(print) {
+                printKeys(keys, keys.size());
+                std::sort(cpuKeys.begin(), cpuKeys.end());
+
+                // Compare the sorted cpuKeys with the keys copied back from the device
+                bool identical = std::equal(keys.begin(), keys.end(), cpuKeys.begin());
+                if (identical) {
+                    std::cout << "The arrays are identical.\n";
+                } else {
+                    std::cout << "The arrays are not identical.\n";
+                }
+            }
             std::chrono::duration<double, std::milli> verificationDuration =
                     std::chrono::high_resolution_clock::now() - start;
             Log::Logger::getInstance()->trace("3DGS Sorting: verification duration: {}", verificationDuration.count());
-
         }
 
         void performOneSweep(uint32_t *sortBuffer, uint32_t *valuesBuffer, uint32_t numRendered) {
@@ -156,7 +181,7 @@ namespace VkRender {
                                                                    sortBuffer,
                                                                    globalHistogramBuffer,
                                                                    numRendered));
-            });
+            }).wait();
 
             std::chrono::duration<double, std::milli> globalHist =
                     std::chrono::high_resolution_clock::now() - startGlobalHist;
@@ -174,7 +199,8 @@ namespace VkRender {
                     functor(item);
                 });
 
-            });
+            }).wait();
+
 
             std::chrono::duration<double, std::milli> scanPass =
                     std::chrono::high_resolution_clock::now() - startScanPass;
@@ -183,10 +209,12 @@ namespace VkRender {
 
             queue.submit([&](sycl::handler &h) {
                 sycl::local_accessor<uint32_t, 1> s_warpHistograms(sycl::range<1>(BIN_PART_SIZE), h);
+                sycl::local_accessor<uint32_t, 1> s_warpValueHistograms(sycl::range<1>(BIN_PART_SIZE), h);
                 sycl::local_accessor<uint32_t, 1> s_localHistogram(sycl::range<1>(RADIX), h);
                 auto range = sycl::nd_range<1>(sycl::range<1>(binningThreads * binningThreadblocks),
                                                sycl::range<1>(binningThreads));
                 RadixSorter::DigitBinningPass functor(s_warpHistograms,
+                                                      s_warpValueHistograms,
                                                       s_localHistogram,
                                                       sortBuffer, sortAltBuffer, valuesBuffer,
                                                       valuesAltBuffer,
@@ -195,16 +223,19 @@ namespace VkRender {
                     functor(item);
                 });
 
-            });
+            }).wait();
             auto digitPassTwo = std::chrono::high_resolution_clock::now();
+
+
 
             queue.submit([&](sycl::handler &h) {
                 sycl::local_accessor<uint32_t, 1> s_warpHistograms(sycl::range<1>(BIN_PART_SIZE), h);
+                sycl::local_accessor<uint32_t, 1> s_warpValueHistograms(sycl::range<1>(BIN_PART_SIZE), h);
                 sycl::local_accessor<uint32_t, 1> s_localHistogram(sycl::range<1>(RADIX), h);
                 auto range = sycl::nd_range<1>(sycl::range<1>(binningThreads * binningThreadblocks),
                                                sycl::range<1>(binningThreads));
-
                 RadixSorter::DigitBinningPass functor(s_warpHistograms,
+                                                      s_warpValueHistograms,
                                                       s_localHistogram,
                                                       sortAltBuffer, sortBuffer, valuesAltBuffer,
                                                       valuesBuffer,
@@ -212,17 +243,18 @@ namespace VkRender {
                 h.parallel_for(range, [=](sycl::nd_item<1> item) [[sycl::reqd_sub_group_size(32)]] {
                     functor(item);
                 });
-            });
+            }).wait();
 
             auto digitPassThree = std::chrono::high_resolution_clock::now();
 
             queue.submit([&](sycl::handler &h) {
                 sycl::local_accessor<uint32_t, 1> s_warpHistograms(sycl::range<1>(BIN_PART_SIZE), h);
+                sycl::local_accessor<uint32_t, 1> s_warpValueHistograms(sycl::range<1>(BIN_PART_SIZE), h);
                 sycl::local_accessor<uint32_t, 1> s_localHistogram(sycl::range<1>(RADIX), h);
                 auto range = sycl::nd_range<1>(sycl::range<1>(binningThreads * binningThreadblocks),
                                                sycl::range<1>(binningThreads));
-
                 RadixSorter::DigitBinningPass functor(s_warpHistograms,
+                                                      s_warpValueHistograms,
                                                       s_localHistogram,
                                                       sortBuffer, sortAltBuffer, valuesBuffer,
                                                       valuesAltBuffer,
@@ -230,18 +262,18 @@ namespace VkRender {
                 h.parallel_for(range, [=](sycl::nd_item<1> item) [[sycl::reqd_sub_group_size(32)]] {
                     functor(item);
                 });
-
-            });
+            }).wait();
 
             auto digitPassFour = std::chrono::high_resolution_clock::now();
 
             queue.submit([&](sycl::handler &h) {
                 sycl::local_accessor<uint32_t, 1> s_warpHistograms(sycl::range<1>(BIN_PART_SIZE), h);
+                sycl::local_accessor<uint32_t, 1> s_warpValueHistograms(sycl::range<1>(BIN_PART_SIZE), h);
                 sycl::local_accessor<uint32_t, 1> s_localHistogram(sycl::range<1>(RADIX), h);
                 auto range = sycl::nd_range<1>(sycl::range<1>(binningThreads * binningThreadblocks),
                                                sycl::range<1>(binningThreads));
-
                 RadixSorter::DigitBinningPass functor(s_warpHistograms,
+                                                      s_warpValueHistograms,
                                                       s_localHistogram,
                                                       sortAltBuffer, sortBuffer, valuesAltBuffer,
                                                       valuesBuffer,
@@ -249,7 +281,8 @@ namespace VkRender {
                 h.parallel_for(range, [=](sycl::nd_item<1> item) [[sycl::reqd_sub_group_size(32)]] {
                     functor(item);
                 });
-            });
+            }).wait();
+
 
             std::chrono::duration<double, std::milli> digitPassOneDuration =
                     digitPassTwo - digitPassOne;
@@ -266,6 +299,7 @@ namespace VkRender {
             Log::Logger::getInstance()->trace("3DGS Sorting: DigitBinningPass2: {}", digitPassTwoDuration.count());
             Log::Logger::getInstance()->trace("3DGS Sorting: DigitBinningPass3: {}", digitPassThreeDuration.count());
             Log::Logger::getInstance()->trace("3DGS Sorting: DigitBinningPass4: {}", digitPassFourDuration.count());
+
 
         }
 

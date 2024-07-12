@@ -248,12 +248,14 @@ namespace VkRender::LayerUtils {
                 case WIDGET_INT_SLIDER:
                     ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
                     ImGui::SetNextItemWidth(pos.maxElementWidth);
-                    *elem.active = false;
+                    if (elem.active)
+                        *elem.active = false;
                     ImGui::SliderInt(elem.label.c_str(), elem.intValue, elem.intMin, elem.intMax);
                     if (ImGui::IsItemDeactivatedAfterEdit()) {
                         handles->usageMonitor->userClickAction(elem.label, "WIDGET_INT_SLIDER",
                                                                ImGui::GetCurrentWindow()->Name);
-                        *elem.active = true;
+                        if (elem.active)
+                            *elem.active = true;
                     }
                     ImGui::PopStyleColor();
                     break;

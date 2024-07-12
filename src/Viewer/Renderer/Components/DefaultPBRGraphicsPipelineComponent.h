@@ -18,7 +18,7 @@ namespace VkRender {
     struct DefaultPBRGraphicsPipelineComponent {
         DefaultPBRGraphicsPipelineComponent() = default;
 
-        DefaultPBRGraphicsPipelineComponent(const DefaultPBRGraphicsPipelineComponent &) = default;
+        DefaultPBRGraphicsPipelineComponent(const DefaultPBRGraphicsPipelineComponent &) = delete;
 
         DefaultPBRGraphicsPipelineComponent &
         operator=(const DefaultPBRGraphicsPipelineComponent &other) { return *this; }

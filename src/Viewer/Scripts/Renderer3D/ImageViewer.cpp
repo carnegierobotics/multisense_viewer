@@ -56,14 +56,12 @@ void ImageViewer::setup() {
     Widgets::make()->checkbox(WIDGET_PLACEMENT_RENDERER3D, "Use CPU", &useCPU);
     Widgets::make()->checkbox(WIDGET_PLACEMENT_RENDERER3D, "3DGS Render", &render3dgs);
     Widgets::make()->button(WIDGET_PLACEMENT_RENDERER3D, "3DGS Single image", &render3dgsImage);
-    Widgets::make()->slider(WIDGET_PLACEMENT_RENDERER3D, "Downsample next .ply load", &sliderVal, 1, 2000);
 }
 
 void ImageViewer::onWindowResize(const VkRender::GuiObjectHandles *uiHandle) {
     Widgets::make()->checkbox(WIDGET_PLACEMENT_RENDERER3D, "Use CPU", &useCPU);
     Widgets::make()->checkbox(WIDGET_PLACEMENT_RENDERER3D, "3DGS Render", &render3dgs);
     Widgets::make()->button(WIDGET_PLACEMENT_RENDERER3D, "3DGS Single image", &render3dgsImage);
-    Widgets::make()->slider(WIDGET_PLACEMENT_RENDERER3D, "Downsample next .ply load", &sliderVal, 1, 2000);
 }
 
 
@@ -121,7 +119,7 @@ void ImageViewer::update() {
 void ImageViewer::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
 
     if (uiHandle->m_paths.update3DGSPath) {
-        m_renderer->gs = VkRender::GaussianRenderer::loadFromFile(uiHandle->m_paths.importFilePath.string(), sliderVal);
+        m_renderer->gs = VkRender::GaussianRenderer::loadFromFile(uiHandle->m_paths.importFilePath.string(), 1);
         splatEntity = uiHandle->m_paths.importFilePath.filename();
         m_renderer->setupBuffers(&m_context->getCamera());
         m_context->createEntity(splatEntity);

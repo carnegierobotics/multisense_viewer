@@ -32,7 +32,7 @@ namespace VkRender {
         /** Called once per frame **/
         void onUIRender(VkRender::GuiObjectHandles& handles) override {
 
-            /*
+
             // Push style variables
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.0f, 5.0f));
             ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(10.0f, 10.0f));
@@ -46,19 +46,19 @@ namespace VkRender {
             ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
 
 
-            ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, handles->info->menuBarHeight));
+            ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, handles.info->menuBarHeight));
             ImGui::BeginMainMenuBar();
             if (ImGui::BeginMenu("File")) {
                 if (ImGui::MenuItem("Quit")) {
                     // Handle New action
-                    handles->m_context->closeApplication();
+                    handles.m_context->closeApplication();
                 }
                 ImGui::EndMenu();
             }
 
             if (ImGui::BeginMenu("View")) {
-                ImGui::MenuItem("Fix Aspect Ratio", nullptr, &handles->fixAspectRatio);
-                ImGui::MenuItem("Enable Secondary View", nullptr, &handles->enableSecondaryView);
+                ImGui::MenuItem("Fix Aspect Ratio", nullptr, &handles.fixAspectRatio);
+                ImGui::MenuItem("Enable Secondary View", nullptr, &handles.enableSecondaryView);
                 ImGui::EndMenu();
             }
 
@@ -68,7 +68,7 @@ namespace VkRender {
             ImGui::PopStyleVar(3);
             ImGui::PopStyleColor(5);
 
-            */
+
         }
 
         /** Called once upon this object destruction **/

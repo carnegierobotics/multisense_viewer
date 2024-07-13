@@ -23,6 +23,8 @@ namespace VkRender {
 
         /** Called once per frame **/
         void onUIRender(GuiObjectHandles& uiContext) override {
+
+            return;
             bool pOpen = true;
             ImGuiWindowFlags window_flags = 0;
             window_flags =

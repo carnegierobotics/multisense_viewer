@@ -10,8 +10,6 @@
 #include "Viewer/Renderer/Components/RenderComponents/DefaultGraphicsPipelineComponent2.h"
 #include "Viewer/Renderer/Components/OBJModelComponent.h"
 
-#include "Viewer/SYCL/RayTracer.h"
-
 
 void ImageViewer::setup() {
     const auto &camera = m_context->getCamera();
@@ -30,7 +28,7 @@ void ImageViewer::setup() {
     res.bind(modelComponent);
     res.setTexture(&m_syclRenderTarget->m_descriptor);
 
-    VkRender::AbstractRenderer::InitializeInfo initInfo{};
+    VkRender::InitializeInfo initInfo{};
     initInfo.height = camera.m_height;
     initInfo.width = camera.m_width;
     initInfo.channels = 4;
@@ -45,11 +43,7 @@ void ImageViewer::setup() {
 
     splatEntity = "Default 3DGS model";
     m_context->createEntity(splatEntity);
-#ifdef GPU_ENABLED
-    useCPU = false;
-#else
-    useCPU = true;
-#endif
+
     m_renderer->setup(initInfo, useCPU);
     prevDevice = useCPU;
 
@@ -69,7 +63,7 @@ void ImageViewer::update() {
 
     if (useCPU != prevDevice) {
         const auto &camera = m_context->getCamera();
-        VkRender::AbstractRenderer::InitializeInfo initInfo{};
+        VkRender::InitializeInfo initInfo{};
         initInfo.height = camera.m_height;
         initInfo.width = camera.m_width;
         initInfo.channels = 4;
@@ -85,7 +79,7 @@ void ImageViewer::update() {
     prevDevice = useCPU;
 
     auto &camera = m_context->getCamera();
-    VkRender::AbstractRenderer::RenderInfo info{};
+    VkRender::RenderInfo info{};
     info.camera = &camera;
     info.debug = btn;
 

@@ -44,7 +44,12 @@
 #include <cstring>
 #include <iostream>
 #include <chrono>
+
+#include "Viewer/Tools/Macros.h"
+DISABLE_WARNING_PUSH
+DISABLE_WARNING_ALL
 #include <vk_mem_alloc.h>
+DISABLE_WARNING_POP
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include <imgui.h>
@@ -84,6 +89,12 @@ namespace VkRender {
             /** @brief Enable UI overlay */
             bool overlay = true;
         } settings;
+
+        struct GLFWCursors {
+            GLFWcursor* arrow = nullptr;
+            GLFWcursor* resizeVertical = nullptr;
+        }cursors;
+
 
         std::string m_Title = "-1";
         std::string m_Name = "VulkanRenderer";

@@ -8,7 +8,6 @@ if (ENABLE_SYCL)
     #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -g -O0")  # Enable SSE4.1 and SSSE3 support. _mm_min_epi32 and _mm_shuffle_epi8 require specific SSE
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -fsycl-targets=nvptx64-nvidia-cuda,spir64 -g")
     set(CMAKE_CXX_COMPILER "clang++")
-    add_compile_definitions(GPU_ENABLED)
 
     add_compile_definitions(SYCL_ENABLED)
     message(STATUS "SYCL support enabled. Compiler: ${CMAKE_CXX_COMPILER} Flags: ${CMAKE_CXX_FLAGS}")
@@ -107,6 +106,8 @@ set(SOURCE_FILES
         src/Viewer/Scripts/ScriptSupport/ScriptUtils.h
         src/Viewer/Scripts/Renderer3D/DefaultScene.cpp
         src/Viewer/Scripts/Renderer3D/Example/Example3D.cpp
+        src/Viewer/Scripts/Renderer3D/ImageViewer.cpp
+        src/Viewer/Scripts/Renderer3D/MultiSense.cpp
 
         src/Viewer/Modules/LibMultiSense/MultiSenseRendererBridge.cpp
         src/Viewer/Modules/LibMultiSense/CommonHeader.h
@@ -126,14 +127,15 @@ set(LIBRARIES
         tinyobjloader
         GPUOpen::VulkanMemoryAllocator
         tinyply
+        MultiSense
 )
 
 if (ENABLE_SYCL)
     list(APPEND SOURCE_FILES src/Viewer/SYCL/GaussianRenderer.cpp)
-    message(STATUS "SYCL: Adding Gaussian Renderer to source")
+    message("[INFO] SYCL: Adding Gaussian Renderer to source")
 
     target_compile_options(ktx PRIVATE -msse4.1 -mssse3)
-    list(APPEND LIBRARIES sycl;)
+    list(APPEND LIBRARIES sycl)
 
 endif()
 

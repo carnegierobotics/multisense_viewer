@@ -24,7 +24,7 @@ namespace VkRender {
 
         GLTFModelComponent() = default;
 
-        GLTFModelComponent(const GLTFModelComponent &) = default;
+        GLTFModelComponent(const GLTFModelComponent &) = delete;
 
         /*
         GLTFModelComponent &operator=(const GLTFModelComponent &other) {

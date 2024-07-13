@@ -15,9 +15,23 @@
 #include "Viewer/Core/Camera.h"
 #include "Viewer/Core/RenderDefinitions.h"
 #include "Viewer/SYCL/RasterizerUtils.h"
-#include "Viewer/SYCL/AbstractRenderer.h"
 
 namespace VkRender {
+    class Renderer;
+    struct InitializeInfo {
+        Renderer* context = nullptr;
+
+        const Camera *camera = nullptr;
+
+        std::filesystem::path loadFile;
+
+        uint32_t width, height, channels;
+        uint32_t imageSize;
+    };
+    struct RenderInfo {
+        const Camera *camera{};
+        bool debug = false;
+    };
     class Sorter;
 
     class GaussianRenderer {
@@ -43,8 +57,8 @@ namespace VkRender {
 
         ~GaussianRenderer();
 
-        void setup(const VkRender::AbstractRenderer::InitializeInfo &initInfo, bool useCPU = false);
-        void render(const AbstractRenderer::RenderInfo &info, const VkRender::RenderUtils *pUtils);
+        void setup(const InitializeInfo &initInfo, bool useCPU = false);
+        void render(const RenderInfo &info, const VkRender::RenderUtils *pUtils);
         uint8_t *getImage();
         uint32_t getImageSize();
         GaussianRenderer::GaussianPoints gs;
@@ -57,7 +71,7 @@ namespace VkRender {
         void singleOneSweep();
 
     private:
-        VkRender::AbstractRenderer::InitializeInfo m_initInfo;
+        InitializeInfo m_initInfo;
         uint8_t *m_image = nullptr;
 
         glm::vec3 *positionBuffer = nullptr;

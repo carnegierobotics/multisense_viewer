@@ -216,7 +216,7 @@ namespace VkRender::LayerUtils {
     };
 
     static inline void
-    createWidgets(VkRender::GuiObjectHandles *handles, const ScriptWidgetPlacement &area,
+    createWidgets(VkRender::GuiObjectHandles &handles, const ScriptWidgetPlacement &area,
                   WidgetPosition pos = WidgetPosition()) {
         for (auto &elem: Widgets::make()->elements[area]) {
             if (pos.paddingX != -1) {
@@ -229,7 +229,7 @@ namespace VkRender::LayerUtils {
                     ImGui::PushStyleColor(ImGuiCol_Text, pos.textColor);
                     if (ImGui::Checkbox(elem.label.c_str(), elem.checkbox) &&
                         ImGui::IsItemActivated()) {
-                        handles->usageMonitor->userClickAction(elem.label, "WIDGET_CHECKBOX",
+                        handles.usageMonitor->userClickAction(elem.label, "WIDGET_CHECKBOX",
                                                                ImGui::GetCurrentWindow()->Name);
                     }
                     ImGui::PopStyleColor();
@@ -240,7 +240,7 @@ namespace VkRender::LayerUtils {
                     ImGui::SetNextItemWidth(pos.maxElementWidth);
                     if (ImGui::SliderFloat(elem.label.c_str(), elem.value, elem.minValue, elem.maxValue) &&
                         ImGui::IsItemActivated()) {
-                        handles->usageMonitor->userClickAction(elem.label, "WIDGET_FLOAT_SLIDER",
+                        handles.usageMonitor->userClickAction(elem.label, "WIDGET_FLOAT_SLIDER",
                                                                ImGui::GetCurrentWindow()->Name);
                     }
                     ImGui::PopStyleColor();
@@ -252,7 +252,7 @@ namespace VkRender::LayerUtils {
                         *elem.active = false;
                     ImGui::SliderInt(elem.label.c_str(), elem.intValue, elem.intMin, elem.intMax);
                     if (ImGui::IsItemDeactivatedAfterEdit()) {
-                        handles->usageMonitor->userClickAction(elem.label, "WIDGET_INT_SLIDER",
+                        handles.usageMonitor->userClickAction(elem.label, "WIDGET_INT_SLIDER",
                                                                ImGui::GetCurrentWindow()->Name);
                         if (elem.active)
                             *elem.active = true;

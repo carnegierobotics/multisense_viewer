@@ -42,7 +42,7 @@ namespace VkRender {
     }
 
 
-    void GaussianRenderer::setup(const VkRender::AbstractRenderer::InitializeInfo &initInfo, bool useCPU) {
+    void GaussianRenderer::setup(const InitializeInfo &initInfo, bool useCPU) {
         m_initInfo = initInfo;
 
         try {
@@ -98,7 +98,7 @@ namespace VkRender {
         free(m_image);
     }
 
-    void GaussianRenderer::setupBuffers(const VkRender::Camera *camera) {
+    void GaussianRenderer::setupBuffers(const Camera *camera) {
         Log::Logger::getInstance()->info("Loaded {} Gaussians", gs.getSize());
         try {
             uint32_t numPoints = gs.getSize();
@@ -149,7 +149,7 @@ namespace VkRender {
     }
 
 
-    void GaussianRenderer::render(const AbstractRenderer::RenderInfo &info, const VkRender::RenderUtils *renderUtils) {
+    void GaussianRenderer::render(const RenderInfo &info, const RenderUtils *renderUtils) {
         auto *camera = info.camera;
         auto params = Rasterizer::getHtanfovxyFocal(camera->m_Fov, camera->m_height, camera->m_width);
         glm::mat4 viewMatrix = camera->matrices.view;

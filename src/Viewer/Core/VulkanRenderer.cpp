@@ -76,6 +76,8 @@ namespace VkRender {
         glfwSetScrollCallback(window, VulkanRenderer::mouseScrollCallback);
         glfwSetCharCallback(window, VulkanRenderer::charCallback);
         glfwSetWindowSizeLimits(window, m_Width / 4, m_Height / 4, GLFW_DONT_CARE, GLFW_DONT_CARE);
+        cursors.resizeVertical = glfwCreateStandardCursor(GLFW_RESIZE_NS_CURSOR);
+        cursors.arrow = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
 
         GLFWimage images[1];
         std::string fileName = Utils::getAssetsPath().append("Textures/CRL96x96.png").string();
@@ -309,6 +311,9 @@ namespace VkRender {
 
         delete vulkanDevice; //Call to destructor for smart pointer destroy logical m_Device before instance
         vkDestroyInstance(instance, nullptr);
+        // Cleanup GLFW Resources
+        glfwDestroyCursor(cursors.arrow);
+        glfwDestroyCursor(cursors.resizeVertical);
         // CleanUp GLFW window
         glfwDestroyWindow(window);
         glfwTerminate();
@@ -629,7 +634,7 @@ namespace VkRender {
         createCommandPool();
         createCommandBuffers();
         createSynchronizationPrimitives();
-        createColorResources( );
+        createColorResources();
         setupDepthStencil();
         setupRenderPass();
         createPipelineCache();
@@ -916,7 +921,8 @@ namespace VkRender {
         //// COLOR IMAGE RESOURCE /////
         VkImageCreateInfo colorImageCI = Populate::imageCreateInfo();
         colorImageCI.imageType = VK_IMAGE_TYPE_2D;
-        colorImageCI.format = secondaryRenderPasses->setupFrameBuffer ? VK_FORMAT_R8G8B8A8_UNORM : swapchain->colorFormat;
+        colorImageCI.format = secondaryRenderPasses->setupFrameBuffer ? VK_FORMAT_R8G8B8A8_UNORM
+                                                                      : swapchain->colorFormat;
         colorImageCI.extent = {m_Width, m_Height, 1};
         colorImageCI.mipLevels = 1;
         colorImageCI.arrayLayers = 1;
@@ -974,7 +980,8 @@ namespace VkRender {
         VkImageViewCreateInfo colorImageViewCI = Populate::imageViewCreateInfo();
         colorImageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
         colorImageViewCI.image = secondaryRenderPasses->colorImage.image;
-        colorImageViewCI.format = secondaryRenderPasses->setupFrameBuffer ? VK_FORMAT_R8G8B8A8_UNORM : swapchain->colorFormat;;
+        colorImageViewCI.format = secondaryRenderPasses->setupFrameBuffer ? VK_FORMAT_R8G8B8A8_UNORM
+                                                                          : swapchain->colorFormat;;
         colorImageViewCI.subresourceRange.baseMipLevel = 0;
         colorImageViewCI.subresourceRange.levelCount = 1;
         colorImageViewCI.subresourceRange.baseArrayLayer = 0;
@@ -1033,14 +1040,17 @@ namespace VkRender {
 
         VkAttachmentDescription colorAttachment{};
         // Color attachment
-        colorAttachment.format = secondaryRenderPasses->setupFrameBuffer ? VK_FORMAT_R8G8B8A8_UNORM : swapchain->colorFormat;
+        colorAttachment.format = secondaryRenderPasses->setupFrameBuffer ? VK_FORMAT_R8G8B8A8_UNORM
+                                                                         : swapchain->colorFormat;
         colorAttachment.samples = sampleCount;
         colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        colorAttachment.loadOp = secondaryRenderPasses->setupFrameBuffer ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
+        colorAttachment.loadOp = secondaryRenderPasses->setupFrameBuffer ? VK_ATTACHMENT_LOAD_OP_CLEAR
+                                                                         : VK_ATTACHMENT_LOAD_OP_LOAD;
         colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
         colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        colorAttachment.initialLayout = secondaryRenderPasses->setupFrameBuffer ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        colorAttachment.initialLayout = secondaryRenderPasses->setupFrameBuffer ? VK_IMAGE_LAYOUT_UNDEFINED
+                                                                                : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         // Depth attachment
         VkAttachmentDescription depthAttachment{};
@@ -1050,18 +1060,24 @@ namespace VkRender {
         depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
         depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
-        depthAttachment.initialLayout = secondaryRenderPasses->setupFrameBuffer ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        depthAttachment.initialLayout = secondaryRenderPasses->setupFrameBuffer ? VK_IMAGE_LAYOUT_UNDEFINED
+                                                                                : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
         depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
         VkAttachmentDescription colorAttachmentResolve{};
-        colorAttachmentResolve.format = secondaryRenderPasses->setupFrameBuffer ? VK_FORMAT_R8G8B8A8_UNORM : swapchain->colorFormat;
+        colorAttachmentResolve.format = secondaryRenderPasses->setupFrameBuffer ? VK_FORMAT_R8G8B8A8_UNORM
+                                                                                : swapchain->colorFormat;
         colorAttachmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
-        colorAttachmentResolve.loadOp = secondaryRenderPasses->setupFrameBuffer ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
+        colorAttachmentResolve.loadOp = secondaryRenderPasses->setupFrameBuffer ? VK_ATTACHMENT_LOAD_OP_CLEAR
+                                                                                : VK_ATTACHMENT_LOAD_OP_LOAD;
         colorAttachmentResolve.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
         colorAttachmentResolve.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         colorAttachmentResolve.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        colorAttachmentResolve.initialLayout = secondaryRenderPasses->setupFrameBuffer ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        colorAttachmentResolve.finalLayout = secondaryRenderPasses->setupFrameBuffer ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        colorAttachmentResolve.initialLayout = secondaryRenderPasses->setupFrameBuffer ? VK_IMAGE_LAYOUT_UNDEFINED
+                                                                                       : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        colorAttachmentResolve.finalLayout = secondaryRenderPasses->setupFrameBuffer
+                                             ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+                                             : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
         subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
         subpassDescription.colorAttachmentCount = 1;
@@ -1091,7 +1107,7 @@ namespace VkRender {
 
         std::array<VkSubpassDependency, 2> dependencies{};
 
-        if (secondaryRenderPasses->setupFrameBuffer){
+        if (secondaryRenderPasses->setupFrameBuffer) {
             // Subpass dependencies for layout transitions
             dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
             dependencies[0].dstSubpass = 0;

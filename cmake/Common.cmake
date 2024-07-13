@@ -218,18 +218,34 @@ function(ExportScriptIncludes)
 
     string(TIMESTAMP Today)
     file(GLOB_RECURSE SCRIPT_HEADERS RELATIVE "${CMAKE_SOURCE_DIR}/src" "${CMAKE_SOURCE_DIR}/src/Viewer/Scripts/*.h")
-    list(FILTER SCRIPT_HEADERS EXCLUDE REGEX "/Private/")
-    file(WRITE ${SCRIPT_HEADER_FILE} "// Generated from Cmake ${Today} \n")
-    file(WRITE ${SCRIPTS_TXT_FILE} "# Generated from Cmake ${Today} \n")
-    foreach (Src ${SCRIPT_HEADERS})
-        file(APPEND ${SCRIPT_HEADER_FILE} "\#include \"${Src}\"\n")
-    endforeach (Src ${SCRIPT_HEADERS})
+    list(FILTER SCRIPT_HEADERS EXCLUDE REGEX "/ScriptSupport/")
 
+    # Print the entire SCRIPT_HEADERS list
+    message(STATUS "[INFO]: SCRIPT_HEADERS: ${SCRIPT_HEADERS}")
+
+    # Use a set to avoid duplicates
+    set(UNIQUE_SCRIPT_HEADERS)
     foreach (Src ${SCRIPT_HEADERS})
+        list(FIND UNIQUE_SCRIPT_HEADERS ${Src} _index)
+        if (_index EQUAL -1)
+            list(APPEND UNIQUE_SCRIPT_HEADERS ${Src})
+        endif()
+    endforeach()
+
+    file(WRITE ${SCRIPT_HEADER_FILE} "// Generated from CMake ${Today} \n")
+    file(WRITE ${SCRIPTS_TXT_FILE} "# Generated from CMake ${Today} \n")
+
+    foreach (Src ${UNIQUE_SCRIPT_HEADERS})
+        file(APPEND ${SCRIPT_HEADER_FILE} "\#include \"${Src}\"\n")
+    endforeach()
+
+    foreach (Src ${UNIQUE_SCRIPT_HEADERS})
         string(REGEX MATCH "[^\\/]+$" var ${Src})
         string(REGEX MATCH "^[^.]+" res ${var})
         file(APPEND ${SCRIPTS_TXT_FILE} ${res} \n)
-    endforeach (Src ${SCRIPT_HEADERS})
+    endforeach()
+    message(STATUS "ExportScriptIncludes executed successfully.")
+
 endfunction()
 
 function(GenerateVersionFile)

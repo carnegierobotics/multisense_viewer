@@ -161,7 +161,9 @@ namespace VkRender {
 #endif
         pushLayer("DebugWindow");
         pushLayer("NewVersionAvailable");
-        pushLayer("MultiSenseViewerLayer");
+        pushLayer("MenuLayer");
+        pushLayer("SideBarLayer");
+        //pushLayer("MultiSenseViewerLayer");
 
         // setup graphics pipeline
         VkShaderModule vtxModule{};

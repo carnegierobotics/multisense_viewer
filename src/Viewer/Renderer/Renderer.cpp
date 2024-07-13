@@ -795,9 +795,6 @@ namespace VkRender {
             resources.updateView(currentCamera);
             resources.update(currentFrame);
         }
-
-
-
     }
 
 
@@ -874,8 +871,21 @@ namespace VkRender {
 
     }
 
+    void Renderer::handleViewportResize(){
+        // Draw viewport borders
+
+
+        //
+        if (mouseButtons.pos.y > (m_Height / 2) - 10 && mouseButtons.pos.y < (m_Height / 2) + 10){
+            glfwSetCursor(window, cursors.resizeVertical);
+        } else {
+            glfwSetCursor(window, cursors.arrow);
+        }
+    }
+
 
     void Renderer::mouseMoved(float x, float y, bool &handled) {
+
         float dx = mousePos.x - x;
         float dy = mousePos.y - y;
 
@@ -909,6 +919,7 @@ namespace VkRender {
         }
         mousePos = glm::vec2(x, y);
 
+        handleViewportResize();
         handled = true;
     }
 

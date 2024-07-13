@@ -26,7 +26,7 @@ namespace VkRender {
 
         SkyboxGraphicsPipelineComponent() = default;
 
-        SkyboxGraphicsPipelineComponent(const SkyboxGraphicsPipelineComponent &) = default;
+        SkyboxGraphicsPipelineComponent(const SkyboxGraphicsPipelineComponent &) = delete;
 
         SkyboxGraphicsPipelineComponent &operator=(const SkyboxGraphicsPipelineComponent &other) { return *this; }
 

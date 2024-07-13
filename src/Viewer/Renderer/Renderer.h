@@ -89,7 +89,7 @@ namespace VkRender {
          */
         void cleanUp();
 
-        void closeApplication(){
+        void closeApplication() override{
             VulkanRenderer::closeApplication();
         }
 
@@ -156,6 +156,7 @@ namespace VkRender {
         template<typename T>
         bool tryCleanupAndDestroy(Entity &entity, int currentFrame);
 
+        void handleViewportResize();
     };
 }
 

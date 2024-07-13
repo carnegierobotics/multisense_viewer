@@ -52,7 +52,7 @@
 #include <complex>
 
 #include "Viewer/Core/VulkanRenderer.h"
-#include "Viewer/Scripts/Private/ScriptBuilder.h"
+#include "Viewer/Scripts/ScriptSupport/ScriptBuilder.h"
 #include "Viewer/Tools/Macros.h"
 #include "Viewer/Renderer/UsageMonitor.h"
 #include "Viewer/Core/RendererConfig.h"

@@ -28,14 +28,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Set application version
 set(VERSION_MAJOR "1")
-set(VERSION_MINOR "1")
-set(VERSION_PATCH "4")
+set(VERSION_MINOR "2")
+set(VERSION_PATCH "0")
 set(ARCHITECTURE "amd64")
-
-# Set install directory
 set(INSTALL_DIRECTORY ${CMAKE_BINARY_DIR}/multisense_${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}_${ARCHITECTURE}/)
 
 option(BUILD_DOC "Build documentation" ON)
+option(PROPRIETARY_GIGEVISION_MODULE "Include the proprietary GigE-Vision module" OFF)
+set(GIGEVISION_MODULE_PATH "" CACHE PATH "Path to the proprietary GigE-Vision module")
 
 # Set default build type
 if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -55,9 +55,9 @@ include(cmake/CompilerWarnings.cmake)
 find_package(Doxygen)
 if (Doxygen_FOUND)
     add_subdirectory(docs)
-else()
+else ()
     message(STATUS "Doxygen not found, not building docs")
-endif()
+endif ()
 
 include_directories(src)
 include_directories(Assets)
@@ -93,20 +93,25 @@ set(SOURCE_FILES
         src/Viewer/Renderer/ApplicationUserSetting.h
 
         src/Viewer/ImGui/Widgets.cpp
-        src/Viewer/ImGui/Layers/LayerFactory.cpp
         src/Viewer/ImGui/GuiManager.cpp
         src/Viewer/ImGui/AdditionalWindows/DebugWindow.h
+        src/Viewer/ImGui/Layers/MultiSenseLayerSupport/Sidebar.h
+        src/Viewer/ImGui/Layers/MultiSenseLayerSupport/WelcomeScreen.h
+        src/Viewer/ImGui/Layers/MultiSenseLayerSupport/ConfigurationPage.h
+        src/Viewer/ImGui/Layers/LayerSupport/LayerFactory.cpp
 
         src/Viewer/Tools/StbInclude.cpp
         src/Viewer/Tools/Logger.cpp
         src/Viewer/Tools/ThreadPool.h
 
-        src/Viewer/Scripts/Private/ScriptUtils.h
+        src/Viewer/Scripts/ScriptSupport/ScriptUtils.h
         src/Viewer/Scripts/Renderer3D/DefaultScene.cpp
-        src/Viewer/Scripts/Renderer3D/MultiSense.cpp
         src/Viewer/Scripts/Renderer3D/Example/Example3D.cpp
-        src/Viewer/Scripts/Renderer3D/ImageViewer.cpp
-        src/Viewer/Scripts/Renderer3D/DataCapture.cpp
+
+        src/Viewer/Modules/LibMultiSense/MultiSenseRendererBridge.cpp
+        src/Viewer/Modules/LibMultiSense/CommonHeader.h
+        src/Viewer/Modules/LibMultiSense/LibMultiSenseConnector.cpp
+        src/Viewer/Modules/LibMultiSense/MultiSenseTaskManager.cpp
 )
 
 # Define the libraries variable
@@ -158,6 +163,10 @@ if (UNIX) # Linux
 
     set_project_warnings(MultiSense-Viewer)
 
+    if (PROPRIETARY_GIGEVISION_MODULE)
+        target_link_libraries(MultiSense-Viewer ${PROPRIETARY_MODULE_LIB})
+    endif ()
+
     install(TARGETS MultiSense-Viewer RUNTIME DESTINATION ${INSTALL_DIRECTORY})
     install(DIRECTORY ${CMAKE_SOURCE_DIR}/Assets CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
 endif ()
@@ -186,7 +195,7 @@ if (WIN32)
             IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/external/openssl_1.1.1/lib/libcrypto.lib")
 
     add_executable(MultiSense-Viewer WIN32 ${SOURCE_FILES})
-    target_link_libraries(MultiSense-Viewer ${LIBRARIES}  libsll libcrypto fmt::fmt userenv.lib)
+    target_link_libraries(MultiSense-Viewer ${LIBRARIES} libsll libcrypto fmt::fmt userenv.lib)
 
     set_project_warnings(MultiSense-Viewer)
 
@@ -233,7 +242,10 @@ endif ()
 
 # Compile definitions
 if (CMAKE_BUILD_TYPE MATCHES "Release")
-    target_compile_definitions(MultiSense-Viewer PRIVATE MULTISENSE_VIEWER_PRODUCTION)
-else()
-    target_compile_definitions(MultiSense-Viewer PRIVATE MULTISENSE_VIEWER_DEBUG)
+    target_compile_definitions(MultiSense-Viewer PRIVATE VKRENDER_MULTISENSE_VIEWER_PRODUCTION)
+    if (PROPRIETARY_GIGEVISION_MODULE)
+        target_compile_definitions(MultiSense-Viewer PRIVATE VKRENDER_GIGEVISION_ENABLED)
+    endif()
+    else ()
+    target_compile_definitions(MultiSense-Viewer PRIVATE VKRENDER_MULTISENSE_VIEWER_DEBUG)
 endif ()

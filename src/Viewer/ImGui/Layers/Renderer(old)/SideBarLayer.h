@@ -5,8 +5,8 @@
 #ifndef MULTISENSE_VIEWER_SIDEBARLAYER_H
 #define MULTISENSE_VIEWER_SIDEBARLAYER_H
 
-#include "Viewer/ImGui/Layers/Layer.h"
-#include "Viewer/ImGui/Layers/LayerUtils.h"
+#include "Viewer/ImGui/Layers/LayerSupport/Layer.h"
+#include "Viewer/ImGui/Layers/LayerSupport/LayerUtils.h"
 
 #include "Viewer/Renderer/Components/GLTFModelComponent.h"
 #include "Viewer/Renderer/Components/CameraGraphicsPipelineComponent.h"
@@ -39,6 +39,7 @@ namespace VkRender {
 
         }
 
+        /*
         void processEntities(GuiObjectHandles *handles) {
             auto view = handles->m_context->m_registry.view<TagComponent>(
                     entt::exclude<VkRender::SkyboxGraphicsPipelineComponent, VkRender::ScriptComponent>);
@@ -60,6 +61,11 @@ namespace VkRender {
                     if (ImGui::SmallButton("Reload Shader")) {
                         e.getComponent<DefaultGraphicsPipelineComponent2>().reloadShaders();
                     }
+                }
+
+                if (e.hasComponent<TransformComponent>()) {
+                    auto& transform = e.getComponent<TransformComponent>();
+                    ImGui::Checkbox("Flip Up", &transform.getFlipUpOption());
                 }
 
                 if (ImGui::SmallButton(("Delete ##" + tag.Tag).c_str())) {
@@ -324,7 +330,8 @@ namespace VkRender {
         }
 
 /** Called once per frame **/
-        void onUIRender(VkRender::GuiObjectHandles *handles) override {
+        void onUIRender(VkRender::GuiObjectHandles &handles) override {
+            /*
             if (!handles->renderer3D)
                 return;
             bool pOpen = true;
@@ -398,6 +405,7 @@ namespace VkRender {
                     }
                 }
             }
+   */
 
         }
 

@@ -7,8 +7,7 @@
 
 
 #include "Viewer/Tools/Macros.h"
-#include "Viewer/ImGui/Layers/Layer.h"
-#include "Viewer/Core/CommandBuffer.h"
+#include "Viewer/ImGui/Layers/LayerSupport/Layer.h"
 
 namespace VkRender {
     /**
@@ -64,8 +63,6 @@ namespace VkRender {
         void onDestroyScript() {
             onDestroy();
         }
-
-    private:
 
     };
 };

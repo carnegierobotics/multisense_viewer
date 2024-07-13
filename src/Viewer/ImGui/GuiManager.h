@@ -41,20 +41,18 @@
 #include <type_traits>
 #include <memory>
 #include <vector>
-#include <functional>
 #include <glm/vec2.hpp>
 
 
 #include <imgui_internal.h>
 
 #include "Viewer/Tools/Utils.h"
-#include "Viewer/Tools/Populate.h"
 #include "Viewer/Core/Texture.h"
 #include "Viewer/Core/VulkanDevice.h"
 #include "Viewer/Core/RenderDefinitions.h"
-#include "Viewer/ImGui/Layers/Layer.h"
+#include "Viewer/ImGui/Layers/LayerSupport/Layer.h"
 #include "Viewer/ImGui/Widgets.h"
-#include "Viewer/ImGui/Layers/LayerFactory.h"
+#include "Viewer/ImGui/Layers/LayerSupport/LayerFactory.h"
 
 namespace VkRender {
     class GuiManager {
@@ -118,12 +116,10 @@ namespace VkRender {
 
         // GuiManager framework
         std::vector<std::shared_ptr<Layer>> m_LayerStack{};
-
         // Textures
         std::vector<Texture2D> iconTextures;
         std::vector<Texture2D> fontTexture;
-        std::unique_ptr<Texture2D> gifTexture[99];
-
+        std::unique_ptr<Texture2D> gifTexture[99]; // Hold up to 99 frames
         // Vulkan resources for rendering the UI
         //Buffer vertexBuffer;
         //Buffer indexBuffer;
@@ -135,8 +131,6 @@ namespace VkRender {
         std::vector<int32_t> indexCount{};
 
         uint32_t updatedBufferIndex = 0;
-        //int32_t vertexCount = 0;
-        //int32_t indexCount = 0;
 
         VkPipelineCache pipelineCache{};
         VkPipelineLayout pipelineLayout{};
@@ -149,10 +143,11 @@ namespace VkRender {
 
         std::vector<VkShaderModule> shaderModules{};
         VulkanDevice *device = nullptr;
-        std::shared_ptr<VkRender::ThreadPool> pool;
         std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> saveSettingsTimer;
 
         ImFont *loadFontFromFileName(std::string file, float fontSize);
+
+        void loadAnimatedGif(const std::string &file);
 
         void loadImGuiTextureFromFileName(const std::string &file, uint32_t i);
     };

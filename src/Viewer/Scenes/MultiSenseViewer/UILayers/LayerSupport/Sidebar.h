@@ -1,7 +1,7 @@
 #ifndef SIDEBAR_H
 #define SIDEBAR_H
 
-#include <Viewer/Core/ImGui/Layers/LayerSupport/Layer.h>
+#include <Viewer/VkRender/ImGui/Layers/LayerSupport/Layer.h>
 
 #include "Viewer/Scenes/MultiSenseViewer/Modules/LibMultiSense/CommonHeader.h"
 

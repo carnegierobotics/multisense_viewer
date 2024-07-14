@@ -59,7 +59,7 @@
 #endif
 
 #include "Viewer/Tools/Macros.h"
-#include "Viewer/Core/RenderDefinitions.h"
+#include "Viewer/VkRender/Core/RenderDefinitions.h"
 #include "Viewer/Tools/Logger.h"
 
 namespace Utils {

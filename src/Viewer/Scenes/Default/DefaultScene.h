@@ -6,7 +6,7 @@
 #define MULTISENSE_VIEWER_DEFAULTSCENE_H
 
 
-#include "Viewer/Core/Renderer/Scene.h"
+#include "Viewer/VkRender/Scene.h"
 
 #include "Viewer/Scenes/Default/Scripts/MultiSense.h"
 

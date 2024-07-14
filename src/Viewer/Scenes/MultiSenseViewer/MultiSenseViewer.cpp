@@ -1,7 +1,7 @@
 //
 // Created by mgjer on 14/07/2024.
 //
-#include "Viewer/Core/Renderer/Renderer.h"
+#include "Viewer/VkRender/Renderer.h"
 
 #include "Viewer/Scenes/MultiSenseViewer/MultiSenseViewer.h"
 

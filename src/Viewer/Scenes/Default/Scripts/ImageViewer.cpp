@@ -3,12 +3,12 @@
 //
 
 #include "Viewer/Scenes/Renderer3D/ImageViewer.h"
-#include "Viewer/Core/ImGui/Widgets.h"
-#include "Viewer/Core/Renderer/Components.h"
-#include "Viewer/Core/Renderer/Renderer.h"
-#include "Viewer/Core/Renderer/Entity.h"
-#include "Viewer/Core/Renderer/Components/RenderComponents/DefaultGraphicsPipelineComponent2.h"
-#include "Viewer/Core/Renderer/Components/OBJModelComponent.h"
+#include "Viewer/VkRender/ImGui/Widgets.h"
+#include "Viewer/VkRender/Components.h"
+#include "Viewer/VkRender/Renderer.h"
+#include "Viewer/VkRender/Entity.h"
+#include "Viewer/VkRender/Components/RenderComponents/DefaultGraphicsPipelineComponent2.h"
+#include "Viewer/VkRender/Components/OBJModelComponent.h"
 
 
 void ImageViewer::setup() {

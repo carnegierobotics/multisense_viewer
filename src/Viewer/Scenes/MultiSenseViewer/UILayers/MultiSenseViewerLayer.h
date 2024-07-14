@@ -9,7 +9,7 @@
 #include "LayerSupport/Sidebar.h"
 #include "LayerSupport/WelcomeScreen.h"
 #include "LayerSupport/CameraStreamView.h"
-#include "Viewer/Core/ImGui/Layers/LayerSupport/Layer.h"
+#include "Viewer/VkRender/ImGui/Layers/LayerSupport/Layer.h"
 
 /** Is attached to the renderer through the GuiManager and instantiated in the GuiManager Constructor through
  *         pushLayer<[LayerName]>();

@@ -4,13 +4,13 @@
 
 #include "Viewer/Scenes/Default/Scripts/MultiSense.h"
 
-#include "Viewer/Core/Renderer/Renderer.h"
-#include "Viewer/Core/Renderer/Entity.h"
-#include "Viewer/Core/Renderer/Components.h"
-#include "Viewer/Core/Renderer/Components/SkyboxGraphicsPipelineComponent.h"
-#include "Viewer/Core/Renderer/Components/DefaultPBRGraphicsPipelineComponent.h"
-#include "Viewer/Core/Renderer/Components/GLTFModelComponent.h"
-#include "Viewer/Core/Renderer/Components/SecondaryCameraComponent.h"
+#include "Viewer/VkRender/Renderer.h"
+#include "Viewer/VkRender/Entity.h"
+#include "Viewer/VkRender/Components.h"
+#include "Viewer/VkRender/Components/SkyboxGraphicsPipelineComponent.h"
+#include "Viewer/VkRender/Components/DefaultPBRGraphicsPipelineComponent.h"
+#include "Viewer/VkRender/Components/GLTFModelComponent.h"
+#include "Viewer/VkRender/Components/SecondaryCameraComponent.h"
 
 
 void MultiSense::setup() {

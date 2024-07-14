@@ -1,12 +1,12 @@
 //
 // Created by mgjer on 14/07/2024.
 //
-#include "Viewer/Core/Renderer/Renderer.h"
-#include "Viewer/Core/Renderer/Entity.h"
-#include "Viewer/Core/Renderer/Components/SkyboxGraphicsPipelineComponent.h"
+#include "Viewer/VkRender/Renderer.h"
+#include "Viewer/VkRender/Entity.h"
+#include "Viewer/VkRender/Components/SkyboxGraphicsPipelineComponent.h"
 
 #include "Viewer/Scenes/Default/DefaultScene.h"
-#include "Viewer/Core/Renderer/Components/CustomModels.h"
+#include "Viewer/VkRender/Components/CustomModels.h"
 
 namespace VkRender {
 

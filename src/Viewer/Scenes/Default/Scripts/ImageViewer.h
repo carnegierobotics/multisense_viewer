@@ -6,7 +6,7 @@
 #define MULTISENSE_VIEWER_MULTISENSE_H
 
 #include "Viewer/Scenes/ScriptSupport/ScriptBuilder.h"
-#include "Viewer/Core/Renderer/Components/CustomModels.h"
+#include "Viewer/VkRender/Components/CustomModels.h"
 
 #include "Viewer/SYCL/GaussianRenderer.h"
 

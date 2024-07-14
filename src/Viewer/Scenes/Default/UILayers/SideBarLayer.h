@@ -5,16 +5,16 @@
 #ifndef MULTISENSE_VIEWER_SIDEBARLAYER_H
 #define MULTISENSE_VIEWER_SIDEBARLAYER_H
 
-#include "Viewer/Core/ImGui/Layers/LayerSupport/Layer.h"
-#include "Viewer/Core/ImGui/Layers/LayerSupport/LayerUtils.h"
+#include "Viewer/VkRender/ImGui/Layers/LayerSupport/Layer.h"
+#include "Viewer/VkRender/ImGui/Layers/LayerSupport/LayerUtils.h"
 
-#include "Viewer/Core/Renderer/Components/GLTFModelComponent.h"
-#include "Viewer/Core/Renderer/Components/CameraGraphicsPipelineComponent.h"
-#include "Viewer/Core/Renderer/Renderer.h"
-#include "Viewer/Core/Renderer/Components/SkyboxGraphicsPipelineComponent.h"
-#include "Viewer/Core/Renderer/Components/OBJModelComponent.h"
-#include "Viewer/Core/Renderer/Entity.h"
-#include "Viewer/Core/Renderer/Components/RenderComponents/DefaultGraphicsPipelineComponent2.h"
+#include "Viewer/VkRender/Components/GLTFModelComponent.h"
+#include "Viewer/VkRender/Components/CameraGraphicsPipelineComponent.h"
+#include "Viewer/VkRender/Renderer.h"
+#include "Viewer/VkRender/Components/SkyboxGraphicsPipelineComponent.h"
+#include "Viewer/VkRender/Components/OBJModelComponent.h"
+#include "Viewer/VkRender/Entity.h"
+#include "Viewer/VkRender/Components/RenderComponents/DefaultGraphicsPipelineComponent2.h"
 
 /** Is attached to the renderer through the GuiManager and instantiated in the GuiManager Constructor through
  *         pushLayer<[LayerName]>();

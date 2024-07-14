@@ -48,7 +48,7 @@
 #include <memory>
 #include <glm/ext/matrix_float4x4.hpp>
 
-#include "Viewer/Core/RenderDefinitions.h"
+#include "Viewer/VkRender/Core/RenderDefinitions.h"
 #include "Viewer/Tools/Utils.h"
 #include "CommonHeader.h"
 

@@ -33,7 +33,7 @@
  * Significant history (date, user, action):
  *   2022-09-12, mgjerde@carnegierobotics.com, Created file.
  **/
-#include "Viewer/Core/Renderer/Renderer.h"
+#include "Viewer/VkRender/Renderer.h"
 
 #ifdef WIN32
     #ifdef WIN_DEBUG

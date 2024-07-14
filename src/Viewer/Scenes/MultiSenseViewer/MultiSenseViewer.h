@@ -5,7 +5,7 @@
 #ifndef MULTISENSE_VIEWER_MULTISENSEVIEWER_H
 #define MULTISENSE_VIEWER_MULTISENSEVIEWER_H
 
-#include "Viewer/Core/Renderer/Scene.h"
+#include "Viewer/VkRender/Scene.h"
 
 namespace VkRender {
     class MultiSenseViewer : public Scene {

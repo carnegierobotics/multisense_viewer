@@ -62,39 +62,39 @@ include_directories(src)
 include_directories(Assets)
 include_directories(SYSTEM external/ffmpeg/include)
 include_directories(SYSTEM ${Vulkan_INCLUDE_DIRS})
-include_directories(SYSTEM src/Viewer/Core/ImGui/Custom)
+include_directories(SYSTEM src/Viewer/VkRender/ImGui/Custom)
 GenerateVersionFile()
 
 set(SOURCE_FILES
         src/main.cpp
-        src/Viewer/Core/Buffer.cpp
-        src/Viewer/Core/Texture.cpp
-        src/Viewer/Core/VulkanDevice.cpp
-        src/Viewer/Core/VulkanRenderer.cpp
-        src/Viewer/Core/VulkanSwapchain.cpp
-        src/Viewer/Core/UUID.cpp
-        src/Viewer/Core/RendererConfig.cpp
-        src/Viewer/Core/ServerConnection.cpp
-        src/Viewer/Core/CommandBuffer.cpp
+        src/Viewer/VkRender/Core/Buffer.cpp
+        src/Viewer/VkRender/Core/Texture.cpp
+        src/Viewer/VkRender/Core/VulkanDevice.cpp
+        src/Viewer/VkRender/Core/VulkanRenderer.cpp
+        src/Viewer/VkRender/Core/VulkanSwapchain.cpp
+        src/Viewer/VkRender/Core/UUID.cpp
+        src/Viewer/VkRender/Core/RendererConfig.cpp
+        src/Viewer/VkRender/Core/ServerConnection.cpp
+        src/Viewer/VkRender/Core/CommandBuffer.cpp
 
-        src/Viewer/Core/Renderer/Renderer.cpp
-        src/Viewer/Core/Renderer/Entity.cpp
-        src/Viewer/Core/Renderer/Components/SkyboxGraphicsPipelineComponent.cpp
-        src/Viewer/Core/Renderer/Components/DefaultPBRGraphicsPipelineComponent.cpp
-        src/Viewer/Core/Renderer/Components/GLTFModelComponent.cpp
-        src/Viewer/Core/Renderer/Components/CustomModels.cpp
-        src/Viewer/Core/Renderer/Components/GLTFDefines.h
-        src/Viewer/Core/Renderer/Components/SecondaryCameraComponent.cpp
-        src/Viewer/Core/Renderer/Components/OBJModelComponent.cpp
-        src/Viewer/Core/Renderer/Components/RenderComponents/DefaultGraphicsPipelineComponent2.cpp
-        src/Viewer/Core/Renderer/Components/CameraGraphicsPipelineComponent.h
-        src/Viewer/Core/Renderer/UsageMonitor.cpp
-        src/Viewer/Core/Renderer/ApplicationUserSetting.h
+        src/Viewer/VkRender/Renderer.cpp
+        src/Viewer/VkRender/Entity.cpp
+        src/Viewer/VkRender/Components/SkyboxGraphicsPipelineComponent.cpp
+        src/Viewer/VkRender/Components/DefaultPBRGraphicsPipelineComponent.cpp
+        src/Viewer/VkRender/Components/GLTFModelComponent.cpp
+        src/Viewer/VkRender/Components/CustomModels.cpp
+        src/Viewer/VkRender/Components/GLTFDefines.h
+        src/Viewer/VkRender/Components/SecondaryCameraComponent.cpp
+        src/Viewer/VkRender/Components/OBJModelComponent.cpp
+        src/Viewer/VkRender/Components/RenderComponents/DefaultGraphicsPipelineComponent2.cpp
+        src/Viewer/VkRender/Components/CameraGraphicsPipelineComponent.h
+        src/Viewer/VkRender/UsageMonitor.cpp
+        src/Viewer/VkRender/ApplicationUserSetting.h
 
-        src/Viewer/Core/ImGui/Widgets.cpp
-        src/Viewer/Core/ImGui/GuiManager.cpp
-        src/Viewer/Core/ImGui/AdditionalWindows/DebugWindow.h
-        src/Viewer/Core/ImGui/Layers/LayerSupport/LayerFactory.cpp
+        src/Viewer/VkRender/ImGui/Widgets.cpp
+        src/Viewer/VkRender/ImGui/GuiManager.cpp
+        src/Viewer/VkRender/ImGui/AdditionalWindows/DebugWindow.h
+        src/Viewer/VkRender/ImGui/Layers/LayerSupport/LayerFactory.cpp
 
         src/Viewer/Tools/StbInclude.cpp
         src/Viewer/Tools/Logger.cpp

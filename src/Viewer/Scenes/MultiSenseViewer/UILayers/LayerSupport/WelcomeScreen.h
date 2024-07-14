@@ -1,6 +1,6 @@
 #ifndef WELCOMESCREEN_H
 #define WELCOMESCREEN_H
-#include <Viewer/Core/ImGui/Layers/LayerSupport/Layer.h>
+#include <Viewer/VkRender/ImGui/Layers/LayerSupport/Layer.h>
 
 namespace VkRender {
     static void drawWelcomeScreen(VkRender::GuiObjectHandles &uiContext) {

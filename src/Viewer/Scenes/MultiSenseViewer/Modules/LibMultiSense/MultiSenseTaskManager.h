@@ -40,7 +40,7 @@
 #include <memory>
 
 #include "Viewer/Tools/ThreadPool.h"
-#include "Viewer/Core/RenderDefinitions.h"
+#include "Viewer/VkRender/Core/RenderDefinitions.h"
 #include "Viewer/Scenes/MultiSenseViewer/Modules/LibMultiSense/LibMultiSenseConnector.h"
 #include "Viewer/Scenes/MultiSenseViewer/Modules/LibMultiSense/CommonHeader.h"
 

@@ -44,9 +44,9 @@
 #include <vector>
 #include <cassert>
 
-#include "Viewer/Core/VulkanDevice.h"
+#include "Viewer/VkRender/Core/VulkanDevice.h"
 #include "Viewer/Scenes/ScriptSupport/Base.h"
-#include "Viewer/Core/CommandBuffer.h"
+#include "Viewer/VkRender/Core/CommandBuffer.h"
 
 // Based of self registering factory
 // cppstories https://www.cppstories.com/2018/02/factory-selfregister/

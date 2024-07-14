@@ -8,7 +8,7 @@
 #ifndef MULTISENSE_VIEWER_SCRIPTUTILS_H
 #define MULTISENSE_VIEWER_SCRIPTUTILS_H
 
-#include "Viewer/Core/RenderDefinitions.h"
+#include "Viewer/VkRender/Core/RenderDefinitions.h"
 
 namespace VkRender::ScriptUtils {
 

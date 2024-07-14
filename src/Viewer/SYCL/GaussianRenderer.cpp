@@ -63,7 +63,7 @@ namespace VkRender {
                 }
             };    // Define a callable device selector using a lambda
 
-            queue = sycl::queue(useCPU ? cpuSelector : gpuSelector);
+            *queue = sycl::queue(useCPU ? cpuSelector : gpuSelector);
             // Use the queue for your computation
         } catch (const sycl::exception &e) {
             Log::Logger::getInstance()->warning("GPU device not found");

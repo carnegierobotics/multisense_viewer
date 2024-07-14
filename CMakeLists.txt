@@ -62,7 +62,6 @@ include_directories(src)
 include_directories(Assets)
 include_directories(SYSTEM external/ffmpeg/include)
 include_directories(SYSTEM ${Vulkan_INCLUDE_DIRS})
-ExportScriptIncludes()
 GenerateVersionFile()
 
 set(SOURCE_FILES
@@ -104,10 +103,6 @@ set(SOURCE_FILES
         src/Viewer/Tools/ThreadPool.h
 
         src/Viewer/Scripts/ScriptSupport/ScriptUtils.h
-        src/Viewer/Scripts/Renderer3D/DefaultScene.cpp
-        src/Viewer/Scripts/Renderer3D/Example/Example3D.cpp
-        src/Viewer/Scripts/Renderer3D/ImageViewer.cpp
-        src/Viewer/Scripts/Renderer3D/MultiSense.cpp
 
         src/Viewer/Modules/LibMultiSense/MultiSenseRendererBridge.cpp
         src/Viewer/Modules/LibMultiSense/CommonHeader.h
@@ -115,6 +110,11 @@ set(SOURCE_FILES
         src/Viewer/Modules/LibMultiSense/MultiSenseTaskManager.cpp
 )
 
+set (SCRIPT_FILES
+        src/Viewer/Scripts/Renderer3D/DefaultScene.cpp
+        src/Viewer/Scripts/Renderer3D/Example/Example3D.cpp
+        src/Viewer/Scripts/Renderer3D/MultiSense.cpp
+)
 # Define the libraries variable
 set(LIBRARIES
         Vulkan::Vulkan
@@ -132,6 +132,8 @@ set(LIBRARIES
 
 if (ENABLE_SYCL)
     list(APPEND SOURCE_FILES src/Viewer/SYCL/GaussianRenderer.cpp)
+    list(APPEND SCRIPT_FILES src/Viewer/Scripts/Renderer3D/ImageViewer.cpp)
+
     message("[INFO] SYCL: Adding Gaussian Renderer to source")
 
     target_compile_options(ktx PRIVATE -msse4.1 -mssse3)
@@ -140,6 +142,7 @@ if (ENABLE_SYCL)
 endif()
 
 
+ExportScriptIncludes(${SCRIPT_FILES})
 
 # Copy Assets folders to output directory
 file(GLOB ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/Assets/*")

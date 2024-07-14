@@ -1015,6 +1015,7 @@ namespace VkRender {
                 return cameras[tag];
             }
         }
+        // TODO create a new camera with tag if it doesn't exist
     }
 
     void Renderer::keyboardCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {

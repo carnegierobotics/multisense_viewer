@@ -10,16 +10,19 @@
 #include <vector>
 #include <glm/ext/quaternion_float.hpp>
 #include <filesystem>
-#include <sycl/sycl.hpp>
 
 #include "Viewer/Core/Camera.h"
 #include "Viewer/Core/RenderDefinitions.h"
 #include "Viewer/SYCL/RasterizerUtils.h"
 
+#ifdef SYCL_ENABLED
+#include <sycl/sycl.hpp>
+#endif
 namespace VkRender {
     class Renderer;
+
     struct InitializeInfo {
-        Renderer* context = nullptr;
+        Renderer *context = nullptr;
 
         const Camera *camera = nullptr;
 
@@ -32,6 +35,7 @@ namespace VkRender {
         const Camera *camera{};
         bool debug = false;
     };
+
     class Sorter;
 
     class GaussianRenderer {
@@ -58,9 +62,13 @@ namespace VkRender {
         ~GaussianRenderer();
 
         void setup(const InitializeInfo &initInfo, bool useCPU = false);
+
         void render(const RenderInfo &info, const VkRender::RenderUtils *pUtils);
+
         uint8_t *getImage();
+
         uint32_t getImageSize();
+
         GaussianRenderer::GaussianPoints gs;
     public:
 
@@ -83,16 +91,17 @@ namespace VkRender {
         Rasterizer::GaussianPoint *pointsBuffer = nullptr;
         uint32_t *numTilesTouchedBuffer = nullptr;
         uint32_t *pointOffsets = nullptr;
-        uint32_t* keysBuffer = nullptr;
-        uint32_t* valuesBuffer = nullptr;
+        uint32_t *keysBuffer = nullptr;
+        uint32_t *valuesBuffer = nullptr;
 
-        glm::ivec2* rangesBuffer = nullptr;
-        uint8_t* imageBuffer = nullptr;
+        glm::ivec2 *rangesBuffer = nullptr;
+        uint8_t *imageBuffer = nullptr;
         std::unique_ptr<Sorter> sorter;
 
         uint32_t width{}, height{};
-        sycl::event renderEvent;
+#ifdef SYCL_ENABLED
         sycl::queue queue{};
+#endif
 
         void clearBuffers();
 

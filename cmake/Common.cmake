@@ -204,6 +204,8 @@ endif ()
 
 # ExportScriptIncludes Generates ScriptHeader.h and Scripts.txt for automatic import of the script functionality in the viewer.
 function(ExportScriptIncludes)
+    set(script_files ${ARGN})
+
     set(SCRIPT_HEADER_FILE "${CMAKE_SOURCE_DIR}/Assets/Generated/ScriptHeader.h")
     set(SCRIPTS_TXT_FILE "${CMAKE_SOURCE_DIR}/Assets/Generated/Scripts.txt")
 
@@ -217,36 +219,33 @@ function(ExportScriptIncludes)
     endif()
 
     string(TIMESTAMP Today)
-    file(GLOB_RECURSE SCRIPT_HEADERS RELATIVE "${CMAKE_SOURCE_DIR}/src" "${CMAKE_SOURCE_DIR}/src/Viewer/Scripts/*.h")
-    list(FILTER SCRIPT_HEADERS EXCLUDE REGEX "/ScriptSupport/")
-
-    # Print the entire SCRIPT_HEADERS list
-    message(STATUS "[INFO]: SCRIPT_HEADERS: ${SCRIPT_HEADERS}")
-
-    # Use a set to avoid duplicates
-    set(UNIQUE_SCRIPT_HEADERS)
-    foreach (Src ${SCRIPT_HEADERS})
-        list(FIND UNIQUE_SCRIPT_HEADERS ${Src} _index)
-        if (_index EQUAL -1)
-            list(APPEND UNIQUE_SCRIPT_HEADERS ${Src})
-        endif()
-    endforeach()
 
     file(WRITE ${SCRIPT_HEADER_FILE} "// Generated from CMake ${Today} \n")
     file(WRITE ${SCRIPTS_TXT_FILE} "# Generated from CMake ${Today} \n")
 
-    foreach (Src ${UNIQUE_SCRIPT_HEADERS})
-        file(APPEND ${SCRIPT_HEADER_FILE} "\#include \"${Src}\"\n")
+    # Print the entire SCRIPT_HEADERS list
+    message(STATUS "[INFO]: SCRIPT_HEADERS_TXT: ${SCRIPTS_TXT_FILE}")
+    message(STATUS "[INFO]: SCRIPT_HEADERS_INCLUDE: ${SCRIPT_HEADER_FILE}")
+
+    foreach (Src IN LISTS script_files)
+        # Remove the src/ prefix
+        string(REGEX REPLACE "^src/" "" HeaderFile ${Src})
+        # Replace the extension with .h
+        string(REGEX REPLACE "\\.[^.]*$" ".h" HeaderFile ${HeaderFile})
+        file(APPEND ${SCRIPT_HEADER_FILE} "\#include \"${HeaderFile}\"\n")
+        message(STATUS "[INFO]: SCRIPT_HEADERS_SOURCE: ${HeaderFile}")
+
     endforeach()
 
-    foreach (Src ${UNIQUE_SCRIPT_HEADERS})
+    foreach (Src ${script_files})
         string(REGEX MATCH "[^\\/]+$" var ${Src})
-        string(REGEX MATCH "^[^.]+" res ${var})
-        file(APPEND ${SCRIPTS_TXT_FILE} ${res} \n)
+        string(REGEX MATCH "^[^.]+$" res ${var})
+        file(APPEND ${SCRIPTS_TXT_FILE} ${res}\n)
     endforeach()
-    message(STATUS "ExportScriptIncludes executed successfully.")
 
+    message(STATUS "ExportScriptIncludes executed successfully.")
 endfunction()
+
 
 function(GenerateVersionFile)
     file(WRITE ${CMAKE_SOURCE_DIR}/Assets/Generated/VersionInfo "VERSION=${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}\nSERVER=${CRL_SERVER_IP}\nPROTOCOL=${CRL_SERVER_PROTOCOL}\nDESTINATION=${CRL_SERVER_DESTINATION}\nDESTINATION_VERSIONINFO=${CRL_SERVER_VERSIONINFO_DESTINATION}\nLOG_LEVEL=${VIEWER_LOG_LEVEL}")

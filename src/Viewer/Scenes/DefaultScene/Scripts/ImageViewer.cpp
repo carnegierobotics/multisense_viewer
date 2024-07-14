@@ -2,7 +2,7 @@
 // Created by magnus on 10/2/23.
 //
 
-#include "Viewer/Scripts/Renderer3D/ImageViewer.h"
+#include "Viewer/Scenes/Renderer3D/ImageViewer.h"
 #include "Viewer/ImGui/Widgets.h"
 #include "Viewer/Renderer/Components.h"
 #include "Viewer/Renderer/Renderer.h"

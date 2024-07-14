@@ -45,7 +45,7 @@
 
 #endif
 
-#include "Viewer/Modules/LibMultiSense/MultiSenseTaskManager.h"
+#include "Viewer/Scenes/MultiSenseViewerScene/Modules/LibMultiSense/MultiSenseTaskManager.h"
 #include "Viewer/Tools/Utils.h"
 
 #define MAX_TASK_STACK_SIZE 4

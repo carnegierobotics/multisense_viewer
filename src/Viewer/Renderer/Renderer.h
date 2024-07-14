@@ -52,13 +52,12 @@
 #include <complex>
 
 #include "Viewer/Core/VulkanRenderer.h"
-#include "Viewer/Scripts/ScriptSupport/ScriptBuilder.h"
+#include "Viewer/Scenes/ScriptSupport/ScriptBuilder.h"
 #include "Viewer/Tools/Macros.h"
 #include "Viewer/Renderer/UsageMonitor.h"
+#include "Viewer/Renderer/Scene.h"
 #include "Viewer/Core/RendererConfig.h"
 #include "Viewer/Core/Camera.h"
-
-#include "Generated/ScriptHeader.h"
 #include "Viewer/Core/UUID.h"
 
 namespace VkRender {
@@ -112,8 +111,9 @@ namespace VkRender {
 
         bool saveDepthPassToFile = false; // TODO move to appropriate place
         std::filesystem::path saveFileName;
-        std::unique_ptr<VkRender::GuiManager> guiManager{};
+        std::unique_ptr<VkRender::GuiManager> guiManager{}; // Todo make private and create pushLayer functions in renderer context
 
+        std::vector<std::unique_ptr<Scene>> scenes;
 
     private:
         template<typename T>

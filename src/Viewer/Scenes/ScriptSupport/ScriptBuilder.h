@@ -45,7 +45,7 @@
 #include <cassert>
 
 #include "Viewer/Core/VulkanDevice.h"
-#include "Viewer/Scripts/ScriptSupport/Base.h"
+#include "Viewer/Scenes/ScriptSupport/Base.h"
 #include "Viewer/Core/CommandBuffer.h"
 
 // Based of self registering factory

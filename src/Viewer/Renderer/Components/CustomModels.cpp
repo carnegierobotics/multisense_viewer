@@ -3,7 +3,7 @@
 //
 
 #include "Viewer/Renderer/Components/CustomModels.h"
-#include "Viewer/Scripts/ScriptSupport/ScriptUtils.h"
+#include "Viewer/Scenes/ScriptSupport/ScriptUtils.h"
 
 namespace VkRender {
     CustomModelComponent::Model::Model(const VkRender::RenderUtils *renderUtils) {

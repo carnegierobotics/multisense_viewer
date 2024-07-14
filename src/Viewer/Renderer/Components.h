@@ -14,8 +14,8 @@
 #include <glm/gtx/quaternion.hpp>
 #include "Viewer/Core/Camera.h"
 #include "Viewer/Core/UUID.h"
-#include "Viewer/Scripts/ScriptSupport/Base.h"
-#include "Viewer/Scripts/ScriptSupport/ScriptBuilder.h"
+#include "Viewer/Scenes/ScriptSupport/Base.h"
+#include "Viewer/Scenes/ScriptSupport/ScriptBuilder.h"
 
 namespace VkRender {
     DISABLE_WARNING_PUSH
@@ -159,7 +159,7 @@ namespace VkRender {
 
         ScriptComponent(const ScriptComponent &) = default;
 
-        ScriptComponent(std::string scriptName, Renderer *m_context) {
+        ScriptComponent(std::string scriptName, Renderer* m_context) {
             script = ComponentMethodFactory::Create(scriptName);
             script->m_context = m_context;
             if (script == nullptr) {

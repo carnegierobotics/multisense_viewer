@@ -2,7 +2,8 @@
 // Created by magnus on 10/2/23.
 //
 
-#include "Viewer/Scripts/Renderer3D/MultiSense.h"
+#include "Viewer/Scenes/DefaultScene/Scripts/MultiSense.h"
+
 #include "Viewer/Renderer/Renderer.h"
 #include "Viewer/Renderer/Entity.h"
 #include "Viewer/Renderer/Components.h"
@@ -11,15 +12,10 @@
 #include "Viewer/Renderer/Components/GLTFModelComponent.h"
 #include "Viewer/Renderer/Components/SecondaryCameraComponent.h"
 
-void MultiSense::setup() {
-    {
-        auto skybox = m_context->createEntity("Skybox");
-        auto &modelComponent = skybox.addComponent<VkRender::GLTFModelComponent>(
-                Utils::getModelsPath() / "Box" / "Box.gltf", m_context->renderUtils.device);
-        skybox.addComponent<VkRender::SkyboxGraphicsPipelineComponent>(&m_context->renderUtils, modelComponent);
-    }
 
-    /*
+void MultiSense::setup() {
+    Log::Logger::getInstance()->info("Setup from the MultiSense Script");
+
     {
         auto ent = m_context->createEntity("KS21");
         auto &component = ent.addComponent<VkRender::GLTFModelComponent>(Utils::getModelsPath() / "ks21_pbr.gltf",
@@ -29,10 +25,8 @@ void MultiSense::setup() {
                 "Skybox").getComponent<VkRender::SkyboxGraphicsPipelineComponent>();
         ent.addComponent<VkRender::DefaultPBRGraphicsPipelineComponent>(&m_context->renderUtils, component, sky);
 
-
-
     }
-     */
+
 
     {
         auto ent = m_context->createEntity("Coordinates");
@@ -44,26 +38,16 @@ void MultiSense::setup() {
                 "Skybox").getComponent<VkRender::SkyboxGraphicsPipelineComponent>();
         ent.addComponent<VkRender::DefaultPBRGraphicsPipelineComponent>(&m_context->renderUtils, component, sky);
     }
+
 }
 
 
 void MultiSense::update() {
+
     auto &camera = m_context->getCamera();
     glm::mat4 invView = glm::inverse(camera.matrices.view);
     glm::vec4 cameraPos4 = invView * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
     auto cameraWorldPosition = glm::vec3(cameraPos4);
-
-    auto skybox = m_context->findEntityByName("Skybox");
-    if (skybox) {
-        auto &obj = skybox.getComponent<VkRender::SkyboxGraphicsPipelineComponent>();
-        // Skybox
-        obj.uboMatrix.projection = camera.matrices.perspective;
-        obj.uboMatrix.model = glm::mat4(glm::mat3(camera.matrices.view));
-        obj.uboMatrix.model = glm::rotate(obj.uboMatrix.model, glm::radians(90.0f), glm::vec3(1.0, 0.0, 0.0)); // z-up rotation
-
-        obj.update();
-    }
-
 
     auto model = m_context->findEntityByName("KS21");
     if (model) {
@@ -105,4 +89,5 @@ void MultiSense::update() {
         }
         obj.update(m_context->renderUtils.swapchainIndex);
     }
+
 }

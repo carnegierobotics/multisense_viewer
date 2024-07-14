@@ -211,52 +211,6 @@ else ()
     include_directories(${ENTT_DIR}/include/)
 endif ()
 
-# ExportScriptIncludes Generates ScriptHeader.h and Scripts.txt for automatic import of the script functionality in the viewer.
-function(ExportScriptIncludes)
-    set(script_files ${ARGN})
-
-    set(SCRIPT_HEADER_FILE "${CMAKE_SOURCE_DIR}/Assets/Generated/ScriptHeader.h")
-    set(SCRIPTS_TXT_FILE "${CMAKE_SOURCE_DIR}/Assets/Generated/Scripts.txt")
-
-    # Remove if exists to start clean
-    if (EXISTS ${SCRIPT_HEADER_FILE})
-        file(REMOVE ${SCRIPT_HEADER_FILE})
-    endif ()
-
-    if (EXISTS ${SCRIPTS_TXT_FILE})
-        file(REMOVE ${SCRIPTS_TXT_FILE})
-    endif ()
-
-    string(TIMESTAMP Today)
-
-    file(WRITE ${SCRIPT_HEADER_FILE} "// Generated from CMake ${Today} \n")
-    file(WRITE ${SCRIPTS_TXT_FILE} "# Generated from CMake ${Today} \n")
-
-    # Print the entire SCRIPT_HEADERS list
-    message(STATUS "[VkRenderINFO]: SCRIPT_HEADERS_TXT: ${SCRIPTS_TXT_FILE}")
-    message(STATUS "[VkRenderINFO]: SCRIPT_HEADERS_INCLUDE: ${SCRIPT_HEADER_FILE}")
-
-    foreach (Src IN LISTS script_files)
-        # Remove the src/ prefix
-        string(REGEX REPLACE "^src/" "" HeaderFile ${Src})
-        # Replace the extension with .h
-        string(REGEX REPLACE "\\.[^.]*$" ".h" HeaderFile ${HeaderFile})
-        file(APPEND ${SCRIPT_HEADER_FILE} "\#include \"${HeaderFile}\"\n")
-        message(STATUS "[VkRenderINFO]: SCRIPT_HEADERS_SOURCE: ${HeaderFile}")
-
-    endforeach ()
-
-    foreach (Src ${script_files})
-        # Extract the file name without extension
-        string(REGEX REPLACE "(.*/)?([^/]+)\\.[^.]*$" "\\2" res ${Src})
-        # Append the result to the SCRIPTS_TXT_FILE
-        file(APPEND ${SCRIPTS_TXT_FILE} "${res}\n")
-    endforeach ()
-
-    message(STATUS "[VkRenderINFO]: ExportScriptIncludes executed successfully.")
-endfunction()
-
-
 function(GenerateVersionFile)
     file(WRITE ${CMAKE_SOURCE_DIR}/Assets/Generated/VersionInfo "VERSION=${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}\nSERVER=${CRL_SERVER_IP}\nPROTOCOL=${CRL_SERVER_PROTOCOL}\nDESTINATION=${CRL_SERVER_DESTINATION}\nDESTINATION_VERSIONINFO=${CRL_SERVER_VERSIONINFO_DESTINATION}\nLOG_LEVEL=${VIEWER_LOG_LEVEL}")
 endfunction()

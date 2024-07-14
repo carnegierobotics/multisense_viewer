@@ -5,7 +5,7 @@
 #ifndef MULTISENSE_VIEWER_MULTISENSE_H
 #define MULTISENSE_VIEWER_MULTISENSE_H
 
-#include "Viewer/Scripts/ScriptSupport/ScriptBuilder.h"
+#include "Viewer/Scenes/ScriptSupport/ScriptBuilder.h"
 #include "Viewer/Renderer/Components/CustomModels.h"
 
 #include "Viewer/SYCL/GaussianRenderer.h"

@@ -93,27 +93,28 @@ set(SOURCE_FILES
         src/Viewer/ImGui/Widgets.cpp
         src/Viewer/ImGui/GuiManager.cpp
         src/Viewer/ImGui/AdditionalWindows/DebugWindow.h
-        src/Viewer/ImGui/Layers/MultiSenseLayerSupport/Sidebar.h
-        src/Viewer/ImGui/Layers/MultiSenseLayerSupport/WelcomeScreen.h
-        src/Viewer/ImGui/Layers/MultiSenseLayerSupport/ConfigurationPage.h
         src/Viewer/ImGui/Layers/LayerSupport/LayerFactory.cpp
 
         src/Viewer/Tools/StbInclude.cpp
         src/Viewer/Tools/Logger.cpp
         src/Viewer/Tools/ThreadPool.h
 
-        src/Viewer/Scripts/ScriptSupport/ScriptUtils.h
+        src/Viewer/Scenes/ScriptSupport/ScriptUtils.h
 
-        src/Viewer/Modules/LibMultiSense/MultiSenseRendererBridge.cpp
-        src/Viewer/Modules/LibMultiSense/CommonHeader.h
-        src/Viewer/Modules/LibMultiSense/LibMultiSenseConnector.cpp
-        src/Viewer/Modules/LibMultiSense/MultiSenseTaskManager.cpp
+        src/Viewer/Scenes/MultiSenseViewerScene/Modules/LibMultiSense/MultiSenseRendererBridge.cpp
+        src/Viewer/Scenes/MultiSenseViewerScene/Modules/LibMultiSense/CommonHeader.h
+        src/Viewer/Scenes/MultiSenseViewerScene/Modules/LibMultiSense/LibMultiSenseConnector.cpp
+        src/Viewer/Scenes/MultiSenseViewerScene/Modules/LibMultiSense/MultiSenseTaskManager.cpp
 )
 
 set (SCRIPT_FILES
-        src/Viewer/Scripts/Renderer3D/DefaultScene.cpp
-        src/Viewer/Scripts/Renderer3D/Example/Example3D.cpp
-        src/Viewer/Scripts/Renderer3D/MultiSense.cpp
+        src/Viewer/Scenes/DefaultScene/DefaultScene.cpp
+        src/Viewer/Scenes/DefaultScene/Scripts/MultiSense.cpp
+
+        src/Viewer/Scenes/MultiSenseViewerScene/MultiSenseViewer.cpp
+
+        #src/Viewer/Scenes/Renderer3D/Example/Example3D.cpp
+        #src/Viewer/Scenes/Renderer3D/MultiSense.cpp
 )
 # Define the libraries variable
 set(LIBRARIES
@@ -132,17 +133,13 @@ set(LIBRARIES
 
 if (ENABLE_SYCL)
     list(APPEND SOURCE_FILES src/Viewer/SYCL/GaussianRenderer.cpp)
-    list(APPEND SCRIPT_FILES src/Viewer/Scripts/Renderer3D/ImageViewer.cpp)
-
+    list(APPEND SCRIPT_FILES src/Viewer/Scenes/Renderer3D/ImageViewer.cpp)
     message(STATUS "[VkRenderINFO]: SYCL: Adding Gaussian Renderer to source")
-
     target_compile_options(ktx PRIVATE -msse4.1 -mssse3)
     list(APPEND LIBRARIES sycl)
 
 endif()
 
-
-ExportScriptIncludes(${SCRIPT_FILES})
 list(APPEND SOURCE_FILES ${SCRIPT_FILES})
 
 # Copy Assets folders to output directory

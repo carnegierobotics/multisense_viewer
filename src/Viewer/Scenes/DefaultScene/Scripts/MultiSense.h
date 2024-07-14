@@ -5,7 +5,7 @@
 #ifndef MULTISENSE_VIEWER_SCRIPT_MULTISENSE_CAMERA
 #define MULTISENSE_VIEWER_SCRIPT_MULTISENSE_CAMERA
 
-#include "Viewer/Scripts/ScriptSupport/ScriptBuilder.h"
+#include "Viewer/Scenes/ScriptSupport/ScriptBuilder.h"
 
 
 
@@ -16,7 +16,7 @@ public:
      * not discarded during compiler initialization. Using the power of static variables to ensure this **/
     MultiSense() {
         DISABLE_WARNING_PUSH
-                DISABLE_WARNING_UNREFERENCED_VARIABLE
+        DISABLE_WARNING_UNREFERENCED_VARIABLE
         DISABLE_WARNING_UNUSED_VARIABLE
                 s_bRegistered;
         DISABLE_WARNING_POP

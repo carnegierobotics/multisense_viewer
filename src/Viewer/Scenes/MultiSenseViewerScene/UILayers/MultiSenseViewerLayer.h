@@ -5,10 +5,10 @@
 #ifndef WELCOMESCREENLAYER_H
 #define WELCOMESCREENLAYER_H
 
-#include "MultiSenseLayerSupport/ConfigurationPage.h"
-#include "MultiSenseLayerSupport/Sidebar.h"
-#include "MultiSenseLayerSupport/WelcomeScreen.h"
-#include "MultiSenseLayerSupport/CameraStreamView.h"
+#include "LayerSupport/ConfigurationPage.h"
+#include "LayerSupport/Sidebar.h"
+#include "LayerSupport/WelcomeScreen.h"
+#include "LayerSupport/CameraStreamView.h"
 #include "Viewer/ImGui/Layers/LayerSupport/Layer.h"
 
 /** Is attached to the renderer through the GuiManager and instantiated in the GuiManager Constructor through
@@ -24,7 +24,6 @@ namespace VkRender {
         /** Called once per frame **/
         void onUIRender(GuiObjectHandles& uiContext) override {
 
-            return;
             bool pOpen = true;
             ImGuiWindowFlags window_flags = 0;
             window_flags =

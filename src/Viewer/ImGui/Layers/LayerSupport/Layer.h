@@ -51,9 +51,9 @@
 #include "Viewer/Renderer/UsageMonitor.h"
 #include "Viewer/Core/RenderDefinitions.h"
 #include "Viewer/Core/KeyInput.h"
-#include "Viewer/Modules/LibMultiSense/MultiSenseRendererBridge.h"
+#include "Viewer/Scenes/MultiSenseViewerScene/Modules/LibMultiSense/MultiSenseRendererBridge.h"
 #include "Viewer/Tools/ThreadPool.h"
-#include "Viewer/Modules/GigE-Vision/MultiSenseRendererGigEVisionBridge.h"
+#include "Viewer/Scenes/MultiSenseViewerScene/Modules/GigE-Vision/MultiSenseRendererGigEVisionBridge.h"
 
 namespace VkRender {
     class Renderer;

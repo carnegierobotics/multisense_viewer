@@ -54,6 +54,9 @@
 #include "Viewer/Renderer/Components/CameraGraphicsPipelineComponent.h"
 #include "Viewer/Renderer/Components/CustomModels.h"
 
+#include "Viewer/Scenes/DefaultScene/DefaultScene.h"
+#include "Viewer/Scenes/MultiSenseViewerScene/MultiSenseViewer.h"
+
 namespace VkRender {
 
     Renderer::Renderer(const std::string &title) : VulkanRenderer(title) {
@@ -109,12 +112,7 @@ namespace VkRender {
         guiManager->handles.m_cameraSelection.info[selectedCameraTag].type = cameras[selectedCameraTag].m_type;
 
         guiManager->handles.m_context = this;
-        prepareRenderer();
-        pLogger->info("Prepared Renderer");
-    }
 
-
-    void Renderer::prepareRenderer() {
         cameras[selectedCameraTag].setType(Camera::arcball);
         cameras[selectedCameraTag].setPerspective(60.0f, static_cast<float>(m_Width) / static_cast<float>(m_Height));
         cameras[selectedCameraTag].resetPosition();
@@ -129,6 +127,18 @@ namespace VkRender {
         renderUtils.fence = &waitFences;
         renderUtils.swapchainIndex = currentFrame;
 
+        scenes.resize(1);
+        //scenes[0] = std::make_unique<MultiSenseViewer>(*this);
+        scenes[0] = std::make_unique<DefaultScene>(*this);
+
+        pLogger->info("Prepared Renderer");
+    }
+
+
+    void Renderer::prepareRenderer() {
+
+
+        /*
 
         std::ifstream infile(Utils::getAssetsPath().append("Generated/Scripts.txt").string());
         std::string line;
@@ -156,6 +166,7 @@ namespace VkRender {
             auto &script = view.get<ScriptComponent>(entity);
             script.script->setup();
         }
+        */
     }
 
     void Renderer::addDeviceFeatures() {
@@ -221,7 +232,6 @@ namespace VkRender {
 
     void Renderer::buildCommandBuffers() {
         processDeletions();
-        /**@brief Record command buffers for skybox */
         VkCommandBufferBeginInfo cmdBufInfo = Populate::commandBufferBeginInfo();
         cmdBufInfo.flags = 0;
         cmdBufInfo.pInheritanceInfo = nullptr;
@@ -383,6 +393,7 @@ namespace VkRender {
             );
         }
 
+        /// *** Color render pass *** ///
         VkRenderPassBeginInfo renderPassBeginInfo = Populate::renderPassBeginInfo();
         renderPassBeginInfo.renderPass = renderPass;
         renderPassBeginInfo.renderArea.offset.x = 0;
@@ -682,6 +693,10 @@ namespace VkRender {
             if (it != cameras.end())
                 cameras[selectedCameraTag].update(frameTimer);
         }
+        // update scenes:
+        for (const auto& scene: scenes){
+            scene->update();
+        }
 
         selectedCameraTag = guiManager->handles.m_cameraSelection.tag;
         renderUtils.swapchainIndex = currentFrame;
@@ -697,13 +712,6 @@ namespace VkRender {
         pLogger->frameNumber = frameID;
         if (keyPress == GLFW_KEY_SPACE) {
             cameras[selectedCameraTag].resetPosition();
-        }
-
-
-        auto view = m_registry.view<ScriptComponent>();
-        for (auto entity: view) {
-            auto &script = view.get<ScriptComponent>(entity);
-            script.script->update();
         }
 
         /**@brief Record commandbuffers for obj models */
@@ -752,10 +760,13 @@ namespace VkRender {
         guiManager->handles.info->frameID = frameID;
         guiManager->handles.info->applicationRuntime = runTime;
         guiManager->update((frameCounter == 0), frameTimer, renderUtils.width, renderUtils.height, &input);
+
+        /*
         for (auto entity: view) {
             auto &script = view.get<ScriptComponent>(entity);
             script.script->uiUpdate(&guiManager->handles);
         }
+        */
 
         // Load components from UI actions?
         // Load new obj file

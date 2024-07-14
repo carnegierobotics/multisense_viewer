@@ -9,8 +9,8 @@
 #include <vector>
 
 #include "Viewer/Tools/AdapterUtils.h"
-#include "Viewer/Modules/LibMultiSense/MultiSenseTaskManager.h"
-#include "Viewer/Modules/LibMultiSense/CommonHeader.h"
+#include "Viewer/Scenes/MultiSenseViewerScene/Modules/LibMultiSense/MultiSenseTaskManager.h"
+#include "Viewer/Scenes/MultiSenseViewerScene/Modules/LibMultiSense/CommonHeader.h"
 
 namespace VkRender::MultiSense {
     class MultiSenseRendererBridge {

@@ -331,7 +331,6 @@ namespace VkRender {
 
 /** Called once per frame **/
         void onUIRender(VkRender::GuiObjectHandles &handles) override {
-            return;
             if (!handles.renderer3D)
                 return;
             bool pOpen = true;

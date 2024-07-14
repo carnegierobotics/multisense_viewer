@@ -3,7 +3,7 @@
 
 #include <Viewer/ImGui/Layers/LayerSupport/Layer.h>
 
-#include "Viewer/Modules/LibMultiSense/CommonHeader.h"
+#include "Viewer/Scenes/MultiSenseViewerScene/Modules/LibMultiSense/CommonHeader.h"
 
 namespace VkRender {
     enum {

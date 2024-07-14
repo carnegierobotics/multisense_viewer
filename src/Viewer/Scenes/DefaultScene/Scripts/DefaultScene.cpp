@@ -2,7 +2,7 @@
 // Created by magnus on 10/3/23.
 //
 
-#include "Viewer/Scripts/Renderer3D/DefaultScene.h"
+#include "Viewer/Scenes/Renderer3D/DefaultScene.h"
 #include "Viewer/ImGui/Widgets.h"
 #include "Viewer/Renderer/Components/CustomModels.h"
 #include "Viewer/Renderer/Components.h"
@@ -12,9 +12,7 @@
 #include "Viewer/Renderer/Components/OBJModelComponent.h"
 
 void DefaultScene::setup() {
-    auto grid = m_context->createEntity("3DViewerGrid");
-    grid.addComponent<VkRender::CustomModelComponent>(&m_context->renderUtils);
-    auto uuid = grid.getUUID();
+
     Log::Logger::getInstance()->info("Setup from {}. Created Entity {}", GetFactoryName(), uuid.operator std::string());
 
     if (showDepthView) {

@@ -207,6 +207,9 @@ if (WIN32)
 
     set_target_properties(MultiSense-Viewer PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
     set_target_properties(MultiSense-Viewer PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR})
+    set_target_properties(MultiSense PROPERTIES RUNTIME_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR})
+    set_target_properties(MultiSense PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE  ${CMAKE_BINARY_DIR})
+    set_target_properties(MultiSense PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG  ${CMAKE_BINARY_DIR})
 
     set(THIRD_PARTY_DLLS
             ${CMAKE_CURRENT_SOURCE_DIR}/external/openssl_1.1.1/bin/libcrypto-1_1-x64.dll
@@ -226,10 +229,7 @@ if (WIN32)
     install(TARGETS MultiSense-Viewer CONFIGURATIONS Release LIBRARY DESTINATION ${INSTALL_DIRECTORY})
 
     install(FILES
-            ${CMAKE_BINARY_DIR}/Packet.dll
-            ${CMAKE_BINARY_DIR}/wpcap.dll
-            ${CMAKE_BINARY_DIR}/swscale-6.dll
-            ${CMAKE_BINARY_DIR}/avutil-57.dll
+            ${CMAKE_BINARY_DIR}/MultiSense.dll
             ${CMAKE_BINARY_DIR}/libcrypto-1_1-x64.dll
             ${CMAKE_BINARY_DIR}/libssl-1_1-x64.dll
             CONFIGURATIONS Release ARCHIVE DESTINATION ${INSTALL_DIRECTORY})

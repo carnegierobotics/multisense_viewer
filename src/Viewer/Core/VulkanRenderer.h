@@ -58,7 +58,7 @@ DISABLE_WARNING_POP
 #endif
 
 
-#include "Viewer/ImGui/GuiManager.h"
+#include "Viewer/Core/ImGui/GuiManager.h"
 #include "Viewer/Tools/Logger.h"
 #include "Viewer/Core/VulkanSwapchain.h"
 #include "Viewer/Core/VulkanDevice.h"

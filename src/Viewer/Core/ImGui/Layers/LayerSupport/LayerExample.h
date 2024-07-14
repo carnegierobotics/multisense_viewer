@@ -1,5 +1,5 @@
 /**
- * @file: MultiSense-Viewer/src/main.cpp
+ * @file: MultiSense-Viewer/include/Viewer/Core/ImGui/LayerExample.h
  *
  * Copyright 2022
  * Carnegie Robotics, LLC
@@ -31,34 +31,52 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * Significant history (date, user, action):
- *   2022-09-12, mgjerde@carnegierobotics.com, Created file.
+ *   2022-09-26, mgjerde@carnegierobotics.com, Created file.
  **/
-#include "Viewer/Core/Renderer/Renderer.h"
 
-#ifdef WIN32
-    #ifdef WIN_DEBUG
-        #pragma comment(linker, "/SUBSYSTEM:CONSOLE")
-    #endif
-#endif
+#ifndef MULTISENSE_VIEWER_LAYEREXAMPLE_H
+#define MULTISENSE_VIEWER_LAYEREXAMPLE_H
+
+#include "Viewer/Core/ImGui/Layers/LayerSupport/Layer.h"
+#include "Viewer/Tools/Macros.h"
+// Dont pass on disable warnings from the example
+DISABLE_WARNING_PUSH
+DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER
+
+/** Is attached to the renderer through the GuiManager and instantiated in the GuiManager Constructor through
+ *         pushLayer<[LayerName]>();
+ *
+**/
+class LayerExample : public VkRender::Layer {
+public:
 
 
-int main() {
-    Log::Logger::getInstance((Utils::getSystemCachePath() / "logger.log").string());
+    /** Called once upon this object creation**/
+    void onAttach() override {
 
-    VkRender::Renderer app("MultiSense Viewer");
-    try{
-        app.run();
-        // Time cleanup
-        auto startTime = std::chrono::steady_clock::now();
-        app.cleanUp();
-        auto timeSpan = std::chrono::duration_cast<std::chrono::duration<float >>(
-                std::chrono::steady_clock::now() - startTime);
-        Log::Logger::getInstance()->trace("Cleanup took {}s", timeSpan.count());
-
-    } catch (std::runtime_error& e){
-        Log::Logger::getInstance()->fatal("RuntimeError: {}", e.what());
-        app.cleanUp();
     }
-    Log::LOG_ALWAYS("<=============================== END OF PROGRAM ===========================>");
-    return 0;
-}
+
+    /** Called after frame has finished rendered **/
+    void onFinishedRender() override {
+
+    }
+
+    /** Called once per frame **/
+    void onUIRender(VkRender::GuiObjectHandles& uiContext) override {
+        // Create a Button
+        /*
+        bool clicked = ImGui::Button("Dont Click", ImVec2(150.0f, 50.0f));
+        if (clicked)
+            throw std::runtime_error("Dont click it");
+        //demo to learn more: https://github.com/ocornut/imgui
+        */
+    }
+
+    /** Called once upon this object destruction **/
+    void onDetach () override {
+
+    }
+};
+
+DISABLE_WARNING_POP
+#endif //MULTISENSE_VIEWER_LAYEREXAMPLE_H

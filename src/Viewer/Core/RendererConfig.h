@@ -37,7 +37,7 @@
 
 #include "Viewer/Tools/Logger.h"
 #include "Viewer/Tools/Utils.h"
-#include "Viewer/Renderer/ApplicationUserSetting.h"
+#include "Viewer/Core/Renderer/ApplicationUserSetting.h"
 
 namespace VkRender {
     class RendererConfig {

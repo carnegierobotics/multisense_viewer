@@ -238,9 +238,10 @@ function(ExportScriptIncludes)
     endforeach()
 
     foreach (Src ${script_files})
-        string(REGEX MATCH "[^\\/]+$" var ${Src})
-        string(REGEX MATCH "^[^.]+$" res ${var})
-        file(APPEND ${SCRIPTS_TXT_FILE} ${res}\n)
+        # Extract the file name without extension
+        string(REGEX REPLACE "(.*/)?([^/]+)\\.[^.]*$" "\\2" res ${Src})
+        # Append the result to the SCRIPTS_TXT_FILE
+        file(APPEND ${SCRIPTS_TXT_FILE} "${res}\n")
     endforeach()
 
     message(STATUS "ExportScriptIncludes executed successfully.")

@@ -143,6 +143,7 @@ endif()
 
 
 ExportScriptIncludes(${SCRIPT_FILES})
+list(APPEND SOURCE_FILES ${SCRIPT_FILES})
 
 # Copy Assets folders to output directory
 file(GLOB ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/Assets/*")

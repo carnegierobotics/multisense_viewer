@@ -55,6 +55,9 @@
 #define DISABLE_WARNING_TYPE_LIMITS                              
 #define DISABLE_WARNING_MISSING_INITIALIZERS
 #define DISABLE_WARNING_DEPRECATION                      DISABLE_WARNING(4996)
+#define DISABLE_WARNING_PEDANTIC
+#define DISABLE_WARNING_NULL_DEREFERENCE
+#define DISABLE_WARNING_OLD_STYLE_CAST
 // other warnings you want to deactivate...
 
 #elif defined(__GNUC__) || defined(__clang__)
@@ -79,6 +82,16 @@
 #define DISABLE_WARNING_NULL_DEREFERENCE                          DISABLE_WARNING(-Wnull-dereference)
 // other warnings you want to deactivate...
 
+
+#else
+#define DISABLE_WARNING_PUSH
+#define DISABLE_WARNING_POP
+#define DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER
+#define DISABLE_WARNING_UNREFERENCED_FUNCTION
+// other warnings you want to deactivate...
+
+#endif
+
 #define DISABLE_WARNING_ALL                                       \
     DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER;                \
     DISABLE_WARNING_EMPTY_BODY;                                   \
@@ -94,15 +107,6 @@
     DISABLE_WARNING_PEDANTIC;                                     \
     DISABLE_WARNING_NULL_DEREFERENCE;                             \
     // Add other warning disables here...
-
-#else
-#define DISABLE_WARNING_PUSH
-#define DISABLE_WARNING_POP
-#define DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER
-#define DISABLE_WARNING_UNREFERENCED_FUNCTION
-// other warnings you want to deactivate...
-
-#endif
 
 #define CHECK_RESULT(f) \
 {                                                                                                           \

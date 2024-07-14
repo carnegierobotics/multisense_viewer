@@ -152,7 +152,7 @@ namespace VkRender {
         // Load textures using the filenames
         for (std::size_t index = 0; index < iconFileNames.size(); ++index) {
             const auto& filename = iconFileNames[index];
-            loadImGuiTextureFromFileName(texturePath / filename, index);
+            loadImGuiTextureFromFileName((texturePath / filename).string(), index);
         }
         loadAnimatedGif(Utils::getTexturePath().append("spinner.gif").string());
 

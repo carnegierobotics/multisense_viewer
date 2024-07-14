@@ -95,6 +95,8 @@ namespace VkRender::MultiSense {
                                              Utils::dataSourceToString(source).c_str(), status);
         return false;
     */
+        return false;
+
     }
 
     bool LibMultiSenseConnector::stop(const std::string &dataSourceStr, crl::multisense::RemoteHeadChannel channelID) {
@@ -118,6 +120,7 @@ namespace VkRender::MultiSense {
             return false;
         }
          */
+        return false;
     }
 
     void LibMultiSenseConnector::remoteHeadCallback(const crl::multisense::image::Header &header, void *userDataP) {

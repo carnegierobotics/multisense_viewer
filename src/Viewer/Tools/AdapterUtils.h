@@ -38,14 +38,15 @@
 #define MULTISENSE_VIEWER_ADAPTERUTILS_H
 
 #include <utility>
-
+#ifdef WIN32
+#else
 #include <net/if.h>
 #include <netinet/in.h>
 #include <linux/ethtool.h>
 #include <linux/sockios.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
-
+#endif
 #include "Viewer/Tools/Macros.h"
 #include "Viewer/Tools/ThreadPool.h"
 #include "Viewer/Tools/Logger.h"
@@ -109,6 +110,9 @@ private:
     static inline std::vector<Adapter> listAdapters() {
         // Get list of interfaces
         std::vector<Adapter> adapters;
+
+        #ifdef WIN32
+#else
         auto ifn = if_nameindex();
         // If no interfaces. This turns to null if there is no interfaces for a few seconds
         if (!ifn) {
@@ -150,7 +154,7 @@ private:
         }
         if_freenameindex(ifn);
         close(fd);
-
+#endif
         return adapters;
     }
 

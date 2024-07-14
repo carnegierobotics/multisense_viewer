@@ -10,9 +10,9 @@ if (ENABLE_SYCL)
     set(CMAKE_CXX_COMPILER "clang++")
 
     add_compile_definitions(SYCL_ENABLED)
-    message(STATUS "SYCL support enabled. Compiler: ${CMAKE_CXX_COMPILER} Flags: ${CMAKE_CXX_FLAGS}")
+    message(STATUS "[VkRenderINFO]: SYCL support enabled. Compiler: ${CMAKE_CXX_COMPILER} Flags: ${CMAKE_CXX_FLAGS}")
 else()
-    message(STATUS "SYCL support not enabled.")
+    message(STATUS "[VkRenderINFO]: SYCL support not enabled.")
 endif()
 
 
@@ -38,7 +38,7 @@ set(GIGEVISION_MODULE_PATH "" CACHE PATH "Path to the proprietary GigE-Vision mo
 
 # Set default build type
 if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-    message(STATUS "Setting build type to 'Release' as none was specified.")
+    message(STATUS "[VkRenderINFO]: Setting build type to 'Release' as none was specified.")
     set(CMAKE_BUILD_TYPE
             Release
             CACHE STRING "Choose the type of build." FORCE)
@@ -55,7 +55,7 @@ find_package(Doxygen)
 if (Doxygen_FOUND)
     add_subdirectory(docs)
 else ()
-    message(STATUS "Doxygen not found, not building docs")
+    message(STATUS "[VkRenderINFO]: Doxygen not found, not building docs")
 endif ()
 
 include_directories(src)
@@ -134,7 +134,7 @@ if (ENABLE_SYCL)
     list(APPEND SOURCE_FILES src/Viewer/SYCL/GaussianRenderer.cpp)
     list(APPEND SCRIPT_FILES src/Viewer/Scripts/Renderer3D/ImageViewer.cpp)
 
-    message("[INFO] SYCL: Adding Gaussian Renderer to source")
+    message(STATUS "[VkRenderINFO]: SYCL: Adding Gaussian Renderer to source")
 
     target_compile_options(ktx PRIVATE -msse4.1 -mssse3)
     list(APPEND LIBRARIES sycl)
@@ -249,9 +249,10 @@ endif ()
 # Compile definitions
 if (CMAKE_BUILD_TYPE MATCHES "Release")
     target_compile_definitions(MultiSense-Viewer PRIVATE VKRENDER_MULTISENSE_VIEWER_PRODUCTION)
-    if (PROPRIETARY_GIGEVISION_MODULE)
-        target_compile_definitions(MultiSense-Viewer PRIVATE VKRENDER_GIGEVISION_ENABLED)
-    endif()
     else ()
     target_compile_definitions(MultiSense-Viewer PRIVATE VKRENDER_MULTISENSE_VIEWER_DEBUG)
 endif ()
+
+if (PROPRIETARY_GIGEVISION_MODULE)
+    target_compile_definitions(MultiSense-Viewer PRIVATE VKRENDER_GIGEVISION_ENABLED)
+endif()

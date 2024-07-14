@@ -83,10 +83,10 @@ function(set_project_warnings project_name)
     elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
         set(PROJECT_WARNINGS ${CLANG_WARNINGS})
     else()
-        message(AUTHOR_WARNING "No compiler warnings set for '${CMAKE_CXX_COMPILER_ID}' compiler.")
+        message(AUTHOR_WARNING "[VkRenderINFO]: No compiler warnings set for '${CMAKE_CXX_COMPILER_ID}' compiler.")
     endif()
 
-    message(STATUS "Compiler warnings set for '${CMAKE_CXX_COMPILER_ID}' compiler.")
+    message(STATUS "[VkRenderINFO]: Compiler warnings set for '${CMAKE_CXX_COMPILER_ID}' compiler.")
     target_compile_options(${project_name} INTERFACE ${PROJECT_WARNINGS})
 
 endfunction()

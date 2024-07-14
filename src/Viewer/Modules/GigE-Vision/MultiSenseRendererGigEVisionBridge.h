@@ -17,9 +17,10 @@ namespace VkRender::MultiSense {
     public:
         MultiSenseRendererGigEVisionBridge(){
 
-            //device_obj cam_device;
-            //cam_device.enumerate();
-
+#ifdef VKRENDER_GIGEVISION_ENABLED
+            device_obj cam_device;
+            cam_device.enumerate();
+#endif
         }
     };
 }

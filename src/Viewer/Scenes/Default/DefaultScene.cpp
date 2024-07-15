@@ -27,7 +27,8 @@ namespace VkRender {
 
 
     void DefaultScene::loadScripts() {
-        std::vector<std::string> availableScriptNames{"MultiSense", "ImageViewer"};
+        //std::vector<std::string> availableScriptNames{"MultiSense", "ImageViewer"};
+        std::vector<std::string> availableScriptNames{"MultiSense"};
 
         for (const auto &scriptName: availableScriptNames) {
             auto e = m_context.createEntity(scriptName);
@@ -52,7 +53,6 @@ namespace VkRender {
 
     void DefaultScene::addGuiLayers() {
         m_context.addUILayer("SideBarLayer");
-        m_context.addUILayer("MenuLayer");
     }
 
     void DefaultScene::render() {

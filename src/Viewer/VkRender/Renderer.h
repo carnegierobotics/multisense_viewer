@@ -152,6 +152,8 @@ namespace VkRender {
         std::string m_selectedCameraTag = "Default Camera";
         RenderUtils m_renderUtils{};
 
+        std::unique_ptr<Editor> mainEditor;
+
         friend class Entity;
 
 

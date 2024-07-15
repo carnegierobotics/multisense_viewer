@@ -128,9 +128,32 @@
     }                                                                                                             \
 }
 
+#ifdef VKRENDER_MULTISENSE_VIEWER_DEBUG
+#define VALIDATION_DEBUG_NAME(device, object, objectType, name) \
+        VkRender::setDebugName(device, object, objectType, name)
+#else
+#define VALIDATION_DEBUG_NAME(device, object, objectType, name) \
+        do {} while (0)
+#endif
+
+
 namespace VkRender {
 
+#ifdef VKRENDER_MULTISENSE_VIEWER_DEBUG
+    static void setDebugName(VkDevice device, uint64_t object, VkObjectType objectType, const char* name) {
+        VkDebugUtilsObjectNameInfoEXT nameInfo = {};
+        nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+        nameInfo.pNext = nullptr;
+        nameInfo.objectType = objectType;
+        nameInfo.objectHandle = object;
+        nameInfo.pObjectName = name;
 
+        auto func = (PFN_vkSetDebugUtilsObjectNameEXT) vkGetDeviceProcAddr(device, "vkSetDebugUtilsObjectNameEXT");
+        if (func != nullptr) {
+            func(device, &nameInfo);
+        }
+    }
+#endif
     inline std::string errorString(VkResult errorCode) {
         switch (errorCode) {
 #define STR(r) case VK_ ##r: return #r

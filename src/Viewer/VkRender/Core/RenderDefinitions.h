@@ -209,8 +209,9 @@ namespace VkRender {
         VkDescriptorImageInfo imageInfo{};
         VkDescriptorImageInfo depthImageInfo{};
         std::string type;
-        bool multisampled = false;
+        bool multisampled = true;
         bool setupFrameBuffer = true;
+        std::string debugName = "EditorRenderPass";
     };
 
     /** Containing Basic Vulkan Resources for rendering for use in scripts **/

@@ -107,15 +107,35 @@ namespace VkRender {
         // Run Once
         m_renderUtils.device = m_vulkanDevice;
         m_renderUtils.instance = &instance;
-       // m_renderUtils.renderPass = &renderPass;
+        // m_renderUtils.renderPass = &renderPass;
         m_renderUtils.msaaSamples = msaaSamples;
         m_renderUtils.swapchainImages = swapchain->imageCount;
         m_renderUtils.swapchainIndex = currentFrame;
 
-        m_editors.resize(2);
-        m_editors[0] = std::make_unique<Editor>(m_renderUtils, *this);
-        m_editors[1] = std::make_unique<Editor>(m_renderUtils, *this);
-        m_editors[1]->offsetX = m_width / 2.0f;
+
+        VkRenderEditorCreateInfo mainEditorInfo;
+        mainEditorInfo.height = m_height;
+        mainEditorInfo.width = m_width;
+        mainEditorInfo.description = "MainEditor";
+        mainEditorInfo.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        mainEditor = std::make_unique<Editor>(mainEditorInfo, m_renderUtils, *this);
+        mainEditor->m_guiManager->pushLayer("DebugWindow");
+        mainEditor->m_guiManager->pushLayer("MenuLayer");
+        //mainEditor->m_guiManager->pushLayer("NewVersionAvailable");
+
+        VkRenderEditorCreateInfo otherEditorInfo;
+        otherEditorInfo.height = m_height;
+        otherEditorInfo.width = m_width / 2;
+        otherEditorInfo.x = m_width / 2;
+        otherEditorInfo.description = "OtherEditor";
+        otherEditorInfo.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+
+        m_editors.resize(1);
+        m_editors[0] = std::make_unique<Editor>(otherEditorInfo, m_renderUtils, *this);
+        //m_editors[1] = std::make_unique<Editor>(m_renderUtils, *this);
+        //m_editors[1]->offsetX = m_width / 2.0f;
+
+        //m_editors.clear();
         // Initialize editors before we initialize scenes
         m_scenes.resize(1);
         //m_scenes[0] = std::make_unique<MultiSenseViewer>(*this);
@@ -204,22 +224,56 @@ namespace VkRender {
         }
         */
         clearValues[1].depthStencil = {1.0f, 0};
-
-        // Editor windows
         vkBeginCommandBuffer(drawCmdBuffers.buffers[currentFrame], &cmdBufInfo);
+
+
+        // main editor window
+        VkViewport viewport{};
+        viewport.x = static_cast<float>(mainEditor->x);
+        viewport.y = static_cast<float>(mainEditor->y);
+        viewport.width = static_cast<float>(mainEditor->width);
+        viewport.height = static_cast<float>(mainEditor->height);
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+
+        VkRect2D scissor{};
+        scissor.offset = {static_cast<int32_t>(mainEditor->x), static_cast<int32_t>(mainEditor->y)};
+        scissor.extent = {static_cast<uint32_t>(mainEditor->width), static_cast<uint32_t>(mainEditor->height)};
+
+        // Begin render pass
+        /// *** Color render pass *** ///
+        VkRenderPassBeginInfo renderPassBeginInfo = Populate::renderPassBeginInfo();
+        renderPassBeginInfo.renderPass = mainEditor->uiRenderPass.renderPass;
+        renderPassBeginInfo.renderArea.offset.x = 0;
+        renderPassBeginInfo.renderArea.offset.y = 0;
+        renderPassBeginInfo.renderArea.extent.width = mainEditor->width;
+        renderPassBeginInfo.renderArea.extent.height = mainEditor->height;
+        renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+        renderPassBeginInfo.pClearValues = clearValues.data();
+        renderPassBeginInfo.framebuffer = mainEditor->frameBuffers[imageIndex];
+        vkCmdBeginRenderPass(drawCmdBuffers.buffers[currentFrame], &renderPassBeginInfo,
+                             VK_SUBPASS_CONTENTS_INLINE);
+        drawCmdBuffers.boundRenderPass = renderPassBeginInfo.renderPass;
+        drawCmdBuffers.renderPassType = RENDER_PASS_UI;
+        vkCmdSetViewport(drawCmdBuffers.buffers[currentFrame], 0, 1, &viewport);
+        vkCmdSetScissor(drawCmdBuffers.buffers[currentFrame], 0, 1, &scissor);
+
+        mainEditor->m_guiManager->drawFrame(drawCmdBuffers.buffers[currentFrame], currentFrame, mainEditor->width, mainEditor->height);
+        vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
+
 
         for (const auto &editor: m_editors) {
 
             VkViewport viewport{};
-            viewport.x = static_cast<float>(editor->offsetX);
-            viewport.y = static_cast<float>(editor->offsetY);
+            viewport.x = static_cast<float>(editor->x);
+            viewport.y = static_cast<float>(editor->y);
             viewport.width = static_cast<float>(editor->width);
             viewport.height = static_cast<float>(editor->height);
             viewport.minDepth = 0.0f;
             viewport.maxDepth = 1.0f;
 
             VkRect2D scissor{};
-            scissor.offset = {static_cast<int32_t>(editor->offsetX), static_cast<int32_t>(editor->offsetY)};
+            scissor.offset = {static_cast<int32_t>(editor->x), static_cast<int32_t>(editor->y)};
             scissor.extent = {static_cast<uint32_t>(editor->width), static_cast<uint32_t>(editor->height)};
 
             // Begin render pass
@@ -228,8 +282,8 @@ namespace VkRender {
             renderPassBeginInfo.renderPass = editor->uiRenderPass.renderPass;
             renderPassBeginInfo.renderArea.offset.x = 0;
             renderPassBeginInfo.renderArea.offset.y = 0;
-            renderPassBeginInfo.renderArea.extent.width = m_width;
-            renderPassBeginInfo.renderArea.extent.height = m_height;
+            renderPassBeginInfo.renderArea.extent.width = editor->width;
+            renderPassBeginInfo.renderArea.extent.height = editor->height;
             renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
             renderPassBeginInfo.pClearValues = clearValues.data();
             renderPassBeginInfo.framebuffer = editor->frameBuffers[imageIndex];
@@ -240,7 +294,9 @@ namespace VkRender {
             vkCmdSetViewport(drawCmdBuffers.buffers[currentFrame], 0, 1, &viewport);
             vkCmdSetScissor(drawCmdBuffers.buffers[currentFrame], 0, 1, &scissor);
 
-            editor->m_guiManager->drawFrame(drawCmdBuffers.buffers[currentFrame], currentFrame, editor->width, editor->height);
+            editor->m_guiManager->drawFrame(drawCmdBuffers.buffers[currentFrame], currentFrame, editor->width,
+                                            editor->height);
+            vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
 
             /*
             for (auto [entity, skybox, gltfComponent]: m_registry.view<VkRender::SkyboxGraphicsPipelineComponent, GLTFModelComponent>(
@@ -284,7 +340,6 @@ namespace VkRender {
 
             }
     */
-            vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
             // Render objects
 
         }
@@ -730,11 +785,12 @@ namespace VkRender {
         for (const auto &scene: m_scenes) {
             scene->update();
         }
+        mainEditor->m_guiManager->update((frameCounter == 0), frameTimer, mainEditor->width, mainEditor->height, &input);
 
         for (const auto &editor: m_editors) {
             editor->m_guiManager->update((frameCounter == 0), frameTimer, editor->width, editor->height, &input);
         }
-            //m_selectedCameraTag = m_guiManager->handles.m_cameraSelection.tag;
+        //m_selectedCameraTag = m_guiManager->handles.m_cameraSelection.tag;
         m_renderUtils.swapchainIndex = currentFrame;
         m_renderUtils.input = &input;
         // New version available?

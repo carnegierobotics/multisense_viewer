@@ -245,7 +245,8 @@ namespace VkRender {
         allocatorCreateInfo.instance = instance;
         allocatorCreateInfo.pVulkanFunctions = &vulkanFunctions;
 
-        allocatorCreateInfo.flags = VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT | VMA_ALLOCATOR_CREATE_KHR_DEDICATED_ALLOCATION_BIT;
+        allocatorCreateInfo.flags =
+                VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT | VMA_ALLOCATOR_CREATE_KHR_DEDICATED_ALLOCATION_BIT;
 
         VkResult result = vmaCreateAllocator(&allocatorCreateInfo, &m_allocator);
         if (result != VK_SUCCESS) {
@@ -315,7 +316,22 @@ namespace VkRender {
 #ifdef VKRENDER_MULTISENSE_VIEWER_DEBUG
         if (m_settings.validation)
             Validation::DestroyDebugUtilsMessengerEXT(instance, debugUtilsMessenger, nullptr);
+
+        // Write to file
+        char *statsString;
+        vmaBuildStatsString(m_allocator, &statsString, VK_TRUE);
+        std::string filePath = "./vma_stats.json";
+        std::ofstream file(filePath);
+        if (!file) {
+            Log::Logger::getInstance()->error("Failed to open file for writing VMA stats: {}", filePath);
+            vmaFreeStatsString(m_allocator, statsString);
+        } else {
+            file << statsString;
+            file.close();
+        }
+        vmaFreeStatsString(m_allocator, statsString);
 #endif
+
         vmaDestroyAllocator(m_allocator);
 
         delete m_vulkanDevice; //Call to destructor for smart pointer destroy logical m_Device before instance
@@ -441,7 +457,6 @@ namespace VkRender {
 
         rendererStartTime = std::chrono::system_clock::now();
     }
-
 
 
     void VulkanRenderer::destroyCommandBuffers() {

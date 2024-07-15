@@ -158,12 +158,6 @@ namespace VkRender {
         }
         loadAnimatedGif(Utils::getTexturePath().append("spinner.gif").string());
 
-#ifdef VKRENDER_MULTISENSE_VIEWER_DEBUG
-        pushLayer("LayerExample");
-#endif
-        pushLayer("DebugWindow");
-        pushLayer("NewVersionAvailable");
-
         // setup graphics pipeline
         VkShaderModule vtxModule{};
         Utils::loadShader((Utils::getShadersPath().append("Scene/imgui/ui.vert.spv")).string().c_str(),

@@ -12,11 +12,22 @@
 namespace VkRender {
     class Renderer;
 
+    struct VkRenderEditorCreateInfo{
+        uint32_t width = 0;
+        uint32_t height = 0;
+        uint32_t x = 0;
+        uint32_t y = 0;
+        std::string description;
+        void* mainUIContext;
+
+        VkAttachmentLoadOp loadOp;
+    };
     class Editor {
     public:
         Editor() = delete;
 
-        explicit Editor(RenderUtils &utils, Renderer &ctx);
+        explicit Editor(const VkRenderEditorCreateInfo& createInfo, RenderUtils &utils, Renderer &ctx);
+        ~Editor();
 
         void render();
 
@@ -28,8 +39,8 @@ namespace VkRender {
 
         std::unique_ptr<GuiManager> m_guiManager;
 
-        uint32_t offsetX = 0;
-        uint32_t offsetY = 0;
+        uint32_t x = 0;
+        uint32_t y = 0;
 
         uint32_t width = 0;
         uint32_t height = 0;
@@ -67,6 +78,8 @@ namespace VkRender {
         void setupDepthStencil();
 
         void createColorResources();
+
+        void setupUIRenderPass(const VkRenderEditorCreateInfo &createinfo, EditorRenderPass *secondaryRenderPasses);
     };
 }
 

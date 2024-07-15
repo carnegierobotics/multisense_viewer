@@ -9,6 +9,7 @@
 #include "Viewer/VkRender/Scene.h"
 
 #include "Viewer/Scenes/Default/Scripts/MultiSense.h"
+#include "Viewer/Scenes/Default/Scripts/ImageViewer.h"
 
 namespace VkRender {
 

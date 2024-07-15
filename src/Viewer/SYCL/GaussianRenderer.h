@@ -11,7 +11,7 @@
 #include <glm/ext/quaternion_float.hpp>
 #include <filesystem>
 
-#include "Viewer/VkRender/Camera.h"
+#include "Viewer/VkRender/Core/Camera.h"
 #include "Viewer/VkRender/Core/RenderDefinitions.h"
 #include "Viewer/SYCL/RasterizerUtils.h"
 

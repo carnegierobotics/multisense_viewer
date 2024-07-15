@@ -2,7 +2,7 @@
 // Created by magnus on 10/2/23.
 //
 
-#include "Viewer/Scenes/Renderer3D/ImageViewer.h"
+#include "Viewer/Scenes/Default/Scripts/ImageViewer.h"
 #include "Viewer/VkRender/ImGui/Widgets.h"
 #include "Viewer/VkRender/Components.h"
 #include "Viewer/VkRender/Renderer.h"

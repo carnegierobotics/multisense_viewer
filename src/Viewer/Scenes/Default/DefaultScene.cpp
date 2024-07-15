@@ -27,7 +27,7 @@ namespace VkRender {
 
 
     void DefaultScene::loadScripts() {
-        std::vector<std::string> availableScriptNames{{"MultiSense"}};
+        std::vector<std::string> availableScriptNames{"MultiSense", "ImageViewer"};
 
         for (const auto &scriptName: availableScriptNames) {
             auto e = m_context.createEntity(scriptName);

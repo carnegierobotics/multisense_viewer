@@ -80,6 +80,7 @@
 #define DISABLE_WARNING_PEDANTIC                                  DISABLE_WARNING(-Wpedantic)
 #define DISABLE_WARNING_DEPRECATION
 #define DISABLE_WARNING_NULL_DEREFERENCE                          DISABLE_WARNING(-Wnull-dereference)
+#define DISABLE_WARNING_NULLABILITY_COMPLETENESS                  DISABLE_WARNING(-Wnullability-completeness)
 // other warnings you want to deactivate...
 
 
@@ -106,7 +107,7 @@
     DISABLE_WARNING_UNREFERENCED_FUNCTION;                        \
     DISABLE_WARNING_PEDANTIC;                                     \
     DISABLE_WARNING_NULL_DEREFERENCE;                             \
-    // Add other warning disables here...
+    DISABLE_WARNING_NULLABILITY_COMPLETENESS;
 
 #define CHECK_RESULT(f) \
 {                                                                                                           \

@@ -215,20 +215,6 @@ namespace Populate {
         return submitInfo;
     }
 
-    inline VkViewport viewport(
-            float width,
-            float height,
-            float minDepth,
-            float maxDepth)
-    {
-        VkViewport viewport {};
-        viewport.width = width;
-        viewport.height = height;
-        viewport.minDepth = minDepth;
-        viewport.maxDepth = maxDepth;
-        return viewport;
-    }
-
     inline VkRect2D rect2D(
             int32_t width,
             int32_t height,

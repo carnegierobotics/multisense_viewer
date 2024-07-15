@@ -59,6 +59,7 @@
 #include "Viewer/VkRender/Core/RendererConfig.h"
 #include "Viewer/VkRender/Core/Camera.h"
 #include "Viewer/VkRender/Core/UUID.h"
+#include "Viewer/VkRender/Editor.h"
 
 namespace VkRender {
     class Entity;
@@ -74,7 +75,7 @@ namespace VkRender {
          */
         explicit Renderer(const std::string &title);
 
-        ~Renderer() = default;
+        ~Renderer() override = default;
 
         /**
          * @brief runs the renderer loop
@@ -97,23 +98,18 @@ namespace VkRender {
         Entity createEntityWithUUID(UUID uuid, const std::string &name);
         VkRender::Entity findEntityByName(std::string_view name);
         void markEntityForDestruction(Entity entity);
+        void addUILayer(const std::string &layerName);
+        entt::registry& registry() {return m_registry;}
+        RenderUtils& data() {return m_renderUtils;}
+        std::vector<SwapChainBuffer>& swapChainBuffers(){return swapchain->buffers;}
+        VmaAllocator& allocator(){return m_allocator;}
+        //GuiObjectHandles& UIContext() {return m_guiManager->handles;}
 
         Camera &createNewCamera(const std::string &name, uint32_t width, uint32_t height);
         Camera& getCamera();
         Camera& getCamera(std::string tag);
 
-        VkRender::RenderUtils renderUtils{};
-
-        std::string selectedCameraTag = "Default Camera";
-    public:
-        entt::registry m_registry;
-        std::unordered_map<UUID, entt::entity> m_entityMap;
-
-        bool saveDepthPassToFile = false; // TODO move to appropriate place
-        std::filesystem::path saveFileName;
-        std::unique_ptr<VkRender::GuiManager> guiManager{}; // Todo make private and create pushLayer functions in renderer context
-
-        std::vector<std::unique_ptr<Scene>> scenes;
+        std::shared_ptr<UsageMonitor> m_usageMonitor; // TODO make private, used widely in imgui code to record user actions
 
     private:
         template<typename T>
@@ -127,8 +123,6 @@ namespace VkRender {
 
         void updateUniformBuffers() override;
 
-        void prepareRenderer();
-
         void windowResized() override;
 
         void addDeviceFeatures() override;
@@ -140,23 +134,27 @@ namespace VkRender {
         void mouseScroll(float change) override;
 
         void postRenderActions() override;
-
-    private:
-
-        std::vector<std::string> availableScriptNames;
-        std::shared_ptr<UsageMonitor> usageMonitor;
-        std::unordered_map<std::string, Camera> cameras;
-
-        bool renderSelectionPass = true;
-
-        friend class Entity;
-
         void processDeletions();
 
         template<typename T>
         bool tryCleanupAndDestroy(Entity &entity, int currentFrame);
 
         void handleViewportResize();
+
+    private:
+        std::unordered_map<std::string, Camera> m_cameras;
+        //std::unique_ptr<VkRender::GuiManager> m_guiManager{};
+
+        std::vector<std::unique_ptr<Scene>> m_scenes;
+        std::vector<std::unique_ptr<Editor>> m_editors;
+        entt::registry m_registry;
+        std::unordered_map<UUID, entt::entity> m_entityMap;
+        std::string m_selectedCameraTag = "Default Camera";
+        RenderUtils m_renderUtils{};
+
+        friend class Entity;
+
+
     };
 }
 

@@ -19,11 +19,11 @@ void MultiSense::setup() {
     {
         auto ent = m_context->createEntity("KS21");
         auto &component = ent.addComponent<VkRender::GLTFModelComponent>(Utils::getModelsPath() / "ks21_pbr.gltf",
-                                                                         m_context->renderUtils.device);
+                                                                         m_context->data().device);
 
         auto &sky = m_context->findEntityByName(
                 "Skybox").getComponent<VkRender::SkyboxGraphicsPipelineComponent>();
-        ent.addComponent<VkRender::DefaultPBRGraphicsPipelineComponent>(&m_context->renderUtils, component, sky);
+        ent.addComponent<VkRender::DefaultPBRGraphicsPipelineComponent>(&m_context->data(), component, sky);
 
     }
 
@@ -31,12 +31,12 @@ void MultiSense::setup() {
     {
         auto ent = m_context->createEntity("Coordinates");
         auto &component = ent.addComponent<VkRender::GLTFModelComponent>(Utils::getModelsPath() / "coordinates.gltf",
-                                                                         m_context->renderUtils.device);
+                                                                         m_context->data().device);
         ent.addComponent<VkRender::DepthRenderPassComponent>();
 
         auto &sky = m_context->findEntityByName(
                 "Skybox").getComponent<VkRender::SkyboxGraphicsPipelineComponent>();
-        ent.addComponent<VkRender::DefaultPBRGraphicsPipelineComponent>(&m_context->renderUtils, component, sky);
+        ent.addComponent<VkRender::DefaultPBRGraphicsPipelineComponent>(&m_context->data(), component, sky);
     }
 
 }
@@ -56,7 +56,7 @@ void MultiSense::update() {
         transform.setPosition( glm::vec3(0.25f, 0.0f, 0.25f));
         transform.setEuler(90.0f, 0.0f, 0.0f);
 
-        for (size_t i = 0; i < m_context->renderUtils.swapchainImages; ++i) {
+        for (size_t i = 0; i < m_context->data().swapchainImages; ++i) {
             //obj.resources[i].uboMatrix.model = glm::scale(obj.resources[i].uboMatrix.model, glm::vec3(0.5f, 0.5f, 0.5f));
             obj.resources[i].uboMatrix.camPos = cameraWorldPosition;
             obj.resources[i].shaderValuesParams.lightDir = glm::vec4(
@@ -75,7 +75,7 @@ void MultiSense::update() {
         //transform.scale = glm::vec3(0.25f, 0.25f, 0.25f);
         transform.setEuler(90.0f, 0.0f, 0.0f);
 
-        for (size_t i = 0; i < m_context->renderUtils.swapchainImages; ++i) {
+        for (size_t i = 0; i < m_context->data().swapchainImages; ++i) {
 
             obj.resources[i].uboMatrix.camPos = cameraWorldPosition;
             obj.resources[i].shaderValuesParams.lightDir = glm::vec4(
@@ -87,7 +87,7 @@ void MultiSense::update() {
             obj.resources[i].shaderValuesParams.gamma += 6.0f;
             obj.resources[i].shaderValuesParams.exposure += 12.0f;
         }
-        obj.update(m_context->renderUtils.swapchainIndex);
+        obj.update(m_context->data().swapchainIndex);
     }
 
 }

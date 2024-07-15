@@ -60,7 +60,7 @@ namespace VkRender {
         GuiObjectHandles handles{};
 
         GuiManager(VulkanDevice *vulkanDevice, VkRenderPass const &renderPass, const uint32_t &width,
-                   const uint32_t &height, VkSampleCountFlagBits msaaSamples, uint32_t imageCount);
+                   const uint32_t &height, VkSampleCountFlagBits msaaSamples, uint32_t imageCount, Renderer* ctx); // TODO context should be pass by reference as it is no nullable?
 
         ~GuiManager() {
             Log::Logger::getInstance()->info("Saving ImGui file: {}",
@@ -86,7 +86,7 @@ namespace VkRender {
         void update(bool updateFrameGraph, float frameTimer, uint32_t width, uint32_t height, const Input *pInput);
 
         /**@brief Draw command called once per command buffer recording*/
-        void drawFrame(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+        void drawFrame(VkCommandBuffer commandBuffer, uint32_t imageIndex, uint32_t width, uint32_t height);
 
         /**@brief ReCreate buffers if they have changed in size*/
         bool updateBuffers(uint32_t imageIndex);

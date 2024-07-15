@@ -78,14 +78,16 @@ namespace VkRender {
                 for (auto &pipeline: renderData.pipeline) {
                     vkDestroyPipeline(m_vulkanDevice->m_LogicalDevice, pipeline.second, nullptr);
                 }
+                /*
+                               setupPipeline(renderData, RENDER_PASS_COLOR, m_vertexShader, m_fragmentShader,
+                                             m_utils->msaaSamples, *m_utils->renderPass);
+                               setupPipeline(renderData, RENDER_PASS_SECOND, m_vertexShader, m_fragmentShader,
+                                             m_utils->msaaSamples, *m_utils->renderPass);
 
-                setupPipeline(renderData, RENDER_PASS_COLOR, m_vertexShader, m_fragmentShader,
-                              m_utils->msaaSamples, *m_utils->renderPass);
-                setupPipeline(renderData, RENDER_PASS_SECOND, m_vertexShader, m_fragmentShader,
-                              m_utils->msaaSamples, *m_utils->renderPass);
-                setupPipeline(renderData, RENDER_PASS_DEPTH_ONLY, m_vertexShader, m_fragmentShader,
-                              VK_SAMPLE_COUNT_1_BIT,
-                              m_utils->depthRenderPass->renderPass);
+                               setupPipeline(renderData, RENDER_PASS_DEPTH_ONLY, m_vertexShader, m_fragmentShader,
+                                             VK_SAMPLE_COUNT_1_BIT,
+                                             m_utils->depthRenderPass->renderPass);
+                               */
 
                 requestRebuildPipelines = false;
                 resumeRendering();

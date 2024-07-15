@@ -54,7 +54,7 @@ namespace VkRender {
             generateBRDFLUT();
             setupUniformBuffers();
             setupDescriptors(modelComponent);
-            setupPipelines();
+            //setupPipelines();
         }
 
         ~SkyboxGraphicsPipelineComponent(){

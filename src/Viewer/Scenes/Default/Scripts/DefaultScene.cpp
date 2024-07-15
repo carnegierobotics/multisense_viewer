@@ -19,13 +19,13 @@ void DefaultScene::setup() {
         auto quad = m_context->createEntity("depthImageView");
         auto &modelComponent = quad.addComponent<VkRender::OBJModelComponent>(
                 Utils::getModelsPath() / "obj" / "quad.obj",
-                m_context->renderUtils.device);
+                m_context->data().device);
         quad.addComponent<VkRender::ImageViewComponent>();
-        auto &res = quad.addComponent<VkRender::DefaultGraphicsPipelineComponent2>(&m_context->renderUtils,
+        auto &res = quad.addComponent<VkRender::DefaultGraphicsPipelineComponent2>(&m_context->data(),
                                                                                    "default2D.vert.spv",
                                                                                    "default2D.frag.spv");
         res.bind(modelComponent);
-        res.setTexture(&m_context->renderUtils.depthRenderPass->depthImageInfo);
+        res.setTexture(&m_context->data().depthRenderPass->depthImageInfo);
     }
 }
 
@@ -35,11 +35,11 @@ void DefaultScene::update() {
         auto depthImageView = m_context->findEntityByName("depthImageView");
         if (depthImageView) {
             auto &transform = depthImageView.getComponent<VkRender::TransformComponent>();
-            float xOffsetPx = (m_context->renderUtils.width - 150.0) / m_context->renderUtils.width;
+            float xOffsetPx = (m_context->data().width - 150.0) / m_context->data().width;
             float translationX = xOffsetPx * 2 - 1;
             float translationY = xOffsetPx * 2 - 1;
             transform.translation = glm::vec3(translationX, translationY, 0.0f);
-            float scaleX = 300.0f / m_context->renderUtils.width;
+            float scaleX = 300.0f / m_context->data().width;
             transform.scale =glm::vec3(scaleX, scaleX, 1.0f);
         }
     }
@@ -61,12 +61,12 @@ void DefaultScene::onWindowResize(const VkRender::GuiObjectHandles *uiHandle) {
         auto quad = m_context->createEntity("depthImageView");
         auto &modelComponent = quad.addComponent<VkRender::OBJModelComponent>(
                 Utils::getModelsPath() / "obj" / "quad.obj",
-                m_context->renderUtils.device);
-        auto &res = quad.addComponent<VkRender::DefaultGraphicsPipelineComponent2>(&m_context->renderUtils,
+                m_context->data().device);
+        auto &res = quad.addComponent<VkRender::DefaultGraphicsPipelineComponent2>(&m_context->data(),
                                                                                    "default2D.vert.spv",
                                                                                    "default2D.frag.spv");
         quad.addComponent<VkRender::ImageViewComponent>();
         res.bind(modelComponent);
-        res.setTexture(&m_context->renderUtils.depthRenderPass->depthImageInfo);
+        res.setTexture(&m_context->data().depthRenderPass->depthImageInfo);
     }
 }

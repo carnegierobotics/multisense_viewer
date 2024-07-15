@@ -88,38 +88,25 @@ namespace VkRender {
             bool vsync = false;
             /** @brief Enable UI overlay */
             bool overlay = true;
-        } settings;
+        } m_settings;
 
         struct GLFWCursors {
             GLFWcursor* arrow = nullptr;
             GLFWcursor* resizeVertical = nullptr;
-        }cursors;
+        }m_cursors;
 
 
-        std::string m_Title = "-1";
-        std::string m_Name = "VulkanRenderer";
+        std::string m_title = "-1";
+        std::string m_name = "VulkanRenderer";
         /** @brief This application is written against Vulkan API v.1.1+ **/
         uint32_t apiVersion = VK_API_VERSION_1_1;
         bool backendInitialized = false;
-        uint32_t m_Width = 1920;      // Default values - Actual values set in constructor
-        uint32_t m_Height = 1080;     // Default values - Actual values set in constructor
+        uint32_t m_width = 1920;      // Default values - Actual values set in constructor
+        uint32_t m_height = 1080;     // Default values - Actual values set in constructor
 
         /** @brief Encapsulated physical and logical vulkan m_Device */
-        VulkanDevice* vulkanDevice{};
+        VulkanDevice* m_vulkanDevice{};
 
-
-        struct {
-            VkImage image;
-            VkDeviceMemory mem;
-            VkImageView view;
-        } depthStencil{};
-
-
-        struct {
-            VkImage image;
-            VkDeviceMemory mem;
-            VkImageView view;
-        } colorImage{};
 
         /** @brief Last frame time measured using a high performance timer (if available) */
         float frameTimer = 1.0f;
@@ -137,7 +124,7 @@ namespace VkRender {
         Input input;
 
         /** @brief Handle for Logging*/
-        Log::Logger *pLogger = nullptr; // Create the object pointer for Logger Class
+        Log::Logger *m_logger = nullptr; // Create the object pointer for Logger Class
 
         /** @brief Handle for UI updates and overlay */
 
@@ -172,24 +159,11 @@ namespace VkRender {
         /** @brief (Virtual) Called when resources have been recreated that require a rebuild of the command buffers (e.g. frame buffer), to be implemented by the sample application */
         virtual void buildCommandBuffers();
 
-        /** @brief (Virtual) Setup default depth and stencil views */
-        virtual void setupDepthStencil();
-
-        /** @brief (Virtual) Setup default framebuffers for all requested swapchain images */
-        virtual void setupMainFramebuffer();
-
-        /** @brief (Virtual) Setup a default renderpass */
-        virtual void setupRenderPass();
-
         /** @brief (Virtual) Called after the physical m_Device m_Features have been read, can be used to set m_Features to flashing on the m_Device */
         virtual void addDeviceFeatures() = 0;
 
         /** @brief Prepares all Vulkan resources and functions required to run the sample */
         virtual void prepare();
-
-        /** @brief Prepares secondary render passes. Can be added during runtime TODO Test */
-        void setupSecondaryRenderPasses(SecondaryRenderPasses* secondaryRenderPasses);
-        void setupUIRenderPass(SecondaryRenderPasses *secondaryRenderPasses);
 
         /** @brief Entry point for the main render loop */
         void renderLoop();
@@ -223,7 +197,7 @@ namespace VkRender {
         std::vector<const char *> enabledDeviceExtensions;
         std::vector<const char *> enabledInstanceExtensions;
         /** @brief vma allocator */
-        VmaAllocator allocator{};
+        VmaAllocator m_allocator{};
 
         /** @brief Logical m_Device, application's m_View of the physical m_Device (GPU) */
         VkDevice device{};
@@ -268,7 +242,7 @@ namespace VkRender {
         // Command buffers used for compute
         CommandBuffer computeCommand{};
         // Global render pass for frame buffer writes
-        VkRenderPass renderPass{};
+        //VkRenderPass renderPass{};
         // List of available frame buffers (same as number of swap chain images)
         std::vector<VkFramebuffer> frameBuffers{};
         // Active frame buffer index
@@ -279,10 +253,6 @@ namespace VkRender {
         VkPipelineCache pipelineCache{};
         // Handle to Debug Utils
         VkDebugUtilsMessengerEXT debugUtilsMessenger{};
-        //std::vector<SecondaryRenderPasses> secondaryRenderPasses;
-        SecondaryRenderPasses depthRenderPass;
-        SecondaryRenderPasses uiRenderPass;
-        SecondaryRenderPasses secondRenderPass;
 
         int frameCounter = 0;
         int frameID = 0;

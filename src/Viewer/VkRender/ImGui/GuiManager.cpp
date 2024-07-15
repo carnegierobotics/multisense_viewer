@@ -45,11 +45,11 @@
 
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
+#include <ranges>
 
 #include "Viewer/VkRender/ImGui/GuiManager.h"
 
-#include <ranges>
-
+#include "Viewer/VkRender/Renderer.h"
 
 namespace VkRender {
 
@@ -63,7 +63,7 @@ namespace VkRender {
     }
 
     GuiManager::GuiManager(VulkanDevice *vulkanDevice, VkRenderPass const &renderPass, const uint32_t &width,
-                           const uint32_t &height, VkSampleCountFlagBits msaaSamples, uint32_t imageCount) {
+                           const uint32_t &height, VkSampleCountFlagBits msaaSamples, uint32_t imageCount, Renderer* ctx) {
         device = vulkanDevice;
         vertexBuffer.resize(imageCount);
         indexBuffer.resize(imageCount);
@@ -79,6 +79,8 @@ namespace VkRender {
         auto &userSetting = RendererConfig::getInstance().getUserSetting();
         handles.enableSecondaryView = userSetting.editorUiState.enableSecondaryView;
         handles.fixAspectRatio = userSetting.editorUiState.fixAspectRatio;
+        handles.m_context = ctx;
+        handles.usageMonitor = ctx->m_usageMonitor;
 
         ImGui::CreateContext();
         ImGuiIO io = ImGui::GetIO();
@@ -414,13 +416,13 @@ namespace VkRender {
     }
 
 
-    void GuiManager::drawFrame(VkCommandBuffer commandBuffer, uint32_t currentFrame) {
+    void GuiManager::drawFrame(VkCommandBuffer commandBuffer, uint32_t currentFrame, uint32_t width, uint32_t height) {
         // Need to update buffers
         updateBuffers(currentFrame);
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
         ImGuiIO *io = &ImGui::GetIO();
-        pushConstBlock.scale = glm::vec2(2.0f / io->DisplaySize.x, 2.0f / io->DisplaySize.y);
+        pushConstBlock.scale = glm::vec2(2.0f / static_cast<float>(width), 2.0f /  static_cast<float>(height));
         pushConstBlock.translate = glm::vec2(-1.0f);
         vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstBlock),
                            &pushConstBlock);

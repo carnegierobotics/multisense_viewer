@@ -34,7 +34,6 @@
  *   2022-4-9, mgjerde@carnegierobotics.com, Created file.
  **/
 #include <array>
-#include <stb_image_write.h>
 
 #include "Viewer/VkRender/Renderer.h"
 #include "Viewer/VkRender/Entity.h"
@@ -61,113 +60,70 @@ namespace VkRender {
 
     Renderer::Renderer(const std::string &title) : VulkanRenderer(title) {
         RendererConfig &config = RendererConfig::getInstance();
-        this->m_Title = title;
+        this->m_title = title;
         // Create Log C++ Interface
         Log::Logger::getInstance()->setLogLevel(config.getLogLevel());
-        pLogger = Log::Logger::getInstance();
+        m_logger = Log::Logger::getInstance();
         VulkanRenderer::initVulkan();
         VulkanRenderer::prepare();
 
 
         // TODO Make dynamic
-        depthRenderPass.type = "depth";
-        depthRenderPass.multisampled = false;
-        VulkanRenderer::setupSecondaryRenderPasses(&depthRenderPass);
-        uiRenderPass.type = "ui";
-        uiRenderPass.multisampled = true;
-        VulkanRenderer::setupUIRenderPass(&uiRenderPass);
-        secondRenderPass.setupFrameBuffer = false;
-        secondRenderPass.multisampled = true; // if we reuse s
-        VulkanRenderer::setupSecondaryRenderPasses(&secondRenderPass);
 
-        renderUtils.depthRenderPass = &depthRenderPass;
 
-        guiManager = std::make_unique<GuiManager>(vulkanDevice, uiRenderPass.renderPass, m_Width, m_Height,
-                                                            msaaSamples,
-                                                            swapchain->imageCount);
-        renderUtils.device = vulkanDevice;
-        renderUtils.instance = &instance;
-        renderUtils.renderPass = &renderPass;
-        renderUtils.msaaSamples = msaaSamples;
-        renderUtils.swapchainImages = swapchain->imageCount;
-        renderUtils.queueSubmitMutex = &queueSubmitMutex;
-        renderUtils.fence = &waitFences;
-        renderUtils.swapchainIndex = currentFrame;
-        renderUtils.width = m_Width;
-        renderUtils.height = m_Height;
+        //m_guiManager = std::make_unique<GuiManager>(vulkanDevice, renderPass, m_Width, m_Height,msaaSamples, swapchain->imageCount);
+        m_renderUtils.device = m_vulkanDevice;
+        m_renderUtils.instance = &instance;
+        //m_renderUtils.renderPass = &renderPass;
+        m_renderUtils.msaaSamples = msaaSamples;
+        m_renderUtils.swapchainImages = swapchain->imageCount;
+        m_renderUtils.swapchainIndex = currentFrame;
+        m_renderUtils.width = m_width;
+        m_renderUtils.height = m_height;
+        m_renderUtils.depthFormat = depthFormat;
+        m_renderUtils.swapchainColorFormat = swapchain->colorFormat;
+        m_renderUtils.graphicsQueue = graphicsQueue;
 
         backendInitialized = true;
         // Create default camera object
-        createNewCamera(selectedCameraTag, m_Width, m_Height);
-        pLogger->info("Initialized Backend");
+        createNewCamera(m_selectedCameraTag, m_width, m_height);
+        m_logger->info("Initialized Backend");
         config.setGpuDevice(physicalDevice);
 
         // Start up usage monitor
-        usageMonitor = std::make_shared<UsageMonitor>();
-        usageMonitor->loadSettingsFromFile();
-        usageMonitor->userStartSession(rendererStartTime);
-
-        guiManager->handles.mouse = &mouseButtons;
-        guiManager->handles.usageMonitor = usageMonitor;
-        guiManager->handles.m_cameraSelection.info[selectedCameraTag].type = cameras[selectedCameraTag].m_type;
-
-        guiManager->handles.m_context = this;
-
-        cameras[selectedCameraTag].setType(Camera::arcball);
-        cameras[selectedCameraTag].setPerspective(60.0f, static_cast<float>(m_Width) / static_cast<float>(m_Height));
-        cameras[selectedCameraTag].resetPosition();
-
-        // Run Once
-        renderUtils.device = vulkanDevice;
-        renderUtils.instance = &instance;
-        renderUtils.renderPass = &renderPass;
-        renderUtils.msaaSamples = msaaSamples;
-        renderUtils.swapchainImages = swapchain->imageCount;
-        renderUtils.queueSubmitMutex = &queueSubmitMutex;
-        renderUtils.fence = &waitFences;
-        renderUtils.swapchainIndex = currentFrame;
-
-        scenes.resize(1);
-        //scenes[0] = std::make_unique<MultiSenseViewer>(*this);
-        scenes[0] = std::make_unique<DefaultScene>(*this);
-
-        pLogger->info("Prepared Renderer");
-    }
-
-
-    void Renderer::prepareRenderer() {
-
+        m_usageMonitor = std::make_shared<UsageMonitor>();
+        m_usageMonitor->loadSettingsFromFile();
+        m_usageMonitor->userStartSession(rendererStartTime);
 
         /*
 
-        std::ifstream infile(Utils::getAssetsPath().append("Generated/Scripts.txt").string());
-        std::string line;
-        if (!infile) {
-            Log::Logger::getInstance()->error("Unable to open file: Generated/Scripts.txt");
-            return;
-        }
-
-        Log::Logger::getInstance()->info("Reading Generated/Scripts.txt file");
-        while (std::getline(infile, line)) {
-            Log::Logger::getInstance()->info("{}", line);
-            // Skip empty lines, comment lines, or lines containing "Skybox"
-            if (line.empty() || line[0] == '#' || line.find("Skybox") != std::string::npos)
-                continue;
-            availableScriptNames.emplace_back(line);
-        }
-
-        for (const auto &scriptName: availableScriptNames) {
-            auto e = createEntity(scriptName);
-            e.addComponent<ScriptComponent>(e.getName(), this);
-        }
-
-        auto view = m_registry.view<ScriptComponent>();
-        for (auto entity: view) {
-            auto &script = view.get<ScriptComponent>(entity);
-            script.script->setup();
-        }
         */
+
+        m_cameras[m_selectedCameraTag].setType(Camera::arcball);
+        m_cameras[m_selectedCameraTag].setPerspective(60.0f,
+                                                      static_cast<float>(m_width) / static_cast<float>(m_height));
+        m_cameras[m_selectedCameraTag].resetPosition();
+
+        // Run Once
+        m_renderUtils.device = m_vulkanDevice;
+        m_renderUtils.instance = &instance;
+       // m_renderUtils.renderPass = &renderPass;
+        m_renderUtils.msaaSamples = msaaSamples;
+        m_renderUtils.swapchainImages = swapchain->imageCount;
+        m_renderUtils.swapchainIndex = currentFrame;
+
+        m_editors.resize(2);
+        m_editors[0] = std::make_unique<Editor>(m_renderUtils, *this);
+        m_editors[1] = std::make_unique<Editor>(m_renderUtils, *this);
+        m_editors[1]->offsetX = m_width / 2.0f;
+        // Initialize editors before we initialize scenes
+        m_scenes.resize(1);
+        //m_scenes[0] = std::make_unique<MultiSenseViewer>(*this);
+        m_scenes[0] = std::make_unique<DefaultScene>(*this);
+
+        m_logger->info("Prepared Renderer");
     }
+
 
     void Renderer::addDeviceFeatures() {
         if (deviceFeatures.fillModeNonSolid) {
@@ -236,34 +192,122 @@ namespace VkRender {
         cmdBufInfo.flags = 0;
         cmdBufInfo.pInheritanceInfo = nullptr;
         std::array<VkClearValue, 3> clearValues{};
-        if (guiManager->handles.renderer3D) {
+        /*
+        if (UIContext().renderer3D) {
             clearValues[0] = {{{0.1f, 0.1f, 0.1f, 1.0f}}};
             clearValues[2] = {{{0.1f, 0.1f, 0.1f, 1.0f}}};
         } else {
-            clearValues[0] = {{{guiManager->handles.clearColor[0], guiManager->handles.clearColor[1],
-                                guiManager->handles.clearColor[2], guiManager->handles.clearColor[3]}}};
-            clearValues[2] = {{{guiManager->handles.clearColor[0], guiManager->handles.clearColor[1],
-                                guiManager->handles.clearColor[2], guiManager->handles.clearColor[3]}}};
+            clearValues[0] = {{{UIContext().clearColor[0], UIContext().clearColor[1],
+                                UIContext().clearColor[2], UIContext().clearColor[3]}}};
+            clearValues[2] = {{{UIContext().clearColor[0], UIContext().clearColor[1],
+                                UIContext().clearColor[2], UIContext().clearColor[3]}}};
         }
+        */
         clearValues[1].depthStencil = {1.0f, 0};
 
+        // Editor windows
+        vkBeginCommandBuffer(drawCmdBuffers.buffers[currentFrame], &cmdBufInfo);
+
+        for (const auto &editor: m_editors) {
+
+            VkViewport viewport{};
+            viewport.x = static_cast<float>(editor->offsetX);
+            viewport.y = static_cast<float>(editor->offsetY);
+            viewport.width = static_cast<float>(editor->width);
+            viewport.height = static_cast<float>(editor->height);
+            viewport.minDepth = 0.0f;
+            viewport.maxDepth = 1.0f;
+
+            VkRect2D scissor{};
+            scissor.offset = {static_cast<int32_t>(editor->offsetX), static_cast<int32_t>(editor->offsetY)};
+            scissor.extent = {static_cast<uint32_t>(editor->width), static_cast<uint32_t>(editor->height)};
+
+            // Begin render pass
+            /// *** Color render pass *** ///
+            VkRenderPassBeginInfo renderPassBeginInfo = Populate::renderPassBeginInfo();
+            renderPassBeginInfo.renderPass = editor->uiRenderPass.renderPass;
+            renderPassBeginInfo.renderArea.offset.x = 0;
+            renderPassBeginInfo.renderArea.offset.y = 0;
+            renderPassBeginInfo.renderArea.extent.width = m_width;
+            renderPassBeginInfo.renderArea.extent.height = m_height;
+            renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+            renderPassBeginInfo.pClearValues = clearValues.data();
+            renderPassBeginInfo.framebuffer = editor->frameBuffers[imageIndex];
+            vkCmdBeginRenderPass(drawCmdBuffers.buffers[currentFrame], &renderPassBeginInfo,
+                                 VK_SUBPASS_CONTENTS_INLINE);
+            drawCmdBuffers.boundRenderPass = renderPassBeginInfo.renderPass;
+            drawCmdBuffers.renderPassType = RENDER_PASS_UI;
+            vkCmdSetViewport(drawCmdBuffers.buffers[currentFrame], 0, 1, &viewport);
+            vkCmdSetScissor(drawCmdBuffers.buffers[currentFrame], 0, 1, &scissor);
+
+            editor->m_guiManager->drawFrame(drawCmdBuffers.buffers[currentFrame], currentFrame, editor->width, editor->height);
+
+            /*
+            for (auto [entity, skybox, gltfComponent]: m_registry.view<VkRender::SkyboxGraphicsPipelineComponent, GLTFModelComponent>(
+                    entt::exclude<DeleteComponent>).each()) {
+                skybox.draw(&drawCmdBuffers, currentFrame);
+                gltfComponent.model->draw(drawCmdBuffers.buffers[currentFrame]);
+            }
+
+            for (auto [entity, resources, gltfComponent]: m_registry.view<VkRender::DefaultPBRGraphicsPipelineComponent, GLTFModelComponent>(
+                    entt::exclude<DeleteComponent>).each()) {
+                if (!resources.markedForDeletion)
+                    resources.draw(&drawCmdBuffers, currentFrame, gltfComponent);
+                else
+                    resources.resources[currentFrame].busy = false;
+            }
+
+
+            // Accessing components in a non-copying manner
+            for (auto entity: m_registry.view<DefaultGraphicsPipelineComponent2>(
+                    entt::exclude<DeleteComponent, ImageViewComponent, SecondaryRenderViewComponent>)) {
+                auto &resources = m_registry.get<DefaultGraphicsPipelineComponent2>(entity);
+                resources.draw(&drawCmdBuffers);
+            }
+
+            // Accessing components in a non-copying manner
+            for (auto entity: m_registry.view<CameraGraphicsPipelineComponent>(entt::exclude<DeleteComponent>)) {
+                auto &resources = m_registry.get<CameraGraphicsPipelineComponent>(entity);
+                resources.draw(&drawCmdBuffers);
+
+            }
+
+            for (auto [entity, resource]: m_registry.view<CustomModelComponent>(entt::exclude<DeleteComponent>).each()) {
+                resource.draw(&drawCmdBuffers);
+            }
+
+
+            for (auto entity: m_registry.view<ImageViewComponent>(
+                    entt::exclude<DeleteComponent>)) {
+                auto &resources = m_registry.get<DefaultGraphicsPipelineComponent2>(entity);
+                resources.draw(&drawCmdBuffers);
+
+            }
+    */
+            vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
+            // Render objects
+
+        }
+
+        vkEndCommandBuffer(drawCmdBuffers.buffers[currentFrame]);
+        /*
         // Define the viewport with the adjusted dimensions
         VkViewport viewport{};
         VkRect2D scissor;
-        if (guiManager->handles.fixAspectRatio) {
+        if (m_guiManager->handles.fixAspectRatio) {
             // Original aspect ratio
             float mainAspectRatio = static_cast<float>(m_Width) / static_cast<float>(m_Height);
             // Sub-window dimensions (initial)
-            float subWindowWidth = static_cast<float>(m_Width) - guiManager->handles.info->sidebarWidth;
+            float subWindowWidth = static_cast<float>(m_Width) - m_guiManager->handles.info->sidebarWidth;
             auto subWindowHeight = static_cast<float>(m_Height);
 
-            if (guiManager->handles.enableSecondaryView) {
+            if (m_guiManager->handles.enableSecondaryView) {
                 mainAspectRatio = static_cast<float>(m_Width) / static_cast<float>(m_Height / 2);
                 // Sub-window dimensions (initial)
-                subWindowWidth = static_cast<float>(m_Width) - guiManager->handles.info->sidebarWidth;
+                subWindowWidth = static_cast<float>(m_Width) - m_guiManager->handles.info->sidebarWidth;
                 subWindowHeight = static_cast<float>(m_Height / 2);
             }
-                // Calculate sub-window aspect ratio
+            // Calculate sub-window aspect ratio
             float subWindowAspectRatio = subWindowWidth / subWindowHeight;
             // Adjust sub-window dimensions to maintain the original aspect ratio
             if (subWindowAspectRatio > mainAspectRatio) {
@@ -279,11 +323,11 @@ namespace VkRender {
                                        static_cast<int32_t>(subWindowHeight), 0, 0);
         } else {
             float windowHeight = static_cast<float>(m_Height);
-            if (guiManager->handles.enableSecondaryView) {
+            if (m_guiManager->handles.enableSecondaryView) {
                 windowHeight = static_cast<float>(m_Height) / 2;
             }
 
-            float subWindowWidth = static_cast<float>(m_Width) - guiManager->handles.info->sidebarWidth;
+            float subWindowWidth = static_cast<float>(m_Width) - m_guiManager->handles.info->sidebarWidth;
 
             viewport = Populate::viewport(subWindowWidth,
                                           windowHeight, 0.0f, 1.0f);
@@ -315,7 +359,7 @@ namespace VkRender {
         drawCmdBuffers.boundRenderPass = depthRenderPassBeginInfo.renderPass;
 
         VkViewport viewportDepth = Populate::viewport(static_cast<float>(m_Width),
-                                      m_Height, 0.0f, 1.0f);
+                                                      m_Height, 0.0f, 1.0f);
 
         VkRect2D scissorDepth = Populate::rect2D(m_Width, m_Height, 0, 0);
 
@@ -323,7 +367,6 @@ namespace VkRender {
         vkCmdSetScissor(drawCmdBuffers.buffers[currentFrame], 0, 1, &scissorDepth);
 
 
-        /**@brief Record commandbuffers for obj models */
         // Accessing components in a non-copying manner
         for (auto ent: m_registry.view<DepthRenderPassComponent>(entt::exclude<DeleteComponent>)) {
             auto entity = Entity(ent, this);
@@ -409,6 +452,7 @@ namespace VkRender {
         vkCmdSetViewport(drawCmdBuffers.buffers[currentFrame], 0, 1, &viewport);
         vkCmdSetScissor(drawCmdBuffers.buffers[currentFrame], 0, 1, &scissor);
 
+        /*
         // Generate command for copying depth render pass to file
         if (saveDepthPassToFile) {
 
@@ -503,7 +547,7 @@ namespace VkRender {
             // For example, using stb_image_write to write a PNG
 
             float zNear = 0.1f;
-            float zFar = cameras[selectedCameraTag].m_Zfar;
+            float zFar = m_cameras[m_selectedCameraTag].m_Zfar;
             float *ptr = reinterpret_cast<float *>(data);
             for (size_t i = 0; i < m_Width * m_Height; ++i) {
                 float z_n = 2.0f * ptr[i] - 1.0f; // Back to NDC
@@ -521,14 +565,13 @@ namespace VkRender {
             saveDepthPassToFile = false;
         }
 
-        /**@brief Record command buffers for skybox */
+
         for (auto [entity, skybox, gltfComponent]: m_registry.view<VkRender::SkyboxGraphicsPipelineComponent, GLTFModelComponent>(
                 entt::exclude<DeleteComponent>).each()) {
             skybox.draw(&drawCmdBuffers, currentFrame);
             gltfComponent.model->draw(drawCmdBuffers.buffers[currentFrame]);
         }
 
-        /**@brief Record commandbuffers for gltf models */
         for (auto [entity, resources, gltfComponent]: m_registry.view<VkRender::DefaultPBRGraphicsPipelineComponent, GLTFModelComponent>(
                 entt::exclude<DeleteComponent>).each()) {
             if (!resources.markedForDeletion)
@@ -538,7 +581,6 @@ namespace VkRender {
         }
 
 
-        /**@brief Record commandbuffers for obj models */
         // Accessing components in a non-copying manner
         for (auto entity: m_registry.view<DefaultGraphicsPipelineComponent2>(
                 entt::exclude<DeleteComponent, ImageViewComponent, SecondaryRenderViewComponent>)) {
@@ -546,7 +588,6 @@ namespace VkRender {
             resources.draw(&drawCmdBuffers);
         }
 
-        /**@brief Record commandbuffers for custom camera models */
         // Accessing components in a non-copying manner
         for (auto entity: m_registry.view<CameraGraphicsPipelineComponent>(entt::exclude<DeleteComponent>)) {
             auto &resources = m_registry.get<CameraGraphicsPipelineComponent>(entity);
@@ -554,13 +595,11 @@ namespace VkRender {
 
         }
 
-        /**@brief Record commandbuffers for Custom models (GRID) */
         for (auto [entity, resource]: m_registry.view<CustomModelComponent>(entt::exclude<DeleteComponent>).each()) {
             resource.draw(&drawCmdBuffers);
         }
 
 
-        /**@brief Record commandbuffers for obj models */
         for (auto entity: m_registry.view<ImageViewComponent>(
                 entt::exclude<DeleteComponent>)) {
             auto &resources = m_registry.get<DefaultGraphicsPipelineComponent2>(entity);
@@ -570,18 +609,18 @@ namespace VkRender {
         vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
 
 
-
-        if (guiManager->handles.enableSecondaryView){
+        if (m_guiManager->handles.enableSecondaryView) {
             VkImageSubresourceRange subresourceRange = {};
             subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
             subresourceRange.levelCount = 1;
             subresourceRange.layerCount = 1;
 
-            Utils::setImageLayout(drawCmdBuffers.buffers[currentFrame], swapchain->images[imageIndex], VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+            Utils::setImageLayout(drawCmdBuffers.buffers[currentFrame], swapchain->images[imageIndex],
+                                  VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
                                   VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, subresourceRange,
                                   VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
 
-            float subWindowWidth = static_cast<float>(m_Width) - guiManager->handles.info->sidebarWidth;
+            float subWindowWidth = static_cast<float>(m_Width) - m_guiManager->handles.info->sidebarWidth;
             // Define the viewport
             VkViewport viewport2{};
             viewport2.x = 0.0f;
@@ -594,7 +633,8 @@ namespace VkRender {
             // Define the scissor rectangle
             VkRect2D scissor2{};
             scissor2.offset = {0, static_cast<int32_t>(m_Height) / 2};  // Start from the middle
-            scissor2.extent = {static_cast<uint32_t>(m_Width - guiManager->handles.info->sidebarWidth), m_Height / 2};  // Extend to the bottom
+            scissor2.extent = {static_cast<uint32_t>(m_Width - m_guiManager->handles.info->sidebarWidth),
+                               m_Height / 2};  // Extend to the bottom
 
             VkRenderPassBeginInfo renderPassBeginInfoSecondary = Populate::renderPassBeginInfo();
             renderPassBeginInfoSecondary.renderPass = secondRenderPass.renderPass;
@@ -605,27 +645,19 @@ namespace VkRender {
             renderPassBeginInfoSecondary.clearValueCount = clearValues.size();
             renderPassBeginInfoSecondary.pClearValues = clearValues.data();
             renderPassBeginInfoSecondary.framebuffer = frameBuffers[imageIndex];
-            vkCmdBeginRenderPass(drawCmdBuffers.buffers[currentFrame], &renderPassBeginInfoSecondary, VK_SUBPASS_CONTENTS_INLINE);
+            vkCmdBeginRenderPass(drawCmdBuffers.buffers[currentFrame], &renderPassBeginInfoSecondary,
+                                 VK_SUBPASS_CONTENTS_INLINE);
             drawCmdBuffers.boundRenderPass = renderPassBeginInfoSecondary.renderPass;
             drawCmdBuffers.renderPassType = RENDER_PASS_SECOND;
             vkCmdSetViewport(drawCmdBuffers.buffers[currentFrame], 0, 1, &viewport2);
             vkCmdSetScissor(drawCmdBuffers.buffers[currentFrame], 0, 1, &scissor2);
 
-            /**@brief Record commandbuffers for obj models */
             for (auto entity: m_registry.view<SecondaryRenderViewComponent>(
                     entt::exclude<DeleteComponent>)) {
                 auto &resources = m_registry.get<DefaultGraphicsPipelineComponent2>(entity);
                 resources.draw(&drawCmdBuffers);
             }
 
-
-            /**@brief Record commandbuffers for custom camera models */
-            /*
-           for (auto entity: m_registry.view<CameraGraphicsPipelineComponent>(entt::exclude<DeleteComponent>)) {
-               auto &resources = m_registry.get<CameraGraphicsPipelineComponent>(entity);
-               resources.draw(&drawCmdBuffers);
-           }
-           */
 
             vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
         }
@@ -657,7 +689,6 @@ namespace VkRender {
         );
 
 
-        /** Generate UI draw commands **/
         VkRenderPassBeginInfo uiRenderPassBeginInfo = renderPassBeginInfo;
         uiRenderPassBeginInfo.renderPass = uiRenderPass.renderPass;
         uiRenderPassBeginInfo.clearValueCount = 0;
@@ -668,10 +699,12 @@ namespace VkRender {
 
         vkCmdSetViewport(drawCmdBuffers.buffers[currentFrame], 0, 1, &uiViewport);
         vkCmdSetScissor(drawCmdBuffers.buffers[currentFrame], 0, 1, &scissor);
-        guiManager->drawFrame(drawCmdBuffers.buffers[currentFrame], currentFrame);
+        m_guiManager->drawFrame(drawCmdBuffers.buffers[currentFrame], currentFrame);
         vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
 
         CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers.buffers[currentFrame]))
+
+        */
     }
 
     bool Renderer::compute() {
@@ -688,38 +721,43 @@ namespace VkRender {
     }
 
     void Renderer::updateUniformBuffers() {
-        if (!selectedCameraTag.empty()) {
-            auto it = cameras.find(selectedCameraTag);
-            if (it != cameras.end())
-                cameras[selectedCameraTag].update(frameTimer);
+        if (!m_selectedCameraTag.empty()) {
+            auto it = m_cameras.find(m_selectedCameraTag);
+            if (it != m_cameras.end())
+                m_cameras[m_selectedCameraTag].update(frameTimer);
         }
-        // update scenes:
-        for (const auto& scene: scenes){
+        // update m_scenes:
+        for (const auto &scene: m_scenes) {
             scene->update();
         }
 
-        selectedCameraTag = guiManager->handles.m_cameraSelection.tag;
-        renderUtils.swapchainIndex = currentFrame;
-        renderUtils.input = &input;
+        for (const auto &editor: m_editors) {
+            editor->m_guiManager->update((frameCounter == 0), frameTimer, editor->width, editor->height, &input);
+        }
+            //m_selectedCameraTag = m_guiManager->handles.m_cameraSelection.tag;
+        m_renderUtils.swapchainIndex = currentFrame;
+        m_renderUtils.input = &input;
         // New version available?
+        /*
         std::string versionRemote;
-        if (guiManager->handles.askUserForNewVersion && usageMonitor->getLatestAppVersionRemote(&versionRemote)) {
+        if (m_guiManager->handles.askUserForNewVersion && m_usageMonitor->getLatestAppVersionRemote(&versionRemote)) {
             std::string localAppVersion = RendererConfig::getInstance().getAppVersion();
             Log::Logger::getInstance()->info("New Version is Available: Local version={}, available version={}",
                                              localAppVersion, versionRemote);
-            guiManager->handles.newVersionAvailable = Utils::isLocalVersionLess(localAppVersion, versionRemote);
+            m_guiManager->handles.newVersionAvailable = Utils::isLocalVersionLess(localAppVersion, versionRemote);
         }
-        pLogger->frameNumber = frameID;
+        */
+        m_logger->frameNumber = frameID;
         if (keyPress == GLFW_KEY_SPACE) {
-            cameras[selectedCameraTag].resetPosition();
+            m_cameras[m_selectedCameraTag].resetPosition();
         }
 
         /**@brief Record commandbuffers for obj models */
         // Accessing components in a non-copying manner
         for (auto entity: m_registry.view<DefaultGraphicsPipelineComponent2>()) {
             auto &resources = m_registry.get<DefaultGraphicsPipelineComponent2>(entity);
-            const auto& transform = m_registry.get<TransformComponent>(entity);
-            const auto& currentCamera = cameras[selectedCameraTag];
+            const auto &transform = m_registry.get<TransformComponent>(entity);
+            const auto &currentCamera = m_cameras[m_selectedCameraTag];
             resources.updateTransform(transform);
             resources.updateView(currentCamera);
             resources.update(currentFrame);
@@ -728,8 +766,8 @@ namespace VkRender {
         // Accessing components in a non-copying manner
         for (auto entity: m_registry.view<CustomModelComponent>()) {
             auto &resources = m_registry.get<CustomModelComponent>(entity);
-            const auto& transform = m_registry.get<TransformComponent>(entity);
-            const auto& currentCamera = cameras[selectedCameraTag];
+            const auto &transform = m_registry.get<TransformComponent>(entity);
+            const auto &currentCamera = m_cameras[m_selectedCameraTag];
             resources.updateTransform(transform);
             resources.updateView(currentCamera);
             resources.update(currentFrame);
@@ -739,8 +777,8 @@ namespace VkRender {
         for (auto entity: m_registry.view<CameraGraphicsPipelineComponent>()) {
             auto &resources = m_registry.get<CameraGraphicsPipelineComponent>(entity);
             auto &tag = m_registry.get<TagComponent>(entity);
-            const auto& transform = m_registry.get<TransformComponent>(entity);
-            const auto& currentCamera = cameras[selectedCameraTag];
+            const auto &transform = m_registry.get<TransformComponent>(entity);
+            const auto &currentCamera = m_cameras[m_selectedCameraTag];
             resources.updateTransform(transform);
             resources.updateView(currentCamera);
             resources.update(currentFrame);
@@ -749,58 +787,63 @@ namespace VkRender {
         for (auto entity: m_registry.view<DefaultPBRGraphicsPipelineComponent>()) {
             auto &resources = m_registry.get<DefaultPBRGraphicsPipelineComponent>(entity);
             auto &tag = m_registry.get<TagComponent>(entity);
-            const auto& transform = m_registry.get<TransformComponent>(entity);
-            const auto& currentCamera = cameras[selectedCameraTag];
+            const auto &transform = m_registry.get<TransformComponent>(entity);
+            const auto &currentCamera = m_cameras[m_selectedCameraTag];
             resources.updateTransform(transform);
             resources.updateView(currentCamera);
             resources.update(currentFrame);
         }
 
-        // Update GUI
-        guiManager->handles.info->frameID = frameID;
-        guiManager->handles.info->applicationRuntime = runTime;
-        guiManager->update((frameCounter == 0), frameTimer, renderUtils.width, renderUtils.height, &input);
-
         /*
+        // Update GUI
+        m_guiManager->handles.info->frameID = frameID;
+        m_guiManager->handles.info->applicationRuntime = runTime;
+        m_guiManager->update((frameCounter == 0), frameTimer, m_renderUtils.width, m_renderUtils.height, &input);
+
+
         for (auto entity: view) {
             auto &script = view.get<ScriptComponent>(entity);
-            script.script->uiUpdate(&guiManager->handles);
+            script.script->uiUpdate(&m_guiManager->handles);
         }
-        */
+
 
         // Load components from UI actions?
         // Load new obj file
-        if (guiManager->handles.m_paths.updateObjPath){
-            Log::Logger::getInstance()->info("Loading new model from {}", guiManager->handles.m_paths.importFilePath.string());
-            std::filesystem::path filename = guiManager->handles.m_paths.importFilePath.filename();
+        if (m_guiManager->handles.m_paths.updateObjPath) {
+            Log::Logger::getInstance()->info("Loading new model from {}",
+                                             m_guiManager->handles.m_paths.importFilePath.string());
+            std::filesystem::path filename = m_guiManager->handles.m_paths.importFilePath.filename();
 
             auto entity = createEntity(filename.replace_extension().string());
-            auto &component = entity.addComponent<OBJModelComponent>(guiManager->handles.m_paths.importFilePath, renderUtils.device);
+            auto &component = entity.addComponent<OBJModelComponent>(m_guiManager->handles.m_paths.importFilePath,
+                                                                     m_renderUtils.device);
 
-            entity.addComponent<DefaultGraphicsPipelineComponent2>(&renderUtils).bind(component);
+            entity.addComponent<DefaultGraphicsPipelineComponent2>(&m_renderUtils).bind(component);
             entity.addComponent<DepthRenderPassComponent>();
         }
         // Load new gltf file
-        if (guiManager->handles.m_paths.updateGLTFPath){
-            Log::Logger::getInstance()->info("Loading new model from {}", guiManager->handles.m_paths.importFilePath.string());
-            std::filesystem::path filename = guiManager->handles.m_paths.importFilePath.filename();
+        if (m_guiManager->handles.m_paths.updateGLTFPath) {
+            Log::Logger::getInstance()->info("Loading new model from {}",
+                                             m_guiManager->handles.m_paths.importFilePath.string());
+            std::filesystem::path filename = m_guiManager->handles.m_paths.importFilePath.filename();
             auto entity = createEntity(filename.replace_extension().string());
-            auto &component = entity.addComponent<VkRender::GLTFModelComponent>(guiManager->handles.m_paths.importFilePath.string(),
-                                                                             renderUtils.device);
+            auto &component = entity.addComponent<VkRender::GLTFModelComponent>(
+                    m_guiManager->handles.m_paths.importFilePath.string(),
+                    m_renderUtils.device);
             auto &sky = findEntityByName("Skybox").getComponent<VkRender::SkyboxGraphicsPipelineComponent>();
-            entity.addComponent<VkRender::DefaultPBRGraphicsPipelineComponent>(&renderUtils, component, sky);
+            entity.addComponent<VkRender::DefaultPBRGraphicsPipelineComponent>(&m_renderUtils, component, sky);
             entity.addComponent<DepthRenderPassComponent>();
 
         }
-
+    */
         // Update camera gizmos
         for (auto entity: m_registry.view<CameraGraphicsPipelineComponent>()) {
             auto &resources = m_registry.get<CameraGraphicsPipelineComponent>(entity);
-            const auto* camera = m_registry.get<CameraComponent>(entity).camera;
-            auto& transform = m_registry.get<TransformComponent>(entity);
+            const auto *camera = m_registry.get<CameraComponent>(entity).camera;
+            auto &transform = m_registry.get<TransformComponent>(entity);
             transform.setQuaternion(camera->pose.q);
             transform.setPosition(camera->pose.pos);
-            const auto& currentCamera = cameras[selectedCameraTag];
+            const auto &currentCamera = m_cameras[m_selectedCameraTag];
 
             resources.updateTransform(transform);
             resources.updateView(currentCamera);
@@ -818,30 +861,28 @@ namespace VkRender {
     }
 
     void Renderer::windowResized() {
-        renderUtils.device = vulkanDevice;
-        renderUtils.instance = &instance;
-        renderUtils.renderPass = &renderPass;
-        renderUtils.msaaSamples = msaaSamples;
-        renderUtils.swapchainImages = swapchain->imageCount;
-        renderUtils.queueSubmitMutex = &queueSubmitMutex;
-        renderUtils.fence = &waitFences;
-        renderUtils.swapchainIndex = currentFrame;
-        renderUtils.width = m_Width;
-        renderUtils.height = m_Height;
+        m_renderUtils.device = m_vulkanDevice;
+        m_renderUtils.instance = &instance;
+        //m_renderUtils.renderPass = &renderPass;
+        m_renderUtils.msaaSamples = msaaSamples;
+        m_renderUtils.swapchainImages = swapchain->imageCount;
+        m_renderUtils.swapchainIndex = currentFrame;
+        m_renderUtils.width = m_width;
+        m_renderUtils.height = m_height;
 
-        if ((m_Width > 0.0) && (m_Height > 0.0)) {
-            for (auto &camera: cameras)
-                camera.second.updateAspectRatio(static_cast<float>(m_Width) / static_cast<float>(m_Height));
+        if ((m_width > 0.0) && (m_height > 0.0)) {
+            for (auto &camera: m_cameras)
+                camera.second.updateAspectRatio(static_cast<float>(m_width) / static_cast<float>(m_height));
         }
         Widgets::clear();
         // Update gui with new res
-        guiManager->update((frameCounter == 0), frameTimer, renderUtils.width, renderUtils.height, &input);
+        //m_guiManager->update((frameCounter == 0), frameTimer, m_renderUtils.width, m_renderUtils.height, &input);
 
         // Notify scripts
         auto view = m_registry.view<ScriptComponent>();
         for (auto entity: view) {
             auto &script = view.get<ScriptComponent>(entity);
-            script.script->windowResize(&guiManager->handles);
+            //script.script->windowResize(&m_guiManager->handles);
         }
 
     }
@@ -850,11 +891,11 @@ namespace VkRender {
     void Renderer::cleanUp() {
         auto startTime = std::chrono::steady_clock::now();
 
-        usageMonitor->userEndSession();
+        m_usageMonitor->userEndSession();
 
-        if (usageMonitor->hasUserLogCollectionConsent() &&
+        if (m_usageMonitor->hasUserLogCollectionConsent() &&
             RendererConfig::getInstance().getUserSetting().sendUsageLogOnExit)
-            usageMonitor->sendUsageLog();
+            m_usageMonitor->sendUsageLog();
 
         auto timeSpan = std::chrono::duration_cast<std::chrono::duration<float>>(
                 std::chrono::steady_clock::now() - startTime);
@@ -862,7 +903,7 @@ namespace VkRender {
 
         startTime = std::chrono::steady_clock::now();
         // Shutdown GUI manually since it contains thread. Not strictly necessary but nice to have
-        guiManager.reset();
+        //m_guiManager.reset();
         timeSpan = std::chrono::duration_cast<std::chrono::duration<float>>(
                 std::chrono::steady_clock::now() - startTime);
         Log::Logger::getInstance()->trace("Deleting GUI on exit took {}s", timeSpan.count());
@@ -882,15 +923,15 @@ namespace VkRender {
 
     }
 
-    void Renderer::handleViewportResize(){
+    void Renderer::handleViewportResize() {
         // Draw viewport borders
 
 
         //
-        if (mouseButtons.pos.y > (m_Height / 2) - 10 && mouseButtons.pos.y < (m_Height / 2) + 10){
-            glfwSetCursor(window, cursors.resizeVertical);
+        if (mouseButtons.pos.y > (m_height / 2) - 10 && mouseButtons.pos.y < (m_height / 2) + 10) {
+            glfwSetCursor(window, m_cursors.resizeVertical);
         } else {
-            glfwSetCursor(window, cursors.arrow);
+            glfwSetCursor(window, m_cursors.arrow);
         }
     }
 
@@ -905,25 +946,26 @@ namespace VkRender {
 
 
         // UPdate camera if we have one selected
-        if (!selectedCameraTag.empty()) {
-            auto it = cameras.find(selectedCameraTag);
-            if (it != cameras.end()) {
+        if (!m_selectedCameraTag.empty()) {
+            auto it = m_cameras.find(m_selectedCameraTag);
+            if (it != m_cameras.end()) {
                 if (mouseButtons.left) {
                     // && !mouseButtons.middle) {
-                    cameras[selectedCameraTag].rotate(dx, dy);
+                    m_cameras[m_selectedCameraTag].rotate(dx, dy);
                 }
-                if (mouseButtons.left && guiManager->handles.renderer3D)
-                    cameras[selectedCameraTag].rotate(dx, dy);
+
+                //if (mouseButtons.left && m_guiManager->handles.renderer3D)
+                //    m_cameras[m_selectedCameraTag].rotate(dx, dy);
 
                 if (mouseButtons.right) {
-                    if (cameras[selectedCameraTag].m_type == Camera::arcball)
-                        cameras[selectedCameraTag].translate(glm::vec3(-dx * 0.005f, -dy * 0.005f, 0.0f));
+                    if (m_cameras[m_selectedCameraTag].m_type == Camera::arcball)
+                        m_cameras[m_selectedCameraTag].translate(glm::vec3(-dx * 0.005f, -dy * 0.005f, 0.0f));
                     else
-                        cameras[selectedCameraTag].translate(-dx * 0.01f, -dy * 0.01f);
+                        m_cameras[m_selectedCameraTag].translate(-dx * 0.01f, -dy * 0.01f);
                 }
-                if (mouseButtons.middle && cameras[selectedCameraTag].m_type == Camera::flycam) {
-                    cameras[selectedCameraTag].translate(glm::vec3(-dx * 0.01f, -dy * 0.01f, 0.0f));
-                } else if (mouseButtons.middle && cameras[selectedCameraTag].m_type == Camera::arcball) {
+                if (mouseButtons.middle && m_cameras[m_selectedCameraTag].m_type == Camera::flycam) {
+                    m_cameras[m_selectedCameraTag].translate(glm::vec3(-dx * 0.01f, -dy * 0.01f, 0.0f));
+                } else if (mouseButtons.middle && m_cameras[m_selectedCameraTag].m_type == Camera::arcball) {
                     //camera.orbitPan(static_cast<float>() -dx * 0.01f, static_cast<float>() -dy * 0.01f);
                 }
             }
@@ -935,9 +977,11 @@ namespace VkRender {
     }
 
     void Renderer::mouseScroll(float change) {
-        if (guiManager->handles.renderer3D) {
-            cameras[selectedCameraTag].setArcBallPosition((change > 0.0f) ? 0.95f : 1.05f);
+        /*
+        if (m_guiManager->handles.renderer3D) {
+            m_cameras[m_selectedCameraTag].setArcBallPosition((change > 0.0f) ? 0.95f : 1.05f);
         }
+         */
     }
 
     Entity Renderer::createEntity(const std::string &name) {
@@ -998,33 +1042,33 @@ namespace VkRender {
         }
     }
 
-    Camera& Renderer::createNewCamera(const std::string& name, uint32_t width, uint32_t height) {
+    Camera &Renderer::createNewCamera(const std::string &name, uint32_t width, uint32_t height) {
         auto e = createEntity(name);
-        auto camera = Camera(m_Width, m_Height);
-        cameras[name] = camera;
-        auto &c = e.addComponent<CameraComponent>(&cameras[selectedCameraTag]);
-        auto &gizmo = e.addComponent<CameraGraphicsPipelineComponent>(&renderUtils);
-        auto& transform = e.getComponent<TransformComponent>();
+        auto camera = Camera(m_width, m_height);
+        m_cameras[name] = camera;
+        auto &c = e.addComponent<CameraComponent>(&m_cameras[m_selectedCameraTag]);
+        auto &gizmo = e.addComponent<CameraGraphicsPipelineComponent>(&m_renderUtils);
+        auto &transform = e.getComponent<TransformComponent>();
         transform.scale = glm::vec3(0.2f, 0.2f, 0.2f);
 
-        return cameras[name];
+        return m_cameras[name];
     }
 
-    Camera& Renderer::getCamera() {
-        if (!selectedCameraTag.empty()) {
-            auto it = cameras.find(selectedCameraTag);
-            if (it != cameras.end()) {
-                return cameras[selectedCameraTag];
+    Camera &Renderer::getCamera() {
+        if (!m_selectedCameraTag.empty()) {
+            auto it = m_cameras.find(m_selectedCameraTag);
+            if (it != m_cameras.end()) {
+                return m_cameras[m_selectedCameraTag];
             }
         }        // TODO create a new camera with tag if it doesn't exist
 
     }
 
-    Camera& Renderer::getCamera(std::string tag) {
-        if (!selectedCameraTag.empty()) {
-            auto it = cameras.find(tag);
-            if (it != cameras.end()) {
-                return cameras[tag];
+    Camera &Renderer::getCamera(std::string tag) {
+        if (!m_selectedCameraTag.empty()) {
+            auto it = m_cameras.find(tag);
+            if (it != m_cameras.end()) {
+                return m_cameras[tag];
             }
         }
         // TODO create a new camera with tag if it doesn't exist
@@ -1032,15 +1076,22 @@ namespace VkRender {
 
     void Renderer::keyboardCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
 
-        cameras[selectedCameraTag].keys.up = input.keys.up;
-        cameras[selectedCameraTag].keys.down = input.keys.down;
-        cameras[selectedCameraTag].keys.left = input.keys.left;
-        cameras[selectedCameraTag].keys.right = input.keys.right;
+        m_cameras[m_selectedCameraTag].keys.up = input.keys.up;
+        m_cameras[m_selectedCameraTag].keys.down = input.keys.down;
+        m_cameras[m_selectedCameraTag].keys.left = input.keys.left;
+        m_cameras[m_selectedCameraTag].keys.right = input.keys.right;
     }
 
     void Renderer::postRenderActions() {
 
 
+    }
+
+    void Renderer::addUILayer(const std::string &layerName) {
+        for (const auto &editor: m_editors) {
+            editor->m_guiManager->pushLayer(layerName);
+        }
+        //
     }
 
     DISABLE_WARNING_PUSH
@@ -1104,37 +1155,37 @@ namespace VkRender {
 
     template<>
     void Renderer::onComponentAdded<SecondaryCameraComponent>(Entity entity,
-                                                                        SecondaryCameraComponent &component) {
+                                                              SecondaryCameraComponent &component) {
     }
 
     template<>
     void Renderer::onComponentAdded<OBJModelComponent>(Entity entity,
-                                                                 OBJModelComponent &component) {
+                                                       OBJModelComponent &component) {
     }
 
     template<>
     void Renderer::onComponentAdded<DepthRenderPassComponent>(Entity entity,
-                                                                        DepthRenderPassComponent &component) {
+                                                              DepthRenderPassComponent &component) {
     }
 
     template<>
     void Renderer::onComponentAdded<ImageViewComponent>(Entity entity,
-                                                                  ImageViewComponent &component) {
+                                                        ImageViewComponent &component) {
     }
 
     template<>
     void Renderer::onComponentAdded<CameraGraphicsPipelineComponent>(Entity entity,
-                                                                               CameraGraphicsPipelineComponent &component) {
+                                                                     CameraGraphicsPipelineComponent &component) {
     }
 
     template<>
     void Renderer::onComponentAdded<DefaultGraphicsPipelineComponent2>(Entity entity,
-                                                                                 DefaultGraphicsPipelineComponent2 &component) {
+                                                                       DefaultGraphicsPipelineComponent2 &component) {
     }
 
     template<>
     void Renderer::onComponentAdded<SecondaryRenderViewComponent>(Entity entity,
-                                                                                 SecondaryRenderViewComponent &component) {
+                                                                  SecondaryRenderViewComponent &component) {
     }
 
     DISABLE_WARNING_POP

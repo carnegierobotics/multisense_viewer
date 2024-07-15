@@ -41,7 +41,7 @@ namespace VkRender {
 
 
         void processEntities(GuiObjectHandles &handles) {
-            auto view = handles.m_context->m_registry.view<TagComponent>(
+            auto view = handles.m_context->registry().view<TagComponent>(
                     entt::exclude<VkRender::SkyboxGraphicsPipelineComponent, VkRender::ScriptComponent>);
 
             // Iterate over entities that have a GLTFModelComponent and a TagComponent
@@ -183,7 +183,7 @@ namespace VkRender {
             }
 
             std::vector<std::string> cameras;
-            for (auto [entity, camera, tag]: handles.m_context->m_registry.view<VkRender::CameraComponent, VkRender::TagComponent>().each()) {
+            for (auto [entity, camera, tag]: handles.m_context->registry().view<VkRender::CameraComponent, VkRender::TagComponent>().each()) {
                 if (!Utils::isInVector(cameras, tag.Tag))
                     cameras.emplace_back(tag.Tag);
             }
@@ -208,7 +208,7 @@ namespace VkRender {
                 std::string tag = "Camera #" + std::to_string(cameras.size());
 
                 auto camera = handles.m_context->createNewCamera(tag, handles.info->width, handles.info->height);
-                //e.addComponent<CameraGraphicsPipelineComponent>(&handles.m_context->renderUtils);
+                //e.addComponent<CameraGraphicsPipelineComponent>(&handles.m_context->data());
                 handles.m_cameraSelection.tag = tag;
             }
 
@@ -221,7 +221,7 @@ namespace VkRender {
                     handles.m_context->markEntityForDestruction(entity);
                     // Update the cameras list immediately after deletion
                     cameras.clear();
-                    for (auto [ent, camera, tagComponent]: handles.m_context->m_registry.view<VkRender::CameraComponent, VkRender::TagComponent>().each()) {
+                    for (auto [ent, camera, tagComponent]: handles.m_context->registry().view<VkRender::CameraComponent, VkRender::TagComponent>().each()) {
                         if (!Utils::isInVector(cameras, tagComponent.Tag))
                             cameras.emplace_back(tagComponent.Tag);
                     }

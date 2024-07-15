@@ -54,18 +54,18 @@ namespace VkRender {
 #ifdef VKRENDER_MULTISENSE_VIEWER_PRODUCTION
         settings.validation = false;
 #else
-        settings.validation = true;
+        m_settings.validation = true;
 #endif
         // Create window instance
         // boilerplate stuff (ie. basic window setup, initialize OpenGL) occurs in abstract class
         glfwInit();
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-        m_Width = 1280 / 1;
-        m_Height = 720 / 1;
+        m_width = 1280 / 1;
+        m_height = 720 / 1;
         //m_Width = 1200;
         //m_Height = 540;
-        window = glfwCreateWindow(static_cast<int>(m_Width), static_cast<int>(m_Height), title.c_str(), nullptr,
+        window = glfwCreateWindow(static_cast<int>(m_width), static_cast<int>(m_height), title.c_str(), nullptr,
                                   nullptr);
         glfwMakeContextCurrent(window);
         glfwSetWindowUserPointer(window, this);
@@ -75,9 +75,9 @@ namespace VkRender {
         glfwSetCursorPosCallback(window, VulkanRenderer::cursorPositionCallback);
         glfwSetScrollCallback(window, VulkanRenderer::mouseScrollCallback);
         glfwSetCharCallback(window, VulkanRenderer::charCallback);
-        glfwSetWindowSizeLimits(window, m_Width / 4, m_Height / 4, GLFW_DONT_CARE, GLFW_DONT_CARE);
-        cursors.resizeVertical = glfwCreateStandardCursor(GLFW_RESIZE_NS_CURSOR);
-        cursors.arrow = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
+        glfwSetWindowSizeLimits(window, m_width / 4, m_height / 4, GLFW_DONT_CARE, GLFW_DONT_CARE);
+        m_cursors.resizeVertical = glfwCreateStandardCursor(GLFW_RESIZE_NS_CURSOR);
+        m_cursors.arrow = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
 
         GLFWimage images[1];
         std::string fileName = Utils::getAssetsPath().append("Textures/CRL96x96.png").string();
@@ -92,21 +92,21 @@ namespace VkRender {
     }
 
     VkResult VulkanRenderer::createInstance(bool enableValidation) {
-        settings.validation = enableValidation;
+        m_settings.validation = enableValidation;
         VkApplicationInfo appInfo = {};
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-        appInfo.pApplicationName = m_Name.c_str();
-        appInfo.pEngineName = m_Name.c_str();
+        appInfo.pApplicationName = m_name.c_str();
+        appInfo.pEngineName = m_name.c_str();
         appInfo.apiVersion = apiVersion;
-        pLogger->info("Setting up vulkan with API Version: {}.{}.{}",
-                      VK_API_VERSION_MAJOR(apiVersion), VK_API_VERSION_MINOR(apiVersion),
-                      VK_API_VERSION_PATCH(apiVersion));
+        m_logger->info("Setting up vulkan with API Version: {}.{}.{}",
+                       VK_API_VERSION_MAJOR(apiVersion), VK_API_VERSION_MINOR(apiVersion),
+                       VK_API_VERSION_PATCH(apiVersion));
         // Get extensions supported by the instance
         uint32_t glfwExtensionCount = 0;
         const char **glfwExtensions;
         glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
         std::vector<const char *> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
-        if (settings.validation) {
+        if (m_settings.validation) {
             extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
         }
         enabledInstanceExtensions = extensions;
@@ -134,15 +134,15 @@ namespace VkRender {
         const std::vector<const char *> validationLayers = {"VK_LAYER_KHRONOS_validation"};
         // The VK_LAYER_KHRONOS_validation contains all current validation functionality.
 #ifdef VKRENDER_MULTISENSE_VIEWER_DEBUG
-        if (settings.validation) {
+        if (m_settings.validation) {
             // Check if this layer is available at instance level
             if (Validation::checkValidationLayerSupport(validationLayers)) {
                 instanceCreateInfo.ppEnabledLayerNames = validationLayers.data();
                 instanceCreateInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-                pLogger->info("Enabling Validation Layers");
+                m_logger->info("Enabling Validation Layers");
             } else {
                 std::cerr << "Validation layer VK_LAYER_KHRONOS_validation not present, validation is disabled\n";
-                pLogger->info("Disabled Validation Layers since it was not found");
+                m_logger->info("Disabled Validation Layers since it was not found");
             }
         }
 #endif
@@ -151,16 +151,16 @@ namespace VkRender {
 
     bool VulkanRenderer::initVulkan() {
         // Create Instance
-        VkResult err = createInstance(settings.validation);
+        VkResult err = createInstance(m_settings.validation);
         if (err) {
             throw std::runtime_error("Could not create Vulkan instance");
         }
-        pLogger->info("Vulkan Instance successfully created");
+        m_logger->info("Vulkan Instance successfully created");
         // If requested, we flashing the default validation layers for debugging
         // If requested, we flashing the default validation layers for debugging
 #ifdef VKRENDER_MULTISENSE_VIEWER_DEBUG
 
-        if (settings.validation) {
+        if (m_settings.validation) {
             // The report flags determine what type of messages for the layers will be displayed
             // For validating (debugging) an application the error and warning bits should suffice
             // Additional flags include performance info, loader and layer debug messages, etc.
@@ -213,22 +213,22 @@ namespace VkRender {
             //enabledDeviceExtensions.push_back(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME);
             //VkRender::RendererConfig::getInstance().addEnabledExtension(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME);
         } else {
-            pLogger->error("YCBCR Sampler Extension support not found!");
+            m_logger->error("YCBCR Sampler Extension support not found!");
         }
 
         // Vulkan m_Device creation
         // This is firstUpdate by a separate class that gets a logical m_Device representation
         // and encapsulates functions related to a m_Device
-        vulkanDevice = new VulkanDevice(physicalDevice, &queueSubmitMutex);
-        err = vulkanDevice->createLogicalDevice(enabledFeatures, enabledDeviceExtensions, &features);
+        m_vulkanDevice = new VulkanDevice(physicalDevice, &queueSubmitMutex);
+        err = m_vulkanDevice->createLogicalDevice(enabledFeatures, enabledDeviceExtensions, &features);
         if (err != VK_SUCCESS)
             throw std::runtime_error("Failed to create logical device");
 
-        device = vulkanDevice->m_LogicalDevice;
+        device = m_vulkanDevice->m_LogicalDevice;
         // Get a graphics queue from the m_Device
-        vkGetDeviceQueue(device, vulkanDevice->m_QueueFamilyIndices.graphics, 0, &graphicsQueue);
+        vkGetDeviceQueue(device, m_vulkanDevice->m_QueueFamilyIndices.graphics, 0, &graphicsQueue);
         // Get Compute queue
-        vkGetDeviceQueue(device, vulkanDevice->m_QueueFamilyIndices.compute, 0, &computeQueue);
+        vkGetDeviceQueue(device, m_vulkanDevice->m_QueueFamilyIndices.compute, 0, &computeQueue);
         // Find a suitable depth m_Format
         depthFormat = Utils::findDepthFormat(physicalDevice);
 
@@ -245,14 +245,19 @@ namespace VkRender {
         allocatorCreateInfo.instance = instance;
         allocatorCreateInfo.pVulkanFunctions = &vulkanFunctions;
 
-        vmaCreateAllocator(&allocatorCreateInfo, &allocator);
+        allocatorCreateInfo.flags = VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT | VMA_ALLOCATOR_CREATE_KHR_DEDICATED_ALLOCATION_BIT;
 
+        VkResult result = vmaCreateAllocator(&allocatorCreateInfo, &m_allocator);
+        if (result != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create VMA allocator");
+        }
         return true;
     }
 
     VulkanRenderer::~VulkanRenderer() {
 
-        std::vector<SecondaryRenderPasses> passes = {{depthRenderPass, uiRenderPass, secondRenderPass}};
+        /*
+        std::vector<EditorRenderPass> passes = {{depthRenderPass, uiRenderPass, secondRenderPass}};
         // Destroy the secondary renderpasses
         for (auto &pass: passes) {
             vkFreeMemory(device, pass.depthStencil.mem, nullptr);
@@ -274,16 +279,20 @@ namespace VkRender {
             vkDestroyRenderPass(device, pass.renderPass, nullptr);
         }
 
+         */
 
         // CleanUP all vulkan resources
         swapchain->cleanup();
+
+        /*
         // VulkanRenderer resources
-        vkDestroyImage(device, depthStencil.image, nullptr);
-        vkDestroyImageView(device, depthStencil.view, nullptr);
-        vkFreeMemory(device, depthStencil.mem, nullptr);
-        vkDestroyImage(device, colorImage.image, nullptr);
-        vkDestroyImageView(device, colorImage.view, nullptr);
-        vkFreeMemory(device, colorImage.mem, nullptr);
+        vkDestroyImage(device, m_depthStencil.image, nullptr);
+        vkDestroyImageView(device, m_depthStencil.view, nullptr);
+        vkFreeMemory(device, m_depthStencil.mem, nullptr);
+        vkDestroyImage(device, m_colorImage.image, nullptr);
+        vkDestroyImageView(device, m_colorImage.view, nullptr);
+        vkFreeMemory(device, m_colorImage.mem, nullptr);
+        */
         vkDestroyCommandPool(device, cmdPool, nullptr);
         vkDestroyCommandPool(device, cmdPoolCompute, nullptr);
         for (auto &fence: waitFences) {
@@ -293,7 +302,7 @@ namespace VkRender {
             vkDestroyFence(device, fence, nullptr);
         }
 
-        vkDestroyRenderPass(device, renderPass, nullptr);
+        //vkDestroyRenderPass(device, renderPass, nullptr);
         for (auto &fb: frameBuffers) {
             vkDestroyFramebuffer(device, fb, nullptr);
         }
@@ -304,16 +313,16 @@ namespace VkRender {
             vkDestroySemaphore(device, semaphore.computeComplete, nullptr);
         }
 #ifdef VKRENDER_MULTISENSE_VIEWER_DEBUG
-        if (settings.validation)
+        if (m_settings.validation)
             Validation::DestroyDebugUtilsMessengerEXT(instance, debugUtilsMessenger, nullptr);
 #endif
-        vmaDestroyAllocator(allocator);
+        vmaDestroyAllocator(m_allocator);
 
-        delete vulkanDevice; //Call to destructor for smart pointer destroy logical m_Device before instance
+        delete m_vulkanDevice; //Call to destructor for smart pointer destroy logical m_Device before instance
         vkDestroyInstance(instance, nullptr);
         // Cleanup GLFW Resources
-        glfwDestroyCursor(cursors.arrow);
-        glfwDestroyCursor(cursors.resizeVertical);
+        glfwDestroyCursor(m_cursors.arrow);
+        glfwDestroyCursor(m_cursors.resizeVertical);
         // CleanUp GLFW window
         glfwDestroyWindow(window);
         glfwTerminate();
@@ -337,215 +346,6 @@ namespace VkRender {
     void VulkanRenderer::buildCommandBuffers() {
     }
 
-    void VulkanRenderer::setupDepthStencil() {
-        VkImageCreateInfo imageCI = Populate::imageCreateInfo();
-        imageCI.imageType = VK_IMAGE_TYPE_2D;
-        imageCI.format = depthFormat;
-        imageCI.extent = {m_Width, m_Height, 1};
-        imageCI.mipLevels = 1;
-        imageCI.arrayLayers = 1;
-        imageCI.samples = msaaSamples;
-        imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
-        imageCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-
-        VkResult result = vkCreateImage(device, &imageCI, nullptr, &depthStencil.image);
-        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create depth m_Image");
-
-        VkMemoryRequirements memReqs{};
-        vkGetImageMemoryRequirements(device, depthStencil.image, &memReqs);
-
-        VkMemoryAllocateInfo memAllloc = Populate::memoryAllocateInfo();
-        memAllloc.allocationSize = memReqs.size;
-        memAllloc.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits,
-                                                                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-        result = vkAllocateMemory(device, &memAllloc, nullptr, &depthStencil.mem);
-        if (result != VK_SUCCESS) throw std::runtime_error("Failed to allocate depth m_Image memory");
-        result = vkBindImageMemory(device, depthStencil.image, depthStencil.mem, 0);
-        if (result != VK_SUCCESS) throw std::runtime_error("Failed to bind depth m_Image memory");
-
-        VkImageViewCreateInfo imageViewCI = Populate::imageViewCreateInfo();
-        imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        imageViewCI.image = depthStencil.image;
-        imageViewCI.format = depthFormat;
-        imageViewCI.subresourceRange.baseMipLevel = 0;
-        imageViewCI.subresourceRange.levelCount = 1;
-        imageViewCI.subresourceRange.baseArrayLayer = 0;
-        imageViewCI.subresourceRange.layerCount = 1;
-        imageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-        // Stencil aspect should only be set on depth + stencil formats (VK_FORMAT_D16_UNORM_S8_UINT..VK_FORMAT_D32_SFLOAT_S8_UINT
-        if (depthFormat >= VK_FORMAT_D16_UNORM_S8_UINT) {
-            imageViewCI.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
-        }
-        result = vkCreateImageView(device, &imageViewCI, nullptr, &depthStencil.view);
-        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create depth m_Image m_View");
-    }
-
-    void VulkanRenderer::setupMainFramebuffer() {
-        // Depth/Stencil attachment is the same for all frame buffers
-        if (msaaSamples == VK_SAMPLE_COUNT_1_BIT) {
-            std::array<VkImageView, 2> attachments{};
-            attachments[1] = depthStencil.view;
-            VkFramebufferCreateInfo frameBufferCreateInfo = Populate::framebufferCreateInfo(m_Width, m_Height,
-                                                                                            attachments.data(),
-                                                                                            attachments.size(),
-                                                                                            renderPass);
-            frameBuffers.resize(swapchain->imageCount);
-            for (uint32_t i = 0; i < frameBuffers.size(); i++) {
-                attachments[0] = swapchain->buffers[i].view;
-                VkResult result = vkCreateFramebuffer(device, &frameBufferCreateInfo, nullptr, &frameBuffers[i]);
-                if (result != VK_SUCCESS) throw std::runtime_error("Failed to create framebuffer");
-            }
-        } else {
-            std::array<VkImageView, 3> attachments{};
-            attachments[0] = colorImage.view;
-            attachments[1] = depthStencil.view;
-            VkFramebufferCreateInfo frameBufferCreateInfo = Populate::framebufferCreateInfo(m_Width, m_Height,
-                                                                                            attachments.data(),
-                                                                                            attachments.size(),
-                                                                                            renderPass);
-            frameBuffers.resize(swapchain->imageCount);
-            for (uint32_t i = 0; i < frameBuffers.size(); i++) {
-                attachments[2] = swapchain->buffers[i].view;
-                VkResult result = vkCreateFramebuffer(device, &frameBufferCreateInfo, nullptr, &frameBuffers[i]);
-                if (result != VK_SUCCESS) throw std::runtime_error("Failed to create framebuffer");
-            }
-        }
-    }
-
-    void VulkanRenderer::setupRenderPass() {
-        {
-            std::vector<VkAttachmentDescription> attachments;
-            VkSubpassDescription subpassDescription{};
-
-
-            VkAttachmentReference colorReference{};
-            VkAttachmentReference depthReference{};
-            VkAttachmentReference colorAttachmentResolveRef{};
-
-
-            if (msaaSamples == VK_SAMPLE_COUNT_1_BIT) {
-                attachments.resize(2);
-
-                attachments[0].format = swapchain->colorFormat;
-                attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
-                attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-                attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-                attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-                attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-                attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-                attachments[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-                // Depth attachment
-                attachments[1].format = depthFormat;
-                attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
-                attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-                attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-                attachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-                attachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-                attachments[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-                attachments[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-                depthReference.attachment = 1;
-                depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-                colorReference.attachment = 0;
-                colorReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-                subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-                subpassDescription.colorAttachmentCount = 1;
-                subpassDescription.pColorAttachments = &colorReference;
-                subpassDescription.pDepthStencilAttachment = &depthReference;
-                subpassDescription.inputAttachmentCount = 0;
-                subpassDescription.pInputAttachments = nullptr;
-                subpassDescription.preserveAttachmentCount = 0;
-                subpassDescription.pPreserveAttachments = nullptr;
-                subpassDescription.pResolveAttachments = nullptr;
-            } else {
-                VkAttachmentDescription colorAttachment{};
-                // Color attachment
-                colorAttachment.format = swapchain->colorFormat;
-                colorAttachment.samples = msaaSamples;
-                colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-                colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-                colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-                colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-                colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-                colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-                // Depth attachment
-                VkAttachmentDescription depthAttachment{};
-                depthAttachment.format = depthFormat;
-                depthAttachment.samples = msaaSamples;
-                depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-                depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-                depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-                depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-                depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-                depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-                VkAttachmentDescription colorAttachmentResolve{};
-                colorAttachmentResolve.format = swapchain->colorFormat;
-                colorAttachmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
-                colorAttachmentResolve.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-                colorAttachmentResolve.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-                colorAttachmentResolve.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-                colorAttachmentResolve.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-                colorAttachmentResolve.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-                colorAttachmentResolve.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-                attachments = {{colorAttachment, depthAttachment, colorAttachmentResolve}};
-
-                colorAttachmentResolveRef.attachment = 2;
-                colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-                colorReference.attachment = 0;
-                colorReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-                depthReference.attachment = 1;
-                depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-                subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-                subpassDescription.colorAttachmentCount = 1;
-                subpassDescription.pColorAttachments = &colorReference;
-                subpassDescription.pDepthStencilAttachment = &depthReference;
-                subpassDescription.inputAttachmentCount = 0;
-                subpassDescription.pInputAttachments = nullptr;
-                subpassDescription.preserveAttachmentCount = 0;
-                subpassDescription.pPreserveAttachments = nullptr;
-                subpassDescription.pResolveAttachments = &colorAttachmentResolveRef;
-            }
-
-
-            // Subpass dependencies for layout transitions
-            std::array<VkSubpassDependency, 2> dependencies{};
-
-            dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
-            dependencies[0].dstSubpass = 0;
-            dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-            dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-            dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-            dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-            dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-            dependencies[1].srcSubpass = 0;
-            dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
-            dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-            dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-            dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-            dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-            dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-            VkRenderPassCreateInfo renderPassInfo = Populate::renderPassCreateInfo();
-            renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-            renderPassInfo.pAttachments = attachments.data();
-            renderPassInfo.subpassCount = 1;
-            renderPassInfo.pSubpasses = &subpassDescription;
-            renderPassInfo.dependencyCount = static_cast<uint32_t>(dependencies.size());
-            renderPassInfo.pDependencies = dependencies.data();
-
-            VkResult result = (vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass));
-            if (result != VK_SUCCESS) throw std::runtime_error("Failed to create render pass");
-        }
-
-    }
 
     void VulkanRenderer::createCommandPool() {
         VkCommandPoolCreateInfo cmdPoolInfo = Populate::commandPoolCreateInfo();
@@ -555,7 +355,7 @@ namespace VkRender {
         if (result != VK_SUCCESS) throw std::runtime_error("Failed to create command pool");
 
         VkCommandPoolCreateInfo cmdPoolComputeInfo = Populate::commandPoolCreateInfo();
-        cmdPoolComputeInfo.queueFamilyIndex = vulkanDevice->m_QueueFamilyIndices.compute;
+        cmdPoolComputeInfo.queueFamilyIndex = m_vulkanDevice->m_QueueFamilyIndices.compute;
         cmdPoolComputeInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
         result = vkCreateCommandPool(device, &cmdPoolComputeInfo, nullptr, &cmdPoolCompute);
         if (result != VK_SUCCESS) throw std::runtime_error("Failed to create compute command pool");
@@ -628,612 +428,21 @@ namespace VkRender {
         info.pWindow = window;
         info.physicalDevice = physicalDevice;
         info.device = device;
-        info.vsync = settings.vsync;
-        swapchain = std::make_unique<VulkanSwapchain>(info, &m_Width, &m_Height);
+        info.vsync = m_settings.vsync;
+        swapchain = std::make_unique<VulkanSwapchain>(info, &m_width, &m_height);
 
         createCommandPool();
         createCommandBuffers();
         createSynchronizationPrimitives();
-        createColorResources();
-        setupDepthStencil();
-        setupRenderPass();
-        createPipelineCache();
-        setupMainFramebuffer();
 
-        pLogger->info("Initialized Renderer backend");
+        createPipelineCache();
+
+        m_logger->info("Initialized Renderer backend");
 
         rendererStartTime = std::chrono::system_clock::now();
     }
 
-    void VulkanRenderer::setupUIRenderPass(SecondaryRenderPasses *secondaryRenderPasses) {
-        VkSampleCountFlagBits sampleCount = secondaryRenderPasses->multisampled ? msaaSamples : VK_SAMPLE_COUNT_1_BIT;
 
-        //// COLOR IMAGE RESOURCE /////
-        VkImageCreateInfo colorImageCI = Populate::imageCreateInfo();
-        colorImageCI.imageType = VK_IMAGE_TYPE_2D;
-        colorImageCI.format = VK_FORMAT_R8G8B8A8_UNORM;
-        colorImageCI.extent = {m_Width, m_Height, 1};
-        colorImageCI.mipLevels = 1;
-        colorImageCI.arrayLayers = 1;
-        colorImageCI.samples = sampleCount;
-        colorImageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
-        colorImageCI.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-        colorImageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-        VkResult result = vkCreateImage(device, &colorImageCI, nullptr, &secondaryRenderPasses->colorImage.image);
-        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create colorImage");
-
-        if (secondaryRenderPasses->multisampled) {
-            // Create an additional resolved image if MSAA is used
-            VkImageCreateInfo resolvedImageCI = colorImageCI; // Copy from colorImageCI for basic settings
-            resolvedImageCI.samples = VK_SAMPLE_COUNT_1_BIT;
-            resolvedImageCI.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-            result = vkCreateImage(device, &resolvedImageCI, nullptr,
-                                   &secondaryRenderPasses->colorImage.resolvedImage);
-            if (result != VK_SUCCESS) throw std::runtime_error("Failed to create resolvedImage");
-        }
-
-
-        {
-            VkMemoryRequirements colorMemReqs{};
-            vkGetImageMemoryRequirements(device, secondaryRenderPasses->colorImage.image, &colorMemReqs);
-
-            VkMemoryAllocateInfo colorMemAllloc = Populate::memoryAllocateInfo();
-            colorMemAllloc.allocationSize = colorMemReqs.size;
-            colorMemAllloc.memoryTypeIndex = vulkanDevice->getMemoryType(colorMemReqs.memoryTypeBits,
-                                                                         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-            result = vkAllocateMemory(device, &colorMemAllloc, nullptr, &secondaryRenderPasses->colorImage.mem);
-            if (result != VK_SUCCESS) throw std::runtime_error("Failed to allocate depth m_Image memory");
-            result = vkBindImageMemory(device, secondaryRenderPasses->colorImage.image,
-                                       secondaryRenderPasses->colorImage.mem, 0);
-            if (result != VK_SUCCESS) throw std::runtime_error("Failed to bind depth m_Image memory");
-
-        }
-        if (secondaryRenderPasses->multisampled) {
-            VkMemoryRequirements colorMemReqs{};
-            vkGetImageMemoryRequirements(device, secondaryRenderPasses->colorImage.resolvedImage, &colorMemReqs);
-
-            VkMemoryAllocateInfo colorMemAllloc = Populate::memoryAllocateInfo();
-            colorMemAllloc.allocationSize = colorMemReqs.size;
-            colorMemAllloc.memoryTypeIndex = vulkanDevice->getMemoryType(colorMemReqs.memoryTypeBits,
-                                                                         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-            result = vkAllocateMemory(device, &colorMemAllloc, nullptr,
-                                      &secondaryRenderPasses->colorImage.resolvedMem);
-            if (result != VK_SUCCESS) throw std::runtime_error("Failed to allocate depth m_Image memory");
-            result = vkBindImageMemory(device, secondaryRenderPasses->colorImage.resolvedImage,
-                                       secondaryRenderPasses->colorImage.resolvedMem, 0);
-            if (result != VK_SUCCESS) throw std::runtime_error("Failed to bind depth m_Image memory");
-        }
-
-
-        VkImageViewCreateInfo colorImageViewCI = Populate::imageViewCreateInfo();
-        colorImageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        colorImageViewCI.image = secondaryRenderPasses->colorImage.image;
-        colorImageViewCI.format = VK_FORMAT_R8G8B8A8_UNORM;
-        colorImageViewCI.subresourceRange.baseMipLevel = 0;
-        colorImageViewCI.subresourceRange.levelCount = 1;
-        colorImageViewCI.subresourceRange.baseArrayLayer = 0;
-        colorImageViewCI.subresourceRange.layerCount = 1;
-        colorImageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        // Stencil aspect should only be set on depth + stencil formats (VK_FORMAT_D16_UNORM_S8_UINT..VK_FORMAT_D32_SFLOAT_S8_UINT
-        if (depthFormat >= VK_FORMAT_D16_UNORM_S8_UINT) {
-            colorImageViewCI.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
-        }
-
-        result = vkCreateImageView(device, &colorImageViewCI, nullptr, &secondaryRenderPasses->colorImage.view);
-        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create colorImage view");
-
-        if (secondaryRenderPasses->multisampled) {
-            colorImageViewCI.image = secondaryRenderPasses->colorImage.resolvedImage;
-            result = vkCreateImageView(device, &colorImageViewCI, nullptr,
-                                       &secondaryRenderPasses->colorImage.resolvedView);
-            if (result != VK_SUCCESS) throw std::runtime_error("Failed to create resolvedVie");
-        }
-        //// SAMPLER SETUP ////
-        VkSamplerCreateInfo samplerInfo = {};
-        samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-        samplerInfo.magFilter = VK_FILTER_LINEAR; // Magnification filter
-        samplerInfo.minFilter = VK_FILTER_LINEAR; // Minification filter
-        samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE; // Wrap mode for texture coordinate U
-        samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE; // Wrap mode for texture coordinate V
-        samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE; // Wrap mode for texture coordinate W
-        samplerInfo.anisotropyEnable = VK_TRUE; // Enable anisotropic filtering
-        samplerInfo.maxAnisotropy = 16; // Max level of anisotropy
-        samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK; // Border color when using VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER
-        samplerInfo.unnormalizedCoordinates = VK_FALSE; // Use normalized texture coordinates
-        samplerInfo.compareEnable = VK_FALSE; // Enable comparison mode for the sampler
-        samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS; // Comparison operator if compareEnable is VK_TRUE
-        samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR; // Mipmap interpolation mode
-        samplerInfo.minLod = 0; // Minimum level of detail
-        samplerInfo.maxLod = VK_LOD_CLAMP_NONE; // Maximum level of detail
-        samplerInfo.mipLodBias = 0.0f; // Level of detail bias
-
-        if (vkCreateSampler(device, &samplerInfo, nullptr, &secondaryRenderPasses->colorImage.sampler) !=
-            VK_SUCCESS) {
-            throw std::runtime_error("failed to create texture sampler!");
-        }
-
-        VkAttachmentDescription uiColorAttachment = {};
-        uiColorAttachment.format = swapchain->colorFormat;
-        uiColorAttachment.samples = msaaSamples;
-        uiColorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD; // Load since it follows the main pass
-        uiColorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        uiColorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        uiColorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        uiColorAttachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        uiColorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-        VkAttachmentDescription uiResolveAttachment = {};
-        uiResolveAttachment.format = swapchain->colorFormat;
-        uiResolveAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-        uiResolveAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        uiResolveAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        uiResolveAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        uiResolveAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        uiResolveAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        uiResolveAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-        VkAttachmentDescription dummyDepthAttachment = {};
-        dummyDepthAttachment.format = depthFormat;
-        dummyDepthAttachment.samples = msaaSamples;
-        dummyDepthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        dummyDepthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        dummyDepthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        dummyDepthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        dummyDepthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        dummyDepthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-        VkAttachmentReference uiColorAttachmentRef = {};
-        uiColorAttachmentRef.attachment = 0;
-        uiColorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-        VkAttachmentReference uiResolveAttachmentRef = {};
-        uiResolveAttachmentRef.attachment = 2;
-        uiResolveAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-        VkAttachmentReference dummyDepthAttachmentRef = {};
-        dummyDepthAttachmentRef.attachment = 1;
-        dummyDepthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-        VkSubpassDescription uiSubpass = {};
-        uiSubpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        uiSubpass.colorAttachmentCount = 1;
-        uiSubpass.pColorAttachments = &uiColorAttachmentRef;
-        uiSubpass.pResolveAttachments = &uiResolveAttachmentRef;
-        uiSubpass.pDepthStencilAttachment = &dummyDepthAttachmentRef;
-
-        std::array<VkSubpassDependency, 2> uiDependencies = {};
-        uiDependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
-        uiDependencies[0].dstSubpass = 0;
-        uiDependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-        uiDependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        uiDependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-        uiDependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-        uiDependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-        uiDependencies[1].srcSubpass = 0;
-        uiDependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
-        uiDependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        uiDependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-        uiDependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-        uiDependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-        uiDependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-        std::array<VkAttachmentDescription, 3> uiAttachments = {uiColorAttachment, dummyDepthAttachment,
-                                                                uiResolveAttachment};
-        VkRenderPassCreateInfo uiRenderPassInfo = {};
-        uiRenderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-        uiRenderPassInfo.attachmentCount = static_cast<uint32_t>(uiAttachments.size());
-        uiRenderPassInfo.pAttachments = uiAttachments.data();
-        uiRenderPassInfo.subpassCount = 1;
-        uiRenderPassInfo.pSubpasses = &uiSubpass;
-        uiRenderPassInfo.dependencyCount = static_cast<uint32_t>(uiDependencies.size());
-        uiRenderPassInfo.pDependencies = uiDependencies.data();
-
-        if (vkCreateRenderPass(device, &uiRenderPassInfo, nullptr, &uiRenderPass.renderPass) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create UI render pass!");
-        }
-
-        VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-
-        VkImageSubresourceRange subresourceRange = {};
-        subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        subresourceRange.levelCount = 1;
-        subresourceRange.layerCount = 1;
-
-        if (secondaryRenderPasses->multisampled) {
-            Utils::setImageLayout(copyCmd, secondaryRenderPasses->colorImage.resolvedImage, VK_IMAGE_LAYOUT_UNDEFINED,
-                                  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, subresourceRange,
-                                  VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
-        } else {
-            Utils::setImageLayout(copyCmd, secondaryRenderPasses->colorImage.image, VK_IMAGE_LAYOUT_UNDEFINED,
-                                  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, subresourceRange,
-                                  VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
-        }
-
-        vulkanDevice->flushCommandBuffer(copyCmd, graphicsQueue, true);
-
-        secondaryRenderPasses->imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        secondaryRenderPasses->imageInfo.imageView = secondaryRenderPasses->colorImage.view; // Your off-screen image view
-        secondaryRenderPasses->imageInfo.sampler = secondaryRenderPasses->colorImage.sampler; // The sampler you've just created
-        if (secondaryRenderPasses->multisampled) {
-            secondaryRenderPasses->imageInfo.imageView = secondaryRenderPasses->colorImage.resolvedView; // Your off-screen image view
-
-        }
-    }
-
-    void VulkanRenderer::setupSecondaryRenderPasses(SecondaryRenderPasses *secondaryRenderPasses) {
-        // Color image resource
-        // Depth stencil resource
-        // Render Pass
-        // Frame Buffer
-        VkSampleCountFlagBits sampleCount = secondaryRenderPasses->multisampled ? msaaSamples : VK_SAMPLE_COUNT_1_BIT;
-
-        //// DEPTH STENCIL RESOURCE /////
-        VkImageCreateInfo depthImageCI = Populate::imageCreateInfo();
-        depthImageCI.imageType = VK_IMAGE_TYPE_2D;
-        depthImageCI.format = depthFormat;
-        depthImageCI.extent = {m_Width, m_Height, 1};
-        depthImageCI.mipLevels = 1;
-        depthImageCI.arrayLayers = 1;
-        depthImageCI.samples = sampleCount;
-        depthImageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
-        depthImageCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
-                             VK_IMAGE_USAGE_SAMPLED_BIT;
-        depthImageCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-        if (!secondaryRenderPasses->multisampled) {
-            depthImageCI.usage |= VK_IMAGE_USAGE_SAMPLED_BIT |
-                                  VK_IMAGE_USAGE_TRANSFER_SRC_BIT; // Add sampled bit if not using MSAA, useful for certain post-processing effects
-        }
-
-        VkResult result = vkCreateImage(device, &depthImageCI, nullptr, &secondaryRenderPasses->depthStencil.image);
-        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create depth m_Image");
-
-        VkMemoryRequirements depthMemReqs{};
-        vkGetImageMemoryRequirements(device, secondaryRenderPasses->depthStencil.image, &depthMemReqs);
-
-        VkMemoryAllocateInfo depthMemAllloc = Populate::memoryAllocateInfo();
-        depthMemAllloc.allocationSize = depthMemReqs.size;
-        depthMemAllloc.memoryTypeIndex = vulkanDevice->getMemoryType(depthMemReqs.memoryTypeBits,
-                                                                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-        result = vkAllocateMemory(device, &depthMemAllloc, nullptr, &secondaryRenderPasses->depthStencil.mem);
-        if (result != VK_SUCCESS) throw std::runtime_error("Failed to allocate depth m_Image memory");
-        result = vkBindImageMemory(device, secondaryRenderPasses->depthStencil.image,
-                                   secondaryRenderPasses->depthStencil.mem, 0);
-        if (result != VK_SUCCESS) throw std::runtime_error("Failed to bind depth m_Image memory");
-
-        VkImageViewCreateInfo depthImageViewCI = Populate::imageViewCreateInfo();
-        depthImageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        depthImageViewCI.image = secondaryRenderPasses->depthStencil.image;
-        depthImageViewCI.format = depthFormat;
-        depthImageViewCI.subresourceRange.baseMipLevel = 0;
-        depthImageViewCI.subresourceRange.levelCount = 1;
-        depthImageViewCI.subresourceRange.baseArrayLayer = 0;
-        depthImageViewCI.subresourceRange.layerCount = 1;
-        depthImageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-        // Stencil aspect should only be set on depth + stencil formats (VK_FORMAT_D16_UNORM_S8_UINT..VK_FORMAT_D32_SFLOAT_S8_UINT
-        if (depthFormat >= VK_FORMAT_D16_UNORM_S8_UINT) {
-            depthImageViewCI.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
-        }
-        result = vkCreateImageView(device, &depthImageViewCI, nullptr, &secondaryRenderPasses->depthStencil.view);
-        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create depth m_Image m_View");
-
-        //// COLOR IMAGE RESOURCE /////
-        VkImageCreateInfo colorImageCI = Populate::imageCreateInfo();
-        colorImageCI.imageType = VK_IMAGE_TYPE_2D;
-        colorImageCI.format = secondaryRenderPasses->setupFrameBuffer ? VK_FORMAT_R8G8B8A8_UNORM
-                                                                      : swapchain->colorFormat;
-        colorImageCI.extent = {m_Width, m_Height, 1};
-        colorImageCI.mipLevels = 1;
-        colorImageCI.arrayLayers = 1;
-        colorImageCI.samples = sampleCount;
-        colorImageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
-        colorImageCI.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-        colorImageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-        result = vkCreateImage(device, &colorImageCI, nullptr, &secondaryRenderPasses->colorImage.image);
-        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create colorImage");
-
-        if (secondaryRenderPasses->multisampled) {
-            // Create an additional resolved image if MSAA is used
-            VkImageCreateInfo resolvedImageCI = colorImageCI; // Copy from colorImageCI for basic settings
-            resolvedImageCI.samples = VK_SAMPLE_COUNT_1_BIT;
-            resolvedImageCI.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-            result = vkCreateImage(device, &resolvedImageCI, nullptr,
-                                   &secondaryRenderPasses->colorImage.resolvedImage);
-            if (result != VK_SUCCESS) throw std::runtime_error("Failed to create resolvedImage");
-        }
-
-
-        {
-            VkMemoryRequirements colorMemReqs{};
-            vkGetImageMemoryRequirements(device, secondaryRenderPasses->colorImage.image, &colorMemReqs);
-
-            VkMemoryAllocateInfo colorMemAllloc = Populate::memoryAllocateInfo();
-            colorMemAllloc.allocationSize = colorMemReqs.size;
-            colorMemAllloc.memoryTypeIndex = vulkanDevice->getMemoryType(colorMemReqs.memoryTypeBits,
-                                                                         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-            result = vkAllocateMemory(device, &colorMemAllloc, nullptr, &secondaryRenderPasses->colorImage.mem);
-            if (result != VK_SUCCESS) throw std::runtime_error("Failed to allocate depth m_Image memory");
-            result = vkBindImageMemory(device, secondaryRenderPasses->colorImage.image,
-                                       secondaryRenderPasses->colorImage.mem, 0);
-            if (result != VK_SUCCESS) throw std::runtime_error("Failed to bind depth m_Image memory");
-
-        }
-        if (secondaryRenderPasses->multisampled) {
-            VkMemoryRequirements colorMemReqs{};
-            vkGetImageMemoryRequirements(device, secondaryRenderPasses->colorImage.resolvedImage, &colorMemReqs);
-
-            VkMemoryAllocateInfo colorMemAllloc = Populate::memoryAllocateInfo();
-            colorMemAllloc.allocationSize = colorMemReqs.size;
-            colorMemAllloc.memoryTypeIndex = vulkanDevice->getMemoryType(colorMemReqs.memoryTypeBits,
-                                                                         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-            result = vkAllocateMemory(device, &colorMemAllloc, nullptr,
-                                      &secondaryRenderPasses->colorImage.resolvedMem);
-            if (result != VK_SUCCESS) throw std::runtime_error("Failed to allocate depth m_Image memory");
-            result = vkBindImageMemory(device, secondaryRenderPasses->colorImage.resolvedImage,
-                                       secondaryRenderPasses->colorImage.resolvedMem, 0);
-            if (result != VK_SUCCESS) throw std::runtime_error("Failed to bind depth m_Image memory");
-        }
-
-
-        VkImageViewCreateInfo colorImageViewCI = Populate::imageViewCreateInfo();
-        colorImageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        colorImageViewCI.image = secondaryRenderPasses->colorImage.image;
-        colorImageViewCI.format = secondaryRenderPasses->setupFrameBuffer ? VK_FORMAT_R8G8B8A8_UNORM
-                                                                          : swapchain->colorFormat;;
-        colorImageViewCI.subresourceRange.baseMipLevel = 0;
-        colorImageViewCI.subresourceRange.levelCount = 1;
-        colorImageViewCI.subresourceRange.baseArrayLayer = 0;
-        colorImageViewCI.subresourceRange.layerCount = 1;
-        colorImageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        // Stencil aspect should only be set on depth + stencil formats (VK_FORMAT_D16_UNORM_S8_UINT..VK_FORMAT_D32_SFLOAT_S8_UINT
-        if (depthFormat >= VK_FORMAT_D16_UNORM_S8_UINT) {
-            colorImageViewCI.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
-        }
-
-        result = vkCreateImageView(device, &colorImageViewCI, nullptr, &secondaryRenderPasses->colorImage.view);
-        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create colorImage view");
-
-        if (secondaryRenderPasses->multisampled) {
-            colorImageViewCI.image = secondaryRenderPasses->colorImage.resolvedImage;
-            result = vkCreateImageView(device, &colorImageViewCI, nullptr,
-                                       &secondaryRenderPasses->colorImage.resolvedView);
-            if (result != VK_SUCCESS) throw std::runtime_error("Failed to create resolvedVie");
-        }
-        //// SAMPLER SETUP ////
-        VkSamplerCreateInfo samplerInfo = {};
-        samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-        samplerInfo.magFilter = VK_FILTER_LINEAR; // Magnification filter
-        samplerInfo.minFilter = VK_FILTER_LINEAR; // Minification filter
-        samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE; // Wrap mode for texture coordinate U
-        samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE; // Wrap mode for texture coordinate V
-        samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE; // Wrap mode for texture coordinate W
-        samplerInfo.anisotropyEnable = VK_TRUE; // Enable anisotropic filtering
-        samplerInfo.maxAnisotropy = 16; // Max level of anisotropy
-        samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK; // Border color when using VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER
-        samplerInfo.unnormalizedCoordinates = VK_FALSE; // Use normalized texture coordinates
-        samplerInfo.compareEnable = VK_FALSE; // Enable comparison mode for the sampler
-        samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS; // Comparison operator if compareEnable is VK_TRUE
-        samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR; // Mipmap interpolation mode
-        samplerInfo.minLod = 0; // Minimum level of detail
-        samplerInfo.maxLod = VK_LOD_CLAMP_NONE; // Maximum level of detail
-        samplerInfo.mipLodBias = 0.0f; // Level of detail bias
-
-        if (vkCreateSampler(device, &samplerInfo, nullptr, &secondaryRenderPasses->colorImage.sampler) !=
-            VK_SUCCESS) {
-            throw std::runtime_error("failed to create texture sampler!");
-        }
-        if (vkCreateSampler(device, &samplerInfo, nullptr, &secondaryRenderPasses->depthStencil.sampler) !=
-            VK_SUCCESS) {
-            throw std::runtime_error("failed to create texture sampler!");
-        }
-
-        //// RenderPass setup ////
-        std::vector<VkAttachmentDescription> attachments;
-        VkSubpassDescription subpassDescription{};
-
-
-        VkAttachmentReference colorReference{};
-        VkAttachmentReference depthReference{};
-        VkAttachmentReference colorAttachmentResolveRef{};
-
-        VkAttachmentDescription colorAttachment{};
-        // Color attachment
-        colorAttachment.format = secondaryRenderPasses->setupFrameBuffer ? VK_FORMAT_R8G8B8A8_UNORM
-                                                                         : swapchain->colorFormat;
-        colorAttachment.samples = sampleCount;
-        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        colorAttachment.loadOp = secondaryRenderPasses->setupFrameBuffer ? VK_ATTACHMENT_LOAD_OP_CLEAR
-                                                                         : VK_ATTACHMENT_LOAD_OP_LOAD;
-        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        colorAttachment.initialLayout = secondaryRenderPasses->setupFrameBuffer ? VK_IMAGE_LAYOUT_UNDEFINED
-                                                                                : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        // Depth attachment
-        VkAttachmentDescription depthAttachment{};
-        depthAttachment.format = depthFormat;
-        depthAttachment.samples = sampleCount;
-        depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
-        depthAttachment.initialLayout = secondaryRenderPasses->setupFrameBuffer ? VK_IMAGE_LAYOUT_UNDEFINED
-                                                                                : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-        depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-        VkAttachmentDescription colorAttachmentResolve{};
-        colorAttachmentResolve.format = secondaryRenderPasses->setupFrameBuffer ? VK_FORMAT_R8G8B8A8_UNORM
-                                                                                : swapchain->colorFormat;
-        colorAttachmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
-        colorAttachmentResolve.loadOp = secondaryRenderPasses->setupFrameBuffer ? VK_ATTACHMENT_LOAD_OP_CLEAR
-                                                                                : VK_ATTACHMENT_LOAD_OP_LOAD;
-        colorAttachmentResolve.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        colorAttachmentResolve.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        colorAttachmentResolve.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        colorAttachmentResolve.initialLayout = secondaryRenderPasses->setupFrameBuffer ? VK_IMAGE_LAYOUT_UNDEFINED
-                                                                                       : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        colorAttachmentResolve.finalLayout = secondaryRenderPasses->setupFrameBuffer
-                                             ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-                                             : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-        subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        subpassDescription.colorAttachmentCount = 1;
-        subpassDescription.pColorAttachments = &colorReference;  // Color attachment
-        subpassDescription.pDepthStencilAttachment = &depthReference; // Depth attachment
-        subpassDescription.inputAttachmentCount = 0;
-        subpassDescription.pInputAttachments = nullptr;
-        subpassDescription.preserveAttachmentCount = 0;
-        subpassDescription.pPreserveAttachments = nullptr;
-
-        colorReference.attachment = 0;
-        colorReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        depthReference.attachment = 1;
-        depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-        if (secondaryRenderPasses->multisampled) {
-            attachments = {{colorAttachment, depthAttachment, colorAttachmentResolve}};
-
-            colorAttachmentResolveRef.attachment = 2;
-            colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-            subpassDescription.pResolveAttachments = &colorAttachmentResolveRef; // Where to resolve the multisampled color attachment
-
-        } else {
-            attachments = {{colorAttachment, depthAttachment}};
-        }
-
-
-        std::array<VkSubpassDependency, 2> dependencies{};
-
-        if (secondaryRenderPasses->setupFrameBuffer) {
-            // Subpass dependencies for layout transitions
-            dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
-            dependencies[0].dstSubpass = 0;
-            dependencies[0].srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT; // Adjusted
-            dependencies[0].dstStageMask =
-                    VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
-                    VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;;
-            dependencies[0].srcAccessMask = VK_ACCESS_NONE_KHR; // Adjusted to reflect completion of writes
-            dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
-                                            VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
-                                            VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;;
-            dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-            dependencies[1].srcSubpass = 0;
-            dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
-            dependencies[1].srcStageMask =
-                    VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
-                    VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-            dependencies[1].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT; // Adjusted if necessary
-            dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
-                                            VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT |
-                                            VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;;
-            dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT; // Adjusted if subsequent operations are general
-            dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-        } else {
-            dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
-            dependencies[0].dstSubpass = 0;
-            dependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-            dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-            dependencies[0].srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-            dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-            dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-            dependencies[1].srcSubpass = 0;
-            dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
-            dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-            dependencies[1].dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-            dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-            dependencies[1].dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
-            dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-        }
-
-        VkRenderPassCreateInfo renderPassInfo = Populate::renderPassCreateInfo();
-        renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-        renderPassInfo.pAttachments = attachments.data();
-        renderPassInfo.subpassCount = 1;
-        renderPassInfo.pSubpasses = &subpassDescription;
-        renderPassInfo.dependencyCount = static_cast<uint32_t>(dependencies.size());
-        renderPassInfo.pDependencies = dependencies.data();
-
-
-        if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &secondaryRenderPasses->renderPass) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create second render pass!");
-        }
-
-        //// FrameBuffer setup ////
-        if (secondaryRenderPasses->setupFrameBuffer) {
-            std::vector<VkImageView> framebufferAttachments{};
-            if (secondaryRenderPasses->multisampled) {
-                framebufferAttachments.resize(3);
-                framebufferAttachments[0] = secondaryRenderPasses->colorImage.view;
-                framebufferAttachments[1] = secondaryRenderPasses->depthStencil.view;
-                framebufferAttachments[2] = secondaryRenderPasses->colorImage.resolvedView;
-            } else {
-                framebufferAttachments.resize(2);
-                framebufferAttachments[0] = secondaryRenderPasses->colorImage.view;
-                framebufferAttachments[1] = secondaryRenderPasses->depthStencil.view;
-            }
-
-            VkFramebufferCreateInfo frameBufferCreateInfo = Populate::framebufferCreateInfo(m_Width, m_Height,
-                                                                                            framebufferAttachments.data(),
-                                                                                            framebufferAttachments.size(),
-                                                                                            secondaryRenderPasses->renderPass);
-            secondaryRenderPasses->frameBuffers.resize(swapchain->imageCount);
-            for (auto &frameBuffer: secondaryRenderPasses->frameBuffers) {
-                result = vkCreateFramebuffer(device, &frameBufferCreateInfo, nullptr,
-                                             &frameBuffer);
-                if (result != VK_SUCCESS) throw std::runtime_error("Failed to create secondary framebuffer");
-            }
-
-        }
-        VkCommandBuffer copyCmd = vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-
-
-        VkImageSubresourceRange subresourceRange = {};
-        subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        subresourceRange.levelCount = 1;
-        subresourceRange.layerCount = 1;
-
-        if (secondaryRenderPasses->multisampled) {
-            Utils::setImageLayout(copyCmd, secondaryRenderPasses->colorImage.resolvedImage, VK_IMAGE_LAYOUT_UNDEFINED,
-                                  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, subresourceRange,
-                                  VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
-        } else {
-            Utils::setImageLayout(copyCmd, secondaryRenderPasses->colorImage.image, VK_IMAGE_LAYOUT_UNDEFINED,
-                                  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, subresourceRange,
-                                  VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
-        }
-
-
-        VkImageSubresourceRange depthRange = {};
-        depthRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-        depthRange.levelCount = 1;
-        depthRange.layerCount = 1;
-
-        Utils::setImageLayout(copyCmd, secondaryRenderPasses->depthStencil.image, VK_IMAGE_LAYOUT_UNDEFINED,
-                              VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL, depthRange,
-                              VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT);
-
-
-        vulkanDevice->flushCommandBuffer(copyCmd, graphicsQueue, true);
-
-
-        secondaryRenderPasses->imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        secondaryRenderPasses->imageInfo.imageView = secondaryRenderPasses->colorImage.view; // Your off-screen image view
-        secondaryRenderPasses->imageInfo.sampler = secondaryRenderPasses->colorImage.sampler; // The sampler you've just created
-        if (secondaryRenderPasses->multisampled) {
-            secondaryRenderPasses->imageInfo.imageView = secondaryRenderPasses->colorImage.resolvedView; // Your off-screen image view
-
-        }
-        secondaryRenderPasses->depthImageInfo.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
-        secondaryRenderPasses->depthImageInfo.imageView = secondaryRenderPasses->depthStencil.view; // Your off-screen image view
-        secondaryRenderPasses->depthImageInfo.sampler = secondaryRenderPasses->depthStencil.sampler; // The sampler you've just created
-
-    }
 
     void VulkanRenderer::destroyCommandBuffers() {
         vkFreeCommandBuffers(device, cmdPool, static_cast<uint32_t>(drawCmdBuffers.buffers.size()),
@@ -1248,11 +457,11 @@ namespace VkRender {
         }
 
         backendInitialized = false;
-        glfwGetFramebufferSize(window, reinterpret_cast<int *>(&m_Width), reinterpret_cast<int *>(&m_Height));
+        glfwGetFramebufferSize(window, reinterpret_cast<int *>(&m_width), reinterpret_cast<int *>(&m_height));
         // Suspend application while it is in minimized state
         // Also unsignal semaphore for presentation because we are recreating the swapchain
-        while (m_Width == 0 || m_Height == 0) {
-            glfwGetFramebufferSize(window, reinterpret_cast<int *>(&m_Width), reinterpret_cast<int *>(&m_Height));
+        while (m_width == 0 || m_height == 0) {
+            glfwGetFramebufferSize(window, reinterpret_cast<int *>(&m_width), reinterpret_cast<int *>(&m_height));
             glfwWaitEvents();
         }
         // Ensure all operations on the m_Device have been finished before destroying resources
@@ -1260,17 +469,20 @@ namespace VkRender {
         vkDeviceWaitIdle(device);
 
         // Recreate swap chain
-        swapchain->create(&m_Width, &m_Height, settings.vsync);
+        swapchain->create(&m_width, &m_height, m_settings.vsync);
 
+        /*
         // Recreate the frame buffers
-        vkDestroyImageView(device, depthStencil.view, nullptr);
-        vkDestroyImage(device, depthStencil.image, nullptr);
-        vkFreeMemory(device, depthStencil.mem, nullptr);
-        vkDestroyImageView(device, colorImage.view, nullptr);
-        vkDestroyImage(device, colorImage.image, nullptr);
-        vkFreeMemory(device, colorImage.mem, nullptr);
+        vkDestroyImageView(device, m_depthStencil.view, nullptr);
+        vkDestroyImage(device, m_depthStencil.image, nullptr);
+        vkFreeMemory(device, m_depthStencil.mem, nullptr);
+        vkDestroyImageView(device, m_colorImage.view, nullptr);
+        vkDestroyImage(device, m_colorImage.image, nullptr);
+        vkFreeMemory(device, m_colorImage.mem, nullptr);
 
-        std::vector<SecondaryRenderPasses> passes = {{depthRenderPass, uiRenderPass, secondRenderPass}};
+        */
+        /*
+        std::vector<EditorRenderPass> passes = {{depthRenderPass, uiRenderPass, secondRenderPass}};
         // Destroy the secondary renderpasses
         for (auto &pass: passes) {
             vkFreeMemory(device, pass.depthStencil.mem, nullptr);
@@ -1292,9 +504,10 @@ namespace VkRender {
                 }
             vkDestroyRenderPass(device, pass.renderPass, nullptr);
         }
+        */
 
-        createColorResources();
-        setupDepthStencil();
+        //createColorResources();
+        //setupDepthStencil();
         for (auto &frameBuffer: frameBuffers) {
             vkDestroyFramebuffer(device, frameBuffer, nullptr);
         }
@@ -1311,14 +524,15 @@ namespace VkRender {
         //for (const auto& fence : waitFences) {
         //    vkDestroyFence(device, fence, nullptr);
         //}
-        setupMainFramebuffer();
 
+        /*
         // Maybe resize overlay too
         setupSecondaryRenderPasses(&depthRenderPass);
         setupUIRenderPass(&uiRenderPass);
         setupSecondaryRenderPasses(&secondRenderPass);
+        */
 
-        pLogger->info("Window Resized. New size is: {} x {}", m_Width, m_Height);
+        m_logger->info("Window Resized. New size is: {} x {}", m_width, m_height);
 
         // Notify derived class
         windowResized();
@@ -1336,8 +550,8 @@ namespace VkRender {
 
 
     void VulkanRenderer::renderLoop() {
-        destWidth = m_Width;
-        destHeight = m_Height;
+        destWidth = m_width;
+        destHeight = m_height;
         auto graphLastTimestamp = std::chrono::high_resolution_clock::now();
 
         while (!glfwWindowShouldClose(window)) {
@@ -1349,7 +563,7 @@ namespace VkRender {
             runTime = elapsed_milliseconds.count();
             /** Give ImGui Reference to this frame's input events **/
             ImGuiIO &io = ImGui::GetIO();
-            io.DisplaySize = ImVec2(static_cast<float>(m_Width), static_cast<float>(m_Height));
+            io.DisplaySize = ImVec2(static_cast<float>(m_width), static_cast<float>(m_height));
             io.DeltaTime = frameTimer;
             io.WantCaptureMouse = true;
             io.MousePos = ImVec2(mousePos.x, mousePos.y);
@@ -1530,7 +744,7 @@ namespace VkRender {
     void VulkanRenderer::keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
         auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
         if ((key == GLFW_KEY_ESCAPE) && action == GLFW_PRESS) {
-            myApp->pLogger->info("Escape key registered");
+            myApp->m_logger->info("Escape key registered");
             myApp->closeApplication();
         }
         ImGuiIO &io = ImGui::GetIO();
@@ -1600,7 +814,7 @@ namespace VkRender {
 
     void VulkanRenderer::handleMouseMove(float x, float y) {
         bool handled = false;
-        if (settings.overlay) {
+        if (m_settings.overlay) {
             ImGuiIO &io = ImGui::GetIO();
             io.WantCaptureMouse = true;
         }
@@ -1675,11 +889,11 @@ namespace VkRender {
             vkGetPhysicalDeviceProperties(d, &properties);
             vkGetPhysicalDeviceFeatures(d, &features);
             vkGetPhysicalDeviceMemoryProperties(d, &memoryProperties);
-            pLogger->info("Found physical d: {}, ", properties.deviceName);
+            m_logger->info("Found physical d: {}, ", properties.deviceName);
 
             // Search for a discrete GPU and prefer this one
             if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
-                pLogger->info("Picked Discrete GPU. Name: {}, ", properties.deviceName);
+                m_logger->info("Picked Discrete GPU. Name: {}, ", properties.deviceName);
                 return d;
             }
         }
@@ -1956,11 +1170,12 @@ namespace VkRender {
         }
     }
 
+    /*
     void VulkanRenderer::createColorResources() {
         VkImageCreateInfo imageCI = Populate::imageCreateInfo();
         imageCI.imageType = VK_IMAGE_TYPE_2D;
         imageCI.format = swapchain->colorFormat;
-        imageCI.extent = {m_Width, m_Height, 1};
+        imageCI.extent = {m_width, m_height, 1};
         imageCI.mipLevels = 1;
         imageCI.arrayLayers = 1;
         imageCI.samples = msaaSamples;
@@ -1968,24 +1183,24 @@ namespace VkRender {
         imageCI.usage = VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
         imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-        VkResult result = vkCreateImage(device, &imageCI, nullptr, &colorImage.image);
+        VkResult result = vkCreateImage(device, &imageCI, nullptr, &m_colorImage.image);
         if (result != VK_SUCCESS) throw std::runtime_error("Failed to create depth m_Image");
 
         VkMemoryRequirements memReqs{};
-        vkGetImageMemoryRequirements(device, colorImage.image, &memReqs);
+        vkGetImageMemoryRequirements(device, m_colorImage.image, &memReqs);
 
         VkMemoryAllocateInfo memAllloc = Populate::memoryAllocateInfo();
         memAllloc.allocationSize = memReqs.size;
-        memAllloc.memoryTypeIndex = vulkanDevice->getMemoryType(memReqs.memoryTypeBits,
-                                                                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-        result = vkAllocateMemory(device, &memAllloc, nullptr, &colorImage.mem);
+        memAllloc.memoryTypeIndex = m_vulkanDevice->getMemoryType(memReqs.memoryTypeBits,
+                                                                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        result = vkAllocateMemory(device, &memAllloc, nullptr, &m_colorImage.mem);
         if (result != VK_SUCCESS) throw std::runtime_error("Failed to allocate depth m_Image memory");
-        result = vkBindImageMemory(device, colorImage.image, colorImage.mem, 0);
+        result = vkBindImageMemory(device, m_colorImage.image, m_colorImage.mem, 0);
         if (result != VK_SUCCESS) throw std::runtime_error("Failed to bind depth m_Image memory");
 
         VkImageViewCreateInfo imageViewCI = Populate::imageViewCreateInfo();
         imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        imageViewCI.image = colorImage.image;
+        imageViewCI.image = m_colorImage.image;
         imageViewCI.format = swapchain->colorFormat;
         imageViewCI.subresourceRange.baseMipLevel = 0;
         imageViewCI.subresourceRange.levelCount = 1;
@@ -1996,10 +1211,11 @@ namespace VkRender {
         if (depthFormat >= VK_FORMAT_D16_UNORM_S8_UINT) {
             imageViewCI.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
         }
-        result = vkCreateImageView(device, &imageViewCI, nullptr, &colorImage.view);
+        result = vkCreateImageView(device, &imageViewCI, nullptr, &m_colorImage.view);
         if (result != VK_SUCCESS) throw std::runtime_error("Failed to create depth m_Image m_View");
     }
 
+     */
 
 #ifdef WIN32
 
@@ -2051,7 +1267,7 @@ namespace VkRender {
     }
 
     void VulkanRenderer::closeApplication() {
-        pLogger->info("Closing application...");
+        m_logger->info("Closing application...");
         glfwSetWindowShouldClose(window, true);
     }
 }

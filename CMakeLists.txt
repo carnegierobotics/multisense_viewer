@@ -78,6 +78,7 @@ set(SOURCE_FILES
         src/Viewer/VkRender/Core/CommandBuffer.cpp
 
         src/Viewer/VkRender/Renderer.cpp
+        src/Viewer/VkRender/Editor.cpp
         src/Viewer/VkRender/Entity.cpp
         src/Viewer/VkRender/Components/SkyboxGraphicsPipelineComponent.cpp
         src/Viewer/VkRender/Components/DefaultPBRGraphicsPipelineComponent.cpp

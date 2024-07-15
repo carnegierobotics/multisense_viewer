@@ -185,7 +185,7 @@ namespace VkRender {
 
     };
 
-    struct SecondaryRenderPasses {
+    struct EditorRenderPass {
         std::vector<VkFramebuffer> frameBuffers{};
         VkRenderPass renderPass = VK_NULL_HANDLE;
         Camera *camera{};
@@ -209,26 +209,26 @@ namespace VkRender {
         VkDescriptorImageInfo imageInfo{};
         VkDescriptorImageInfo depthImageInfo{};
         std::string type;
-        bool setupFrameBuffer = true;
         bool multisampled = false;
+        bool setupFrameBuffer = true;
     };
 
     /** Containing Basic Vulkan Resources for rendering for use in scripts **/
     struct RenderUtils {
         VulkanDevice *device{};
         VkInstance *instance{};
-        uint32_t swapchainImages = 0; // TODO rename to swapchain images
         VkRenderPass *renderPass{};
-        VkSampleCountFlagBits msaaSamples;
         Input* input{};
         uint32_t height = 0;
         uint32_t width = 0;
-        std::mutex *queueSubmitMutex{};
-        const std::vector<VkFence> *fence{};
-        uint32_t swapchainIndex = 0;
-        // Multiple viewpoint (Off screen rendering)
-        const SecondaryRenderPasses* depthRenderPass{};
 
+        // Multiple viewpoint (Off screen rendering)
+        VkFormat swapchainColorFormat {};
+        VkFormat depthFormat {};
+        uint32_t swapchainIndex = 0;
+        VkQueue graphicsQueue;
+        VkSampleCountFlagBits msaaSamples;
+        uint32_t swapchainImages = 0; // TODO rename to swapchain images
 
     };
 

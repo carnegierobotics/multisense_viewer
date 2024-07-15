@@ -37,11 +37,13 @@ namespace VkRender {
             // Graphics pipelines
             for (auto &data: m_renderData) {
 
+                /*
                 setupPipeline(data, RENDER_PASS_COLOR, "CameraGizmo.vert.spv", "CameraGizmo.frag.spv", utils->msaaSamples,
                               *utils->renderPass);
 
                 setupPipeline(data, RENDER_PASS_SECOND, "CameraGizmo.vert.spv", "CameraGizmo.frag.spv", utils->msaaSamples,
                               *utils->renderPass); // TODO set correct render pass
+                              */
             }
         }
         VkRender::UBOMatrix mvp{};

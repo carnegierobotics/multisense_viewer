@@ -138,7 +138,7 @@ namespace VkRender {
             createDescriptorSetLayout();
             createDescriptorPool();
             createDescriptorSets();
-            createGraphicsPipeline(shaders);
+            //createGraphicsPipeline(shaders);
 
             vkDestroyShaderModule(vulkanDevice->m_LogicalDevice, vertModule, nullptr);
             vkDestroyShaderModule(vulkanDevice->m_LogicalDevice, fragModule, nullptr);

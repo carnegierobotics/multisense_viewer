@@ -47,16 +47,18 @@ namespace VkRender {
             // First create normal render pass resources
             // Graphics pipelines
             for (auto &data: m_renderData) {
+                /*
+                               setupPipeline(data, RENDER_PASS_COLOR, vertexShader, fragmentShader, utils->msaaSamples,
+                                             *utils->renderPass);
 
-                setupPipeline(data, RENDER_PASS_COLOR, vertexShader, fragmentShader, utils->msaaSamples,
-                              *utils->renderPass);
+                               setupPipeline(data, RENDER_PASS_SECOND, vertexShader, fragmentShader, utils->msaaSamples,
+                                             *utils->renderPass);
 
-                setupPipeline(data, RENDER_PASS_SECOND, vertexShader, fragmentShader, utils->msaaSamples,
-                              *utils->renderPass);
 
-                setupPipeline(data, RENDER_PASS_DEPTH_ONLY, vertexShader, fragmentShader,
-                              VK_SAMPLE_COUNT_1_BIT,
-                              utils->depthRenderPass->renderPass);
+                               setupPipeline(data, RENDER_PASS_DEPTH_ONLY, vertexShader, fragmentShader,
+                                             VK_SAMPLE_COUNT_1_BIT,
+                                             utils->depthRenderPass->renderPass);
+                               */
             }
 
             m_vertexShader = vertexShader;

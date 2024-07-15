@@ -18,7 +18,7 @@ namespace VkRender {
         // Create grid
 
         auto grid = m_context.createEntity("3DViewerGrid");
-        grid.addComponent<VkRender::CustomModelComponent>(&m_context.renderUtils);
+        grid.addComponent<VkRender::CustomModelComponent>(&m_context.data());
 
         loadSkybox();
         loadScripts();
@@ -34,7 +34,7 @@ namespace VkRender {
             e.addComponent<ScriptComponent>(e.getName(),& m_context);
         }
 
-        auto view = m_context.m_registry.view<ScriptComponent>();
+        auto view = m_context.registry().view<ScriptComponent>();
         for (auto entity: view) {
             auto &script = view.get<ScriptComponent>(entity);
             script.script->setup();
@@ -45,14 +45,14 @@ namespace VkRender {
         // Load skybox
         auto skybox = m_context.createEntity("Skybox");
         auto &modelComponent = skybox.addComponent<VkRender::GLTFModelComponent>(
-                Utils::getModelsPath() / "Box" / "Box.gltf", m_context.renderUtils.device);
-        skybox.addComponent<VkRender::SkyboxGraphicsPipelineComponent>(&m_context.renderUtils, modelComponent);
+                Utils::getModelsPath() / "Box" / "Box.gltf", m_context.data().device);
+        skybox.addComponent<VkRender::SkyboxGraphicsPipelineComponent>(&m_context.data(), modelComponent);
 
     }
 
     void DefaultScene::addGuiLayers() {
-        m_context.guiManager->pushLayer("SideBarLayer");
-        m_context.guiManager->pushLayer("MenuLayer");
+        m_context.addUILayer("SideBarLayer");
+        m_context.addUILayer("MenuLayer");
     }
 
     void DefaultScene::render() {
@@ -78,7 +78,7 @@ namespace VkRender {
         }
 
 
-        auto view = m_context.m_registry.view<ScriptComponent>();
+        auto view = m_context.registry().view<ScriptComponent>();
         for (auto entity: view) {
             auto &script = view.get<ScriptComponent>(entity);
             script.script->update();

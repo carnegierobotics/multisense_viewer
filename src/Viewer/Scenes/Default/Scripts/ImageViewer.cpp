@@ -14,15 +14,15 @@
 void ImageViewer::setup() {
     const auto &camera = m_context->getCamera();
     m_syclRenderTarget = std::make_unique<TextureVideo>(camera.m_width, camera.m_height,
-                                                        m_context->renderUtils.device,
+                                                        m_context->data().device,
                                                         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                                                         VK_FORMAT_R8G8B8A8_UNORM);
     auto entity = m_context->createEntity("SecondaryView");
     entity.addComponent<VkRender::SecondaryRenderViewComponent>();
     auto &modelComponent = entity.addComponent<VkRender::OBJModelComponent>(
             Utils::getModelsPath() / "obj" / "quad.obj",
-            m_context->renderUtils.device);
-    auto &res = entity.addComponent<VkRender::DefaultGraphicsPipelineComponent2>(&m_context->renderUtils,
+            m_context->data().device);
+    auto &res = entity.addComponent<VkRender::DefaultGraphicsPipelineComponent2>(&m_context->data(),
                                                                                  "SYCLRenderer.vert.spv",
                                                                                  "SYCLRenderer.frag.spv");
     res.bind(modelComponent);
@@ -90,7 +90,7 @@ void ImageViewer::update() {
     if (render3dgsImage || render3dgs && m_context->findEntityByName(splatEntity)) {
         auto startRender = std::chrono::high_resolution_clock::now();
 
-        m_renderer->render(info, &m_context->renderUtils);
+        m_renderer->render(info, &m_context->data());
 
         auto endRender = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> durationRender = endRender - startRender;

@@ -34,9 +34,12 @@ namespace VkRender {
             createMaterialBuffer(resources[i], modelComponent);
             setupUniformBuffers(resources[i]);
             setupDescriptors(resources[i], modelComponent, skyboxComponent);
+            /*
             resources[i].shaderValuesParams = skyboxComponent.shaderValuesParams;
                 setupPipelines(resources[i]);
+                */
             }
+
         }
 
         ~DefaultPBRGraphicsPipelineComponent() {

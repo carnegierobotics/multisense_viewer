@@ -52,7 +52,7 @@
 namespace VkRender {
     VulkanRenderer::VulkanRenderer(const std::string &title) {
 #ifdef VKRENDER_MULTISENSE_VIEWER_PRODUCTION
-        settings.validation = false;
+        m_settings.validation = false;
 #else
         m_settings.validation = true;
 #endif

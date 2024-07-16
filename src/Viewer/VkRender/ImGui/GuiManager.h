@@ -66,6 +66,7 @@ namespace VkRender {
         /** @brief
         * Container to hold animated gif images
         */
+
         struct {
             ImTextureID image[20]{};
             uint32_t id{};
@@ -99,6 +100,7 @@ namespace VkRender {
         uint32_t iconCount = 0;
         std::array<VkPipelineShaderStageCreateInfo, 2> shaders;
         ImFont *loadFontFromFileName(std::string file, float fontSize);
+        ImFontAtlas fontAtlas;
 
         void loadAnimatedGif(const std::string &file);
 

@@ -58,6 +58,7 @@
 #define DISABLE_WARNING_PEDANTIC
 #define DISABLE_WARNING_NULL_DEREFERENCE
 #define DISABLE_WARNING_OLD_STYLE_CAST
+#define DISABLE_WARNING_NULLABILITY_COMPLETENESS
 // other warnings you want to deactivate...
 
 #elif defined(__GNUC__) || defined(__clang__)

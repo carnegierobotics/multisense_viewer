@@ -28,18 +28,63 @@ namespace VkRender {
         depthRenderPass.multisampled = false;
         //setupRenderPasses(&depthRenderPass);
         uiRenderPass.type = "ui";
-        uiRenderPass.multisampled = true;
+        uiRenderPass.multisampled = false;
+
+        // Start timing UI render pass setup
+        auto startUIRenderPassSetup = std::chrono::high_resolution_clock::now();
         setupUIRenderPass(createInfo, &uiRenderPass);
+        auto endUIRenderPassSetup = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> uiRenderPassSetupTime = endUIRenderPassSetup - startUIRenderPassSetup;
+        std::cout << "UI Render Pass Setup Time: " << uiRenderPassSetupTime.count() << " ms" << std::endl;
 
 
+// Start timing GuiManager construction
+        auto startGuiManagerConstruction = std::chrono::high_resolution_clock::now();
         m_guiManager = std::make_unique<GuiManager>(m_renderUtils.device,
                                                     uiRenderPass.renderPass,
                                                     width,
                                                     height,
                                                     m_renderUtils.msaaSamples,
                                                     m_renderUtils.swapchainImages,
-                                                    &m_context, ImGui::CreateContext(), createInfo.guiResources.get());
+                                                    &m_context, ImGui::CreateContext(&createInfo.guiResources->fontAtlas), createInfo.guiResources.get());
+        auto endGuiManagerConstruction = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> guiManagerConstructionTime = endGuiManagerConstruction - startGuiManagerConstruction;
+        std::cout << "GuiManager Construction Time: " << guiManagerConstructionTime.count() << " ms" << std::endl;
 
+
+        std::array<VkImageView, 3> frameBufferAttachments{};
+        frameBufferAttachments[0] = createInfo.colorImageView;
+        frameBufferAttachments[1] = createInfo.depthImageView;
+        VkFramebufferCreateInfo frameBufferCreateInfo = Populate::framebufferCreateInfo(applicationWidth,
+                                                                                        applicationHeight,
+                                                                                        frameBufferAttachments.data(),
+                                                                                        frameBufferAttachments.size(),
+                                                                                        uiRenderPass.renderPass);
+// Start timing Framebuffer creation
+        std::vector<std::chrono::duration<double, std::milli>> framebufferCreationTimes;
+        frameBuffers.resize(m_renderUtils.swapchainImages);
+        for (uint32_t i = 0; i < frameBuffers.size(); i++) {
+            auto startFramebufferCreation = std::chrono::high_resolution_clock::now();
+            frameBufferAttachments[2] = m_context.swapChainBuffers()[i].view;
+            VkResult result = vkCreateFramebuffer(m_renderUtils.device->m_LogicalDevice, &frameBufferCreateInfo,
+                                                  nullptr, &frameBuffers[i]);
+            if (result != VK_SUCCESS) {
+                throw std::runtime_error("Failed to create framebuffer");
+            }
+            auto endFramebufferCreation = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double, std::milli> framebufferCreationTime = endFramebufferCreation - startFramebufferCreation;
+            framebufferCreationTimes.push_back(framebufferCreationTime);
+            std::cout << "Framebuffer " << i << " Creation Time: " << framebufferCreationTime.count() << " ms" << std::endl;
+        }
+
+// Optionally, you can average the framebuffer creation times
+        double totalFramebufferTime = 0;
+        for (const auto& time : framebufferCreationTimes) {
+            totalFramebufferTime += time.count();
+        }
+        std::cout << "Average Framebuffer Creation Time: " << (totalFramebufferTime / framebufferCreationTimes.size()) << " ms" << std::endl;
+
+        /*
         // Color image resource
         // Depth stencil resource
         // Render Pass
@@ -295,7 +340,7 @@ namespace VkRender {
         subresourceRange.levelCount = 1;
         subresourceRange.layerCount = 1;
 
-        /*
+
         if (objectRenderPass.multisampled) {
             Utils::setImageLayout(copyCmd, objectRenderPass.colorImage.resolvedImage, VK_IMAGE_LAYOUT_UNDEFINED,
                                   VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, subresourceRange,
@@ -305,7 +350,7 @@ namespace VkRender {
                                   VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, subresourceRange,
                                   VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
         }
-        */
+
 
         VkImageSubresourceRange depthRange = {};
         depthRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
@@ -347,7 +392,7 @@ namespace VkRender {
                                   (editorTypeDescription + "FrameBuffer:" + std::to_string(i)).c_str());
             if (result != VK_SUCCESS) throw std::runtime_error("Failed to create framebuffer");
         }
-
+ */
         //m_guiManager->handles.mouse = &mouseButtons;
         //m_guiManager->handles.usageMonitor = m_usageMonitor;
         //m_guiManager->handles.m_cameraSelection.info[m_selectedCameraTag].type = m_cameras[m_selectedCameraTag].m_type;
@@ -561,7 +606,11 @@ namespace VkRender {
         VALIDATION_DEBUG_NAME(m_renderUtils.device->m_LogicalDevice,
                               reinterpret_cast<uint64_t>(secondaryRenderPasses->renderPass), VK_OBJECT_TYPE_RENDER_PASS,
                               (editorTypeDescription + "UIRenderPass").c_str());
+        secondaryRenderPasses->imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        secondaryRenderPasses->imageInfo.imageView = secondaryRenderPasses->colorImage.view; // Your off-screen image view
+        secondaryRenderPasses->imageInfo.sampler = secondaryRenderPasses->colorImage.sampler; // The sampler you've just created
 
+        /*
         VkCommandBuffer copyCmd = m_renderUtils.device->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
         VkImageSubresourceRange subresourceRange = {};
@@ -578,13 +627,13 @@ namespace VkRender {
 
         m_renderUtils.device->flushCommandBuffer(copyCmd, m_renderUtils.graphicsQueue, true);
 
-        secondaryRenderPasses->imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        secondaryRenderPasses->imageInfo.imageView = secondaryRenderPasses->colorImage.view; // Your off-screen image view
-        secondaryRenderPasses->imageInfo.sampler = secondaryRenderPasses->colorImage.sampler; // The sampler you've just created
+
         if (secondaryRenderPasses->multisampled) {
             secondaryRenderPasses->imageInfo.imageView = secondaryRenderPasses->colorImage.resolvedView; // Your off-screen image view
 
         }
+         */
+
     }
 
     void Editor::render() {

@@ -69,8 +69,8 @@ namespace VkRender {
                 {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
         };
 
-        uint32_t fontCount = 5, iconCount = 10, gifImageCount = 20;
-        uint32_t setCount = fontCount + iconCount + gifImageCount;
+        uint32_t fonts = 5, icons = 10, gifImageCount = 20;
+        uint32_t setCount = fonts + icons + gifImageCount;
         std::vector<VkDescriptorPoolSize> poolSizes = {
                 {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, setCount},
 
@@ -102,7 +102,7 @@ namespace VkRender {
         */
 
 
-        /*
+
         fontTexture.reserve(fontCount);
         fontDescriptors.reserve(fontCount);
         font13 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 13);
@@ -111,7 +111,8 @@ namespace VkRender {
         font18 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 18);
         font24 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 24);
         fontCount = fontDescriptors.size() - 1;
-        */
+
+
 
         auto iconFileNames = std::vector{
                 "icon_preview.png",
@@ -197,7 +198,7 @@ namespace VkRender {
         indexCount.resize(imageCount);
         vertexCount.resize(imageCount);
         m_imguiContext = imguiCtx;
-
+        ImGui::SetCurrentContext(m_imguiContext);
         handles.info = std::make_unique<GuiLayerUpdateInfo>();
         handles.multiSenseRendererBridge = std::make_unique<MultiSense::MultiSenseRendererBridge>();
         handles.multiSenseRendererGigEVisionBridge = std::make_unique<MultiSense::MultiSenseRendererGigEVisionBridge>();
@@ -210,16 +211,13 @@ namespace VkRender {
         handles.m_context = ctx;
         handles.usageMonitor = ctx->m_usageMonitor;
 
-        ImGui::SetCurrentContext(m_imguiContext);
-
-
         ImGuiIO& io = ImGui::GetIO();
         io.GetClipboardTextFn = ImGuiGlfwGetClipboardText;
         io.SetClipboardTextFn = ImGuiGlfwSetClipboardText;
         io.DisplaySize = ImVec2(static_cast<float>(width), static_cast<float>(height));
         io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
         handles.info->imageButtonTextureDescriptor.resize(m_guiResources->iconCount);
-        //io.Fonts->SetTexID(reinterpret_cast<ImTextureID>(m_guiResources->fontDescriptors[m_guiResources->fontCount - 1]));
+        io.Fonts->SetTexID(reinterpret_cast<ImTextureID>(m_guiResources->fontDescriptors[m_guiResources->fontCount]));
 
         ImGuiStyle &style = ImGui::GetStyle();
         style.Colors[ImGuiCol_TitleBg] = ImVec4(1.0f, 0.0f, 0.0f, 0.6f);
@@ -548,12 +546,11 @@ namespace VkRender {
         config.OversampleH = 2;
         config.OversampleV = 1;
         config.GlyphExtraSpacing.x = 1.0f;
-        ImGuiIO *io = &ImGui::GetIO();
-        ImFont *font = io->Fonts->AddFontFromFileTTF(file.c_str(), fontSize, &config);
+        ImFont *font = fontAtlas.AddFontFromFileTTF(file.c_str(), fontSize, &config);
 
         unsigned char *pixels;
         int width, height;
-        io->Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
+        fontAtlas.GetTexDataAsRGBA32(&pixels, &width, &height);
         auto uploadSize = width * height * 4 * sizeof(char);
 
         fontTexture.emplace_back(pixels, uploadSize,
@@ -582,7 +579,7 @@ namespace VkRender {
             write_desc[0].descriptorCount = 1;
             write_desc[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
             write_desc[0].pImageInfo = &fontTexture.back().m_descriptor;
-            vkUpdateDescriptorSets(device->m_LogicalDevice, 1, write_desc, 0, NULL);
+            vkUpdateDescriptorSets(device->m_LogicalDevice, 1, write_desc, 0, nullptr);
         }
 
         fontDescriptors.push_back(descriptor);

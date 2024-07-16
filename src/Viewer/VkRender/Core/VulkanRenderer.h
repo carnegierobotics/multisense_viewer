@@ -93,6 +93,7 @@ namespace VkRender {
         struct GLFWCursors {
             GLFWcursor* arrow = nullptr;
             GLFWcursor* resizeVertical = nullptr;
+            GLFWcursor* resizeHorizontal = nullptr;
         }m_cursors;
 
 
@@ -106,6 +107,21 @@ namespace VkRender {
 
         /** @brief Encapsulated physical and logical vulkan m_Device */
         VulkanDevice* m_vulkanDevice{};
+
+        struct {
+            VkImage image;
+            VkDeviceMemory mem;
+            VkImageView view;
+            VmaAllocation allocation;
+        } m_depthStencil{};
+
+
+        struct {
+            VkImage image;
+            VkDeviceMemory mem;
+            VkImageView view;
+            VmaAllocation allocation;
+        } m_colorImage{};
 
 
         /** @brief Last frame time measured using a high performance timer (if available) */

@@ -77,6 +77,7 @@ namespace VkRender {
         glfwSetCharCallback(window, VulkanRenderer::charCallback);
         glfwSetWindowSizeLimits(window, m_width / 4, m_height / 4, GLFW_DONT_CARE, GLFW_DONT_CARE);
         m_cursors.resizeVertical = glfwCreateStandardCursor(GLFW_RESIZE_NS_CURSOR);
+        m_cursors.resizeHorizontal = glfwCreateStandardCursor(GLFW_RESIZE_EW_CURSOR);
         m_cursors.arrow = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
 
         GLFWimage images[1];
@@ -256,6 +257,11 @@ namespace VkRender {
     }
 
     VulkanRenderer::~VulkanRenderer() {
+        vkDestroyImageView(device, m_depthStencil.view, nullptr);
+        vmaDestroyImage(m_allocator, m_depthStencil.image, m_depthStencil.allocation);
+
+        vkDestroyImageView(device, m_colorImage.view, nullptr);
+        vmaDestroyImage(m_allocator, m_colorImage.image, m_colorImage.allocation);
 
         /*
         std::vector<EditorRenderPass> passes = {{depthRenderPass, uiRenderPass, secondRenderPass}};
@@ -339,6 +345,7 @@ namespace VkRender {
         // Cleanup GLFW Resources
         glfwDestroyCursor(m_cursors.arrow);
         glfwDestroyCursor(m_cursors.resizeVertical);
+        glfwDestroyCursor(m_cursors.resizeHorizontal);
         // CleanUp GLFW window
         glfwDestroyWindow(window);
         glfwTerminate();
@@ -577,13 +584,8 @@ namespace VkRender {
             std::chrono::duration<float, std::milli> elapsed_milliseconds = end - rendererStartTime;
             runTime = elapsed_milliseconds.count();
             /** Give ImGui Reference to this frame's input events **/
-            ImGuiIO &io = ImGui::GetIO();
-            io.DisplaySize = ImVec2(static_cast<float>(m_width), static_cast<float>(m_height));
-            io.DeltaTime = frameTimer;
-            io.WantCaptureMouse = true;
-            io.MousePos = ImVec2(mousePos.x, mousePos.y);
-            io.MouseDown[0] = mouseButtons.left;
-            io.MouseDown[1] = mouseButtons.right;
+
+
             input.lastKeyPress = keyPress;
             input.action = keyAction;
             drawCmdBuffers.currentFrame = currentFrame;
@@ -598,7 +600,6 @@ namespace VkRender {
             submitFrame();
             keyPress = -1;
             keyAction = -1;
-            io.MouseWheel = 0;
             mouseButtons.dx = 0;
             mouseButtons.dy = 0;
             mouseButtons.action = -1;
@@ -614,6 +615,8 @@ namespace VkRender {
             auto tDiff = std::chrono::duration<double, std::milli>(
                     std::chrono::high_resolution_clock::now() - tStart).count();
             frameTimer = static_cast<float>(tDiff) / 1000.0f;
+
+            postRenderActions();
         }
         // Flush m_Device to make sure all resources can be freed before we start cleanup
         if (device != VK_NULL_HANDLE) {
@@ -749,9 +752,11 @@ namespace VkRender {
     DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER
 
     void VulkanRenderer::charCallback(GLFWwindow *window, unsigned int codepoint) {
+        /*
         ImGuiIO &io = ImGui::GetIO();
         io.AddInputCharacter(static_cast<unsigned short>(codepoint));
-    }
+    */
+         }
 
     DISABLE_WARNING_POP
 
@@ -762,6 +767,7 @@ namespace VkRender {
             myApp->m_logger->info("Escape key registered");
             myApp->closeApplication();
         }
+        /*
         ImGuiIO &io = ImGui::GetIO();
         io.AddKeyEvent(ImGuiKey_ModShift, (mods & GLFW_MOD_SHIFT) != 0);
         io.AddKeyEvent(ImGuiKey_ModAlt, (mods & GLFW_MOD_ALT) != 0);
@@ -774,6 +780,7 @@ namespace VkRender {
         myApp->keyPress = key;
         myApp->keyAction = action;
 
+        */
 
 #ifdef WIN32
         if ((mods & GLFW_MOD_CONTROL) != 0 && key == GLFW_KEY_V) {
@@ -829,10 +836,13 @@ namespace VkRender {
 
     void VulkanRenderer::handleMouseMove(float x, float y) {
         bool handled = false;
+
+        /*
         if (m_settings.overlay) {
             ImGuiIO &io = ImGui::GetIO();
             io.WantCaptureMouse = true;
         }
+        */
 
         mouseMoved(x, y, handled);
         viewChanged();
@@ -887,10 +897,13 @@ namespace VkRender {
 
     void VulkanRenderer::mouseScrollCallback(GLFWwindow *window, double xoffset, double yoffset) {
         auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
+        /*
         ImGuiIO &io = ImGui::GetIO();
         myApp->mouseScroll(static_cast<float>(yoffset));
         io.MouseWheel += 0.5f * static_cast<float>(yoffset);
-    }
+    */
+
+         }
 
     DISABLE_WARNING_POP
 

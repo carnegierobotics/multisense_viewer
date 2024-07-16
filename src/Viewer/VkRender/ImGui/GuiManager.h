@@ -55,20 +55,56 @@
 #include "Viewer/VkRender/ImGui/Layers/LayerSupport/LayerFactory.h"
 
 namespace VkRender {
-    class GuiManager {
-    public:
-        GuiObjectHandles handles{};
 
-        GuiManager(VulkanDevice *vulkanDevice, VkRenderPass const &renderPass, const uint32_t &width,
-                   const uint32_t &height, VkSampleCountFlagBits msaaSamples, uint32_t imageCount, Renderer* ctx); // TODO context should be pass by reference as it is no nullable?
+    struct GuiResources {
+        // UI params are set via push constants
+        struct PushConstBlock {
+            glm::vec2 scale;
+            glm::vec2 translate;
+        } pushConstBlock{};
 
-        ~GuiManager() {
-            Log::Logger::getInstance()->info("Saving ImGui file: {}",
-                                             (Utils::getSystemCachePath() / "imgui.ini").string().c_str());
-            ImGui::SaveIniSettingsToDisk((Utils::getSystemCachePath() / "imgui.ini").string().c_str());
-            for (const auto &layerStack: m_LayerStack)
-                layerStack->onDetach();
-            vkDestroyPipeline(device->m_LogicalDevice, pipeline, nullptr);
+        /** @brief
+        * Container to hold animated gif images
+        */
+        struct {
+            ImTextureID image[20]{};
+            uint32_t id{};
+            uint32_t lastFrame = 0;
+            uint32_t width{};
+            uint32_t height{};
+            uint32_t imageSize{};
+            uint32_t totalFrames{};
+            uint32_t *delay{};
+            std::chrono::time_point<std::chrono::system_clock> lastUpdateTime = std::chrono::system_clock::now();
+        } gif{};
+
+        std::vector<Texture2D> iconTextures;
+        std::vector<Texture2D> fontTexture;
+        std::unique_ptr<Texture2D> gifTexture[99]; // Hold up to 99 frames
+        VkDescriptorPool descriptorPool{};
+        VkDescriptorSetLayout descriptorSetLayout{};
+        std::vector<VkDescriptorSet> fontDescriptors{};
+        std::vector<VkDescriptorSet> imageIconDescriptors{};
+        std::vector<VkDescriptorSet> gifImageDescriptors{};
+        VkPipelineLayout pipelineLayout{};
+        VkPipelineCache pipelineCache{};
+        std::vector<VkShaderModule> shaderModules{};
+        VulkanDevice *device = nullptr;
+
+        GuiResources(VulkanDevice *d);
+        GuiResources() = default;
+
+        ImFont *font8{}, *font13{}, *font15, *font18{}, *font24{};
+        uint32_t fontCount = 0;
+        uint32_t iconCount = 0;
+        std::array<VkPipelineShaderStageCreateInfo, 2> shaders;
+        ImFont *loadFontFromFileName(std::string file, float fontSize);
+
+        void loadAnimatedGif(const std::string &file);
+
+        void loadImGuiTextureFromFileName(const std::string &file, uint32_t i);
+
+        ~GuiResources(){
             vkDestroyPipelineCache(device->m_LogicalDevice, pipelineCache, nullptr);
             vkDestroyPipelineLayout(device->m_LogicalDevice, pipelineLayout, nullptr);
             vkDestroyDescriptorPool(device->m_LogicalDevice, descriptorPool, nullptr);
@@ -76,17 +112,37 @@ namespace VkRender {
             for (auto &shaderModule: shaderModules) {
                 vkDestroyShaderModule(device->m_LogicalDevice, shaderModule, nullptr);
             }
+        }
+    };
+
+    class GuiManager {
+    public:
+        GuiObjectHandles handles{};
+
+        GuiManager(VulkanDevice *vulkanDevice, VkRenderPass const &renderPass, const uint32_t &width,
+                   const uint32_t &height, VkSampleCountFlagBits msaaSamples, uint32_t imageCount, Renderer* ctx, ImGuiContext* imguiCtx, const GuiResources* guiResources); // TODO context should be pass by reference as it is no nullable?
+
+        ~GuiManager() {
+            //Log::Logger::getInstance()->info("Saving ImGui file: {}", (Utils::getSystemCachePath() / "imgui.ini").string().c_str());
+            //ImGui::SaveIniSettingsToDisk((Utils::getSystemCachePath() / "imgui.ini").string().c_str());
+            for (const auto &layerStack: m_LayerStack)
+                layerStack->onDetach();
+
+            vkDestroyPipeline(device->m_LogicalDevice, pipeline, nullptr);
 
             auto &userSetting = RendererConfig::getInstance().getUserSetting();
             userSetting.editorUiState.enableSecondaryView = handles.enableSecondaryView;
             userSetting.editorUiState.fixAspectRatio = handles.fixAspectRatio;
+
+            ImGui::DestroyContext(m_imguiContext);
         };
 
         /**@brief Update function called from renderer. Function calls each layer in order to generate buffers for draw commands*/
         void update(bool updateFrameGraph, float frameTimer, uint32_t width, uint32_t height, const Input *pInput);
 
         /**@brief Draw command called once per command buffer recording*/
-        void drawFrame(VkCommandBuffer commandBuffer, uint32_t imageIndex, uint32_t width, uint32_t height);
+        void drawFrame(VkCommandBuffer commandBuffer, uint32_t imageIndex, uint32_t width, uint32_t height, uint32_t x,
+                       uint32_t y);
 
         /**@brief ReCreate buffers if they have changed in size*/
         bool updateBuffers(uint32_t imageIndex);
@@ -106,50 +162,30 @@ namespace VkRender {
                 // Handle unknown layer case, e.g., throw an exception or log an error
             }
         }
+        ImGuiContext* m_imguiContext;
 
     private:
-        // UI params are set via push constants
-        struct PushConstBlock {
-            glm::vec2 scale;
-            glm::vec2 translate;
-        } pushConstBlock{};
 
         // GuiManager framework
         std::vector<std::shared_ptr<Layer>> m_LayerStack{};
         // Textures
-        std::vector<Texture2D> iconTextures;
-        std::vector<Texture2D> fontTexture;
-        std::unique_ptr<Texture2D> gifTexture[99]; // Hold up to 99 frames
+        const GuiResources* m_guiResources;
         // Vulkan resources for rendering the UI
         //Buffer vertexBuffer;
         //Buffer indexBuffer;
         // Vulkan resources for rendering the UI
         std::vector<Buffer> vertexBuffer;
         std::vector<Buffer> indexBuffer;
-
         std::vector<int32_t> vertexCount{};
         std::vector<int32_t> indexCount{};
 
-        uint32_t updatedBufferIndex = 0;
-
-        VkPipelineCache pipelineCache{};
-        VkPipelineLayout pipelineLayout{};
         VkPipeline pipeline{};
-        VkDescriptorPool descriptorPool{};
-        VkDescriptorSetLayout descriptorSetLayout{};
-        std::vector<VkDescriptorSet> fontDescriptors{};
-        std::vector<VkDescriptorSet> imageIconDescriptors{};
-        std::vector<VkDescriptorSet> gifImageDescriptors{};
+        GuiResources::PushConstBlock  pushConstBlock{};
 
-        std::vector<VkShaderModule> shaderModules{};
         VulkanDevice *device = nullptr;
         std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> saveSettingsTimer;
 
-        ImFont *loadFontFromFileName(std::string file, float fontSize);
 
-        void loadAnimatedGif(const std::string &file);
-
-        void loadImGuiTextureFromFileName(const std::string &file, uint32_t i);
     };
 }
 #endif //MULTISENSE_GUIMANAGER_H

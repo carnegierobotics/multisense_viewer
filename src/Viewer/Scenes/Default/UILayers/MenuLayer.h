@@ -59,6 +59,7 @@ namespace VkRender {
             if (ImGui::BeginMenu("View")) {
                 ImGui::MenuItem("Fix Aspect Ratio", nullptr, &handles.fixAspectRatio);
                 ImGui::MenuItem("Enable Secondary View", nullptr, &handles.enableSecondaryView);
+                ImGui::MenuItem("Console", nullptr, &handles.showDebugWindow);
                 ImGui::EndMenu();
             }
 

@@ -62,35 +62,18 @@ namespace VkRender {
         glfwSetClipboardString(reinterpret_cast<GLFWwindow *>(userData), text);
     }
 
-    GuiManager::GuiManager(VulkanDevice *vulkanDevice, VkRenderPass const &renderPass, const uint32_t &width,
-                           const uint32_t &height, VkSampleCountFlagBits msaaSamples, uint32_t imageCount, Renderer* ctx) {
-        device = vulkanDevice;
-        vertexBuffer.resize(imageCount);
-        indexBuffer.resize(imageCount);
-        indexCount.resize(imageCount);
-        vertexCount.resize(imageCount);
-
-        handles.info = std::make_unique<GuiLayerUpdateInfo>();
-        handles.multiSenseRendererBridge = std::make_unique<MultiSense::MultiSenseRendererBridge>();
-        handles.multiSenseRendererGigEVisionBridge = std::make_unique<MultiSense::MultiSenseRendererGigEVisionBridge>();
-        handles.info->deviceName = device->m_Properties.deviceName;
-        handles.info->title = "MultiSense Viewer";
-        // Load UI info from file:
-        auto &userSetting = RendererConfig::getInstance().getUserSetting();
-        handles.enableSecondaryView = userSetting.editorUiState.enableSecondaryView;
-        handles.fixAspectRatio = userSetting.editorUiState.fixAspectRatio;
-        handles.m_context = ctx;
-        handles.usageMonitor = ctx->m_usageMonitor;
-
-        ImGui::CreateContext();
-        ImGuiIO io = ImGui::GetIO();
-
-        io.DisplaySize = ImVec2(static_cast<float>(width), static_cast<float>(height));
-        io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
+    GuiResources::GuiResources(VulkanDevice *d) : device(d) {
 
         std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings{};
         setLayoutBindings = {
                 {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+        };
+
+        uint32_t fontCount = 5, iconCount = 10, gifImageCount = 20;
+        uint32_t setCount = fontCount + iconCount + gifImageCount;
+        std::vector<VkDescriptorPoolSize> poolSizes = {
+                {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, setCount},
+
         };
 
 
@@ -102,17 +85,11 @@ namespace VkRender {
                                             &descriptorSetLayout));
 
 
-        uint32_t fontCount = 5, iconCount = 10, gifImageCount = 20;
-        uint32_t setCount = fontCount + iconCount + gifImageCount;
-        std::vector<VkDescriptorPoolSize> poolSizes = {
-                {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, setCount},
-
-        };
         VkDescriptorPoolCreateInfo poolCreateInfo = Populate::descriptorPoolCreateInfo(poolSizes, setCount);
         CHECK_RESULT(vkCreateDescriptorPool(device->m_LogicalDevice, &poolCreateInfo, nullptr, &descriptorPool));
 
-        io.GetClipboardTextFn = ImGuiGlfwGetClipboardText;
-        io.SetClipboardTextFn = ImGuiGlfwSetClipboardText;
+
+        /*
 
         if (std::filesystem::exists((Utils::getSystemCachePath() / "imgui.ini").string().c_str())) {
             Log::Logger::getInstance()->info("Loading imgui ini file from disk {}",
@@ -122,32 +99,35 @@ namespace VkRender {
             Log::Logger::getInstance()->info("ImGui ini file does not exist. {}",
                                              (Utils::getSystemCachePath() / "imgui.ini").string().c_str());
         }
+        */
 
 
+        /*
         fontTexture.reserve(fontCount);
         fontDescriptors.reserve(fontCount);
-        handles.info->font13 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 13);
-        handles.info->font8 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 8);
-        handles.info->font15 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 15);
-        handles.info->font18 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 18);
-        handles.info->font24 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 24);
-        io.Fonts->SetTexID(reinterpret_cast<ImTextureID>(fontDescriptors[fontCount - 1]));
+        font13 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 13);
+        font8 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 8);
+        font15 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 15);
+        font18 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 18);
+        font24 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 24);
+        fontCount = fontDescriptors.size() - 1;
+        */
 
         auto iconFileNames = std::vector{
-            "icon_preview.png",
-            "icon_information.png",
-            "icon_configure.png",
-            "icon_auto_configure.png",
-            "icon_manual_configure.png",
-            "icon_playback.png",
-            "icon_single_layout.png",
-            "icon_double_layout.png",
-            "icon_quad_layout.png",
-            "icon_nine_layout.png"
+                "icon_preview.png",
+                "icon_information.png",
+                "icon_configure.png",
+                "icon_auto_configure.png",
+                "icon_manual_configure.png",
+                "icon_playback.png",
+                "icon_single_layout.png",
+                "icon_double_layout.png",
+                "icon_quad_layout.png",
+                "icon_nine_layout.png"
         };
         // Reserve space for icon textures
         iconTextures.reserve(iconFileNames.size());
-        handles.info->imageButtonTextureDescriptor.resize(iconFileNames.size());
+        iconCount = iconFileNames.size() - 1;
         imageIconDescriptors.resize(iconFileNames.size());
         // Base path for the texture files
         std::filesystem::path texturePath = Utils::getTexturePath();
@@ -155,6 +135,8 @@ namespace VkRender {
         for (std::size_t index = 0; index < iconFileNames.size(); ++index) {
             const auto& filename = iconFileNames[index];
             loadImGuiTextureFromFileName((texturePath / filename).string(), index);
+
+
         }
         loadAnimatedGif(Utils::getTexturePath().append("spinner.gif").string());
 
@@ -181,22 +163,8 @@ namespace VkRender {
         assert(fragShaderStage.module != VK_NULL_HANDLE);
         shaderModules.push_back(frgModule);
 
-        std::array<VkPipelineShaderStageCreateInfo, 2> shaders{vtxShaderStage, fragShaderStage};
+        shaders = std::array<VkPipelineShaderStageCreateInfo, 2> {vtxShaderStage, fragShaderStage};
 
-        ImGuiStyle &style = ImGui::GetStyle();
-        style.Colors[ImGuiCol_TitleBg] = ImVec4(1.0f, 0.0f, 0.0f, 0.6f);
-        style.Colors[ImGuiCol_TitleBgActive] = ImVec4(1.0f, 0.0f, 0.0f, 0.8f);
-        style.Colors[ImGuiCol_MenuBarBg] = ImVec4(1.0f, 0.0f, 0.0f, 0.4f);
-        style.Colors[ImGuiCol_Header] = ImVec4(1.0f, 0.0f, 0.0f, 0.4f);
-        style.Colors[ImGuiCol_CheckMark] = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);
-        style.Colors[ImGuiCol_PopupBg] = Colors::CRLDarkGray425;
-        style.Colors[ImGuiCol_WindowBg] = Colors::CRLDarkGray425;
-        style.Colors[ImGuiCol_FrameBg] = Colors::CRLFrameBG;
-        style.Colors[ImGuiCol_Tab] = Colors::CRLRed;
-        style.Colors[ImGuiCol_TabActive] = Colors::CRLRedActive;
-        style.Colors[ImGuiCol_TabHovered] = Colors::CRLRedHover;
-        style.Colors[ImGuiCol_Button] = Colors::CRLBlueIsh;
-        style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.8f);
 
         // Pipeline cache
         VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
@@ -217,6 +185,72 @@ namespace VkRender {
                 vkCreatePipelineLayout(device->m_LogicalDevice, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout) !=
                 VK_SUCCESS)
             throw std::runtime_error("Failed to create m_Pipeline layout");
+
+
+    }
+
+    GuiManager::GuiManager(VulkanDevice *vulkanDevice, VkRenderPass const &renderPass, const uint32_t &width,
+                           const uint32_t &height, VkSampleCountFlagBits msaaSamples, uint32_t imageCount, Renderer* ctx, ImGuiContext* imguiCtx, const GuiResources* guiResources) : m_guiResources(guiResources) {
+        device = vulkanDevice;
+        vertexBuffer.resize(imageCount);
+        indexBuffer.resize(imageCount);
+        indexCount.resize(imageCount);
+        vertexCount.resize(imageCount);
+        m_imguiContext = imguiCtx;
+
+        handles.info = std::make_unique<GuiLayerUpdateInfo>();
+        handles.multiSenseRendererBridge = std::make_unique<MultiSense::MultiSenseRendererBridge>();
+        handles.multiSenseRendererGigEVisionBridge = std::make_unique<MultiSense::MultiSenseRendererGigEVisionBridge>();
+        handles.info->deviceName = device->m_Properties.deviceName;
+        handles.info->title = "MultiSense Viewer";
+        // Load UI info from file:
+        auto &userSetting = RendererConfig::getInstance().getUserSetting();
+        handles.enableSecondaryView = userSetting.editorUiState.enableSecondaryView;
+        handles.fixAspectRatio = userSetting.editorUiState.fixAspectRatio;
+        handles.m_context = ctx;
+        handles.usageMonitor = ctx->m_usageMonitor;
+
+        ImGui::SetCurrentContext(m_imguiContext);
+
+
+        ImGuiIO& io = ImGui::GetIO();
+        io.GetClipboardTextFn = ImGuiGlfwGetClipboardText;
+        io.SetClipboardTextFn = ImGuiGlfwSetClipboardText;
+        io.DisplaySize = ImVec2(static_cast<float>(width), static_cast<float>(height));
+        io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
+        handles.info->imageButtonTextureDescriptor.resize(m_guiResources->iconCount);
+        //io.Fonts->SetTexID(reinterpret_cast<ImTextureID>(m_guiResources->fontDescriptors[m_guiResources->fontCount - 1]));
+
+        ImGuiStyle &style = ImGui::GetStyle();
+        style.Colors[ImGuiCol_TitleBg] = ImVec4(1.0f, 0.0f, 0.0f, 0.6f);
+        style.Colors[ImGuiCol_TitleBgActive] = ImVec4(1.0f, 0.0f, 0.0f, 0.8f);
+        style.Colors[ImGuiCol_MenuBarBg] = ImVec4(1.0f, 0.0f, 0.0f, 0.4f);
+        style.Colors[ImGuiCol_Header] = ImVec4(1.0f, 0.0f, 0.0f, 0.4f);
+        style.Colors[ImGuiCol_CheckMark] = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);
+        style.Colors[ImGuiCol_PopupBg] = Colors::CRLDarkGray425;
+        style.Colors[ImGuiCol_WindowBg] = Colors::CRLDarkGray425;
+        style.Colors[ImGuiCol_FrameBg] = Colors::CRLFrameBG;
+        style.Colors[ImGuiCol_Tab] = Colors::CRLRed;
+        style.Colors[ImGuiCol_TabActive] = Colors::CRLRedActive;
+        style.Colors[ImGuiCol_TabHovered] = Colors::CRLRedHover;
+        style.Colors[ImGuiCol_Button] = Colors::CRLBlueIsh;
+        style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.8f);
+
+
+        handles.info->font8 = guiResources->font8;
+        handles.info->font13 = guiResources->font13;
+        handles.info->font15 = guiResources->font15;
+        handles.info->font18 = guiResources->font18;
+        handles.info->font24 = guiResources->font24;
+
+        for (int i = 0; i < m_guiResources->iconCount; ++i){
+            handles.info->imageButtonTextureDescriptor[i] = reinterpret_cast<void *>(m_guiResources->imageIconDescriptors[i]);
+        }
+        for (int i = 0; i < m_guiResources->gif.totalFrames; ++i) {
+            handles.info->gif.image[i] = m_guiResources->gifImageDescriptors[i];
+        }
+
+        Log::Logger::getInstance()->info("Set ImGUI Context {} displaySize to: {}x{}", reinterpret_cast<uint64_t>(m_imguiContext), width, height);
 
         // Setup graphics pipeline for UI rendering
         VkPipelineInputAssemblyStateCreateInfo inputAssemblyState =
@@ -264,7 +298,7 @@ namespace VkRender {
                 ::pipelineDynamicStateCreateInfo(dynamicStateEnables);
 
         VkGraphicsPipelineCreateInfo pipelineCreateInfo = Populate
-        ::pipelineCreateInfo(pipelineLayout,
+        ::pipelineCreateInfo(m_guiResources->pipelineLayout,
                              renderPass);
 
 
@@ -275,8 +309,8 @@ namespace VkRender {
         pipelineCreateInfo.pViewportState = &viewportState;
         pipelineCreateInfo.pDepthStencilState = &depthStencilState;
         pipelineCreateInfo.pDynamicState = &dynamicState;
-        pipelineCreateInfo.stageCount = static_cast<uint32_t>(shaders.size());
-        pipelineCreateInfo.pStages = shaders.data();
+        pipelineCreateInfo.stageCount = static_cast<uint32_t>(m_guiResources->shaders.size());
+        pipelineCreateInfo.pStages = m_guiResources->shaders.data();
 
         // Vertex bindings an attributes based on ImGui vertex definition
         std::vector<VkVertexInputBindingDescription> vertexInputBindings = {
@@ -303,13 +337,15 @@ namespace VkRender {
 
         pipelineCreateInfo.pVertexInputState = &vertexInputState;
 
-        if (vkCreateGraphicsPipelines(device->m_LogicalDevice, pipelineCache, 1, &pipelineCreateInfo, nullptr,
+        if (vkCreateGraphicsPipelines(device->m_LogicalDevice, m_guiResources->pipelineCache, 1, &pipelineCreateInfo, nullptr,
                                       &pipeline) != VK_SUCCESS)
             throw std::runtime_error("Failed to create graphics m_Pipeline");
     }
 
     void
     GuiManager::update(bool updateFrameGraph, float frameTimer, uint32_t width, uint32_t height, const Input *pInput) {
+        ImGui::SetCurrentContext(m_imguiContext);
+        Log::Logger::getInstance()->trace("Set ImGUI Context {} and updating", reinterpret_cast<uint64_t>(m_imguiContext));
 
         handles.info->frameTimer = frameTimer;
         handles.info->firstFrame = updateFrameGraph;
@@ -343,6 +379,7 @@ namespace VkRender {
 
 // Update vertex and index buffer containing the imGui elements when required
     bool GuiManager::updateBuffers(uint32_t currentFrame) {
+
         ImDrawData *imDrawData = ImGui::GetDrawData();
 
         // If we have no drawData return early
@@ -372,7 +409,6 @@ namespace VkRender {
             vertexCount[currentFrame] = imDrawData->TotalVtxCount;
             vertexBuffer[currentFrame].map();
             updateCommandBuffers = true;
-            updatedBufferIndex = currentFrame;
         }
 
         // Index buffer
@@ -387,7 +423,6 @@ namespace VkRender {
             indexCount[currentFrame] = imDrawData->TotalIdxCount;
             indexBuffer[currentFrame].map();
             updateCommandBuffers = true;
-            updatedBufferIndex = currentFrame;
         }
 
         // Upload data
@@ -410,15 +445,19 @@ namespace VkRender {
     }
 
 
-    void GuiManager::drawFrame(VkCommandBuffer commandBuffer, uint32_t currentFrame, uint32_t width, uint32_t height) {
+    void GuiManager::drawFrame(VkCommandBuffer commandBuffer, uint32_t currentFrame, uint32_t width, uint32_t height,
+                               uint32_t x,
+                               uint32_t y) {
+        ImGui::SetCurrentContext(m_imguiContext);
+        Log::Logger::getInstance()->trace("Set ImGUI Context {} and drawing", reinterpret_cast<uint64_t>(m_imguiContext));
+
         // Need to update buffers
         updateBuffers(currentFrame);
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
-        ImGuiIO *io = &ImGui::GetIO();
         pushConstBlock.scale = glm::vec2(2.0f / static_cast<float>(width), 2.0f /  static_cast<float>(height));
-        pushConstBlock.translate = glm::vec2(-1.0f);
-        vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstBlock),
+        pushConstBlock.translate = glm::vec2(-1.0f, -1.0f);
+        vkCmdPushConstants(commandBuffer, m_guiResources->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GuiResources::PushConstBlock),
                            &pushConstBlock);
 
         // Render commands
@@ -443,12 +482,12 @@ namespace VkRender {
                     const ImDrawCmd *pcmd = &cmd_list->CmdBuffer[j];
 
                     auto texture = static_cast<VkDescriptorSet>(pcmd->GetTexID());
-                    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
+                    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_guiResources->pipelineLayout, 0, 1,
                                             &texture, 0, nullptr);
 
                     VkRect2D scissorRect{};
-                    scissorRect.offset.x = std::max(static_cast<int32_t>(pcmd->ClipRect.x), 0);
-                    scissorRect.offset.y = std::max(static_cast<int32_t>(pcmd->ClipRect.y), 0);
+                    scissorRect.offset.x = std::max(static_cast<int32_t>(pcmd->ClipRect.x + x), 0);
+                    scissorRect.offset.y = std::max(static_cast<int32_t>(pcmd->ClipRect.y + y), 0);
                     scissorRect.extent.width = static_cast<uint32_t>(pcmd->ClipRect.z - pcmd->ClipRect.x);
                     scissorRect.extent.height = static_cast<uint32_t>(pcmd->ClipRect.w - pcmd->ClipRect.y);
                     vkCmdSetScissor(commandBuffer, 0, 1, &scissorRect);
@@ -461,14 +500,14 @@ namespace VkRender {
 
             // Reset the scissors
             VkRect2D scissorRectFull;
-            scissorRectFull.offset = {0, 0};
+            scissorRectFull.offset = {static_cast<int32_t>(x), static_cast<int32_t>(y)};
             scissorRectFull.extent = {static_cast<uint32_t>(handles.info->width),
                                       static_cast<uint32_t>(handles.info->height)}; // Set these to your framebuffer or viewport dimensions
-            vkCmdSetScissor(commandBuffer, 0, 1, &scissorRectFull);
+            //vkCmdSetScissor(commandBuffer, 0, 1, &scissorRectFull);
         }
     }
 
-    void GuiManager::loadImGuiTextureFromFileName(const std::string &file, uint32_t i) {
+    void GuiResources::loadImGuiTextureFromFileName(const std::string &file, uint32_t i) {
         int texWidth, texHeight, texChannels;
         stbi_uc *pixels = stbi_load(file.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
         VkDeviceSize imageSize = static_cast<VkDeviceSize>(texWidth * texHeight * texChannels);
@@ -501,11 +540,10 @@ namespace VkRender {
             vkUpdateDescriptorSets(device->m_LogicalDevice, 1, write_desc, 0, NULL);
         }
 
-        handles.info->imageButtonTextureDescriptor[i] = reinterpret_cast<void *>(imageIconDescriptors[i]);
     }
 
 
-    ImFont *GuiManager::loadFontFromFileName(std::string file, float fontSize) {
+    ImFont *GuiResources::loadFontFromFileName(std::string file, float fontSize) {
         ImFontConfig config;
         config.OversampleH = 2;
         config.OversampleV = 1;
@@ -552,7 +590,7 @@ namespace VkRender {
     }
 
 
-    void GuiManager::loadAnimatedGif(const std::string &file) {
+    void GuiResources::loadAnimatedGif(const std::string &file) {
         int width = 0, height = 0, depth = 0, comp = 0;
         int *delays = nullptr;
         int channels = 4;
@@ -571,19 +609,19 @@ namespace VkRender {
         }
         uint32_t imageSize = width * height * channels;
 
-        handles.info->gif.width = width;
-        handles.info->gif.height = height;
-        handles.info->gif.totalFrames = depth;
-        handles.info->gif.imageSize = imageSize;
-        handles.info->gif.delay = reinterpret_cast<uint32_t *>( delays);
+        gif.width = width;
+        gif.height = height;
+        gif.totalFrames = depth;
+        gif.imageSize = imageSize;
+        gif.delay = reinterpret_cast<uint32_t *>( delays);
         gifImageDescriptors.reserve(static_cast<size_t>(depth) + 1);
 
         auto *pixelPointer = pixels; // Store original position in pixels
 
         for (int i = 0; i < depth; ++i) {
             VkDescriptorSet dSet{};
-            gifTexture[i] = std::make_unique<Texture2D>(pixelPointer, handles.info->gif.imageSize, VK_FORMAT_R8G8B8A8_SRGB,
-                                      handles.info->gif.width, handles.info->gif.height, device,
+            gifTexture[i] = std::make_unique<Texture2D>(pixelPointer, imageSize, VK_FORMAT_R8G8B8A8_SRGB,
+                                      width, height, device,
                                       device->m_TransferQueue, VK_FILTER_LINEAR, VK_IMAGE_USAGE_SAMPLED_BIT,
                                       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
@@ -605,14 +643,14 @@ namespace VkRender {
             write_desc[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
             write_desc[0].pImageInfo = &gifTexture[i]->m_descriptor;
             vkUpdateDescriptorSets(device->m_LogicalDevice, 1, write_desc, 0, NULL);
-
-            handles.info->gif.image[i] = reinterpret_cast<void *>(dSet);
-            pixelPointer += handles.info->gif.imageSize;
+            pixelPointer += imageSize;
 
             gifImageDescriptors.emplace_back(dSet);
         }
         stbi_image_free(pixels);
     }
+
+
 
 
 }

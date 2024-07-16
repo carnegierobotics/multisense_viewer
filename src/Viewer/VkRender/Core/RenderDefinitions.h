@@ -59,6 +59,7 @@
 #endif
 
 #include <GLFW/glfw3.h>
+#include <vk_mem_alloc.h>
 
 #include "Viewer/VkRender/Core/Buffer.h"
 #include "Viewer/VkRender/Core/VulkanDevice.h"
@@ -194,6 +195,8 @@ namespace VkRender {
             VkDeviceMemory mem = VK_NULL_HANDLE;
             VkImageView view = VK_NULL_HANDLE;
             VkSampler sampler = VK_NULL_HANDLE;
+            VmaAllocation allocation;
+
         } depthStencil{};
         struct {
             VkImage image = VK_NULL_HANDLE;
@@ -203,6 +206,10 @@ namespace VkRender {
             VkImageView view = VK_NULL_HANDLE;
             VkImageView resolvedView = VK_NULL_HANDLE;
             VkSampler sampler = VK_NULL_HANDLE;
+
+            VmaAllocation colorImageAllocation;
+            VmaAllocation resolvedImageAllocation;
+
         } colorImage{};
 
         bool idle = true;

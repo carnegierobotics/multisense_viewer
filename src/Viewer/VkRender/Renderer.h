@@ -139,8 +139,6 @@ namespace VkRender {
         template<typename T>
         bool tryCleanupAndDestroy(Entity &entity, int currentFrame);
 
-        void handleViewportResize();
-
     private:
         std::unordered_map<std::string, Camera> m_cameras;
         //std::unique_ptr<VkRender::GuiManager> m_guiManager{};
@@ -152,10 +150,18 @@ namespace VkRender {
         std::string m_selectedCameraTag = "Default Camera";
         RenderUtils m_renderUtils{};
 
-        std::unique_ptr<Editor> mainEditor;
+        std::unique_ptr<Editor> m_mainEditor;
+
+        std::shared_ptr<GuiResources> m_guiResources;
 
         friend class Entity;
 
+
+        void createColorResources();
+
+        void setupDepthStencil();
+
+        void handleViewportResize(float x, float y);
 
     };
 }

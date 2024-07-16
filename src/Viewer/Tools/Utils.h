@@ -55,7 +55,9 @@
 #include <windows.h>
 #include <UserEnv.h>
 #else
+
 #include <sys/stat.h>
+
 #endif
 
 #include "Viewer/Tools/Macros.h"
@@ -87,6 +89,7 @@ namespace Utils {
     }
 
     DISABLE_WARNING_POP
+
     /**@brief small utility function. Usage of this makes other code more readable */
     inline bool isInVector(const std::vector<std::string> &v, const std::string &str) {
         if (std::find(v.begin(), v.end(), str) != v.end())
@@ -94,6 +97,7 @@ namespace Utils {
         return false;
 
     }
+
     /**@brief small utility function. Usage of this makes other code more readable */
     inline bool removeFromVector(std::vector<std::string> *v, const std::string &str) {
         auto it = std::find(v->begin(), v->end(), str);
@@ -233,6 +237,11 @@ namespace Utils {
                 imageMemoryBarrier.dstAccessMask =
                         imageMemoryBarrier.dstAccessMask | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
                 break;
+            case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
+                // Image layout will be used as a depth/stencil attachment
+                // Make sure any writes to depth/stencil buffer have been finished
+                imageMemoryBarrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+                break;
 
             case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
                 // Image will be read in a shader (m_Sampler, input attachment)
@@ -243,7 +252,7 @@ namespace Utils {
                 imageMemoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
                 break;
             default:
-                Log::Logger::getInstance()->error("Source layouts arent updated yet. No Image transition completed");
+                Log::Logger::getInstance()->error("Missing Source layouts implementation. No Image transition completed");
                 break;
         }
 
@@ -486,7 +495,8 @@ namespace Utils {
     }
 
 
-    static inline void writeTIFFImage(const std::filesystem::path &fileName, uint32_t width, uint32_t height, float *data) {
+    static inline void
+    writeTIFFImage(const std::filesystem::path &fileName, uint32_t width, uint32_t height, float *data) {
         int samplesPerPixel = 1;
         TIFF *out = TIFFOpen(fileName.string().c_str(), "w");
         if (!out) {

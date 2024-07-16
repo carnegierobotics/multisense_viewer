@@ -55,6 +55,8 @@
 
 #include "Viewer/Scenes/Default/DefaultScene.h"
 #include "Viewer/Scenes/MultiSenseViewer/MultiSenseViewer.h"
+#include "Viewer/VkRender/Editors/EditorTypeOne.h"
+#include "Viewer/VkRender/Editors/EditorSceneHierarchy.h"
 
 namespace VkRender {
 
@@ -67,6 +69,7 @@ namespace VkRender {
         VulkanRenderer::initVulkan();
         VulkanRenderer::prepare();
 
+        m_guiResources = std::make_shared<GuiResources>(m_vulkanDevice);
 
         // TODO Make dynamic
 
@@ -112,26 +115,29 @@ namespace VkRender {
         m_renderUtils.swapchainImages = swapchain->imageCount;
         m_renderUtils.swapchainIndex = currentFrame;
 
+        createColorResources();
+        setupDepthStencil();
 
-        VkRenderEditorCreateInfo mainEditorInfo;
+
+        VkRenderEditorCreateInfo mainEditorInfo(m_colorImage.view, m_depthStencil.view, m_guiResources);
         mainEditorInfo.height = m_height;
         mainEditorInfo.width = m_width;
-        mainEditorInfo.description = "MainEditor";
+        mainEditorInfo.editorTypeDescription = "MainEditor";
         mainEditorInfo.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        mainEditor = std::make_unique<Editor>(mainEditorInfo, m_renderUtils, *this);
-        mainEditor->m_guiManager->pushLayer("DebugWindow");
-        mainEditor->m_guiManager->pushLayer("MenuLayer");
-        //mainEditor->m_guiManager->pushLayer("NewVersionAvailable");
+        mainEditorInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        mainEditorInfo.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        mainEditorInfo.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        m_mainEditor = std::make_unique<Editor>(mainEditorInfo, m_renderUtils, *this);
+        m_mainEditor->m_guiManager->pushLayer("DebugWindow");
+        m_mainEditor->m_guiManager->pushLayer("MenuLayer");
 
-        VkRenderEditorCreateInfo otherEditorInfo;
+        VkRenderEditorCreateInfo otherEditorInfo(m_colorImage.view, m_depthStencil.view, m_guiResources);;
         otherEditorInfo.height = m_height;
         otherEditorInfo.width = m_width / 2;
         otherEditorInfo.x = m_width / 2;
-        otherEditorInfo.description = "OtherEditor";
-        otherEditorInfo.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-
+        otherEditorInfo.editorTypeDescription = "OtherEditor";
         m_editors.resize(1);
-        m_editors[0] = std::make_unique<Editor>(otherEditorInfo, m_renderUtils, *this);
+        m_editors[0] = std::make_unique<EditorTypeOne>(otherEditorInfo, m_renderUtils, *this);
         //m_editors[1] = std::make_unique<Editor>(m_renderUtils, *this);
         //m_editors[1]->offsetX = m_width / 2.0f;
 
@@ -229,28 +235,29 @@ namespace VkRender {
 
         // main editor window
         VkViewport viewport{};
-        viewport.x = static_cast<float>(mainEditor->x);
-        viewport.y = static_cast<float>(mainEditor->y);
-        viewport.width = static_cast<float>(mainEditor->width);
-        viewport.height = static_cast<float>(mainEditor->height);
+        viewport.x = static_cast<float>(m_mainEditor->x);
+        viewport.y = static_cast<float>(m_mainEditor->y);
+        viewport.width = static_cast<float>(m_mainEditor->width);
+        viewport.height = static_cast<float>(m_mainEditor->height);
         viewport.minDepth = 0.0f;
         viewport.maxDepth = 1.0f;
 
         VkRect2D scissor{};
-        scissor.offset = {static_cast<int32_t>(mainEditor->x), static_cast<int32_t>(mainEditor->y)};
-        scissor.extent = {static_cast<uint32_t>(mainEditor->width), static_cast<uint32_t>(mainEditor->height)};
+        scissor.offset = {static_cast<int32_t>(m_mainEditor->x), static_cast<int32_t>(m_mainEditor->y)};
+        scissor.extent = {static_cast<uint32_t>(m_mainEditor->width), static_cast<uint32_t>(m_mainEditor->height)};
 
         // Begin render pass
         /// *** Color render pass *** ///
         VkRenderPassBeginInfo renderPassBeginInfo = Populate::renderPassBeginInfo();
-        renderPassBeginInfo.renderPass = mainEditor->uiRenderPass.renderPass;
-        renderPassBeginInfo.renderArea.offset.x = 0;
-        renderPassBeginInfo.renderArea.offset.y = 0;
-        renderPassBeginInfo.renderArea.extent.width = mainEditor->width;
-        renderPassBeginInfo.renderArea.extent.height = mainEditor->height;
+        clearValues[0] = {{{0.1f, 0.1f, 0.3f, 1.0f}}};
+        renderPassBeginInfo.renderPass = m_mainEditor->uiRenderPass.renderPass;
+        renderPassBeginInfo.renderArea.offset.x = m_mainEditor->x;
+        renderPassBeginInfo.renderArea.offset.y = m_mainEditor->y;
+        renderPassBeginInfo.renderArea.extent.width = m_mainEditor->width;
+        renderPassBeginInfo.renderArea.extent.height = m_mainEditor->height;
         renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
         renderPassBeginInfo.pClearValues = clearValues.data();
-        renderPassBeginInfo.framebuffer = mainEditor->frameBuffers[imageIndex];
+        renderPassBeginInfo.framebuffer = m_mainEditor->frameBuffers[imageIndex];
         vkCmdBeginRenderPass(drawCmdBuffers.buffers[currentFrame], &renderPassBeginInfo,
                              VK_SUBPASS_CONTENTS_INLINE);
         drawCmdBuffers.boundRenderPass = renderPassBeginInfo.renderPass;
@@ -258,12 +265,12 @@ namespace VkRender {
         vkCmdSetViewport(drawCmdBuffers.buffers[currentFrame], 0, 1, &viewport);
         vkCmdSetScissor(drawCmdBuffers.buffers[currentFrame], 0, 1, &scissor);
 
-        mainEditor->m_guiManager->drawFrame(drawCmdBuffers.buffers[currentFrame], currentFrame, mainEditor->width, mainEditor->height);
+        m_mainEditor->m_guiManager->drawFrame(drawCmdBuffers.buffers[currentFrame], currentFrame, m_mainEditor->width,
+                                              m_mainEditor->height, m_mainEditor->x, m_mainEditor->y);
         vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
 
 
         for (const auto &editor: m_editors) {
-
             VkViewport viewport{};
             viewport.x = static_cast<float>(editor->x);
             viewport.y = static_cast<float>(editor->y);
@@ -279,9 +286,10 @@ namespace VkRender {
             // Begin render pass
             /// *** Color render pass *** ///
             VkRenderPassBeginInfo renderPassBeginInfo = Populate::renderPassBeginInfo();
+            clearValues[0] = {{{0.1f, 0.3f, 0.1f, 1.0f}}};
             renderPassBeginInfo.renderPass = editor->uiRenderPass.renderPass;
-            renderPassBeginInfo.renderArea.offset.x = 0;
-            renderPassBeginInfo.renderArea.offset.y = 0;
+            renderPassBeginInfo.renderArea.offset.x = editor->x;
+            renderPassBeginInfo.renderArea.offset.y = editor->y;
             renderPassBeginInfo.renderArea.extent.width = editor->width;
             renderPassBeginInfo.renderArea.extent.height = editor->height;
             renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
@@ -294,57 +302,70 @@ namespace VkRender {
             vkCmdSetViewport(drawCmdBuffers.buffers[currentFrame], 0, 1, &viewport);
             vkCmdSetScissor(drawCmdBuffers.buffers[currentFrame], 0, 1, &scissor);
 
+            editor->render();
+
             editor->m_guiManager->drawFrame(drawCmdBuffers.buffers[currentFrame], currentFrame, editor->width,
-                                            editor->height);
+                                            editor->height, editor->x, 0);
+
             vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
+        }
 
-            /*
-            for (auto [entity, skybox, gltfComponent]: m_registry.view<VkRender::SkyboxGraphicsPipelineComponent, GLTFModelComponent>(
-                    entt::exclude<DeleteComponent>).each()) {
-                skybox.draw(&drawCmdBuffers, currentFrame);
-                gltfComponent.model->draw(drawCmdBuffers.buffers[currentFrame]);
-            }
+        VkImageSubresourceRange subresourceRange = {};
+        subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        subresourceRange.levelCount = 1;
+        subresourceRange.layerCount = 1;
 
-            for (auto [entity, resources, gltfComponent]: m_registry.view<VkRender::DefaultPBRGraphicsPipelineComponent, GLTFModelComponent>(
-                    entt::exclude<DeleteComponent>).each()) {
-                if (!resources.markedForDeletion)
-                    resources.draw(&drawCmdBuffers, currentFrame, gltfComponent);
-                else
-                    resources.resources[currentFrame].busy = false;
-            }
+        Utils::setImageLayout(drawCmdBuffers.buffers[currentFrame], swapchain->buffers[currentFrame].image,
+                              VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                              VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, subresourceRange,
+                              VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+        vkEndCommandBuffer(drawCmdBuffers.buffers[currentFrame]);
 
+        /*
+        for (auto [entity, skybox, gltfComponent]: m_registry.view<VkRender::SkyboxGraphicsPipelineComponent, GLTFModelComponent>(
+                entt::exclude<DeleteComponent>).each()) {
+            skybox.draw(&drawCmdBuffers, currentFrame);
+            gltfComponent.model->draw(drawCmdBuffers.buffers[currentFrame]);
+        }
 
-            // Accessing components in a non-copying manner
-            for (auto entity: m_registry.view<DefaultGraphicsPipelineComponent2>(
-                    entt::exclude<DeleteComponent, ImageViewComponent, SecondaryRenderViewComponent>)) {
-                auto &resources = m_registry.get<DefaultGraphicsPipelineComponent2>(entity);
-                resources.draw(&drawCmdBuffers);
-            }
-
-            // Accessing components in a non-copying manner
-            for (auto entity: m_registry.view<CameraGraphicsPipelineComponent>(entt::exclude<DeleteComponent>)) {
-                auto &resources = m_registry.get<CameraGraphicsPipelineComponent>(entity);
-                resources.draw(&drawCmdBuffers);
-
-            }
-
-            for (auto [entity, resource]: m_registry.view<CustomModelComponent>(entt::exclude<DeleteComponent>).each()) {
-                resource.draw(&drawCmdBuffers);
-            }
+        for (auto [entity, resources, gltfComponent]: m_registry.view<VkRender::DefaultPBRGraphicsPipelineComponent, GLTFModelComponent>(
+                entt::exclude<DeleteComponent>).each()) {
+            if (!resources.markedForDeletion)
+                resources.draw(&drawCmdBuffers, currentFrame, gltfComponent);
+            else
+                resources.resources[currentFrame].busy = false;
+        }
 
 
-            for (auto entity: m_registry.view<ImageViewComponent>(
-                    entt::exclude<DeleteComponent>)) {
-                auto &resources = m_registry.get<DefaultGraphicsPipelineComponent2>(entity);
-                resources.draw(&drawCmdBuffers);
+        // Accessing components in a non-copying manner
+        for (auto entity: m_registry.view<DefaultGraphicsPipelineComponent2>(
+                entt::exclude<DeleteComponent, ImageViewComponent, SecondaryRenderViewComponent>)) {
+            auto &resources = m_registry.get<DefaultGraphicsPipelineComponent2>(entity);
+            resources.draw(&drawCmdBuffers);
+        }
 
-            }
-    */
-            // Render objects
+        // Accessing components in a non-copying manner
+        for (auto entity: m_registry.view<CameraGraphicsPipelineComponent>(entt::exclude<DeleteComponent>)) {
+            auto &resources = m_registry.get<CameraGraphicsPipelineComponent>(entity);
+            resources.draw(&drawCmdBuffers);
 
         }
 
-        vkEndCommandBuffer(drawCmdBuffers.buffers[currentFrame]);
+        for (auto [entity, resource]: m_registry.view<CustomModelComponent>(entt::exclude<DeleteComponent>).each()) {
+            resource.draw(&drawCmdBuffers);
+        }
+
+
+        for (auto entity: m_registry.view<ImageViewComponent>(
+                entt::exclude<DeleteComponent>)) {
+            auto &resources = m_registry.get<DefaultGraphicsPipelineComponent2>(entity);
+            resources.draw(&drawCmdBuffers);
+
+        }
+*/
+        // Render objects
+
+
         /*
         // Define the viewport with the adjusted dimensions
         VkViewport viewport{};
@@ -781,15 +802,62 @@ namespace VkRender {
             if (it != m_cameras.end())
                 m_cameras[m_selectedCameraTag].update(frameTimer);
         }
+        // update imgui io:
+
+
+        ImGui::SetCurrentContext(m_mainEditor->m_guiManager->m_imguiContext);
+        ImGuiIO &mainIO = ImGui::GetIO();
+        //io.DisplaySize = ImVec2(static_cast<float>(m_width), static_cast<float>(m_height));
+        mainIO.DeltaTime = frameTimer;
+        mainIO.WantCaptureMouse = true;
+        mainIO.MousePos = ImVec2(mousePos.x, mousePos.y);
+        mainIO.MouseDown[0] = mouseButtons.left;
+        mainIO.MouseDown[1] = mouseButtons.right;
+
+        for (const auto& editor: m_editors) {
+            ImGui::SetCurrentContext(editor->m_guiManager->m_imguiContext);
+            ImGuiIO &otherIO = ImGui::GetIO();
+            otherIO.DeltaTime = frameTimer;
+            otherIO.WantCaptureMouse = true;
+            otherIO.MousePos = ImVec2(mousePos.x - editor->x, mousePos.y);
+            otherIO.MouseDown[0] = mouseButtons.left;
+            otherIO.MouseDown[1] = mouseButtons.right;
+        }
+
+
         // update m_scenes:
         for (const auto &scene: m_scenes) {
             scene->update();
         }
-        mainEditor->m_guiManager->update((frameCounter == 0), frameTimer, mainEditor->width, mainEditor->height, &input);
+        m_mainEditor->m_guiManager->update((frameCounter == 0), frameTimer, m_mainEditor->width, m_mainEditor->height,
+                                           &input);
 
-        for (const auto &editor: m_editors) {
-            editor->m_guiManager->update((frameCounter == 0), frameTimer, editor->width, editor->height, &input);
+        for (const auto& editor: m_editors) {
+            editor->m_guiManager->update((frameCounter == 0), frameTimer,editor->width,
+                                              editor->height,
+                                               &input);
         }
+        // Reorder Editors elements according to UI
+        for (auto& editor: m_editors){
+            if (editor->m_guiManager->handles.editor.changed){
+                // Set a new one
+
+                VkRenderEditorCreateInfo editorCreateInfo(m_colorImage.view, m_depthStencil.view, m_guiResources);;
+                editorCreateInfo.height = m_height;
+                editorCreateInfo.width = m_width / 2;
+                editorCreateInfo.x = m_width / 2;
+                editorCreateInfo.editorTypeDescription = "OtherEditor";
+
+                if (editor->m_guiManager->handles.editor.selectedType == "UI"){
+                    editor = std::make_unique<EditorTypeOne>(editorCreateInfo, m_renderUtils, *this);
+                } else if (editor->m_guiManager->handles.editor.selectedType == "Scene Hierarchy"){
+                    editor = std::make_unique<EditorSceneHierarchy>(editorCreateInfo, m_renderUtils, *this);
+                } else {
+                    editor = std::make_unique<EditorTypeTwo>(editorCreateInfo, m_renderUtils, *this);
+                }
+            }
+        }
+
         //m_selectedCameraTag = m_guiManager->handles.m_cameraSelection.tag;
         m_renderUtils.swapchainIndex = currentFrame;
         m_renderUtils.input = &input;
@@ -979,17 +1047,42 @@ namespace VkRender {
 
     }
 
-    void Renderer::handleViewportResize() {
-        // Draw viewport borders
+    void Renderer::handleViewportResize(float x, float y) {
+        glfwSetCursor(window, m_cursors.arrow);
+        float dx = mousePos.x - x;
+        float dy = mousePos.y - y;
 
+        bool draggable = false;
+        // Check if we are at any viewport borders.
 
-        //
-        if (mouseButtons.pos.y > (m_height / 2) - 10 && mouseButtons.pos.y < (m_height / 2) + 10) {
-            glfwSetCursor(window, m_cursors.resizeVertical);
-        } else {
-            glfwSetCursor(window, m_cursors.arrow);
+        //For each viewport: check left/right/top/bottom border
+        // Left side
+        for (auto& editor : m_editors){
+            if (editor->x == 0)
+                continue;
+
+            if (mousePos.x >= editor->x - 2 && mousePos.x <= editor->x + 2 &&
+                mousePos.y >= editor->y  && mousePos.y <= editor->height) {
+                glfwSetCursor(window, m_cursors.resizeHorizontal);
+                if (mouseButtons.left && dx != 0) {
+                    // && !mouseButtons.middle) {
+                    m_cameras[m_selectedCameraTag].rotate(dx, dy);
+                    VkRenderEditorCreateInfo editorCreateInfo(m_colorImage.view, m_depthStencil.view, m_guiResources);;
+                    editorCreateInfo.height = m_height;
+                    editorCreateInfo.width = (editor->width) + dx;
+                    editorCreateInfo.x = (editor->x) - dx;
+                    editorCreateInfo.editorTypeDescription = editor->editorTypeDescription;
+                    editor = std::make_unique<EditorSceneHierarchy>(editorCreateInfo, m_renderUtils, *this);
+                }
+            }
         }
-    }
+
+
+        for (auto& editor : m_editors) {
+
+        }
+
+        }
 
 
     void Renderer::mouseMoved(float x, float y, bool &handled) {
@@ -1026,9 +1119,11 @@ namespace VkRender {
                 }
             }
         }
+
+        handleViewportResize(x, y);
+
         mousePos = glm::vec2(x, y);
 
-        handleViewportResize();
         handled = true;
     }
 
@@ -1139,16 +1234,121 @@ namespace VkRender {
     }
 
     void Renderer::postRenderActions() {
-
+        // Reset mousewheel across imgui contexts
+        for (std::vector<ImGuiContext *> list = {m_mainEditor->m_guiManager->m_imguiContext,
+                                                 m_editors[0]->m_guiManager->m_imguiContext}; auto &ctx : list) {
+            ImGui::SetCurrentContext(ctx);
+            ImGuiIO &io = ImGui::GetIO();
+            io.MouseWheel = 0;
+        }
 
     }
 
     void Renderer::addUILayer(const std::string &layerName) {
-        for (const auto &editor: m_editors) {
-            editor->m_guiManager->pushLayer(layerName);
-        }
-        //
+
     }
+
+    void Renderer::setupDepthStencil() {
+        std::string description = "Renderer:";
+        VkImageCreateInfo imageCI = Populate::imageCreateInfo();
+        imageCI.imageType = VK_IMAGE_TYPE_2D;
+        imageCI.format = m_renderUtils.depthFormat;
+        imageCI.extent = {m_width, m_height, 1};
+        imageCI.mipLevels = 1;
+        imageCI.arrayLayers = 1;
+        imageCI.samples = m_renderUtils.msaaSamples;
+        imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
+        imageCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+
+        VmaAllocationCreateInfo allocInfo = {};
+        allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+
+        VkResult result = vmaCreateImage(allocator(), &imageCI, &allocInfo, &m_depthStencil.image,
+                                         &m_depthStencil.allocation, nullptr);
+        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create depth image");
+        vmaSetAllocationName(allocator(), m_depthStencil.allocation, (description + "DepthStencil").c_str());
+        VALIDATION_DEBUG_NAME(m_renderUtils.device->m_LogicalDevice,
+                              reinterpret_cast<uint64_t>(m_depthStencil.image), VK_OBJECT_TYPE_IMAGE,
+                              (description + "DepthImage").c_str());
+
+        VkImageViewCreateInfo imageViewCI = Populate::imageViewCreateInfo();
+        imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        imageViewCI.image = m_depthStencil.image;
+        imageViewCI.format = m_renderUtils.depthFormat;
+        imageViewCI.subresourceRange.baseMipLevel = 0;
+        imageViewCI.subresourceRange.levelCount = 1;
+        imageViewCI.subresourceRange.baseArrayLayer = 0;
+        imageViewCI.subresourceRange.layerCount = 1;
+        imageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+        if (m_renderUtils.depthFormat >= VK_FORMAT_D16_UNORM_S8_UINT) {
+            imageViewCI.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+        }
+        result = vkCreateImageView(m_renderUtils.device->m_LogicalDevice, &imageViewCI, nullptr, &m_depthStencil.view);
+        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create depth image view");
+
+        VALIDATION_DEBUG_NAME(m_renderUtils.device->m_LogicalDevice,
+                              reinterpret_cast<uint64_t>(m_depthStencil.view), VK_OBJECT_TYPE_IMAGE_VIEW,
+                              (description + "DepthView").c_str());
+
+        VkCommandBuffer copyCmd = m_renderUtils.device->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+
+        VkImageSubresourceRange subresourceRange = {};
+        subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+        subresourceRange.levelCount = 1;
+        subresourceRange.layerCount = 1;
+
+        Utils::setImageLayout(copyCmd, m_depthStencil.image, VK_IMAGE_LAYOUT_UNDEFINED,
+                              VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, subresourceRange,
+                              VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+
+        m_renderUtils.device->flushCommandBuffer(copyCmd, m_renderUtils.graphicsQueue, true);
+
+    }
+
+
+    void Renderer::createColorResources() {
+        std::string description = "Renderer:";
+
+        VkImageCreateInfo imageCI = Populate::imageCreateInfo();
+        imageCI.imageType = VK_IMAGE_TYPE_2D;
+        imageCI.format = m_renderUtils.swapchainColorFormat;
+        imageCI.extent = {m_width, m_height, 1};
+        imageCI.mipLevels = 1;
+        imageCI.arrayLayers = 1;
+        imageCI.samples = m_renderUtils.msaaSamples;
+        imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
+        imageCI.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+        imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+        VmaAllocationCreateInfo allocInfo = {};
+        allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+
+        VkResult result = vmaCreateImage(allocator(), &imageCI, &allocInfo, &m_colorImage.image,
+                                         &m_colorImage.allocation, nullptr);
+        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create color image");
+        VALIDATION_DEBUG_NAME(m_renderUtils.device->m_LogicalDevice,
+                              reinterpret_cast<uint64_t>(m_colorImage.image), VK_OBJECT_TYPE_IMAGE,
+                              (description + "ColorImageResource").c_str());
+        // Set user data for debugging
+        //vmaSetAllocationUserData(allocator(), m_colorImage.allocation, (void*)((description + "ColorResource").c_str()));
+
+        VkImageViewCreateInfo imageViewCI = Populate::imageViewCreateInfo();
+        imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        imageViewCI.image = m_colorImage.image;
+        imageViewCI.format = m_renderUtils.swapchainColorFormat;
+        imageViewCI.subresourceRange.baseMipLevel = 0;
+        imageViewCI.subresourceRange.levelCount = 1;
+        imageViewCI.subresourceRange.baseArrayLayer = 0;
+        imageViewCI.subresourceRange.layerCount = 1;
+        imageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        result = vkCreateImageView(m_renderUtils.device->m_LogicalDevice, &imageViewCI, nullptr, &m_colorImage.view);
+        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create color image view");
+        VALIDATION_DEBUG_NAME(m_renderUtils.device->m_LogicalDevice,
+                              reinterpret_cast<uint64_t>(m_colorImage.view), VK_OBJECT_TYPE_IMAGE_VIEW,
+                              (description + "ColorViewResource").c_str());
+    }
+
 
     DISABLE_WARNING_PUSH
     DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER

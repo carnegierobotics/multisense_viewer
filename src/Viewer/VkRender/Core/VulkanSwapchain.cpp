@@ -200,6 +200,8 @@ void VulkanSwapchain::create(uint32_t *width, uint32_t *height, bool vsync)
     buffers.resize(imageCount);
     for (uint32_t i = 0; i < imageCount; i++)
     {
+
+
         VkImageViewCreateInfo colorAttachmentView = {};
         colorAttachmentView.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
         colorAttachmentView.pNext = NULL;
@@ -219,11 +221,17 @@ void VulkanSwapchain::create(uint32_t *width, uint32_t *height, bool vsync)
         colorAttachmentView.flags = 0;
 
         buffers[i].image = images[i];
-
+        VALIDATION_DEBUG_NAME(device,
+                              reinterpret_cast<uint64_t>( buffers[i].image), VK_OBJECT_TYPE_IMAGE,
+                              ("SwapChain:Image:" + std::to_string(i)).c_str());
         colorAttachmentView.image = buffers[i].image;
 
         result = vkCreateImageView(device, &colorAttachmentView, nullptr, &buffers[i].view);
         if (result != VK_SUCCESS) throw std::runtime_error("Failed to create swapchain m_Image views");
+
+        VALIDATION_DEBUG_NAME(device,
+                              reinterpret_cast<uint64_t>(buffers[i].view), VK_OBJECT_TYPE_IMAGE_VIEW,
+                              ("SwapChain:ImageView:" + std::to_string(i)).c_str());
     }
 }
 

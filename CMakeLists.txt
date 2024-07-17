@@ -76,7 +76,9 @@ set(SOURCE_FILES
         src/Viewer/VkRender/Core/RendererConfig.cpp
         src/Viewer/VkRender/Core/ServerConnection.cpp
         src/Viewer/VkRender/Core/CommandBuffer.cpp
+        src/Viewer/VkRender/Core/VulkanRenderPass.cpp
 
+        src/Viewer/VkRender/pch.cpp
         src/Viewer/VkRender/Renderer.cpp
         src/Viewer/VkRender/Editor.cpp
         src/Viewer/VkRender/Entity.cpp

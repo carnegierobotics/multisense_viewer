@@ -13,8 +13,8 @@ namespace VkRender {
     public:
         EditorTypeOne() = delete;
 
-        EditorTypeOne(const VkRenderEditorCreateInfo &createInfo, RenderUtils &utils, Renderer &ctx) : Editor(
-                createInfo, utils, ctx) {
+        EditorTypeOne(const VulkanRenderPassCreateInfo &createInfo) : Editor(
+                createInfo) {
 
             m_guiManager->pushLayer("EditorUILayer");
 
@@ -28,8 +28,8 @@ namespace VkRender {
     public:
         EditorTypeTwo() = delete;
 
-        EditorTypeTwo(const VkRenderEditorCreateInfo &createInfo, RenderUtils &utils, Renderer &ctx) : Editor(
-                createInfo, utils, ctx) {
+        EditorTypeTwo(const VulkanRenderPassCreateInfo &createInfo) : Editor(
+                createInfo) {
 
             m_guiManager->pushLayer("EditorUILayer");
 

@@ -7,47 +7,24 @@
 
 #include <vk_mem_alloc.h>
 #include "Viewer/VkRender/Core/RenderDefinitions.h"
+#include "Viewer/VkRender/Core/VulkanRenderPass.h"
 #include "Viewer/VkRender/ImGui/GuiManager.h"
 
 namespace VkRender {
     class Renderer;
 
-    struct VkRenderEditorCreateInfo {
-        uint32_t width = 0;
-        uint32_t height = 0;
-        uint32_t x = 0;
-        uint32_t y = 0;
-        std::string editorTypeDescription;
-
-        VkAttachmentLoadOp loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-        VkImageLayout initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        VkImageLayout finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        VkAttachmentStoreOp storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-
-        VkImageView &colorImageView;
-        VkImageView &depthImageView;
-        std::shared_ptr<GuiResources> guiResources;
-
-        VkRenderEditorCreateInfo(VkImageView &colorView,
-                                 VkImageView &depthView, std::shared_ptr<GuiResources> guiRes) : colorImageView(colorView), depthImageView(depthView), guiResources(guiRes) {
-
-        }
-
-    };
-
     class Editor {
     public:
         Editor() = delete;
 
-        explicit Editor(const VkRenderEditorCreateInfo &createInfo, RenderUtils &utils, Renderer &ctx);
+        explicit Editor(const VulkanRenderPassCreateInfo &createInfo);
 
         ~Editor();
 
-        void render();
+        void render(CommandBuffer &drawCmdBuffers);
+        void update(bool updateGraph, float frametime, Input* input);
 
-        EditorRenderPass depthRenderPass;
-        EditorRenderPass objectRenderPass;
-        EditorRenderPass uiRenderPass;
+        std::vector<std::shared_ptr<VulkanRenderPass>> renderPasses;
         RenderUtils &m_renderUtils;
         Renderer &m_context;
 
@@ -63,18 +40,11 @@ namespace VkRender {
 
         std::unique_ptr<GuiManager> m_guiManager;
 
-        glm::vec2 lastHoldPosition;
         std::string editorTypeDescription;
 
     private:
-        void setupRenderPasses(EditorRenderPass *secondaryRenderPasses);
 
-        void setupFrameBuffer();
-
-    private:
-
-        void setupUIRenderPass(const VkRenderEditorCreateInfo &createinfo, EditorRenderPass *secondaryRenderPasses);
     };
 }
 
-#endif //MULTISENSE_VIEWER_EDITOR_H
+#endif //MULTISE{}NSE_VIEWER_EDITOR_H

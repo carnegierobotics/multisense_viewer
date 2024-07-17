@@ -575,6 +575,8 @@ namespace VkRender {
         destWidth = m_width;
         destHeight = m_height;
         auto graphLastTimestamp = std::chrono::high_resolution_clock::now();
+        drawCmdBuffers.frameIndex = &currentFrame;
+        drawCmdBuffers.activeImageIndex = &imageIndex;
 
         while (!glfwWindowShouldClose(window)) {
             auto tStart = std::chrono::high_resolution_clock::now();
@@ -588,7 +590,6 @@ namespace VkRender {
 
             input.lastKeyPress = keyPress;
             input.action = keyAction;
-            drawCmdBuffers.currentFrame = currentFrame;
             /** Compute pipeline command recording and submission **/
             //computePipeline(); // TODO Either implement or remove
             updateUniformBuffers();

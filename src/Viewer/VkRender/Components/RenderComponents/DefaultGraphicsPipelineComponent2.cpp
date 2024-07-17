@@ -123,7 +123,7 @@ namespace VkRender {
     }
 
     void DefaultGraphicsPipelineComponent2::draw(CommandBuffer *cmdBuffers) {
-        uint32_t cbIndex = cmdBuffers->currentFrame;
+        const uint32_t& cbIndex = *cmdBuffers->frameIndex;
         auto renderPassType = cmdBuffers->renderPassType;
 
         if (shouldStopRendering() || m_renderData[cbIndex].requestIdle[renderPassType]) {
@@ -143,17 +143,17 @@ namespace VkRender {
 
 
         VkDeviceSize offsets[1] = {0};
-        vkCmdBindVertexBuffers(cmdBuffers->buffers[cmdBuffers->currentFrame], 0, 1, &vertices.buffer, offsets);
+        vkCmdBindVertexBuffers(cmdBuffers->buffers[cbIndex], 0, 1, &vertices.buffer, offsets);
         if (indices.buffer != VK_NULL_HANDLE) {
-            vkCmdBindIndexBuffer(cmdBuffers->buffers[cmdBuffers->currentFrame], indices.buffer, 0,
+            vkCmdBindIndexBuffer(cmdBuffers->buffers[cbIndex], indices.buffer, 0,
                                  VK_INDEX_TYPE_UINT32);
         }
 
         if (indices.buffer != VK_NULL_HANDLE) {
-            vkCmdDrawIndexed(cmdBuffers->buffers[cmdBuffers->currentFrame], indices.indexCount, 1,
+            vkCmdDrawIndexed(cmdBuffers->buffers[cbIndex], indices.indexCount, 1,
                              0, 0, 0);
         } else {
-            vkCmdDraw(cmdBuffers->buffers[cmdBuffers->currentFrame], vertices.vertexCount, 1, 0, 0);
+            vkCmdDraw(cmdBuffers->buffers[cbIndex], vertices.vertexCount, 1, 0, 0);
         }
 
         m_renderData[cbIndex].busy[renderPassType] = true;

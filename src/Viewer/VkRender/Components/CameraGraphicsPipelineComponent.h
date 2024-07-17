@@ -70,7 +70,7 @@ namespace VkRender {
         };
 
         void draw(CommandBuffer *cmdBuffers) override {
-            uint32_t cbIndex = cmdBuffers->currentFrame;
+            const uint32_t& cbIndex = *cmdBuffers->frameIndex;
             auto renderPassType = cmdBuffers->renderPassType;
 
             if (shouldStopRendering() || m_renderData[cbIndex].requestIdle[renderPassType]) {

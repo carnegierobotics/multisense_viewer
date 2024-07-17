@@ -36,20 +36,11 @@
 #ifndef MULTISENSE_RENDERER_H
 #define MULTISENSE_RENDERER_H
 
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <iostream>
-#include <thread>
-#include <fstream>
-#include <filesystem>
-
-#ifdef APIENTRY
-#undef APIENTRY
-#endif
+#include "Viewer/VkRender/pch.h"
 
 #include <GLFW/glfw3.h>
 #include <entt/entt.hpp>
-#include <complex>
+
 
 #include "Viewer/VkRender/Core/VulkanRenderer.h"
 #include "Viewer/Scenes/ScriptSupport/ScriptBuilder.h"
@@ -99,10 +90,13 @@ namespace VkRender {
         VkRender::Entity findEntityByName(std::string_view name);
         void markEntityForDestruction(Entity entity);
         void addUILayer(const std::string &layerName);
+
         entt::registry& registry() {return m_registry;}
         RenderUtils& data() {return m_renderUtils;}
         std::vector<SwapChainBuffer>& swapChainBuffers(){return swapchain->buffers;}
         VmaAllocator& allocator(){return m_allocator;}
+        VkDevice &vkDevice() {return device;}
+
         //GuiObjectHandles& UIContext() {return m_guiManager->handles;}
 
         Camera &createNewCamera(const std::string &name, uint32_t width, uint32_t height);

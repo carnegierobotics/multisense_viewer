@@ -276,7 +276,7 @@ namespace VkRender {
         if (!model->draw)
             return;
 
-        uint32_t cbIndex = cmdBuffer->currentFrame;
+        const uint32_t& cbIndex = *cmdBuffer->frameIndex;
 
         if (shouldStopRendering())
             return;

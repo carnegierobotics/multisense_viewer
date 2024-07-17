@@ -119,7 +119,7 @@ namespace VkRender {
         setupDepthStencil();
 
 
-        VkRenderEditorCreateInfo mainEditorInfo(m_colorImage.view, m_depthStencil.view, m_guiResources);
+        VulkanRenderPassCreateInfo mainEditorInfo(m_colorImage.view, m_depthStencil.view, m_guiResources, *this);
         mainEditorInfo.height = m_height;
         mainEditorInfo.width = m_width;
         mainEditorInfo.editorTypeDescription = "MainEditor";
@@ -127,17 +127,17 @@ namespace VkRender {
         mainEditorInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         mainEditorInfo.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         mainEditorInfo.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        m_mainEditor = std::make_unique<Editor>(mainEditorInfo, m_renderUtils, *this);
+        m_mainEditor = std::make_unique<Editor>(mainEditorInfo);
         m_mainEditor->m_guiManager->pushLayer("DebugWindow");
         m_mainEditor->m_guiManager->pushLayer("MenuLayer");
 
-        VkRenderEditorCreateInfo otherEditorInfo(m_colorImage.view, m_depthStencil.view, m_guiResources);;
+        VulkanRenderPassCreateInfo otherEditorInfo(m_colorImage.view, m_depthStencil.view, m_guiResources, *this);
         otherEditorInfo.height = m_height;
         otherEditorInfo.width = m_width / 2;
         otherEditorInfo.x = m_width / 2;
         otherEditorInfo.editorTypeDescription = "OtherEditor";
         m_editors.resize(1);
-        m_editors[0] = std::make_unique<EditorTypeOne>(otherEditorInfo, m_renderUtils, *this);
+        m_editors[0] = std::make_unique<EditorTypeOne>(otherEditorInfo);
         //m_editors[1] = std::make_unique<Editor>(m_renderUtils, *this);
         //m_editors[1]->offsetX = m_width / 2.0f;
 
@@ -232,82 +232,10 @@ namespace VkRender {
         clearValues[1].depthStencil = {1.0f, 0};
         vkBeginCommandBuffer(drawCmdBuffers.buffers[currentFrame], &cmdBufInfo);
 
-
-        // main editor window
-        VkViewport viewport{};
-        viewport.x = static_cast<float>(m_mainEditor->x);
-        viewport.y = static_cast<float>(m_mainEditor->y);
-        viewport.width = static_cast<float>(m_mainEditor->width);
-        viewport.height = static_cast<float>(m_mainEditor->height);
-        viewport.minDepth = 0.0f;
-        viewport.maxDepth = 1.0f;
-
-        VkRect2D scissor{};
-        scissor.offset = {static_cast<int32_t>(m_mainEditor->x), static_cast<int32_t>(m_mainEditor->y)};
-        scissor.extent = {static_cast<uint32_t>(m_mainEditor->width), static_cast<uint32_t>(m_mainEditor->height)};
-
-        // Begin render pass
-        /// *** Color render pass *** ///
-        VkRenderPassBeginInfo renderPassBeginInfo = Populate::renderPassBeginInfo();
-        clearValues[0] = {{{0.1f, 0.1f, 0.3f, 1.0f}}};
-        renderPassBeginInfo.renderPass = m_mainEditor->uiRenderPass.renderPass;
-        renderPassBeginInfo.renderArea.offset.x = m_mainEditor->x;
-        renderPassBeginInfo.renderArea.offset.y = m_mainEditor->y;
-        renderPassBeginInfo.renderArea.extent.width = m_mainEditor->width;
-        renderPassBeginInfo.renderArea.extent.height = m_mainEditor->height;
-        renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-        renderPassBeginInfo.pClearValues = clearValues.data();
-        renderPassBeginInfo.framebuffer = m_mainEditor->frameBuffers[imageIndex];
-        vkCmdBeginRenderPass(drawCmdBuffers.buffers[currentFrame], &renderPassBeginInfo,
-                             VK_SUBPASS_CONTENTS_INLINE);
-        drawCmdBuffers.boundRenderPass = renderPassBeginInfo.renderPass;
-        drawCmdBuffers.renderPassType = RENDER_PASS_UI;
-        vkCmdSetViewport(drawCmdBuffers.buffers[currentFrame], 0, 1, &viewport);
-        vkCmdSetScissor(drawCmdBuffers.buffers[currentFrame], 0, 1, &scissor);
-
-        m_mainEditor->m_guiManager->drawFrame(drawCmdBuffers.buffers[currentFrame], currentFrame, m_mainEditor->width,
-                                              m_mainEditor->height, m_mainEditor->x, m_mainEditor->y);
-        vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
-
+        m_mainEditor->render(drawCmdBuffers);
 
         for (const auto &editor: m_editors) {
-            VkViewport viewport{};
-            viewport.x = static_cast<float>(editor->x);
-            viewport.y = static_cast<float>(editor->y);
-            viewport.width = static_cast<float>(editor->width);
-            viewport.height = static_cast<float>(editor->height);
-            viewport.minDepth = 0.0f;
-            viewport.maxDepth = 1.0f;
-
-            VkRect2D scissor{};
-            scissor.offset = {static_cast<int32_t>(editor->x), static_cast<int32_t>(editor->y)};
-            scissor.extent = {static_cast<uint32_t>(editor->width), static_cast<uint32_t>(editor->height)};
-
-            // Begin render pass
-            /// *** Color render pass *** ///
-            VkRenderPassBeginInfo renderPassBeginInfo = Populate::renderPassBeginInfo();
-            clearValues[0] = {{{0.1f, 0.3f, 0.1f, 1.0f}}};
-            renderPassBeginInfo.renderPass = editor->uiRenderPass.renderPass;
-            renderPassBeginInfo.renderArea.offset.x = editor->x;
-            renderPassBeginInfo.renderArea.offset.y = editor->y;
-            renderPassBeginInfo.renderArea.extent.width = editor->width;
-            renderPassBeginInfo.renderArea.extent.height = editor->height;
-            renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-            renderPassBeginInfo.pClearValues = clearValues.data();
-            renderPassBeginInfo.framebuffer = editor->frameBuffers[imageIndex];
-            vkCmdBeginRenderPass(drawCmdBuffers.buffers[currentFrame], &renderPassBeginInfo,
-                                 VK_SUBPASS_CONTENTS_INLINE);
-            drawCmdBuffers.boundRenderPass = renderPassBeginInfo.renderPass;
-            drawCmdBuffers.renderPassType = RENDER_PASS_UI;
-            vkCmdSetViewport(drawCmdBuffers.buffers[currentFrame], 0, 1, &viewport);
-            vkCmdSetScissor(drawCmdBuffers.buffers[currentFrame], 0, 1, &scissor);
-
-            editor->render();
-
-            editor->m_guiManager->drawFrame(drawCmdBuffers.buffers[currentFrame], currentFrame, editor->width,
-                                            editor->height, editor->x, 0);
-
-            vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
+            editor->render(drawCmdBuffers);
         }
 
         VkImageSubresourceRange subresourceRange = {};
@@ -829,31 +757,27 @@ namespace VkRender {
         for (const auto &scene: m_scenes) {
             scene->update();
         }
-        m_mainEditor->m_guiManager->update((frameCounter == 0), frameTimer, m_mainEditor->width, m_mainEditor->height,
-                                           &input);
-
+        m_mainEditor->update((frameCounter == 0), frameTimer, &input);
         for (const auto& editor: m_editors) {
-            editor->m_guiManager->update((frameCounter == 0), frameTimer,editor->width,
-                                              editor->height,
-                                               &input);
+            editor->update((frameCounter == 0), frameTimer, &input);
         }
         // Reorder Editors elements according to UI
         for (auto& editor: m_editors){
             if (editor->m_guiManager->handles.editor.changed){
                 // Set a new one
 
-                VkRenderEditorCreateInfo editorCreateInfo(m_colorImage.view, m_depthStencil.view, m_guiResources);;
+                VulkanRenderPassCreateInfo editorCreateInfo(m_colorImage.view, m_depthStencil.view, m_guiResources, *this);
                 editorCreateInfo.height = m_height;
                 editorCreateInfo.width = m_width / 2;
                 editorCreateInfo.x = m_width / 2;
                 editorCreateInfo.editorTypeDescription = "OtherEditor";
 
                 if (editor->m_guiManager->handles.editor.selectedType == "UI"){
-                    editor = std::make_unique<EditorTypeOne>(editorCreateInfo, m_renderUtils, *this);
+                    editor = std::make_unique<EditorTypeOne>(editorCreateInfo);
                 } else if (editor->m_guiManager->handles.editor.selectedType == "Scene Hierarchy"){
-                    editor = std::make_unique<EditorSceneHierarchy>(editorCreateInfo, m_renderUtils, *this);
+                    editor = std::make_unique<EditorSceneHierarchy>(editorCreateInfo);
                 } else {
-                    editor = std::make_unique<EditorTypeTwo>(editorCreateInfo, m_renderUtils, *this);
+                    editor = std::make_unique<EditorTypeTwo>(editorCreateInfo);
                 }
             }
         }
@@ -1067,20 +991,16 @@ namespace VkRender {
                 if (mouseButtons.left && dx != 0) {
                     // && !mouseButtons.middle) {
                     m_cameras[m_selectedCameraTag].rotate(dx, dy);
-                    VkRenderEditorCreateInfo editorCreateInfo(m_colorImage.view, m_depthStencil.view, m_guiResources);;
+                    VulkanRenderPassCreateInfo editorCreateInfo(m_colorImage.view, m_depthStencil.view, m_guiResources, *this);
                     editorCreateInfo.height = m_height;
                     editorCreateInfo.width = (editor->width) + dx;
                     editorCreateInfo.x = (editor->x) - dx;
                     editorCreateInfo.editorTypeDescription = editor->editorTypeDescription;
-                    editor = std::make_unique<EditorSceneHierarchy>(editorCreateInfo, m_renderUtils, *this);
+                    editor = std::make_unique<EditorSceneHierarchy>(editorCreateInfo);
                 }
             }
         }
 
-
-        for (auto& editor : m_editors) {
-
-        }
 
         }
 
@@ -1348,6 +1268,7 @@ namespace VkRender {
                               reinterpret_cast<uint64_t>(m_colorImage.view), VK_OBJECT_TYPE_IMAGE_VIEW,
                               (description + "ColorViewResource").c_str());
     }
+
 
 
     DISABLE_WARNING_PUSH

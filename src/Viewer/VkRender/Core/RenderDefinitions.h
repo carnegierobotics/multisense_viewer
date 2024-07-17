@@ -186,40 +186,6 @@ namespace VkRender {
 
     };
 
-    struct EditorRenderPass {
-        std::vector<VkFramebuffer> frameBuffers{};
-        VkRenderPass renderPass = VK_NULL_HANDLE;
-        Camera *camera{};
-        struct {
-            VkImage image = VK_NULL_HANDLE;
-            VkDeviceMemory mem = VK_NULL_HANDLE;
-            VkImageView view = VK_NULL_HANDLE;
-            VkSampler sampler = VK_NULL_HANDLE;
-            VmaAllocation allocation;
-
-        } depthStencil{};
-        struct {
-            VkImage image = VK_NULL_HANDLE;
-            VkImage resolvedImage = VK_NULL_HANDLE;
-            VkDeviceMemory mem = VK_NULL_HANDLE;
-            VkDeviceMemory resolvedMem = VK_NULL_HANDLE;
-            VkImageView view = VK_NULL_HANDLE;
-            VkImageView resolvedView = VK_NULL_HANDLE;
-            VkSampler sampler = VK_NULL_HANDLE;
-
-            VmaAllocation colorImageAllocation;
-            VmaAllocation resolvedImageAllocation;
-
-        } colorImage{};
-
-        bool idle = true;
-        VkDescriptorImageInfo imageInfo{};
-        VkDescriptorImageInfo depthImageInfo{};
-        std::string type;
-        bool multisampled = true;
-        bool setupFrameBuffer = true;
-        std::string debugName = "EditorRenderPass";
-    };
 
     /** Containing Basic Vulkan Resources for rendering for use in scripts **/
     struct RenderUtils {

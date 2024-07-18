@@ -9,6 +9,7 @@
 #include <vk_mem_alloc.h>
 #include <string>
 #include <memory>
+#include <utility>
 
 #include "Viewer/VkRender/ImGui/GuiManager.h"
 
@@ -16,7 +17,7 @@ namespace VkRender {
     class Renderer;
 
     struct VulkanRenderPassCreateInfo {
-        Renderer &context;
+        Renderer *context = nullptr;
         uint32_t width = 0;
         uint32_t height = 0;
         uint32_t x = 0;
@@ -27,12 +28,17 @@ namespace VkRender {
         VkImageLayout finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         VkAttachmentStoreOp storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
-        VkImageView &colorImageView;
-        VkImageView &depthImageView;
+        VkImageView colorImageView = VK_NULL_HANDLE;
+        VkImageView depthImageView = VK_NULL_HANDLE;
         std::shared_ptr<GuiResources> guiResources;
 
+
+        VulkanRenderPassCreateInfo() = default;
+
         VulkanRenderPassCreateInfo(VkImageView &colorView,
-                                   VkImageView &depthView, std::shared_ptr<GuiResources> guiRes, Renderer& ctx) : context(ctx), colorImageView(colorView), depthImageView(depthView), guiResources(guiRes) {
+                                   VkImageView &depthView, std::shared_ptr<GuiResources> guiRes, Renderer *ctx)
+                : context(ctx), colorImageView(colorView), depthImageView(depthView), guiResources(std::move(guiRes)) {
+
         }
     };
 
@@ -44,7 +50,9 @@ namespace VkRender {
 
         ~VulkanRenderPass();
 
-        VkRenderPass& renderPass(){return m_renderPass;}
+        VkRenderPass &getRenderPass() {
+            return m_renderPass;
+        }
 
     private:
         VkRenderPass m_renderPass = VK_NULL_HANDLE;
@@ -68,8 +76,8 @@ namespace VkRender {
         } m_colorImage{};
         VkDescriptorImageInfo m_imageInfo{};
 
-        VkDevice& m_logicalDevice;
-        VmaAllocator& m_allocator;
+        VkDevice &m_logicalDevice;
+        VmaAllocator &m_allocator;
 
     };
 }

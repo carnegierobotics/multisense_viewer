@@ -75,6 +75,11 @@ namespace VkRender {
 
 namespace VkRender {
 
+    enum class RenderState {
+        Busy,
+        Idle,
+        PendingDeletion
+    };
 
     /**
      * @brief GLFW and Vulkan combination to create a SwapChain

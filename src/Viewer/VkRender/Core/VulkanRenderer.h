@@ -171,6 +171,8 @@ namespace VkRender {
         virtual void windowResized();
 
         virtual void postRenderActions() = 0; // TODO test
+        virtual void freeVulkanResources() = 0;
+        virtual void updateRenderingStates() = 0;
 
         /** @brief (Virtual) Called when resources have been recreated that require a rebuild of the command buffers (e.g. frame buffer), to be implemented by the sample application */
         virtual void buildCommandBuffers();

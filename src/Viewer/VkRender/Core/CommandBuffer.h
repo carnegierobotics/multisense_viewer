@@ -21,7 +21,9 @@ enum RenderPassType {
 
 struct CommandBuffer {
     std::vector<VkCommandBuffer> buffers{};
-    VkRenderPass boundRenderPass = VK_NULL_HANDLE;
+
+    std::vector<VkRenderPass> boundRenderPasses;
+
     const uint32_t* frameIndex = nullptr;
     const uint32_t* activeImageIndex = nullptr;
     RenderPassType renderPassType = RENDER_PASS_COLOR;

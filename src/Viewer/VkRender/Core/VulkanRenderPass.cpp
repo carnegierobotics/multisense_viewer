@@ -12,12 +12,12 @@
 namespace VkRender {
 
 
-    VulkanRenderPass::VulkanRenderPass(const VulkanRenderPassCreateInfo &createInfo) : m_logicalDevice(createInfo.context.vkDevice()), m_allocator(createInfo.context.allocator()) {
+    VulkanRenderPass::VulkanRenderPass(const VulkanRenderPassCreateInfo &createInfo) : m_logicalDevice(createInfo.context->vkDevice()), m_allocator(createInfo.context->allocator()) {
 
-        VkSampleCountFlagBits sampleCount = createInfo.context.data().msaaSamples;
+        VkSampleCountFlagBits sampleCount = createInfo.context->data().msaaSamples;
         uint32_t width = createInfo.width;
         uint32_t height = createInfo.height;
-        const auto &data = createInfo.context.data();
+        const auto &data = createInfo.context->data();
         std::string editorTypeDescription = createInfo.editorTypeDescription;
 
         //// COLOR IMAGE RESOURCE /////
@@ -36,7 +36,7 @@ namespace VkRender {
         VmaAllocationCreateInfo allocCreateInfo = {};
         allocCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 
-        VkResult result = vmaCreateImage(createInfo.context.allocator(), &colorImageCI, &allocCreateInfo,
+        VkResult result = vmaCreateImage(createInfo.context->allocator(), &colorImageCI, &allocCreateInfo,
                                          &m_colorImage.image,
                                          &m_colorImage.colorImageAllocation, nullptr);
         if (result != VK_SUCCESS) throw std::runtime_error("Failed to create colorImage");
@@ -52,7 +52,7 @@ namespace VkRender {
             resolvedImageCI.samples = VK_SAMPLE_COUNT_1_BIT;
             resolvedImageCI.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-            result = vmaCreateImage(m_context.allocator(), &resolvedImageCI, &allocCreateInfo,
+            result = vmaCreateImage(m_context->allocator(), &resolvedImageCI, &allocCreateInfo,
                                     &colorImage.resolvedImage,
                                     &colorImage.resolvedImageAllocation, nullptr);
             if (result != VK_SUCCESS) throw std::runtime_error("Failed to create resolvedImage");

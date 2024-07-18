@@ -570,6 +570,9 @@ namespace VkRender {
         backendInitialized = true;
     }
 
+    void VulkanRenderer::freeVulkanResources() {
+
+    }
 
     void VulkanRenderer::renderLoop() {
         destWidth = m_width;
@@ -586,7 +589,7 @@ namespace VkRender {
             std::chrono::duration<float, std::milli> elapsed_milliseconds = end - rendererStartTime;
             runTime = elapsed_milliseconds.count();
             /** Give ImGui Reference to this frame's input events **/
-
+            freeVulkanResources();
 
             input.lastKeyPress = keyPress;
             input.action = keyAction;
@@ -656,6 +659,7 @@ namespace VkRender {
             throw std::runtime_error("Failed to wait for render fence");
 
         // Post render actions, should only be called after our first frame
+            updateRenderingStates();
 
         if (recreateResourcesNextFrame) {
             Log::Logger::getInstance()->info("Attempting to launch resize window to solve vkSubmit Issue");
@@ -1299,4 +1303,5 @@ namespace VkRender {
         m_logger->info("Closing application...");
         glfwSetWindowShouldClose(window, true);
     }
+
 }

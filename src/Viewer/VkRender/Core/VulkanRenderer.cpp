@@ -601,9 +601,8 @@ namespace VkRender {
             submitFrame();
             keyPress = -1;
             keyAction = -1;
-            mouseButtons.dx = 0;
-            mouseButtons.dy = 0;
-            mouseButtons.action = -1;
+            mouse.d = glm::vec2(0.0f);
+            mouse.action = -1;
             /** FrameTiming **/
             auto tEnd = std::chrono::high_resolution_clock::now();
             frameCounter++;
@@ -864,13 +863,13 @@ namespace VkRender {
         if (action == GLFW_PRESS) {
             switch (button) {
                 case GLFW_MOUSE_BUTTON_RIGHT:
-                    myApp->mouseButtons.right = true;
+                    myApp->mouse.right = true;
                     break;
                 case GLFW_MOUSE_BUTTON_MIDDLE:
-                    myApp->mouseButtons.middle = true;
+                    myApp->mouse.middle = true;
                     break;
                 case GLFW_MOUSE_BUTTON_LEFT:
-                    myApp->mouseButtons.left = true;
+                    myApp->mouse.left = true;
                     break;
                 default:
                     break;
@@ -879,19 +878,19 @@ namespace VkRender {
         if (action == GLFW_RELEASE) {
             switch (button) {
                 case GLFW_MOUSE_BUTTON_RIGHT:
-                    myApp->mouseButtons.right = false;
+                    myApp->mouse.right = false;
                     break;
                 case GLFW_MOUSE_BUTTON_MIDDLE:
-                    myApp->mouseButtons.middle = false;
+                    myApp->mouse.middle = false;
                     break;
                 case GLFW_MOUSE_BUTTON_LEFT:
-                    myApp->mouseButtons.left = false;
+                    myApp->mouse.left = false;
                     break;
                 default:
                     break;
             }
         }
-        myApp->mouseButtons.action = action;
+        myApp->mouse.action = action;
 
     }
 
@@ -1189,12 +1188,12 @@ namespace VkRender {
     }
 
     void VulkanRenderer::mouseScroll(float yOffset) {
-        mouseButtons.wheel += yOffset * mouseScrollSpeed;
-        if (mouseButtons.wheel < -10.0f) {
-            mouseButtons.wheel = -10.0f;
+        mouse.wheel += yOffset * mouseScrollSpeed;
+        if (mouse.wheel < -10.0f) {
+            mouse.wheel = -10.0f;
         }
-        if (mouseButtons.wheel > 10.0f) {
-            mouseButtons.wheel = 10.0f;
+        if (mouse.wheel > 10.0f) {
+            mouse.wheel = 10.0f;
         }
     }
 

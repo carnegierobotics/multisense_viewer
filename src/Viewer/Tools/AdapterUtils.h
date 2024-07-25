@@ -70,15 +70,20 @@ public:
 
     AdapterUtils() {
         m_runAdapterScan = true;
+        // TODO remember to start an adapter scan once we want it
+    }
+
+    void startScan() {
         m_pool = std::make_unique<VkRender::ThreadPool>(1);
         m_pool->Push(AdapterUtils::startAdapterScan, this);
-        Log::Logger::getInstance()->info("Started Manual Adapter Scan");
+        Log::Logger::getInstance()->trace("Started Manual Adapter Scan");
     }
 
     ~AdapterUtils(){
         Log::Logger::getInstance()->trace("Stopping the manual Adapter Scan");
         m_runAdapterScan = false;
-        m_pool->Stop();
+        if (m_pool)
+            m_pool->Stop();
         Log::Logger::getInstance()->trace("Stopped the manual Adapter Scan");
     }
 

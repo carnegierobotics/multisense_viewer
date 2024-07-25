@@ -203,50 +203,47 @@ namespace VkRender {
     }
 
 
-    Editor::EditorBorderState
+    EditorBorderState
     Editor::checkBorderState(const glm::vec2 &mousePos, const MouseButtons buttons, const glm::vec2 &dxdy) const {
         if (!m_createInfo.resizeable)
             return EditorBorderState::None;
-
-        float magnitude = 1 + sqrtf(dxdy.x * dxdy.x + dxdy.y * dxdy.y);
-        // TODO REMOVE MAGNITUDE
         // Check corners first to give them higher priority
         // Top-left corner
-        if (mousePos.x >= x && mousePos.x <= x + (borderSize * magnitude) && mousePos.y >= y && mousePos.y <= y + (borderSize * magnitude)) {
+        if (mousePos.x >= x && mousePos.x <= x + (borderSize ) && mousePos.y >= y && mousePos.y <= y + (borderSize )) {
             return EditorBorderState::TopLeft;
         }
         // Top-right corner
-        if (mousePos.x >= x + width - (borderSize * magnitude) && mousePos.x <= x + width && mousePos.y >= y &&
-            mousePos.y <= y + (borderSize * magnitude)) {
+        if (mousePos.x >= x + width - (borderSize ) && mousePos.x <= x + width && mousePos.y >= y &&
+            mousePos.y <= y + (borderSize )) {
             return EditorBorderState::TopRight;
         }
         // Bottom-left corner
-        if (mousePos.x >= x && mousePos.x <= x + (borderSize * magnitude) && mousePos.y >= y + height - (borderSize * magnitude) &&
+        if (mousePos.x >= x && mousePos.x <= x + (borderSize ) && mousePos.y >= y + height - (borderSize ) &&
             mousePos.y <= y + height) {
             return EditorBorderState::BottomLeft;
         }
         // Bottom-right corner
-        if (mousePos.x >= x + width - (borderSize * magnitude) && mousePos.x <= x + width && mousePos.y >= y + height - (borderSize * magnitude) &&
+        if (mousePos.x >= x + width - (borderSize ) && mousePos.x <= x + width && mousePos.y >= y + height - (borderSize ) &&
             mousePos.y <= y + height) {
             return EditorBorderState::BottomRight;
         }
 
         // Check borders
         // Left border
-        if (mousePos.x >= x - magnitude && mousePos.x <= x + (borderSize * magnitude) && mousePos.y >= y && mousePos.y <= y + height) {
+        if (mousePos.x >= x  && mousePos.x <= x + (borderSize ) && mousePos.y >= y && mousePos.y <= y + height) {
             return EditorBorderState::Left;
         }
         // Right border
-        if (mousePos.x >= x + width - (borderSize * magnitude) && mousePos.x <= x + width - magnitude && mousePos.y >= y &&
+        if (mousePos.x >= x + width - (borderSize ) && mousePos.x <= x + width  && mousePos.y >= y &&
             mousePos.y <= y + height) {
             return EditorBorderState::Right;
         }
         // Top border
-        if (mousePos.x >= x && mousePos.x <= x + width && mousePos.y >= y && mousePos.y <= y + (borderSize * magnitude)) {
+        if (mousePos.x >= x && mousePos.x <= x + width && mousePos.y >= y && mousePos.y <= y + (borderSize )) {
             return EditorBorderState::Top;
         }
         // Bottom border
-        if (mousePos.x >= x && mousePos.x <= x + width && mousePos.y >= y + height - (borderSize * magnitude) &&
+        if (mousePos.x >= x && mousePos.x <= x + width && mousePos.y >= y + height - (borderSize ) &&
             mousePos.y <= y + height) {
             return EditorBorderState::Bottom;
         }

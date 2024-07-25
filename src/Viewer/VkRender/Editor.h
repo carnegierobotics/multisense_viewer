@@ -6,9 +6,76 @@
 #define MULTISENSE_VIEWER_EDITOR_H
 
 #include <vk_mem_alloc.h>
+
+#include <iostream>
+#include <string>
+
+#include <fmt/core.h>
+#include <fmt/ostream.h>
+
 #include "Viewer/VkRender/Core/RenderDefinitions.h"
 #include "Viewer/VkRender/Core/VulkanRenderPass.h"
 #include "Viewer/VkRender/ImGui/GuiManager.h"
+
+namespace VkRender {
+
+
+    typedef enum EditorBorderState {
+        None = 0,        // Cursor is not on any border
+        Left = 1,        // Cursor is on the left border
+        Right = 2,       // Cursor is on the right border
+        Top = 3,         // Cursor is on the top border
+        Bottom = 4,      // Cursor is on the bottom border
+        TopLeft = 5,     // Cursor is on the top-left corner
+        TopRight = 6,    // Cursor is on the top-right corner
+        BottomLeft = 7,  // Cursor is on the bottom-left corner
+        BottomRight = 8  // Cursor is on the bottom-right corner
+    } EditorBorderState;
+}
+
+// Overload the << operator for EditorBorderState
+static std::ostream &operator<<(std::ostream &os, const VkRender::EditorBorderState &state) {
+    switch (state) {
+        case VkRender::None:
+            os << "None";
+            break;
+        case VkRender::Left:
+            os << "Left";
+            break;
+        case VkRender::Right:
+            os << "Right";
+            break;
+        case VkRender::Top:
+            os << "Top";
+            break;
+        case VkRender::Bottom:
+            os << "Bottom";
+            break;
+        case VkRender::TopLeft:
+            os << "TopLeft";
+            break;
+        case VkRender::TopRight:
+            os << "TopRight";
+            break;
+        case VkRender::BottomLeft:
+            os << "BottomLeft";
+            break;
+        case VkRender::BottomRight:
+            os << "BottomRight";
+            break;
+        default:
+            os << "Unknown";
+            break;
+    }
+    return os;
+}
+
+// Define a custom formatter for EditorBorderState for fmt within the fmt namespace
+namespace fmt {
+    template<>
+    struct formatter<VkRender::EditorBorderState> : ostream_formatter {
+    };
+}
 
 namespace VkRender {
     class Renderer;
@@ -17,30 +84,22 @@ namespace VkRender {
     class Editor {
     public:
 
-        typedef enum EditorBorderState {
-            None,        // Cursor is not on any border
-            Left,        // Cursor is on the left border
-            Right,       // Cursor is on the right border
-            Top,         // Cursor is on the top border
-            Bottom,      // Cursor is on the bottom border
-            TopLeft,     // Cursor is on the top-left corner
-            TopRight,    // Cursor is on the top-right corner
-            BottomLeft,  // Cursor is on the bottom-left corner
-            BottomRight  // Cursor is on the bottom-right corner
-        } EditorBorderState;
 
         explicit Editor(VulkanRenderPassCreateInfo &createInfo);
 
-        // Implement move constructor and move assignment operator
+        // Implement move constructor
         Editor(Editor &&other) noexcept: m_context(other.m_context), m_renderUtils(other.m_renderUtils),
                                          m_renderStates(other.m_renderStates), m_createInfo(other.m_createInfo) {
             std::cout << "Move constructor\n";
-        }
 
+            swap(*this, other);
+        }
+        // and move assignment operator
         Editor &operator=(Editor &&other) noexcept {
+            std::cout << "Move assignment operator\n";
+
             if (this != &other) { // Check for self-assignment
                 swap(*this, other);
-                std::cout << "Move assignment operator\n";
             }
             return *this;
         }
@@ -53,10 +112,32 @@ namespace VkRender {
 
         // Implement a swap function
         friend void swap(Editor &first, Editor &second) noexcept {
-            using std::swap;
-            swap(first.m_renderStates, second.m_renderStates);
-            // Swap other members
-            // TODO implement
+
+            std::swap(first.m_guiManager, second.m_guiManager);
+            std::swap(first.x, second.x);
+            std::swap(first.y, second.y);
+            std::swap(first.borderSize, second.borderSize);
+            std::swap(first.width, second.width);
+            std::swap(first.height, second.height);
+            std::swap(first.resizeActive, second.resizeActive);
+            std::swap(first.prevResize, second.prevResize);
+            std::swap(first.borderClicked, second.borderClicked);
+            std::swap(first.resizeHovered, second.resizeHovered);
+            std::swap(first.cornerHovered, second.cornerHovered);
+            std::swap(first.cornerClicked, second.cornerClicked);
+            std::swap(first.createNewEditorByCopy, second.createNewEditorByCopy);
+            std::swap(first.lastClickedBorderType, second.lastClickedBorderType);
+            std::swap(first.cornerPressedPos, second.cornerPressedPos);
+
+            std::swap(first.renderPasses, second.renderPasses);
+            std::swap(first.m_renderUtils, second.m_renderUtils);
+            std::swap(first.m_context, second.m_context);
+            std::swap(first.applicationWidth, second.applicationWidth);
+            std::swap(first.applicationHeight, second.applicationHeight);
+            std::swap(first.frameBuffers, second.frameBuffers);
+            std::swap(first.m_renderStates, second.m_renderStates);
+            std::swap(first.m_createInfo, second.m_createInfo);
+
         }
 
         ~Editor();
@@ -79,7 +160,8 @@ namespace VkRender {
 
         void update(bool updateGraph, float frametime, Input *input);
 
-        EditorBorderState checkBorderState(const glm::vec2 &mousePos, const MouseButtons buttons, const glm::vec2 &dxdy) const;
+        EditorBorderState
+        checkBorderState(const glm::vec2 &mousePos, const MouseButtons buttons, const glm::vec2 &dxdy) const;
 
 
         // Todo make private
@@ -96,9 +178,10 @@ namespace VkRender {
         bool resizeHovered = false;
         bool cornerHovered = false;
         bool cornerClicked = false;
-        bool createNewEditorByCopy=false;
+        bool createNewEditorByCopy = false;
+        EditorBorderState lastClickedBorderType;
 
-        glm::vec2 cornerPressedPos;
+        glm::vec2 cornerPressedPos{};
     private:
 
         std::vector<std::shared_ptr<VulkanRenderPass>> renderPasses;
@@ -108,9 +191,12 @@ namespace VkRender {
         uint32_t applicationWidth = 0;
         uint32_t applicationHeight = 0;
 
+
         std::vector<VkFramebuffer> frameBuffers;
         std::vector<RenderState> m_renderStates;  // States for each swapchain image
         VulkanRenderPassCreateInfo m_createInfo;
+
+        void handeViewportResize();
     };
 }
 

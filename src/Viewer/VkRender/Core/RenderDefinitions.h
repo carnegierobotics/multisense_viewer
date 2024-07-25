@@ -118,8 +118,24 @@ namespace VkRender {
         bool middle = false;
         int action = 0;
         float wheel = 0.0f; // to initialize arcball zoom
-        float dx = 0.0f;
-        float dy = 0.0f;
+
+        union {
+            struct {
+                float dx = 0;
+                float dy = 0;
+            };
+            glm::vec2 d;
+        };
+
+        union {
+            struct {
+                float x = 0;
+                float y = 0;
+            };
+            glm::vec2 pos;
+        };
+
+
     };
 
     /**

@@ -155,8 +155,8 @@ namespace VkRender {
         otherEditorInfo.clearValue.push_back({0.1f, 0.4f, 0.1f, 1.0f});
         otherEditorInfo.clearValue.push_back({1.0f, 1.0f, 1.0f, 1.0f});
         otherEditorInfo.clearValue.push_back({0.1f, 0.4f, 0.1f, 1.0f});
-        createEditor(otherEditorInfo);
-
+        Editor editor = createEditor(otherEditorInfo);
+        m_editors.push_back(std::move(editor));
 
         //m_editors[1] = std::make_unique<Editor>(m_renderUtils, this);
         //m_editors[1]->offsetX = m_width / 2.0f;
@@ -233,12 +233,12 @@ namespace VkRender {
 
 
     void Renderer::updateRenderingStates() {
-        for (const auto &editor: m_editors) {
-            editor->setRenderState(currentFrame, RenderState::Idle);
+        for (auto &editor: m_editors) {
+            editor.setRenderState(currentFrame, RenderState::Idle);
 
         }
-        for (const auto &editor: m_oldEditors) {
-            editor->setRenderState(currentFrame, RenderState::Idle);
+        for (auto &editor: m_oldEditors) {
+            editor.setRenderState(currentFrame, RenderState::Idle);
         }
 
 
@@ -250,7 +250,7 @@ namespace VkRender {
         for (auto it = m_oldEditors.begin(); it != m_oldEditors.end();) {
             bool allIdle = true;
             for (size_t i = 0; i < swapchain->imageCount; ++i) {
-                if (!(*it)->isSafeToDelete(i)) {
+                if (!(*it).isSafeToDelete(i)) {
                     allIdle = false;
                     break;
                 }
@@ -285,8 +285,8 @@ namespace VkRender {
         vkBeginCommandBuffer(drawCmdBuffers.buffers[currentFrame], &cmdBufInfo);
 
 
-        for (const auto &editor: m_editors) {
-            editor->render(drawCmdBuffers);
+        for (auto &editor: m_editors) {
+            editor.render(drawCmdBuffers);
         }
 
         m_mainEditor->render(drawCmdBuffers);
@@ -792,18 +792,18 @@ namespace VkRender {
         //io.DisplaySize = ImVec2(static_cast<float>(m_width), static_cast<float>(m_height));
         mainIO.DeltaTime = frameTimer;
         mainIO.WantCaptureMouse = true;
-        mainIO.MousePos = ImVec2(mousePos.x, mousePos.y);
-        mainIO.MouseDown[0] = mouseButtons.left;
-        mainIO.MouseDown[1] = mouseButtons.right;
+        mainIO.MousePos = ImVec2(mouse.x, mouse.y);
+        mainIO.MouseDown[0] = mouse.left;
+        mainIO.MouseDown[1] = mouse.right;
 
         for (const auto &editor: m_editors) {
-            ImGui::SetCurrentContext(editor->m_guiManager->m_imguiContext);
+            ImGui::SetCurrentContext(editor.m_guiManager->m_imguiContext);
             ImGuiIO &otherIO = ImGui::GetIO();
             otherIO.DeltaTime = frameTimer;
             otherIO.WantCaptureMouse = true;
-            otherIO.MousePos = ImVec2(mousePos.x - editor->x, mousePos.y - editor->y);
-            otherIO.MouseDown[0] = mouseButtons.left;
-            otherIO.MouseDown[1] = mouseButtons.right;
+            otherIO.MousePos = ImVec2(mouse.x - editor.x, mouse.y - editor.y);
+            otherIO.MouseDown[0] = mouse.left;
+            otherIO.MouseDown[1] = mouse.right;
         }
 
 
@@ -812,15 +812,15 @@ namespace VkRender {
             scene->update();
         }
         m_mainEditor->update((frameCounter == 0), frameTimer, &input);
-        for (const auto &editor: m_editors) {
-            editor->update((frameCounter == 0), frameTimer, &input);
+        for (auto &editor: m_editors) {
+            editor.update((frameCounter == 0), frameTimer, &input);
         }
         // Reorder Editors elements according to UI
         for (auto &editor: m_editors) {
-            if (editor->m_guiManager->handles.editor.changed) {
+            if (editor.m_guiManager->handles.editor.changed) {
                 // Set a new one
-                editor->getCreateInfo().editorTypeDescription = editor->m_guiManager->handles.editor.selectedType;
-                replaceEditor(editor->getCreateInfo(), editor);
+                editor.getCreateInfo().editorTypeDescription = editor.m_guiManager->handles.editor.selectedType;
+                replaceEditor(editor.getCreateInfo(), editor);
             }
         }
 
@@ -941,33 +941,35 @@ namespace VkRender {
         }
     }
 
-    void Renderer::createEditor(VulkanRenderPassCreateInfo &createInfo) {
-        std::unique_ptr<Editor> newEditor;
+    Editor Renderer::createEditor(VulkanRenderPassCreateInfo &createInfo) {
+
         if (createInfo.editorTypeDescription == "UI") {
-            newEditor = std::make_unique<EditorTypeOne>(createInfo);
+            return EditorTypeOne(createInfo);
         } else if (createInfo.editorTypeDescription == "Scene Hierarchy") {
-            newEditor = std::make_unique<EditorSceneHierarchy>(createInfo);
+            return EditorSceneHierarchy(createInfo);
         } else {
-            newEditor = std::make_unique<EditorTypeTwo>(createInfo);
+            return EditorTypeTwo(createInfo);
         }
-        m_editors.push_back(std::move(newEditor));
     }
 
-    void Renderer::replaceEditor(VulkanRenderPassCreateInfo &createInfo, std::unique_ptr<Editor> &editor) {
-        std::unique_ptr<Editor> newEditor;
-        if (createInfo.editorTypeDescription == "UI") {
-            newEditor = std::make_unique<EditorTypeOne>(createInfo);
-        } else if (createInfo.editorTypeDescription == "Scene Hierarchy") {
-            newEditor = std::make_unique<EditorSceneHierarchy>(createInfo);
-        } else {
-            newEditor = std::make_unique<EditorTypeTwo>(createInfo);
-        }
-        for (size_t i = 0; i < swapchain->imageCount; ++i) {
-            editor->setRenderState(i, RenderState::PendingDeletion);
-        }
-        newEditor->resizeActive = editor->resizeActive;
+    void Renderer::replaceEditor(VulkanRenderPassCreateInfo &createInfo, Editor &editor) {
+        auto newEditor = createEditor(createInfo);
+
+        // Update UI States
+        newEditor.resizeActive = editor.resizeActive;
+        newEditor.prevResize = editor.prevResize;
+        newEditor.borderClicked = editor.borderClicked;
+        newEditor.resizeHovered = editor.resizeHovered;
+        newEditor.cornerHovered = editor.cornerHovered;
+        newEditor.cornerClicked = editor.cornerClicked;
+        newEditor.createNewEditorByCopy = editor.createNewEditorByCopy;
+        newEditor.lastClickedBorderType = editor.lastClickedBorderType;
+
         m_oldEditors.push_back(std::move(editor));
+
         editor = std::move(newEditor);
+
+
     }
 
     void Renderer::addUILayer(const std::string &layerName) {
@@ -1044,102 +1046,112 @@ namespace VkRender {
     }
 
     void Renderer::handleViewportResize() {
-        float dx = mouseButtons.dx;
-        float dy = mouseButtons.dy;
+        float dx = mouse.dx;
+        float dy = mouse.dy;
 
+        // Get hover state
         GLFWcursor *cursorType = m_cursors.arrow;
         for (auto &editor: m_editors) {
-            Editor::EditorBorderState borderState = editor->checkBorderState(mousePos, mouseButtons, glm::vec2{dx, dy});
-            editor->cornerHovered = false;
-            editor->resizeHovered = false;
+            EditorBorderState borderState = editor.checkBorderState(glm::vec2(mouse.x, mouse.y), mouse, glm::vec2{dx, dy});
+            editor.cornerHovered = false;
+            editor.resizeHovered = false;
             switch (borderState) {
-                case Editor::EditorBorderState::Left:
-                case Editor::EditorBorderState::Right:
+                case EditorBorderState::Left:
+                case EditorBorderState::Right:
                     cursorType = m_cursors.resizeHorizontal;
-                    editor->resizeHovered = true;
+                    editor.resizeHovered = true;
                     break;
-                case Editor::EditorBorderState::Top:
-                case Editor::EditorBorderState::Bottom:
+                case EditorBorderState::Top:
+                case EditorBorderState::Bottom:
                     cursorType = m_cursors.resizeVertical;
-                    editor->resizeHovered = true;
+                    editor.resizeHovered = true;
                     break;
-                case Editor::EditorBorderState::TopRight:
-                case Editor::EditorBorderState::BottomRight:
-                case Editor::EditorBorderState::TopLeft:
-                case Editor::EditorBorderState::BottomLeft:
-                    editor->cornerHovered = true;
+                case EditorBorderState::TopRight:
+                case EditorBorderState::BottomRight:
+                case EditorBorderState::TopLeft:
+                case EditorBorderState::BottomLeft:
+                    editor.cornerHovered = true;
                     cursorType = m_cursors.crossHair;
                     break;
-                case Editor::None:
+                case EditorBorderState::None:
                     break;
             }
         }
-
         glfwSetCursor(window, cursorType);
 
-        //For each viewport: check left/right/top/bottom border
-        // Left side
 
+        // Get click state
         bool splitEditors = false;
         VulkanRenderPassCreateInfo editorSplitCreateInfo;
         uint32_t splitEditorIndex = UINT32_MAX;
 
         for (size_t index = 0; auto &editor: m_editors) {
-            Editor::EditorBorderState borderState = editor->checkBorderState(mousePos, mouseButtons, glm::vec2{dx, dy});
-
-            if (!mouseButtons.left) {
-                editor->resizeActive = false;
-                editor->cornerClicked = false;
+            EditorBorderState borderState = editor.checkBorderState(mouse.pos, mouse, glm::vec2{dx, dy});
+            if (!mouse.left) {
+                editor.resizeActive = false;
+                editor.cornerClicked = false;
             }
 
-            if (mouseButtons.left && mouseButtons.action == GLFW_PRESS) {
-                editor->resizeActive |= editor->resizeHovered &&
-                                        (borderState == Editor::EditorBorderState::Left ||
-                                         borderState == Editor::EditorBorderState::Right ||
-                                         borderState == Editor::EditorBorderState::Top ||
-                                         borderState == Editor::EditorBorderState::Bottom);
+            if (mouse.left && mouse.action == GLFW_PRESS) {
+                editor.resizeActive |= editor.resizeHovered &&
+                                        (borderState == EditorBorderState::Left ||
+                                         borderState == EditorBorderState::Right ||
+                                         borderState == EditorBorderState::Top ||
+                                         borderState == EditorBorderState::Bottom);
+                editor.lastClickedBorderType =borderState;
+                Log::Logger::getInstance()->info("We clicked Editor: {}'s border :{}", editor.getCreateInfo().editorTypeDescription, editor.lastClickedBorderType);
             }
 
-            if (mouseButtons.left && mouseButtons.action == GLFW_PRESS && editor->cornerHovered) {
-                editor->cornerPressedPos = mousePos;
-                editor->cornerClicked = true;
+            if (mouse.left && mouse.action == GLFW_PRESS && editor.cornerHovered) {
+                editor.cornerPressedPos = mouse.pos;
+                editor.cornerClicked = true;
                 // Record keyPress
             }
 
-            if (editor->cornerClicked && glm::length(mousePos - editor->cornerPressedPos) > 10.0f) {
+            if (editor.cornerClicked && glm::length(mouse.pos - editor.cornerPressedPos) > 10.0f) {
                 splitEditors = true;
-                editorSplitCreateInfo = editor->getCreateInfo();
-                editor->cornerClicked = false;
+                editorSplitCreateInfo = editor.getCreateInfo();
+                editor.cornerClicked = false;
                 splitEditorIndex = index;
             }
 
-            if (editor->resizeActive) {
-                VulkanRenderPassCreateInfo &editorCreateInfo = editor->getCreateInfo();
-                switch (borderState) {
-                    case Editor::EditorBorderState::Left:
+            if (editor.resizeActive) {
+                VulkanRenderPassCreateInfo &editorCreateInfo = editor.getCreateInfo();
+                Log::Logger::getInstance()->trace("Resizing viewport {}. Change dx/dy: {}x{} border : {}", editor.getCreateInfo().editorTypeDescription, dx, dy, editor.lastClickedBorderType);
+                switch (editor.lastClickedBorderType) {
+                    case EditorBorderState::Left:
                         // Resize window to the left
-                        editorCreateInfo.width = (editor->width) + dx;
-                        editorCreateInfo.x = (editor->x) - dx;
+                        editorCreateInfo.width = (editor.width) + dx;
+                        editorCreateInfo.x = (editor.x) - dx;
                         break;
-                    case Editor::EditorBorderState::Right:
-                        editorCreateInfo.width = (editor->width) - dx;
+                    case EditorBorderState::Right:
+                        editorCreateInfo.width = (editor.width) - dx;
                         break;
-                    case Editor::EditorBorderState::Top:
-                        editorCreateInfo.height = (editor->height) + dy;
-                        editorCreateInfo.y = (editor->y) - dy;
+                    case EditorBorderState::Top:
+                        editorCreateInfo.height = (editor.height) + dy;
+                        editorCreateInfo.y = (editor.y) - dy;
                         break;
-                    case Editor::EditorBorderState::Bottom:
-                        editorCreateInfo.height = (editor->height) - dy;
+                    case EditorBorderState::Bottom:
+                        editorCreateInfo.height = (editor.height) - dy;
                         break;
                     default:
                         break;
                 }
-                // check for collision conditions
-                replaceEditor(editorCreateInfo, editor);
+
+                bool changed = dx != 0 || dy != 0;
+                if (changed)
+                    replaceEditor(editorCreateInfo, editor);
             }
+
+            if (editor.resizeActive != editor.prevResize && !editor.resizeActive){
+                std::cout << "We lost resize\n";
+            }
+            editor.prevResize = editor.resizeActive;
+
             index++;
         }
 
+        /*
 
         if (splitEditors) {
             std::cout << "Create new Window \n";
@@ -1147,7 +1159,7 @@ namespace VkRender {
             // For now assume we went horizontal
 
             // Also recreate other editor and place it
-            VulkanRenderPassCreateInfo &editorCreateInfo = m_editors[splitEditorIndex]->getCreateInfo();
+            VulkanRenderPassCreateInfo &editorCreateInfo = m_editors[splitEditorIndex].getCreateInfo();
             editorCreateInfo.x += 10.0f;
             editorCreateInfo.width -= 10.0f;
             replaceEditor(editorCreateInfo, m_editors[splitEditorIndex]);
@@ -1157,27 +1169,26 @@ namespace VkRender {
             editorSplitCreateInfo.x = editorSplitCreateInfo.x;
             editorSplitCreateInfo.y = editorSplitCreateInfo.y;
             createEditor(editorSplitCreateInfo);
-
         }
-
+        */
 
     }
 
 
     void Renderer::mouseMoved(float x, float y, bool &handled) {
 
-        float dx = mousePos.x - x;
-        float dy = mousePos.y - y;
+        float dx = mouse.x - x;
+        float dy = mouse.y - y;
 
-        mouseButtons.dx = dx;
-        mouseButtons.dy = dy;
+        mouse.dx += dx;
+        mouse.dy += dy;
 
-
+        Log::Logger::getInstance()->trace("Cursor velocity: ({},{}), pos: ({},{})", mouse.dx, mouse.dy, mouse.x, mouse.y);
         // UPdate camera if we have one selected
         if (!m_selectedCameraTag.empty()) {
             auto it = m_cameras.find(m_selectedCameraTag);
             if (it != m_cameras.end()) {
-                if (mouseButtons.left) {
+                if (mouse.left) {
                     // && !mouseButtons.middle) {
                     m_cameras[m_selectedCameraTag].rotate(dx, dy);
                 }
@@ -1185,22 +1196,23 @@ namespace VkRender {
                 //if (mouseButtons.left && m_guiManager->handles.renderer3D)
                 //    m_cameras[m_selectedCameraTag].rotate(dx, dy);
 
-                if (mouseButtons.right) {
+                if (mouse.right) {
                     if (m_cameras[m_selectedCameraTag].m_type == Camera::arcball)
                         m_cameras[m_selectedCameraTag].translate(glm::vec3(-dx * 0.005f, -dy * 0.005f, 0.0f));
                     else
                         m_cameras[m_selectedCameraTag].translate(-dx * 0.01f, -dy * 0.01f);
                 }
-                if (mouseButtons.middle && m_cameras[m_selectedCameraTag].m_type == Camera::flycam) {
+                if (mouse.middle && m_cameras[m_selectedCameraTag].m_type == Camera::flycam) {
                     m_cameras[m_selectedCameraTag].translate(glm::vec3(-dx * 0.01f, -dy * 0.01f, 0.0f));
-                } else if (mouseButtons.middle && m_cameras[m_selectedCameraTag].m_type == Camera::arcball) {
+                } else if (mouse.middle && m_cameras[m_selectedCameraTag].m_type == Camera::arcball) {
                     //camera.orbitPan(static_cast<float>() -dx * 0.01f, static_cast<float>() -dy * 0.01f);
                 }
             }
         }
 
 
-        mousePos = glm::vec2(x, y);
+        mouse.x = x;
+        mouse.y = y;
 
         handled = true;
     }
@@ -1314,7 +1326,7 @@ namespace VkRender {
     void Renderer::postRenderActions() {
         // Reset mousewheel across imgui contexts
         for (std::vector<ImGuiContext *> list = {m_mainEditor->m_guiManager->m_imguiContext,
-                                                 m_editors[0]->m_guiManager->m_imguiContext}; auto &ctx : list) {
+                                                 m_editors[0].m_guiManager->m_imguiContext}; auto &ctx : list) {
             ImGui::SetCurrentContext(ctx);
             ImGuiIO &io = ImGui::GetIO();
             io.MouseWheel = 0;

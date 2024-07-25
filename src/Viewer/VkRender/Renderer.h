@@ -87,8 +87,8 @@ namespace VkRender {
         Entity createEntity(const std::string &name);
         void destroyEntity(Entity entity);
         Entity createEntityWithUUID(UUID uuid, const std::string &name);
-        void createEditor(VulkanRenderPassCreateInfo &createInfo);
-        void replaceEditor(VulkanRenderPassCreateInfo &createInfo, std::unique_ptr<Editor> &editor);
+        Editor createEditor(VulkanRenderPassCreateInfo &createInfo);
+        void replaceEditor(VulkanRenderPassCreateInfo &createInfo, Editor &editor);
 
         VkRender::Entity findEntityByName(std::string_view name);
         void markEntityForDestruction(Entity entity);
@@ -142,8 +142,8 @@ namespace VkRender {
         std::unordered_map<std::string, Camera> m_cameras;
         //std::unique_ptr<VkRender::GuiManager> m_guiManager{};
         std::vector<std::unique_ptr<Scene>> m_scenes;
-        std::vector<std::unique_ptr<Editor>> m_editors;
-        std::deque<std::unique_ptr<Editor>> m_oldEditors;
+        std::vector<Editor> m_editors;
+        std::deque<Editor> m_oldEditors;
 
         entt::registry m_registry;
         std::unordered_map<UUID, entt::entity> m_entityMap;

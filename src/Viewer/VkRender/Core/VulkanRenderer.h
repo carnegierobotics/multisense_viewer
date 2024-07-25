@@ -85,7 +85,7 @@ namespace VkRender {
             /** @brief Set to true if fullscreen mode has been requested via command line */
             bool fullscreen = false;
             /** @brief Set to true if v-sync will be forced for the swapchain */
-            bool vsync = false;
+            bool vsync = true;
             /** @brief Enable UI overlay */
             bool overlay = true;
         } m_settings;
@@ -130,10 +130,9 @@ namespace VkRender {
         std::chrono::system_clock::time_point rendererStartTime;
         float runTime = 0.0f;
 
-        glm::vec2 mousePos{};
         VkSampleCountFlagBits msaaSamples{};
 
-        VkRender::MouseButtons mouseButtons{};
+        VkRender::MouseButtons mouse{};
         float mouseScrollSpeed = 0.1f;
 
         int keyPress = -1;

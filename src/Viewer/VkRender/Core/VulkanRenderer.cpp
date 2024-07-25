@@ -78,6 +78,7 @@ namespace VkRender {
         glfwSetWindowSizeLimits(window, m_width / 4, m_height / 4, GLFW_DONT_CARE, GLFW_DONT_CARE);
         m_cursors.resizeVertical = glfwCreateStandardCursor(GLFW_RESIZE_NS_CURSOR);
         m_cursors.resizeHorizontal = glfwCreateStandardCursor(GLFW_RESIZE_EW_CURSOR);
+        m_cursors.crossHair = glfwCreateStandardCursor(GLFW_CROSSHAIR_CURSOR);
         m_cursors.arrow = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
 
         GLFWimage images[1];
@@ -346,6 +347,7 @@ namespace VkRender {
         glfwDestroyCursor(m_cursors.arrow);
         glfwDestroyCursor(m_cursors.resizeVertical);
         glfwDestroyCursor(m_cursors.resizeHorizontal);
+        glfwDestroyCursor(m_cursors.crossHair);
         // CleanUp GLFW window
         glfwDestroyWindow(window);
         glfwTerminate();
@@ -357,11 +359,6 @@ namespace VkRender {
     void VulkanRenderer::viewChanged() {
     }
 
-
-    void VulkanRenderer::mouseMoved(float x, float y, bool &handled) {
-        mousePos = glm::vec2(x, y);
-        handled = true;
-    }
 
     void VulkanRenderer::windowResized() {
     }
@@ -856,8 +853,6 @@ namespace VkRender {
     void VulkanRenderer::cursorPositionCallback(GLFWwindow *window, double xPos, double yPos) {
         auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
         myApp->handleMouseMove(static_cast<float>(xPos), static_cast<float>(yPos));
-        myApp->mouseButtons.pos.x = static_cast<float>(xPos);
-        myApp->mouseButtons.pos.y = static_cast<float>(yPos);
     }
 
     DISABLE_WARNING_PUSH
@@ -880,7 +875,6 @@ namespace VkRender {
                 default:
                     break;
             }
-            myApp->mouseButtons.action = GLFW_PRESS;
         }
         if (action == GLFW_RELEASE) {
             switch (button) {
@@ -896,8 +890,9 @@ namespace VkRender {
                 default:
                     break;
             }
-            myApp->mouseButtons.action = GLFW_RELEASE;
         }
+        myApp->mouseButtons.action = action;
+
     }
 
     void VulkanRenderer::mouseScrollCallback(GLFWwindow *window, double xoffset, double yoffset) {

@@ -33,7 +33,6 @@
  * Significant history (date, user, action):
  *   2022-4-9, mgjerde@carnegierobotics.com, Created file.
  **/
-#include <array>
 
 #include "Viewer/VkRender/Renderer.h"
 #include "Viewer/VkRender/Entity.h"
@@ -122,21 +121,41 @@ namespace VkRender {
         VulkanRenderPassCreateInfo mainEditorInfo(m_colorImage.view, m_depthStencil.view, m_guiResources, this);
         mainEditorInfo.height = m_height;
         mainEditorInfo.width = m_width;
+        mainEditorInfo.appHeight = m_height;
+        mainEditorInfo.appWidth = m_width;
+        mainEditorInfo.borderSize = 0;
         mainEditorInfo.editorTypeDescription = "MainEditor";
-        mainEditorInfo.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        mainEditorInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        mainEditorInfo.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+        mainEditorInfo.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         mainEditorInfo.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         mainEditorInfo.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        mainEditorInfo.clearValue.push_back({0.1f, 0.1f, 0.3f, 1.0f});
+        mainEditorInfo.clearValue.push_back({1.0f, 1.0f, 1.0f, 1.0f});
+        mainEditorInfo.clearValue.push_back({0.1f, 0.4f, 0.1f, 1.0f});
+        mainEditorInfo.resizeable = false;
+
         m_mainEditor = std::make_unique<Editor>(mainEditorInfo);
         m_mainEditor->m_guiManager->pushLayer("DebugWindow");
         m_mainEditor->m_guiManager->pushLayer("MenuLayer");
 
         VulkanRenderPassCreateInfo otherEditorInfo(m_colorImage.view, m_depthStencil.view, m_guiResources, this);
-        otherEditorInfo.height = m_height;
-        otherEditorInfo.width = m_width / 2;
+        otherEditorInfo.appHeight = m_height;
+        otherEditorInfo.appWidth = m_width;
+        otherEditorInfo.borderSize = 5;
+        otherEditorInfo.height = m_height - 25 * 2;
+        otherEditorInfo.width = m_width / 2 - 25;
         otherEditorInfo.x = m_width / 2;
+        otherEditorInfo.y = 25; //TODO link to a global setting of some sort
+        otherEditorInfo.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        otherEditorInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        otherEditorInfo.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        otherEditorInfo.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
         otherEditorInfo.editorTypeDescription = "Scene Hierarchy";
-        createNewEditor(otherEditorInfo);
+        std::array<VkClearValue, 3> clearValues{};
+        otherEditorInfo.clearValue.push_back({0.1f, 0.4f, 0.1f, 1.0f});
+        otherEditorInfo.clearValue.push_back({1.0f, 1.0f, 1.0f, 1.0f});
+        otherEditorInfo.clearValue.push_back({0.1f, 0.4f, 0.1f, 1.0f});
+        createEditor(otherEditorInfo);
 
 
         //m_editors[1] = std::make_unique<Editor>(m_renderUtils, this);
@@ -265,11 +284,12 @@ namespace VkRender {
         clearValues[1].depthStencil = {1.0f, 0};
         vkBeginCommandBuffer(drawCmdBuffers.buffers[currentFrame], &cmdBufInfo);
 
-        m_mainEditor->render(drawCmdBuffers);
 
         for (const auto &editor: m_editors) {
             editor->render(drawCmdBuffers);
         }
+
+        m_mainEditor->render(drawCmdBuffers);
 
         VkImageSubresourceRange subresourceRange = {};
         subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -765,6 +785,7 @@ namespace VkRender {
         }
         // update imgui io:
 
+        handleViewportResize();
 
         ImGui::SetCurrentContext(m_mainEditor->m_guiManager->m_imguiContext);
         ImGuiIO &mainIO = ImGui::GetIO();
@@ -780,7 +801,7 @@ namespace VkRender {
             ImGuiIO &otherIO = ImGui::GetIO();
             otherIO.DeltaTime = frameTimer;
             otherIO.WantCaptureMouse = true;
-            otherIO.MousePos = ImVec2(mousePos.x - editor->x, mousePos.y);
+            otherIO.MousePos = ImVec2(mousePos.x - editor->x, mousePos.y - editor->y);
             otherIO.MouseDown[0] = mouseButtons.left;
             otherIO.MouseDown[1] = mouseButtons.right;
         }
@@ -920,8 +941,8 @@ namespace VkRender {
         }
     }
 
-    void Renderer::createNewEditor(VulkanRenderPassCreateInfo &createInfo) {
-        std::unique_ptr <Editor> newEditor;
+    void Renderer::createEditor(VulkanRenderPassCreateInfo &createInfo) {
+        std::unique_ptr<Editor> newEditor;
         if (createInfo.editorTypeDescription == "UI") {
             newEditor = std::make_unique<EditorTypeOne>(createInfo);
         } else if (createInfo.editorTypeDescription == "Scene Hierarchy") {
@@ -932,8 +953,8 @@ namespace VkRender {
         m_editors.push_back(std::move(newEditor));
     }
 
-    void Renderer::replaceEditor(VulkanRenderPassCreateInfo &createInfo,  std::unique_ptr <Editor>& editor) {
-        std::unique_ptr <Editor> newEditor;
+    void Renderer::replaceEditor(VulkanRenderPassCreateInfo &createInfo, std::unique_ptr<Editor> &editor) {
+        std::unique_ptr<Editor> newEditor;
         if (createInfo.editorTypeDescription == "UI") {
             newEditor = std::make_unique<EditorTypeOne>(createInfo);
         } else if (createInfo.editorTypeDescription == "Scene Hierarchy") {
@@ -944,6 +965,7 @@ namespace VkRender {
         for (size_t i = 0; i < swapchain->imageCount; ++i) {
             editor->setRenderState(i, RenderState::PendingDeletion);
         }
+        newEditor->resizeActive = editor->resizeActive;
         m_oldEditors.push_back(std::move(editor));
         editor = std::move(newEditor);
     }
@@ -1021,36 +1043,124 @@ namespace VkRender {
         Log::Logger::getInstance()->trace("Deleting entities on exit took {}s", timeSpan.count());
     }
 
-    void Renderer::handleViewportResize(float x, float y) {
-        glfwSetCursor(window, m_cursors.arrow);
-        float dx = mousePos.x - x;
-        float dy = mousePos.y - y;
+    void Renderer::handleViewportResize() {
+        float dx = mouseButtons.dx;
+        float dy = mouseButtons.dy;
 
-        bool draggable = false;
-        // Check if we are at any viewport borders.
+        GLFWcursor *cursorType = m_cursors.arrow;
+        for (auto &editor: m_editors) {
+            Editor::EditorBorderState borderState = editor->checkBorderState(mousePos, mouseButtons, glm::vec2{dx, dy});
+            editor->cornerHovered = false;
+            editor->resizeHovered = false;
+            switch (borderState) {
+                case Editor::EditorBorderState::Left:
+                case Editor::EditorBorderState::Right:
+                    cursorType = m_cursors.resizeHorizontal;
+                    editor->resizeHovered = true;
+                    break;
+                case Editor::EditorBorderState::Top:
+                case Editor::EditorBorderState::Bottom:
+                    cursorType = m_cursors.resizeVertical;
+                    editor->resizeHovered = true;
+                    break;
+                case Editor::EditorBorderState::TopRight:
+                case Editor::EditorBorderState::BottomRight:
+                case Editor::EditorBorderState::TopLeft:
+                case Editor::EditorBorderState::BottomLeft:
+                    editor->cornerHovered = true;
+                    cursorType = m_cursors.crossHair;
+                    break;
+                case Editor::None:
+                    break;
+            }
+        }
+
+        glfwSetCursor(window, cursorType);
 
         //For each viewport: check left/right/top/bottom border
         // Left side
-        for (auto &editor: m_editors) {
-            if (editor->x == 0)
-                continue;
 
-            if (mousePos.x >= editor->x - 2 && mousePos.x <= editor->x + 2 &&
-                mousePos.y >= editor->y && mousePos.y <= editor->height) {
-                glfwSetCursor(window, m_cursors.resizeHorizontal);
-                if (mouseButtons.left && dx != 0) { // TODO we need some input debounding, No need to recreate more than 25-30 fps for things to run smoothly for the user.
-                    // && !mouseButtons.middle) {
-                    m_cameras[m_selectedCameraTag].rotate(dx, dy);
+        bool splitEditors = false;
+        VulkanRenderPassCreateInfo editorSplitCreateInfo;
+        uint32_t splitEditorIndex = UINT32_MAX;
 
-                    VulkanRenderPassCreateInfo editorCreateInfo = editor->getCreateInfo();
-                    editorCreateInfo.height = m_height;
-                    editorCreateInfo.width = (editor->width) + dx;
-                    editorCreateInfo.x = (editor->x) - dx;
-                    editorCreateInfo.editorTypeDescription = editor->editorTypeDescription;
-                    replaceEditor(editorCreateInfo, editor);
-                }
+        for (size_t index = 0; auto &editor: m_editors) {
+            Editor::EditorBorderState borderState = editor->checkBorderState(mousePos, mouseButtons, glm::vec2{dx, dy});
+
+            if (!mouseButtons.left) {
+                editor->resizeActive = false;
+                editor->cornerClicked = false;
             }
+
+            if (mouseButtons.left && mouseButtons.action == GLFW_PRESS) {
+                editor->resizeActive |= editor->resizeHovered &&
+                                        (borderState == Editor::EditorBorderState::Left ||
+                                         borderState == Editor::EditorBorderState::Right ||
+                                         borderState == Editor::EditorBorderState::Top ||
+                                         borderState == Editor::EditorBorderState::Bottom);
+            }
+
+            if (mouseButtons.left && mouseButtons.action == GLFW_PRESS && editor->cornerHovered) {
+                editor->cornerPressedPos = mousePos;
+                editor->cornerClicked = true;
+                // Record keyPress
+            }
+
+            if (editor->cornerClicked && glm::length(mousePos - editor->cornerPressedPos) > 10.0f) {
+                splitEditors = true;
+                editorSplitCreateInfo = editor->getCreateInfo();
+                editor->cornerClicked = false;
+                splitEditorIndex = index;
+            }
+
+            if (editor->resizeActive) {
+                VulkanRenderPassCreateInfo &editorCreateInfo = editor->getCreateInfo();
+                switch (borderState) {
+                    case Editor::EditorBorderState::Left:
+                        // Resize window to the left
+                        editorCreateInfo.width = (editor->width) + dx;
+                        editorCreateInfo.x = (editor->x) - dx;
+                        break;
+                    case Editor::EditorBorderState::Right:
+                        editorCreateInfo.width = (editor->width) - dx;
+                        break;
+                    case Editor::EditorBorderState::Top:
+                        editorCreateInfo.height = (editor->height) + dy;
+                        editorCreateInfo.y = (editor->y) - dy;
+                        break;
+                    case Editor::EditorBorderState::Bottom:
+                        editorCreateInfo.height = (editor->height) - dy;
+                        break;
+                    default:
+                        break;
+                }
+                // check for collision conditions
+                replaceEditor(editorCreateInfo, editor);
+            }
+            index++;
         }
+
+
+        if (splitEditors) {
+            std::cout << "Create new Window \n";
+            // Calculate if we went horizontal or vertical
+            // For now assume we went horizontal
+
+            // Also recreate other editor and place it
+            VulkanRenderPassCreateInfo &editorCreateInfo = m_editors[splitEditorIndex]->getCreateInfo();
+            editorCreateInfo.x += 10.0f;
+            editorCreateInfo.width -= 10.0f;
+            replaceEditor(editorCreateInfo, m_editors[splitEditorIndex]);
+
+            editorSplitCreateInfo.height = editorSplitCreateInfo.height;
+            editorSplitCreateInfo.width = 10.0f;
+            editorSplitCreateInfo.x = editorSplitCreateInfo.x;
+            editorSplitCreateInfo.y = editorSplitCreateInfo.y;
+            createEditor(editorSplitCreateInfo);
+
+        }
+
+
     }
 
 
@@ -1089,7 +1199,6 @@ namespace VkRender {
             }
         }
 
-        handleViewportResize(x, y);
 
         mousePos = glm::vec2(x, y);
 
@@ -1132,7 +1241,7 @@ namespace VkRender {
         return {};
     }
 
-    // Destroy when render resources are no longer in use
+// Destroy when render resources are no longer in use
     void Renderer::markEntityForDestruction(Entity entity) {
         if (!entity.hasComponent<DeleteComponent>()) {
             entity.addComponent<DeleteComponent>();

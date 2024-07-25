@@ -87,7 +87,7 @@ namespace VkRender {
         Entity createEntity(const std::string &name);
         void destroyEntity(Entity entity);
         Entity createEntityWithUUID(UUID uuid, const std::string &name);
-        void createNewEditor(VulkanRenderPassCreateInfo &createInfo);
+        void createEditor(VulkanRenderPassCreateInfo &createInfo);
         void replaceEditor(VulkanRenderPassCreateInfo &createInfo, std::unique_ptr<Editor> &editor);
 
         VkRender::Entity findEntityByName(std::string_view name);
@@ -141,7 +141,6 @@ namespace VkRender {
     private:
         std::unordered_map<std::string, Camera> m_cameras;
         //std::unique_ptr<VkRender::GuiManager> m_guiManager{};
-
         std::vector<std::unique_ptr<Scene>> m_scenes;
         std::vector<std::unique_ptr<Editor>> m_editors;
         std::deque<std::unique_ptr<Editor>> m_oldEditors;
@@ -162,7 +161,7 @@ namespace VkRender {
 
         void setupDepthStencil();
 
-        void handleViewportResize(float x, float y);
+        void handleViewportResize();
 
     };
 }

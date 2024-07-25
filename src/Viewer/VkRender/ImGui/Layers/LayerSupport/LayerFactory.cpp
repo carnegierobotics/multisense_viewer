@@ -6,7 +6,7 @@
 #include "Viewer/VkRender/ImGui/Layers/LayerSupport/LayerExample.h"
 #include "Viewer/VkRender/ImGui/AdditionalWindows/DebugWindow.h"
 #include "Viewer/VkRender/ImGui/AdditionalWindows/NewVersionAvailable.h"
-#include "Viewer/VkRender/EditorUILayer.h"
+#include "Viewer/VkRender/Editors/Layers/EditorUILayer.h"
 #include "Viewer/VkRender/Editors/Layers/SceneHierarchyLayer.h"
 #include "Viewer/Scenes/Default/UILayers/SideBarLayer.h"
 #include "Viewer/Scenes/Default/UILayers/MenuLayer.h"

@@ -120,10 +120,6 @@ namespace VkRender {
         float wheel = 0.0f; // to initialize arcball zoom
         float dx = 0.0f;
         float dy = 0.0f;
-        struct {
-            float x = 0.0f;
-            float y = 0.0f;
-        } pos;
     };
 
     /**

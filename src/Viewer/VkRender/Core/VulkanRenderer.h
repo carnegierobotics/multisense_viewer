@@ -94,6 +94,7 @@ namespace VkRender {
             GLFWcursor* arrow = nullptr;
             GLFWcursor* resizeVertical = nullptr;
             GLFWcursor* resizeHorizontal = nullptr;
+            GLFWcursor* crossHair = nullptr;
         }m_cursors;
 
 
@@ -160,7 +161,7 @@ namespace VkRender {
         virtual void viewChanged();
 
         /** @brief (Virtual) Called after the mouse cursor moved and before internal events (like camera m_Rotation) is firstUpdate */
-        virtual void mouseMoved(float x, float y, bool &handled);
+        virtual void mouseMoved(float x, float y, bool &handled) = 0;
         /** @brief (Virtual) Called after the mouse cursor moved and before internal events (like camera m_Rotation) is firstUpdate */
         virtual void keyboardCallback(GLFWwindow *window, int key, int scancode, int action, int mods) = 0;
 

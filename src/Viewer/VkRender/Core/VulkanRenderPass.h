@@ -18,10 +18,11 @@ namespace VkRender {
 
     struct VulkanRenderPassCreateInfo {
         Renderer *context = nullptr;
-        uint32_t width = 0;
-        uint32_t height = 0;
+        uint32_t width = 0, appWidth = 0;
+        uint32_t height = 0, appHeight = 0;
         uint32_t x = 0;
         uint32_t y = 0;
+        uint32_t borderSize = 3;
         std::string editorTypeDescription;
         VkAttachmentLoadOp loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
         VkImageLayout initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -31,7 +32,8 @@ namespace VkRender {
         VkImageView colorImageView = VK_NULL_HANDLE;
         VkImageView depthImageView = VK_NULL_HANDLE;
         std::shared_ptr<GuiResources> guiResources;
-
+        std::vector<VkClearValue> clearValue;
+        bool resizeable = true;
 
         VulkanRenderPassCreateInfo() = default;
 
@@ -40,6 +42,7 @@ namespace VkRender {
                 : context(ctx), colorImageView(colorView), depthImageView(depthView), guiResources(std::move(guiRes)) {
 
         }
+
     };
 
     struct VulkanRenderPass {

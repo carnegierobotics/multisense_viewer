@@ -14,26 +14,29 @@ namespace VkRender {
 
 
     Editor::Editor(VulkanRenderPassCreateInfo &createInfo) : m_createInfo(createInfo),
-    m_renderUtils(createInfo.context->data()), m_context(createInfo.context) {
-        width = createInfo.width;
+                                                             m_renderUtils(createInfo.context->data()),
+                                                             m_context(createInfo.context) {
+        borderSize = createInfo.borderSize;
+
         height = createInfo.height;
-        applicationWidth = createInfo.width + createInfo.x;
-        applicationHeight = createInfo.height + createInfo.y;
-        m_renderStates = {createInfo.context->data().swapchainImages, RenderState::Idle};
+        width = createInfo.width;
         x = createInfo.x;
         y = createInfo.y;
-        editorTypeDescription = createInfo.editorTypeDescription + ":";
+        applicationWidth = createInfo.appWidth;
+        applicationHeight = createInfo.appHeight;
 
+
+        m_renderStates = {createInfo.context->data().swapchainImages, RenderState::Idle};
         renderPasses.resize(m_renderUtils.swapchainImages);
         // Start timing UI render pass setup
         auto startUIRenderPassSetup = std::chrono::high_resolution_clock::now();
-        for (auto& pass : renderPasses){
+        for (auto &pass: renderPasses) {
             pass = std::make_shared<VulkanRenderPass>(createInfo);
         }
 
         auto endUIRenderPassSetup = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double, std::milli> uiRenderPassSetupTime = endUIRenderPassSetup - startUIRenderPassSetup;
-        std::cout << "UI Render Pass Setup Time: " << uiRenderPassSetupTime.count() << " ms" << std::endl;
+        //std::cout << "UI Render Pass Setup Time: " << uiRenderPassSetupTime.count() << " ms" << std::endl;
 
 
         // Start timing GuiManager construction
@@ -44,11 +47,14 @@ namespace VkRender {
                                                     height,
                                                     m_renderUtils.msaaSamples,
                                                     m_renderUtils.swapchainImages,
-                                                    m_context, ImGui::CreateContext(&createInfo.guiResources->fontAtlas), createInfo.guiResources.get());
+                                                    m_context,
+                                                    ImGui::CreateContext(&createInfo.guiResources->fontAtlas),
+                                                    createInfo.guiResources.get());
 
         auto endGuiManagerConstruction = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double, std::milli> guiManagerConstructionTime = endGuiManagerConstruction - startGuiManagerConstruction;
-        std::cout << "GuiManager Construction Time: " << guiManagerConstructionTime.count() << " ms" << std::endl;
+        std::chrono::duration<double, std::milli> guiManagerConstructionTime =
+                endGuiManagerConstruction - startGuiManagerConstruction;
+        //std::cout << "GuiManager Construction Time: " << guiManagerConstructionTime.count() << " ms" << std::endl;
 
         std::array<VkImageView, 3> frameBufferAttachments{};
         frameBufferAttachments[0] = createInfo.colorImageView;
@@ -58,7 +64,7 @@ namespace VkRender {
                                                                                         frameBufferAttachments.data(),
                                                                                         frameBufferAttachments.size(),
                                                                                         renderPasses.begin()->get()->getRenderPass() // TODO verify if this is ok?
-                                                                                        );
+        );
         // Start timing Framebuffer creation
         std::vector<std::chrono::duration<double, std::milli>> framebufferCreationTimes;
         frameBuffers.resize(m_renderUtils.swapchainImages);
@@ -71,28 +77,28 @@ namespace VkRender {
                 throw std::runtime_error("Failed to create framebuffer");
             }
             auto endFramebufferCreation = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<double, std::milli> framebufferCreationTime = endFramebufferCreation - startFramebufferCreation;
+            std::chrono::duration<double, std::milli> framebufferCreationTime =
+                    endFramebufferCreation - startFramebufferCreation;
             framebufferCreationTimes.push_back(framebufferCreationTime);
-            std::cout << "Framebuffer " << i << " Creation Time: " << framebufferCreationTime.count() << " ms" << std::endl;
+            //std::cout << "Framebuffer " << i << " Creation Time: " << framebufferCreationTime.count() << " ms" << std::endl;
         }
         // Optionally, you can average the framebuffer creation times
         double totalFramebufferTime = 0;
-        for (const auto& time : framebufferCreationTimes) {
+        for (const auto &time: framebufferCreationTimes) {
             totalFramebufferTime += time.count();
         }
-        std::cout << "Average Framebuffer Creation Time: " << (totalFramebufferTime / framebufferCreationTimes.size()) << " ms" << std::endl;
+        //std::cout << "Average Framebuffer Creation Time: " << (totalFramebufferTime / framebufferCreationTimes.size()) << " ms" << std::endl;
 
 
     }
 
-    void Editor::render(CommandBuffer& drawCmdBuffers) {
-        const uint32_t& currentFrame =  *drawCmdBuffers.frameIndex;
-        const uint32_t& imageIndex =    *drawCmdBuffers.activeImageIndex;
+    void Editor::render(CommandBuffer &drawCmdBuffers) {
+        const uint32_t &currentFrame = *drawCmdBuffers.frameIndex;
+        const uint32_t &imageIndex = *drawCmdBuffers.activeImageIndex;
 
         if (m_renderStates[currentFrame] == RenderState::PendingDeletion)
             return;
 
-        // main editor window
         VkViewport viewport{};
         viewport.x = static_cast<float>(x);
         viewport.y = static_cast<float>(y);
@@ -107,15 +113,14 @@ namespace VkRender {
         // Begin render pass
         /// *** Color render pass *** ///
         VkRenderPassBeginInfo renderPassBeginInfo = Populate::renderPassBeginInfo();
-        std::array<VkClearValue, 3> clearValues{};
-        clearValues[0] = {{{0.1f, 0.1f, 0.3f, 1.0f}}};
+
         renderPassBeginInfo.renderPass = renderPasses[currentFrame]->getRenderPass(); // Increase reference count by 1 here?
         renderPassBeginInfo.renderArea.offset.x = static_cast<int32_t>(x);
         renderPassBeginInfo.renderArea.offset.y = static_cast<int32_t>(y);
         renderPassBeginInfo.renderArea.extent.width = width;
         renderPassBeginInfo.renderArea.extent.height = height;
-        renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-        renderPassBeginInfo.pClearValues = clearValues.data();
+        renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(m_createInfo.clearValue.size());
+        renderPassBeginInfo.pClearValues = m_createInfo.clearValue.data();
         renderPassBeginInfo.framebuffer = frameBuffers[imageIndex];
         vkCmdBeginRenderPass(drawCmdBuffers.buffers[currentFrame], &renderPassBeginInfo,
                              VK_SUBPASS_CONTENTS_INLINE);
@@ -126,6 +131,8 @@ namespace VkRender {
 
         m_guiManager->drawFrame(drawCmdBuffers.buffers[currentFrame], currentFrame, width,
                                 height, x, y);
+        // Draw borders
+
 
         vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
 
@@ -134,9 +141,9 @@ namespace VkRender {
 
     Editor::~Editor() {
 
-              for (auto &fb: frameBuffers) {
-                  vkDestroyFramebuffer(m_renderUtils.device->m_LogicalDevice, fb, nullptr);
-              }
+        for (auto &fb: frameBuffers) {
+            vkDestroyFramebuffer(m_renderUtils.device->m_LogicalDevice, fb, nullptr);
+        }
         /*
 
 
@@ -185,7 +192,7 @@ namespace VkRender {
              */
     }
 
-    void Editor::update(bool updateGraph, float frameTime, Input* input) {
+    void Editor::update(bool updateGraph, float frameTime, Input *input) {
 
         m_guiManager->update(updateGraph, frameTime, width, height, input);
 
@@ -193,5 +200,58 @@ namespace VkRender {
 
     VulkanRenderPassCreateInfo &Editor::getCreateInfo() {
         return m_createInfo;
+    }
+
+
+    Editor::EditorBorderState
+    Editor::checkBorderState(const glm::vec2 &mousePos, const MouseButtons buttons, const glm::vec2 &dxdy) const {
+        if (!m_createInfo.resizeable)
+            return EditorBorderState::None;
+
+        float magnitude = 1 + sqrtf(dxdy.x * dxdy.x + dxdy.y * dxdy.y);
+        // TODO REMOVE MAGNITUDE
+        // Check corners first to give them higher priority
+        // Top-left corner
+        if (mousePos.x >= x && mousePos.x <= x + (borderSize * magnitude) && mousePos.y >= y && mousePos.y <= y + (borderSize * magnitude)) {
+            return EditorBorderState::TopLeft;
+        }
+        // Top-right corner
+        if (mousePos.x >= x + width - (borderSize * magnitude) && mousePos.x <= x + width && mousePos.y >= y &&
+            mousePos.y <= y + (borderSize * magnitude)) {
+            return EditorBorderState::TopRight;
+        }
+        // Bottom-left corner
+        if (mousePos.x >= x && mousePos.x <= x + (borderSize * magnitude) && mousePos.y >= y + height - (borderSize * magnitude) &&
+            mousePos.y <= y + height) {
+            return EditorBorderState::BottomLeft;
+        }
+        // Bottom-right corner
+        if (mousePos.x >= x + width - (borderSize * magnitude) && mousePos.x <= x + width && mousePos.y >= y + height - (borderSize * magnitude) &&
+            mousePos.y <= y + height) {
+            return EditorBorderState::BottomRight;
+        }
+
+        // Check borders
+        // Left border
+        if (mousePos.x >= x - magnitude && mousePos.x <= x + (borderSize * magnitude) && mousePos.y >= y && mousePos.y <= y + height) {
+            return EditorBorderState::Left;
+        }
+        // Right border
+        if (mousePos.x >= x + width - (borderSize * magnitude) && mousePos.x <= x + width - magnitude && mousePos.y >= y &&
+            mousePos.y <= y + height) {
+            return EditorBorderState::Right;
+        }
+        // Top border
+        if (mousePos.x >= x && mousePos.x <= x + width && mousePos.y >= y && mousePos.y <= y + (borderSize * magnitude)) {
+            return EditorBorderState::Top;
+        }
+        // Bottom border
+        if (mousePos.x >= x && mousePos.x <= x + width && mousePos.y >= y + height - (borderSize * magnitude) &&
+            mousePos.y <= y + height) {
+            return EditorBorderState::Bottom;
+        }
+
+        // Inside the editor, not on any border
+        return EditorBorderState::None;
     }
 }

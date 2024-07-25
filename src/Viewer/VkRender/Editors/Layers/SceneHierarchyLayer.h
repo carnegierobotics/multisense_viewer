@@ -112,8 +112,9 @@ namespace VkRender {
         /** Called once per frame **/
         void onUIRender(VkRender::GuiObjectHandles &handles) override {
 
+            /*
             // Set window position and size
-            ImVec2 window_pos = ImVec2(0.0f, handles.info->editorUIHeightOffset); // Position (x, y)
+            ImVec2 window_pos = ImVec2(0.0f, 0.0f); // Position (x, y)
             ImVec2 window_size = ImVec2(handles.info->width, handles.info->height); // Size (width, height)
 
             // Set window flags to remove decorations
@@ -146,8 +147,9 @@ namespace VkRender {
             ImGui::EndChild();
             ImGui::PopStyleColor();
             // End the parent window
-            ImGui::End();
 
+            ImGui::End();
+*/
         }
 
         /** Called once upon this object destruction **/

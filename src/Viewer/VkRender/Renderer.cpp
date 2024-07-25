@@ -119,7 +119,7 @@ namespace VkRender {
         setupDepthStencil();
 
 
-        VulkanRenderPassCreateInfo mainEditorInfo(m_colorImage.view, m_depthStencil.view, m_guiResources, *this);
+        VulkanRenderPassCreateInfo mainEditorInfo(m_colorImage.view, m_depthStencil.view, m_guiResources, this);
         mainEditorInfo.height = m_height;
         mainEditorInfo.width = m_width;
         mainEditorInfo.editorTypeDescription = "MainEditor";
@@ -131,14 +131,15 @@ namespace VkRender {
         m_mainEditor->m_guiManager->pushLayer("DebugWindow");
         m_mainEditor->m_guiManager->pushLayer("MenuLayer");
 
-        VulkanRenderPassCreateInfo otherEditorInfo(m_colorImage.view, m_depthStencil.view, m_guiResources, *this);
+        VulkanRenderPassCreateInfo otherEditorInfo(m_colorImage.view, m_depthStencil.view, m_guiResources, this);
         otherEditorInfo.height = m_height;
         otherEditorInfo.width = m_width / 2;
         otherEditorInfo.x = m_width / 2;
-        otherEditorInfo.editorTypeDescription = "OtherEditor";
-        m_editors.resize(1);
-        m_editors[0] = std::make_unique<EditorTypeOne>(otherEditorInfo);
-        //m_editors[1] = std::make_unique<Editor>(m_renderUtils, *this);
+        otherEditorInfo.editorTypeDescription = "Scene Hierarchy";
+        createNewEditor(otherEditorInfo);
+
+
+        //m_editors[1] = std::make_unique<Editor>(m_renderUtils, this);
         //m_editors[1]->offsetX = m_width / 2.0f;
 
         //m_editors.clear();
@@ -211,6 +212,38 @@ namespace VkRender {
         }
     }
 
+
+    void Renderer::updateRenderingStates() {
+        for (const auto &editor: m_editors) {
+            editor->setRenderState(currentFrame, RenderState::Idle);
+
+        }
+        for (const auto &editor: m_oldEditors) {
+            editor->setRenderState(currentFrame, RenderState::Idle);
+        }
+
+
+        freeVulkanResources();
+    }
+
+    void Renderer::freeVulkanResources() {
+        // Iterate through the deque and clean up resources
+        for (auto it = m_oldEditors.begin(); it != m_oldEditors.end();) {
+            bool allIdle = true;
+            for (size_t i = 0; i < swapchain->imageCount; ++i) {
+                if (!(*it)->isSafeToDelete(i)) {
+                    allIdle = false;
+                    break;
+                }
+            }
+
+            if (allIdle) {
+                it = m_oldEditors.erase(it);
+            } else {
+                ++it;
+            }
+        }
+    }
 
     void Renderer::buildCommandBuffers() {
         processDeletions();
@@ -742,7 +775,7 @@ namespace VkRender {
         mainIO.MouseDown[0] = mouseButtons.left;
         mainIO.MouseDown[1] = mouseButtons.right;
 
-        for (const auto& editor: m_editors) {
+        for (const auto &editor: m_editors) {
             ImGui::SetCurrentContext(editor->m_guiManager->m_imguiContext);
             ImGuiIO &otherIO = ImGui::GetIO();
             otherIO.DeltaTime = frameTimer;
@@ -758,29 +791,15 @@ namespace VkRender {
             scene->update();
         }
         m_mainEditor->update((frameCounter == 0), frameTimer, &input);
-        for (const auto& editor: m_editors) {
+        for (const auto &editor: m_editors) {
             editor->update((frameCounter == 0), frameTimer, &input);
         }
         // Reorder Editors elements according to UI
-        for (auto& editor: m_editors){
-            if (editor->m_guiManager->handles.editor.changed){
+        for (auto &editor: m_editors) {
+            if (editor->m_guiManager->handles.editor.changed) {
                 // Set a new one
-                VulkanRenderPassCreateInfo editorCreateInfo(m_colorImage.view, m_depthStencil.view, m_guiResources, *this);
-                editorCreateInfo.height = m_height;
-                editorCreateInfo.width = m_width / 2;
-                editorCreateInfo.x = m_width / 2;
-                editorCreateInfo.y = 0 ;
-                editorCreateInfo.borderSize = 3;
-                editorCreateInfo.editorTypeDescription = "OtherEditor";
-
-
-                if (editor->m_guiManager->handles.editor.selectedType == "UI"){
-                    editor = std::make_unique<EditorTypeOne>(editorCreateInfo);
-                } else if (editor->m_guiManager->handles.editor.selectedType == "Scene Hierarchy"){
-                    editor = std::make_unique<EditorSceneHierarchy>(editorCreateInfo);
-                } else {
-                    editor = std::make_unique<EditorTypeTwo>(editorCreateInfo);
-                }
+                editor->getCreateInfo().editorTypeDescription = editor->m_guiManager->handles.editor.selectedType;
+                replaceEditor(editor->getCreateInfo(), editor);
             }
         }
 
@@ -901,6 +920,37 @@ namespace VkRender {
         }
     }
 
+    void Renderer::createNewEditor(VulkanRenderPassCreateInfo &createInfo) {
+        std::unique_ptr <Editor> newEditor;
+        if (createInfo.editorTypeDescription == "UI") {
+            newEditor = std::make_unique<EditorTypeOne>(createInfo);
+        } else if (createInfo.editorTypeDescription == "Scene Hierarchy") {
+            newEditor = std::make_unique<EditorSceneHierarchy>(createInfo);
+        } else {
+            newEditor = std::make_unique<EditorTypeTwo>(createInfo);
+        }
+        m_editors.push_back(std::move(newEditor));
+    }
+
+    void Renderer::replaceEditor(VulkanRenderPassCreateInfo &createInfo,  std::unique_ptr <Editor>& editor) {
+        std::unique_ptr <Editor> newEditor;
+        if (createInfo.editorTypeDescription == "UI") {
+            newEditor = std::make_unique<EditorTypeOne>(createInfo);
+        } else if (createInfo.editorTypeDescription == "Scene Hierarchy") {
+            newEditor = std::make_unique<EditorSceneHierarchy>(createInfo);
+        } else {
+            newEditor = std::make_unique<EditorTypeTwo>(createInfo);
+        }
+        for (size_t i = 0; i < swapchain->imageCount; ++i) {
+            editor->setRenderState(i, RenderState::PendingDeletion);
+        }
+        m_oldEditors.push_back(std::move(editor));
+        editor = std::move(newEditor);
+    }
+
+    void Renderer::addUILayer(const std::string &layerName) {
+
+    }
 
     void Renderer::recordCommands() {
         /** Generate Draw Commands **/
@@ -969,8 +1019,6 @@ namespace VkRender {
         timeSpan = std::chrono::duration_cast<std::chrono::duration<float>>(
                 std::chrono::steady_clock::now() - startTime);
         Log::Logger::getInstance()->trace("Deleting entities on exit took {}s", timeSpan.count());
-
-
     }
 
     void Renderer::handleViewportResize(float x, float y) {
@@ -983,28 +1031,27 @@ namespace VkRender {
 
         //For each viewport: check left/right/top/bottom border
         // Left side
-        for (auto& editor : m_editors){
+        for (auto &editor: m_editors) {
             if (editor->x == 0)
                 continue;
 
             if (mousePos.x >= editor->x - 2 && mousePos.x <= editor->x + 2 &&
-                mousePos.y >= editor->y  && mousePos.y <= editor->height) {
+                mousePos.y >= editor->y && mousePos.y <= editor->height) {
                 glfwSetCursor(window, m_cursors.resizeHorizontal);
-                if (mouseButtons.left && dx != 0) {
+                if (mouseButtons.left && dx != 0) { // TODO we need some input debounding, No need to recreate more than 25-30 fps for things to run smoothly for the user.
                     // && !mouseButtons.middle) {
                     m_cameras[m_selectedCameraTag].rotate(dx, dy);
-                    VulkanRenderPassCreateInfo editorCreateInfo(m_colorImage.view, m_depthStencil.view, m_guiResources, *this);
+
+                    VulkanRenderPassCreateInfo editorCreateInfo = editor->getCreateInfo();
                     editorCreateInfo.height = m_height;
                     editorCreateInfo.width = (editor->width) + dx;
                     editorCreateInfo.x = (editor->x) - dx;
                     editorCreateInfo.editorTypeDescription = editor->editorTypeDescription;
-                    editor = std::make_unique<EditorSceneHierarchy>(editorCreateInfo);
+                    replaceEditor(editorCreateInfo, editor);
                 }
             }
         }
-
-
-        }
+    }
 
 
     void Renderer::mouseMoved(float x, float y, bool &handled) {
@@ -1166,9 +1213,6 @@ namespace VkRender {
 
     }
 
-    void Renderer::addUILayer(const std::string &layerName) {
-
-    }
 
     void Renderer::setupDepthStencil() {
         std::string description = "Renderer:";
@@ -1270,7 +1314,6 @@ namespace VkRender {
                               reinterpret_cast<uint64_t>(m_colorImage.view), VK_OBJECT_TYPE_IMAGE_VIEW,
                               (description + "ColorViewResource").c_str());
     }
-
 
 
     DISABLE_WARNING_PUSH

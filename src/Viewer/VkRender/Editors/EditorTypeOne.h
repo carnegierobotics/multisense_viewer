@@ -13,7 +13,7 @@ namespace VkRender {
     public:
         EditorTypeOne() = delete;
 
-        EditorTypeOne(const VulkanRenderPassCreateInfo &createInfo) : Editor(
+        explicit EditorTypeOne(VulkanRenderPassCreateInfo &createInfo) : Editor(
                 createInfo) {
 
             m_guiManager->pushLayer("EditorUILayer");
@@ -28,7 +28,7 @@ namespace VkRender {
     public:
         EditorTypeTwo() = delete;
 
-        EditorTypeTwo(const VulkanRenderPassCreateInfo &createInfo) : Editor(
+        explicit EditorTypeTwo(VulkanRenderPassCreateInfo &createInfo) : Editor(
                 createInfo) {
 
             m_guiManager->pushLayer("EditorUILayer");
@@ -36,8 +36,6 @@ namespace VkRender {
             m_guiManager->pushLayer("MultiSenseViewerLayer");
 
         }
-
-
     };
 }
 

@@ -13,17 +13,15 @@
 namespace VkRender {
 
 
-    Editor::Editor(const VulkanRenderPassCreateInfo &createInfo) :
-    m_renderUtils(createInfo.context.data()), m_context(createInfo.context) {
-
+    Editor::Editor(VulkanRenderPassCreateInfo &createInfo) : m_createInfo(createInfo),
+    m_renderUtils(createInfo.context->data()), m_context(createInfo.context) {
         width = createInfo.width;
         height = createInfo.height;
         applicationWidth = createInfo.width + createInfo.x;
         applicationHeight = createInfo.height + createInfo.y;
+        m_renderStates = {createInfo.context->data().swapchainImages, RenderState::Idle};
         x = createInfo.x;
         y = createInfo.y;
-        borderSize = createInfo.borderSize;
-
         editorTypeDescription = createInfo.editorTypeDescription + ":";
 
         renderPasses.resize(m_renderUtils.swapchainImages);
@@ -41,12 +39,12 @@ namespace VkRender {
         // Start timing GuiManager construction
         auto startGuiManagerConstruction = std::chrono::high_resolution_clock::now();
         m_guiManager = std::make_unique<GuiManager>(m_renderUtils.device,
-                                                    renderPasses.begin()->get()->renderPass(), // TODO verify if this is ok?
-                                                    width  - createInfo.borderSize * 2,
-                                                    height - createInfo.borderSize * 2,
+                                                    renderPasses.begin()->get()->getRenderPass(), // TODO verify if this is ok?
+                                                    width,
+                                                    height,
                                                     m_renderUtils.msaaSamples,
                                                     m_renderUtils.swapchainImages,
-                                                    &m_context, ImGui::CreateContext(&createInfo.guiResources->fontAtlas), createInfo.guiResources.get());
+                                                    m_context, ImGui::CreateContext(&createInfo.guiResources->fontAtlas), createInfo.guiResources.get());
 
         auto endGuiManagerConstruction = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double, std::milli> guiManagerConstructionTime = endGuiManagerConstruction - startGuiManagerConstruction;
@@ -59,14 +57,14 @@ namespace VkRender {
                                                                                         applicationHeight,
                                                                                         frameBufferAttachments.data(),
                                                                                         frameBufferAttachments.size(),
-                                                                                        renderPasses.begin()->get()->renderPass() // TODO verify if this is ok?
+                                                                                        renderPasses.begin()->get()->getRenderPass() // TODO verify if this is ok?
                                                                                         );
         // Start timing Framebuffer creation
         std::vector<std::chrono::duration<double, std::milli>> framebufferCreationTimes;
         frameBuffers.resize(m_renderUtils.swapchainImages);
         for (uint32_t i = 0; i < frameBuffers.size(); i++) {
             auto startFramebufferCreation = std::chrono::high_resolution_clock::now();
-            frameBufferAttachments[2] = m_context.swapChainBuffers()[i].view;
+            frameBufferAttachments[2] = m_context->swapChainBuffers()[i].view;
             VkResult result = vkCreateFramebuffer(m_renderUtils.device->m_LogicalDevice, &frameBufferCreateInfo,
                                                   nullptr, &frameBuffers[i]);
             if (result != VK_SUCCESS) {
@@ -88,9 +86,12 @@ namespace VkRender {
     }
 
     void Editor::render(CommandBuffer& drawCmdBuffers) {
-
         const uint32_t& currentFrame =  *drawCmdBuffers.frameIndex;
         const uint32_t& imageIndex =    *drawCmdBuffers.activeImageIndex;
+
+        if (m_renderStates[currentFrame] == RenderState::PendingDeletion)
+            return;
+
         // main editor window
         VkViewport viewport{};
         viewport.x = static_cast<float>(x);
@@ -108,7 +109,7 @@ namespace VkRender {
         VkRenderPassBeginInfo renderPassBeginInfo = Populate::renderPassBeginInfo();
         std::array<VkClearValue, 3> clearValues{};
         clearValues[0] = {{{0.1f, 0.1f, 0.3f, 1.0f}}};
-        renderPassBeginInfo.renderPass = renderPasses[currentFrame]->renderPass();
+        renderPassBeginInfo.renderPass = renderPasses[currentFrame]->getRenderPass(); // Increase reference count by 1 here?
         renderPassBeginInfo.renderArea.offset.x = static_cast<int32_t>(x);
         renderPassBeginInfo.renderArea.offset.y = static_cast<int32_t>(y);
         renderPassBeginInfo.renderArea.extent.width = width;
@@ -118,8 +119,8 @@ namespace VkRender {
         renderPassBeginInfo.framebuffer = frameBuffers[imageIndex];
         vkCmdBeginRenderPass(drawCmdBuffers.buffers[currentFrame], &renderPassBeginInfo,
                              VK_SUBPASS_CONTENTS_INLINE);
-        drawCmdBuffers.boundRenderPass = renderPassBeginInfo.renderPass;
         drawCmdBuffers.renderPassType = RENDER_PASS_UI;
+
         vkCmdSetViewport(drawCmdBuffers.buffers[currentFrame], 0, 1, &viewport);
         vkCmdSetScissor(drawCmdBuffers.buffers[currentFrame], 0, 1, &scissor);
 
@@ -128,64 +129,69 @@ namespace VkRender {
 
         vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
 
+        m_renderStates[currentFrame] = RenderState::Busy;
     }
 
     Editor::~Editor() {
 
-        for (auto &fb: frameBuffers) {
-            vkDestroyFramebuffer(m_renderUtils.device->m_LogicalDevice, fb, nullptr);
-        }
-
-
+              for (auto &fb: frameBuffers) {
+                  vkDestroyFramebuffer(m_renderUtils.device->m_LogicalDevice, fb, nullptr);
+              }
         /*
-        // Destroy the image view
-        if (objectRenderPass.colorImage.view != VK_NULL_HANDLE) {
-            vkDestroyImageView(m_renderUtils.device->m_LogicalDevice, objectRenderPass.colorImage.view, nullptr);
-        }
-
-// Destroy the image and free its memory allocation using VMA
-        if (objectRenderPass.colorImage.image != VK_NULL_HANDLE) {
-            vmaDestroyImage(m_context.allocator(), objectRenderPass.colorImage.image,
-                            objectRenderPass.colorImage.colorImageAllocation);
-        }
-// Destroy the image and free its memory allocation using VMA
-        if (objectRenderPass.depthStencil.image != VK_NULL_HANDLE) {
-            vmaDestroyImage(m_context.allocator(), objectRenderPass.depthStencil.image,
-                            objectRenderPass.depthStencil.allocation);
-        }
-
-        // Destroy the resolved image view
-        if (objectRenderPass.depthStencil.view != VK_NULL_HANDLE) {
-            vkDestroyImageView(m_renderUtils.device->m_LogicalDevice, objectRenderPass.depthStencil.view,
-                               nullptr);
-        }
-
-        if (objectRenderPass.multisampled) {
-            // Destroy the resolved image view
-            if (objectRenderPass.colorImage.resolvedView != VK_NULL_HANDLE) {
-                vkDestroyImageView(m_renderUtils.device->m_LogicalDevice, objectRenderPass.colorImage.resolvedView,
-                                   nullptr);
-            }
 
 
-            // Destroy the resolved image and free its memory allocation using VMA
-            if (objectRenderPass.colorImage.resolvedImage != VK_NULL_HANDLE) {
-                vmaDestroyImage(m_context.allocator(), objectRenderPass.colorImage.resolvedImage,
-                                objectRenderPass.colorImage.resolvedImageAllocation);
-            }
-        }
+                     // Destroy the image view
+                     if (objectRenderPass.colorImage.view != VK_NULL_HANDLE) {
+                         vkDestroyImageView(m_renderUtils.device->m_LogicalDevice, objectRenderPass.colorImage.view, nullptr);
+                     }
 
-        vkDestroySampler(m_renderUtils.device->m_LogicalDevice, objectRenderPass.colorImage.sampler, nullptr);
-        vkDestroySampler(m_renderUtils.device->m_LogicalDevice, objectRenderPass.depthStencil.sampler, nullptr);
+             // Destroy the image and free its memory allocation using VMA
+                     if (objectRenderPass.colorImage.image != VK_NULL_HANDLE) {
+                         vmaDestroyImage(m_context->allocator(), objectRenderPass.colorImage.image,
+                                         objectRenderPass.colorImage.colorImageAllocation);
+                     }
+             // Destroy the image and free its memory allocation using VMA
+                     if (objectRenderPass.depthStencil.image != VK_NULL_HANDLE) {
+                         vmaDestroyImage(m_context->allocator(), objectRenderPass.depthStencil.image,
+                                         objectRenderPass.depthStencil.allocation);
+                     }
 
-        vkDestroyRenderPass(m_renderUtils.device->m_LogicalDevice, objectRenderPass.renderPass, nullptr);
+                     // Destroy the resolved image view
+                     if (objectRenderPass.depthStencil.view != VK_NULL_HANDLE) {
+                         vkDestroyImageView(m_renderUtils.device->m_LogicalDevice, objectRenderPass.depthStencil.view,
+                                            nullptr);
+                     }
 
-*/
+                     if (objectRenderPass.multisampled) {
+                         // Destroy the resolved image view
+                         if (objectRenderPass.colorImage.resolvedView != VK_NULL_HANDLE) {
+                             vkDestroyImageView(m_renderUtils.device->m_LogicalDevice, objectRenderPass.colorImage.resolvedView,
+                                                nullptr);
+                         }
+
+
+                         // Destroy the resolved image and free its memory allocation using VMA
+                         if (objectRenderPass.colorImage.resolvedImage != VK_NULL_HANDLE) {
+                             vmaDestroyImage(m_context->allocator(), objectRenderPass.colorImage.resolvedImage,
+                                             objectRenderPass.colorImage.resolvedImageAllocation);
+                         }
+                     }
+
+                     vkDestroySampler(m_renderUtils.device->m_LogicalDevice, objectRenderPass.colorImage.sampler, nullptr);
+                     vkDestroySampler(m_renderUtils.device->m_LogicalDevice, objectRenderPass.depthStencil.sampler, nullptr);
+
+                     vkDestroyRenderPass(m_renderUtils.device->m_LogicalDevice, objectRenderPass.renderPass, nullptr);
+
+             */
     }
 
     void Editor::update(bool updateGraph, float frameTime, Input* input) {
 
         m_guiManager->update(updateGraph, frameTime, width, height, input);
 
+    }
+
+    VulkanRenderPassCreateInfo &Editor::getCreateInfo() {
+        return m_createInfo;
     }
 }

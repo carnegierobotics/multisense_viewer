@@ -87,6 +87,9 @@ namespace VkRender {
         Entity createEntity(const std::string &name);
         void destroyEntity(Entity entity);
         Entity createEntityWithUUID(UUID uuid, const std::string &name);
+        void createNewEditor(VulkanRenderPassCreateInfo &createInfo);
+        void replaceEditor(VulkanRenderPassCreateInfo &createInfo, std::unique_ptr<Editor> &editor);
+
         VkRender::Entity findEntityByName(std::string_view name);
         void markEntityForDestruction(Entity entity);
         void addUILayer(const std::string &layerName);
@@ -128,6 +131,8 @@ namespace VkRender {
         void mouseScroll(float change) override;
 
         void postRenderActions() override;
+        void freeVulkanResources() override;
+        void updateRenderingStates() override;
         void processDeletions();
 
         template<typename T>
@@ -139,6 +144,8 @@ namespace VkRender {
 
         std::vector<std::unique_ptr<Scene>> m_scenes;
         std::vector<std::unique_ptr<Editor>> m_editors;
+        std::deque<std::unique_ptr<Editor>> m_oldEditors;
+
         entt::registry m_registry;
         std::unordered_map<UUID, entt::entity> m_entityMap;
         std::string m_selectedCameraTag = "Default Camera";

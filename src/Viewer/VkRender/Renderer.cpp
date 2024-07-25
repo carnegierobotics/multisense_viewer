@@ -765,12 +765,14 @@ namespace VkRender {
         for (auto& editor: m_editors){
             if (editor->m_guiManager->handles.editor.changed){
                 // Set a new one
-
                 VulkanRenderPassCreateInfo editorCreateInfo(m_colorImage.view, m_depthStencil.view, m_guiResources, *this);
                 editorCreateInfo.height = m_height;
                 editorCreateInfo.width = m_width / 2;
                 editorCreateInfo.x = m_width / 2;
+                editorCreateInfo.y = 0 ;
+                editorCreateInfo.borderSize = 3;
                 editorCreateInfo.editorTypeDescription = "OtherEditor";
+
 
                 if (editor->m_guiManager->handles.editor.selectedType == "UI"){
                     editor = std::make_unique<EditorTypeOne>(editorCreateInfo);

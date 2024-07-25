@@ -20,9 +20,10 @@ namespace VkRender {
         height = createInfo.height;
         applicationWidth = createInfo.width + createInfo.x;
         applicationHeight = createInfo.height + createInfo.y;
-
         x = createInfo.x;
         y = createInfo.y;
+        borderSize = createInfo.borderSize;
+
         editorTypeDescription = createInfo.editorTypeDescription + ":";
 
         renderPasses.resize(m_renderUtils.swapchainImages);
@@ -41,8 +42,8 @@ namespace VkRender {
         auto startGuiManagerConstruction = std::chrono::high_resolution_clock::now();
         m_guiManager = std::make_unique<GuiManager>(m_renderUtils.device,
                                                     renderPasses.begin()->get()->renderPass(), // TODO verify if this is ok?
-                                                    width,
-                                                    height,
+                                                    width  - createInfo.borderSize * 2,
+                                                    height - createInfo.borderSize * 2,
                                                     m_renderUtils.msaaSamples,
                                                     m_renderUtils.swapchainImages,
                                                     &m_context, ImGui::CreateContext(&createInfo.guiResources->fontAtlas), createInfo.guiResources.get());

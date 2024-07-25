@@ -9,6 +9,7 @@
 #include <vk_mem_alloc.h>
 #include <string>
 #include <memory>
+#include <utility>
 
 #include "Viewer/VkRender/ImGui/GuiManager.h"
 
@@ -21,6 +22,7 @@ namespace VkRender {
         uint32_t height = 0;
         uint32_t x = 0;
         uint32_t y = 0;
+        uint32_t borderSize = 3;
         std::string editorTypeDescription;
         VkAttachmentLoadOp loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
         VkImageLayout initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -32,7 +34,7 @@ namespace VkRender {
         std::shared_ptr<GuiResources> guiResources;
 
         VulkanRenderPassCreateInfo(VkImageView &colorView,
-                                   VkImageView &depthView, std::shared_ptr<GuiResources> guiRes, Renderer& ctx) : context(ctx), colorImageView(colorView), depthImageView(depthView), guiResources(guiRes) {
+                                   VkImageView &depthView, std::shared_ptr<GuiResources> guiRes, Renderer& ctx) : context(ctx), colorImageView(colorView), depthImageView(depthView), guiResources(std::move(guiRes)) {
         }
     };
 

@@ -35,6 +35,7 @@ namespace VkRender {
         uint32_t height = 0;
         uint32_t applicationWidth = 0;
         uint32_t applicationHeight = 0;
+        uint32_t borderSize = 0;
 
         std::vector<VkFramebuffer> frameBuffers;
 

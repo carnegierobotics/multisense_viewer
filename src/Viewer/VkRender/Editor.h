@@ -90,14 +90,10 @@ namespace VkRender {
         // Implement move constructor
         Editor(Editor &&other) noexcept: m_context(other.m_context), m_renderUtils(other.m_renderUtils),
                                          m_renderStates(other.m_renderStates), m_createInfo(other.m_createInfo) {
-            std::cout << "Move constructor\n";
-
             swap(*this, other);
         }
         // and move assignment operator
         Editor &operator=(Editor &&other) noexcept {
-            std::cout << "Move assignment operator\n";
-
             if (this != &other) { // Check for self-assignment
                 swap(*this, other);
             }

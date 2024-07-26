@@ -343,7 +343,7 @@ namespace VkRender {
     void
     GuiManager::update(bool updateFrameGraph, float frameTimer, uint32_t width, uint32_t height, const Input *pInput) {
         ImGui::SetCurrentContext(m_imguiContext);
-        Log::Logger::getInstance()->trace("Set ImGUI Context {} and updating", reinterpret_cast<uint64_t>(m_imguiContext));
+        //Log::Logger::getInstance()->trace("Set ImGUI Context {} and updating", reinterpret_cast<uint64_t>(m_imguiContext));
 
         handles.info->frameTimer = frameTimer;
         handles.info->firstFrame = updateFrameGraph;
@@ -447,7 +447,7 @@ namespace VkRender {
                                uint32_t x,
                                uint32_t y) {
         ImGui::SetCurrentContext(m_imguiContext);
-        Log::Logger::getInstance()->trace("Set ImGUI Context {} and drawing", reinterpret_cast<uint64_t>(m_imguiContext));
+        //Log::Logger::getInstance()->trace("Set ImGUI Context {} and drawing", reinterpret_cast<uint64_t>(m_imguiContext));
 
         // Need to update buffers
         updateBuffers(currentFrame);
@@ -484,10 +484,10 @@ namespace VkRender {
                                             &texture, 0, nullptr);
 
                     VkRect2D scissorRect{};
-                    scissorRect.offset.x = std::max(static_cast<int32_t>(pcmd->ClipRect.x + x), 0);
-                    scissorRect.offset.y = std::max(static_cast<int32_t>(pcmd->ClipRect.y + y), 0);
-                    scissorRect.extent.width = static_cast<uint32_t>(pcmd->ClipRect.z - pcmd->ClipRect.x);
-                    scissorRect.extent.height = static_cast<uint32_t>(pcmd->ClipRect.w - pcmd->ClipRect.y);
+                    scissorRect.offset.x = std::max(static_cast<int32_t>(pcmd->ClipRect.x + x - 1), 0); // We're missing one pixel
+                    scissorRect.offset.y = std::max(static_cast<int32_t>(pcmd->ClipRect.y + y - 1), 0); // We're missing one pixel
+                    scissorRect.extent.width = static_cast<uint32_t>(pcmd->ClipRect.z - pcmd->ClipRect.x + 2); // We're missing one pixel
+                    scissorRect.extent.height = static_cast<uint32_t>(pcmd->ClipRect.w - pcmd->ClipRect.y + 2); // We're missing one pixel
                     vkCmdSetScissor(commandBuffer, 0, 1, &scissorRect);
                     vkCmdDrawIndexed(commandBuffer, pcmd->ElemCount, 1, pcmd->IdxOffset + indexOffset,
                                      pcmd->VtxOffset + vertexOffset, 0);

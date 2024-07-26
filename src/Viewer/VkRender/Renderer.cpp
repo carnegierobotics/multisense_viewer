@@ -119,10 +119,10 @@ namespace VkRender {
 
 
         VulkanRenderPassCreateInfo mainEditorInfo(m_colorImage.view, m_depthStencil.view, m_guiResources, this);
-        mainEditorInfo.height = m_height;
-        mainEditorInfo.width = m_width;
-        mainEditorInfo.appHeight = m_height;
-        mainEditorInfo.appWidth = m_width;
+        mainEditorInfo.appHeight = static_cast<int32_t>(m_height);
+        mainEditorInfo.appWidth = static_cast<int32_t>(m_width);
+        mainEditorInfo.height = static_cast<int32_t>(m_height);
+        mainEditorInfo.width = static_cast<int32_t>(m_width);
         mainEditorInfo.borderSize = 0;
         mainEditorInfo.editorTypeDescription = "MainEditor";
         mainEditorInfo.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
@@ -138,14 +138,16 @@ namespace VkRender {
         m_mainEditor->m_guiManager->pushLayer("DebugWindow");
         m_mainEditor->m_guiManager->pushLayer("MenuLayer");
 
+        auto sizeLimits = m_mainEditor->getSizeLimits();
         VulkanRenderPassCreateInfo otherEditorInfo(m_colorImage.view, m_depthStencil.view, m_guiResources, this);
-        otherEditorInfo.appHeight = m_height;
-        otherEditorInfo.appWidth = m_width;
+        otherEditorInfo.appHeight = static_cast<int32_t>(m_height);
+        otherEditorInfo.appWidth = static_cast<int32_t>(m_width);
         otherEditorInfo.borderSize = 5;
-        otherEditorInfo.height = m_height - 25 * 2;
-        otherEditorInfo.width = m_width / 2 - 25;
-        otherEditorInfo.x = m_width / 2;
-        otherEditorInfo.y = 25; //TODO link to a global setting of some sort
+        otherEditorInfo.height = static_cast<int32_t>(m_height) - sizeLimits.MENU_BAR_HEIGHT;//- 100;
+        otherEditorInfo.width = static_cast<int32_t>(m_width);//- 200;
+        otherEditorInfo.x = 0;//+ 100;
+        otherEditorInfo.y = sizeLimits.MENU_BAR_HEIGHT;//+ 050;
+
         otherEditorInfo.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         otherEditorInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         otherEditorInfo.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -838,9 +840,10 @@ namespace VkRender {
         }
         */
         m_logger->frameNumber = frameID;
-        if (keyPress == GLFW_KEY_SPACE) {
-            m_cameras[m_selectedCameraTag].resetPosition();
-        }
+
+        //if (keyPress == GLFW_KEY_SPACE) {
+        //    m_cameras[m_selectedCameraTag].resetPosition();
+        //}
 
         /**@brief Record commandbuffers for obj models */
         // Accessing components in a non-copying manner
@@ -960,10 +963,12 @@ namespace VkRender {
         newEditor.prevResize = editor.prevResize;
         newEditor.borderClicked = editor.borderClicked;
         newEditor.resizeHovered = editor.resizeHovered;
-        newEditor.cornerHovered = editor.cornerHovered;
-        newEditor.cornerClicked = editor.cornerClicked;
+        newEditor.cornerBottomLeftHovered = editor.cornerBottomLeftHovered;
+        newEditor.cornerBottomLeftClicked = editor.cornerBottomLeftClicked;
+        newEditor.cornerBottomLeftDragEvent = editor.cornerBottomLeftDragEvent;
         newEditor.createNewEditorByCopy = editor.createNewEditorByCopy;
         newEditor.lastClickedBorderType = editor.lastClickedBorderType;
+        newEditor.cornerPressedPos = editor.cornerPressedPos;
 
         m_oldEditors.push_back(std::move(editor));
 
@@ -1046,14 +1051,15 @@ namespace VkRender {
     }
 
     void Renderer::handleViewportResize() {
-        float dx = mouse.dx;
-        float dy = mouse.dy;
+        int32_t dx = mouse.dx;
+        int32_t dy = mouse.dy;
 
         // Get hover state
         GLFWcursor *cursorType = m_cursors.arrow;
         for (auto &editor: m_editors) {
-            EditorBorderState borderState = editor.checkBorderState(glm::vec2(mouse.x, mouse.y), mouse, glm::vec2{dx, dy});
-            editor.cornerHovered = false;
+            EditorBorderState borderState = editor.checkBorderState(glm::vec2(mouse.x, mouse.y), mouse,
+                                                                    glm::vec2{dx, dy});
+            editor.cornerBottomLeftHovered = false;
             editor.resizeHovered = false;
             switch (borderState) {
                 case EditorBorderState::Left:
@@ -1069,19 +1075,40 @@ namespace VkRender {
                 case EditorBorderState::TopRight:
                 case EditorBorderState::BottomRight:
                 case EditorBorderState::TopLeft:
+                    break;
                 case EditorBorderState::BottomLeft:
-                    editor.cornerHovered = true;
+                    editor.cornerBottomLeftHovered = true;
                     cursorType = m_cursors.crossHair;
                     break;
                 case EditorBorderState::None:
                     break;
             }
         }
-        glfwSetCursor(window, cursorType);
+        // Corner cursor should get priority
+        bool anyCornerHovered = false;
+        bool anyCornerClicked = false;
+        for (auto &editor: m_editors) {
+            if (editor.cornerBottomLeftHovered)
+                anyCornerHovered = true;
+
+            if (mouse.left && mouse.action == GLFW_PRESS && editor.cornerBottomLeftHovered) {
+                editor.cornerPressedPos = mouse.pos;
+                editor.cornerBottomLeftClicked = true;
+            }
+
+            if (editor.cornerBottomLeftClicked)
+                anyCornerClicked = true;
+
+        }
+        if (anyCornerHovered)
+            glfwSetCursor(window, m_cursors.crossHair);
+        else
+            glfwSetCursor(window, cursorType);
 
 
         // Get click state
         bool splitEditors = false;
+        bool splitHorizontal = false;
         VulkanRenderPassCreateInfo editorSplitCreateInfo;
         uint32_t splitEditorIndex = UINT32_MAX;
 
@@ -1089,69 +1116,138 @@ namespace VkRender {
             EditorBorderState borderState = editor.checkBorderState(mouse.pos, mouse, glm::vec2{dx, dy});
             if (!mouse.left) {
                 editor.resizeActive = false;
-                editor.cornerClicked = false;
+                editor.cornerBottomLeftClicked = false;
+                editor.cornerBottomLeftDragEvent = false;
             }
 
             if (mouse.left && mouse.action == GLFW_PRESS) {
+                // Resize click action
                 editor.resizeActive |= editor.resizeHovered &&
-                                        (borderState == EditorBorderState::Left ||
-                                         borderState == EditorBorderState::Right ||
-                                         borderState == EditorBorderState::Top ||
-                                         borderState == EditorBorderState::Bottom);
-                editor.lastClickedBorderType =borderState;
-                Log::Logger::getInstance()->info("We clicked Editor: {}'s border :{}", editor.getCreateInfo().editorTypeDescription, editor.lastClickedBorderType);
+                                       (borderState == EditorBorderState::Left ||
+                                        borderState == EditorBorderState::Right ||
+                                        borderState == EditorBorderState::Top ||
+                                        borderState == EditorBorderState::Bottom);
+                editor.lastClickedBorderType = borderState;
+                Log::Logger::getInstance()->info("We clicked Editor: {}'s border :{}",
+                                                 index,
+                                                 editor.lastClickedBorderType);
+                // Also check if we are indirectly effecting other editors borders and set their state to resize.
+                // Example. In a layout with two rows, changing the height of the bottom row should increase ALL the editor's heights in the top row
+
+                // Using our current position. For a vertical resize, check across the whole screen if we would hit another editor's border. This gets included in our resize operation
+
+                for (size_t i = 0; auto &otherEditor: m_editors) {
+                    if (editor != otherEditor) {
+
+                        // Add check if we attempt to click a corner. Disregard other editors
+                        if (editor.cornerBottomLeftHovered) {
+                            otherEditor.resizeActive = false;
+                            i++; // I use for debugging
+                            continue;
+                        }
+
+                        // Check if y coordinates match.
+                        auto otherBorder = otherEditor.checkLineBorderState(mouse.pos, true);
+                        if (otherBorder != EditorBorderState::None) {
+                            // ALso put this into resize mode
+                            otherEditor.resizeActive = true;
+                            // Last clicked border type:
+                            otherEditor.lastClickedBorderType = otherBorder;
+                            editor.lastClickedBorderType = editor.checkLineBorderState(mouse.pos, true);
+
+                            Log::Logger::getInstance()->info("Indirect access to Editor {}' border: {}",
+                                                             i,
+                                                             otherEditor.lastClickedBorderType);
+                        }
+                    }
+                    i++;
+                }
             }
 
-            if (mouse.left && mouse.action == GLFW_PRESS && editor.cornerHovered) {
-                editor.cornerPressedPos = mouse.pos;
-                editor.cornerClicked = true;
-                // Record keyPress
+
+            // Check if we are dragging in X-Direction
+            if (editor.cornerBottomLeftClicked) {
+                for (auto &otherEditors: m_editors) {
+                    if (otherEditors.cornerBottomLeftHovered)
+                        otherEditors.resizeActive = false;
+                }
+                editor.resizeActive = false;
+
+                if (abs(mouse.pos.x - editor.cornerPressedPos.x) >= 50.0f) {
+                    splitEditors = true;
+                    splitHorizontal = true;
+                    editor.cornerBottomLeftClicked = false;
+                    editor.cornerBottomLeftDragEvent = true;
+                    editorSplitCreateInfo = editor.getCreateInfo();
+                    splitEditorIndex = index;
+                }
+                // CHeck if we are dragging in Y-Direction
+                if (abs(mouse.pos.y - editor.cornerPressedPos.y) >= 50.0f) {
+                    splitEditors = true;
+                    editor.cornerBottomLeftClicked = false;
+                    editor.cornerBottomLeftDragEvent = true;
+
+                    editorSplitCreateInfo = editor.getCreateInfo();
+                    splitEditorIndex = index;
+                }
             }
 
-            if (editor.cornerClicked && glm::length(mouse.pos - editor.cornerPressedPos) > 10.0f) {
-                splitEditors = true;
-                editorSplitCreateInfo = editor.getCreateInfo();
-                editor.cornerClicked = false;
-                splitEditorIndex = index;
-            }
+            bool anyDraggingEvent = false;
 
-            if (editor.resizeActive) {
+            // Loop through editors to check if any have cornerBottomLeftDragEvent set to true
+            for (const auto& editor : m_editors) {
+                if (editor.cornerBottomLeftDragEvent) {
+                    anyDraggingEvent = true;
+                    break;
+                }
+            }
+            // We should not enter if statement if we are currently splitting
+            // But we should enter it for the ones that are pslitting
+            bool splitBlock = anyDraggingEvent && !editor.cornerBottomLeftDragEvent;
+
+
+            if (editor.resizeActive && !(anyCornerClicked || anyCornerHovered) && !splitBlock) {
+                auto &sizeLimits = editor.getSizeLimits();
                 VulkanRenderPassCreateInfo &editorCreateInfo = editor.getCreateInfo();
-                Log::Logger::getInstance()->trace("Resizing viewport {}. Change dx/dy: {}x{} border : {}", editor.getCreateInfo().editorTypeDescription, dx, dy, editor.lastClickedBorderType);
+                VulkanRenderPassCreateInfo originalEditorCreateInfo = editor.getCreateInfo();
+
                 switch (editor.lastClickedBorderType) {
                     case EditorBorderState::Left:
                         // Resize window to the left
-                        editorCreateInfo.width = (editor.width) + dx;
-                        editorCreateInfo.x = (editor.x) - dx;
+                        if (editorCreateInfo.x - dx > sizeLimits.MIN_OFFSET_X &&
+                            editorCreateInfo.width + dx > sizeLimits.MIN_SIZE) {
+                            editorCreateInfo.width = editor.width + dx;
+                            editorCreateInfo.x = editor.x - dx;
+                        }
                         break;
                     case EditorBorderState::Right:
-                        editorCreateInfo.width = (editor.width) - dx;
+                        editorCreateInfo.width = editor.width - dx;
                         break;
                     case EditorBorderState::Top:
-                        editorCreateInfo.height = (editor.height) + dy;
-                        editorCreateInfo.y = (editor.y) - dy;
+                        if (editorCreateInfo.y - dy > sizeLimits.MIN_OFFSET_Y &&
+                            editorCreateInfo.height + dy > sizeLimits.MIN_SIZE) {
+                            editorCreateInfo.height = editor.height + dy;
+                            editorCreateInfo.y = editor.y - dy;
+                        }
                         break;
                     case EditorBorderState::Bottom:
-                        editorCreateInfo.height = (editor.height) - dy;
+                        editorCreateInfo.height = editor.height - dy;
                         break;
                     default:
+                        Log::Logger::getInstance()->trace(
+                                "Resize is somehow active but we have not clicked any borders: {}",
+                                editor.getUUID().operator std::string());
                         break;
                 }
+
+                editor.validateEditorSize(editorCreateInfo);
 
                 bool changed = dx != 0 || dy != 0;
                 if (changed)
                     replaceEditor(editorCreateInfo, editor);
             }
-
-            if (editor.resizeActive != editor.prevResize && !editor.resizeActive){
-                std::cout << "We lost resize\n";
-            }
-            editor.prevResize = editor.resizeActive;
-
             index++;
         }
-
-        /*
 
         if (splitEditors) {
             std::cout << "Create new Window \n";
@@ -1160,17 +1256,50 @@ namespace VkRender {
 
             // Also recreate other editor and place it
             VulkanRenderPassCreateInfo &editorCreateInfo = m_editors[splitEditorIndex].getCreateInfo();
-            editorCreateInfo.x += 10.0f;
-            editorCreateInfo.width -= 10.0f;
+            VulkanRenderPassCreateInfo newEditorCreateInfo = editorCreateInfo;
+            if (splitHorizontal) {
+                // Adjust the size and position of the existing editor
+                editorCreateInfo.width -= 50; // Decrease the width of the existing editor
+                editorCreateInfo.x += 50; // Decrease the width of the existing editor
+                // Set the create info for the new editor so that it shares a border with the existing one
+                newEditorCreateInfo.width = 50 + editorCreateInfo.borderSize; // Width of the new editor
+
+            } else {
+                // Adjust the size and position of the existing editor
+                editorCreateInfo.height -= 50;
+                newEditorCreateInfo.height = 50 + editorCreateInfo.borderSize;
+                newEditorCreateInfo.y = editorCreateInfo.height + editorCreateInfo.y - editorCreateInfo.borderSize;
+            }
+
+
+            std::vector<VkClearValue> colors{{1.0f, 0.0f, 0.0f, 1.0f},
+                                             {0.0f, 1.0f, 0.0f, 1.0f}, // 1: Green
+                                             {0.0f, 0.0f, 1.0f, 1.0f}, // 2: Blue
+                                             {1.0f, 1.0f, 0.0f, 1.0f}, // 3: Yellow
+                                             {1.0f, 0.0f, 1.0f, 1.0f}, // 4: Magenta
+                                             {0.0f, 1.0f, 1.0f, 1.0f}, // 5: Cyan
+                                             {0.5f, 0.5f, 0.5f, 1.0f}}; // 6: Gray
+
+            newEditorCreateInfo.clearValue[0] = colors[(m_editors.size() - 1) % 7]; // Set the clear color value
+            auto newEditor = createEditor(newEditorCreateInfo);
             replaceEditor(editorCreateInfo, m_editors[splitEditorIndex]);
 
-            editorSplitCreateInfo.height = editorSplitCreateInfo.height;
-            editorSplitCreateInfo.width = 10.0f;
-            editorSplitCreateInfo.x = editorSplitCreateInfo.x;
-            editorSplitCreateInfo.y = editorSplitCreateInfo.y;
-            createEditor(editorSplitCreateInfo);
+            m_editors.push_back(std::move(newEditor));
+
+            // We can resize both now if we keep holding our mouse
+            m_editors[splitEditorIndex].resizeActive = true;
+            m_editors.back().resizeActive = true;
+
+
+            if (splitHorizontal) {
+                m_editors[splitEditorIndex].lastClickedBorderType = EditorBorderState::Left;
+                m_editors.back().lastClickedBorderType = EditorBorderState::Right;
+            } else {
+                m_editors[splitEditorIndex].lastClickedBorderType = EditorBorderState::Bottom;
+                m_editors.back().lastClickedBorderType = EditorBorderState::Top;
+            }
         }
-        */
+
 
     }
 
@@ -1183,7 +1312,8 @@ namespace VkRender {
         mouse.dx += dx;
         mouse.dy += dy;
 
-        Log::Logger::getInstance()->trace("Cursor velocity: ({},{}), pos: ({},{})", mouse.dx, mouse.dy, mouse.x, mouse.y);
+        Log::Logger::getInstance()->trace("Cursor velocity: ({},{}), pos: ({},{})", mouse.dx, mouse.dy, mouse.x,
+                                          mouse.y);
         // UPdate camera if we have one selected
         if (!m_selectedCameraTag.empty()) {
             auto it = m_cameras.find(m_selectedCameraTag);

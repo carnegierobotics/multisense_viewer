@@ -135,8 +135,6 @@ namespace VkRender {
         VkRender::MouseButtons mouse{};
         float mouseScrollSpeed = 0.1f;
 
-        int keyPress = -1;
-        int keyAction = -1;
         Input input;
 
         /** @brief Handle for Logging*/

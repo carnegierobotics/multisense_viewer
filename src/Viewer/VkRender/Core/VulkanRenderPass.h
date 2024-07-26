@@ -18,10 +18,10 @@ namespace VkRender {
 
     struct VulkanRenderPassCreateInfo {
         Renderer *context = nullptr;
-        uint32_t width = 0, appWidth = 0;
-        uint32_t height = 0, appHeight = 0;
-        uint32_t x = 0;
-        uint32_t y = 0;
+        int32_t width = 0, appWidth = 0;
+        int32_t height = 0, appHeight = 0;
+        int32_t x = 0;
+        int32_t y = 0;
         uint32_t borderSize = 3;
         std::string editorTypeDescription;
         VkAttachmentLoadOp loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;

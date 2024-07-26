@@ -15,7 +15,7 @@ namespace VkRender {
 
     Editor::Editor(VulkanRenderPassCreateInfo &createInfo) : m_createInfo(createInfo),
                                                              m_renderUtils(createInfo.context->data()),
-                                                             m_context(createInfo.context) {
+                                                             m_context(createInfo.context), sizeLimits(createInfo.appWidth, createInfo.appHeight) {
         borderSize = createInfo.borderSize;
 
         height = createInfo.height;
@@ -24,7 +24,7 @@ namespace VkRender {
         y = createInfo.y;
         applicationWidth = createInfo.appWidth;
         applicationHeight = createInfo.appHeight;
-
+        uuid = UUID();
 
         m_renderStates = {createInfo.context->data().swapchainImages, RenderState::Idle};
         renderPasses.resize(m_renderUtils.swapchainImages);
@@ -207,6 +207,7 @@ namespace VkRender {
     Editor::checkBorderState(const glm::vec2 &mousePos, const MouseButtons buttons, const glm::vec2 &dxdy) const {
         if (!m_createInfo.resizeable)
             return EditorBorderState::None;
+
         // Check corners first to give them higher priority
         // Top-left corner
         if (mousePos.x >= x && mousePos.x <= x + (borderSize ) && mousePos.y >= y && mousePos.y <= y + (borderSize )) {
@@ -228,6 +229,13 @@ namespace VkRender {
             return EditorBorderState::BottomRight;
         }
 
+        // Check if the mouse position is near the application borders considering the border size
+        if (mousePos.x < sizeLimits.MIN_OFFSET_X + borderSize || mousePos.y < sizeLimits.MIN_OFFSET_Y + borderSize ||
+            mousePos.x > applicationWidth - sizeLimits.MIN_OFFSET_X - borderSize ||
+            mousePos.y > applicationHeight - sizeLimits.MIN_OFFSET_Y - borderSize) {
+            return EditorBorderState::None;
+        }
+
         // Check borders
         // Left border
         if (mousePos.x >= x  && mousePos.x <= x + (borderSize ) && mousePos.y >= y && mousePos.y <= y + height) {
@@ -247,8 +255,74 @@ namespace VkRender {
             mousePos.y <= y + height) {
             return EditorBorderState::Bottom;
         }
+        // Inside the editor, not on any border
+        return EditorBorderState::None;
+    }
+
+    EditorBorderState Editor::checkLineBorderState(const glm::vec2 &mousePos, bool verticalResize){
+        // Check borders
+        if (verticalResize){
+            // Top border
+            if (mousePos.y >= y && mousePos.y <= y + (borderSize )) {
+                return EditorBorderState::Top;
+            }
+            // Bottom border
+            if (mousePos.y >= y + height - (borderSize ) &&
+                mousePos.y <= y + height) {
+                return EditorBorderState::Bottom;
+            }
+        } else {
+            // Left border
+            if (mousePos.x >= x  && mousePos.x <= x + (borderSize )) {
+                return EditorBorderState::Left;
+            }
+            // Right border
+            if (mousePos.x >= x + width - (borderSize ) && mousePos.x <= x + width) {
+                return EditorBorderState::Right;
+            }
+        }
 
         // Inside the editor, not on any border
         return EditorBorderState::None;
+    }
+
+    void Editor::validateEditorSize(VulkanRenderPassCreateInfo &createInfo) {
+        // Ensure the x offset is within the allowed range
+        if (createInfo.x < sizeLimits.MIN_OFFSET_X)
+            createInfo.x = sizeLimits.MIN_OFFSET_X;
+        if (createInfo.x > sizeLimits.MAX_OFFSET_WIDTH)
+            createInfo.x = sizeLimits.MAX_OFFSET_WIDTH;
+
+        // Ensure the y offset is within the allowed range
+        if (createInfo.y < sizeLimits.MIN_OFFSET_Y)
+            createInfo.y = sizeLimits.MIN_OFFSET_Y;
+        if (createInfo.y > sizeLimits.MAX_OFFSET_HEIGHT)
+            createInfo.y = sizeLimits.MAX_OFFSET_HEIGHT;
+
+        // Ensure the width is within the allowed range considering the offset
+        if (createInfo.width < sizeLimits.MIN_SIZE)
+            createInfo.width = sizeLimits.MIN_SIZE;
+        if (createInfo.width > applicationWidth - createInfo.x)
+            createInfo.width = applicationWidth - createInfo.x - sizeLimits.MIN_OFFSET_X;
+
+        // Ensure the height is within the allowed range considering the offset
+        if (createInfo.height < sizeLimits.MIN_SIZE)
+            createInfo.height = sizeLimits.MIN_SIZE;
+        if (createInfo.height > applicationHeight - createInfo.y)
+            createInfo.height = applicationHeight - createInfo.y;
+    }
+
+    bool Editor::checkEditorCollision(const Editor& otherEditor) const{
+        bool rightSideLeftOfOther = x + width < otherEditor.x; // right side of this is left of other
+        bool leftSideRightOfOther = x > otherEditor.x + otherEditor.width; // left side of this is right of other
+        bool bottomAboveTopOfOther = y + height < otherEditor.y; // bottom of this is above top of other
+        bool topBelowBottomOfOther = y > otherEditor.y + otherEditor.height; // top of this is below bottom of other
+
+        return !(rightSideLeftOfOther || leftSideRightOfOther || bottomAboveTopOfOther || topBelowBottomOfOther);
+
+    }
+
+    const Editor::SizeLimits &Editor::getSizeLimits() const {
+        return sizeLimits;
     }
 }

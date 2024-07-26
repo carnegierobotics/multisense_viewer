@@ -16,6 +16,7 @@
 #include "Viewer/VkRender/Core/RenderDefinitions.h"
 #include "Viewer/VkRender/Core/VulkanRenderPass.h"
 #include "Viewer/VkRender/ImGui/GuiManager.h"
+#include "Viewer/VkRender/Core/UUID.h"
 
 namespace VkRender {
 
@@ -84,14 +85,31 @@ namespace VkRender {
     class Editor {
     public:
 
+        struct SizeLimits {
+            const int MENU_BAR_HEIGHT = 25;
+
+            const int MIN_SIZE = 20;
+            const int MIN_OFFSET_X = 0;
+            const int MIN_OFFSET_Y = MENU_BAR_HEIGHT;
+            int MAX_OFFSET_WIDTH;
+            int MAX_OFFSET_HEIGHT;
+
+            SizeLimits(uint32_t appWidth, uint32_t appHeight) {
+                MAX_OFFSET_WIDTH = appWidth - MIN_SIZE;
+                MAX_OFFSET_HEIGHT = appHeight - MIN_SIZE;
+            }
+        };
+
 
         explicit Editor(VulkanRenderPassCreateInfo &createInfo);
 
         // Implement move constructor
         Editor(Editor &&other) noexcept: m_context(other.m_context), m_renderUtils(other.m_renderUtils),
-                                         m_renderStates(other.m_renderStates), m_createInfo(other.m_createInfo) {
+                                         m_renderStates(other.m_renderStates), m_createInfo(other.m_createInfo),
+                                         sizeLimits(other.m_createInfo.appWidth, other.m_createInfo.appHeight) {
             swap(*this, other);
         }
+
         // and move assignment operator
         Editor &operator=(Editor &&other) noexcept {
             if (this != &other) { // Check for self-assignment
@@ -102,9 +120,7 @@ namespace VkRender {
 
         // No copying allowed
         Editor(const Editor &) = delete;
-
         Editor &operator=(const Editor &) = delete;
-
 
         // Implement a swap function
         friend void swap(Editor &first, Editor &second) noexcept {
@@ -119,8 +135,8 @@ namespace VkRender {
             std::swap(first.prevResize, second.prevResize);
             std::swap(first.borderClicked, second.borderClicked);
             std::swap(first.resizeHovered, second.resizeHovered);
-            std::swap(first.cornerHovered, second.cornerHovered);
-            std::swap(first.cornerClicked, second.cornerClicked);
+            std::swap(first.cornerBottomLeftHovered, second.cornerBottomLeftHovered);
+            std::swap(first.cornerBottomLeftClicked, second.cornerBottomLeftClicked);
             std::swap(first.createNewEditorByCopy, second.createNewEditorByCopy);
             std::swap(first.lastClickedBorderType, second.lastClickedBorderType);
             std::swap(first.cornerPressedPos, second.cornerPressedPos);
@@ -133,7 +149,11 @@ namespace VkRender {
             std::swap(first.frameBuffers, second.frameBuffers);
             std::swap(first.m_renderStates, second.m_renderStates);
             std::swap(first.m_createInfo, second.m_createInfo);
+        }
 
+        // Comparison operator
+        bool operator==(const Editor& other) const {
+            return other.getUUID() == getUUID();
         }
 
         ~Editor();
@@ -158,41 +178,49 @@ namespace VkRender {
 
         EditorBorderState
         checkBorderState(const glm::vec2 &mousePos, const MouseButtons buttons, const glm::vec2 &dxdy) const;
+        EditorBorderState checkLineBorderState(const glm::vec2 &mousePos, bool verticalResize);
 
+        void validateEditorSize(VulkanRenderPassCreateInfo &createInfo);
+        bool checkEditorCollision(const Editor &otherEditor) const;
+        UUID getUUID() const {return uuid;}
+
+        const SizeLimits &getSizeLimits() const;
 
         // Todo make private
         std::unique_ptr<GuiManager> m_guiManager;
-        uint32_t x = 0;
-        uint32_t y = 0;
+        int32_t x = 0;
+        int32_t y = 0;
         uint32_t borderSize = 0;
 
-        uint32_t width = 0;
-        uint32_t height = 0;
+        int32_t width = 0;
+        int32_t height = 0;
         bool resizeActive = false;
         bool prevResize = false;
         bool borderClicked = false;
         bool resizeHovered = false;
-        bool cornerHovered = false;
-        bool cornerClicked = false;
+        bool cornerBottomLeftHovered = false; // Hover state
+        bool cornerBottomLeftClicked = false; // Single push down event
+        bool cornerBottomLeftDragEvent = false;  // Holding after click event
         bool createNewEditorByCopy = false;
         EditorBorderState lastClickedBorderType;
 
         glm::vec2 cornerPressedPos{};
     private:
-
+        UUID uuid;
         std::vector<std::shared_ptr<VulkanRenderPass>> renderPasses;
         RenderUtils &m_renderUtils;
         Renderer *m_context;
 
         uint32_t applicationWidth = 0;
         uint32_t applicationHeight = 0;
-
+        SizeLimits sizeLimits;
 
         std::vector<VkFramebuffer> frameBuffers;
         std::vector<RenderState> m_renderStates;  // States for each swapchain image
         VulkanRenderPassCreateInfo m_createInfo;
 
         void handeViewportResize();
+
     };
 }
 

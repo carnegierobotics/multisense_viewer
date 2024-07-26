@@ -585,11 +585,9 @@ namespace VkRender {
             auto end = std::chrono::system_clock::now();
             std::chrono::duration<float, std::milli> elapsed_milliseconds = end - rendererStartTime;
             runTime = elapsed_milliseconds.count();
+            Log::Logger::getInstance()->trace("Mouse events are: ({},{})  action: {}", mouse.x, mouse.y, mouse.action);
             /** Give ImGui Reference to this frame's input events **/
             freeVulkanResources();
-
-            input.lastKeyPress = keyPress;
-            input.action = keyAction;
             /** Compute pipeline command recording and submission **/
             //computePipeline(); // TODO Either implement or remove
             updateUniformBuffers();
@@ -599,10 +597,7 @@ namespace VkRender {
             recordCommands();
             /** Present frame **/
             submitFrame();
-            keyPress = -1;
-            keyAction = -1;
-            mouse.d = glm::vec2(0.0f);
-            mouse.action = -1;
+
             /** FrameTiming **/
             auto tEnd = std::chrono::high_resolution_clock::now();
             frameCounter++;
@@ -617,6 +612,9 @@ namespace VkRender {
             frameTimer = static_cast<float>(tDiff) / 1000.0f;
 
             postRenderActions();
+            mouse.d = glm::vec2(0.0f);
+            mouse.action = -1;
+            Log::Logger::getInstance()->trace("Reset Mouse action to -1");
         }
         // Flush m_Device to make sure all resources can be freed before we start cleanup
         if (device != VK_NULL_HANDLE) {

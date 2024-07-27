@@ -50,12 +50,14 @@ namespace VkRender {
                                                     m_context,
                                                     ImGui::CreateContext(&createInfo.guiResources->fontAtlas),
                                                     createInfo.guiResources.get());
+        m_guiManager->handles.editorIndex = m_createInfo.editorIndex;
 
         auto endGuiManagerConstruction = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double, std::milli> guiManagerConstructionTime =
                 endGuiManagerConstruction - startGuiManagerConstruction;
         //std::cout << "GuiManager Construction Time: " << guiManagerConstructionTime.count() << " ms" << std::endl;
 
+        /*
         std::array<VkImageView, 3> frameBufferAttachments{};
         frameBufferAttachments[0] = createInfo.colorImageView;
         frameBufferAttachments[1] = createInfo.depthImageView;
@@ -89,6 +91,7 @@ namespace VkRender {
         }
         //std::cout << "Average Framebuffer Creation Time: " << (totalFramebufferTime / framebufferCreationTimes.size()) << " ms" << std::endl;
 
+         */
 
     }
 
@@ -113,7 +116,6 @@ namespace VkRender {
         // Begin render pass
         /// *** Color render pass *** ///
         VkRenderPassBeginInfo renderPassBeginInfo = Populate::renderPassBeginInfo();
-
         renderPassBeginInfo.renderPass = renderPasses[currentFrame]->getRenderPass(); // Increase reference count by 1 here?
         renderPassBeginInfo.renderArea.offset.x = static_cast<int32_t>(x);
         renderPassBeginInfo.renderArea.offset.y = static_cast<int32_t>(y);
@@ -121,7 +123,7 @@ namespace VkRender {
         renderPassBeginInfo.renderArea.extent.height = height;
         renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(m_createInfo.clearValue.size());
         renderPassBeginInfo.pClearValues = m_createInfo.clearValue.data();
-        renderPassBeginInfo.framebuffer = frameBuffers[imageIndex];
+        renderPassBeginInfo.framebuffer = m_createInfo.frameBuffers[imageIndex];
         vkCmdBeginRenderPass(drawCmdBuffers.buffers[currentFrame], &renderPassBeginInfo,
                              VK_SUBPASS_CONTENTS_INLINE);
         drawCmdBuffers.renderPassType = RENDER_PASS_UI;
@@ -140,56 +142,56 @@ namespace VkRender {
     }
 
     Editor::~Editor() {
-
-        for (auto &fb: frameBuffers) {
-            vkDestroyFramebuffer(m_renderUtils.device->m_LogicalDevice, fb, nullptr);
-        }
         /*
+               for (auto &fb: frameBuffers) {
+                   vkDestroyFramebuffer(m_renderUtils.device->m_LogicalDevice, fb, nullptr);
+               }
 
 
-                     // Destroy the image view
-                     if (objectRenderPass.colorImage.view != VK_NULL_HANDLE) {
-                         vkDestroyImageView(m_renderUtils.device->m_LogicalDevice, objectRenderPass.colorImage.view, nullptr);
-                     }
 
-             // Destroy the image and free its memory allocation using VMA
-                     if (objectRenderPass.colorImage.image != VK_NULL_HANDLE) {
-                         vmaDestroyImage(m_context->allocator(), objectRenderPass.colorImage.image,
-                                         objectRenderPass.colorImage.colorImageAllocation);
-                     }
-             // Destroy the image and free its memory allocation using VMA
-                     if (objectRenderPass.depthStencil.image != VK_NULL_HANDLE) {
-                         vmaDestroyImage(m_context->allocator(), objectRenderPass.depthStencil.image,
-                                         objectRenderPass.depthStencil.allocation);
-                     }
+                            // Destroy the image view
+                            if (objectRenderPass.colorImage.view != VK_NULL_HANDLE) {
+                                vkDestroyImageView(m_renderUtils.device->m_LogicalDevice, objectRenderPass.colorImage.view, nullptr);
+                            }
 
-                     // Destroy the resolved image view
-                     if (objectRenderPass.depthStencil.view != VK_NULL_HANDLE) {
-                         vkDestroyImageView(m_renderUtils.device->m_LogicalDevice, objectRenderPass.depthStencil.view,
-                                            nullptr);
-                     }
+                    // Destroy the image and free its memory allocation using VMA
+                            if (objectRenderPass.colorImage.image != VK_NULL_HANDLE) {
+                                vmaDestroyImage(m_context->allocator(), objectRenderPass.colorImage.image,
+                                                objectRenderPass.colorImage.colorImageAllocation);
+                            }
+                    // Destroy the image and free its memory allocation using VMA
+                            if (objectRenderPass.depthStencil.image != VK_NULL_HANDLE) {
+                                vmaDestroyImage(m_context->allocator(), objectRenderPass.depthStencil.image,
+                                                objectRenderPass.depthStencil.allocation);
+                            }
 
-                     if (objectRenderPass.multisampled) {
-                         // Destroy the resolved image view
-                         if (objectRenderPass.colorImage.resolvedView != VK_NULL_HANDLE) {
-                             vkDestroyImageView(m_renderUtils.device->m_LogicalDevice, objectRenderPass.colorImage.resolvedView,
-                                                nullptr);
-                         }
+                            // Destroy the resolved image view
+                            if (objectRenderPass.depthStencil.view != VK_NULL_HANDLE) {
+                                vkDestroyImageView(m_renderUtils.device->m_LogicalDevice, objectRenderPass.depthStencil.view,
+                                                   nullptr);
+                            }
+
+                            if (objectRenderPass.multisampled) {
+                                // Destroy the resolved image view
+                                if (objectRenderPass.colorImage.resolvedView != VK_NULL_HANDLE) {
+                                    vkDestroyImageView(m_renderUtils.device->m_LogicalDevice, objectRenderPass.colorImage.resolvedView,
+                                                       nullptr);
+                                }
 
 
-                         // Destroy the resolved image and free its memory allocation using VMA
-                         if (objectRenderPass.colorImage.resolvedImage != VK_NULL_HANDLE) {
-                             vmaDestroyImage(m_context->allocator(), objectRenderPass.colorImage.resolvedImage,
-                                             objectRenderPass.colorImage.resolvedImageAllocation);
-                         }
-                     }
+                                // Destroy the resolved image and free its memory allocation using VMA
+                                if (objectRenderPass.colorImage.resolvedImage != VK_NULL_HANDLE) {
+                                    vmaDestroyImage(m_context->allocator(), objectRenderPass.colorImage.resolvedImage,
+                                                    objectRenderPass.colorImage.resolvedImageAllocation);
+                                }
+                            }
 
-                     vkDestroySampler(m_renderUtils.device->m_LogicalDevice, objectRenderPass.colorImage.sampler, nullptr);
-                     vkDestroySampler(m_renderUtils.device->m_LogicalDevice, objectRenderPass.depthStencil.sampler, nullptr);
+                            vkDestroySampler(m_renderUtils.device->m_LogicalDevice, objectRenderPass.colorImage.sampler, nullptr);
+                            vkDestroySampler(m_renderUtils.device->m_LogicalDevice, objectRenderPass.depthStencil.sampler, nullptr);
 
-                     vkDestroyRenderPass(m_renderUtils.device->m_LogicalDevice, objectRenderPass.renderPass, nullptr);
+                            vkDestroyRenderPass(m_renderUtils.device->m_LogicalDevice, objectRenderPass.renderPass, nullptr);
 
-             */
+                    */
     }
 
     void Editor::update(bool updateGraph, float frameTime, Input *input) {

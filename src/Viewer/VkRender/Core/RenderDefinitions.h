@@ -121,20 +121,21 @@ namespace VkRender {
 
         union {
             struct {
-                float dx = 0;
-                float dy = 0;
+                float dx;
+                float dy;
             };
             glm::vec2 d;
         };
 
         union {
             struct {
-                float x = 0;
-                float y = 0;
+                float x;
+                float y;
             };
             glm::vec2 pos;
         };
 
+        MouseButtons() : dx(0), dy(0), x(0), y(0) {}
 
     };
 

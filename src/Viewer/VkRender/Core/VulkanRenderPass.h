@@ -28,18 +28,17 @@ namespace VkRender {
         VkImageLayout initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         VkImageLayout finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         VkAttachmentStoreOp storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        uint32_t editorIndex = 0;
 
-        VkImageView colorImageView = VK_NULL_HANDLE;
-        VkImageView depthImageView = VK_NULL_HANDLE;
+        VkFramebuffer* frameBuffers;
         std::shared_ptr<GuiResources> guiResources;
         std::vector<VkClearValue> clearValue;
         bool resizeable = true;
 
         VulkanRenderPassCreateInfo() = default;
 
-        VulkanRenderPassCreateInfo(VkImageView &colorView,
-                                   VkImageView &depthView, std::shared_ptr<GuiResources> guiRes, Renderer *ctx)
-                : context(ctx), colorImageView(colorView), depthImageView(depthView), guiResources(std::move(guiRes)) {
+        VulkanRenderPassCreateInfo(VkFramebuffer * fbPtr, std::shared_ptr<GuiResources> guiRes, Renderer *ctx)
+                : context(ctx), frameBuffers(fbPtr), guiResources(std::move(guiRes)) {
 
         }
 

@@ -144,7 +144,8 @@ namespace VkRender {
         std::vector<std::unique_ptr<Scene>> m_scenes;
         std::vector<Editor> m_editors;
         std::deque<Editor> m_oldEditors;
-
+        std::vector<std::shared_ptr<VulkanRenderPass>> m_mainRenderPasses;
+        std::vector<VkFramebuffer> m_frameBuffers;
         entt::registry m_registry;
         std::unordered_map<UUID, entt::entity> m_entityMap;
         std::string m_selectedCameraTag = "Default Camera";

@@ -118,7 +118,49 @@ namespace VkRender {
         setupDepthStencil();
 
 
-        VulkanRenderPassCreateInfo mainEditorInfo(m_colorImage.view, m_depthStencil.view, m_guiResources, this);
+        VulkanRenderPassCreateInfo renderPassCreateInfo(nullptr, m_guiResources, this);
+        renderPassCreateInfo.appHeight = static_cast<int32_t>(m_height);
+        renderPassCreateInfo.appWidth = static_cast<int32_t>(m_width);
+        renderPassCreateInfo.height = static_cast<int32_t>(m_height);
+        renderPassCreateInfo.width = static_cast<int32_t>(m_width);
+        renderPassCreateInfo.x = 0;
+        renderPassCreateInfo.y = 0;
+        renderPassCreateInfo.borderSize = 0;
+
+        renderPassCreateInfo.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        renderPassCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        renderPassCreateInfo.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        renderPassCreateInfo.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        renderPassCreateInfo.editorTypeDescription = "MainRenderPass";
+        m_mainRenderPasses.resize(swapchain->imageCount);
+        // Start timing UI render pass setup
+        auto startUIRenderPassSetup = std::chrono::high_resolution_clock::now();
+        for (auto &pass: m_mainRenderPasses) {
+            pass = std::make_shared<VulkanRenderPass>(renderPassCreateInfo);
+        }
+
+        std::array<VkImageView, 3> frameBufferAttachments{};
+        frameBufferAttachments[0] = m_colorImage.view;
+        frameBufferAttachments[1] = m_depthStencil.view;
+        VkFramebufferCreateInfo frameBufferCreateInfo = Populate::framebufferCreateInfo(m_width,
+                                                                                        m_height,
+                                                                                        frameBufferAttachments.data(),
+                                                                                        frameBufferAttachments.size(),
+                                                                                        m_mainRenderPasses.begin()->get()->getRenderPass());
+        // TODO verify if this is ok?
+        m_frameBuffers.resize(m_renderUtils.swapchainImages);
+        for (uint32_t i = 0; i < m_frameBuffers.size(); i++) {
+            auto startFramebufferCreation = std::chrono::high_resolution_clock::now();
+            frameBufferAttachments[2] = swapChainBuffers()[i].view;
+            VkResult result = vkCreateFramebuffer(m_renderUtils.device->m_LogicalDevice, &frameBufferCreateInfo,
+                                                  nullptr, &m_frameBuffers[i]);
+            if (result != VK_SUCCESS) {
+                throw std::runtime_error("Failed to create framebuffer");
+            }
+        }
+
+
+        VulkanRenderPassCreateInfo mainEditorInfo(m_frameBuffers.data(), m_guiResources, this);
         mainEditorInfo.appHeight = static_cast<int32_t>(m_height);
         mainEditorInfo.appWidth = static_cast<int32_t>(m_width);
         mainEditorInfo.height = static_cast<int32_t>(m_height);
@@ -133,13 +175,14 @@ namespace VkRender {
         mainEditorInfo.clearValue.push_back({1.0f, 1.0f, 1.0f, 1.0f});
         mainEditorInfo.clearValue.push_back({0.1f, 0.4f, 0.1f, 1.0f});
         mainEditorInfo.resizeable = false;
+        mainEditorInfo.editorIndex = static_cast<uint32_t>(0);
 
         m_mainEditor = std::make_unique<Editor>(mainEditorInfo);
         m_mainEditor->m_guiManager->pushLayer("DebugWindow");
         m_mainEditor->m_guiManager->pushLayer("MenuLayer");
 
         auto sizeLimits = m_mainEditor->getSizeLimits();
-        VulkanRenderPassCreateInfo otherEditorInfo(m_colorImage.view, m_depthStencil.view, m_guiResources, this);
+        VulkanRenderPassCreateInfo otherEditorInfo(m_frameBuffers.data(), m_guiResources, this);
         otherEditorInfo.appHeight = static_cast<int32_t>(m_height);
         otherEditorInfo.appWidth = static_cast<int32_t>(m_width);
         otherEditorInfo.borderSize = 5;
@@ -148,8 +191,8 @@ namespace VkRender {
         otherEditorInfo.x = 0;//+ 100;
         otherEditorInfo.y = sizeLimits.MENU_BAR_HEIGHT;//+ 050;
 
-        otherEditorInfo.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        otherEditorInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        otherEditorInfo.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+        otherEditorInfo.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         otherEditorInfo.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         otherEditorInfo.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
         otherEditorInfo.editorTypeDescription = "Scene Hierarchy";
@@ -168,6 +211,7 @@ namespace VkRender {
         m_scenes.resize(1);
         //m_scenes[0] = std::make_unique<MultiSenseViewer>(*this);
         m_scenes[0] = std::make_unique<DefaultScene>(*this);
+
 
         m_logger->info("Prepared Renderer");
     }
@@ -272,10 +316,12 @@ namespace VkRender {
         cmdBufInfo.flags = 0;
         cmdBufInfo.pInheritanceInfo = nullptr;
         std::array<VkClearValue, 3> clearValues{};
+        clearValues[0] = {{{0.1f, 0.1f, 0.1f, 1.0f}}};
+        clearValues[1].depthStencil = {1.0f, 0};
+        clearValues[2] = {{{0.1f, 0.1f, 0.1f, 1.0f}}};
         /*
         if (UIContext().renderer3D) {
-            clearValues[0] = {{{0.1f, 0.1f, 0.1f, 1.0f}}};
-            clearValues[2] = {{{0.1f, 0.1f, 0.1f, 1.0f}}};
+
         } else {
             clearValues[0] = {{{UIContext().clearColor[0], UIContext().clearColor[1],
                                 UIContext().clearColor[2], UIContext().clearColor[3]}}};
@@ -283,8 +329,20 @@ namespace VkRender {
                                 UIContext().clearColor[2], UIContext().clearColor[3]}}};
         }
         */
-        clearValues[1].depthStencil = {1.0f, 0};
         vkBeginCommandBuffer(drawCmdBuffers.buffers[currentFrame], &cmdBufInfo);
+
+        VkRenderPassBeginInfo renderPassBeginInfo = Populate::renderPassBeginInfo();
+        renderPassBeginInfo.renderPass = m_mainRenderPasses[currentFrame]->getRenderPass(); // Increase reference count by 1 here?
+        renderPassBeginInfo.renderArea.offset.x = 0;
+        renderPassBeginInfo.renderArea.offset.y = 0;
+        renderPassBeginInfo.renderArea.extent.width = m_width;
+        renderPassBeginInfo.renderArea.extent.height = m_height;
+        renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+        renderPassBeginInfo.pClearValues = clearValues.data();
+        renderPassBeginInfo.framebuffer = m_frameBuffers[imageIndex];
+        vkCmdBeginRenderPass(drawCmdBuffers.buffers[currentFrame], &renderPassBeginInfo,
+                             VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
 
 
         for (auto &editor: m_editors) {
@@ -1048,6 +1106,13 @@ namespace VkRender {
         timeSpan = std::chrono::duration_cast<std::chrono::duration<float>>(
                 std::chrono::steady_clock::now() - startTime);
         Log::Logger::getInstance()->trace("Deleting entities on exit took {}s", timeSpan.count());
+
+
+        // Destroy framebuffer
+        for (auto &fb: m_frameBuffers) {
+            vkDestroyFramebuffer(device, fb, nullptr);
+        }
+
     }
 
     void Renderer::handleViewportResize() {
@@ -1131,11 +1196,10 @@ namespace VkRender {
                 Log::Logger::getInstance()->info("We clicked Editor: {}'s border :{}",
                                                  index,
                                                  editor.lastClickedBorderType);
+
                 // Also check if we are indirectly effecting other editors borders and set their state to resize.
                 // Example. In a layout with two rows, changing the height of the bottom row should increase ALL the editor's heights in the top row
-
                 // Using our current position. For a vertical resize, check across the whole screen if we would hit another editor's border. This gets included in our resize operation
-
                 for (size_t i = 0; auto &otherEditor: m_editors) {
                     if (editor != otherEditor) {
 
@@ -1159,10 +1223,25 @@ namespace VkRender {
                                                              i,
                                                              otherEditor.lastClickedBorderType);
                         }
+                        // Check if x coordinates match.
+                        otherBorder = otherEditor.checkLineBorderState(mouse.pos, false);
+                        if (otherBorder != EditorBorderState::None) {
+                            // ALso put this into resize mode
+                            otherEditor.resizeActive = true;
+                            // Last clicked border type:
+                            otherEditor.lastClickedBorderType = otherBorder;
+                            editor.lastClickedBorderType = editor.checkLineBorderState(mouse.pos, false);
+
+                            Log::Logger::getInstance()->info("Indirect access to Editor {}' border: {}",
+                                                             i,
+                                                             otherEditor.lastClickedBorderType);
+                        }
                     }
                     i++;
                 }
             }
+
+
 
 
             // Check if we are dragging in X-Direction
@@ -1193,20 +1272,25 @@ namespace VkRender {
             }
 
             bool anyDraggingEvent = false;
-
             // Loop through editors to check if any have cornerBottomLeftDragEvent set to true
-            for (const auto& editor : m_editors) {
+            std::vector<uint32_t> editorSplitIndices;
+            for (size_t i = 0; const auto &editor: m_editors) {
                 if (editor.cornerBottomLeftDragEvent) {
                     anyDraggingEvent = true;
-                    break;
+                    editorSplitIndices.emplace_back(i);
                 }
+                i++;
             }
             // We should not enter if statement if we are currently splitting
             // But we should enter it for the ones that are pslitting
-            bool splitBlock = anyDraggingEvent && !editor.cornerBottomLeftDragEvent;
+            if (anyDraggingEvent) {
+                editor.resizeActive = false;
+            }
+            for (const auto idx: editorSplitIndices) {
+                m_editors[idx].resizeActive = true;
+            }
 
-
-            if (editor.resizeActive && !(anyCornerClicked || anyCornerHovered) && !splitBlock) {
+            if (editor.resizeActive && !(anyCornerClicked || anyCornerHovered)) {
                 auto &sizeLimits = editor.getSizeLimits();
                 VulkanRenderPassCreateInfo &editorCreateInfo = editor.getCreateInfo();
                 VulkanRenderPassCreateInfo originalEditorCreateInfo = editor.getCreateInfo();
@@ -1272,15 +1356,6 @@ namespace VkRender {
             }
 
 
-            std::vector<VkClearValue> colors{{1.0f, 0.0f, 0.0f, 1.0f},
-                                             {0.0f, 1.0f, 0.0f, 1.0f}, // 1: Green
-                                             {0.0f, 0.0f, 1.0f, 1.0f}, // 2: Blue
-                                             {1.0f, 1.0f, 0.0f, 1.0f}, // 3: Yellow
-                                             {1.0f, 0.0f, 1.0f, 1.0f}, // 4: Magenta
-                                             {0.0f, 1.0f, 1.0f, 1.0f}, // 5: Cyan
-                                             {0.5f, 0.5f, 0.5f, 1.0f}}; // 6: Gray
-
-            newEditorCreateInfo.clearValue[0] = colors[(m_editors.size() - 1) % 7]; // Set the clear color value
             auto newEditor = createEditor(newEditorCreateInfo);
             replaceEditor(editorCreateInfo, m_editors[splitEditorIndex]);
 

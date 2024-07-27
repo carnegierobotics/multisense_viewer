@@ -30,15 +30,26 @@ namespace VkRender {
 
 
         /** Called once per frame **/
-        void onUIRender(VkRender::GuiObjectHandles& handles) override {
+        void onUIRender(VkRender::GuiObjectHandles &handles) override {
 
             // Set window position and size
             ImVec2 window_pos = ImVec2(0.0f, 0.0f); // Position (x, y)
             ImVec2 window_size = ImVec2(handles.info->width, handles.info->height); // Size (width, height)
 
-            // Set window flags to remove decorations
-            ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoBringToFrontOnFocus;
+            std::vector<ImVec4> colors{{1.0f, 0.0f, 0.0f, 0.7f},
+                                       {0.0f, 1.0f, 0.0f, 0.7f}, // 1: Green
+                                       {0.0f, 0.0f, 1.0f, 0.7f}, // 2: Blue
+                                       {1.0f, 1.0f, 0.0f, 0.7f}, // 3: Yellow
+                                       {1.0f, 0.0f, 1.0f, 0.7f}, // 4: Magenta
+                                       {0.0f, 1.0f, 1.0f, 0.7f}, // 5: Cyan
+                                       {0.5f, 0.5f, 0.5f, 0.7f}}; // 6: Gray
 
+            // Set window flags to remove decorations
+            ImGuiWindowFlags window_flags =
+                    ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus;
+
+
+            ImGui::PushStyleColor(ImGuiCol_WindowBg, colors[handles.editorIndex % 7]);
             // Set next window position and size
             ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always);
             ImGui::SetNextWindowSize(window_size, ImGuiCond_Always);
@@ -78,14 +89,14 @@ namespace VkRender {
 
             // End the child window
             ImGui::EndChild();
-            ImGui::PopStyleColor();
+
             // End the parent window
 
              */
             float borderSize = 5.0f;
             ImU32 border_color = ImGui::GetColorU32(ImVec4(1.0f, 1.0f, 1.0f, 1.0f)); // White color
 
-            ImDrawList* draw_list = ImGui::GetWindowDrawList();
+            ImDrawList *draw_list = ImGui::GetWindowDrawList();
             ImVec2 p1 = window_pos;
             ImVec2 p3 = ImVec2(window_pos.x + window_size.x, window_pos.y + window_size.y);
 
@@ -96,9 +107,11 @@ namespace VkRender {
             ImVec2 p4 = ImVec2(window_pos.x + borderSize, window_pos.y + window_size.y);
             draw_list->AddRectFilled(p1, p4, border_color); // Left border
 
-            draw_list->AddRectFilled(ImVec2(window_pos.x, window_size.y - borderSize), ImVec2(window_size.x, window_size.y), border_color); // Bottom border
+            draw_list->AddRectFilled(ImVec2(window_pos.x, window_size.y - borderSize),
+                                     ImVec2(window_size.x, window_size.y), border_color); // Bottom border
 
-            draw_list->AddRectFilled(ImVec2(window_size.x - borderSize, window_pos.y), ImVec2(window_size.x, window_size.y), border_color); // Right border
+            draw_list->AddRectFilled(ImVec2(window_size.x - borderSize, window_pos.y),
+                                     ImVec2(window_size.x, window_size.y), border_color); // Right border
 
 
 
@@ -110,7 +123,7 @@ namespace VkRender {
             //draw_list->AddLine(p4, p1, border_color, border_thickness); // Left border
             ImGui::End();
             ImGui::PopStyleVar(2);
-
+            ImGui::PopStyleColor();
         }
 
         /** Called once upon this object destruction **/

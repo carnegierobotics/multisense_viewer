@@ -146,7 +146,6 @@ namespace VkRender {
             std::swap(first.m_context, second.m_context);
             std::swap(first.applicationWidth, second.applicationWidth);
             std::swap(first.applicationHeight, second.applicationHeight);
-            std::swap(first.frameBuffers, second.frameBuffers);
             std::swap(first.m_renderStates, second.m_renderStates);
             std::swap(first.m_createInfo, second.m_createInfo);
         }
@@ -205,6 +204,7 @@ namespace VkRender {
         EditorBorderState lastClickedBorderType;
 
         glm::vec2 cornerPressedPos{};
+        SizeLimits sizeLimits;
     private:
         UUID uuid;
         std::vector<std::shared_ptr<VulkanRenderPass>> renderPasses;
@@ -213,9 +213,7 @@ namespace VkRender {
 
         uint32_t applicationWidth = 0;
         uint32_t applicationHeight = 0;
-        SizeLimits sizeLimits;
 
-        std::vector<VkFramebuffer> frameBuffers;
         std::vector<RenderState> m_renderStates;  // States for each swapchain image
         VulkanRenderPassCreateInfo m_createInfo;
 

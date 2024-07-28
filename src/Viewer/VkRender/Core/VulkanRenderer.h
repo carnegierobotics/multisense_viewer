@@ -154,9 +154,6 @@ namespace VkRender {
         /** @brief (Pure virtual) compute render function to be implemented by the application */
         virtual void updateUniformBuffers() = 0;
 
-        /** @brief (Virtual) Called when the camera m_View has changed */
-        virtual void viewChanged();
-
         /** @brief (Virtual) Called after the mouse cursor moved and before internal events (like camera m_Rotation) is firstUpdate */
         virtual void mouseMoved(float x, float y, bool &handled) = 0;
         /** @brief (Virtual) Called after the mouse cursor moved and before internal events (like camera m_Rotation) is firstUpdate */
@@ -257,10 +254,6 @@ namespace VkRender {
         CommandBuffer drawCmdBuffers{};
         // Command buffers used for compute
         CommandBuffer computeCommand{};
-        // Global render pass for frame buffer writes
-        //VkRenderPass renderPass{};
-        // List of available frame buffers (same as number of swap chain images)
-        std::vector<VkFramebuffer> frameBuffers{};
         // Active frame buffer index
         uint32_t currentFrame = 0;
         // Active image index in swapchain

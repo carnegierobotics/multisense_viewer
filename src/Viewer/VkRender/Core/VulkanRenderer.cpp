@@ -264,43 +264,9 @@ namespace VkRender {
         vkDestroyImageView(device, m_colorImage.view, nullptr);
         vmaDestroyImage(m_allocator, m_colorImage.image, m_colorImage.allocation);
 
-        /*
-        std::vector<EditorRenderPass> passes = {{depthRenderPass, uiRenderPass, secondRenderPass}};
-        // Destroy the secondary renderpasses
-        for (auto &pass: passes) {
-            vkFreeMemory(device, pass.depthStencil.mem, nullptr);
-            vkFreeMemory(device, pass.colorImage.mem, nullptr);
-            vkFreeMemory(device, pass.colorImage.resolvedMem, nullptr);
-
-            vkDestroyImage(device, pass.colorImage.image, nullptr);
-            vkDestroyImage(device, pass.colorImage.resolvedImage, nullptr);
-            vkDestroyImageView(device, pass.colorImage.resolvedView, nullptr);
-            vkDestroyImageView(device, pass.colorImage.view, nullptr);
-            vkDestroySampler(device, pass.imageInfo.sampler, nullptr);
-            vkDestroyImageView(device, pass.depthStencil.view, nullptr);
-            vkDestroyImage(device, pass.depthStencil.image, nullptr);
-            vkDestroySampler(device, pass.depthStencil.sampler, nullptr);
-            if (pass.setupFrameBuffer)
-                for (auto &frameBuffer: pass.frameBuffers) {
-                    vkDestroyFramebuffer(device, frameBuffer, nullptr);
-                }
-            vkDestroyRenderPass(device, pass.renderPass, nullptr);
-        }
-
-         */
-
         // CleanUP all vulkan resources
         swapchain->cleanup();
 
-        /*
-        // VulkanRenderer resources
-        vkDestroyImage(device, m_depthStencil.image, nullptr);
-        vkDestroyImageView(device, m_depthStencil.view, nullptr);
-        vkFreeMemory(device, m_depthStencil.mem, nullptr);
-        vkDestroyImage(device, m_colorImage.image, nullptr);
-        vkDestroyImageView(device, m_colorImage.view, nullptr);
-        vkFreeMemory(device, m_colorImage.mem, nullptr);
-        */
         vkDestroyCommandPool(device, cmdPool, nullptr);
         vkDestroyCommandPool(device, cmdPoolCompute, nullptr);
         for (auto &fence: waitFences) {
@@ -310,20 +276,16 @@ namespace VkRender {
             vkDestroyFence(device, fence, nullptr);
         }
 
-        //vkDestroyRenderPass(device, renderPass, nullptr);
-        for (auto &fb: frameBuffers) {
-            vkDestroyFramebuffer(device, fb, nullptr);
-        }
         vkDestroyPipelineCache(device, pipelineCache, nullptr);
         for (auto &semaphore: semaphores) {
             vkDestroySemaphore(device, semaphore.presentComplete, nullptr);
             vkDestroySemaphore(device, semaphore.renderComplete, nullptr);
             vkDestroySemaphore(device, semaphore.computeComplete, nullptr);
         }
+
 #ifdef VKRENDER_MULTISENSE_VIEWER_DEBUG
         if (m_settings.validation)
             Validation::DestroyDebugUtilsMessengerEXT(instance, debugUtilsMessenger, nullptr);
-
         // Write to file
         char *statsString;
         vmaBuildStatsString(m_allocator, &statsString, VK_TRUE);
@@ -338,7 +300,6 @@ namespace VkRender {
         }
         vmaFreeStatsString(m_allocator, statsString);
 #endif
-
         vmaDestroyAllocator(m_allocator);
 
         delete m_vulkanDevice; //Call to destructor for smart pointer destroy logical m_Device before instance
@@ -354,9 +315,6 @@ namespace VkRender {
     }
 
     void VulkanRenderer::addDeviceFeatures() {
-    }
-
-    void VulkanRenderer::viewChanged() {
     }
 
 
@@ -474,7 +432,6 @@ namespace VkRender {
         if (!backendInitialized) {
             return;
         }
-
         backendInitialized = false;
         glfwGetFramebufferSize(window, reinterpret_cast<int *>(&m_width), reinterpret_cast<int *>(&m_height));
         // Suspend application while it is in minimized state
@@ -490,47 +447,6 @@ namespace VkRender {
         // Recreate swap chain
         swapchain->create(&m_width, &m_height, m_settings.vsync);
 
-        /*
-        // Recreate the frame buffers
-        vkDestroyImageView(device, m_depthStencil.view, nullptr);
-        vkDestroyImage(device, m_depthStencil.image, nullptr);
-        vkFreeMemory(device, m_depthStencil.mem, nullptr);
-        vkDestroyImageView(device, m_colorImage.view, nullptr);
-        vkDestroyImage(device, m_colorImage.image, nullptr);
-        vkFreeMemory(device, m_colorImage.mem, nullptr);
-
-        */
-        /*
-        std::vector<EditorRenderPass> passes = {{depthRenderPass, uiRenderPass, secondRenderPass}};
-        // Destroy the secondary renderpasses
-        for (auto &pass: passes) {
-            vkFreeMemory(device, pass.depthStencil.mem, nullptr);
-            vkFreeMemory(device, pass.colorImage.mem, nullptr);
-            vkFreeMemory(device, pass.colorImage.resolvedMem, nullptr);
-
-            vkDestroyImage(device, pass.colorImage.image, nullptr);
-            vkDestroyImage(device, pass.colorImage.resolvedImage, nullptr);
-            vkDestroyImageView(device, pass.colorImage.resolvedView, nullptr);
-            vkDestroyImageView(device, pass.colorImage.view, nullptr);
-            vkDestroyImageView(device, pass.depthStencil.view, nullptr);
-            vkDestroyImage(device, pass.depthStencil.image, nullptr);
-            vkDestroySampler(device, pass.imageInfo.sampler, nullptr);
-            vkDestroySampler(device, pass.depthStencil.sampler, nullptr);
-
-            if (pass.setupFrameBuffer)
-                for (auto &frameBuffer: pass.frameBuffers) {
-                    vkDestroyFramebuffer(device, frameBuffer, nullptr);
-                }
-            vkDestroyRenderPass(device, pass.renderPass, nullptr);
-        }
-        */
-
-        //createColorResources();
-        //setupDepthStencil();
-        for (auto &frameBuffer: frameBuffers) {
-            vkDestroyFramebuffer(device, frameBuffer, nullptr);
-        }
-
         VkSemaphoreCreateInfo semaphoreCreateInfo = Populate::semaphoreCreateInfo();
         // Create a semaphore used to synchronize m_Image presentation
         // Ensures that the m_Image is displayed before we start submitting new commands to the queue
@@ -540,22 +456,11 @@ namespace VkRender {
             if (err != VK_SUCCESS)
                 throw std::runtime_error("Failed to create semaphore");
         }
-        //for (const auto& fence : waitFences) {
-        //    vkDestroyFence(device, fence, nullptr);
-        //}
-
-        /*
-        // Maybe resize overlay too
-        setupSecondaryRenderPasses(&depthRenderPass);
-        setupUIRenderPass(&uiRenderPass);
-        setupSecondaryRenderPasses(&secondRenderPass);
-        */
 
         m_logger->info("Window Resized. New size is: {} x {}", m_width, m_height);
 
         // Notify derived class
         windowResized();
-        viewChanged();
 
         // Command buffers need to be recreated as they may store
         // references to the recreated frame buffer
@@ -844,7 +749,6 @@ namespace VkRender {
         */
 
         mouseMoved(x, y, handled);
-        viewChanged();
     }
 
     void VulkanRenderer::cursorPositionCallback(GLFWwindow *window, double xPos, double yPos) {

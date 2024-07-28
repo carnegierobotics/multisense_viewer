@@ -164,6 +164,7 @@ namespace VkRender {
 
         void handleViewportResize();
 
+        void setupMainEditor();
     };
 }
 

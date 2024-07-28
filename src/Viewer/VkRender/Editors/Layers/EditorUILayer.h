@@ -36,6 +36,7 @@ namespace VkRender {
             const char *items[] = {"UI", "MultiSense Viewer", "Scene Hierarchy"};
             static int item_current_idx = 0; // Here we store our current item index
 
+
             handles.editor.changed = false;
 
             if (ImGui::BeginPopup("EditorSelectionPopup")) {
@@ -47,8 +48,11 @@ namespace VkRender {
                         handles.editor.selectedType = items[item_current_idx];
                         handles.editor.changed = true;
                     }
-                ImGui::EndPopup();
 
+                ImGui::MenuItem("Console", nullptr, &handles.showDebugWindow);
+
+
+                ImGui::EndPopup();
             }
         }
 

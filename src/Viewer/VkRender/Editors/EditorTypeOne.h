@@ -20,6 +20,8 @@ namespace VkRender {
 
             m_guiManager->pushLayer("SideBarLayer");
 
+            m_guiManager->pushLayer("DebugWindow");
+
         }
 
 
@@ -34,6 +36,8 @@ namespace VkRender {
             m_guiManager->pushLayer("EditorUILayer");
 
             m_guiManager->pushLayer("MultiSenseViewerLayer");
+
+            m_guiManager->pushLayer("DebugWindow");
 
         }
     };

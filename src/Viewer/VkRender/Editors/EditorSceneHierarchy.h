@@ -17,6 +17,7 @@ namespace VkRender {
 
             m_guiManager->pushLayer("EditorUILayer");
             m_guiManager->pushLayer("SceneHierarchyLayer");
+            m_guiManager->pushLayer("DebugWindow");
 
         }
 

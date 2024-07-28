@@ -112,7 +112,7 @@ namespace VkRender {
         /** Called once per frame **/
         void onUIRender(VkRender::GuiObjectHandles &handles) override {
 
-            /*
+
             // Set window position and size
             ImVec2 window_pos = ImVec2(0.0f, 0.0f); // Position (x, y)
             ImVec2 window_size = ImVec2(handles.info->width, handles.info->height); // Size (width, height)
@@ -149,7 +149,7 @@ namespace VkRender {
             // End the parent window
 
             ImGui::End();
-*/
+
         }
 
         /** Called once upon this object destruction **/

@@ -51,6 +51,8 @@
 
 #include "Viewer/VkRender/Renderer.h"
 
+#include "Viewer/VkRender/ImGui/IconsFontAwesome6.h"
+
 namespace VkRender {
 
     const char *ImGuiGlfwGetClipboardText(void *userData) {
@@ -105,11 +107,13 @@ namespace VkRender {
 
         fontTexture.reserve(fontCount);
         fontDescriptors.reserve(fontCount);
-        font13 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 13);
-        font8 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 8);
-        font15 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 15);
-        font18 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 18);
-        font24 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 24);
+        font13 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 13.0f);
+        font8 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 8.0f);
+        font15 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 15.0f);
+        font18 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 18.0f);
+        font24 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 24.0f);
+
+        fontIcons = loadFontFromFileName("Assets/Fonts/fa-solid-900.ttf", 18.0f, true);
         fontCount = fontDescriptors.size() - 1;
 
 
@@ -240,6 +244,7 @@ namespace VkRender {
         handles.info->font15 = guiResources->font15;
         handles.info->font18 = guiResources->font18;
         handles.info->font24 = guiResources->font24;
+        handles.info->fontIcons = guiResources->fontIcons;
 
         for (int i = 0; i < m_guiResources->iconCount; ++i){
             handles.info->imageButtonTextureDescriptor[i] = reinterpret_cast<void *>(m_guiResources->imageIconDescriptors[i]);
@@ -541,12 +546,28 @@ namespace VkRender {
     }
 
 
-    ImFont *GuiResources::loadFontFromFileName(std::string file, float fontSize) {
-        ImFontConfig config;
-        config.OversampleH = 2;
-        config.OversampleV = 1;
-        config.GlyphExtraSpacing.x = 1.0f;
-        ImFont *font = fontAtlas.AddFontFromFileTTF(file.c_str(), fontSize, &config);
+    ImFont *GuiResources::loadFontFromFileName(const std::filesystem::path& file, float fontSize, bool iconFont) {
+        ImFont *font;
+
+        if (iconFont){
+            float baseFontSize = fontSize; // 13.0f is the size of the default font. Change to the font size you use.
+            float iconFontSize = baseFontSize * 2.0f / 3.0f; // FontAwesome fonts need to have their sizes reduced by 2.0f/3.0f in order to align correctly
+
+            // merge in icons from Font Awesome
+            static const ImWchar icons_ranges[] = { ICON_MIN_FA, ICON_MAX_16_FA, 0 };
+            ImFontConfig icons_config;
+            icons_config.MergeMode = true;
+            icons_config.PixelSnapH = true;
+            icons_config.GlyphMinAdvanceX = iconFontSize;
+            font = fontAtlas.AddFontFromFileTTF( file.string().c_str(), iconFontSize, &icons_config, icons_ranges );
+        } else {
+            ImFontConfig config;
+            config.OversampleH = 2;
+            config.OversampleV = 1;
+            config.GlyphExtraSpacing.x = 1.0f;
+            font = fontAtlas.AddFontFromFileTTF(file.string().c_str(), fontSize, &config);
+        }
+
 
         unsigned char *pixels;
         int width, height;

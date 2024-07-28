@@ -95,11 +95,11 @@ namespace VkRender {
         GuiResources(VulkanDevice *d);
         GuiResources() = default;
 
-        ImFont *font8{}, *font13{}, *font15, *font18{}, *font24{};
+        ImFont *font8{}, *font13{}, *font15, *font18{}, *font24{}, *fontIcons{};
         uint32_t fontCount = 0;
         uint32_t iconCount = 0;
         std::array<VkPipelineShaderStageCreateInfo, 2> shaders;
-        ImFont *loadFontFromFileName(std::string file, float fontSize);
+        ImFont *loadFontFromFileName(const std::filesystem::path& file, float fontSize, bool icons = false);
         ImFontAtlas fontAtlas;
 
         void loadAnimatedGif(const std::string &file);

@@ -186,10 +186,10 @@ namespace VkRender {
         otherEditorInfo.appHeight = static_cast<int32_t>(m_height);
         otherEditorInfo.appWidth = static_cast<int32_t>(m_width);
         otherEditorInfo.borderSize = 5;
-        otherEditorInfo.height = static_cast<int32_t>(m_height) - sizeLimits.MENU_BAR_HEIGHT - 100;
-        otherEditorInfo.width = static_cast<int32_t>(m_width) - 200;
-        otherEditorInfo.x = 0 + 100;
-        otherEditorInfo.y = sizeLimits.MENU_BAR_HEIGHT + 050;
+        otherEditorInfo.height = static_cast<int32_t>(m_height) - sizeLimits.MENU_BAR_HEIGHT;//- 100;
+        otherEditorInfo.width = static_cast<int32_t>(m_width);//- 200;
+        otherEditorInfo.x = 0;//+ 100;
+        otherEditorInfo.y = sizeLimits.MENU_BAR_HEIGHT;// + 050;
 
         otherEditorInfo.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
         otherEditorInfo.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -1031,6 +1031,8 @@ namespace VkRender {
         newEditor.createNewEditorByCopy = editor.createNewEditorByCopy;
         newEditor.lastClickedBorderType = editor.lastClickedBorderType;
         newEditor.lastPressedPos = editor.lastPressedPos;
+        newEditor.resizeIntervalHoriz = editor.resizeIntervalHoriz;
+        newEditor.resizeIntervalVertical = editor.resizeIntervalVertical;
         newEditor.splitting = editor.splitting;
         m_oldEditors.push_back(std::move(editor));
 
@@ -1201,53 +1203,7 @@ namespace VkRender {
                 if (editor.cornerBottomLeftHovered) {
                     editor.cornerBottomLeftClicked = true;
                 }
-
-                // Also check if we are indirectly effecting other editors borders and set their state to resize.
-                // Example. In a layout with two rows, changing the height of the bottom row should increase ALL the editor's heights in the top row
-                // Using our current position. For a vertical resize, check across the whole screen if we would hit another editor's border. This gets included in our resize operation
-                for (size_t i = 0; auto &otherEditor: m_editors) {
-                    if (editor != otherEditor) {
-
-                        // Add check if we attempt to click a corner. Disregard other editors
-                        if (editor.cornerBottomLeftHovered) {
-                            otherEditor.resizeActive = false;
-                            i++; // I use for debugging
-                            continue;
-                        }
-                        /*
-                        // Check if y coordinates match.
-                        auto otherBorder = otherEditor.checkLineBorderState(mouse.pos, true);
-                        if (otherBorder != EditorBorderState::None) {
-                            // ALso put this into resize mode
-                            otherEditor.resizeActive = true;
-                            // Last clicked border type:
-                            otherEditor.lastClickedBorderType = otherBorder;
-                            editor.lastClickedBorderType = editor.checkLineBorderState(mouse.pos, true);
-
-                            Log::Logger::getInstance()->info("Indirect access to Editor {}' border: {}",
-                                                             i,
-                                                             otherEditor.lastClickedBorderType);
-                        }
-                        // Check if x coordinates match.
-                        otherBorder = otherEditor.checkLineBorderState(mouse.pos, false);
-                        if (otherBorder != EditorBorderState::None) {
-                            // ALso put this into resize mode
-                            otherEditor.resizeActive = true;
-                            // Last clicked border type:
-                            otherEditor.lastClickedBorderType = otherBorder;
-                            editor.lastClickedBorderType = editor.checkLineBorderState(mouse.pos, false);
-
-                            Log::Logger::getInstance()->info("Indirect access to Editor {}' border: {}",
-                                                             i,
-                                                             otherEditor.lastClickedBorderType);
-                        }
-                         */
-                    }
-                    i++;
-                }
             }
-
-
         }
 
         // Check for drag events
@@ -1286,7 +1242,7 @@ namespace VkRender {
 
             if (mouse.left && mouse.action == GLFW_PRESS)
                 Log::Logger::getInstance()->info("We clicked Editor: {}'s area :{}",
-                                                 index,
+                                                 editor.getUUID().operator std::string(),
                                                  editor.lastClickedBorderType);
 
             if (editor.resizeHovered || editor.cornerBottomLeftHovered)
@@ -1297,6 +1253,112 @@ namespace VkRender {
 
             index++;
         }
+
+        // Check if we should include more than one editor in our resize operation
+        if (mouse.left && mouse.action == GLFW_PRESS) {
+            for (auto &editor: m_editors) {
+                for (auto &otherEditor: m_editors) {
+                    if (editor != otherEditor) {
+                        // We are indirectly effecting other editors borders and set their state to resize.
+                        // Example. In a layout with two rows, changing the height of the bottom row should increase ALL the editor's heights in the top row
+                        // Using our current position. For a vertical resize, check across the whole screen if we would hit another editor's border. This gets included in our resize operation
+                        // Check if y coordinates match.
+                        auto otherBorder = otherEditor.checkLineBorderState(mouse.pos, true);
+                        if (otherBorder != EditorBorderState::None) {
+                            // ALso put this into resize mode
+                            otherEditor.resizeActive = true;
+                            // Last clicked border type:
+                            otherEditor.lastClickedBorderType = otherBorder;
+                            editor.lastClickedBorderType = editor.checkLineBorderState(mouse.pos, true);
+
+                            Log::Logger::getInstance()->info(
+                                    "Indirect access to Editor {}' border: {}. Our editor resize {} {}",
+                                    otherEditor.getUUID().operator std::string(),
+                                    otherEditor.lastClickedBorderType, editor.resizeActive,
+                                    editor.lastClickedBorderType);
+                        }
+                        // Check if x coordinates match.
+                        otherBorder = otherEditor.checkLineBorderState(mouse.pos, false);
+                        if (otherBorder != EditorBorderState::None) {
+                            // ALso put this into resize mode
+                            otherEditor.resizeActive = true;
+                            // Last clicked border type:
+                            otherEditor.lastClickedBorderType = otherBorder;
+                            editor.lastClickedBorderType = editor.checkLineBorderState(mouse.pos, false);
+
+                            Log::Logger::getInstance()->info(
+                                    "Indirect access to Editor {}' border: {}. Our editor resize {} {}",
+                                    otherEditor.getUUID().operator std::string(),
+                                    otherEditor.lastClickedBorderType, editor.resizeActive,
+                                    editor.lastClickedBorderType);
+                        }
+                    }
+                }
+            }
+        }
+
+        /*
+        // Calculate how much width we can resize
+        for (size_t index = 0; auto &editor: m_editors) {
+            for (size_t innerIndex = 0; auto &otherEditor: m_editors) {
+                if (editor == otherEditor) {
+                    innerIndex++;
+                    continue;
+                }
+                if (!editor.resizeActive || !otherEditor.resizeActive) {
+                    innerIndex++;
+                    continue;
+                }
+                int minX = std::min(editor.x, otherEditor.x) + editor.sizeLimits.MIN_SIZE;
+                int maxX = std::max(editor.x + editor.width, otherEditor.x + otherEditor.width) -
+                           editor.sizeLimits.MIN_SIZE;
+
+                int minY =
+                        std::min(editor.y, otherEditor.y) + editor.sizeLimits.MIN_SIZE + editor.sizeLimits.MIN_OFFSET_Y;
+                int maxY = std::max(editor.y + editor.height, otherEditor.y + otherEditor.height) -
+                           editor.sizeLimits.MIN_SIZE - editor.sizeLimits.MIN_OFFSET_Y;
+                Log::Logger::getInstance()->infoWithFrequency("editorResizeTag", 60,
+                                                              "We clicked Editor: {}'s area :{} and Editor: {}'s area :{}. X-Interval: {}-{}, Y-Interval: {}-{}",
+                                                              index,
+                                                              editor.lastClickedBorderType, innerIndex,
+                                                              otherEditor.lastClickedBorderType, minX, maxX, minY,
+                                                              maxY);
+
+                editor.resizeIntervalHoriz = {minX, maxX};
+                editor.resizeIntervalVertical = {minY, maxY};
+                innerIndex++;
+            }
+            index++;
+        }
+        */
+
+        // Initialize overall min/max intervals
+        int overallMinX = std::numeric_limits<int>::max();
+        int overallMaxX = std::numeric_limits<int>::min();
+        int overallMinY = std::numeric_limits<int>::max();
+        int overallMaxY = std::numeric_limits<int>::min();
+
+// Iterate over all editors to find the overall min/max intervals
+        for (auto &editor: m_editors) {
+            if (!editor.resizeActive) {
+                continue;
+            }
+
+            int minX = editor.x + editor.sizeLimits.MIN_SIZE;
+            int maxX = editor.x + editor.width - editor.sizeLimits.MIN_SIZE;
+            int minY = editor.y + editor.sizeLimits.MIN_SIZE + editor.sizeLimits.MIN_OFFSET_Y;
+            int maxY = editor.y + editor.height - editor.sizeLimits.MIN_SIZE - editor.sizeLimits.MIN_OFFSET_Y;
+            // Update overall min/max intervals
+            overallMinX = std::min(overallMinX, minX);
+            overallMaxX = std::max(overallMaxX, maxX);
+            overallMinY = std::min(overallMinY, minY);
+            overallMaxY = std::max(overallMaxY, maxY);
+        }
+        for (auto &editor: m_editors) {
+            editor.resizeIntervalHoriz = {overallMinX, overallMaxX};
+            editor.resizeIntervalVertical = {overallMinY, overallMaxY};
+        }
+
         bool splitEditors = false;
         VulkanRenderPassCreateInfo editorSplitCreateInfo;
         uint32_t splitEditorIndex = UINT32_MAX;
@@ -1337,15 +1399,70 @@ namespace VkRender {
                     newEditorCI.y = editor.y;
                     newEditorCI.height = editor.height;
                 }
+
+
+                // NEXT UP. HORIZONTAL AND VERTICAL BORDER COLLISION CHECKING WITH OTHER EDITORS
+                //  - Horizontal Border checking during resize. Happens if we resize into the edge of the opposite editor
+                if (editor.x + editor.sizeLimits.MIN_SIZE ==
+                    editor.resizeIntervalHoriz.x) { // Smallest editor will be entering here
+                    if (newEditorCI.x + newEditorCI.width < editor.resizeIntervalHoriz.x) {
+                        newEditorCI = editor.getCreateInfo(); // revert createInfo
+
+                    }
+                } else { // Other Editor will enter this
+                    if (newEditorCI.x < editor.resizeIntervalHoriz.x - editor.borderSize) {
+                        newEditorCI = editor.getCreateInfo(); // revert createInfo
+                    }
+                }
+                if (editor.x + editor.width - editor.sizeLimits.MIN_SIZE ==
+                    editor.resizeIntervalHoriz.y) { // We got the furthest along x editor here
+                    if (newEditorCI.x + newEditorCI.width > editor.resizeIntervalHoriz.y + editor.sizeLimits.MIN_SIZE) {
+                        newEditorCI = editor.getCreateInfo(); // revert createInfo
+                    }
+                } else { // Other Editor will enter this
+                    if (newEditorCI.x + newEditorCI.width > editor.resizeIntervalHoriz.y + editor.borderSize) {
+                        newEditorCI = editor.getCreateInfo(); // revert createInfo
+                    }
+                }
+
+                // Vertical Border checking during resize. Happens if we resize into the edge of the opposite editor
+                if (editor.y + editor.sizeLimits.MIN_SIZE + editor.sizeLimits.MIN_OFFSET_Y ==
+                    editor.resizeIntervalVertical.x) { // Smallest editor will be entering here
+                    if (newEditorCI.y + newEditorCI.height + editor.sizeLimits.MIN_OFFSET_Y <
+                        editor.resizeIntervalVertical.x) {
+                        newEditorCI = editor.getCreateInfo(); // revert createInfo
+
+                    }
+                } else { // Other Editor will enter this
+                    if (newEditorCI.y + editor.sizeLimits.MIN_OFFSET_Y <
+                        editor.resizeIntervalVertical.x - editor.borderSize) {
+                        newEditorCI = editor.getCreateInfo(); // revert createInfo
+                    }
+                }                // Vertical Border checking during resize. Happens if we resize into the edge of the opposite editor
+                if (editor.y + editor.height - editor.sizeLimits.MIN_SIZE - editor.sizeLimits.MIN_OFFSET_Y ==
+                    editor.resizeIntervalVertical.y) { // Smallest editor will be entering here
+                    if (newEditorCI.y + newEditorCI.height >
+                        editor.resizeIntervalVertical.y + editor.sizeLimits.MIN_SIZE + editor.sizeLimits.MIN_OFFSET_Y) {
+                        newEditorCI = editor.getCreateInfo(); // revert createInfo
+
+                    }
+                } else { // Other Editor will enter this
+                    if (newEditorCI.y + newEditorCI.height - editor.sizeLimits.MIN_OFFSET_Y >
+                        editor.resizeIntervalVertical.y + editor.borderSize) {
+                        newEditorCI = editor.getCreateInfo(); // revert createInfo
+                    }
+                }
+
                 // Check min/max size for application border
-                editor.validateEditorSize(newEditorCI);
+                bool modified = editor.validateEditorSize(newEditorCI, editor.getCreateInfo());
                 bool changed = editor.hoverDelta.x != 0 || editor.hoverDelta.y != 0;
                 if (changed)
                     replaceEditor(newEditorCI, editor);
             }
 
 
-            if (editor.cornerBottomLeftClicked && (editor.dragHorizontal || editor.dragVertical) && !editor.splitting) {
+            if (editor.cornerBottomLeftClicked && editor.width > 100 &&
+                (editor.dragHorizontal || editor.dragVertical) && !editor.splitting) {
                 splitEditors = true;
                 splitEditorIndex = index;
                 VulkanRenderPassCreateInfo &editorCreateInfo = editor.getCreateInfo();

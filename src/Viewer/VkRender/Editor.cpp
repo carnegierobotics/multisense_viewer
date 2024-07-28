@@ -15,7 +15,8 @@ namespace VkRender {
 
     Editor::Editor(VulkanRenderPassCreateInfo &createInfo) : m_createInfo(createInfo),
                                                              m_renderUtils(createInfo.context->data()),
-                                                             m_context(createInfo.context), sizeLimits(createInfo.appWidth, createInfo.appHeight) {
+                                                             m_context(createInfo.context),
+                                                             sizeLimits(createInfo.appWidth, createInfo.appHeight) {
         borderSize = createInfo.borderSize;
 
         height = createInfo.height;
@@ -210,21 +211,22 @@ namespace VkRender {
 
         // Check corners first to give them higher priority
         // Top-left corner
-        if (mousePos.x >= x && mousePos.x <= x + (borderSize ) && mousePos.y >= y && mousePos.y <= y + (borderSize )) {
+        if (mousePos.x >= x && mousePos.x <= x + (borderSize) && mousePos.y >= y && mousePos.y <= y + (borderSize)) {
             return EditorBorderState::TopLeft;
         }
         // Top-right corner
-        if (mousePos.x >= x + width - (borderSize ) && mousePos.x <= x + width && mousePos.y >= y &&
-            mousePos.y <= y + (borderSize )) {
+        if (mousePos.x >= x + width - (borderSize) && mousePos.x <= x + width && mousePos.y >= y &&
+            mousePos.y <= y + (borderSize)) {
             return EditorBorderState::TopRight;
         }
         // Bottom-left corner
-        if (mousePos.x >= x && mousePos.x <= x + (borderSize ) && mousePos.y >= y + height - (borderSize ) &&
+        if (mousePos.x >= x && mousePos.x <= x + (borderSize) && mousePos.y >= y + height - (borderSize) &&
             mousePos.y <= y + height) {
             return EditorBorderState::BottomLeft;
         }
         // Bottom-right corner
-        if (mousePos.x >= x + width - (borderSize ) && mousePos.x <= x + width && mousePos.y >= y + height - (borderSize ) &&
+        if (mousePos.x >= x + width - (borderSize) && mousePos.x <= x + width &&
+            mousePos.y >= y + height - (borderSize) &&
             mousePos.y <= y + height) {
             return EditorBorderState::BottomRight;
         }
@@ -238,20 +240,20 @@ namespace VkRender {
 
         // Check borders
         // Left border
-        if (mousePos.x >= x  && mousePos.x <= x + (borderSize ) && mousePos.y >= y && mousePos.y <= y + height) {
+        if (mousePos.x >= x && mousePos.x <= x + (borderSize) && mousePos.y >= y && mousePos.y <= y + height) {
             return EditorBorderState::Left;
         }
         // Right border
-        if (mousePos.x >= x + width - (borderSize ) && mousePos.x <= x + width  && mousePos.y >= y &&
+        if (mousePos.x >= x + width - (borderSize) && mousePos.x <= x + width && mousePos.y >= y &&
             mousePos.y <= y + height) {
             return EditorBorderState::Right;
         }
         // Top border
-        if (mousePos.x >= x && mousePos.x <= x + width && mousePos.y >= y && mousePos.y <= y + (borderSize )) {
+        if (mousePos.x >= x && mousePos.x <= x + width && mousePos.y >= y && mousePos.y <= y + (borderSize)) {
             return EditorBorderState::Top;
         }
         // Bottom border
-        if (mousePos.x >= x && mousePos.x <= x + width && mousePos.y >= y + height - (borderSize ) &&
+        if (mousePos.x >= x && mousePos.x <= x + width && mousePos.y >= y + height - (borderSize) &&
             mousePos.y <= y + height) {
             return EditorBorderState::Bottom;
         }
@@ -263,25 +265,25 @@ namespace VkRender {
         return EditorBorderState::None;
     }
 
-    EditorBorderState Editor::checkLineBorderState(const glm::vec2 &mousePos, bool verticalResize){
+    EditorBorderState Editor::checkLineBorderState(const glm::vec2 &mousePos, bool verticalResize) {
         // Check borders
-        if (verticalResize){
+        if (verticalResize) {
             // Top border
-            if (mousePos.y >= y && mousePos.y <= y + (borderSize )) {
+            if (mousePos.y >= y && mousePos.y <= y + (borderSize)) {
                 return EditorBorderState::Top;
             }
             // Bottom border
-            if (mousePos.y >= y + height - (borderSize ) &&
+            if (mousePos.y >= y + height - (borderSize) &&
                 mousePos.y <= y + height) {
                 return EditorBorderState::Bottom;
             }
         } else {
             // Left border
-            if (mousePos.x >= x  && mousePos.x <= x + (borderSize )) {
+            if (mousePos.x >= x && mousePos.x <= x + (borderSize)) {
                 return EditorBorderState::Left;
             }
             // Right border
-            if (mousePos.x >= x + width - (borderSize ) && mousePos.x <= x + width) {
+            if (mousePos.x >= x + width - (borderSize) && mousePos.x <= x + width) {
                 return EditorBorderState::Right;
             }
         }
@@ -290,33 +292,41 @@ namespace VkRender {
         return EditorBorderState::None;
     }
 
-    void Editor::validateEditorSize(VulkanRenderPassCreateInfo &createInfo) {
+    bool Editor::validateEditorSize(VulkanRenderPassCreateInfo &createInfo, const VulkanRenderPassCreateInfo & original) {
+        bool modified = false;
         // Ensure the x offset is within the allowed range
-        if (createInfo.x < sizeLimits.MIN_OFFSET_X)
+        if (createInfo.x < sizeLimits.MIN_OFFSET_X) {
             createInfo.x = sizeLimits.MIN_OFFSET_X;
-        if (createInfo.x > sizeLimits.MAX_OFFSET_WIDTH)
+        }
+        if (createInfo.x > sizeLimits.MAX_OFFSET_WIDTH) {
             createInfo.x = sizeLimits.MAX_OFFSET_WIDTH;
-
+        }
         // Ensure the y offset is within the allowed range
-        if (createInfo.y < sizeLimits.MIN_OFFSET_Y)
+        if (createInfo.y < sizeLimits.MIN_OFFSET_Y) {
             createInfo.y = sizeLimits.MIN_OFFSET_Y;
-        if (createInfo.y > sizeLimits.MAX_OFFSET_HEIGHT)
+        }
+        if (createInfo.y > sizeLimits.MAX_OFFSET_HEIGHT) {
             createInfo.y = sizeLimits.MAX_OFFSET_HEIGHT;
-
+        }
         // Ensure the width is within the allowed range considering the offset
-        if (createInfo.width < sizeLimits.MIN_SIZE)
-            createInfo.width = sizeLimits.MIN_SIZE;
-        if (createInfo.width > applicationWidth - createInfo.x)
+        if (createInfo.width < sizeLimits.MIN_SIZE) {
+            createInfo.width = std::max(original.width, sizeLimits.MIN_SIZE);
+            createInfo.x = original.x;
+        }
+        if (createInfo.width > applicationWidth - createInfo.x) {
             createInfo.width = applicationWidth - createInfo.x - sizeLimits.MIN_OFFSET_X;
-
+        }
         // Ensure the height is within the allowed range considering the offset
-        if (createInfo.height < sizeLimits.MIN_SIZE)
+        if (createInfo.height < sizeLimits.MIN_SIZE) {
             createInfo.height = sizeLimits.MIN_SIZE;
-        if (createInfo.height > applicationHeight - createInfo.y)
+        }
+        if (createInfo.height > applicationHeight - createInfo.y) {
             createInfo.height = applicationHeight - createInfo.y;
+        }
+        return modified;
     }
 
-    bool Editor::checkEditorCollision(const Editor& otherEditor) const{
+    bool Editor::checkEditorCollision(const Editor &otherEditor) const {
         bool rightSideLeftOfOther = x + width < otherEditor.x; // right side of this is left of other
         bool leftSideRightOfOther = x > otherEditor.x + otherEditor.width; // left side of this is right of other
         bool bottomAboveTopOfOther = y + height < otherEditor.y; // bottom of this is above top of other
@@ -328,5 +338,26 @@ namespace VkRender {
 
     const Editor::SizeLimits &Editor::getSizeLimits() const {
         return sizeLimits;
+    }
+
+    bool Editor::checkCollision(const Editor &e1, const Editor &e2) {
+        // Does left border of e1 collide with right border of e2
+        /*
+        int left1 = e1.x + e1.borderSize;
+        int right1 = e2.x + e2.width;
+
+        bool leftRightCollision = left1 - right1 > 0;
+
+        bool leftCollision = (e1.x + e1.width + e1.borderSize > e2.x + e2.borderSize);
+        bool rightCollision = (e1.x < e2.x + e2.width + e2.borderSize);
+        bool topCollision = (e1.y + e1.height + e1.borderSize > e2.y + e2.borderSize);
+        bool bottomCollision = (e1.y < e2.y + e2.height + e2.borderSize);
+        bool collision = leftRightCollision;
+
+        if (collision)
+            int debug = 1;
+        */
+
+        return false;
     }
 }

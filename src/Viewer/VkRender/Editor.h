@@ -156,6 +156,8 @@ namespace VkRender {
             std::swap(first.lastClickedBorderType, second.lastClickedBorderType);
             std::swap(first.lastHoveredBorderType, second.lastHoveredBorderType);
             std::swap(first.lastPressedPos, second.lastPressedPos);
+            std::swap(first.resizeIntervalHoriz, second.resizeIntervalHoriz);
+            std::swap(first.resizeIntervalVertical, second.resizeIntervalVertical);
 
             std::swap(first.renderPasses, second.renderPasses);
             std::swap(first.m_renderUtils, second.m_renderUtils);
@@ -195,9 +197,10 @@ namespace VkRender {
         checkBorderState(const glm::vec2 &mousePos) const;
         EditorBorderState checkLineBorderState(const glm::vec2 &mousePos, bool verticalResize);
 
-        void validateEditorSize(VulkanRenderPassCreateInfo &createInfo);
+        bool validateEditorSize(VulkanRenderPassCreateInfo &createInfo, const VulkanRenderPassCreateInfo &original);
         bool checkEditorCollision(const Editor &otherEditor) const;
         UUID getUUID() const {return uuid;}
+        static bool checkCollision(const Editor& e1, const Editor& e2);
 
         const SizeLimits &getSizeLimits() const;
 
@@ -226,6 +229,8 @@ namespace VkRender {
         glm::ivec2 lastPressedPos{};
         glm::ivec2 hoverDelta{};
         glm::ivec2 dragDelta{};
+        glm::ivec2 resizeIntervalHoriz{};
+        glm::ivec2 resizeIntervalVertical{};
         SizeLimits sizeLimits;
     private:
         UUID uuid;

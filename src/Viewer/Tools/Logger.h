@@ -178,7 +178,9 @@ namespace Log {
         void vInfo(const FormatString &format, fmt::format_args args) {
             infoInternal(prepareMessage(format, args, frameNumber).c_str());
         }
-
+        void vInfo(const std::string &tag, const FormatString &format, fmt::format_args args) {
+            infoInternal(prepareMessage(format, args, frameNumber, tag).c_str());
+        }
         template<typename... Args>
         void trace(const FormatString &format, Args &&... args) {
             vTrace(format, fmt::make_format_args(args...));
@@ -208,6 +210,32 @@ namespace Log {
             // as I cannot use 0 as a value so I am forced to count from 1. Even chatgpt is confused
             if (m_counter[tag] % m_frequencies[tag] == 1) {
                 vTrace(tag, format, fmt::make_format_args(args...));
+            }
+        }
+        /**
+         * log trace messages with a specific frequency. frequency == 1 means every frame otherwise every nth frame.
+         * @tparam Args
+         * @param tag Tag used to count the frequency
+         * @param frequency ever nth frame this line should be logged
+         * @param format format string
+         * @param args args for formatted string
+         */
+        template<typename... Args>
+        void
+        infoWithFrequency(const std::string &tag, uint32_t frequency, const FormatString &format, Args &&... args) {
+            if (m_frequencies.find(tag) != m_frequencies.end() && m_counter.find(tag) != m_counter.end()) {
+                m_counter[tag]++;
+            } else {
+                m_counter.insert_or_assign(tag, static_cast<uint32_t>(1));
+                m_frequencies.insert_or_assign(tag, frequency);
+            }
+            // I would like to use % == 0, but at least on windows if I do
+            // m_counter.insert_or_assign(tag, static_cast<uint32_t>(0)); the m_counter map get initialized with NULL.
+            // which makes the next line crash when I reference value in m_counter[tag].
+            // Does not happen if I use any other value such as 1. No functional difference but just weird
+            // as I cannot use 0 as a value so I am forced to count from 1. Even chatgpt is confused
+            if (m_counter[tag] % m_frequencies[tag] == 1) {
+                vInfo(tag, format, fmt::make_format_args(args...));
             }
         }
 

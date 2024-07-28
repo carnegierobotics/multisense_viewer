@@ -206,9 +206,7 @@ namespace VkRender {
 
 
     EditorBorderState
-    Editor::checkBorderState(const glm::vec2 &mousePos, const MouseButtons buttons, const glm::vec2 &dxdy) const {
-        if (!m_createInfo.resizeable)
-            return EditorBorderState::None;
+    Editor::checkBorderState(const glm::vec2 &mousePos) const {
 
         // Check corners first to give them higher priority
         // Top-left corner
@@ -257,7 +255,11 @@ namespace VkRender {
             mousePos.y <= y + height) {
             return EditorBorderState::Bottom;
         }
-        // Inside the editor, not on any border
+        // Inside of editor
+        if (mousePos.x >= x && mousePos.x <= x + width && mousePos.y >= y && mousePos.y <= y + height)
+            return EditorBorderState::Inside;
+
+        // Outside the editor, not on any border
         return EditorBorderState::None;
     }
 

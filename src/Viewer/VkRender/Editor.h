@@ -30,7 +30,8 @@ namespace VkRender {
         TopLeft = 5,     // Cursor is on the top-left corner
         TopRight = 6,    // Cursor is on the top-right corner
         BottomLeft = 7,  // Cursor is on the bottom-left corner
-        BottomRight = 8  // Cursor is on the bottom-right corner
+        BottomRight = 8,  // Cursor is on the bottom-right corner
+        Inside = 9  // Cursor is on the bottom-right corner
     } EditorBorderState;
 }
 
@@ -64,6 +65,9 @@ static std::ostream &operator<<(std::ostream &os, const VkRender::EditorBorderSt
         case VkRender::BottomRight:
             os << "BottomRight";
             break;
+        case VkRender::Inside:
+            os << "Inside";
+            break;
         default:
             os << "Unknown";
             break;
@@ -93,10 +97,15 @@ namespace VkRender {
             const int MIN_OFFSET_Y = MENU_BAR_HEIGHT;
             int MAX_OFFSET_WIDTH;
             int MAX_OFFSET_HEIGHT;
+            int MAX_WIDTH;
+            int MAX_HEIGHT;
 
             SizeLimits(uint32_t appWidth, uint32_t appHeight) {
                 MAX_OFFSET_WIDTH = appWidth - MIN_SIZE;
                 MAX_OFFSET_HEIGHT = appHeight - MIN_SIZE;
+
+                MAX_WIDTH = appWidth;
+                MAX_HEIGHT = appHeight - MENU_BAR_HEIGHT;
             }
         };
 
@@ -137,9 +146,16 @@ namespace VkRender {
             std::swap(first.resizeHovered, second.resizeHovered);
             std::swap(first.cornerBottomLeftHovered, second.cornerBottomLeftHovered);
             std::swap(first.cornerBottomLeftClicked, second.cornerBottomLeftClicked);
+            std::swap(first.dragHorizontal, second.dragHorizontal);
+            std::swap(first.dragVertical, second.dragVertical);
+            std::swap(first.dragDelta, second.dragDelta);
+            std::swap(first.dragActive, second.dragActive);
+            std::swap(first.hoverDelta, second.hoverDelta);
+            std::swap(first.splitting, second.splitting);
             std::swap(first.createNewEditorByCopy, second.createNewEditorByCopy);
             std::swap(first.lastClickedBorderType, second.lastClickedBorderType);
-            std::swap(first.cornerPressedPos, second.cornerPressedPos);
+            std::swap(first.lastHoveredBorderType, second.lastHoveredBorderType);
+            std::swap(first.lastPressedPos, second.lastPressedPos);
 
             std::swap(first.renderPasses, second.renderPasses);
             std::swap(first.m_renderUtils, second.m_renderUtils);
@@ -176,7 +192,7 @@ namespace VkRender {
         void update(bool updateGraph, float frametime, Input *input);
 
         EditorBorderState
-        checkBorderState(const glm::vec2 &mousePos, const MouseButtons buttons, const glm::vec2 &dxdy) const;
+        checkBorderState(const glm::vec2 &mousePos) const;
         EditorBorderState checkLineBorderState(const glm::vec2 &mousePos, bool verticalResize);
 
         void validateEditorSize(VulkanRenderPassCreateInfo &createInfo);
@@ -199,11 +215,17 @@ namespace VkRender {
         bool resizeHovered = false;
         bool cornerBottomLeftHovered = false; // Hover state
         bool cornerBottomLeftClicked = false; // Single push down event
-        bool cornerBottomLeftDragEvent = false;  // Holding after click event
+        bool dragHorizontal = false;  // Holding after click event
+        bool dragVertical = false;  // Holding after click event
+        bool dragActive = false;  // Holding after click event
         bool createNewEditorByCopy = false;
+        bool splitting = false;
         EditorBorderState lastClickedBorderType;
+        EditorBorderState lastHoveredBorderType;
 
-        glm::vec2 cornerPressedPos{};
+        glm::ivec2 lastPressedPos{};
+        glm::ivec2 hoverDelta{};
+        glm::ivec2 dragDelta{};
         SizeLimits sizeLimits;
     private:
         UUID uuid;

@@ -118,7 +118,7 @@ namespace VkRender {
         bool middle = false;
         int action = 0;
         float wheel = 0.0f; // to initialize arcball zoom
-
+        bool insideApp = false;
         union {
             struct {
                 float dx;

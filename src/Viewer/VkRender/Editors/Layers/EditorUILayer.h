@@ -33,7 +33,7 @@ namespace VkRender {
             static bool toggles[] = {true, false, false, false, false};
 
             // Options for the combo box
-            const char *items[] = {"UI", "MultiSense Viewer", "Scene Hierarchy"};
+            const char *items[] = {"UI", "MultiSense Viewer", "Scene Hierarchy", "Test Window"};
             static int item_current_idx = 0; // Here we store our current item index
 
 
@@ -63,13 +63,6 @@ namespace VkRender {
             ImVec2 window_pos = ImVec2(0.0f, 0.0f); // Position (x, y)
             ImVec2 window_size = ImVec2(handles.info->width, handles.info->height); // Size (width, height)
 
-            std::vector<ImVec4> colors{{1.0f, 0.0f, 0.0f, 0.7f},
-                                       {0.0f, 1.0f, 0.0f, 0.7f}, // 1: Green
-                                       {0.0f, 0.0f, 1.0f, 0.7f}, // 2: Blue
-                                       {1.0f, 1.0f, 0.0f, 0.7f}, // 3: Yellow
-                                       {1.0f, 0.0f, 1.0f, 0.7f}, // 4: Magenta
-                                       {0.0f, 1.0f, 1.0f, 0.7f}, // 5: Cyan
-                                       {0.5f, 0.5f, 0.5f, 0.7f}}; // 6: Gray
 
             // Set window flags to remove decorations
             ImGuiWindowFlags window_flags =
@@ -77,8 +70,6 @@ namespace VkRender {
                     ImGuiWindowFlags_NoFocusOnAppearing |
                     ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs;
 
-
-            ImGui::PushStyleColor(ImGuiCol_WindowBg, colors[handles.editorIndex % 7]);
             // Set next window position and size
             ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always);
             ImGui::SetNextWindowSize(window_size, ImGuiCond_Always);
@@ -91,7 +82,7 @@ namespace VkRender {
 
             // End the parent window
             float borderSize = 3.0f;
-            ImU32 border_color = ImGui::GetColorU32(ImVec4(0.3f, 0.3f, 0.3f, 1.0f)); // White color
+            ImU32 border_color = ImGui::GetColorU32(ImVec4(0.3f, 0.3f, 0.3f, 1.0f)); // gray color
 
             ImDrawList *draw_list = ImGui::GetWindowDrawList();
             ImVec2 p1 = window_pos;
@@ -108,7 +99,6 @@ namespace VkRender {
 
             ImGui::End();
             ImGui::PopStyleVar(2);
-            ImGui::PopStyleColor();
             // Set window flags to remove decorations
             window_flags =
                     ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus;

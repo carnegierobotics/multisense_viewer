@@ -108,7 +108,7 @@ namespace VkRender {
         float frameTimer{};
 
         float applicationRuntime = 0.0f;
-
+        glm::vec4 backgroundColor{};
 
         /** @brief Current frame*/
         uint64_t frameID = 0;
@@ -210,7 +210,6 @@ namespace VkRender {
         bool enableSecondaryView = true;
         bool fixAspectRatio = false;
         EditorUIInfo editor;
-        uint32_t editorIndex = 0;
     };
 
     /**

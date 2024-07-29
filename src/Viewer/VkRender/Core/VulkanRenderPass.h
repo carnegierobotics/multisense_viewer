@@ -28,12 +28,13 @@ namespace VkRender {
         VkImageLayout initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         VkImageLayout finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         VkAttachmentStoreOp storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        uint32_t editorIndex = 0;
 
         VkFramebuffer* frameBuffers;
         std::shared_ptr<GuiResources> guiResources;
         std::vector<VkClearValue> clearValue;
         bool resizeable = true;
+
+        glm::vec4 backgroundColor{};
 
         VulkanRenderPassCreateInfo() = default;
 

@@ -8,6 +8,7 @@
 #include "Viewer/VkRender/ImGui/AdditionalWindows/NewVersionAvailable.h"
 #include "Viewer/VkRender/Editors/Layers/EditorUILayer.h"
 #include "Viewer/VkRender/Editors/Layers/SceneHierarchyLayer.h"
+#include "Viewer/VkRender/Editors/Test/EditorTestLayer.h"
 #include "Viewer/Scenes/Default/UILayers/SideBarLayer.h"
 #include "Viewer/Scenes/Default/UILayers/MenuLayer.h"
 #include "Viewer/Scenes/MultiSenseViewer/UILayers/MultiSenseViewerLayer.h"
@@ -25,6 +26,7 @@ namespace VkRender {
         if (layerName == "MenuLayer") return std::make_shared<MenuLayer>();
         if (layerName == "EditorUILayer") return std::make_shared<EditorUILayer>();
         if (layerName == "SceneHierarchyLayer") return std::make_shared<SceneHierarchyLayer>();
+        if (layerName == "EditorTestLayer") return std::make_shared<EditorTestLayer>();
 
         throw std::runtime_error("Tried to push layer: " + layerName + " Which doesn't exists");
     }

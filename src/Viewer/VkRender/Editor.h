@@ -110,7 +110,7 @@ namespace VkRender {
         };
 
 
-        explicit Editor(VulkanRenderPassCreateInfo &createInfo);
+        explicit Editor(VulkanRenderPassCreateInfo &createInfo, UUID uuid = UUID());
 
         // Implement move constructor
         Editor(Editor &&other) noexcept: m_context(other.m_context), m_renderUtils(other.m_renderUtils),
@@ -158,14 +158,17 @@ namespace VkRender {
             std::swap(first.lastPressedPos, second.lastPressedPos);
             std::swap(first.resizeIntervalHoriz, second.resizeIntervalHoriz);
             std::swap(first.resizeIntervalVertical, second.resizeIntervalVertical);
+            std::swap(first.backgroundColor, second.backgroundColor);
 
             std::swap(first.renderPasses, second.renderPasses);
-            std::swap(first.m_renderUtils, second.m_renderUtils);
-            std::swap(first.m_context, second.m_context);
             std::swap(first.applicationWidth, second.applicationWidth);
             std::swap(first.applicationHeight, second.applicationHeight);
             std::swap(first.m_renderStates, second.m_renderStates);
             std::swap(first.m_createInfo, second.m_createInfo);
+            std::swap(first.m_renderUtils, second.m_renderUtils);
+            std::swap(first.m_context, second.m_context);
+            std::swap(first.uuid, second.uuid);
+
         }
 
         // Comparison operator
@@ -223,8 +226,8 @@ namespace VkRender {
         bool dragActive = false;  // Holding after click event
         bool createNewEditorByCopy = false;
         bool splitting = false;
-        EditorBorderState lastClickedBorderType;
-        EditorBorderState lastHoveredBorderType;
+        EditorBorderState lastClickedBorderType = EditorBorderState::None;
+        EditorBorderState lastHoveredBorderType = EditorBorderState::None;
 
         glm::ivec2 lastPressedPos{};
         glm::ivec2 hoverDelta{};
@@ -232,6 +235,8 @@ namespace VkRender {
         glm::ivec2 resizeIntervalHoriz{};
         glm::ivec2 resizeIntervalVertical{};
         SizeLimits sizeLimits;
+
+        glm::vec4 backgroundColor{};
     private:
         UUID uuid;
         std::vector<std::shared_ptr<VulkanRenderPass>> renderPasses;

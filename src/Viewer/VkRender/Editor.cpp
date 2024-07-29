@@ -13,35 +13,24 @@
 namespace VkRender {
 
 
-    Editor::Editor(VulkanRenderPassCreateInfo &createInfo) : m_createInfo(createInfo),
+    Editor::Editor(VulkanRenderPassCreateInfo &createInfo, UUID _uuid) : m_createInfo(createInfo),
                                                              m_renderUtils(createInfo.context->data()),
                                                              m_context(createInfo.context),
-                                                             sizeLimits(createInfo.appWidth, createInfo.appHeight) {
+                                                             sizeLimits(createInfo.appWidth, createInfo.appHeight),
+                                                             uuid(_uuid){
         borderSize = createInfo.borderSize;
-
         height = createInfo.height;
         width = createInfo.width;
         x = createInfo.x;
         y = createInfo.y;
         applicationWidth = createInfo.appWidth;
         applicationHeight = createInfo.appHeight;
-        uuid = UUID();
-
+        backgroundColor = createInfo.backgroundColor;
         m_renderStates = {createInfo.context->data().swapchainImages, RenderState::Idle};
         renderPasses.resize(m_renderUtils.swapchainImages);
-        // Start timing UI render pass setup
-        auto startUIRenderPassSetup = std::chrono::high_resolution_clock::now();
         for (auto &pass: renderPasses) {
             pass = std::make_shared<VulkanRenderPass>(createInfo);
         }
-
-        auto endUIRenderPassSetup = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double, std::milli> uiRenderPassSetupTime = endUIRenderPassSetup - startUIRenderPassSetup;
-        //std::cout << "UI Render Pass Setup Time: " << uiRenderPassSetupTime.count() << " ms" << std::endl;
-
-
-        // Start timing GuiManager construction
-        auto startGuiManagerConstruction = std::chrono::high_resolution_clock::now();
         m_guiManager = std::make_unique<GuiManager>(m_renderUtils.device,
                                                     renderPasses.begin()->get()->getRenderPass(), // TODO verify if this is ok?
                                                     width,
@@ -51,48 +40,8 @@ namespace VkRender {
                                                     m_context,
                                                     ImGui::CreateContext(&createInfo.guiResources->fontAtlas),
                                                     createInfo.guiResources.get());
-        m_guiManager->handles.editorIndex = m_createInfo.editorIndex;
 
-        auto endGuiManagerConstruction = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double, std::milli> guiManagerConstructionTime =
-                endGuiManagerConstruction - startGuiManagerConstruction;
-        //std::cout << "GuiManager Construction Time: " << guiManagerConstructionTime.count() << " ms" << std::endl;
-
-        /*
-        std::array<VkImageView, 3> frameBufferAttachments{};
-        frameBufferAttachments[0] = createInfo.colorImageView;
-        frameBufferAttachments[1] = createInfo.depthImageView;
-        VkFramebufferCreateInfo frameBufferCreateInfo = Populate::framebufferCreateInfo(applicationWidth,
-                                                                                        applicationHeight,
-                                                                                        frameBufferAttachments.data(),
-                                                                                        frameBufferAttachments.size(),
-                                                                                        renderPasses.begin()->get()->getRenderPass() // TODO verify if this is ok?
-        );
-        // Start timing Framebuffer creation
-        std::vector<std::chrono::duration<double, std::milli>> framebufferCreationTimes;
-        frameBuffers.resize(m_renderUtils.swapchainImages);
-        for (uint32_t i = 0; i < frameBuffers.size(); i++) {
-            auto startFramebufferCreation = std::chrono::high_resolution_clock::now();
-            frameBufferAttachments[2] = m_context->swapChainBuffers()[i].view;
-            VkResult result = vkCreateFramebuffer(m_renderUtils.device->m_LogicalDevice, &frameBufferCreateInfo,
-                                                  nullptr, &frameBuffers[i]);
-            if (result != VK_SUCCESS) {
-                throw std::runtime_error("Failed to create framebuffer");
-            }
-            auto endFramebufferCreation = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<double, std::milli> framebufferCreationTime =
-                    endFramebufferCreation - startFramebufferCreation;
-            framebufferCreationTimes.push_back(framebufferCreationTime);
-            //std::cout << "Framebuffer " << i << " Creation Time: " << framebufferCreationTime.count() << " ms" << std::endl;
-        }
-        // Optionally, you can average the framebuffer creation times
-        double totalFramebufferTime = 0;
-        for (const auto &time: framebufferCreationTimes) {
-            totalFramebufferTime += time.count();
-        }
-        //std::cout << "Average Framebuffer Creation Time: " << (totalFramebufferTime / framebufferCreationTimes.size()) << " ms" << std::endl;
-
-         */
+        Log::Logger::getInstance()->info("Creating new Editor. UUID: {}, size: {}x{}, at pos: ({},{})", uuid.operator std::string(), width, height, x, y);
 
     }
 
@@ -196,6 +145,7 @@ namespace VkRender {
     }
 
     void Editor::update(bool updateGraph, float frameTime, Input *input) {
+        m_guiManager->handles.info->backgroundColor = backgroundColor; // TODO hopefully we should only store information in one place. This is not the case here
 
         m_guiManager->update(updateGraph, frameTime, width, height, input);
 

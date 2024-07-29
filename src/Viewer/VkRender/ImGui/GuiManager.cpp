@@ -253,7 +253,7 @@ namespace VkRender {
             handles.info->gif.image[i] = m_guiResources->gifImageDescriptors[i];
         }
 
-        Log::Logger::getInstance()->info("Set ImGUI Context {} displaySize to: {}x{}", reinterpret_cast<uint64_t>(m_imguiContext), width, height);
+        //Log::Logger::getInstance()->info("Set ImGUI Context {} displaySize to: {}x{}", reinterpret_cast<uint64_t>(m_imguiContext), width, height);
 
         // Setup graphics pipeline for UI rendering
         VkPipelineInputAssemblyStateCreateInfo inputAssemblyState =

@@ -165,6 +165,8 @@ namespace VkRender {
         void handleViewportResize();
 
         void setupMainEditor();
+
+        Editor createEditorWithUUID(UUID uuid, VulkanRenderPassCreateInfo &createInfo);
     };
 }
 

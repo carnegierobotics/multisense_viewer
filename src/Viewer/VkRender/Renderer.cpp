@@ -52,10 +52,10 @@
 #include "Viewer/VkRender/Components/CameraGraphicsPipelineComponent.h"
 #include "Viewer/VkRender/Components/CustomModels.h"
 
-#include "Viewer/Scenes/Default/DefaultScene.h"
-#include "Viewer/Scenes/MultiSenseViewer/MultiSenseViewer.h"
-#include "Viewer/VkRender/Editors/EditorTypeOne.h"
+#include "Viewer/VkRender/Editors/Viewport/EditorViewport.h"
 #include "Viewer/VkRender/Editors/EditorSceneHierarchy.h"
+#include "Viewer/VkRender/Editors/EditorMultiSenseViewer.h"
+#include "Viewer/VkRender/Editors/Test/EditorTest.h"
 
 namespace VkRender {
 
@@ -97,7 +97,8 @@ namespace VkRender {
         m_usageMonitor->loadSettingsFromFile();
         m_usageMonitor->userStartSession(rendererStartTime);
         m_cameras[m_selectedCameraTag].setType(Camera::arcball);
-        m_cameras[m_selectedCameraTag].setPerspective(60.0f, static_cast<float>(m_width) / static_cast<float>(m_height));
+        m_cameras[m_selectedCameraTag].setPerspective(60.0f,
+                                                      static_cast<float>(m_width) / static_cast<float>(m_height));
         m_cameras[m_selectedCameraTag].resetPosition();
 
         // Run Once
@@ -111,7 +112,7 @@ namespace VkRender {
         setupMainEditor();
     }
 
-    void Renderer::setupMainEditor(){
+    void Renderer::setupMainEditor() {
         createColorResources();
         setupDepthStencil();
 
@@ -173,7 +174,6 @@ namespace VkRender {
         mainEditorInfo.clearValue.push_back({1.0f, 1.0f, 1.0f, 1.0f});
         mainEditorInfo.clearValue.push_back({0.1f, 0.4f, 0.1f, 1.0f});
         mainEditorInfo.resizeable = false;
-        mainEditorInfo.editorIndex = static_cast<uint32_t>(0);
 
         m_mainEditor = std::make_unique<Editor>(mainEditorInfo);
         m_mainEditor->m_guiManager->pushLayer("DebugWindow");
@@ -193,7 +193,7 @@ namespace VkRender {
         otherEditorInfo.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         otherEditorInfo.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         otherEditorInfo.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        otherEditorInfo.editorTypeDescription = "Scene Hierarchy";
+        otherEditorInfo.editorTypeDescription = "Test Window";
         std::array<VkClearValue, 3> clearValues{};
         otherEditorInfo.clearValue.push_back({0.1f, 0.4f, 0.1f, 1.0f});
         otherEditorInfo.clearValue.push_back({1.0f, 1.0f, 1.0f, 1.0f});
@@ -1000,18 +1000,40 @@ namespace VkRender {
     }
 
     Editor Renderer::createEditor(VulkanRenderPassCreateInfo &createInfo) {
+        // Randomly generate a background color
+        return createEditorWithUUID(UUID(), createInfo);
+    }
+
+    Editor Renderer::createEditorWithUUID(UUID uuid, VulkanRenderPassCreateInfo &createInfo) {
+        // Randomly generate a background color
+
+        std::vector<ImVec4> c{{1.0f, 0.0f, 0.0f, 0.7f},
+                              {0.0f, 1.0f, 0.0f, 0.7f}, // 1: Green
+                              {0.0f, 0.0f, 1.0f, 0.7f}, // 2: Blue
+                              {1.0f, 1.0f, 0.0f, 0.7f}, // 3: Yellow
+                              {1.0f, 0.0f, 1.0f, 0.7f}, // 4: Magenta
+                              {0.0f, 1.0f, 1.0f, 0.7f}, // 5: Cyan
+                              {0.5f, 0.5f, 0.5f, 0.7f}}; // 6: Gray
+        std::random_device rd;  // Seed for the random number engine
+        std::mt19937 gen(rd()); // Mersenne Twister random number engine
+        std::uniform_int_distribution<> dis(0, c.size() - 1); // Uniform distribution
+        size_t index = dis(gen); // Generate random index
+
+        createInfo.backgroundColor = {c[index].x, c[index].y, c[index].z, c[index].w};
 
         if (createInfo.editorTypeDescription == "UI") {
-            return EditorTypeOne(createInfo);
+            return EditorViewport(createInfo);
         } else if (createInfo.editorTypeDescription == "Scene Hierarchy") {
             return EditorSceneHierarchy(createInfo);
+        } else if (createInfo.editorTypeDescription == "MultiSense Viewer") {
+            return EditorMultiSenseViewer(createInfo);
         } else {
-            return EditorTypeTwo(createInfo);
+            return EditorTest(createInfo, uuid);
         }
     }
 
     void Renderer::replaceEditor(VulkanRenderPassCreateInfo &createInfo, Editor &editor) {
-        auto newEditor = createEditor(createInfo);
+        auto newEditor = createEditorWithUUID(editor.getUUID(), createInfo);
         // Update UI States
         newEditor.resizeActive = editor.resizeActive;
         newEditor.prevResize = editor.prevResize;
@@ -1031,6 +1053,7 @@ namespace VkRender {
         newEditor.resizeIntervalHoriz = editor.resizeIntervalHoriz;
         newEditor.resizeIntervalVertical = editor.resizeIntervalVertical;
         newEditor.splitting = editor.splitting;
+        newEditor.backgroundColor = editor.backgroundColor;
         m_oldEditors.push_back(std::move(editor));
 
         editor = std::move(newEditor);

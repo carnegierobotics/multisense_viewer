@@ -34,8 +34,6 @@ namespace VkRender {
         std::vector<VkClearValue> clearValue;
         bool resizeable = true;
 
-        glm::vec4 backgroundColor{};
-
         VulkanRenderPassCreateInfo() = default;
 
         VulkanRenderPassCreateInfo(VkFramebuffer * fbPtr, std::shared_ptr<GuiResources> guiRes, Renderer *ctx)
@@ -47,9 +45,33 @@ namespace VkRender {
 
     struct VulkanRenderPass {
     public:
-        VulkanRenderPass() = delete;
 
         explicit VulkanRenderPass(const VulkanRenderPassCreateInfo &createInfo);
+
+        // Implement move constructor
+        VulkanRenderPass(VulkanRenderPass &&other)  noexcept : m_logicalDevice(other.m_logicalDevice), m_allocator(other.m_allocator) {
+            swap(*this, other);
+        }
+
+        // and move assignment operator
+        VulkanRenderPass &operator=(VulkanRenderPass &&other) noexcept {
+            if (this != &other) { // Check for self-assignment
+                swap(*this, other);
+            }
+            return *this;
+        }
+        // Implement a swap function
+        friend void swap(VulkanRenderPass &first, VulkanRenderPass &second) noexcept {
+            std::swap(first.m_logicalDevice, second.m_logicalDevice);
+            std::swap(first.m_allocator, second.m_allocator);
+            std::swap(first.m_colorImage, second.m_colorImage);
+            std::swap(first.m_depthStencil, second.m_depthStencil);
+            std::swap(first.m_renderPass, second.m_renderPass);
+        }
+
+        // No copying allowed
+        VulkanRenderPass(const VulkanRenderPass &) = delete;
+        VulkanRenderPass &operator=(const VulkanRenderPass &) = delete;
 
         ~VulkanRenderPass();
 
@@ -77,11 +99,11 @@ namespace VkRender {
             VmaAllocation colorImageAllocation{};
             VmaAllocation resolvedImageAllocation{};
         } m_colorImage{};
-        VkDescriptorImageInfo m_imageInfo{};
 
         VkDevice &m_logicalDevice;
         VmaAllocator &m_allocator;
 
+        void cleanUp();
     };
 }
 

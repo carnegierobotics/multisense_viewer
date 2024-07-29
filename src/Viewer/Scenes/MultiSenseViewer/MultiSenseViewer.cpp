@@ -9,7 +9,7 @@ namespace VkRender {
 
     MultiSenseViewer::MultiSenseViewer(Renderer &ctx) : Scene(ctx) {
 
-        m_context.addUILayer("MultiSenseViewerLayer");
+        //m_context.addUILayer("MultiSenseViewerLayer");
 
     }
 

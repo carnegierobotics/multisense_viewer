@@ -92,7 +92,6 @@ namespace VkRender {
 
         VkRender::Entity findEntityByName(std::string_view name);
         void markEntityForDestruction(Entity entity);
-        void addUILayer(const std::string &layerName);
 
         entt::registry& registry() {return m_registry;}
         RenderUtils& data() {return m_renderUtils;}
@@ -162,11 +161,30 @@ namespace VkRender {
 
         void setupDepthStencil();
 
-        void handleViewportResize();
+        void updateEditors();
 
         void setupMainEditor();
 
         Editor createEditorWithUUID(UUID uuid, VulkanRenderPassCreateInfo &createInfo);
+
+
+        void handleHoverState(Editor &editor);
+
+        void handleMouseClick(Editor &editor);
+
+        void handleClickState(Editor &editor);
+
+        void updateCursor();
+
+        void handleDragState(Editor &editor);
+
+        void logStates();
+
+        void updateResizeIntervals(Editor &editor);
+
+        VulkanRenderPassCreateInfo getNewEditorCreateInfo(Editor &editor);
+
+        void resizeEditors(Editor &editor);
     };
 }
 

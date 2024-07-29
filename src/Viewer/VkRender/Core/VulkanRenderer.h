@@ -95,6 +95,7 @@ namespace VkRender {
             GLFWcursor* resizeVertical = nullptr;
             GLFWcursor* resizeHorizontal = nullptr;
             GLFWcursor* crossHair = nullptr;
+            GLFWcursor* hand = nullptr;
         }m_cursors;
 
 

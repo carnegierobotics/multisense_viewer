@@ -40,15 +40,13 @@
 
 
 
-#include <cstring>
-#include <iostream>
-#include <vector>
 #define GLFW_INCLUDE_VULKAN
 #ifdef APIENTRY
 #undef APIENTRY
 #endif
 #include <GLFW/glfw3.h>
 
+#include "Viewer/VkRender/pch.h"
 #include "Viewer/Tools/Macros.h"
 
 namespace Validation {

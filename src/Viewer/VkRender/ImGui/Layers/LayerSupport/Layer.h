@@ -41,12 +41,10 @@
 #define IMGUI_DISABLE_OBSOLETE_FUNCTIONS
 #define IMGUI_DEFINE_MATH_OPERATORS
 
+
 #include <imgui.h>
-#include <array>
-#include <map>
-#include <unordered_map>
-#include <string>
-#include <memory>
+
+#include "Viewer/VkRender/pch.h"
 
 #include "Viewer/VkRender/UsageMonitor.h"
 #include "Viewer/VkRender/Core/RenderDefinitions.h"
@@ -54,6 +52,7 @@
 #include "Viewer/Scenes/MultiSenseViewer/Modules/LibMultiSense/MultiSenseRendererBridge.h"
 #include "Viewer/Tools/ThreadPool.h"
 #include "Viewer/Scenes/MultiSenseViewer/Modules/GigE-Vision/MultiSenseRendererGigEVisionBridge.h"
+#include "Viewer/VkRender/EditorIncludes.h"
 
 namespace VkRender {
     class Renderer;
@@ -109,6 +108,7 @@ namespace VkRender {
 
         float applicationRuntime = 0.0f;
         glm::vec4 backgroundColor{};
+        glm::vec4 backgroundColorActive{};
 
         /** @brief Current frame*/
         uint64_t frameID = 0;
@@ -209,7 +209,8 @@ namespace VkRender {
         int imagesPerScene = 100;
         bool enableSecondaryView = true;
         bool fixAspectRatio = false;
-        EditorUIInfo editor;
+        EditorUIInfo editor; // Todo remove in favor for editorUI
+        EditorUI* editorUi;
     };
 
     /**

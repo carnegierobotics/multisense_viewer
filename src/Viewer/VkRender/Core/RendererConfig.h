@@ -5,10 +5,9 @@
 #ifndef MULTISENSE_VIEWER_RENDERCONFIG_H
 #define MULTISENSE_VIEWER_RENDERCONFIG_H
 
-#include <string>
-#include <fstream>
+#include "Viewer/VkRender/pch.h"
 #include <vulkan/vulkan.hpp>
-#include <random>
+
 
 #ifdef WIN32
 #ifndef WIN32_LEAN_AND_MEAN

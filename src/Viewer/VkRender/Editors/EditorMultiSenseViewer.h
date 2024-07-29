@@ -15,11 +15,11 @@ namespace VkRender {
         explicit EditorMultiSenseViewer(VulkanRenderPassCreateInfo &createInfo) : Editor(
                 createInfo) {
 
-            m_guiManager->pushLayer("EditorUILayer");
+            addUI("EditorUILayer");
 
-            m_guiManager->pushLayer("MultiSenseViewerLayer");
+            addUI("MultiSenseViewerLayer");
 
-            m_guiManager->pushLayer("DebugWindow");
+            addUI("DebugWindow");
 
         }
     };

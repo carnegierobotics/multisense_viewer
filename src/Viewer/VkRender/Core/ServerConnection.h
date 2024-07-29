@@ -7,6 +7,7 @@
 
 #include <httplib.h>
 #include "Viewer/VkRender/Core/RendererConfig.h"
+#include "Viewer/VkRender/pch.h"
 
 namespace VkRender {
 class ServerConnection {

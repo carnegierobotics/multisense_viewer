@@ -52,7 +52,7 @@ namespace VkRender {
     }
 
     void DefaultScene::addGuiLayers() {
-        m_context.addUILayer("SideBarLayer");
+
     }
 
     void DefaultScene::render() {

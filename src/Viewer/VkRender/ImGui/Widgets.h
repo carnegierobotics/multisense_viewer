@@ -7,10 +7,8 @@
 
 #include "Viewer/VkRender/Core/RenderDefinitions.h"
 #include "Viewer/Tools/Logger.h"
-#include <future>
-#include <string>
-#include <unordered_map>
-#include <vector>
+#include "Viewer/VkRender/pch.h"
+
 
 enum ScriptWidgetType {
     WIDGET_FLOAT_SLIDER,

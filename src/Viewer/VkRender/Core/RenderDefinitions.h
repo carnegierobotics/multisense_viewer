@@ -44,15 +44,8 @@
 #include <windows.h>
 #endif
 
-#include <unordered_map>
-#include <memory>
-#include <utility>
-#include <array>
-#include <vulkan/vulkan_core.h>
-#include <glm/vec2.hpp>
-#include <glm/vec3.hpp>
-#include <glm/vec4.hpp>
-#include <glm/mat4x4.hpp>
+#include "Viewer/VkRender/pch.h"
+
 
 #ifdef APIENTRY
 #undef APIENTRY

@@ -2,8 +2,6 @@
 // Created by magnus on 4/10/23.
 //
 
-#include <filesystem>
-
 #include "Viewer/VkRender/Core/ServerConnection.h"
 #include "Viewer/Tools/Logger.h"
 

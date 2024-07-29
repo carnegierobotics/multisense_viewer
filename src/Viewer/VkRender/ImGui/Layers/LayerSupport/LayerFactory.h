@@ -6,8 +6,7 @@
 #define MULTISENSE_VIEWER_LAYERFACTORY_H
 
 #include "Viewer/VkRender/ImGui/Layers/LayerSupport/Layer.h"
-#include <memory>
-#include <string>
+
 
 namespace VkRender {
     class LayerFactory {

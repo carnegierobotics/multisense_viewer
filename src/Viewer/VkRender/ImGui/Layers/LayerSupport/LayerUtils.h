@@ -5,6 +5,8 @@
 #ifndef MULTISENSE_VIEWER_LAYERUTILS_H
 #define MULTISENSE_VIEWER_LAYERUTILS_H
 
+#include "Viewer/Tools/Macros.h"
+
 #ifdef WIN32
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
@@ -13,20 +15,16 @@
 #include <shobjidl.h>
 #include <locale>
 #include <codecvt>
-
 #else
 DISABLE_WARNING_PUSH
 DISABLE_WARNING_OLD_STYLE_CAST
-
 #include <gtk/gtk.h>
-
 DISABLE_WARNING_POP
 #endif
 
 #include <imgui.h>
 
 #include "Viewer/VkRender/ImGui/Widgets.h"
-#include "Viewer/Tools/Macros.h"
 
 namespace VkRender::LayerUtils {
 

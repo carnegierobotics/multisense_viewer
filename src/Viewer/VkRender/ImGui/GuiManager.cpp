@@ -117,7 +117,6 @@ namespace VkRender {
         fontCount = fontDescriptors.size() - 1;
 
 
-
         auto iconFileNames = std::vector{
                 "icon_preview.png",
                 "icon_information.png",
@@ -138,7 +137,7 @@ namespace VkRender {
         std::filesystem::path texturePath = Utils::getTexturePath();
         // Load textures using the filenames
         for (std::size_t index = 0; index < iconFileNames.size(); ++index) {
-            const auto& filename = iconFileNames[index];
+            const auto &filename = iconFileNames[index];
             loadImGuiTextureFromFileName((texturePath / filename).string(), index);
 
 
@@ -168,7 +167,7 @@ namespace VkRender {
         assert(fragShaderStage.module != VK_NULL_HANDLE);
         shaderModules.push_back(frgModule);
 
-        shaders = std::array<VkPipelineShaderStageCreateInfo, 2> {vtxShaderStage, fragShaderStage};
+        shaders = std::array<VkPipelineShaderStageCreateInfo, 2>{vtxShaderStage, fragShaderStage};
 
 
         // Pipeline cache
@@ -194,8 +193,9 @@ namespace VkRender {
 
     }
 
-    GuiManager::GuiManager(VulkanDevice *vulkanDevice, VkRenderPass const &renderPass, const uint32_t &width,
-                           const uint32_t &height, VkSampleCountFlagBits msaaSamples, uint32_t imageCount, Renderer* ctx, ImGuiContext* imguiCtx, const GuiResources* guiResources) : m_guiResources(guiResources) {
+    GuiManager::GuiManager(VulkanDevice *vulkanDevice, const VkRenderPass  &renderPass, EditorUI *editorUi,
+                           VkSampleCountFlagBits msaaSamples, uint32_t imageCount, Renderer *ctx,
+                           ImGuiContext *imguiCtx, const GuiResources *guiResources) : m_guiResources(guiResources) {
         device = vulkanDevice;
         vertexBuffer.resize(imageCount);
         indexBuffer.resize(imageCount);
@@ -214,11 +214,12 @@ namespace VkRender {
         handles.fixAspectRatio = userSetting.editorUiState.fixAspectRatio;
         handles.m_context = ctx;
         handles.usageMonitor = ctx->m_usageMonitor;
+        handles.editorUi = editorUi;
 
-        ImGuiIO& io = ImGui::GetIO();
+        ImGuiIO &io = ImGui::GetIO();
         io.GetClipboardTextFn = ImGuiGlfwGetClipboardText;
         io.SetClipboardTextFn = ImGuiGlfwSetClipboardText;
-        io.DisplaySize = ImVec2(static_cast<float>(width), static_cast<float>(height));
+        io.DisplaySize = ImVec2(static_cast<float>(editorUi->width), static_cast<float>(editorUi->height));
         io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
         handles.info->imageButtonTextureDescriptor.resize(m_guiResources->iconCount);
         io.Fonts->SetTexID(reinterpret_cast<ImTextureID>(m_guiResources->fontDescriptors[m_guiResources->fontCount]));
@@ -246,115 +247,26 @@ namespace VkRender {
         handles.info->font24 = guiResources->font24;
         handles.info->fontIcons = guiResources->fontIcons;
 
-        for (int i = 0; i < m_guiResources->iconCount; ++i){
+        for (int i = 0; i < m_guiResources->iconCount; ++i) {
             handles.info->imageButtonTextureDescriptor[i] = reinterpret_cast<void *>(m_guiResources->imageIconDescriptors[i]);
         }
         for (int i = 0; i < m_guiResources->gif.totalFrames; ++i) {
             handles.info->gif.image[i] = m_guiResources->gifImageDescriptors[i];
         }
+        createGraphicsPipeline(renderPass, msaaSamples);
 
-        //Log::Logger::getInstance()->info("Set ImGUI Context {} displaySize to: {}x{}", reinterpret_cast<uint64_t>(m_imguiContext), width, height);
-
-        // Setup graphics pipeline for UI rendering
-        VkPipelineInputAssemblyStateCreateInfo inputAssemblyState =
-                Populate::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0,
-                                                               VK_FALSE);
-
-        VkPipelineRasterizationStateCreateInfo rasterizationState =
-                Populate::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE,
-                                                               VK_FRONT_FACE_COUNTER_CLOCKWISE);
-
-        // Enable blending
-        VkPipelineColorBlendAttachmentState blendAttachmentState{};
-        blendAttachmentState.blendEnable = VK_TRUE;
-        blendAttachmentState.colorWriteMask =
-                VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
-                VK_COLOR_COMPONENT_A_BIT;
-        blendAttachmentState.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-        blendAttachmentState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-        blendAttachmentState.colorBlendOp = VK_BLEND_OP_ADD;
-        blendAttachmentState.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-        blendAttachmentState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-        blendAttachmentState.alphaBlendOp = VK_BLEND_OP_ADD;
-
-        VkPipelineColorBlendStateCreateInfo colorBlendState =
-                Populate::pipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
-
-        VkPipelineDepthStencilStateCreateInfo depthStencilState =
-                Populate
-                ::pipelineDepthStencilStateCreateInfo(VK_FALSE, VK_FALSE, VK_COMPARE_OP_LESS_OR_EQUAL);
-
-        VkPipelineViewportStateCreateInfo viewportState =
-                Populate
-                ::pipelineViewportStateCreateInfo(1, 1, 0);
-
-        VkPipelineMultisampleStateCreateInfo multisampleState =
-                Populate
-                ::pipelineMultisampleStateCreateInfo(msaaSamples);
-
-        std::vector<VkDynamicState> dynamicStateEnables = {
-                VK_DYNAMIC_STATE_VIEWPORT,
-                VK_DYNAMIC_STATE_SCISSOR
-        };
-        VkPipelineDynamicStateCreateInfo dynamicState =
-                Populate
-                ::pipelineDynamicStateCreateInfo(dynamicStateEnables);
-
-        VkGraphicsPipelineCreateInfo pipelineCreateInfo = Populate
-        ::pipelineCreateInfo(m_guiResources->pipelineLayout,
-                             renderPass);
-
-
-        pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
-        pipelineCreateInfo.pRasterizationState = &rasterizationState;
-        pipelineCreateInfo.pColorBlendState = &colorBlendState;
-        pipelineCreateInfo.pMultisampleState = &multisampleState;
-        pipelineCreateInfo.pViewportState = &viewportState;
-        pipelineCreateInfo.pDepthStencilState = &depthStencilState;
-        pipelineCreateInfo.pDynamicState = &dynamicState;
-        pipelineCreateInfo.stageCount = static_cast<uint32_t>(m_guiResources->shaders.size());
-        pipelineCreateInfo.pStages = m_guiResources->shaders.data();
-
-        // Vertex bindings an attributes based on ImGui vertex definition
-        std::vector<VkVertexInputBindingDescription> vertexInputBindings = {
-                Populate
-                ::vertexInputBindingDescription(0, sizeof(ImDrawVert), VK_VERTEX_INPUT_RATE_VERTEX),
-        };
-        std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
-                Populate
-                ::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(ImDrawVert,
-                                                                                          pos)),    // Location 0: Position
-                Populate
-                ::vertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32_SFLOAT,
-                                                  offsetof(ImDrawVert, uv)),    // Location 1: UV
-                Populate
-                ::vertexInputAttributeDescription(0, 2, VK_FORMAT_R8G8B8A8_UNORM,
-                                                  offsetof(ImDrawVert, col)),    // Location 0: Color
-        };
-        VkPipelineVertexInputStateCreateInfo vertexInputState = Populate
-        ::pipelineVertexInputStateCreateInfo();
-        vertexInputState.vertexBindingDescriptionCount = static_cast<uint32_t>(vertexInputBindings.size());
-        vertexInputState.pVertexBindingDescriptions = vertexInputBindings.data();
-        vertexInputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexInputAttributes.size());
-        vertexInputState.pVertexAttributeDescriptions = vertexInputAttributes.data();
-
-        pipelineCreateInfo.pVertexInputState = &vertexInputState;
-
-        if (vkCreateGraphicsPipelines(device->m_LogicalDevice, m_guiResources->pipelineCache, 1, &pipelineCreateInfo, nullptr,
-                                      &pipeline) != VK_SUCCESS)
-            throw std::runtime_error("Failed to create graphics m_Pipeline");
     }
 
     void
-    GuiManager::update(bool updateFrameGraph, float frameTimer, uint32_t width, uint32_t height, const Input *pInput) {
+    GuiManager::update(bool updateFrameGraph, float frameTimer, EditorUI &editorUI, const Input *pInput) {
         ImGui::SetCurrentContext(m_imguiContext);
         //Log::Logger::getInstance()->trace("Set ImGUI Context {} and updating", reinterpret_cast<uint64_t>(m_imguiContext));
-
+        handles.editorUi = &editorUI;
         handles.info->frameTimer = frameTimer;
         handles.info->firstFrame = updateFrameGraph;
-        handles.info->width = static_cast<float>(width);
-        handles.info->height = static_cast<float>(height);
-        handles.info->aspect = static_cast<float>(width) / static_cast<float>(height);
+        handles.info->width = static_cast<float>(editorUI.width);
+        handles.info->height = static_cast<float>(editorUI.height);
+        handles.info->aspect = static_cast<float>(editorUI.width) / static_cast<float>(editorUI.height);
         handles.input = pInput;
 
         ImGui::NewFrame();
@@ -371,7 +283,8 @@ namespace VkRender {
         if (std::chrono::duration_cast<std::chrono::duration<float >>(
                 std::chrono::steady_clock::now() - saveSettingsTimer).count() > 5.0f) {
             Log::Logger::getInstance()->traceWithFrequency("saveimgui", 12, "Saving ImGui file: {}",
-                                              (Utils::getSystemCachePath() / "imgui.ini").string().c_str());
+                                                           (Utils::getSystemCachePath() /
+                                                            "imgui.ini").string().c_str());
             ImGui::SaveIniSettingsToDisk((Utils::getSystemCachePath() / "imgui.ini").string().c_str());
             saveSettingsTimer = std::chrono::steady_clock::now();
         }
@@ -458,9 +371,10 @@ namespace VkRender {
         updateBuffers(currentFrame);
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
-        pushConstBlock.scale = glm::vec2(2.0f / static_cast<float>(width), 2.0f /  static_cast<float>(height));
+        pushConstBlock.scale = glm::vec2(2.0f / static_cast<float>(width), 2.0f / static_cast<float>(height));
         pushConstBlock.translate = glm::vec2(-1.0f, -1.0f);
-        vkCmdPushConstants(commandBuffer, m_guiResources->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(GuiResources::PushConstBlock),
+        vkCmdPushConstants(commandBuffer, m_guiResources->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
+                           sizeof(GuiResources::PushConstBlock),
                            &pushConstBlock);
 
         // Render commands
@@ -485,14 +399,19 @@ namespace VkRender {
                     const ImDrawCmd *pcmd = &cmd_list->CmdBuffer[j];
 
                     auto texture = static_cast<VkDescriptorSet>(pcmd->GetTexID());
-                    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_guiResources->pipelineLayout, 0, 1,
+                    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                            m_guiResources->pipelineLayout, 0, 1,
                                             &texture, 0, nullptr);
 
                     VkRect2D scissorRect{};
-                    scissorRect.offset.x = std::max(static_cast<int32_t>(pcmd->ClipRect.x + x - 1), 0); // We're missing one pixel
-                    scissorRect.offset.y = std::max(static_cast<int32_t>(pcmd->ClipRect.y + y - 1), 0); // We're missing one pixel
-                    scissorRect.extent.width = static_cast<uint32_t>(pcmd->ClipRect.z - pcmd->ClipRect.x + 2); // We're missing one pixel
-                    scissorRect.extent.height = static_cast<uint32_t>(pcmd->ClipRect.w - pcmd->ClipRect.y + 2); // We're missing one pixel
+                    scissorRect.offset.x = std::max(static_cast<int32_t>(pcmd->ClipRect.x + x - 1),
+                                                    0); // We're missing one pixel
+                    scissorRect.offset.y = std::max(static_cast<int32_t>(pcmd->ClipRect.y + y - 1),
+                                                    0); // We're missing one pixel
+                    scissorRect.extent.width = static_cast<uint32_t>(pcmd->ClipRect.z - pcmd->ClipRect.x +
+                                                                     2); // We're missing one pixel
+                    scissorRect.extent.height = static_cast<uint32_t>(pcmd->ClipRect.w - pcmd->ClipRect.y +
+                                                                      2); // We're missing one pixel
                     vkCmdSetScissor(commandBuffer, 0, 1, &scissorRect);
                     vkCmdDrawIndexed(commandBuffer, pcmd->ElemCount, 1, pcmd->IdxOffset + indexOffset,
                                      pcmd->VtxOffset + vertexOffset, 0);
@@ -508,6 +427,106 @@ namespace VkRender {
                                       static_cast<uint32_t>(handles.info->height)}; // Set these to your framebuffer or viewport dimensions
             //vkCmdSetScissor(commandBuffer, 0, 1, &scissorRectFull);
         }
+    }
+
+    void GuiManager::resize(uint32_t width, uint32_t height, const VkRenderPass &renderPass, VkSampleCountFlagBits msaaSamples) {
+        ImGui::SetCurrentContext(m_imguiContext);
+        ImGuiIO &io = ImGui::GetIO();
+        io.DisplaySize = ImVec2(static_cast<float>(width), static_cast<float>(height));
+
+        createGraphicsPipeline(renderPass, msaaSamples);
+    }
+
+    void GuiManager::createGraphicsPipeline(const VkRenderPass &renderPass, VkSampleCountFlagBits msaaSamples) {
+        // Setup graphics pipeline for UI rendering
+        VkPipelineInputAssemblyStateCreateInfo inputAssemblyState =
+                Populate::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0,
+                                                               VK_FALSE);
+
+        VkPipelineRasterizationStateCreateInfo rasterizationState =
+                Populate::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE,
+                                                               VK_FRONT_FACE_COUNTER_CLOCKWISE);
+
+        // Enable blending
+        VkPipelineColorBlendAttachmentState blendAttachmentState{};
+        blendAttachmentState.blendEnable = VK_TRUE;
+        blendAttachmentState.colorWriteMask =
+                VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
+                VK_COLOR_COMPONENT_A_BIT;
+        blendAttachmentState.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+        blendAttachmentState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        blendAttachmentState.colorBlendOp = VK_BLEND_OP_ADD;
+        blendAttachmentState.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        blendAttachmentState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+        blendAttachmentState.alphaBlendOp = VK_BLEND_OP_ADD;
+
+        VkPipelineColorBlendStateCreateInfo colorBlendState =
+                Populate::pipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
+
+        VkPipelineDepthStencilStateCreateInfo depthStencilState =
+                Populate
+                ::pipelineDepthStencilStateCreateInfo(VK_FALSE, VK_FALSE, VK_COMPARE_OP_LESS_OR_EQUAL);
+
+        VkPipelineViewportStateCreateInfo viewportState =
+                Populate
+                ::pipelineViewportStateCreateInfo(1, 1, 0);
+
+        VkPipelineMultisampleStateCreateInfo multisampleState =
+                Populate
+                ::pipelineMultisampleStateCreateInfo(msaaSamples);
+
+        std::vector<VkDynamicState> dynamicStateEnables = {
+                VK_DYNAMIC_STATE_VIEWPORT,
+                VK_DYNAMIC_STATE_SCISSOR
+        };
+        VkPipelineDynamicStateCreateInfo dynamicState =
+                Populate
+                ::pipelineDynamicStateCreateInfo(dynamicStateEnables);
+
+        VkGraphicsPipelineCreateInfo pipelineCreateInfo = Populate
+        ::pipelineCreateInfo(m_guiResources->pipelineLayout,
+                             renderPass);
+
+
+        pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
+        pipelineCreateInfo.pRasterizationState = &rasterizationState;
+        pipelineCreateInfo.pColorBlendState = &colorBlendState;
+        pipelineCreateInfo.pMultisampleState = &multisampleState;
+        pipelineCreateInfo.pViewportState = &viewportState;
+        pipelineCreateInfo.pDepthStencilState = &depthStencilState;
+        pipelineCreateInfo.pDynamicState = &dynamicState;
+        pipelineCreateInfo.stageCount = static_cast<uint32_t>(m_guiResources->shaders.size());
+        pipelineCreateInfo.pStages = m_guiResources->shaders.data();
+
+        // Vertex bindings an attributes based on ImGui vertex definition
+        std::vector<VkVertexInputBindingDescription> vertexInputBindings = {
+                Populate
+                ::vertexInputBindingDescription(0, sizeof(ImDrawVert), VK_VERTEX_INPUT_RATE_VERTEX),
+        };
+        std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
+                Populate
+                ::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(ImDrawVert,
+                                                                                          pos)),    // Location 0: Position
+                Populate
+                ::vertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32_SFLOAT,
+                                                  offsetof(ImDrawVert, uv)),    // Location 1: UV
+                Populate
+                ::vertexInputAttributeDescription(0, 2, VK_FORMAT_R8G8B8A8_UNORM,
+                                                  offsetof(ImDrawVert, col)),    // Location 0: Color
+        };
+        VkPipelineVertexInputStateCreateInfo vertexInputState = Populate
+        ::pipelineVertexInputStateCreateInfo();
+        vertexInputState.vertexBindingDescriptionCount = static_cast<uint32_t>(vertexInputBindings.size());
+        vertexInputState.pVertexBindingDescriptions = vertexInputBindings.data();
+        vertexInputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexInputAttributes.size());
+        vertexInputState.pVertexAttributeDescriptions = vertexInputAttributes.data();
+
+        pipelineCreateInfo.pVertexInputState = &vertexInputState;
+
+        if (vkCreateGraphicsPipelines(device->m_LogicalDevice, m_guiResources->pipelineCache, 1, &pipelineCreateInfo,
+                                      nullptr,
+                                      &pipeline) != VK_SUCCESS)
+            throw std::runtime_error("Failed to create graphics m_Pipeline");
     }
 
     void GuiResources::loadImGuiTextureFromFileName(const std::string &file, uint32_t i) {
@@ -546,20 +565,21 @@ namespace VkRender {
     }
 
 
-    ImFont *GuiResources::loadFontFromFileName(const std::filesystem::path& file, float fontSize, bool iconFont) {
+    ImFont *GuiResources::loadFontFromFileName(const std::filesystem::path &file, float fontSize, bool iconFont) {
         ImFont *font;
 
-        if (iconFont){
+        if (iconFont) {
             float baseFontSize = fontSize; // 13.0f is the size of the default font. Change to the font size you use.
-            float iconFontSize = baseFontSize * 2.0f / 3.0f; // FontAwesome fonts need to have their sizes reduced by 2.0f/3.0f in order to align correctly
+            float iconFontSize = baseFontSize * 2.0f /
+                                 3.0f; // FontAwesome fonts need to have their sizes reduced by 2.0f/3.0f in order to align correctly
 
             // merge in icons from Font Awesome
-            static const ImWchar icons_ranges[] = { ICON_MIN_FA, ICON_MAX_16_FA, 0 };
+            static const ImWchar icons_ranges[] = {ICON_MIN_FA, ICON_MAX_16_FA, 0};
             ImFontConfig icons_config;
             icons_config.MergeMode = true;
             icons_config.PixelSnapH = true;
             icons_config.GlyphMinAdvanceX = iconFontSize;
-            font = fontAtlas.AddFontFromFileTTF( file.string().c_str(), iconFontSize, &icons_config, icons_ranges );
+            font = fontAtlas.AddFontFromFileTTF(file.string().c_str(), iconFontSize, &icons_config, icons_ranges);
         } else {
             ImFontConfig config;
             config.OversampleH = 2;
@@ -639,9 +659,10 @@ namespace VkRender {
         for (int i = 0; i < depth; ++i) {
             VkDescriptorSet dSet{};
             gifTexture[i] = std::make_unique<Texture2D>(pixelPointer, imageSize, VK_FORMAT_R8G8B8A8_SRGB,
-                                      width, height, device,
-                                      device->m_TransferQueue, VK_FILTER_LINEAR, VK_IMAGE_USAGE_SAMPLED_BIT,
-                                      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+                                                        width, height, device,
+                                                        device->m_TransferQueue, VK_FILTER_LINEAR,
+                                                        VK_IMAGE_USAGE_SAMPLED_BIT,
+                                                        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
             // Create Descriptor Set:
 
@@ -667,8 +688,6 @@ namespace VkRender {
         }
         stbi_image_free(pixels);
     }
-
-
 
 
 }

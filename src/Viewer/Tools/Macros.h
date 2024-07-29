@@ -36,8 +36,8 @@
 #ifndef MULTISENSE_MACROS_H
 #define MULTISENSE_MACROS_H
 
-#include <vulkan/vulkan_core.h>
 #include <string>
+#include <vulkan/vulkan_core.h>
 
 #if defined(_MSC_VER)
 #define DISABLE_WARNING_PUSH           __pragma(warning( push ))
@@ -81,8 +81,15 @@
 #define DISABLE_WARNING_PEDANTIC                                  DISABLE_WARNING(-Wpedantic)
 #define DISABLE_WARNING_DEPRECATION
 #define DISABLE_WARNING_NULL_DEREFERENCE                          DISABLE_WARNING(-Wnull-dereference)
-#define DISABLE_WARNING_NULLABILITY_COMPLETENESS                  DISABLE_WARNING(-Wnullability-completeness)
-// other warnings you want to deactivate...
+
+// Compiler specific warnings defined here
+#if defined(__clang__)
+  #define DISABLE_WARNING_NULLABILITY_COMPLETENESS DISABLE_WARNING_CLANG(-Wnullability-completeness)
+#elif defined(__GNUC__) || defined(__GNUG__)
+#define DISABLE_WARNING_NULLABILITY_COMPLETENESS
+#else
+#define DISABLE_WARNING_NULLABILITY_COMPLETENESS
+#endif// other warnings you want to deactivate...
 
 
 #else

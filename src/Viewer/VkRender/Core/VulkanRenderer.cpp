@@ -80,6 +80,7 @@ namespace VkRender {
         m_cursors.resizeHorizontal = glfwCreateStandardCursor(GLFW_RESIZE_EW_CURSOR);
         m_cursors.crossHair = glfwCreateStandardCursor(GLFW_CROSSHAIR_CURSOR);
         m_cursors.arrow = glfwCreateStandardCursor(GLFW_ARROW_CURSOR);
+        m_cursors.hand = glfwCreateStandardCursor(GLFW_POINTING_HAND_CURSOR);
 
         GLFWimage images[1];
         std::string fileName = Utils::getAssetsPath().append("Textures/CRL96x96.png").string();
@@ -306,6 +307,7 @@ namespace VkRender {
         vkDestroyInstance(instance, nullptr);
         // Cleanup GLFW Resources
         glfwDestroyCursor(m_cursors.arrow);
+        glfwDestroyCursor(m_cursors.hand);
         glfwDestroyCursor(m_cursors.resizeVertical);
         glfwDestroyCursor(m_cursors.resizeHorizontal);
         glfwDestroyCursor(m_cursors.crossHair);
@@ -556,6 +558,9 @@ namespace VkRender {
         // Use a fence to wait until the command buffer has finished execution before using it again
         if (vkWaitForFences(device, 1, &waitFences[currentFrame], VK_TRUE, UINT64_MAX) != VK_SUCCESS)
             throw std::runtime_error("Failed to wait for render fence");
+
+        // Cleanup deferred deletions
+        VulkanResourceManager::getInstance().cleanup();
 
         // Post render actions, should only be called after our first frame
             updateRenderingStates();

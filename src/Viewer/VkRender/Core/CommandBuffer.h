@@ -6,9 +6,7 @@
 #define MULTISENSE_VIEWER_COMMANDBUFFER_H
 
 
-#include <string>
-#include <unordered_map>
-#include <vector>
+#include "Viewer/VkRender/pch.h"
 
 #include <vulkan/vulkan_core.h>
 

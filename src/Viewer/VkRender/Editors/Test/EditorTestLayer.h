@@ -39,9 +39,15 @@ namespace VkRender {
                     ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus |
                     ImGuiWindowFlags_NoFocusOnAppearing;
 
-            auto& c = handles.info->backgroundColor;
+            ImVec4 color;
+            if (handles.editorUi->active)
+                color = handles.editorUi->backgroundColorActive;
+            else if (handles.editorUi->hovered)
+                color = handles.editorUi->backgroundColorHovered;
+            else
+                color = handles.editorUi->backgroundColor;
 
-            ImGui::PushStyleColor(ImGuiCol_WindowBg, {c.x, c.y, c.z, c.w});
+            ImGui::PushStyleColor(ImGuiCol_WindowBg, color);
             // Set next window position and size
             ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always);
             ImGui::SetNextWindowSize(window_size, ImGuiCond_Always);

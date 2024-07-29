@@ -8,6 +8,7 @@
 #include "Viewer/Tools/Populate.h"
 #include "Viewer/VkRender/Editor.h"
 #include "Viewer/VkRender/Renderer.h"
+#include "VulkanResourceManager.h"
 
 namespace VkRender {
 
@@ -198,12 +199,9 @@ namespace VkRender {
         VALIDATION_DEBUG_NAME(data.device->m_LogicalDevice,
                               reinterpret_cast<uint64_t>(m_renderPass), VK_OBJECT_TYPE_RENDER_PASS,
                               (editorTypeDescription + "UIRenderPass").c_str());
-        m_imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        m_imageInfo.imageView = m_colorImage.view; // Your off-screen image view
-        m_imageInfo.sampler = m_colorImage.sampler; // The sampler you've just created
     }
 
-    VulkanRenderPass::~VulkanRenderPass() {
+    void VulkanRenderPass::cleanUp(){
         vkDestroyRenderPass(m_logicalDevice, m_renderPass, nullptr);
         vkDestroySampler(m_logicalDevice, m_colorImage.sampler, nullptr);
 
@@ -228,6 +226,15 @@ namespace VkRender {
             vkDestroyImageView(m_logicalDevice, m_depthStencil.view,
                                nullptr);
         }
+    }
+
+    VulkanRenderPass::~VulkanRenderPass() {
+        VkFence fence;
+        VkFenceCreateInfo fenceCreateInfo = {};
+        fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+        vkCreateFence(m_logicalDevice, &fenceCreateInfo, nullptr, &fence);
+
+        VulkanResourceManager::getInstance().deferDeletion([this]() { cleanUp(); }, fence);
 
     }
 }

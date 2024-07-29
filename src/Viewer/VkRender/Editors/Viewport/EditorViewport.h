@@ -16,11 +16,11 @@ namespace VkRender {
         explicit EditorViewport(VulkanRenderPassCreateInfo &createInfo) : Editor(
                 createInfo) {
 
-            m_guiManager->pushLayer("EditorUILayer");
+            addUI("EditorUILayer");
 
-            m_guiManager->pushLayer("SideBarLayer");
+            addUI("SideBarLayer");
 
-            m_guiManager->pushLayer("DebugWindow");
+            addUI("DebugWindow");
 
         }
 

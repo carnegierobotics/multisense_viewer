@@ -16,11 +16,11 @@ namespace VkRender {
         explicit EditorTest(VulkanRenderPassCreateInfo &createInfo, UUID uuid = UUID()) : Editor(
                 createInfo, uuid) {
 
-            m_guiManager->pushLayer("EditorUILayer");
+            addUI("EditorUILayer");
 
-            m_guiManager->pushLayer("EditorTestLayer");
+            addUI("EditorTestLayer");
 
-            m_guiManager->pushLayer("DebugWindow");
+            addUI("DebugWindow");
 
         }
 

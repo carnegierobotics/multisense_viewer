@@ -53,6 +53,7 @@
 #include "Viewer/VkRender/ImGui/Layers/LayerSupport/Layer.h"
 #include "Viewer/VkRender/ImGui/Widgets.h"
 #include "Viewer/VkRender/ImGui/Layers/LayerSupport/LayerFactory.h"
+#include "Viewer/VkRender/EditorIncludes.h"
 
 namespace VkRender {
 
@@ -121,8 +122,7 @@ namespace VkRender {
     public:
         GuiObjectHandles handles{};
 
-        GuiManager(VulkanDevice *vulkanDevice, VkRenderPass const &renderPass, const uint32_t &width,
-                   const uint32_t &height, VkSampleCountFlagBits msaaSamples, uint32_t imageCount, Renderer* ctx, ImGuiContext* imguiCtx, const GuiResources* guiResources); // TODO context should be pass by reference as it is no nullable?
+        GuiManager(VulkanDevice *vulkanDevice, VkRenderPass const &renderPass, EditorUI* editorUi, VkSampleCountFlagBits msaaSamples, uint32_t imageCount, Renderer* ctx, ImGuiContext* imguiCtx, const GuiResources* guiResources); // TODO context should be pass by reference as it is no nullable?
 
         ~GuiManager() {
             //Log::Logger::getInstance()->info("Saving ImGui file: {}", (Utils::getSystemCachePath() / "imgui.ini").string().c_str());
@@ -139,8 +139,10 @@ namespace VkRender {
             ImGui::DestroyContext(m_imguiContext);
         };
 
+        void resize(uint32_t width, uint32_t height, VkRenderPass const &renderPass, VkSampleCountFlagBits msaaSamples);
+
         /**@brief Update function called from renderer. Function calls each layer in order to generate buffers for draw commands*/
-        void update(bool updateFrameGraph, float frameTimer, uint32_t width, uint32_t height, const Input *pInput);
+        void update(bool updateFrameGraph, float frameTimer, EditorUI& editorUI, const Input *pInput);
 
         /**@brief Draw command called once per command buffer recording*/
         void drawFrame(VkCommandBuffer commandBuffer, uint32_t imageIndex, uint32_t width, uint32_t height, uint32_t x,
@@ -187,6 +189,8 @@ namespace VkRender {
         VulkanDevice *device = nullptr;
         std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> saveSettingsTimer;
 
+
+        void createGraphicsPipeline(const VkRenderPass &renderPass, VkSampleCountFlagBits msaaSamples);
 
     };
 }

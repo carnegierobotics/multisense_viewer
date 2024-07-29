@@ -39,11 +39,8 @@
 
 #pragma once
 
-#include <fstream>
-#include <cstdlib>
-#include <string>
-#include <vector>
-#include <filesystem>
+#include "Viewer/VkRender/pch.h"
+
 #include <tiny_gltf.h>
 
 #include "Viewer/VkRender/Core/Buffer.h"

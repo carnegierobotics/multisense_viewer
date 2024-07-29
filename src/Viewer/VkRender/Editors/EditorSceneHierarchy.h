@@ -15,9 +15,9 @@ namespace VkRender {
 
         explicit EditorSceneHierarchy(VulkanRenderPassCreateInfo &createInfo) : Editor(createInfo) {
 
-            m_guiManager->pushLayer("EditorUILayer");
-            m_guiManager->pushLayer("SceneHierarchyLayer");
-            m_guiManager->pushLayer("DebugWindow");
+            addUI("EditorUILayer");
+            addUI("SceneHierarchyLayer");
+            addUI("DebugWindow");
 
         }
 

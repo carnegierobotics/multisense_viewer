@@ -56,6 +56,7 @@
 #include "Viewer/VkRender/Editors/EditorSceneHierarchy.h"
 #include "Viewer/VkRender/Editors/EditorMultiSenseViewer.h"
 #include "Viewer/VkRender/Editors/Test/EditorTest.h"
+#include "Viewer/VkRender/Core/VulkanResourceManager.h"
 
 namespace VkRender {
 
@@ -68,6 +69,7 @@ namespace VkRender {
         VulkanRenderer::initVulkan();
         VulkanRenderer::prepare();
 
+        VulkanResourceManager::getInstance(device, m_allocator);
         m_guiResources = std::make_shared<GuiResources>(m_vulkanDevice);
 
         // TODO Make dynamic
@@ -176,18 +178,18 @@ namespace VkRender {
         mainEditorInfo.resizeable = false;
 
         m_mainEditor = std::make_unique<Editor>(mainEditorInfo);
-        m_mainEditor->m_guiManager->pushLayer("DebugWindow");
-        m_mainEditor->m_guiManager->pushLayer("MenuLayer");
+        m_mainEditor->addUI("DebugWindow");
+        m_mainEditor->addUI("MenuLayer");
 
         auto sizeLimits = m_mainEditor->getSizeLimits();
         VulkanRenderPassCreateInfo otherEditorInfo(m_frameBuffers.data(), m_guiResources, this);
         otherEditorInfo.appHeight = static_cast<int32_t>(m_height);
         otherEditorInfo.appWidth = static_cast<int32_t>(m_width);
         otherEditorInfo.borderSize = 5;
-        otherEditorInfo.height = static_cast<int32_t>(m_height) - sizeLimits.MENU_BAR_HEIGHT;//- 100;
-        otherEditorInfo.width = static_cast<int32_t>(m_width);//- 200;
-        otherEditorInfo.x = 0;//+ 100;
-        otherEditorInfo.y = sizeLimits.MENU_BAR_HEIGHT;// + 050;
+        otherEditorInfo.height = static_cast<int32_t>(m_height) - sizeLimits.MENU_BAR_HEIGHT - 100;
+        otherEditorInfo.width = static_cast<int32_t>(m_width) - 200;
+        otherEditorInfo.x = 0 + 100;
+        otherEditorInfo.y = sizeLimits.MENU_BAR_HEIGHT + 050;
 
         otherEditorInfo.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
         otherEditorInfo.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -842,43 +844,42 @@ namespace VkRender {
         }
         // update imgui io:
 
-        handleViewportResize();
 
-        ImGui::SetCurrentContext(m_mainEditor->m_guiManager->m_imguiContext);
+        ImGui::SetCurrentContext(m_mainEditor->guiContext());
         ImGuiIO &mainIO = ImGui::GetIO();
-        //io.DisplaySize = ImVec2(static_cast<float>(m_width), static_cast<float>(m_height));
         mainIO.DeltaTime = frameTimer;
         mainIO.WantCaptureMouse = true;
         mainIO.MousePos = ImVec2(mouse.x, mouse.y);
         mainIO.MouseDown[0] = mouse.left;
         mainIO.MouseDown[1] = mouse.right;
 
-        for (const auto &editor: m_editors) {
-            ImGui::SetCurrentContext(editor.m_guiManager->m_imguiContext);
+        for (auto &editor: m_editors) {
+            ImGui::SetCurrentContext(editor.guiContext());
             ImGuiIO &otherIO = ImGui::GetIO();
             otherIO.DeltaTime = frameTimer;
             otherIO.WantCaptureMouse = true;
-            otherIO.MousePos = ImVec2(mouse.x - editor.x, mouse.y - editor.y);
+            otherIO.MousePos = ImVec2(mouse.x - editor.ui().x, mouse.y - editor.ui().y);
             otherIO.MouseDown[0] = mouse.left;
             otherIO.MouseDown[1] = mouse.right;
         }
 
+        updateEditors();
 
         // update m_scenes:
         for (const auto &scene: m_scenes) {
             scene->update();
         }
         m_mainEditor->update((frameCounter == 0), frameTimer, &input);
-        for (auto &editor: m_editors) {
-            editor.update((frameCounter == 0), frameTimer, &input);
-        }
+
         // Reorder Editors elements according to UI
         for (auto &editor: m_editors) {
+            /*
             if (editor.m_guiManager->handles.editor.changed) {
                 // Set a new one
                 editor.getCreateInfo().editorTypeDescription = editor.m_guiManager->handles.editor.selectedType;
                 replaceEditor(editor.getCreateInfo(), editor);
             }
+             */
         }
 
         //m_selectedCameraTag = m_guiManager->handles.m_cameraSelection.tag;
@@ -1007,19 +1008,8 @@ namespace VkRender {
     Editor Renderer::createEditorWithUUID(UUID uuid, VulkanRenderPassCreateInfo &createInfo) {
         // Randomly generate a background color
 
-        std::vector<ImVec4> c{{1.0f, 0.0f, 0.0f, 0.7f},
-                              {0.0f, 1.0f, 0.0f, 0.7f}, // 1: Green
-                              {0.0f, 0.0f, 1.0f, 0.7f}, // 2: Blue
-                              {1.0f, 1.0f, 0.0f, 0.7f}, // 3: Yellow
-                              {1.0f, 0.0f, 1.0f, 0.7f}, // 4: Magenta
-                              {0.0f, 1.0f, 1.0f, 0.7f}, // 5: Cyan
-                              {0.5f, 0.5f, 0.5f, 0.7f}}; // 6: Gray
-        std::random_device rd;  // Seed for the random number engine
-        std::mt19937 gen(rd()); // Mersenne Twister random number engine
-        std::uniform_int_distribution<> dis(0, c.size() - 1); // Uniform distribution
-        size_t index = dis(gen); // Generate random index
 
-        createInfo.backgroundColor = {c[index].x, c[index].y, c[index].z, c[index].w};
+
 
         if (createInfo.editorTypeDescription == "UI") {
             return EditorViewport(createInfo);
@@ -1034,36 +1024,11 @@ namespace VkRender {
 
     void Renderer::replaceEditor(VulkanRenderPassCreateInfo &createInfo, Editor &editor) {
         auto newEditor = createEditorWithUUID(editor.getUUID(), createInfo);
-        // Update UI States
-        newEditor.resizeActive = editor.resizeActive;
-        newEditor.prevResize = editor.prevResize;
-        newEditor.borderClicked = editor.borderClicked;
-        newEditor.resizeHovered = editor.resizeHovered;
-        newEditor.cornerBottomLeftHovered = editor.cornerBottomLeftHovered;
-        newEditor.cornerBottomLeftClicked = editor.cornerBottomLeftClicked;
-        newEditor.dragHorizontal = editor.dragHorizontal;
-        newEditor.dragVertical = editor.dragVertical;
-        newEditor.dragActive = editor.dragActive;
-        newEditor.dragDelta = editor.dragDelta;
-        newEditor.hoverDelta = editor.hoverDelta;
-        newEditor.lastHoveredBorderType = editor.lastHoveredBorderType;
-        newEditor.createNewEditorByCopy = editor.createNewEditorByCopy;
-        newEditor.lastClickedBorderType = editor.lastClickedBorderType;
-        newEditor.lastPressedPos = editor.lastPressedPos;
-        newEditor.resizeIntervalHoriz = editor.resizeIntervalHoriz;
-        newEditor.resizeIntervalVertical = editor.resizeIntervalVertical;
-        newEditor.splitting = editor.splitting;
-        newEditor.backgroundColor = editor.backgroundColor;
+        newEditor.setUIState(editor.ui());
         m_oldEditors.push_back(std::move(editor));
-
         editor = std::move(newEditor);
-
-
     }
 
-    void Renderer::addUILayer(const std::string &layerName) {
-
-    }
 
     void Renderer::recordCommands() {
         /** Generate Draw Commands **/
@@ -1157,31 +1122,32 @@ namespace VkRender {
 
     }
 
+    /*
     void Renderer::handleViewportResize() {
         // Get hover state
         GLFWcursor *cursorType = m_cursors.arrow;
         for (auto &editor: m_editors) {
             EditorBorderState borderState = editor.checkBorderState(glm::vec2(mouse.x, mouse.y));
-            editor.lastHoveredBorderType = borderState;
-            editor.cornerBottomLeftHovered = false;
-            editor.resizeHovered = false;
+            editor.ui().lastHoveredBorderType = borderState;
+            editor.ui().cornerBottomLeftHovered = false;
+            editor.ui().resizeHovered = false;
             switch (borderState) {
                 case EditorBorderState::Left:
                 case EditorBorderState::Right:
                     cursorType = m_cursors.resizeHorizontal;
-                    editor.resizeHovered = true;
+                    editor.ui().resizeHovered = true;
                     break;
                 case EditorBorderState::Top:
                 case EditorBorderState::Bottom:
                     cursorType = m_cursors.resizeVertical;
-                    editor.resizeHovered = true;
+                    editor.ui().resizeHovered = true;
                     break;
                 case EditorBorderState::TopRight:
                 case EditorBorderState::BottomRight:
                 case EditorBorderState::TopLeft:
                     break;
                 case EditorBorderState::BottomLeft:
-                    editor.cornerBottomLeftHovered = true;
+                    editor.ui().cornerBottomLeftHovered = true;
                     cursorType = m_cursors.crossHair;
                     break;
                 case EditorBorderState::None:
@@ -1193,48 +1159,52 @@ namespace VkRender {
         bool anyCornerHovered = false;
         bool anyCornerClicked = false;
         for (auto &editor: m_editors) {
-            if (editor.cornerBottomLeftHovered)
+            if (editor.ui().cornerBottomLeftHovered)
                 anyCornerHovered = true;
-            if (editor.cornerBottomLeftClicked)
+            if (editor.ui().cornerBottomLeftClicked)
                 anyCornerClicked = true;
         }
-        if (anyCornerHovered)
+        if (anyCornerClicked)
             glfwSetCursor(window, m_cursors.crossHair);
+        else if (anyCornerHovered)
+            glfwSetCursor(window, m_cursors.hand);
         else
             glfwSetCursor(window, cursorType);
+
+
 
 
         // Get click state
         for (size_t index = 0; auto &editor: m_editors) {
             EditorBorderState borderState = editor.checkBorderState(mouse.pos);
             if (!mouse.left) {
-                editor.resizeActive = false;
-                editor.cornerBottomLeftClicked = false;
-                editor.dragHorizontal = false;
-                editor.dragVertical = false;
-                editor.dragActive = false;
-                editor.splitting = false;
-                editor.lastPressedPos = glm::ivec2(-1, -1);
-                editor.dragDelta = glm::ivec2(0, 0);
-                editor.hoverDelta = glm::ivec2(0, 0);
+                editor.ui().resizeActive = false;
+                editor.ui().cornerBottomLeftClicked = false;
+                editor.ui().dragHorizontal = false;
+                editor.ui().dragVertical = false;
+                editor.ui().dragActive = false;
+                editor.ui().splitting = false;
+                editor.ui().lastPressedPos = glm::ivec2(-1, -1);
+                editor.ui().dragDelta = glm::ivec2(0, 0);
+                editor.ui().hoverDelta = glm::ivec2(0, 0);
             }
 
             // Resize (Horiz/Vertical) Click
             if (mouse.left && mouse.action == GLFW_PRESS) {
-                editor.lastPressedPos = mouse.pos;
+                editor.ui().lastPressedPos = mouse.pos;
 
                 // Resize click action
-                editor.resizeActive = !anyCornerHovered && editor.resizeHovered &&
+                editor.ui().resizeActive = !anyCornerHovered && editor.ui().resizeHovered &&
                                       (borderState == EditorBorderState::Left ||
                                        borderState == EditorBorderState::Right ||
                                        borderState == EditorBorderState::Top ||
                                        borderState == EditorBorderState::Bottom);
 
-                editor.lastClickedBorderType = borderState;
+                editor.ui().lastClickedBorderType = borderState;
 
                 // Corner Click
-                if (editor.cornerBottomLeftHovered) {
-                    editor.cornerBottomLeftClicked = true;
+                if (editor.ui().cornerBottomLeftHovered) {
+                    editor.ui().cornerBottomLeftClicked = true;
                 }
             }
         }
@@ -1242,22 +1212,22 @@ namespace VkRender {
         // Check for drag events
         if (mouse.left) {
             for (size_t index = 0; auto &editor: m_editors) {
-                editor.hoverDelta = glm::ivec2(mouse.dx, mouse.dy);
-                int32_t dragX = mouse.x - editor.lastPressedPos.x;
-                int32_t dragY = mouse.y - editor.lastPressedPos.y;
-                editor.dragDelta = glm::ivec2(dragX, dragY);
+                editor.ui().hoverDelta = glm::ivec2(mouse.dx, mouse.dy);
+                int32_t dragX = mouse.x - editor.ui().lastPressedPos.x;
+                int32_t dragY = mouse.y - editor.ui().lastPressedPos.y;
+                editor.ui().dragDelta = glm::ivec2(dragX, dragY);
 
                 // Record changes but dont set states if we are not inside editor
                 if (editor.checkBorderState(mouse.pos) == EditorBorderState::None)
                     continue;
 
                 // Calculate how long we've dragged.
-                if (editor.lastPressedPos.x < 1 || editor.lastPressedPos.y < 1)
+                if (editor.ui().lastPressedPos.x < 1 || editor.ui().lastPressedPos.y < 1)
                     continue;
 
-                editor.dragHorizontal = abs(dragX) >= 50;
-                editor.dragVertical = abs(dragY) >= 50;
-                editor.dragActive = dragX > 0 || dragY > 0;
+                editor.ui().dragHorizontal = abs(dragX) >= 50;
+                editor.ui().dragVertical = abs(dragY) >= 50;
+                editor.ui().dragActive = dragX > 0 || dragY > 0;
 
             }
         }
@@ -1265,23 +1235,23 @@ namespace VkRender {
         // Log everything, at this state we should have enough information to start resizing
         for (size_t index = 0; auto &editor: m_editors) {
 
-            if (editor.dragActive)
+            if (editor.ui().dragActive)
                 Log::Logger::getInstance()->infoWithFrequency("dragActiveTag", 60,
                                                               "Recorded a {} drag event for editor: {}. PosD: ({},{}). HoverD: ({},{})",
-                                                              editor.dragVertical ? "Vertical" : "Horizontal",
+                                                              editor.ui().dragVertical ? "Vertical" : "Horizontal",
                                                               editor.getUUID().operator std::string(),
-                                                              editor.dragDelta.x, editor.dragDelta.y,
-                                                              editor.hoverDelta.x, editor.hoverDelta.y);
+                                                              editor.ui().dragDelta.x, editor.ui().dragDelta.y,
+                                                              editor.ui().hoverDelta.x, editor.ui().hoverDelta.y);
 
             if (mouse.left && mouse.action == GLFW_PRESS)
                 Log::Logger::getInstance()->info("We clicked Editor: {}'s area :{}",
                                                  editor.getUUID().operator std::string(),
-                                                 editor.lastClickedBorderType);
+                                                 editor.ui().lastClickedBorderType);
 
-            if (editor.resizeHovered || editor.cornerBottomLeftHovered)
+            if (editor.ui().resizeHovered || editor.ui().cornerBottomLeftHovered)
                 Log::Logger::getInstance()->infoWithFrequency("hoverTag", 60, "Hovering Editor {}'s: {}",
                                                               editor.getUUID().operator std::string(),
-                                                              editor.lastHoveredBorderType
+                                                              editor.ui().lastHoveredBorderType
                 );
 
             index++;
@@ -1299,31 +1269,31 @@ namespace VkRender {
                         auto otherBorder = otherEditor.checkLineBorderState(mouse.pos, true);
                         if (otherBorder != EditorBorderState::None) {
                             // ALso put this into resize mode
-                            otherEditor.resizeActive = true;
+                            otherEditor.ui().resizeActive = true;
                             // Last clicked border type:
-                            otherEditor.lastClickedBorderType = otherBorder;
-                            editor.lastClickedBorderType = editor.checkLineBorderState(mouse.pos, true);
+                            otherEditor.ui().lastClickedBorderType = otherBorder;
+                            editor.ui().lastClickedBorderType = editor.checkLineBorderState(mouse.pos, true);
 
                             Log::Logger::getInstance()->info(
                                     "Indirect access to Editor {}' border: {}. Our editor resize {} {}",
                                     otherEditor.getUUID().operator std::string(),
-                                    otherEditor.lastClickedBorderType, editor.resizeActive,
-                                    editor.lastClickedBorderType);
+                                    otherEditor.ui().lastClickedBorderType, editor.ui().resizeActive,
+                                    editor.ui().lastClickedBorderType);
                         }
                         // Check if x coordinates match.
                         otherBorder = otherEditor.checkLineBorderState(mouse.pos, false);
                         if (otherBorder != EditorBorderState::None) {
                             // ALso put this into resize mode
-                            otherEditor.resizeActive = true;
+                            otherEditor.ui().resizeActive = true;
                             // Last clicked border type:
-                            otherEditor.lastClickedBorderType = otherBorder;
-                            editor.lastClickedBorderType = editor.checkLineBorderState(mouse.pos, false);
+                            otherEditor.ui().lastClickedBorderType = otherBorder;
+                            editor.ui().lastClickedBorderType = editor.checkLineBorderState(mouse.pos, false);
 
                             Log::Logger::getInstance()->info(
                                     "Indirect access to Editor {}' border: {}. Our editor resize {} {}",
                                     otherEditor.getUUID().operator std::string(),
-                                    otherEditor.lastClickedBorderType, editor.resizeActive,
-                                    editor.lastClickedBorderType);
+                                    otherEditor.ui().lastClickedBorderType, editor.ui().resizeActive,
+                                    editor.ui().lastClickedBorderType);
                         }
                     }
                 }
@@ -1339,13 +1309,13 @@ namespace VkRender {
         int overallMaxY = std::numeric_limits<int>::min();
         // Iterate over all editors to find the overall min/max intervals
         for (auto &editor: m_editors) {
-            if (!editor.resizeActive) {
+            if (!editor.ui().resizeActive) {
                 continue;
             }
-            int minX = editor.x + editor.sizeLimits.MIN_SIZE;
-            int maxX = editor.x + editor.width - editor.sizeLimits.MIN_SIZE;
-            int minY = editor.y + editor.sizeLimits.MIN_SIZE + editor.sizeLimits.MIN_OFFSET_Y;
-            int maxY = editor.y + editor.height - editor.sizeLimits.MIN_SIZE - editor.sizeLimits.MIN_OFFSET_Y;
+            int minX = editor.ui().x + editor.getSizeLimits().MIN_SIZE;
+            int maxX = editor.ui().x + editor.ui().width - editor.getSizeLimits().MIN_SIZE;
+            int minY = editor.ui().y + editor.getSizeLimits().MIN_SIZE + editor.getSizeLimits().MIN_OFFSET_Y;
+            int maxY = editor.ui().y + editor.ui().height - editor.getSizeLimits().MIN_SIZE - editor.getSizeLimits().MIN_OFFSET_Y;
             // Update overall min/max intervals
             overallMinX = std::min(overallMinX, minX);
             overallMaxX = std::min(overallMaxX, maxX);
@@ -1354,11 +1324,11 @@ namespace VkRender {
             // Update overall minimum and second smallest x values
         }
         for (auto &editor: m_editors) {
-            if (!editor.resizeActive) {
+            if (!editor.ui().resizeActive) {
                 continue;
             }
-            editor.resizeIntervalHoriz = {overallMinX, overallMaxX};
-            editor.resizeIntervalVertical = {overallMinY, overallMaxY};
+            editor.ui().resizeIntervalHoriz = {overallMinX, overallMaxX};
+            editor.ui().resizeIntervalVertical = {overallMinY, overallMaxY};
         }
 
 
@@ -1368,27 +1338,27 @@ namespace VkRender {
         for (size_t index = 0; auto &editor: m_editors) {
             // First resize
 
-            // Dont resize if we resize into another editor. Stop all resizing
-            if (editor.resizeActive && mouse.insideApp && (!anyCornerClicked || editor.splitting)) {
+            // Dont resize if we resize into another editor.ui(). Stop all resizing
+            if (editor.ui().resizeActive && mouse.insideApp && (!anyCornerClicked || editor.ui().splitting)) {
                 auto &sizeLimits = editor.getSizeLimits();
                 VulkanRenderPassCreateInfo &editorCreateInfo = editor.getCreateInfo();
                 VulkanRenderPassCreateInfo newEditorCI = editor.getCreateInfo();
 
-                switch (editor.lastClickedBorderType) {
+                switch (editor.ui().lastClickedBorderType) {
                     case EditorBorderState::Left:
                         // Resize window to the left
-                        newEditorCI.x = editor.x - editor.hoverDelta.x;
-                        newEditorCI.width = editor.width + editor.hoverDelta.x;
+                        newEditorCI.x = editor.ui().x - editor.ui().hoverDelta.x;
+                        newEditorCI.width = editor.ui().width + editor.ui().hoverDelta.x;
                         break;
                     case EditorBorderState::Right:
-                        newEditorCI.width = editor.width - editor.hoverDelta.x;
+                        newEditorCI.width = editor.ui().width - editor.ui().hoverDelta.x;
                         break;
                     case EditorBorderState::Top:
-                        newEditorCI.y = editor.y - editor.hoverDelta.y;
-                        newEditorCI.height = editor.height + editor.hoverDelta.y;
+                        newEditorCI.y = editor.ui().y - editor.ui().hoverDelta.y;
+                        newEditorCI.height = editor.ui().height + editor.ui().hoverDelta.y;
                         break;
                     case EditorBorderState::Bottom:
-                        newEditorCI.height = editor.height - editor.hoverDelta.y;
+                        newEditorCI.height = editor.ui().height - editor.ui().hoverDelta.y;
                         break;
                     default:
                         Log::Logger::getInstance()->trace(
@@ -1399,63 +1369,63 @@ namespace VkRender {
                 // Due to menu bar, add a check we are not resizing under it
                 if (newEditorCI.y < sizeLimits.MIN_OFFSET_Y ||
                     newEditorCI.height < sizeLimits.MIN_SIZE) {
-                    newEditorCI.y = editor.y;
-                    newEditorCI.height = editor.height;
+                    newEditorCI.y = editor.ui().y;
+                    newEditorCI.height = editor.ui().height;
                 }
 
                 bool reverted = false;
                 // NEXT UP. HORIZONTAL AND VERTICAL BORDER COLLISION CHECKING WITH OTHER EDITORS
                 //  - Horizontal Border checking during resize. Happens if we resize into the edge of the opposite editor
-                if (editor.x + editor.sizeLimits.MIN_SIZE ==
-                    editor.resizeIntervalHoriz.x) { // Smallest editor will be entering here
-                    if (newEditorCI.x + newEditorCI.width < editor.resizeIntervalHoriz.x) {
+                if (editor.ui().x + editor.getSizeLimits().MIN_SIZE ==
+                    editor.ui().resizeIntervalHoriz.x) { // Smallest editor will be entering here
+                    if (newEditorCI.x + newEditorCI.width < editor.ui().resizeIntervalHoriz.x) {
                         newEditorCI = editor.getCreateInfo(); // revert createInfo
                         reverted = true;
                     }
                 } else { // Other Editor will enter this
-                    if (newEditorCI.x < editor.resizeIntervalHoriz.x - editor.borderSize) {
+                    if (newEditorCI.x < editor.ui().resizeIntervalHoriz.x - editor.ui().borderSize) {
                         newEditorCI = editor.getCreateInfo(); // revert createInfo
                         reverted = true;
                     }
                 }
-                if (editor.x + editor.width - editor.sizeLimits.MIN_SIZE ==
-                    editor.resizeIntervalHoriz.y) { // We got the furthest along x editor here
-                    if (newEditorCI.x + newEditorCI.width > editor.resizeIntervalHoriz.y + editor.sizeLimits.MIN_SIZE) {
+                if (editor.ui().x + editor.ui().width - editor.getSizeLimits().MIN_SIZE ==
+                    editor.ui().resizeIntervalHoriz.y) { // We got the furthest along x editor here
+                    if (newEditorCI.x + newEditorCI.width > editor.ui().resizeIntervalHoriz.y + editor.getSizeLimits().MIN_SIZE) {
                         newEditorCI = editor.getCreateInfo(); // revert createInfo
                         reverted = true;
                     }
                 } else { // Other Editor will enter this
-                    if (newEditorCI.x + newEditorCI.width > editor.resizeIntervalHoriz.y + editor.borderSize) {
+                    if (newEditorCI.x + newEditorCI.width > editor.ui().resizeIntervalHoriz.y + editor.ui().borderSize) {
                         newEditorCI = editor.getCreateInfo(); // revert createInfo
                         reverted = true;
                     }
                 }
 
                 // Vertical Border checking during resize. Happens if we resize into the edge of the opposite editor
-                if (editor.y + editor.sizeLimits.MIN_SIZE + editor.sizeLimits.MIN_OFFSET_Y ==
-                    editor.resizeIntervalVertical.x) { // Smallest editor will be entering here
-                    if (newEditorCI.y + newEditorCI.height + editor.sizeLimits.MIN_OFFSET_Y <
-                        editor.resizeIntervalVertical.x) {
+                if (editor.ui().y + editor.getSizeLimits().MIN_SIZE + editor.getSizeLimits().MIN_OFFSET_Y ==
+                    editor.ui().resizeIntervalVertical.x) { // Smallest editor will be entering here
+                    if (newEditorCI.y + newEditorCI.height + editor.getSizeLimits().MIN_OFFSET_Y <
+                        editor.ui().resizeIntervalVertical.x) {
                         newEditorCI = editor.getCreateInfo(); // revert createInfo
                         reverted = true;
                     }
                 } else { // Other Editor will enter this
-                    if (newEditorCI.y + editor.sizeLimits.MIN_OFFSET_Y <
-                        editor.resizeIntervalVertical.x - editor.borderSize) {
+                    if (newEditorCI.y + editor.getSizeLimits().MIN_OFFSET_Y <
+                        editor.ui().resizeIntervalVertical.x - editor.ui().borderSize) {
                         newEditorCI = editor.getCreateInfo(); // revert createInfo
                         reverted = true;
                     }
                 }
-                if (editor.y + editor.height - editor.sizeLimits.MIN_SIZE - editor.sizeLimits.MIN_OFFSET_Y ==
-                    editor.resizeIntervalVertical.y) { // Smallest editor will be entering here
+                if (editor.ui().y + editor.ui().height - editor.getSizeLimits().MIN_SIZE - editor.getSizeLimits().MIN_OFFSET_Y ==
+                    editor.ui().resizeIntervalVertical.y) { // Smallest editor will be entering here
                     if (newEditorCI.y + newEditorCI.height >
-                        editor.resizeIntervalVertical.y + editor.sizeLimits.MIN_SIZE + editor.sizeLimits.MIN_OFFSET_Y) {
+                        editor.ui().resizeIntervalVertical.y + editor.getSizeLimits().MIN_SIZE + editor.getSizeLimits().MIN_OFFSET_Y) {
                         newEditorCI = editor.getCreateInfo(); // revert createInfo
                         reverted = true;
                     }
                 } else { // Other Editor will enter this
-                    if (newEditorCI.y + newEditorCI.height - editor.sizeLimits.MIN_OFFSET_Y >
-                        editor.resizeIntervalVertical.y + editor.borderSize) {
+                    if (newEditorCI.y + newEditorCI.height - editor.getSizeLimits().MIN_OFFSET_Y >
+                        editor.ui().resizeIntervalVertical.y + editor.ui().borderSize) {
                         newEditorCI = editor.getCreateInfo(); // revert createInfo
                         reverted = true;
                     }
@@ -1463,14 +1433,14 @@ namespace VkRender {
 
                 // Check min/max size for application border
                 bool modified = editor.validateEditorSize(newEditorCI, editor.getCreateInfo());
-                bool changed = editor.hoverDelta.x != 0 || editor.hoverDelta.y != 0;
+                bool changed = editor.ui().hoverDelta.x != 0 || editor.ui().hoverDelta.y != 0;
                 if (changed && !reverted && !modified)
                     replaceEditor(newEditorCI, editor);
             }
 
 
-            if (editor.cornerBottomLeftClicked && editor.width > 100 &&
-                (editor.dragHorizontal || editor.dragVertical) && !editor.splitting) {
+            if (editor.ui().cornerBottomLeftClicked && editor.ui().width > 100 &&
+                (editor.ui().dragHorizontal || editor.ui().dragVertical) && !editor.ui().splitting) {
                 splitEditors = true;
                 splitEditorIndex = index;
                 VulkanRenderPassCreateInfo &editorCreateInfo = editor.getCreateInfo();
@@ -1483,7 +1453,7 @@ namespace VkRender {
             // Also recreate other editor and place it
             VulkanRenderPassCreateInfo &editorCreateInfo = m_editors[splitEditorIndex].getCreateInfo();
             VulkanRenderPassCreateInfo newEditorCreateInfo = editorCreateInfo;
-            if (m_editors[splitEditorIndex].dragHorizontal) {
+            if (m_editors[splitEditorIndex].ui().dragHorizontal) {
                 // Adjust the size and position of the existing editor
                 editorCreateInfo.width -= 50; // Decrease the width of the existing editor
                 editorCreateInfo.x += 50; // Decrease the width of the existing editor
@@ -1504,23 +1474,470 @@ namespace VkRender {
             m_editors.push_back(std::move(newEditor));
 
             // We can resize both now if we keep holding our mouse
-            m_editors[splitEditorIndex].resizeActive = true;
-            m_editors.back().resizeActive = true;
+            m_editors[splitEditorIndex].ui().resizeActive = true;
+            m_editors.back().ui().resizeActive = true;
             // We can resize both now if we keep holding our mouse
-            m_editors[splitEditorIndex].splitting = true;
-            m_editors.back().splitting = true;
+            m_editors[splitEditorIndex].ui().splitting = true;
+            m_editors.back().ui().splitting = true;
 
 
-            if (m_editors[splitEditorIndex].dragHorizontal) {
-                m_editors[splitEditorIndex].lastClickedBorderType = EditorBorderState::Left;
-                m_editors.back().lastClickedBorderType = EditorBorderState::Right;
+            if (m_editors[splitEditorIndex].ui().dragHorizontal) {
+                m_editors[splitEditorIndex].ui().lastClickedBorderType = EditorBorderState::Left;
+                m_editors.back().ui().lastClickedBorderType = EditorBorderState::Right;
             } else {
-                m_editors[splitEditorIndex].lastClickedBorderType = EditorBorderState::Bottom;
-                m_editors.back().lastClickedBorderType = EditorBorderState::Top;
+                m_editors[splitEditorIndex].ui().lastClickedBorderType = EditorBorderState::Bottom;
+                m_editors.back().ui().lastClickedBorderType = EditorBorderState::Top;
             }
         }
     }
 
+
+     */
+
+
+    void Renderer::updateEditors() {
+        for (auto &editor: m_editors) {
+
+            handleHoverState(editor);
+            handleClickState(editor);
+            handleDragState(editor);
+
+            //checkIndirectResize(editor);
+            //updateResizeIntervals(editor);
+
+            resizeEditors(editor);
+            logStates();
+
+            editor.update((frameCounter == 0), frameTimer, &input);
+        }
+
+        // Then update renderer stuff based on editor UI states
+
+        // Has the cursor changed?
+        // Do we add new editors?
+        //
+        updateCursor();
+
+    }
+
+    void Renderer::handleHoverState(Editor &editor) {
+        editor.updateBorderState(mouse.pos);
+
+        editor.ui().cornerBottomLeftHovered = editor.ui().lastHoveredBorderType == EditorBorderState::BottomLeft;
+        editor.ui().resizeHovered = (EditorBorderState::Left == editor.ui().lastHoveredBorderType ||
+                                     EditorBorderState::Right == editor.ui().lastHoveredBorderType ||
+                                     EditorBorderState::Top == editor.ui().lastHoveredBorderType ||
+                                     EditorBorderState::Bottom == editor.ui().lastHoveredBorderType);
+
+        editor.ui().hovered = editor.ui().lastHoveredBorderType != EditorBorderState::None;
+
+    }
+
+
+    void Renderer::handleClickState(Editor &editor) {
+
+        if (!mouse.left) {
+            editor.ui().resizeActive = false;
+            editor.ui().cornerBottomLeftClicked = false;
+            editor.ui().dragHorizontal = false;
+            editor.ui().dragVertical = false;
+            editor.ui().dragActive = false;
+            editor.ui().splitting = false;
+            editor.ui().lastPressedPos = glm::ivec2(-1, -1);
+            editor.ui().dragDelta = glm::ivec2(0, 0);
+            editor.ui().hoverDelta = glm::ivec2(0, 0);
+        }
+
+        if (mouse.left && mouse.action == GLFW_PRESS) {
+            handleMouseClick(editor);
+        }
+
+    }
+
+    void Renderer::handleMouseClick(Editor &editor) {
+        editor.ui().lastPressedPos = mouse.pos;
+        editor.ui().resizeActive = !editor.ui().cornerBottomLeftHovered && editor.ui().resizeHovered;
+        editor.ui().lastClickedBorderType = editor.ui().lastHoveredBorderType;
+
+        editor.ui().active = editor.ui().lastHoveredBorderType != EditorBorderState::None;
+
+        if (editor.ui().cornerBottomLeftHovered) {
+            editor.ui().cornerBottomLeftClicked = true;
+        }
+    }
+
+
+    void Renderer::handleDragState(Editor &editor) {
+        if (!mouse.left) return;
+        editor.ui().hoverDelta = glm::ivec2(mouse.dx, mouse.dy);
+        if (editor.ui().lastClickedBorderType != EditorBorderState::None) {
+
+            int32_t dragX = mouse.x - editor.ui().lastPressedPos.x;
+            int32_t dragY = mouse.y - editor.ui().lastPressedPos.y;
+            editor.ui().dragDelta = glm::ivec2(dragX, dragY);
+
+            if (editor.ui().lastPressedPos.x >= 1 && editor.ui().lastPressedPos.y >= 1) {
+                editor.ui().dragHorizontal = abs(dragX) >= 50;
+                editor.ui().dragVertical = abs(dragY) >= 50;
+                editor.ui().dragActive = dragX > 0 || dragY > 0;
+            }
+
+        }
+    }
+
+    void Renderer::updateResizeIntervals(Editor& editor) {
+        int overallMinX = std::numeric_limits<int>::max();
+        int overallMaxX = std::numeric_limits<int>::min();
+        int overallMinY = std::numeric_limits<int>::max();
+        int overallMaxY = std::numeric_limits<int>::min();
+
+        for (auto &editor: m_editors) {
+            if (!editor.ui().resizeActive) continue;
+
+            int minX = editor.ui().x + editor.getSizeLimits().MIN_SIZE;
+            int maxX = editor.ui().x + editor.ui().width - editor.getSizeLimits().MIN_SIZE;
+            int minY = editor.ui().y + editor.getSizeLimits().MIN_SIZE + editor.getSizeLimits().MIN_OFFSET_Y;
+            int maxY = editor.ui().y + editor.ui().height - editor.getSizeLimits().MIN_SIZE -
+                       editor.getSizeLimits().MIN_OFFSET_Y;
+
+            overallMinX = std::min(overallMinX, minX);
+            overallMaxX = std::min(overallMaxX, maxX);
+            overallMinY = std::min(overallMinY, minY);
+            overallMaxY = std::min(overallMaxY, maxY);
+        }
+
+        for (auto &editor: m_editors) {
+            if (!editor.ui().resizeActive) continue;
+            editor.ui().resizeIntervalHoriz = {overallMinX, overallMaxX};
+            editor.ui().resizeIntervalVertical = {overallMinY, overallMaxY};
+        }
+    }
+
+    void Renderer::resizeEditors(Editor& editor) {
+        bool splitEditors = false;
+        uint32_t splitEditorIndex = UINT32_MAX;
+
+            if (editor.ui().resizeActive && mouse.insideApp) {
+                VulkanRenderPassCreateInfo newEditorCI = getNewEditorCreateInfo(editor);
+                editor.resize(newEditorCI);
+                //if (isValidResize(newEditorCI, editor)) {
+                //    replaceEditor(newEditorCI, editor);
+                //}
+            }
+    }
+
+    VulkanRenderPassCreateInfo Renderer::getNewEditorCreateInfo(Editor &editor) {
+        VulkanRenderPassCreateInfo newEditorCI = editor.getCreateInfo();
+        switch (editor.ui().lastClickedBorderType) {
+            case EditorBorderState::Left:
+                newEditorCI.x = editor.ui().x - editor.ui().hoverDelta.x;
+                newEditorCI.width = editor.ui().width + editor.ui().hoverDelta.x;
+                break;
+            case EditorBorderState::Right:
+                newEditorCI.width = editor.ui().width - editor.ui().hoverDelta.x;
+                break;
+            case EditorBorderState::Top:
+                newEditorCI.y = editor.ui().y - editor.ui().hoverDelta.y;
+                newEditorCI.height = editor.ui().height + editor.ui().hoverDelta.y;
+                break;
+            case EditorBorderState::Bottom:
+                newEditorCI.height = editor.ui().height - editor.ui().hoverDelta.y;
+                break;
+            default:
+                Log::Logger::getInstance()->trace(
+                        "Resize is somehow active but we have not clicked any borders: {}",
+                        editor.getUUID().operator std::string());
+                break;
+        }
+        if (newEditorCI.y < editor.getSizeLimits().MIN_OFFSET_Y ||
+            newEditorCI.height < editor.getSizeLimits().MIN_SIZE) {
+            newEditorCI.y = editor.ui().y;
+            newEditorCI.height = editor.ui().height;
+        }
+        return newEditorCI;
+    }
+
+    void Renderer::updateCursor() {
+        bool anyCornerHovered = false;
+        bool anyCornerClicked = false;
+        bool anyResizeHovered = false;
+        bool horizontalResizeHovered = false;
+
+        for (auto &editor: m_editors) {
+            if (editor.ui().cornerBottomLeftHovered) anyCornerHovered = true;
+            if (editor.ui().cornerBottomLeftClicked) anyCornerClicked = true;
+            if (editor.ui().resizeHovered) anyResizeHovered = true;
+
+            horizontalResizeHovered = (EditorBorderState::Left == editor.ui().lastHoveredBorderType ||
+                                       EditorBorderState::Right == editor.ui().lastHoveredBorderType);
+        }
+
+        if (anyCornerClicked) {
+            glfwSetCursor(window, m_cursors.crossHair);
+        } else if (anyCornerHovered) {
+            glfwSetCursor(window, m_cursors.hand);
+        } else if (anyResizeHovered) {
+            glfwSetCursor(window, horizontalResizeHovered ? m_cursors.resizeHorizontal : m_cursors.resizeVertical);
+        } else {
+            glfwSetCursor(window, m_cursors.arrow);
+        }
+    }
+
+
+    void Renderer::logStates() {
+        for (auto &editor: m_editors) {
+            /*
+            if (editor.ui().dragActive) {
+                Log::Logger::getInstance()->infoWithFrequency("dragActiveTag", 60,
+                                                              "Recorded a {} drag event for editor: {}. PosD: ({},{}). HoverD: ({},{})",
+                                                              editor.ui().dragVertical ? "Vertical" : "Horizontal",
+                                                              editor.getUUID().operator std::string(),
+                                                              editor.ui().dragDelta.x, editor.ui().dragDelta.y,
+                                                              editor.ui().hoverDelta.x, editor.ui().hoverDelta.y);
+            }
+            */
+            if (mouse.left && mouse.action == GLFW_PRESS) {
+                Log::Logger::getInstance()->info("We clicked Editor: {}'s area :{}",
+                                                 editor.getUUID().operator std::string(),
+                                                 editor.ui().lastClickedBorderType);
+            }
+
+            /*
+            if (editor.ui().resizeHovered || editor.ui().cornerBottomLeftHovered) {
+                Log::Logger::getInstance()->infoWithFrequency("hoverTag", 60, "Hovering Editor {}'s: {}",
+                                                              editor.getUUID().operator std::string(),
+                                                              editor.ui().lastHoveredBorderType);
+            }
+            */
+        }
+    }
+
+    /*
+
+
+    void Renderer::calculateDragDelta(Editor &editor) {
+        int32_t dragX = mouse.x - editor.ui().lastPressedPos.x;
+        int32_t dragY = mouse.y - editor.ui().lastPressedPos.y;
+        editor.ui().dragDelta = glm::ivec2(dragX, dragY);
+
+        if (editor.ui().lastPressedPos.x >= 1 && editor.ui().lastPressedPos.y >= 1) {
+            editor.ui().dragHorizontal = abs(dragX) >= 50;
+            editor.ui().dragVertical = abs(dragY) >= 50;
+            editor.ui().dragActive = dragX > 0 || dragY > 0;
+        }
+    }
+
+    void Renderer::logStates() {
+        for (auto &editor: m_editors) {
+            if (editor.ui().dragActive) {
+                Log::Logger::getInstance()->infoWithFrequency("dragActiveTag", 60,
+                                                              "Recorded a {} drag event for editor: {}. PosD: ({},{}). HoverD: ({},{})",
+                                                              editor.ui().dragVertical ? "Vertical" : "Horizontal",
+                                                              editor.getUUID().operator std::string(),
+                                                              editor.ui().dragDelta.x, editor.ui().dragDelta.y,
+                                                              editor.ui().hoverDelta.x, editor.ui().hoverDelta.y);
+            }
+
+            if (mouse.left && mouse.action == GLFW_PRESS) {
+                Log::Logger::getInstance()->info("We clicked Editor: {}'s area :{}",
+                                                 editor.getUUID().operator std::string(),
+                                                 editor.ui().lastClickedBorderType);
+            }
+
+            if (editor.ui().resizeHovered || editor.ui().cornerBottomLeftHovered) {
+                Log::Logger::getInstance()->infoWithFrequency("hoverTag", 60, "Hovering Editor {}'s: {}",
+                                                              editor.getUUID().operator std::string(),
+                                                              editor.ui().lastHoveredBorderType);
+            }
+        }
+    }
+
+    void Renderer::checkIndirectResize() {
+        if (mouse.left && mouse.action == GLFW_PRESS && (!anyCornerHovered && !anyCornerClicked)) {
+            for (auto &editor: m_editors) {
+                for (auto &otherEditor: m_editors) {
+                    if (editor != otherEditor) {
+                        checkAndSetIndirectResize(editor, otherEditor);
+                    }
+                }
+            }
+        }
+    }
+
+    void Renderer::checkAndSetIndirectResize(Editor &editor, Editor &otherEditor) {
+        auto otherBorder = otherEditor.checkLineBorderState(mouse.pos, true);
+        if (otherBorder != EditorBorderState::None) {
+            otherEditor.ui().resizeActive = true;
+            otherEditor.ui().lastClickedBorderType = otherBorder;
+            editor.ui().lastClickedBorderType = editor.checkLineBorderState(mouse.pos, true);
+
+            Log::Logger::getInstance()->info(
+                    "Indirect access to Editor {}' border: {}. Our editor resize {} {}",
+                    otherEditor.getUUID().operator std::string(),
+                    otherEditor.ui().lastClickedBorderType, editor.ui().resizeActive,
+                    editor.ui().lastClickedBorderType);
+        }
+        otherBorder = otherEditor.checkLineBorderState(mouse.pos, false);
+        if (otherBorder != EditorBorderState::None) {
+            otherEditor.ui().resizeActive = true;
+            otherEditor.ui().lastClickedBorderType = otherBorder;
+            editor.ui().lastClickedBorderType = editor.checkLineBorderState(mouse.pos, false);
+
+            Log::Logger::getInstance()->info(
+                    "Indirect access to Editor {}' border: {}. Our editor resize {} {}",
+                    otherEditor.getUUID().operator std::string(),
+                    otherEditor.ui().lastClickedBorderType, editor.ui().resizeActive,
+                    editor.ui().lastClickedBorderType);
+        }
+    }
+
+
+
+    void Renderer::resizeEditors() {
+        bool splitEditors = false;
+        uint32_t splitEditorIndex = UINT32_MAX;
+
+        for (size_t index = 0; auto &editor: m_editors) {
+            if (editor.ui().resizeActive && mouse.insideApp && (!anyCornerClicked || editor.ui().splitting)) {
+                VulkanRenderPassCreateInfo newEditorCI = getNewEditorCreateInfo(editor);
+                if (isValidResize(newEditorCI, editor)) {
+                    replaceEditor(newEditorCI, editor);
+                }
+            }
+
+            if (editor.ui().cornerBottomLeftClicked && editor.ui().width > 100 &&
+                (editor.ui().dragHorizontal || editor.ui().dragVertical) && !editor.ui().splitting) {
+                splitEditors = true;
+                splitEditorIndex = index;
+            }
+
+            index++;
+        }
+
+        if (splitEditors) {
+            splitEditor(splitEditorIndex);
+        }
+    }
+
+    VulkanRenderPassCreateInfo Renderer::getNewEditorCreateInfo(Editor &editor) {
+        VulkanRenderPassCreateInfo newEditorCI = editor.getCreateInfo();
+        switch (editor.ui().lastClickedBorderType) {
+            case EditorBorderState::Left:
+                newEditorCI.x = editor.ui().x - editor.ui().hoverDelta.x;
+                newEditorCI.width = editor.ui().width + editor.ui().hoverDelta.x;
+                break;
+            case EditorBorderState::Right:
+                newEditorCI.width = editor.ui().width - editor.ui().hoverDelta.x;
+                break;
+            case EditorBorderState::Top:
+                newEditorCI.y = editor.ui().y - editor.ui().hoverDelta.y;
+                newEditorCI.height = editor.ui().height + editor.ui().hoverDelta.y;
+                break;
+            case EditorBorderState::Bottom:
+                newEditorCI.height = editor.ui().height - editor.ui().hoverDelta.y;
+                break;
+            default:
+                Log::Logger::getInstance()->trace(
+                        "Resize is somehow active but we have not clicked any borders: {}",
+                        editor.getUUID().operator std::string());
+                break;
+        }
+        if (newEditorCI.y < editor.getSizeLimits().MIN_OFFSET_Y ||
+            newEditorCI.height < editor.getSizeLimits().MIN_SIZE) {
+            newEditorCI.y = editor.ui().y;
+            newEditorCI.height = editor.ui().height;
+        }
+        return newEditorCI;
+    }
+
+    bool Renderer::isValidResize(const VulkanRenderPassCreateInfo &newEditorCI, Editor &editor) {
+        bool reverted = false;
+        if (editor.ui().x + editor.getSizeLimits().MIN_SIZE == editor.ui().resizeIntervalHoriz.x) {
+            if (newEditorCI.x + newEditorCI.width < editor.ui().resizeIntervalHoriz.x) {
+                reverted = true;
+            }
+        } else {
+            if (newEditorCI.x < editor.ui().resizeIntervalHoriz.x - editor.ui().borderSize) {
+                reverted = true;
+            }
+        }
+
+        if (editor.ui().x + editor.ui().width - editor.getSizeLimits().MIN_SIZE == editor.ui().resizeIntervalHoriz.y) {
+            if (newEditorCI.x + newEditorCI.width >
+                editor.ui().resizeIntervalHoriz.y + editor.getSizeLimits().MIN_SIZE) {
+                reverted = true;
+            }
+        } else {
+            if (newEditorCI.x + newEditorCI.width > editor.ui().resizeIntervalHoriz.y + editor.ui().borderSize) {
+                reverted = true;
+            }
+        }
+
+        if (editor.ui().y + editor.getSizeLimits().MIN_SIZE + editor.getSizeLimits().MIN_OFFSET_Y ==
+            editor.ui().resizeIntervalVertical.x) {
+            if (newEditorCI.y + newEditorCI.height + editor.getSizeLimits().MIN_OFFSET_Y <
+                editor.ui().resizeIntervalVertical.x) {
+                reverted = true;
+            }
+        } else {
+            if (newEditorCI.y + editor.getSizeLimits().MIN_OFFSET_Y <
+                editor.ui().resizeIntervalVertical.x - editor.ui().borderSize) {
+                reverted = true;
+            }
+        }
+
+        if (editor.ui().y + editor.ui().height - editor.getSizeLimits().MIN_SIZE -
+            editor.getSizeLimits().MIN_OFFSET_Y == editor.ui().resizeIntervalVertical.y) {
+            if (newEditorCI.y + newEditorCI.height >
+                editor.ui().resizeIntervalVertical.y + editor.getSizeLimits().MIN_SIZE +
+                editor.getSizeLimits().MIN_OFFSET_Y) {
+                reverted = true;
+            }
+        } else {
+            if (newEditorCI.y + newEditorCI.height - editor.getSizeLimits().MIN_OFFSET_Y >
+                editor.ui().resizeIntervalVertical.y + editor.ui().borderSize) {
+                reverted = true;
+            }
+        }
+
+        bool modified = editor.validateEditorSize(newEditorCI, editor.getCreateInfo());
+        bool changed = editor.ui().hoverDelta.x != 0 || editor.ui().hoverDelta.y != 0;
+        return changed && !reverted && !modified;
+    }
+
+    void Renderer::splitEditor(uint32_t splitEditorIndex) {
+        VulkanRenderPassCreateInfo &editorCreateInfo = m_editors[splitEditorIndex].getCreateInfo();
+        VulkanRenderPassCreateInfo newEditorCreateInfo = editorCreateInfo;
+
+        if (m_editors[splitEditorIndex].ui().dragHorizontal) {
+            editorCreateInfo.width -= 50;
+            editorCreateInfo.x += 50;
+            newEditorCreateInfo.width = 50 + editorCreateInfo.borderSize;
+        } else {
+            editorCreateInfo.height -= 50;
+            newEditorCreateInfo.height = 50 + editorCreateInfo.borderSize;
+            newEditorCreateInfo.y = editorCreateInfo.height + editorCreateInfo.y - editorCreateInfo.borderSize;
+        }
+
+        auto newEditor = createEditor(newEditorCreateInfo);
+        replaceEditor(editorCreateInfo, m_editors[splitEditorIndex]);
+
+        m_editors.push_back(std::move(newEditor));
+
+        m_editors[splitEditorIndex].ui().resizeActive = true;
+        m_editors.back().ui().resizeActive = true;
+        m_editors[splitEditorIndex].ui().splitting = true;
+        m_editors.back().ui().splitting = true;
+
+        if (m_editors[splitEditorIndex].ui().dragHorizontal) {
+            m_editors[splitEditorIndex].ui().lastClickedBorderType = EditorBorderState::Left;
+            m_editors.back().ui().lastClickedBorderType = EditorBorderState::Right;
+        } else {
+            m_editors[splitEditorIndex].ui().lastClickedBorderType = EditorBorderState::Bottom;
+            m_editors.back().ui().lastClickedBorderType = EditorBorderState::Top;
+        }
+    }
+    */
 
     void Renderer::mouseMoved(float x, float y, bool &handled) {
 
@@ -1675,12 +2092,14 @@ namespace VkRender {
 
     void Renderer::postRenderActions() {
         // Reset mousewheel across imgui contexts
+        /*
         for (std::vector<ImGuiContext *> list = {m_mainEditor->m_guiManager->m_imguiContext,
                                                  m_editors[0].m_guiManager->m_imguiContext}; auto &ctx : list) {
             ImGui::SetCurrentContext(ctx);
             ImGuiIO &io = ImGui::GetIO();
             io.MouseWheel = 0;
         }
+        */
 
     }
 
@@ -1785,7 +2204,6 @@ namespace VkRender {
                               reinterpret_cast<uint64_t>(m_colorImage.view), VK_OBJECT_TYPE_IMAGE_VIEW,
                               (description + "ColorViewResource").c_str());
     }
-
 
     DISABLE_WARNING_PUSH
     DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER

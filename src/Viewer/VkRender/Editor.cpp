@@ -51,7 +51,7 @@ namespace VkRender {
         m_applicationWidth = createInfo.appWidth;
         m_applicationHeight = createInfo.appHeight;
 
-        m_oldRenderPasses.emplace_back(std::move(m_renderPasses));
+        m_renderPasses.clear();
 
         for (size_t i = 0; i < m_renderUtils.swapchainImages; ++i) {
             m_renderPasses.emplace_back(createInfo);

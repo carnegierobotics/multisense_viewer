@@ -114,6 +114,7 @@ struct VulkanDevice {
 
     void flushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, bool free = true);
 
+    void flushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, VkCommandPool pool, bool free, VkFence &fence);
 };
 
 

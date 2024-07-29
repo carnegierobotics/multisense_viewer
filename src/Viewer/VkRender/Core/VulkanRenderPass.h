@@ -46,27 +46,28 @@ namespace VkRender {
     struct VulkanRenderPass {
     public:
 
+        VulkanRenderPass() = delete;
+
         explicit VulkanRenderPass(const VulkanRenderPassCreateInfo &createInfo);
 
         // Implement move constructor
         VulkanRenderPass(VulkanRenderPass &&other)  noexcept : m_logicalDevice(other.m_logicalDevice), m_allocator(other.m_allocator) {
-            swap(*this, other);
+            std::swap(this->m_colorImage, other.m_colorImage);
+            std::swap(this->m_depthStencil, other.m_depthStencil);
+            std::swap(this->m_renderPass, other.m_renderPass);
+            std::swap(this->m_initialized, other.m_initialized);
         }
-
         // and move assignment operator
         VulkanRenderPass &operator=(VulkanRenderPass &&other) noexcept {
             if (this != &other) { // Check for self-assignment
-                swap(*this, other);
+                std::swap(this->m_logicalDevice, other.m_logicalDevice);
+                std::swap(this->m_allocator, other.m_allocator);
+                std::swap(this->m_colorImage, other.m_colorImage);
+                std::swap(this->m_depthStencil, other.m_depthStencil);
+                std::swap(this->m_renderPass, other.m_renderPass);
+                std::swap(this->m_initialized, other.m_initialized);
             }
             return *this;
-        }
-        // Implement a swap function
-        friend void swap(VulkanRenderPass &first, VulkanRenderPass &second) noexcept {
-            std::swap(first.m_logicalDevice, second.m_logicalDevice);
-            std::swap(first.m_allocator, second.m_allocator);
-            std::swap(first.m_colorImage, second.m_colorImage);
-            std::swap(first.m_depthStencil, second.m_depthStencil);
-            std::swap(first.m_renderPass, second.m_renderPass);
         }
 
         // No copying allowed
@@ -102,6 +103,7 @@ namespace VkRender {
 
         VkDevice &m_logicalDevice;
         VmaAllocator &m_allocator;
+        bool m_initialized = false;
 
         void cleanUp();
     };

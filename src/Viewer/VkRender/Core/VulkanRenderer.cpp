@@ -46,6 +46,7 @@
 #ifndef VKRENDER_MULTISENSE_VIEWER_PRODUCTION
 
 #include "Viewer/VkRender/Core/Validation.h"
+#include "Viewer/VkRender/Core/VulkanResourceManager.h"
 
 #endif
 
@@ -259,6 +260,8 @@ namespace VkRender {
     }
 
     VulkanRenderer::~VulkanRenderer() {
+        VulkanResourceManager::destroyInstance();
+
         vkDestroyImageView(device, m_depthStencil.view, nullptr);
         vmaDestroyImage(m_allocator, m_depthStencil.image, m_depthStencil.allocation);
 

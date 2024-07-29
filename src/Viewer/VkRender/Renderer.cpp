@@ -69,7 +69,7 @@ namespace VkRender {
         VulkanRenderer::initVulkan();
         VulkanRenderer::prepare();
 
-        VulkanResourceManager::getInstance(device, m_allocator);
+        VulkanResourceManager::getInstance(m_vulkanDevice, m_allocator);
         m_guiResources = std::make_shared<GuiResources>(m_vulkanDevice);
 
         // TODO Make dynamic
@@ -1113,7 +1113,6 @@ namespace VkRender {
         timeSpan = std::chrono::duration_cast<std::chrono::duration<float>>(
                 std::chrono::steady_clock::now() - startTime);
         Log::Logger::getInstance()->trace("Deleting entities on exit took {}s", timeSpan.count());
-
 
         // Destroy framebuffer
         for (auto &fb: m_frameBuffers) {

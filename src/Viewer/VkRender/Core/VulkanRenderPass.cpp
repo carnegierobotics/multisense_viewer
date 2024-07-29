@@ -13,7 +13,8 @@
 namespace VkRender {
 
 
-    VulkanRenderPass::VulkanRenderPass(const VulkanRenderPassCreateInfo &createInfo) : m_logicalDevice(createInfo.context->vkDevice()), m_allocator(createInfo.context->allocator()) {
+    VulkanRenderPass::VulkanRenderPass(const VulkanRenderPassCreateInfo &createInfo) : m_logicalDevice(
+            createInfo.context->vkDevice()), m_allocator(createInfo.context->allocator()) {
 
         VkSampleCountFlagBits sampleCount = createInfo.context->data().msaaSamples;
         uint32_t width = createInfo.width;
@@ -199,9 +200,11 @@ namespace VkRender {
         VALIDATION_DEBUG_NAME(data.device->m_LogicalDevice,
                               reinterpret_cast<uint64_t>(m_renderPass), VK_OBJECT_TYPE_RENDER_PASS,
                               (editorTypeDescription + "UIRenderPass").c_str());
+
+        m_initialized = true;
     }
 
-    void VulkanRenderPass::cleanUp(){
+    void VulkanRenderPass::cleanUp() {
         vkDestroyRenderPass(m_logicalDevice, m_renderPass, nullptr);
         vkDestroySampler(m_logicalDevice, m_colorImage.sampler, nullptr);
 
@@ -229,12 +232,43 @@ namespace VkRender {
     }
 
     VulkanRenderPass::~VulkanRenderPass() {
-        VkFence fence;
-        VkFenceCreateInfo fenceCreateInfo = {};
-        fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-        vkCreateFence(m_logicalDevice, &fenceCreateInfo, nullptr, &fence);
+        if (m_initialized) {
+            VkFence fence;
+            VkFenceCreateInfo fenceInfo = Populate::fenceCreateInfo(0);
+            vkCreateFence(m_logicalDevice, &fenceInfo, nullptr, &fence);
 
-        VulkanResourceManager::getInstance().deferDeletion([this]() { cleanUp(); }, fence);
+            // Capture all necessary members by value
+            auto logicalDevice = m_logicalDevice;
+            auto allocator = m_allocator;
+            auto colorImage = m_colorImage;
+            auto depthStencil = m_depthStencil;
+            auto renderPass = m_renderPass;
+
+            VulkanResourceManager::getInstance().deferDeletion(
+                    [logicalDevice, allocator, colorImage, depthStencil, renderPass]() {
+                        // Cleanup logic with captured values
+                        vkDestroyRenderPass(logicalDevice, renderPass, nullptr);
+                        vkDestroySampler(logicalDevice, colorImage.sampler, nullptr);
+
+                        if (colorImage.view != VK_NULL_HANDLE) {
+                            vkDestroyImageView(logicalDevice, colorImage.view, nullptr);
+                        }
+
+                        if (colorImage.image != VK_NULL_HANDLE) {
+                            vmaDestroyImage(allocator, colorImage.image, colorImage.colorImageAllocation);
+                        }
+
+                        if (depthStencil.image != VK_NULL_HANDLE) {
+                            vmaDestroyImage(allocator, depthStencil.image, depthStencil.allocation);
+                        }
+
+                        if (depthStencil.view != VK_NULL_HANDLE) {
+                            vkDestroyImageView(logicalDevice, depthStencil.view, nullptr);
+                        }
+                    },
+                    fence);
+
+        }
 
     }
 }

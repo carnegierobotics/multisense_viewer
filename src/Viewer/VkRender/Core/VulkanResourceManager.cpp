@@ -7,5 +7,6 @@
 namespace VkRender{
     VulkanResourceManager* VulkanResourceManager::instance = nullptr;
     std::once_flag VulkanResourceManager::initInstanceFlag;
+    std::once_flag VulkanResourceManager::destroyInstanceFlag;
 
 }

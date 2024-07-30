@@ -139,10 +139,10 @@ namespace VkRender {
         otherEditorInfo.appHeight = static_cast<int32_t>(m_height);
         otherEditorInfo.appWidth = static_cast<int32_t>(m_width);
         otherEditorInfo.borderSize = 5;
-        otherEditorInfo.height = static_cast<int32_t>(m_height) - sizeLimits.MENU_BAR_HEIGHT - 100;
-        otherEditorInfo.width = static_cast<int32_t>(m_width) - 200;
-        otherEditorInfo.x = 0 + 100;
-        otherEditorInfo.y = sizeLimits.MENU_BAR_HEIGHT + 050;
+        otherEditorInfo.height = static_cast<int32_t>(m_height) - sizeLimits.MENU_BAR_HEIGHT ;//- 100;
+        otherEditorInfo.width = static_cast<int32_t>(m_width) ;//- 200;
+        otherEditorInfo.x = 0 ;//+ 100;
+        otherEditorInfo.y = sizeLimits.MENU_BAR_HEIGHT ;//+ 050;
         otherEditorInfo.editorIndex = m_editors.size();
 
         otherEditorInfo.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
@@ -1336,12 +1336,10 @@ namespace VkRender {
             Log::Logger::getInstance()->info("Editor {}, DragDelta: {},{}", editor.ui().index, editor.ui().dragDelta.x,
                                              editor.ui().dragDelta.y);
 
-            if (editor.ui().lastPressedPos.x >= 1 && editor.ui().lastPressedPos.y >= 1) {
                 editor.ui().dragHorizontal = editor.ui().dragDelta.x > 50;
                 editor.ui().dragVertical = editor.ui().dragDelta.y < -50;
                 editor.ui().dragActive = dragX > 0 || dragY > 0;
 
-            }
 
         }
     }

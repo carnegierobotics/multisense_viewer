@@ -42,12 +42,10 @@
 
 #include "Viewer/Tools/Populate.h"
 #include "Viewer/Tools/Utils.h"
-
-#ifndef VKRENDER_MULTISENSE_VIEWER_PRODUCTION
-
-#include "Viewer/VkRender/Core/Validation.h"
 #include "Viewer/VkRender/Core/VulkanResourceManager.h"
 
+#ifndef VKRENDER_MULTISENSE_VIEWER_PRODUCTION
+#include "Viewer/VkRender/Core/Validation.h"
 #endif
 
 namespace VkRender {

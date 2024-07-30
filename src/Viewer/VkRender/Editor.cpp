@@ -44,6 +44,18 @@ namespace VkRender {
 
     }
 
+    int32_t Editor::roundToGrid(double value, int gridSize){
+        double threshold = 0.1;
+        double scaledValue = value / gridSize;
+        double roundedValue = std::round(scaledValue);
+        if (std::abs(scaledValue - roundedValue) < threshold) {
+            return static_cast<int>(roundedValue * gridSize);
+        }
+        return static_cast<int>(std::round(value / gridSize) * gridSize);
+    }
+
+
+
     void Editor::resize(VulkanRenderPassCreateInfo &createInfo){
         m_createInfo = createInfo;
         m_sizeLimits = EditorSizeLimits(createInfo.appWidth, createInfo.appHeight);

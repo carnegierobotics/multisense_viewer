@@ -164,7 +164,7 @@ namespace VkRender {
         virtual void mouseScroll(float change);
 
         /** @brief (Virtual) Called when the window has been resized, can be used by the sample application to recreate resources */
-        virtual void windowResized(int32_t i, int32_t i1);
+        virtual void windowResized(int32_t i, int32_t i1, double d, double d1);
 
         virtual void postRenderActions() = 0; // TODO test
         virtual void freeVulkanResources() = 0;

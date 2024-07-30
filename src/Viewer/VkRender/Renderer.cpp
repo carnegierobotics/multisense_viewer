@@ -1016,7 +1016,7 @@ namespace VkRender {
 
     }
 
-    void Renderer::windowResized(int32_t dx, int32_t dy) {
+    void Renderer::windowResized(int32_t dx, int32_t dy, double widthScale, double heightScale) {
         m_renderUtils.device = m_vulkanDevice;
         m_renderUtils.instance = &instance;
         //m_renderUtils.renderPass = &renderPass;
@@ -1055,18 +1055,58 @@ namespace VkRender {
         createColorResources();
         createDepthStencil();
         createMainRenderPass();
-
+        int gridSize = 5;
         for (auto &editor: m_editors) {
-            auto& ci = editor.getCreateInfo();
-            ci.width += dx;
-            ci.height += dy;
+            auto &ci = editor.getCreateInfo();
+            // Scale dimensions
+            double newWidth = ci.width * widthScale;
+            double newHeight = ci.height * heightScale;
+            double newX = ci.x * widthScale;
+            double newY = ci.y * heightScale;
+
+            // Round to grid
+            ci.width =  static_cast<int32_t>(std::round(newWidth));
+            ci.height = static_cast<int32_t>(std::round(newHeight));
+            ci.x =      static_cast<int32_t>(std::round(newX));
+            ci.y =      static_cast<int32_t>(std::round(newY));
+
             ci.appWidth = m_width;
             ci.appHeight = m_height;
             ci.frameBuffers = m_frameBuffers.data();
-            editor.validateEditorSize(ci);
-            editor.resize(ci);
         }
-        auto& ci = m_mainEditor->getCreateInfo();
+        // TODO sort of brute forcing to make sure editors align correctly with the freshly scaled viewport
+        // TODO It should be done a better way. Currently it is fairly easy to break
+        for (size_t i = 0; i < m_editors.size(); ++i) {
+            for (size_t j = 0; j < m_editors.size(); ++j) {
+                if (j == i) continue;
+                auto &ci1 = m_editors[i].getCreateInfo();
+                auto &ci2 = m_editors[j].getCreateInfo();
+                // Adjust x positions: check for overlap
+                int right1 = ci1.x + ci1.width;
+                int right2 = ci2.x + ci2.width;
+                int diff1 = std::abs(ci1.x - right2) - ci1.borderSize;
+                int diff2 = std::abs(ci2.x - right1) - ci1.borderSize;
+                if (diff1 <= (gridSize * 6)) {
+                    ci1.x = ci2.x + ci2.width - ci1.borderSize;
+                } else if (diff2 <= (gridSize * 6)) {
+                    ci2.x = ci1.x + ci1.width - ci1.borderSize;
+                }
+                // Adjust y positions: check for overlap
+                int bottom1 = ci1.y + ci1.height;
+                int bottom2 = ci2.y + ci2.height;
+                diff1 = std::abs(ci1.y - bottom2) - ci1.borderSize;
+                diff2 = std::abs(ci2.y - bottom1) - ci1.borderSize;
+                if (diff1 <= (gridSize * 6)) {
+                    ci1.y = ci2.y + ci2.height - ci1.borderSize;
+                } else if (diff2 <= (gridSize * 6)) {
+                    ci2.y = ci1.y + ci1.height - ci1.borderSize;
+                }
+            }
+        }
+        for (auto &editor: m_editors) {
+            editor.resize(editor.getCreateInfo());
+        }
+        auto &ci = m_mainEditor->getCreateInfo();
         ci.width = m_width;
         ci.height = m_height;
         ci.appWidth = m_width;
@@ -1293,7 +1333,8 @@ namespace VkRender {
             int32_t dragX = editor.ui().cursorPos.x - editor.ui().lastPressedPos.x;
             int32_t dragY = editor.ui().cursorPos.y - editor.ui().lastPressedPos.y;
             editor.ui().dragDelta = glm::ivec2(dragX, dragY);
-            Log::Logger::getInstance()->info("Editor {}, DragDelta: {},{}", editor.ui().index, editor.ui().dragDelta.x, editor.ui().dragDelta.y);
+            Log::Logger::getInstance()->info("Editor {}, DragDelta: {},{}", editor.ui().index, editor.ui().dragDelta.x,
+                                             editor.ui().dragDelta.y);
 
             if (editor.ui().lastPressedPos.x >= 1 && editor.ui().lastPressedPos.y >= 1) {
                 editor.ui().dragHorizontal = editor.ui().dragDelta.x > 50;

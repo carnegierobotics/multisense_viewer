@@ -83,6 +83,7 @@ namespace VkRender {
         void update(bool updateGraph, float frametime, Input *input);
 
         void updateBorderState(const glm::vec2 &mousePos);
+        int32_t roundToGrid(double value, int gridSize);
 
         EditorBorderState checkLineBorderState(const glm::vec2 &mousePos, bool verticalResize);
 

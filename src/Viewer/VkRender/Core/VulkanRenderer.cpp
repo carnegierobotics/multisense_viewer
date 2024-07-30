@@ -323,7 +323,7 @@ namespace VkRender {
     }
 
 
-    void VulkanRenderer::windowResized(int32_t i, int32_t i1) {
+    void VulkanRenderer::windowResized(int32_t i, int32_t i1, double d, double d1) {
     }
 
     void VulkanRenderer::buildCommandBuffers() {
@@ -443,6 +443,9 @@ namespace VkRender {
         glfwGetFramebufferSize(window, reinterpret_cast<int *>(&m_width), reinterpret_cast<int *>(&m_height));
         int32_t widthChanged = static_cast<int32_t>(m_width) - prevWidth;
         int32_t heightChanged = static_cast<int32_t>(m_height) - prevHeight;
+        double widthScale =  static_cast<double>(m_width) / static_cast<double>(prevWidth);
+        double heightScale =  static_cast<double>(m_height) / static_cast<double>(prevHeight);
+
         // Suspend application while it is in minimized state
         // Also unsignal semaphore for presentation because we are recreating the swapchain
         while (m_width == 0 || m_height == 0) {
@@ -469,7 +472,7 @@ namespace VkRender {
         m_logger->info("Window Resized. New size is: {} x {}", m_width, m_height);
 
         // Notify derived class
-        windowResized(widthChanged, heightChanged);
+        windowResized(widthChanged, heightChanged, widthScale, heightScale);
 
         // Command buffers need to be recreated as they may store
         // references to the recreated frame buffer

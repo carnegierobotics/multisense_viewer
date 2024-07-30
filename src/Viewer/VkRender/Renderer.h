@@ -119,7 +119,7 @@ namespace VkRender {
 
         void updateUniformBuffers() override;
 
-        void windowResized(int32_t i, int32_t i1) override;
+        void windowResized(int32_t dx, int32_t dy, double widthScale, double heightScale) override;
 
         void addDeviceFeatures() override;
 

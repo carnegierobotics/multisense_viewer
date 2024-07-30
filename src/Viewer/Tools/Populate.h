@@ -636,8 +636,8 @@ namespace Populate {
     {
         VkPushConstantRange pushConstantRange {};
         pushConstantRange.stageFlags = stageFlags;
-        pushConstantRange.offset = offset;
         pushConstantRange.size = size;
+        pushConstantRange.offset = offset;
         return pushConstantRange;
     }
 

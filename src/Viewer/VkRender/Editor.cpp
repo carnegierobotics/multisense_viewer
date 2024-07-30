@@ -30,7 +30,7 @@ namespace VkRender {
             m_renderPasses.emplace_back(createInfo);
         }
 
-        m_guiManager = std::make_unique<GuiManager>(m_renderUtils.device,
+        m_guiManager = std::make_unique<GuiManager>(*m_renderUtils.device,
                                                     m_renderPasses.begin()->getRenderPass(), // TODO verify if this is ok?
                                                     &m_ui,
                                                     m_renderUtils.msaaSamples,
@@ -56,7 +56,7 @@ namespace VkRender {
         for (size_t i = 0; i < m_renderUtils.swapchainImages; ++i) {
             m_renderPasses.emplace_back(createInfo);
         }
-        m_guiManager->resize(m_ui.width, m_ui.height, m_renderPasses.back().getRenderPass(), m_renderUtils.msaaSamples);
+        m_guiManager->resize(m_ui.width, m_ui.height, m_renderPasses.back().getRenderPass(), m_renderUtils.msaaSamples, m_createInfo.guiResources);
 
         Log::Logger::getInstance()->info("Resizing Editor. UUID: {}, size: {}x{}, at pos: ({},{})", m_uuid.operator std::string(), m_ui.width, m_ui.height, m_ui.x, m_ui.y);
     }

@@ -78,6 +78,7 @@ set(SOURCE_FILES
         src/Viewer/VkRender/Core/CommandBuffer.cpp
         src/Viewer/VkRender/Core/VulkanRenderPass.cpp
         src/Viewer/VkRender/Core/VulkanResourceManager.cpp
+        src/Viewer/VkRender/Core/VulkanGraphicsPipeline.cpp
 
         src/Viewer/VkRender/pch.cpp
         src/Viewer/VkRender/Renderer.cpp
@@ -99,6 +100,7 @@ set(SOURCE_FILES
         src/Viewer/VkRender/ImGui/GuiManager.cpp
         src/Viewer/VkRender/ImGui/AdditionalWindows/DebugWindow.h
         src/Viewer/VkRender/ImGui/Layers/LayerSupport/LayerFactory.cpp
+        src/Viewer/VkRender/ImGui/GuiResources.cpp
 
         src/Viewer/Tools/StbInclude.cpp
         src/Viewer/Tools/Logger.cpp

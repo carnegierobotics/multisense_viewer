@@ -42,16 +42,12 @@
 #include <stb_image.h>
 
 #define IMGUI_DEFINE_MATH_OPERATORS
-
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
 #include <ranges>
-
 #include "Viewer/VkRender/ImGui/GuiManager.h"
-
 #include "Viewer/VkRender/Renderer.h"
 
-#include "Viewer/VkRender/ImGui/IconsFontAwesome6.h"
 
 namespace VkRender {
 
@@ -64,139 +60,11 @@ namespace VkRender {
         glfwSetClipboardString(reinterpret_cast<GLFWwindow *>(userData), text);
     }
 
-    GuiResources::GuiResources(VulkanDevice *d) : device(d) {
-
-        std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings{};
-        setLayoutBindings = {
-                {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-        };
-
-        uint32_t fonts = 5, icons = 10, gifImageCount = 20;
-        uint32_t setCount = fonts + icons + gifImageCount;
-        std::vector<VkDescriptorPoolSize> poolSizes = {
-                {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, setCount},
-
-        };
 
 
-        VkDescriptorSetLayoutCreateInfo layoutCreateInfo = Populate::descriptorSetLayoutCreateInfo(
-                setLayoutBindings.data(),
-                static_cast<uint32_t>(setLayoutBindings.size()));
-        CHECK_RESULT(
-                vkCreateDescriptorSetLayout(device->m_LogicalDevice, &layoutCreateInfo, nullptr,
-                                            &descriptorSetLayout));
-
-
-        VkDescriptorPoolCreateInfo poolCreateInfo = Populate::descriptorPoolCreateInfo(poolSizes, setCount);
-        CHECK_RESULT(vkCreateDescriptorPool(device->m_LogicalDevice, &poolCreateInfo, nullptr, &descriptorPool));
-
-
-        /*
-
-        if (std::filesystem::exists((Utils::getSystemCachePath() / "imgui.ini").string().c_str())) {
-            Log::Logger::getInstance()->info("Loading imgui ini file from disk {}",
-                                             (Utils::getSystemCachePath() / "imgui.ini").string().c_str());
-            ImGui::LoadIniSettingsFromDisk((Utils::getSystemCachePath() / "imgui.ini").string().c_str());
-        } else {
-            Log::Logger::getInstance()->info("ImGui ini file does not exist. {}",
-                                             (Utils::getSystemCachePath() / "imgui.ini").string().c_str());
-        }
-        */
-
-
-
-        fontTexture.reserve(fontCount);
-        fontDescriptors.reserve(fontCount);
-        font13 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 13.0f);
-        font8 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 8.0f);
-        font15 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 15.0f);
-        font18 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 18.0f);
-        font24 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 24.0f);
-
-        fontIcons = loadFontFromFileName("Assets/Fonts/fa-solid-900.ttf", 18.0f, true);
-        fontCount = fontDescriptors.size() - 1;
-
-
-        auto iconFileNames = std::vector{
-                "icon_preview.png",
-                "icon_information.png",
-                "icon_configure.png",
-                "icon_auto_configure.png",
-                "icon_manual_configure.png",
-                "icon_playback.png",
-                "icon_single_layout.png",
-                "icon_double_layout.png",
-                "icon_quad_layout.png",
-                "icon_nine_layout.png"
-        };
-        // Reserve space for icon textures
-        iconTextures.reserve(iconFileNames.size());
-        iconCount = iconFileNames.size() - 1;
-        imageIconDescriptors.resize(iconFileNames.size());
-        // Base path for the texture files
-        std::filesystem::path texturePath = Utils::getTexturePath();
-        // Load textures using the filenames
-        for (std::size_t index = 0; index < iconFileNames.size(); ++index) {
-            const auto &filename = iconFileNames[index];
-            loadImGuiTextureFromFileName((texturePath / filename).string(), index);
-
-
-        }
-        loadAnimatedGif(Utils::getTexturePath().append("spinner.gif").string());
-
-        // setup graphics pipeline
-        VkShaderModule vtxModule{};
-        Utils::loadShader((Utils::getShadersPath().append("Scene/imgui/ui.vert.spv")).string().c_str(),
-                          device->m_LogicalDevice, &vtxModule);
-        VkPipelineShaderStageCreateInfo vtxShaderStage = {};
-        vtxShaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        vtxShaderStage.stage = VK_SHADER_STAGE_VERTEX_BIT;
-        vtxShaderStage.module = vtxModule;
-        vtxShaderStage.pName = "main";
-        assert(vtxShaderStage.module != VK_NULL_HANDLE);
-        shaderModules.push_back(vtxModule);
-
-        VkShaderModule frgModule;
-        Utils::loadShader((Utils::getShadersPath().append("Scene/imgui/ui.frag.spv")).string().c_str(),
-                          device->m_LogicalDevice, &frgModule);
-        VkPipelineShaderStageCreateInfo fragShaderStage = {};
-        fragShaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        fragShaderStage.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-        fragShaderStage.module = frgModule;
-        fragShaderStage.pName = "main";
-        assert(fragShaderStage.module != VK_NULL_HANDLE);
-        shaderModules.push_back(frgModule);
-
-        shaders = std::array<VkPipelineShaderStageCreateInfo, 2>{vtxShaderStage, fragShaderStage};
-
-
-        // Pipeline cache
-        VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
-        pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
-        if (vkCreatePipelineCache(device->m_LogicalDevice, &pipelineCacheCreateInfo, nullptr, &pipelineCache) !=
-            VK_SUCCESS)
-            throw std::runtime_error("Failed to create Pipeline Cache");
-
-        // Pipeline layout
-        // Push constants for UI rendering parameters
-        VkPushConstantRange pushConstantRange = Populate::pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT,
-                                                                            sizeof(PushConstBlock), 0);
-        VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = Populate::pipelineLayoutCreateInfo(
-                &descriptorSetLayout, 1);
-        pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
-        pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
-        if (
-                vkCreatePipelineLayout(device->m_LogicalDevice, &pipelineLayoutCreateInfo, nullptr, &pipelineLayout) !=
-                VK_SUCCESS)
-            throw std::runtime_error("Failed to create m_Pipeline layout");
-
-
-    }
-
-    GuiManager::GuiManager(VulkanDevice *vulkanDevice, const VkRenderPass  &renderPass, EditorUI *editorUi,
+    GuiManager::GuiManager(VulkanDevice& vulkanDevice, const VkRenderPass  &renderPass, EditorUI *editorUi,
                            VkSampleCountFlagBits msaaSamples, uint32_t imageCount, Renderer *ctx,
-                           ImGuiContext *imguiCtx, const GuiResources *guiResources) : m_guiResources(guiResources) {
-        device = vulkanDevice;
+                           ImGuiContext *imguiCtx, const GuiResources *guiResources) : m_guiResources(guiResources), m_vulkanDevice(vulkanDevice) {
         vertexBuffer.resize(imageCount);
         indexBuffer.resize(imageCount);
         indexCount.resize(imageCount);
@@ -206,7 +74,7 @@ namespace VkRender {
         handles.info = std::make_unique<GuiLayerUpdateInfo>();
         handles.multiSenseRendererBridge = std::make_unique<MultiSense::MultiSenseRendererBridge>();
         handles.multiSenseRendererGigEVisionBridge = std::make_unique<MultiSense::MultiSenseRendererGigEVisionBridge>();
-        handles.info->deviceName = device->m_Properties.deviceName;
+        handles.info->deviceName = m_vulkanDevice.m_Properties.deviceName;
         handles.info->title = "MultiSense Viewer";
         // Load UI info from file:
         auto &userSetting = RendererConfig::getInstance().getUserSetting();
@@ -253,7 +121,26 @@ namespace VkRender {
         for (int i = 0; i < m_guiResources->gif.totalFrames; ++i) {
             handles.info->gif.image[i] = m_guiResources->gifImageDescriptors[i];
         }
-        createGraphicsPipeline(renderPass, msaaSamples);
+
+        VulkanGraphicsPipelineCreateInfo pipelineCreateInfo(renderPass, m_vulkanDevice);
+        pipelineCreateInfo.msaaSamples = msaaSamples;
+        pipelineCreateInfo.shaders = guiResources->shaders;
+        pipelineCreateInfo.descriptorSetLayout = guiResources->descriptorSetLayout;
+        pipelineCreateInfo.pushConstBlockSize = sizeof(GuiResources::PushConstBlock);
+        m_pipeline = std::make_unique<VulkanGraphicsPipeline>(pipelineCreateInfo);
+
+    }
+
+    void GuiManager::resize(uint32_t width, uint32_t height, const VkRenderPass &renderPass, VkSampleCountFlagBits msaaSamples, std::shared_ptr<GuiResources> guiResources) {
+        ImGui::SetCurrentContext(m_imguiContext);
+        ImGuiIO &io = ImGui::GetIO();
+        io.DisplaySize = ImVec2(static_cast<float>(width), static_cast<float>(height));
+        VulkanGraphicsPipelineCreateInfo pipelineCreateInfo(renderPass, m_vulkanDevice);
+        pipelineCreateInfo.msaaSamples = msaaSamples;
+        pipelineCreateInfo.shaders = guiResources->shaders;
+        pipelineCreateInfo.descriptorSetLayout = guiResources->descriptorSetLayout;
+        pipelineCreateInfo.pushConstBlockSize = sizeof(GuiResources::PushConstBlock);
+        m_pipeline = std::make_unique<VulkanGraphicsPipeline>(pipelineCreateInfo);
 
     }
 
@@ -289,7 +176,7 @@ namespace VkRender {
             saveSettingsTimer = std::chrono::steady_clock::now();
         }
 
-        handles.multiSenseRendererBridge->update(); // TODO reconsider if we should call crl updates here?
+        handles.multiSenseRendererBridge->update(); // TODO definitely reconsider if we should call crl updates here?
     }
 
 
@@ -319,8 +206,8 @@ namespace VkRender {
             vertexBuffer[currentFrame].unmap();
             vertexBuffer[currentFrame].destroy();
             if (VK_SUCCESS !=
-                device->createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-                                     &vertexBuffer[currentFrame], vertexBufferSize))
+                    m_vulkanDevice.createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+                                                &vertexBuffer[currentFrame], vertexBufferSize))
                 throw std::runtime_error("Failed to create vertex Buffer");
             vertexCount[currentFrame] = imDrawData->TotalVtxCount;
             vertexBuffer[currentFrame].map();
@@ -333,8 +220,8 @@ namespace VkRender {
             indexBuffer[currentFrame].unmap();
             indexBuffer[currentFrame].destroy();
             if (VK_SUCCESS !=
-                device->createBuffer(VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-                                     &indexBuffer[currentFrame], indexBufferSize))
+                    m_vulkanDevice.createBuffer(VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+                                                &indexBuffer[currentFrame], indexBufferSize))
                 throw std::runtime_error("Failed to create index buffer");
             indexCount[currentFrame] = imDrawData->TotalIdxCount;
             indexBuffer[currentFrame].map();
@@ -369,11 +256,11 @@ namespace VkRender {
 
         // Need to update buffers
         updateBuffers(currentFrame);
-        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline->getPipeline());
 
         pushConstBlock.scale = glm::vec2(2.0f / static_cast<float>(width), 2.0f / static_cast<float>(height));
         pushConstBlock.translate = glm::vec2(-1.0f, -1.0f);
-        vkCmdPushConstants(commandBuffer, m_guiResources->pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
+        vkCmdPushConstants(commandBuffer, m_pipeline->getPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0,
                            sizeof(GuiResources::PushConstBlock),
                            &pushConstBlock);
 
@@ -400,7 +287,7 @@ namespace VkRender {
 
                     auto texture = static_cast<VkDescriptorSet>(pcmd->GetTexID());
                     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                            m_guiResources->pipelineLayout, 0, 1,
+                                            m_pipeline->getPipelineLayout(), 0, 1,
                                             &texture, 0, nullptr);
 
                     VkRect2D scissorRect{};
@@ -429,265 +316,7 @@ namespace VkRender {
         }
     }
 
-    void GuiManager::resize(uint32_t width, uint32_t height, const VkRenderPass &renderPass, VkSampleCountFlagBits msaaSamples) {
-        ImGui::SetCurrentContext(m_imguiContext);
-        ImGuiIO &io = ImGui::GetIO();
-        io.DisplaySize = ImVec2(static_cast<float>(width), static_cast<float>(height));
 
-        createGraphicsPipeline(renderPass, msaaSamples);
-    }
-
-    void GuiManager::createGraphicsPipeline(const VkRenderPass &renderPass, VkSampleCountFlagBits msaaSamples) {
-        // Setup graphics pipeline for UI rendering
-        VkPipelineInputAssemblyStateCreateInfo inputAssemblyState =
-                Populate::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0,
-                                                               VK_FALSE);
-
-        VkPipelineRasterizationStateCreateInfo rasterizationState =
-                Populate::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE,
-                                                               VK_FRONT_FACE_COUNTER_CLOCKWISE);
-
-        // Enable blending
-        VkPipelineColorBlendAttachmentState blendAttachmentState{};
-        blendAttachmentState.blendEnable = VK_TRUE;
-        blendAttachmentState.colorWriteMask =
-                VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
-                VK_COLOR_COMPONENT_A_BIT;
-        blendAttachmentState.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-        blendAttachmentState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-        blendAttachmentState.colorBlendOp = VK_BLEND_OP_ADD;
-        blendAttachmentState.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-        blendAttachmentState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-        blendAttachmentState.alphaBlendOp = VK_BLEND_OP_ADD;
-
-        VkPipelineColorBlendStateCreateInfo colorBlendState =
-                Populate::pipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
-
-        VkPipelineDepthStencilStateCreateInfo depthStencilState =
-                Populate
-                ::pipelineDepthStencilStateCreateInfo(VK_FALSE, VK_FALSE, VK_COMPARE_OP_LESS_OR_EQUAL);
-
-        VkPipelineViewportStateCreateInfo viewportState =
-                Populate
-                ::pipelineViewportStateCreateInfo(1, 1, 0);
-
-        VkPipelineMultisampleStateCreateInfo multisampleState =
-                Populate
-                ::pipelineMultisampleStateCreateInfo(msaaSamples);
-
-        std::vector<VkDynamicState> dynamicStateEnables = {
-                VK_DYNAMIC_STATE_VIEWPORT,
-                VK_DYNAMIC_STATE_SCISSOR
-        };
-        VkPipelineDynamicStateCreateInfo dynamicState =
-                Populate
-                ::pipelineDynamicStateCreateInfo(dynamicStateEnables);
-
-        VkGraphicsPipelineCreateInfo pipelineCreateInfo = Populate
-        ::pipelineCreateInfo(m_guiResources->pipelineLayout,
-                             renderPass);
-
-
-        pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
-        pipelineCreateInfo.pRasterizationState = &rasterizationState;
-        pipelineCreateInfo.pColorBlendState = &colorBlendState;
-        pipelineCreateInfo.pMultisampleState = &multisampleState;
-        pipelineCreateInfo.pViewportState = &viewportState;
-        pipelineCreateInfo.pDepthStencilState = &depthStencilState;
-        pipelineCreateInfo.pDynamicState = &dynamicState;
-        pipelineCreateInfo.stageCount = static_cast<uint32_t>(m_guiResources->shaders.size());
-        pipelineCreateInfo.pStages = m_guiResources->shaders.data();
-
-        // Vertex bindings an attributes based on ImGui vertex definition
-        std::vector<VkVertexInputBindingDescription> vertexInputBindings = {
-                Populate
-                ::vertexInputBindingDescription(0, sizeof(ImDrawVert), VK_VERTEX_INPUT_RATE_VERTEX),
-        };
-        std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
-                Populate
-                ::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(ImDrawVert,
-                                                                                          pos)),    // Location 0: Position
-                Populate
-                ::vertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32_SFLOAT,
-                                                  offsetof(ImDrawVert, uv)),    // Location 1: UV
-                Populate
-                ::vertexInputAttributeDescription(0, 2, VK_FORMAT_R8G8B8A8_UNORM,
-                                                  offsetof(ImDrawVert, col)),    // Location 0: Color
-        };
-        VkPipelineVertexInputStateCreateInfo vertexInputState = Populate
-        ::pipelineVertexInputStateCreateInfo();
-        vertexInputState.vertexBindingDescriptionCount = static_cast<uint32_t>(vertexInputBindings.size());
-        vertexInputState.pVertexBindingDescriptions = vertexInputBindings.data();
-        vertexInputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexInputAttributes.size());
-        vertexInputState.pVertexAttributeDescriptions = vertexInputAttributes.data();
-
-        pipelineCreateInfo.pVertexInputState = &vertexInputState;
-
-        if (vkCreateGraphicsPipelines(device->m_LogicalDevice, m_guiResources->pipelineCache, 1, &pipelineCreateInfo,
-                                      nullptr,
-                                      &pipeline) != VK_SUCCESS)
-            throw std::runtime_error("Failed to create graphics m_Pipeline");
-    }
-
-    void GuiResources::loadImGuiTextureFromFileName(const std::string &file, uint32_t i) {
-        int texWidth, texHeight, texChannels;
-        stbi_uc *pixels = stbi_load(file.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-        VkDeviceSize imageSize = static_cast<VkDeviceSize>(texWidth * texHeight * texChannels);
-        if (!pixels) {
-            throw std::runtime_error("failed to load texture m_Image: " + file);
-        }
-
-        iconTextures.emplace_back(pixels, imageSize, VK_FORMAT_R8G8B8A8_SRGB, static_cast<uint32_t>(texWidth),
-                                  static_cast<uint32_t>(texHeight), device,
-                                  device->m_TransferQueue, VK_FILTER_LINEAR, VK_IMAGE_USAGE_SAMPLED_BIT,
-                                  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-        {
-            VkDescriptorSetAllocateInfo alloc_info = {};
-            alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-            alloc_info.descriptorPool = descriptorPool;
-            alloc_info.descriptorSetCount = 1;
-            alloc_info.pSetLayouts = &descriptorSetLayout;
-            CHECK_RESULT(vkAllocateDescriptorSets(device->m_LogicalDevice, &alloc_info, &imageIconDescriptors[i]));
-        }
-        // Update the Descriptor Set:
-        {
-
-            VkWriteDescriptorSet write_desc[1] = {};
-            write_desc[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            write_desc[0].dstSet = imageIconDescriptors[i];
-            write_desc[0].descriptorCount = 1;
-            write_desc[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            write_desc[0].pImageInfo = &iconTextures[i].m_descriptor;
-            vkUpdateDescriptorSets(device->m_LogicalDevice, 1, write_desc, 0, NULL);
-        }
-
-    }
-
-
-    ImFont *GuiResources::loadFontFromFileName(const std::filesystem::path &file, float fontSize, bool iconFont) {
-        ImFont *font;
-
-        if (iconFont) {
-            float baseFontSize = fontSize; // 13.0f is the size of the default font. Change to the font size you use.
-            float iconFontSize = baseFontSize * 2.0f /
-                                 3.0f; // FontAwesome fonts need to have their sizes reduced by 2.0f/3.0f in order to align correctly
-
-            // merge in icons from Font Awesome
-            static const ImWchar icons_ranges[] = {ICON_MIN_FA, ICON_MAX_16_FA, 0};
-            ImFontConfig icons_config;
-            icons_config.MergeMode = true;
-            icons_config.PixelSnapH = true;
-            icons_config.GlyphMinAdvanceX = iconFontSize;
-            font = fontAtlas.AddFontFromFileTTF(file.string().c_str(), iconFontSize, &icons_config, icons_ranges);
-        } else {
-            ImFontConfig config;
-            config.OversampleH = 2;
-            config.OversampleV = 1;
-            config.GlyphExtraSpacing.x = 1.0f;
-            font = fontAtlas.AddFontFromFileTTF(file.string().c_str(), fontSize, &config);
-        }
-
-
-        unsigned char *pixels;
-        int width, height;
-        fontAtlas.GetTexDataAsRGBA32(&pixels, &width, &height);
-        auto uploadSize = width * height * 4 * sizeof(char);
-
-        fontTexture.emplace_back(pixels, uploadSize,
-                                 VK_FORMAT_R8G8B8A8_UNORM,
-                                 width, height, device,
-                                 device->m_TransferQueue);
-        VkDescriptorSet descriptor{};
-        // descriptors
-        // Create Descriptor Set:
-        {
-            VkDescriptorSetAllocateInfo alloc_info = {};
-            alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-            alloc_info.descriptorPool = descriptorPool;
-            alloc_info.descriptorSetCount = 1;
-            alloc_info.pSetLayouts = &descriptorSetLayout;
-            VkResult res = vkAllocateDescriptorSets(device->m_LogicalDevice, &alloc_info, &descriptor);
-            if (res != VK_SUCCESS) {
-                throw std::runtime_error("Failed to allocate descriptorset");
-            }
-        }
-        // Update the Descriptor Set:
-        {
-            VkWriteDescriptorSet write_desc[1] = {};
-            write_desc[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            write_desc[0].dstSet = descriptor;
-            write_desc[0].descriptorCount = 1;
-            write_desc[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            write_desc[0].pImageInfo = &fontTexture.back().m_descriptor;
-            vkUpdateDescriptorSets(device->m_LogicalDevice, 1, write_desc, 0, nullptr);
-        }
-
-        fontDescriptors.push_back(descriptor);
-        return font;
-    }
-
-
-    void GuiResources::loadAnimatedGif(const std::string &file) {
-        int width = 0, height = 0, depth = 0, comp = 0;
-        int *delays = nullptr;
-        int channels = 4;
-
-        std::ifstream input(file, std::ios::binary | std::ios::ate);
-        std::streamsize size = input.tellg();
-        input.seekg(0, std::ios::beg);
-
-        stbi_uc *pixels = nullptr;
-        std::vector<stbi_uc> buffer(size);
-        if (input.read(reinterpret_cast<char *>(buffer.data()), size)) {
-            pixels = stbi_load_gif_from_memory(buffer.data(), static_cast<int> (size), &delays, &width, &height, &depth,
-                                               &comp, channels);
-            if (!pixels)
-                throw std::runtime_error("failed to load texture m_Image: " + file);
-        }
-        uint32_t imageSize = width * height * channels;
-
-        gif.width = width;
-        gif.height = height;
-        gif.totalFrames = depth;
-        gif.imageSize = imageSize;
-        gif.delay = reinterpret_cast<uint32_t *>( delays);
-        gifImageDescriptors.reserve(static_cast<size_t>(depth) + 1);
-
-        auto *pixelPointer = pixels; // Store original position in pixels
-
-        for (int i = 0; i < depth; ++i) {
-            VkDescriptorSet dSet{};
-            gifTexture[i] = std::make_unique<Texture2D>(pixelPointer, imageSize, VK_FORMAT_R8G8B8A8_SRGB,
-                                                        width, height, device,
-                                                        device->m_TransferQueue, VK_FILTER_LINEAR,
-                                                        VK_IMAGE_USAGE_SAMPLED_BIT,
-                                                        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-            // Create Descriptor Set:
-
-            VkDescriptorSetAllocateInfo alloc_info = {};
-            alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-            alloc_info.descriptorPool = descriptorPool;
-            alloc_info.descriptorSetCount = 1;
-            alloc_info.pSetLayouts = &descriptorSetLayout;
-            CHECK_RESULT(vkAllocateDescriptorSets(device->m_LogicalDevice, &alloc_info, &dSet));
-
-
-            // Update the Descriptor Set:
-            VkWriteDescriptorSet write_desc[1] = {};
-            write_desc[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            write_desc[0].dstSet = dSet;
-            write_desc[0].descriptorCount = 1;
-            write_desc[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            write_desc[0].pImageInfo = &gifTexture[i]->m_descriptor;
-            vkUpdateDescriptorSets(device->m_LogicalDevice, 1, write_desc, 0, NULL);
-            pixelPointer += imageSize;
-
-            gifImageDescriptors.emplace_back(dSet);
-        }
-        stbi_image_free(pixels);
-    }
 
 
 }

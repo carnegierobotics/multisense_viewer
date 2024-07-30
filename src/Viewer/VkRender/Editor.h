@@ -86,7 +86,7 @@ namespace VkRender {
 
         EditorBorderState checkLineBorderState(const glm::vec2 &mousePos, bool verticalResize);
 
-        bool validateEditorSize(VulkanRenderPassCreateInfo &createInfo, const VulkanRenderPassCreateInfo &original);
+        bool validateEditorSize(VulkanRenderPassCreateInfo &createInfo);
         void resize(VulkanRenderPassCreateInfo &createInfo);
 
 

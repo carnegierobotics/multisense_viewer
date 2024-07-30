@@ -14,16 +14,21 @@
 
 namespace VkRender {
     typedef enum EditorBorderState {
-        None = 0,        // Cursor is not on any border
-        Left = 1,        // Cursor is on the left border
-        Right = 2,       // Cursor is on the right border
-        Top = 3,         // Cursor is on the top border
-        Bottom = 4,      // Cursor is on the bottom border
-        TopLeft = 5,     // Cursor is on the top-left corner
-        TopRight = 6,    // Cursor is on the top-right corner
-        BottomLeft = 7,  // Cursor is on the bottom-left corner
-        BottomRight = 8,  // Cursor is on the bottom-right corner
-        Inside = 9  // Cursor is on the bottom-right corner
+        None        = 0,        // Cursor is not on any border
+        Left        = 1 << 0,   // Cursor is on the left border (1)
+        Right       = 1 << 1,   // Cursor is on the right border (2)
+        Top         = 1 << 2,   // Cursor is on the top border (4)
+        Bottom      = 1 << 3,   // Cursor is on the bottom border (8)
+        TopLeft     = 1 << 4,   // Cursor is on the top-left corner (16)
+        TopRight    = 1 << 5,   // Cursor is on the top-right corner (32)
+        BottomLeft  = 1 << 6,   // Cursor is on the bottom-left corner (64)
+        BottomRight = 1 << 7,   // Cursor is on the bottom-right corner (128)
+        Inside      = 1 << 8,   // Cursor is inside (256)
+
+        AnyBorders   = Left | Right | Top | Bottom,
+        VerticalBorders   = Left | Right,
+        HorizontalBorders   =  Top | Bottom,
+        AnyCorner   = TopLeft | TopRight | BottomRight | BottomLeft,
     } EditorBorderState;
 }
 
@@ -77,11 +82,10 @@ namespace fmt {
 namespace VkRender {
 
     struct EditorSizeLimits {
-        const int MENU_BAR_HEIGHT = 25;
-
-        const int MIN_SIZE = 20;
-        const int MIN_OFFSET_X = 0;
-        const int MIN_OFFSET_Y = MENU_BAR_HEIGHT;
+        int MENU_BAR_HEIGHT = 25;
+        int MIN_SIZE = 20;
+        int MIN_OFFSET_X = 0;
+        int MIN_OFFSET_Y = MENU_BAR_HEIGHT;
         int MAX_OFFSET_WIDTH;
         int MAX_OFFSET_HEIGHT;
         int MAX_WIDTH;
@@ -101,9 +105,10 @@ namespace VkRender {
         // Todo make private
         int32_t x = 0;
         int32_t y = 0;
-        uint32_t borderSize = 0;
+        int32_t  borderSize = 0;
         int32_t width = 0;
         int32_t height = 0;
+        size_t index = 0;
         bool resizeActive = false;
         bool prevResize = false;
         bool borderClicked = false;
@@ -118,8 +123,9 @@ namespace VkRender {
         EditorBorderState lastClickedBorderType = EditorBorderState::None;
         EditorBorderState lastHoveredBorderType = EditorBorderState::None;
         glm::ivec2 lastPressedPos{};
-        glm::ivec2 hoverDelta{};
         glm::ivec2 dragDelta{};
+        glm::ivec2 cursorPos{0};
+        glm::ivec2 cursorDelta{0};
         glm::ivec2 resizeIntervalHoriz{};
         glm::ivec2 resizeIntervalVertical{};
 
@@ -129,16 +135,17 @@ namespace VkRender {
 
         bool active = false;
         bool hovered = false;
+        bool indirectlyActivated = false;
 
         // assign some random background colors
         EditorUI(){
-            std::vector<ImVec4> c{{1.0f, 0.0f, 0.0f, 0.6f},
-                                  {0.0f, 1.0f, 0.0f, 0.6f}, // 1: Green
-                                  {0.0f, 0.0f, 1.0f, 0.6f}, // 2: Blue
-                                  {1.0f, 1.0f, 0.0f, 0.6f}, // 3: Yellow
-                                  {1.0f, 0.0f, 1.0f, 0.6f}, // 4: Magenta
-                                  {0.0f, 1.0f, 1.0f, 0.6f}, // 5: Cyan
-                                  {0.5f, 0.5f, 0.5f, 0.6f}}; // 6: Gray
+            std::vector<ImVec4> c{{1.0f, 0.0f, 0.0f, 0.4f},
+                                  {0.0f, 1.0f, 0.0f, 0.4f}, // 1: Green
+                                  {0.0f, 0.0f, 1.0f, 0.4f}, // 2: Blue
+                                  {1.0f, 1.0f, 0.0f, 0.4f}, // 3: Yellow
+                                  {1.0f, 0.0f, 1.0f, 0.4f}, // 4: Magenta
+                                  {0.0f, 1.0f, 1.0f, 0.4f}, // 5: Cyan
+                                  {0.5f, 0.5f, 0.5f, 0.4f}}; // 6: Gray
             std::random_device rd;  // Seed for the random number engine
             std::mt19937 gen(rd()); // Mersenne Twister random number engine
             std::uniform_int_distribution<> dis(0, c.size() - 1); // Uniform distribution
@@ -146,10 +153,11 @@ namespace VkRender {
 
             backgroundColor = {c[index].x, c[index].y, c[index].z, c[index].w};
             backgroundColorHovered = backgroundColor;
-            backgroundColorHovered.w = 0.75f;
+            backgroundColorHovered.w = 0.5f;
             backgroundColorActive = backgroundColor;
-            backgroundColorActive.w = 1.0f;
+            backgroundColorActive.w = 0.7f;
         }
+
     };
 
 }

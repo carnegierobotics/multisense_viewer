@@ -81,8 +81,18 @@ namespace VkRender {
 
 
             // End the parent window
-            float borderSize = 3.0f;
-            ImU32 border_color = ImGui::GetColorU32(ImVec4(0.3f, 0.3f, 0.3f, 1.0f)); // gray color
+            float borderSize = 5.0f;
+
+            ImVec4 color;
+            if (handles.editorUi->active)
+                color = handles.editorUi->backgroundColorActive;
+            else if (handles.editorUi->hovered)
+                color = handles.editorUi->backgroundColorHovered;
+            else
+                color = handles.editorUi->backgroundColor;
+
+            color.w = 1.0f;
+            ImU32 border_color = ImGui::ColorConvertFloat4ToU32(color); // White color
 
             ImDrawList *draw_list = ImGui::GetWindowDrawList();
             ImVec2 p1 = window_pos;

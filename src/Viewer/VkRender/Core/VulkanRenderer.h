@@ -85,7 +85,7 @@ namespace VkRender {
             /** @brief Set to true if fullscreen mode has been requested via command line */
             bool fullscreen = false;
             /** @brief Set to true if v-sync will be forced for the swapchain */
-            bool vsync = false;
+            bool vsync = true;
             /** @brief Enable UI overlay */
             bool overlay = true;
         } m_settings;
@@ -164,7 +164,7 @@ namespace VkRender {
         virtual void mouseScroll(float change);
 
         /** @brief (Virtual) Called when the window has been resized, can be used by the sample application to recreate resources */
-        virtual void windowResized();
+        virtual void windowResized(int32_t i, int32_t i1);
 
         virtual void postRenderActions() = 0; // TODO test
         virtual void freeVulkanResources() = 0;

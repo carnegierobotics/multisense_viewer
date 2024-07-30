@@ -295,10 +295,9 @@ namespace VkRender {
                                                     0); // We're missing one pixel
                     scissorRect.offset.y = std::max(static_cast<int32_t>(pcmd->ClipRect.y + y - 1),
                                                     0); // We're missing one pixel
-                    scissorRect.extent.width = static_cast<uint32_t>(pcmd->ClipRect.z - pcmd->ClipRect.x +
-                                                                     2); // We're missing one pixel
-                    scissorRect.extent.height = static_cast<uint32_t>(pcmd->ClipRect.w - pcmd->ClipRect.y +
-                                                                      2); // We're missing one pixel
+                    scissorRect.extent.width = static_cast<uint32_t>(pcmd->ClipRect.z - pcmd->ClipRect.x + 2); // We're missing one pixel
+                    scissorRect.extent.height = static_cast<uint32_t>(pcmd->ClipRect.w - pcmd->ClipRect.y + 2); // We're missing one pixel
+
                     vkCmdSetScissor(commandBuffer, 0, 1, &scissorRect);
                     vkCmdDrawIndexed(commandBuffer, pcmd->ElemCount, 1, pcmd->IdxOffset + indexOffset,
                                      pcmd->VtxOffset + vertexOffset, 0);

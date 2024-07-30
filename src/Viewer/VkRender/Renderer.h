@@ -88,7 +88,7 @@ namespace VkRender {
         void destroyEntity(Entity entity);
         Entity createEntityWithUUID(UUID uuid, const std::string &name);
         Editor createEditor(VulkanRenderPassCreateInfo &createInfo);
-        void replaceEditor(VulkanRenderPassCreateInfo &createInfo, Editor &editor);
+        Editor createEditorWithUUID(UUID uuid, VulkanRenderPassCreateInfo &createInfo);
 
         VkRender::Entity findEntityByName(std::string_view name);
         void markEntityForDestruction(Entity entity);
@@ -119,7 +119,7 @@ namespace VkRender {
 
         void updateUniformBuffers() override;
 
-        void windowResized() override;
+        void windowResized(int32_t i, int32_t i1) override;
 
         void addDeviceFeatures() override;
 
@@ -159,13 +159,11 @@ namespace VkRender {
 
         void createColorResources();
 
-        void setupDepthStencil();
+        void createDepthStencil();
 
         void updateEditors();
 
-        void setupMainEditor();
-
-        Editor createEditorWithUUID(UUID uuid, VulkanRenderPassCreateInfo &createInfo);
+        void createMainRenderPass();
 
 
         void handleHoverState(Editor &editor);
@@ -180,11 +178,19 @@ namespace VkRender {
 
         void logStates();
 
-        void updateResizeIntervals(Editor &editor);
+        void updateResizeIntervals();
 
         VulkanRenderPassCreateInfo getNewEditorCreateInfo(Editor &editor);
 
-        void resizeEditors(Editor &editor);
+        void resizeEditors(bool anyCornerClicked);
+
+        bool isValidResize(VulkanRenderPassCreateInfo &newEditorCI, Editor &editor);
+
+        void splitEditor(uint32_t splitEditorIndex);
+
+        void handleIndirectClickState(Editor &editor);
+
+        void checkAndSetIndirectResize(Editor &editor, Editor &otherEditor);
     };
 }
 

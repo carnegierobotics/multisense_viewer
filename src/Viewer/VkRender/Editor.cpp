@@ -23,6 +23,7 @@ namespace VkRender {
         m_ui.width = createInfo.width;
         m_ui.x = createInfo.x;
         m_ui.y = createInfo.y;
+        m_ui.index = createInfo.editorIndex;
         m_applicationWidth = createInfo.appWidth;
         m_applicationHeight = createInfo.appHeight;
         m_renderStates = {createInfo.context->data().swapchainImages, RenderState::Idle};
@@ -44,6 +45,9 @@ namespace VkRender {
     }
 
     void Editor::resize(VulkanRenderPassCreateInfo &createInfo){
+        m_createInfo = createInfo;
+        m_sizeLimits = EditorSizeLimits(createInfo.appWidth, createInfo.appHeight);
+
         m_ui.height = createInfo.height;
         m_ui.width = createInfo.width;
         m_ui.x = createInfo.x;
@@ -195,38 +199,36 @@ namespace VkRender {
         return EditorBorderState::None;
     }
 
-    bool Editor::validateEditorSize(VulkanRenderPassCreateInfo &createInfo, const VulkanRenderPassCreateInfo & original) {
-        bool modified = false;
+    bool Editor::validateEditorSize(VulkanRenderPassCreateInfo &createInfo) {
         // Ensure the x offset is within the allowed range
         if (createInfo.x < m_sizeLimits.MIN_OFFSET_X) {
-            createInfo.x = m_sizeLimits.MIN_OFFSET_X;
+           return false;
         }
         if (createInfo.x > m_sizeLimits.MAX_OFFSET_WIDTH) {
-            createInfo.x = m_sizeLimits.MAX_OFFSET_WIDTH;
+           return false;
         }
         // Ensure the y offset is within the allowed range
         if (createInfo.y < m_sizeLimits.MIN_OFFSET_Y) {
-            createInfo.y = m_sizeLimits.MIN_OFFSET_Y;
+           return false;
         }
         if (createInfo.y > m_sizeLimits.MAX_OFFSET_HEIGHT) {
-            createInfo.y = m_sizeLimits.MAX_OFFSET_HEIGHT;
+           return false;
         }
         // Ensure the width is within the allowed range considering the offset
         if (createInfo.width < m_sizeLimits.MIN_SIZE) {
-            createInfo.width = std::max(original.width, m_sizeLimits.MIN_SIZE);
-            createInfo.x = original.x;
+           return false;
         }
         if (createInfo.width > m_applicationWidth - createInfo.x) {
-            createInfo.width = m_applicationWidth - createInfo.x - m_sizeLimits.MIN_OFFSET_X;
+            return false;
         }
         // Ensure the height is within the allowed range considering the offset
         if (createInfo.height < m_sizeLimits.MIN_SIZE) {
-            createInfo.height = m_sizeLimits.MIN_SIZE;
+            return false;
         }
         if (createInfo.height > m_applicationHeight - createInfo.y) {
-            createInfo.height = m_applicationHeight - createInfo.y;
+            return false;
         }
-        return modified;
+        return true;
     }
 
 }

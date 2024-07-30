@@ -57,11 +57,22 @@ namespace VkRender {
             // Create the parent window
             ImGui::Begin("EditorTestWindow", nullptr, window_flags);
 
+            ImGui::PushFont(handles.info->font24);
+            std::string txt = std::to_string(handles.editorUi->index);
+            ImVec2 txtSize = ImGui::CalcTextSize(txt.c_str());
 
+            ImVec2 cursorPos = window_size / 2;
+            cursorPos.x -= txtSize.x / 2;
+            cursorPos.y -= txtSize.y / 2;
+
+            ImGui::SetCursorPos(cursorPos);
+            ImGui::Text("%s", txt.c_str());
+            ImGui::PopFont();
+            /*
             // End the parent window
             float borderSize = 3.0f;
-            ImU32 border_color = ImGui::GetColorU32(ImVec4(0.3f, 0.3f, 0.3f, 1.0f)); // White color
-
+            color.w = 1.0f;
+            ImU32 border_color = ImGui::ColorConvertFloat4ToU32(color); // White color
             ImDrawList *draw_list = ImGui::GetWindowDrawList();
             ImVec2 p1 = window_pos;
             ImVec2 p2 = ImVec2(window_pos.x + window_size.x, window_pos.y + borderSize);
@@ -75,6 +86,7 @@ namespace VkRender {
             draw_list->AddRectFilled(ImVec2(window_size.x - borderSize, window_pos.y),
                                      ImVec2(window_size.x, window_size.y), border_color); // Right border
 
+                                     */
             ImGui::End();
             ImGui::PopStyleVar(2);
             ImGui::PopStyleColor();

@@ -17,8 +17,8 @@ namespace VkRender {
             createInfo.context->vkDevice()), m_allocator(createInfo.context->allocator()) {
 
         VkSampleCountFlagBits sampleCount = createInfo.context->data().msaaSamples;
-        uint32_t width = createInfo.width;
-        uint32_t height = createInfo.height;
+        uint32_t width =  std::max(createInfo.width , 0);
+        uint32_t height = std::max(createInfo.height, 0);
         const auto &data = createInfo.context->data();
         std::string editorTypeDescription = createInfo.editorTypeDescription;
 

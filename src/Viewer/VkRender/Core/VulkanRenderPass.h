@@ -33,7 +33,7 @@ namespace VkRender {
         std::shared_ptr<GuiResources> guiResources;
         std::vector<VkClearValue> clearValue;
         bool resizeable = true;
-
+        size_t editorIndex = 0;
         VulkanRenderPassCreateInfo() = default;
 
         VulkanRenderPassCreateInfo(VkFramebuffer * fbPtr, std::shared_ptr<GuiResources> guiRes, Renderer *ctx)

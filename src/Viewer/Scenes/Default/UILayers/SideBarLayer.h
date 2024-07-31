@@ -207,7 +207,7 @@ namespace VkRender {
             if (ImGui::Button("Add Camera", ImVec2(150.0f, 25.0f))) {
                 std::string tag = "Camera #" + std::to_string(cameras.size());
 
-                auto camera = handles.m_context->createNewCamera(tag, handles.info->width, handles.info->height);
+                auto camera = handles.m_context->createNewCamera(tag, handles.info->applicationWidth, handles.info->applicationHeight);
                 //e.addComponent<CameraGraphicsPipelineComponent>(&handles.m_context->data());
                 handles.m_cameraSelection.tag = tag;
             }
@@ -340,10 +340,10 @@ namespace VkRender {
                     ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoScrollWithMouse |
                     ImGuiWindowFlags_NoResize;
             ImGui::SetNextWindowPos(
-                    ImVec2(handles.info->width - handles.info->sidebarWidth, handles.info->menuBarHeight),
+                    ImVec2(handles.info->applicationWidth - handles.info->sidebarWidth, handles.info->menuBarHeight),
                     ImGuiCond_Always);
             ImGui::SetNextWindowSize(
-                    ImVec2(handles.info->sidebarWidth, handles.info->height - handles.info->menuBarHeight));
+                    ImVec2(handles.info->sidebarWidth, handles.info->applicationHeight - handles.info->menuBarHeight));
             ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::Colors::CRLDarkGray425);
 
             ImGui::Begin("SideBarLayer", &pOpen, window_flags);
@@ -357,7 +357,7 @@ namespace VkRender {
             handles.startDataCapture = ImGui::Button("Start recording", ImVec2(150.0f, 25.0f));
             handles.stopDataCapture = ImGui::Button("Stop recording", ImVec2(150.0f, 25.0f));
 
-            ImGui::SetCursorPosY(handles.info->height - handles.info->menuBarHeight - 20.0f);
+            ImGui::SetCursorPosY(handles.info->applicationHeight - handles.info->menuBarHeight - 20.0f);
 
             if (ImGui::Button("Settings",
                               ImVec2(handles.info->sidebarWidth - (ImGui::GetStyle().FramePadding.x * 2), 20.0f))) {

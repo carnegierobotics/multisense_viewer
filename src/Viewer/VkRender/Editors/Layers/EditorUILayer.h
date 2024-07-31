@@ -37,7 +37,7 @@ namespace VkRender {
             static int item_current_idx = 0; // Here we store our current item index
 
 
-            handles.editor.changed = false;
+            handles.editorUi->changed = false;
 
             if (ImGui::BeginPopup("EditorSelectionPopup")) {
 
@@ -45,8 +45,8 @@ namespace VkRender {
                 for (int i = 0; i < IM_ARRAYSIZE(items); i++)
                     if (ImGui::Selectable(items[i])) {
                         item_current_idx = i;
-                        handles.editor.selectedType = items[item_current_idx];
-                        handles.editor.changed = true;
+                        handles.editorUi->selectedType = items[item_current_idx];
+                        handles.editorUi->changed = true;
                     }
 
                 ImGui::MenuItem("Console", nullptr, &handles.showDebugWindow);
@@ -61,7 +61,7 @@ namespace VkRender {
 
             // Set window position and size
             ImVec2 window_pos = ImVec2(0.0f, 0.0f); // Position (x, y)
-            ImVec2 window_size = ImVec2(handles.info->width, handles.info->height); // Size (width, height)
+            ImVec2 window_size = ImVec2(handles.info->applicationWidth, handles.info->applicationHeight); // Size (width, height)
 
 
             // Set window flags to remove decorations

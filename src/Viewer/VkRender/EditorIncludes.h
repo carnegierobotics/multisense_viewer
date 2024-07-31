@@ -101,8 +101,6 @@ namespace VkRender {
     };
 
     struct EditorUI {
-
-        // Todo make private
         int32_t x = 0;
         int32_t y = 0;
         int32_t  borderSize = 0;
@@ -136,6 +134,11 @@ namespace VkRender {
         bool active = false;
         bool hovered = false;
         bool indirectlyActivated = false;
+
+        // Selection menu
+        std::string type;
+        std::string selectedType;
+        bool changed = false;
 
         // assign some random background colors
         EditorUI(){

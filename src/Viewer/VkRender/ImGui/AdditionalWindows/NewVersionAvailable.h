@@ -81,8 +81,8 @@ public:
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(5.0f, 5.0f));
         ImVec2 anonymousWindowSize(500.0f, 180.0f);
-        ImGui::SetNextWindowPos(ImVec2((uiHandle.info->width / 2) - (anonymousWindowSize.x / 2),
-                                       (uiHandle.info->height / 2) - (anonymousWindowSize.y / 2) - 50.0f));
+        ImGui::SetNextWindowPos(ImVec2((uiHandle.info->applicationWidth / 2) - (anonymousWindowSize.x / 2),
+                                       (uiHandle.info->applicationHeight / 2) - (anonymousWindowSize.y / 2) - 50.0f));
         if (ImGui::BeginPopupModal("New Version Available!", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
             std::string url = "https://github.com/carnegierobotics/multisense_viewer/releases";
             static bool isLinkHovered = false;

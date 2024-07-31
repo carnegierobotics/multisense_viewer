@@ -90,11 +90,9 @@ namespace VkRender {
         bool validateEditorSize(VulkanRenderPassCreateInfo &createInfo);
         void resize(VulkanRenderPassCreateInfo &createInfo);
 
-
     private:
         UUID m_uuid;
         std::vector<VulkanRenderPass> m_renderPasses;
-        std::deque<std::vector<VulkanRenderPass>> m_oldRenderPasses;
         RenderUtils &m_renderUtils;
         Renderer *m_context;
         EditorSizeLimits m_sizeLimits;

@@ -191,6 +191,10 @@ namespace VkRender {
         void handleIndirectClickState(Editor &editor);
 
         void checkAndSetIndirectResize(Editor &editor, Editor &otherEditor);
+
+        void handleEditorResize();
+
+        void recreateEditor(Editor &editor, VulkanRenderPassCreateInfo &createInfo);
     };
 }
 

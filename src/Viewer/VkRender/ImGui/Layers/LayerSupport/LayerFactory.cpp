@@ -11,7 +11,7 @@
 #include "Viewer/VkRender/Editors/Test/EditorTestLayer.h"
 #include "Viewer/Scenes/Default/UILayers/SideBarLayer.h"
 #include "Viewer/Scenes/Default/UILayers/MenuLayer.h"
-#include "Viewer/Scenes/MultiSenseViewer/UILayers/MultiSenseViewerLayer.h"
+#include "Viewer/VkRender/Editors/MultiSenseViewer/MultiSenseViewerLayer.h"
 
 namespace VkRender {
 

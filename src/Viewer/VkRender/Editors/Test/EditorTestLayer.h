@@ -30,7 +30,7 @@ namespace VkRender {
 
             // Set window position and size
             ImVec2 window_pos = ImVec2(0.0f, 0.0f); // Position (x, y)
-            ImVec2 window_size = ImVec2(handles.info->width, handles.info->height); // Size (width, height)
+            ImVec2 window_size = ImVec2(handles.info->applicationWidth, handles.info->applicationHeight); // Size (width, height)
 
 
 

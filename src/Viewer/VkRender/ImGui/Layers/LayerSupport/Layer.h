@@ -77,18 +77,28 @@ namespace VkRender {
     struct GuiLayerUpdateInfo {
         bool firstFrame{};
         /** @brief Width of window surface */
-        float width{};
+        float applicationWidth{}; // TODO not implemented same as editor size
         /** @brief Height of window surface */
-        float height{};
+        float applicationHeight{}; // TODO not implemented same as editor size
+
+
         /** @brief aspect ratio of window surface */
         float aspect{};
         /**@brief Width of sidebar*/
         float sidebarWidth = 200.0f;
-        float controlAreaWidth = 440.0f, controlAreaHeight = height;
+        float controlAreaWidth = 440.0f, controlAreaHeight = applicationHeight;
 
         float menuBarHeight = 25.0f;
         float editorUILayerHeight = 25.0f;
         float editorUIHeightOffset = menuBarHeight + editorUILayerHeight;
+
+        /** @brief Width of available editor (After menu bar) */
+        float editorWidth = applicationWidth;
+        /** @brief Height of available editor (After menu bar) */
+        float editorHeight = applicationHeight - menuBarHeight - editorUILayerHeight;
+        ImVec2 editorStartPos = ImVec2(0.0f, menuBarHeight + editorUILayerHeight);
+        ImVec2 editorSize = ImVec2(editorWidth, editorHeight);
+
         /**@brief Width debug window*/
         float debuggerWidth = 960.0f * 0.75f;
         /**@brief Heightdebug window */
@@ -156,13 +166,6 @@ namespace VkRender {
         bool updateGLTFPath = false;
     };
 
-    struct EditorUIInfo {
-        std::string type;
-        std::string selectedType;
-        bool changed = false;
-
-    };
-
     /** @brief Handle which is the MAIN link between ''frontend and backend'' */
     struct GuiObjectHandles {
         /** @brief Handle for current devices located in sidebar */
@@ -209,7 +212,6 @@ namespace VkRender {
         int imagesPerScene = 100;
         bool enableSecondaryView = true;
         bool fixAspectRatio = false;
-        EditorUIInfo editor; // Todo remove in favor for editorUI
         EditorUI* editorUi;
     };
 

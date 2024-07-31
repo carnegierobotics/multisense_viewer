@@ -130,8 +130,9 @@ namespace VkRender {
     VulkanGraphicsPipeline::~VulkanGraphicsPipeline() {
         if (m_initialized) {
             VkFence fence;
-            VkFenceCreateInfo fenceInfo = Populate::fenceCreateInfo(0);
-            vkCreateFence(m_vulkanDevice.m_LogicalDevice, &fenceInfo, nullptr, &fence);
+            VkFenceCreateInfo fenceCreateInfo {};
+            fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+            vkCreateFence(m_vulkanDevice.m_LogicalDevice, &fenceCreateInfo, nullptr, &fence);
 
             // Capture all necessary members by value
             auto pipeline = m_pipeline;

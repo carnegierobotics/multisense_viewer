@@ -220,7 +220,7 @@ namespace VkRender {
     }
 
     static void addDeviceButton(GuiObjectHandles& uiContext) {
-        ImGui::SetCursorPos(ImVec2(0.0f, uiContext.info->height - 50.0f));
+        ImGui::SetCursorPos(ImVec2(0.0f, uiContext.info->editorHeight - 50.0f));
 
         ImGui::PushStyleColor(ImGuiCol_Button, Colors::CRLBlueIsh);
         if (ImGui::Button("ADD DEVICE", ImVec2(uiContext.info->sidebarWidth, 35.0f))) {
@@ -377,7 +377,7 @@ namespace VkRender {
 
         ImGui::PushStyleColor(ImGuiCol_ChildBg, Colors::CRLGray424Main);
         // Begin the sidebar as a child window
-        ImGui::BeginChild("Sidebar", ImVec2(uiContext.info->sidebarWidth, uiContext.info->height), false,
+        ImGui::BeginChild("Sidebar", ImVec2(uiContext.info->sidebarWidth, uiContext.info->editorHeight), false,
                           ImGuiWindowFlags_NoScrollWithMouse);
         addPopup(uiContext);
         //askUsageLoggingPermissionPopUp(uiContext);
@@ -395,7 +395,7 @@ namespace VkRender {
         addDeviceButton(uiContext);
 
         // Add version number
-        ImGui::SetCursorPos(ImVec2(0.0f, uiContext.info->height - 10.0f));
+        ImGui::SetCursorPos(ImVec2(0.0f, uiContext.info->editorHeight - 10.0f));
         ImGui::PushFont(uiContext.info->font8);
         ImGui::Text("%s", (std::string("Ver: ") + RendererConfig::getInstance().getAppVersion()).c_str());
         ImGui::PopFont();

@@ -151,8 +151,12 @@ namespace VkRender {
         handles.editorUi = &editorUI;
         handles.info->frameTimer = frameTimer;
         handles.info->firstFrame = updateFrameGraph;
-        handles.info->width = static_cast<float>(editorUI.width);
-        handles.info->height = static_cast<float>(editorUI.height);
+        handles.info->applicationWidth = static_cast<float>(editorUI.width);
+        handles.info->applicationHeight = static_cast<float>(editorUI.height);
+
+        handles.info->editorWidth = static_cast<float>(editorUI.width);
+        handles.info->editorHeight = static_cast<float>(editorUI.height - handles.info->menuBarHeight - handles.info->editorUILayerHeight);
+
         handles.info->aspect = static_cast<float>(editorUI.width) / static_cast<float>(editorUI.height);
         handles.input = pInput;
 
@@ -309,8 +313,8 @@ namespace VkRender {
             // Reset the scissors
             VkRect2D scissorRectFull;
             scissorRectFull.offset = {static_cast<int32_t>(x), static_cast<int32_t>(y)};
-            scissorRectFull.extent = {static_cast<uint32_t>(handles.info->width),
-                                      static_cast<uint32_t>(handles.info->height)}; // Set these to your framebuffer or viewport dimensions
+            scissorRectFull.extent = {static_cast<uint32_t>(handles.info->applicationWidth),
+                                      static_cast<uint32_t>(handles.info->applicationHeight)}; // Set these to your framebuffer or viewport dimensions
             //vkCmdSetScissor(commandBuffer, 0, 1, &scissorRectFull);
         }
     }

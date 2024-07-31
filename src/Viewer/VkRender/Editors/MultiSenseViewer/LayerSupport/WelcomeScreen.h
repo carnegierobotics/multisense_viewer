@@ -10,7 +10,7 @@ namespace VkRender {
         ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLCoolGray);
         ImGui::SetCursorPos(ImVec2(uiContext.info->sidebarWidth, 0.0f));
         ImGui::BeginChild("WelcomeScreen",
-                          ImVec2(uiContext.info->width - uiContext.info->sidebarWidth, uiContext.info->height),
+                          ImVec2(uiContext.info->applicationWidth - uiContext.info->sidebarWidth, uiContext.info->applicationHeight),
                           false,
                           ImGuiWindowFlags_NoScrollWithMouse);
 

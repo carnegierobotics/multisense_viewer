@@ -144,14 +144,6 @@ namespace VkRender {
             return;
         }
 
-        // Check if the mouse position is near the application borders considering the border size
-        if (mousePos.x < m_sizeLimits.MIN_OFFSET_X + m_ui.borderSize || mousePos.y < m_sizeLimits.MIN_OFFSET_Y + m_ui.borderSize ||
-            mousePos.x > m_applicationWidth - m_sizeLimits.MIN_OFFSET_X - m_ui.borderSize ||
-            mousePos.y > m_applicationHeight - m_sizeLimits.MIN_OFFSET_Y - m_ui.borderSize) {
-            m_ui.lastHoveredBorderType =  EditorBorderState::None;
-            return;
-        }
-
         // Check borders
         // Left border
         if (mousePos.x >= m_ui.x && mousePos.x <= m_ui.x + (m_ui.borderSize) && mousePos.y >= m_ui.y && mousePos.y <= m_ui.y + m_ui.height) {

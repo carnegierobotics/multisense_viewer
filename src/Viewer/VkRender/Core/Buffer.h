@@ -41,34 +41,65 @@
 #include <vulkan/vulkan.h>
 #include "Viewer/VkRender/pch.h"
 
+#include "Viewer/VkRender/Core/VulkanResourceManager.h"
+
 /**
 * @brief Encapsulates access to a Vulkan buffer backed up by m_Device memory
 * @note To be filled by an external source like the VulkanDevice
 */
-struct Buffer
-{
+struct Buffer {
     VkDevice m_Device{};
     VkBuffer m_Buffer = VK_NULL_HANDLE;
     VkDeviceMemory m_Memory = VK_NULL_HANDLE;
     VkDescriptorBufferInfo m_DescriptorBufferInfo{};
     VkDeviceSize m_Size = 0;
     VkDeviceSize alignment = 0;
-    void* mapped = nullptr;
+    void *mapped = nullptr;
     /** @brief Usage flags to be filled by external source at buffer creation (to query at some later point) */
     VkBufferUsageFlags usageFlags{};
     /** @brief Memory property flags to be filled by external source at buffer creation (to query at some later point) */
     VkMemoryPropertyFlags memoryPropertyFlags{};
+
     VkResult map(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
+
     void unmap();
+
     VkResult bind(VkDeviceSize offset = 0);
+
     void setupDescriptor(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
-    void copyTo(void* data, VkDeviceSize size);
+
+    void copyTo(void *data, VkDeviceSize size);
+
     VkResult flush(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
+
     VkResult invalidate(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
+
     void destroy() const;
 
-    ~Buffer(){
-        destroy();
+    ~Buffer() {
+
+        VkFence fence;
+        VkFenceCreateInfo fenceCreateInfo{};
+        fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+        vkCreateFence(m_Device, &fenceCreateInfo, nullptr, &fence);
+
+        // Capture all necessary members by value
+        auto logicalDevice = m_Device;
+        auto buffer = m_Buffer;
+        auto memory = m_Memory;
+
+
+        VkRender::VulkanResourceManager::getInstance().deferDeletion(
+                [logicalDevice, buffer, memory]() {
+                    // Cleanup logic with captured values
+                    if (buffer) {
+                        vkDestroyBuffer(logicalDevice, buffer, nullptr);
+                    }
+                    if (memory) {
+                        vkFreeMemory(logicalDevice, memory, nullptr);
+                    }
+                },
+                fence);
     }
 };
 

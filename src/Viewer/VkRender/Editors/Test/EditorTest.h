@@ -16,7 +16,8 @@ namespace VkRender {
         explicit EditorTest(VulkanRenderPassCreateInfo &createInfo, UUID uuid = UUID()) : Editor(
                 createInfo, uuid) {
 
-            addUI("EditorUILayer");
+            if (createInfo.resizeable)
+                addUI("EditorUILayer");
 
             addUI("EditorTestLayer");
 

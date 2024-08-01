@@ -29,7 +29,7 @@ namespace VkRender {
         VkImageLayout finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         VkAttachmentStoreOp storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
-        VkFramebuffer* frameBuffers;
+        VkFramebuffer* frameBuffers{};
         std::shared_ptr<GuiResources> guiResources;
         std::vector<VkClearValue> clearValue;
         bool resizeable = true;
@@ -41,6 +41,7 @@ namespace VkRender {
 
         }
 
+        std::vector<std::string> uiLayers;
     };
 
     struct VulkanRenderPass {

@@ -238,7 +238,6 @@ namespace VkRender {
                 VulkanRenderPassCreateInfo createInfo = editor.getCreateInfo();
 
                 nlohmann::json jsonEditor;
-                jsonEditor["context"] = createInfo.context ? true : false; // Assuming you don't need to serialize the context
                 jsonEditor["width"] = createInfo.width;
                 jsonEditor["appWidth"] = createInfo.appWidth;
                 jsonEditor["height"] = createInfo.height;
@@ -247,12 +246,9 @@ namespace VkRender {
                 jsonEditor["y"] = createInfo.y;
                 jsonEditor["borderSize"] = createInfo.borderSize;
                 jsonEditor["editorTypeDescription"] = createInfo.editorTypeDescription;
-                jsonEditor["loadOp"] = static_cast<int>(createInfo.loadOp);
-                jsonEditor["initialLayout"] = static_cast<int>(createInfo.initialLayout);
-                jsonEditor["finalLayout"] = static_cast<int>(createInfo.finalLayout);
-                jsonEditor["storeOp"] = static_cast<int>(createInfo.storeOp);
                 jsonEditor["resizeable"] = createInfo.resizeable;
                 jsonEditor["editorIndex"] = createInfo.editorIndex;
+                jsonEditor["uiLayers"] = createInfo.uiLayers;
 
                 jsonEditors.push_back(jsonEditor);
                 Log::Logger::getInstance()->info("Editor {}: type = {}, x = {}, y = {}, width = {}, height = {}",

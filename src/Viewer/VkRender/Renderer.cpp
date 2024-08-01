@@ -187,6 +187,12 @@ namespace VkRender {
                 createInfo.resizeable = jsonEditor.value("resizeable", true);
                 createInfo.editorIndex = jsonEditor.value("editorIndex", 0);
 
+                if (jsonEditor.contains("uiLayers") && jsonEditor["uiLayers"].is_array()) {
+                    createInfo.uiLayers = jsonEditor["uiLayers"].get<std::vector<std::string>>();
+                } else {
+                    createInfo.uiLayers.clear();
+                }
+
                 // Create an Editor object with the createInfo
                 Editor editor = createEditor(createInfo);
                 m_editors.push_back(std::move(editor));
@@ -1116,12 +1122,15 @@ namespace VkRender {
             handleClickState(editor);
         }
 
-        bool anyCornerHovered = false;
+        bool showHandCursor = false;
+        bool showCrosshairCursor = false;
         bool anyCornerClicked = false;
         bool anyResizeHovered = false;
         bool horizontalResizeHovered = false;
         for (auto &editor: m_editors) {
-            if (editor.ui().cornerBottomLeftHovered) anyCornerHovered = true;
+            if (editor.ui().cornerBottomLeftHovered && editor.getCreateInfo().resizeable) showHandCursor = true;
+            if (editor.ui().cornerBottomLeftClicked && editor.getCreateInfo().resizeable) showCrosshairCursor = true;
+
             if (editor.ui().cornerBottomLeftClicked) anyCornerClicked = true;
             if (editor.ui().resizeHovered) anyResizeHovered = true;
             if (EditorBorderState::Left == editor.ui().lastHoveredBorderType ||
@@ -1181,8 +1190,11 @@ namespace VkRender {
         bool splitEditors = false;
         uint32_t splitEditorIndex = UINT32_MAX;
         for (size_t index = 0; auto &editor: m_editors) {
-            if (editor.ui().cornerBottomLeftClicked && editor.ui().width > 100 && editor.ui().height > 100 &&
-                (editor.ui().dragHorizontal || editor.ui().dragVertical) && !editor.ui().splitting) {
+            if (editor.getCreateInfo().resizeable &&
+                editor.ui().cornerBottomLeftClicked &&
+                editor.ui().width > 100 && editor.ui().height > 100 &&
+                (editor.ui().dragHorizontal || editor.ui().dragVertical) &&
+                !editor.ui().splitting) {
                 splitEditors = true;
                 splitEditorIndex = index;
             }
@@ -1206,9 +1218,9 @@ namespace VkRender {
 
 
         //
-        if (anyCornerClicked) {
+        if (showCrosshairCursor) {
             glfwSetCursor(window, m_cursors.crossHair);
-        } else if (anyCornerHovered) {
+        } else if (showHandCursor) {
             glfwSetCursor(window, m_cursors.hand);
         } else if (anyResizeHovered) {
             glfwSetCursor(window, horizontalResizeHovered ? m_cursors.resizeHorizontal : m_cursors.resizeVertical);
@@ -1475,11 +1487,12 @@ namespace VkRender {
         UUID id1 = mergeEditorIndices[0];
         UUID id2 = mergeEditorIndices[1];
 
-        auto* editor1 = findEditorByUUID(id1);
-        auto* editor2 = findEditorByUUID(id2);
+        auto *editor1 = findEditorByUUID(id1);
+        auto *editor2 = findEditorByUUID(id2);
 
-        if (!editor1 || !editor2){
-            Log::Logger::getInstance()->info("Wanted to merge editors: {} and {} but they were not found", id1.operator std::string(), id2.operator std::string());
+        if (!editor1 || !editor2) {
+            Log::Logger::getInstance()->info("Wanted to merge editors: {} and {} but they were not found",
+                                             id1.operator std::string(), id2.operator std::string());
             return;
         }
         // Implement your merging logic here
@@ -1510,7 +1523,7 @@ namespace VkRender {
         // Remove editor2 safely based on UUID
         m_editors.erase(
                 std::remove_if(m_editors.begin(), m_editors.end(),
-                               [editor2UUID](const Editor& editor) {
+                               [editor2UUID](const Editor &editor) {
                                    return editor.getUUID() == editor2UUID;
                                }),
                 m_editors.end()
@@ -1619,9 +1632,10 @@ namespace VkRender {
         }
         return {};
     }
-    Editor* Renderer::findEditorByUUID(const UUID& uuid) {
-        for (auto& editor: m_editors){
-            if (uuid == editor.getUUID()){
+
+    Editor *Renderer::findEditorByUUID(const UUID &uuid) {
+        for (auto &editor: m_editors) {
+            if (uuid == editor.getUUID()) {
                 return &editor;
             }
         }

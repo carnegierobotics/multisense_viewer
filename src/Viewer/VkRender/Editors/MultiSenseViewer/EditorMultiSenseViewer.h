@@ -15,9 +15,14 @@ namespace VkRender {
         explicit EditorMultiSenseViewer(VulkanRenderPassCreateInfo &createInfo) : Editor(
                 createInfo) {
 
-            addUI("EditorUILayer");
+            if (createInfo.resizeable)
+                addUI("EditorUILayer");
 
-            addUI("MultiSenseViewerLayer");
+
+            for (const auto& layer : createInfo.uiLayers){
+                addUI(layer);
+            }
+
 
             addUI("DebugWindow");
 

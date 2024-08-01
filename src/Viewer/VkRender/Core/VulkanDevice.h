@@ -43,6 +43,7 @@
 #include "Viewer/VkRender/Core/Buffer.h"
 
 struct VulkanDevice {
+
 /** @brief Physical m_Device representation */
     VkPhysicalDevice m_PhysicalDevice{};
     /** @brief Logical m_Device representation (application's m_View of the m_Device) */
@@ -100,7 +101,7 @@ struct VulkanDevice {
     VkResult createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, Buffer *buffer,
                           VkDeviceSize size, void *data = nullptr);
 
-    void copyBuffer(Buffer *src, Buffer *dst, VkQueue queue, VkBufferCopy *copyRegion = nullptr);
+    //void copyBuffer(Buffer *src, Buffer *dst, VkQueue queue, VkBufferCopy *copyRegion = nullptr);
 
     void copyVkBuffer(VkBuffer *src, VkBuffer *dst, VkBufferCopy *copyRegion);
 

@@ -13,10 +13,9 @@
 #include <vk_mem_alloc.h>
 #include <functional>
 #include <utility>
+#include "Viewer/VkRender/Core/VulkanDevice.h"
 
 namespace VkRender {
-
-    class VulkanDevice;
 
     class VulkanResourceManager {
     public:
@@ -43,7 +42,7 @@ namespace VkRender {
 
     private:
         VulkanResourceManager(VulkanDevice* device, VmaAllocator allocator)
-                : m_device(device), m_allocator(allocator) {}
+                : m_vulkanDevice(device), m_allocator(allocator) {}
 
         static void initSingleton(VulkanDevice* device, VmaAllocator allocator) {
             instance = new VulkanResourceManager(device, allocator);
@@ -61,7 +60,7 @@ namespace VkRender {
         static std::once_flag destroyInstanceFlag;
         std::mutex resourceMutex;
 
-        VulkanDevice* m_device;
+        VulkanDevice* m_vulkanDevice;
         VmaAllocator m_allocator = VK_NULL_HANDLE;
 
         struct DeferredCleanup {

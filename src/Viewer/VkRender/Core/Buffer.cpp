@@ -35,6 +35,7 @@
  **/
 
 #include "Viewer/VkRender/Core/Buffer.h"
+#include "Viewer/VkRender/Core/VulkanResourceManager.h"
 
 /*
 * Vulkan buffer class
@@ -153,5 +154,30 @@ void Buffer::destroy() const {
     if (m_Memory) {
         vkFreeMemory(m_Device, m_Memory, nullptr);
     }
+}
+
+Buffer::~Buffer() {
+    VkFence fence;
+    VkFenceCreateInfo fenceCreateInfo{};
+    fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    vkCreateFence(m_Device, &fenceCreateInfo, nullptr, &fence);
+
+    // Capture all necessary members by value
+    auto logicalDevice = m_Device;
+    auto buffer = m_Buffer;
+    auto memory = m_Memory;
+
+
+    VkRender::VulkanResourceManager::getInstance().deferDeletion(
+            [logicalDevice, buffer, memory]() {
+                // Cleanup logic with captured values
+                if (buffer) {
+                    vkDestroyBuffer(logicalDevice, buffer, nullptr);
+                }
+                if (memory) {
+                    vkFreeMemory(logicalDevice, memory, nullptr);
+                }
+            },
+            fence);
 }
 

@@ -6,9 +6,8 @@
 #define MULTISENSE_VIEWER_VULKANGRAPHICSPIPELINE_H
 
 #include <vulkan/vulkan_core.h>
-
 #include "Viewer/VkRender/pch.h"
-#include "VulkanDevice.h"
+#include "Viewer/VkRender/Core/VulkanDevice.h"
 
 namespace VkRender {
 

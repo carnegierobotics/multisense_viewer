@@ -455,6 +455,7 @@ VkResult VulkanDevice::createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPrope
     return buffer->bind();
 }
 
+/*
 /**
 * Copy Buffer data from src to dst using VkCmdCopyBuffer
 *
@@ -464,7 +465,7 @@ VkResult VulkanDevice::createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPrope
 * @param copyRegion (Optional) Pointer to a copy region, if NULL, the whole buffer is copied
 *
 * @note Source and destination pointers must have the appropriate transfer usage flags set (TRANSFER_SRC / TRANSFER_DST)
-*/
+
 void VulkanDevice::copyBuffer(Buffer *src, Buffer *dst, VkQueue queue, VkBufferCopy *copyRegion) {
     assert(dst->m_Size <= src->m_Size);
     assert(src->m_Buffer);
@@ -480,6 +481,7 @@ void VulkanDevice::copyBuffer(Buffer *src, Buffer *dst, VkQueue queue, VkBufferC
 
     flushCommandBuffer(copyCmd, queue);
 }
+*/
 
 /**
  * @brief Function to copy data between VkBuffer

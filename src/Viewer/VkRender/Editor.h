@@ -28,7 +28,7 @@ namespace VkRender {
 
         // Implement move constructor
         Editor(Editor &&other) noexcept: m_context(other.m_context), m_renderUtils(other.m_renderUtils),
-                                         m_createInfo(std::move(other.m_createInfo)),
+                                         m_createInfo(other.m_createInfo),
                                          m_sizeLimits(other.m_createInfo.appWidth, other.m_createInfo.appHeight) {
             swap(*this, other);
         }

@@ -37,9 +37,7 @@ namespace VkRender {
 
         VkFramebuffer* frameBuffers{};
         std::shared_ptr<GuiResources> guiResources;
-
-
-        SharedContextData& sharedUIContextData;
+        SharedContextData* sharedUIContextData;
 
         static void copy(VulkanRenderPassCreateInfo* dst, VulkanRenderPassCreateInfo* src){
             dst->appHeight = src->appHeight;
@@ -56,54 +54,10 @@ namespace VkRender {
             dst->uiLayers = src->uiLayers;
         }
 
-        VulkanRenderPassCreateInfo() = delete;
 
-        VulkanRenderPassCreateInfo(VkFramebuffer * fbPtr, std::shared_ptr<GuiResources> guiRes, Renderer *ctx, SharedContextData& sharedData)
+        VulkanRenderPassCreateInfo(VkFramebuffer * fbPtr, std::shared_ptr<GuiResources> guiRes, Renderer *ctx, SharedContextData* sharedData)
                 : context(ctx), frameBuffers(fbPtr), guiResources(std::move(guiRes)), sharedUIContextData(sharedData) {
 
-        }
-
-        // Move constructor
-        VulkanRenderPassCreateInfo(VulkanRenderPassCreateInfo&& other) noexcept
-                : context(other.context), width(other.width), appWidth(other.appWidth),
-                  height(other.height), appHeight(other.appHeight), x(other.x), y(other.y),
-                  borderSize(other.borderSize), editorTypeDescription(std::move(other.editorTypeDescription)),
-                  loadOp(other.loadOp), initialLayout(other.initialLayout), finalLayout(other.finalLayout),
-                  storeOp(other.storeOp), frameBuffers(other.frameBuffers), guiResources(std::move(other.guiResources)), resizeable(other.resizeable), editorIndex(other.editorIndex),
-                  uiLayers(std::move(other.uiLayers)), uiContext(other.uiContext), sharedUIContextData(other.sharedUIContextData) {
-            other.context = nullptr;
-            other.frameBuffers = nullptr;
-            other.uiContext = nullptr;
-        }
-
-        // Move assignment operator
-        VulkanRenderPassCreateInfo& operator=(VulkanRenderPassCreateInfo&& other) noexcept {
-            if (this != &other) {
-                context = other.context;
-                width = other.width;
-                appWidth = other.appWidth;
-                height = other.height;
-                appHeight = other.appHeight;
-                x = other.x;
-                y = other.y;
-                borderSize = other.borderSize;
-                editorTypeDescription = std::move(other.editorTypeDescription);
-                loadOp = other.loadOp;
-                initialLayout = other.initialLayout;
-                finalLayout = other.finalLayout;
-                storeOp = other.storeOp;
-                frameBuffers = other.frameBuffers;
-                guiResources = std::move(other.guiResources);
-                resizeable = other.resizeable;
-                editorIndex = other.editorIndex;
-                uiLayers = std::move(other.uiLayers);
-                uiContext = other.uiContext;
-                // sharedUIContextData is not moved because it's a reference
-                other.context = nullptr;
-                other.frameBuffers = nullptr;
-                other.uiContext = nullptr;
-            }
-            return *this;
         }
 
     };

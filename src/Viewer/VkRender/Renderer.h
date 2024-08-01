@@ -88,7 +88,7 @@ namespace VkRender {
         void destroyEntity(Entity entity);
         Entity createEntityWithUUID(UUID uuid, const std::string &name);
         Editor createEditor(VulkanRenderPassCreateInfo &createInfo);
-        Editor& createEditorWithUUID(UUID uuid, VulkanRenderPassCreateInfo &createInfo);
+        Editor createEditorWithUUID(UUID uuid, VulkanRenderPassCreateInfo &createInfo);
 
         VkRender::Entity findEntityByName(std::string_view name);
         void markEntityForDestruction(Entity entity);

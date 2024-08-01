@@ -168,6 +168,8 @@ namespace VkRender {
 
     struct SharedContextData {
         bool openAddDevicePopup = false;
+        std::shared_ptr<MultiSense::MultiSenseRendererBridge> multiSenseRendererBridge{};
+        std::shared_ptr<MultiSense::MultiSenseRendererGigEVisionBridge> multiSenseRendererGigEVisionBridge{};
     };
 
     /** @brief Handle which is the MAIN link between ''frontend and backend'' */
@@ -175,17 +177,10 @@ namespace VkRender {
         /** @brief Handle for current devices located in sidebar */
         /** @brief GUI window info used for creation and updating */
         std::unique_ptr<GuiLayerUpdateInfo> info{};
-        std::unique_ptr<MultiSense::MultiSenseRendererBridge> multiSenseRendererBridge{};
-        std::unique_ptr<MultiSense::MultiSenseRendererGigEVisionBridge> multiSenseRendererGigEVisionBridge{};
 
         const Input *input{};
-        std::array<float, 4> clearColor{};
         /** @brief Display the debug window */
         bool showDebugWindow = false;
-
-        /** @brief Open the popup window */
-        bool renderer3D = true;
-
 
         std::shared_ptr<UsageMonitor> usageMonitor;
         /** @brief if a new version has been launched by crl*/
@@ -195,29 +190,18 @@ namespace VkRender {
         const VkRender::MouseButtons *mouse{};
 
         /** @brief Initialize \refitem clearColor because MSVC does not allow initializer list for std::array */
-        GuiObjectHandles(SharedContextData& sharedData) : shared(sharedData) {
-            clearColor[0] = 0.870f;
-            clearColor[1] = 0.878f;
-            clearColor[2] = 0.862f;
-            clearColor[3] = 1.0f;
+        GuiObjectHandles(SharedContextData* sharedData) : shared(sharedData) {
         }
 
         /** @brief Reference to threadpool held by GuiManager */
         std::shared_ptr<ThreadPool> pool{};
         CameraSelection m_cameraSelection{};
         Renderer *m_context{};
-        bool m_loadColmapCameras = false;
         Paths m_paths;
-
-        // data recording 3dgs
-        bool startDataCapture = false;
-        bool stopDataCapture = false;
-        int startScene = 0;
-        int imagesPerScene = 100;
         bool revertWindowLayout = false;
         bool fixAspectRatio = false;
         EditorUI* editorUi{};
-        SharedContextData& shared;
+        SharedContextData* shared;
     };
 
     /**

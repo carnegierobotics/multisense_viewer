@@ -226,6 +226,7 @@ namespace VkRender {
                 if (btnCancel) {
                     uiContext.usageMonitor->userClickAction("Cancel", "button",
                                                             ImGui::GetCurrentWindow()->Name);
+                    uiContext.shared->openAddDevicePopup = false;
                     ImGui::CloseCurrentPopup();
                 }
 
@@ -233,7 +234,8 @@ namespace VkRender {
                     uiContext.usageMonitor->userClickAction("Connect", "button",
                                                             ImGui::GetCurrentWindow()->Name);
 
-                    uiContext.multiSenseRendererBridge->addNewProfile(profileInfo);
+                    uiContext.shared->multiSenseRendererBridge->addNewProfile(profileInfo);
+                    uiContext.shared->openAddDevicePopup = false;
                     ImGui::CloseCurrentPopup();
                 }
 
@@ -269,7 +271,7 @@ namespace VkRender {
 
             ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, handles.info->menuBarHeight));
 
-            if (handles.shared.openAddDevicePopup) {
+            if (handles.shared->openAddDevicePopup) {
                 ImGui::OpenPopup("add_device_modal");
             }
 

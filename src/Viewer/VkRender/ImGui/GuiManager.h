@@ -66,7 +66,7 @@ namespace VkRender {
 
         GuiManager(VulkanDevice &vulkanDevice, VkRenderPass const &renderPass, EditorUI *editorUi,
                    VkSampleCountFlagBits msaaSamples, uint32_t imageCount, Renderer *ctx, ImGuiContext *imguiCtx,
-                   const GuiResources *guiResources, SharedContextData& sharedData); // TODO context should be pass by reference as it is no nullable?
+                   const GuiResources *guiResources, SharedContextData* sharedData); // TODO context should be pass by reference as it is no nullable?
 
         ~GuiManager() {
             //Log::Logger::getInstance()->info("Saving ImGui file: {}", (Utils::getSystemCachePath() / "imgui.ini").string().c_str());

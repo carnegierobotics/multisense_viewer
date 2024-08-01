@@ -20,7 +20,7 @@ namespace VkRender {
 
         ImGui::PushStyleColor(ImGuiCol_Button, Colors::CRLBlueIsh);
         if (ImGui::Button("ADD DEVICE", ImVec2(uiContext.editorUi->width, 35.0f))) {
-            uiContext.shared.openAddDevicePopup = !uiContext.shared.openAddDevicePopup;
+            uiContext.shared->openAddDevicePopup = !uiContext.shared->openAddDevicePopup;
 
             uiContext.usageMonitor->userClickAction("ADD_DEVICE", "button", ImGui::GetCurrentWindow()->Name);
         }
@@ -32,7 +32,7 @@ namespace VkRender {
         ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLDarkGray425);
         std::default_random_engine rng;
         float sidebarElementHeight = 140.0f;
-        for (auto &profile: uiContext.multiSenseRendererBridge->getProfileList()) {
+        for (auto &profile: uiContext.shared->multiSenseRendererBridge->getProfileList()) {
 
             // Color the sidebar and window depending on the connection state. Must be found before we start drawing the window containing the profile.
             std::string buttonIdentifier = "InvalidConnectionState";
@@ -63,7 +63,7 @@ namespace VkRender {
             // Connect button
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
             std::string winId = profile.createInfo.profileName + "Child" + std::to_string(rng());;
-            ImGui::BeginChild(winId.c_str(), ImVec2(uiContext.info->sidebarWidth, sidebarElementHeight),
+            ImGui::BeginChild(winId.c_str(), ImVec2(uiContext.editorUi->width, sidebarElementHeight),
                               false, ImGuiWindowFlags_NoDecoration);
 
             ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::CRLBlueIsh);
@@ -155,13 +155,13 @@ namespace VkRender {
             ImGui::PopStyleVar(2);
 
             if (deviceButton && profile.connectionState != MultiSense::MULTISENSE_CONNECTED) {
-                uiContext.multiSenseRendererBridge->connect(profile);
+                uiContext.shared->multiSenseRendererBridge->connect(profile);
             } else if (deviceButton) {
-                uiContext.multiSenseRendererBridge->disconnect(profile);
+                uiContext.shared->multiSenseRendererBridge->disconnect(profile);
             }
 
             if (removeProfileButtonX) {
-                uiContext.multiSenseRendererBridge->removeProfile(profile);
+                uiContext.shared->multiSenseRendererBridge->removeProfile(profile);
             }
 
             ImGui::EndChild();

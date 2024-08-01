@@ -103,8 +103,13 @@ namespace VkRender {
         createDepthStencil();
         createMainRenderPass();
 
+        // Initialize shared data across editors:
 
-        VulkanRenderPassCreateInfo mainMenuEditor(m_frameBuffers.data(), m_guiResources, this, m_sharedContextData);
+        m_sharedContextData.multiSenseRendererBridge = std::make_shared<MultiSense::MultiSenseRendererBridge>();
+        m_sharedContextData.multiSenseRendererGigEVisionBridge = std::make_shared<MultiSense::MultiSenseRendererGigEVisionBridge>();
+
+
+        VulkanRenderPassCreateInfo mainMenuEditor(m_frameBuffers.data(), m_guiResources, this, &m_sharedContextData);
         mainMenuEditor.appHeight = static_cast<int32_t>(m_height);
         mainMenuEditor.appWidth = static_cast<int32_t>(m_width);
         mainMenuEditor.height = static_cast<int32_t>(m_height);
@@ -123,7 +128,7 @@ namespace VkRender {
         if (m_editors.empty()) {
             // add a dummy editor to get started
             auto sizeLimits = m_mainEditor->getSizeLimits();
-            VulkanRenderPassCreateInfo otherEditorInfo(m_frameBuffers.data(), m_guiResources, this, m_sharedContextData);
+            VulkanRenderPassCreateInfo otherEditorInfo(m_frameBuffers.data(), m_guiResources, this, &m_sharedContextData);
             otherEditorInfo.appHeight = static_cast<int32_t>(m_height);
             otherEditorInfo.appWidth = static_cast<int32_t>(m_width);
             otherEditorInfo.borderSize = 5;
@@ -157,7 +162,7 @@ namespace VkRender {
 
         if (jsonContent.contains("editors")) {
             for (const auto &jsonEditor: jsonContent["editors"]) {
-                VulkanRenderPassCreateInfo createInfo(m_frameBuffers.data(), m_guiResources, this, m_sharedContextData);
+                VulkanRenderPassCreateInfo createInfo(m_frameBuffers.data(), m_guiResources, this, &m_sharedContextData);
 
                 createInfo.width = jsonEditor.value("width", 0);
                 createInfo.appWidth = jsonEditor.value("appWidth", 0);
@@ -189,7 +194,7 @@ namespace VkRender {
     }
 
     void Renderer::createMainRenderPass() {
-        VulkanRenderPassCreateInfo renderPassCreateInfo(nullptr, m_guiResources, this, m_sharedContextData);
+        VulkanRenderPassCreateInfo renderPassCreateInfo(nullptr, m_guiResources, this, &m_sharedContextData);
         renderPassCreateInfo.appHeight = static_cast<int32_t>(m_height);
         renderPassCreateInfo.appWidth = static_cast<int32_t>(m_width);
         renderPassCreateInfo.height = static_cast<int32_t>(m_height);
@@ -842,6 +847,7 @@ namespace VkRender {
         }
         */
         m_logger->frameNumber = frameID;
+        m_sharedContextData.multiSenseRendererBridge->update(); // TODO definitely reconsider if we should call crl updates here?
 
         //if (keyPress == GLFW_KEY_SPACE) {
         //    m_cameras[m_selectedCameraTag].resetPosition();
@@ -945,11 +951,11 @@ namespace VkRender {
     }
 
     Editor Renderer::createEditor(VulkanRenderPassCreateInfo &createInfo) {
-        auto& editor = createEditorWithUUID(UUID(), createInfo);
-        return std::move(editor);
+        auto editor = createEditorWithUUID(UUID(), createInfo);
+        return editor;
     }
 
-    Editor& Renderer::createEditorWithUUID(UUID uuid, VulkanRenderPassCreateInfo &createInfo) {
+    Editor Renderer::createEditorWithUUID(UUID uuid, VulkanRenderPassCreateInfo &createInfo) {
         // Randomly generate a background color
         if (createInfo.editorTypeDescription == "UI") {
             auto editor = EditorViewport(createInfo);
@@ -961,6 +967,7 @@ namespace VkRender {
             auto editor = EditorMultiSenseViewer(createInfo);
             return editor;
         } else {
+
             return  EditorTest(createInfo, uuid);
         }
     }
@@ -1439,7 +1446,7 @@ namespace VkRender {
     void Renderer::splitEditor(uint32_t splitEditorIndex) {
         auto &editor = m_editors[splitEditorIndex];
         VulkanRenderPassCreateInfo &editorCreateInfo = editor.getCreateInfo();
-        VulkanRenderPassCreateInfo newEditorCreateInfo(m_frameBuffers.data(), m_guiResources, this, m_sharedContextData);
+        VulkanRenderPassCreateInfo newEditorCreateInfo(m_frameBuffers.data(), m_guiResources, this, &m_sharedContextData);
         VulkanRenderPassCreateInfo::copy(&newEditorCreateInfo, &editorCreateInfo);
 
         if (editor.ui().dragHorizontal) {
@@ -1524,7 +1531,7 @@ namespace VkRender {
 
     VulkanRenderPassCreateInfo Renderer::getNewEditorCreateInfo(Editor &editor) {
 
-        VulkanRenderPassCreateInfo newEditorCI(m_frameBuffers.data(), m_guiResources, this, m_sharedContextData);
+        VulkanRenderPassCreateInfo newEditorCI(m_frameBuffers.data(), m_guiResources, this, &m_sharedContextData);
         VulkanRenderPassCreateInfo::copy(&newEditorCI, &editor.getCreateInfo());
 
         switch (editor.ui().lastClickedBorderType) {

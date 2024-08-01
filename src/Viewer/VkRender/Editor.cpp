@@ -13,7 +13,7 @@
 namespace VkRender {
 
 
-    Editor::Editor(VulkanRenderPassCreateInfo &createInfo, UUID _uuid) : m_createInfo(std::move(createInfo)),
+    Editor::Editor(VulkanRenderPassCreateInfo &createInfo, UUID _uuid) : m_createInfo(createInfo),
                                                                          m_renderUtils(createInfo.context->data()),
                                                                          m_context(createInfo.context),
                                                                          m_sizeLimits(createInfo.appWidth, createInfo.appHeight),
@@ -46,7 +46,7 @@ namespace VkRender {
 
 
     void Editor::resize(VulkanRenderPassCreateInfo &createInfo){
-        m_createInfo = std::move(createInfo);
+        m_createInfo = createInfo;
         m_sizeLimits = EditorSizeLimits(m_createInfo.appWidth, m_createInfo.appHeight);
 
         m_ui.height = m_createInfo.height;

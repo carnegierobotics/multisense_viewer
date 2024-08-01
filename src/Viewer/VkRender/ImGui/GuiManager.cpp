@@ -65,7 +65,7 @@ namespace VkRender {
     GuiManager::GuiManager(VulkanDevice &vulkanDevice, VkRenderPass const &renderPass, EditorUI *editorUi,
                            VkSampleCountFlagBits msaaSamples, uint32_t imageCount, Renderer *ctx,
                            ImGuiContext *imguiCtx,
-                           const GuiResources *guiResources, SharedContextData& sharedData) : handles(sharedData),
+                           const GuiResources *guiResources, SharedContextData* sharedData) : handles(sharedData),
             m_guiResources(guiResources), m_vulkanDevice(vulkanDevice) {
         vertexBuffer.resize(imageCount);
         indexBuffer.resize(imageCount);
@@ -74,8 +74,7 @@ namespace VkRender {
         m_imguiContext = imguiCtx;
         ImGui::SetCurrentContext(m_imguiContext);
         handles.info = std::make_unique<GuiLayerUpdateInfo>();
-        handles.multiSenseRendererBridge = std::make_unique<MultiSense::MultiSenseRendererBridge>();
-        handles.multiSenseRendererGigEVisionBridge = std::make_unique<MultiSense::MultiSenseRendererGigEVisionBridge>();
+
         handles.info->deviceName = m_vulkanDevice.m_Properties.deviceName;
         handles.info->title = "MultiSense Viewer";
         // Load UI info from file:
@@ -184,7 +183,6 @@ namespace VkRender {
             saveSettingsTimer = std::chrono::steady_clock::now();
         }
 
-        handles.multiSenseRendererBridge->update(); // TODO definitely reconsider if we should call crl updates here?
     }
 
 

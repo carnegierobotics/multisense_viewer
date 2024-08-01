@@ -76,7 +76,6 @@ namespace VkRender {
 
 
             auto &userSetting = RendererConfig::getInstance().getUserSetting();
-            userSetting.editorUiState.enableSecondaryView = handles.enableSecondaryView;
             userSetting.editorUiState.fixAspectRatio = handles.fixAspectRatio;
 
             ImGui::DestroyContext(m_imguiContext);

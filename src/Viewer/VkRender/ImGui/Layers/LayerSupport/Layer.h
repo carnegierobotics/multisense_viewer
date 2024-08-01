@@ -210,7 +210,7 @@ namespace VkRender {
         bool stopDataCapture = false;
         int startScene = 0;
         int imagesPerScene = 100;
-        bool enableSecondaryView = true;
+        bool revertWindowLayout = false;
         bool fixAspectRatio = false;
         EditorUI* editorUi;
     };

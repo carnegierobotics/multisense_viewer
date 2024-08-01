@@ -78,7 +78,6 @@ namespace VkRender {
         handles.info->title = "MultiSense Viewer";
         // Load UI info from file:
         auto &userSetting = RendererConfig::getInstance().getUserSetting();
-        handles.enableSecondaryView = userSetting.editorUiState.enableSecondaryView;
         handles.fixAspectRatio = userSetting.editorUiState.fixAspectRatio;
         handles.m_context = ctx;
         handles.usageMonitor = ctx->m_usageMonitor;

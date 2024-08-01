@@ -39,6 +39,8 @@
 #include "Viewer/VkRender/ApplicationUserSetting.h"
 
 namespace VkRender {
+    class Renderer;
+
     class RendererConfig {
     public:
         struct CRLServerInfo {
@@ -105,6 +107,16 @@ namespace VkRender {
         AppConfig::ApplicationUserSetting &getUserSetting();
 
         AppConfig::ApplicationUserSetting *getUserSettingRef();
+
+
+        static void removeRuntimeSettingsFile() {
+            // If the file exists, delete it
+            if (std::filesystem::exists(Utils::getRuntimeConfigFilePath())) {
+                std::filesystem::remove(Utils::getRuntimeConfigFilePath());
+                Log::Logger::getInstance()->info("Deleted corrupted application settings file at {}",
+                                                 Utils::getRuntimeConfigFilePath().string().c_str());
+            }
+        }
 
     private:
         RendererConfig() {
@@ -198,55 +210,38 @@ namespace VkRender {
             // LOAD APPLICATION SETTINGS
             // Deserialize settings
             // Read JSON from file
-            std::filesystem::path settingsFilePath = Utils::getSystemCachePath() / "AppRuntimeConfig.json";
+            std::filesystem::path settingsFilePath = Utils::getRuntimeConfigFilePath();
             try {
 
                 if (std::filesystem::exists(settingsFilePath)) {
 
                     std::ifstream inFile(settingsFilePath);
-                    nlohmann::json j_in;
-                    inFile >> j_in;
+                    nlohmann::json jsonContent;
+                    inFile >> jsonContent;
                     inFile.close();
-                    m_UserSetting = j_in.template get<AppConfig::ApplicationUserSetting>();
-                    Log::Logger::getInstance()->info("Loaded application settings from {}",
-                                                     settingsFilePath.string().c_str());
+                    if (jsonContent.contains("generalSettings")) {
+                        m_UserSetting = jsonContent["generalSettings"].template get<AppConfig::ApplicationUserSetting>();
+                        Log::Logger::getInstance()->info("Loaded application settings from {}",
+                                                         settingsFilePath.string().c_str());
+                    } else {
+                        Log::Logger::getInstance()->info("No general settings section in: {}",
+                                                         settingsFilePath.string().c_str());
+                    }
+
                 } else {
                     Log::Logger::getInstance()->info("No application settings file at {}",
                                                      settingsFilePath.string().c_str());
                 }
             } catch (const std::exception& e) {
                 Log::Logger::getInstance()->error("Failed to load application settings: {}", e.what());
-                // If the file exists, delete it
-                if (std::filesystem::exists(settingsFilePath)) {
-                    std::filesystem::remove(settingsFilePath);
-                    Log::Logger::getInstance()->info("Deleted corrupted application settings file at {}",
-                                                     settingsFilePath.string().c_str());
-                }
+                removeRuntimeSettingsFile();
             }
 
         }
+
+
+
         ~RendererConfig() {
-            // Save application settings to file
-            // Save application settings to file
-            try {
-                // Serialize settings
-                nlohmann::json j_out = m_UserSetting;
-
-                // Path where settings will be saved
-                std::filesystem::path settingsFilePath = Utils::getSystemCachePath() / "AppRuntimeConfig.json";
-
-                // Write JSON to file
-                std::ofstream outFile(settingsFilePath);
-                if (outFile.is_open()) {
-                    outFile << std::setw(4) << j_out << std::endl;
-                    outFile.close();
-                    Log::Logger::getInstance()->info("Saved application settings to {}", settingsFilePath.string().c_str());
-                } else {
-                    Log::Logger::getInstance()->info("Failed to open settings file at {}", settingsFilePath.string().c_str());
-                }
-            } catch (const std::exception& e) {
-                Log::Logger::getInstance()->error("Exception while saving settings: {}", e.what());
-            }
         }
 
         CRLServerInfo m_ServerInfo{};
@@ -268,6 +263,7 @@ namespace VkRender {
         const std::string &getAppVersionRemote() const;
 
         void setAppVersionRemote(const std::string &mAppVersionRemote);
+        void saveSettings(Renderer *ctx);
 
     private:
 
@@ -276,6 +272,7 @@ namespace VkRender {
         std::string fetchArchitecture();
 
         std::string fetchApplicationVersion();
+
     };
 
 }

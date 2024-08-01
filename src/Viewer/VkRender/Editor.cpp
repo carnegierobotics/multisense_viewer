@@ -24,9 +24,7 @@ namespace VkRender {
         m_ui.x = createInfo.x;
         m_ui.y = createInfo.y;
         m_ui.index = createInfo.editorIndex;
-        m_applicationWidth = createInfo.appWidth;
-        m_applicationHeight = createInfo.appHeight;
-        m_renderStates = {createInfo.context->data().swapchainImages, RenderState::Idle};
+
         for (size_t i = 0; i < m_renderUtils.swapchainImages; ++i) {
             m_renderPasses.emplace_back(createInfo);
         }
@@ -44,17 +42,6 @@ namespace VkRender {
 
     }
 
-    int32_t Editor::roundToGrid(double value, int gridSize){
-        double threshold = 0.1;
-        double scaledValue = value / gridSize;
-        double roundedValue = std::round(scaledValue);
-        if (std::abs(scaledValue - roundedValue) < threshold) {
-            return static_cast<int>(roundedValue * gridSize);
-        }
-        return static_cast<int>(std::round(value / gridSize) * gridSize);
-    }
-
-
 
     void Editor::resize(VulkanRenderPassCreateInfo &createInfo){
         m_createInfo = createInfo;
@@ -64,8 +51,6 @@ namespace VkRender {
         m_ui.width = createInfo.width;
         m_ui.x = createInfo.x;
         m_ui.y = createInfo.y;
-        m_applicationWidth = createInfo.appWidth;
-        m_applicationHeight = createInfo.appHeight;
 
         m_renderPasses.clear();
 
@@ -110,7 +95,6 @@ namespace VkRender {
         m_guiManager->drawFrame(drawCmdBuffers.buffers[currentFrame], currentFrame, m_ui.width,
                                 m_ui.height, m_ui.x, m_ui.y);
         vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
-        m_renderStates[currentFrame] = RenderState::Busy;
     }
 
     void Editor::update(bool updateGraph, float frameTime, Input *input) {
@@ -222,14 +206,14 @@ namespace VkRender {
         if (createInfo.width < m_sizeLimits.MIN_SIZE) {
            return false;
         }
-        if (createInfo.width > m_applicationWidth - createInfo.x) {
+        if (createInfo.width > m_sizeLimits.MAX_WIDTH - createInfo.x) {
             return false;
         }
         // Ensure the height is within the allowed range considering the offset
         if (createInfo.height < m_sizeLimits.MIN_SIZE) {
             return false;
         }
-        if (createInfo.height > m_applicationHeight - createInfo.y) {
+        if (createInfo.height > m_sizeLimits.MAX_HEIGHT) {
             return false;
         }
         return true;

@@ -5,10 +5,10 @@
 #ifndef WELCOMESCREENLAYER_H
 #define WELCOMESCREENLAYER_H
 
-#include "LayerSupport/ConfigurationPage.h"
-#include "LayerSupport/Sidebar.h"
-#include "LayerSupport/WelcomeScreen.h"
-#include "LayerSupport/CameraStreamView.h"
+#include "Viewer/VkRender/Editors/MultiSenseViewer/Layers/ConfigurationPage.h"
+#include "Viewer/VkRender/Editors/MultiSenseViewer/Layers/Sidebar.h"
+#include "Viewer/VkRender/Editors/MultiSenseViewer/Layers/WelcomeScreen.h"
+#include "Viewer/VkRender/Editors/MultiSenseViewer/Layers/CameraStreamView.h"
 #include "Viewer/VkRender/ImGui/Layers/LayerSupport/Layer.h"
 
 /** Is attached to the renderer through the GuiManager and instantiated in the GuiManager Constructor through

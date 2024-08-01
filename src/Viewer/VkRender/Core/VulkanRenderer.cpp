@@ -45,7 +45,9 @@
 #include "Viewer/VkRender/Core/VulkanResourceManager.h"
 
 #ifndef VKRENDER_MULTISENSE_VIEWER_PRODUCTION
+
 #include "Viewer/VkRender/Core/Validation.h"
+
 #endif
 
 namespace VkRender {
@@ -55,13 +57,17 @@ namespace VkRender {
 #else
         m_settings.validation = true;
 #endif
+
+        m_width = RendererConfig::getInstance().getUserSetting().applicationWidth;
+        m_height = RendererConfig::getInstance().getUserSetting().applicationHeight;
+
+
         // Create window instance
         // boilerplate stuff (ie. basic window setup, initialize OpenGL) occurs in abstract class
         glfwInit();
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-        m_width = 1280 / 1;
-        m_height = 720 / 1;
+
         //m_Width = 1200;
         //m_Height = 540;
         window = glfwCreateWindow(static_cast<int>(m_width), static_cast<int>(m_height), title.c_str(), nullptr,
@@ -441,8 +447,8 @@ namespace VkRender {
         glfwGetFramebufferSize(window, reinterpret_cast<int *>(&m_width), reinterpret_cast<int *>(&m_height));
         int32_t widthChanged = static_cast<int32_t>(m_width) - prevWidth;
         int32_t heightChanged = static_cast<int32_t>(m_height) - prevHeight;
-        double widthScale =  static_cast<double>(m_width) / static_cast<double>(prevWidth);
-        double heightScale =  static_cast<double>(m_height) / static_cast<double>(prevHeight);
+        double widthScale = static_cast<double>(m_width) / static_cast<double>(prevWidth);
+        double heightScale = static_cast<double>(m_height) / static_cast<double>(prevHeight);
 
         // Suspend application while it is in minimized state
         // Also unsignal semaphore for presentation because we are recreating the swapchain
@@ -482,10 +488,6 @@ namespace VkRender {
         backendInitialized = true;
     }
 
-    void VulkanRenderer::freeVulkanResources() {
-
-    }
-
     void VulkanRenderer::renderLoop() {
         destWidth = m_width;
         destHeight = m_height;
@@ -501,8 +503,6 @@ namespace VkRender {
             std::chrono::duration<float, std::milli> elapsed_milliseconds = end - rendererStartTime;
             runTime = elapsed_milliseconds.count();
             Log::Logger::getInstance()->trace("Mouse events are: ({},{})  action: {}", mouse.x, mouse.y, mouse.action);
-            /** Give ImGui Reference to this frame's input events **/
-            freeVulkanResources();
             /** Compute pipeline command recording and submission **/
             //computePipeline(); // TODO Either implement or remove
             updateUniformBuffers();
@@ -570,8 +570,6 @@ namespace VkRender {
         // Cleanup deferred deletions
         VulkanResourceManager::getInstance().cleanup();
 
-        // Post render actions, should only be called after our first frame
-            updateRenderingStates();
 
         if (recreateResourcesNextFrame) {
             Log::Logger::getInstance()->info("Attempting to launch resize window to solve vkSubmit Issue");
@@ -673,7 +671,7 @@ namespace VkRender {
         ImGuiIO &io = ImGui::GetIO();
         io.AddInputCharacter(static_cast<unsigned short>(codepoint));
     */
-         }
+    }
 
     DISABLE_WARNING_POP
 
@@ -817,7 +815,7 @@ namespace VkRender {
         io.MouseWheel += 0.5f * static_cast<float>(yoffset);
     */
 
-         }
+    }
 
     DISABLE_WARNING_POP
 

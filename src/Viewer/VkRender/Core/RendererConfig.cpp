@@ -6,6 +6,7 @@
 #include <nlohmann/json.hpp>
 
 #include "Viewer/VkRender/Core/RendererConfig.h"
+#include "Viewer/VkRender/Renderer.h"
 #include "Viewer/Tools/Utils.h"
 
 namespace VkRender {
@@ -218,6 +219,66 @@ namespace VkRender {
 
     bool RendererConfig::hasEnabledExtension(const std::string &extensionName) const {
         return Utils::isInVector(m_EnabledExtensions, extensionName);
+    }
+
+    void RendererConfig::saveSettings(Renderer* ctx) {
+        // Save application settings to file
+        // Save application settings to file
+        try {
+
+            // Save m_editors to a settings json file
+            // Save type of editor and position/size, index
+            Log::Logger::getInstance()->info("Attempting to save editor settings to: {}", Utils::getRuntimeConfigFilePath().string());
+
+            nlohmann::json jsonContent;
+            // Create editor settings JSON array
+            nlohmann::json jsonEditors = nlohmann::json::array();
+
+            for (const auto& editor : ctx->m_editors) {
+                VulkanRenderPassCreateInfo createInfo = editor.getCreateInfo();
+
+                nlohmann::json jsonEditor;
+                jsonEditor["context"] = createInfo.context ? true : false; // Assuming you don't need to serialize the context
+                jsonEditor["width"] = createInfo.width;
+                jsonEditor["appWidth"] = createInfo.appWidth;
+                jsonEditor["height"] = createInfo.height;
+                jsonEditor["appHeight"] = createInfo.appHeight;
+                jsonEditor["x"] = createInfo.x;
+                jsonEditor["y"] = createInfo.y;
+                jsonEditor["borderSize"] = createInfo.borderSize;
+                jsonEditor["editorTypeDescription"] = createInfo.editorTypeDescription;
+                jsonEditor["loadOp"] = static_cast<int>(createInfo.loadOp);
+                jsonEditor["initialLayout"] = static_cast<int>(createInfo.initialLayout);
+                jsonEditor["finalLayout"] = static_cast<int>(createInfo.finalLayout);
+                jsonEditor["storeOp"] = static_cast<int>(createInfo.storeOp);
+                jsonEditor["resizeable"] = createInfo.resizeable;
+                jsonEditor["editorIndex"] = createInfo.editorIndex;
+
+                jsonEditors.push_back(jsonEditor);
+                Log::Logger::getInstance()->info("Editor {}: type = {}, x = {}, y = {}, width = {}, height = {}",
+                                                 createInfo.editorIndex, createInfo.editorTypeDescription, createInfo.x, createInfo.y, createInfo.width, createInfo.height);
+            }
+            jsonContent["editors"] = jsonEditors;
+
+            jsonContent["generalSettings"]= m_UserSetting;
+
+            // Path where settings will be saved
+            std::filesystem::path settingsFilePath = Utils::getRuntimeConfigFilePath();
+
+            // Write JSON to file
+            std::ofstream outFile(settingsFilePath, std::ios_base::app);
+            if (outFile.is_open()) {
+                outFile << std::setw(4) << jsonContent << std::endl;
+                outFile.close();
+                Log::Logger::getInstance()->info("Saved application settings to {}", settingsFilePath.string().c_str());
+            } else {
+                Log::Logger::getInstance()->info("Failed to open settings file at {}", settingsFilePath.string().c_str());
+            }
+        } catch (const std::exception& e) {
+            Log::Logger::getInstance()->error("Exception while saving settings: {}", e.what());
+        }
+
+
     }
 
     // Convert LogLevel enum to string and vice versa

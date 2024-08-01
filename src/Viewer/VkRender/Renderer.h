@@ -130,19 +130,12 @@ namespace VkRender {
         void mouseScroll(float change) override;
 
         void postRenderActions() override;
-        void freeVulkanResources() override;
-        void updateRenderingStates() override;
-        void processDeletions();
-
-        template<typename T>
-        bool tryCleanupAndDestroy(Entity &entity, int currentFrame);
 
     private:
         std::unordered_map<std::string, Camera> m_cameras;
         //std::unique_ptr<VkRender::GuiManager> m_guiManager{};
         std::vector<std::unique_ptr<Scene>> m_scenes;
         std::vector<Editor> m_editors;
-        std::deque<Editor> m_oldEditors;
         std::vector<std::shared_ptr<VulkanRenderPass>> m_mainRenderPasses;
         std::vector<VkFramebuffer> m_frameBuffers;
         entt::registry m_registry;
@@ -155,6 +148,7 @@ namespace VkRender {
         std::shared_ptr<GuiResources> m_guiResources;
 
         friend class Entity;
+        friend class RendererConfig;
 
 
         void createColorResources();
@@ -195,6 +189,8 @@ namespace VkRender {
         void handleEditorResize();
 
         void recreateEditor(Editor &editor, VulkanRenderPassCreateInfo &createInfo);
+
+        void loadEditorSettings(const std::filesystem::path &filePath);
     };
 }
 

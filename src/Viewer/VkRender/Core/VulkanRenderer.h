@@ -104,8 +104,8 @@ namespace VkRender {
         /** @brief This application is written against Vulkan API v.1.1+ **/
         uint32_t apiVersion = VK_API_VERSION_1_1;
         bool backendInitialized = false;
-        uint32_t m_width = 1920;      // Default values - Actual values set in constructor
-        uint32_t m_height = 1080;     // Default values - Actual values set in constructor
+        uint32_t m_width;      // Default values - Actual values set in constructor
+        uint32_t m_height;     // Default values - Actual values set in constructor
 
         /** @brief Encapsulated physical and logical vulkan m_Device */
         VulkanDevice* m_vulkanDevice{};
@@ -167,8 +167,6 @@ namespace VkRender {
         virtual void windowResized(int32_t i, int32_t i1, double d, double d1);
 
         virtual void postRenderActions() = 0; // TODO test
-        virtual void freeVulkanResources() = 0;
-        virtual void updateRenderingStates() = 0;
 
         /** @brief (Virtual) Called when resources have been recreated that require a rebuild of the command buffers (e.g. frame buffer), to be implemented by the sample application */
         virtual void buildCommandBuffers();

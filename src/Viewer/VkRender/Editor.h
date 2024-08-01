@@ -27,7 +27,7 @@ namespace VkRender {
 
         // Implement move constructor
         Editor(Editor &&other) noexcept: m_context(other.m_context), m_renderUtils(other.m_renderUtils),
-                                         m_renderStates(other.m_renderStates), m_createInfo(other.m_createInfo),
+                                         m_createInfo(other.m_createInfo),
                                          m_sizeLimits(other.m_createInfo.appWidth, other.m_createInfo.appHeight) {
             swap(*this, other);
         }
@@ -42,6 +42,7 @@ namespace VkRender {
 
         // No copying allowed
         Editor(const Editor &) = delete;
+
         Editor &operator=(const Editor &) = delete;
 
         // Implement a swap function
@@ -49,9 +50,6 @@ namespace VkRender {
             std::swap(first.m_guiManager, second.m_guiManager);
             std::swap(first.m_ui, second.m_ui);
             std::swap(first.m_renderPasses, second.m_renderPasses);
-            std::swap(first.m_applicationWidth, second.m_applicationWidth);
-            std::swap(first.m_applicationHeight, second.m_applicationHeight);
-            std::swap(first.m_renderStates, second.m_renderStates);
             std::swap(first.m_createInfo, second.m_createInfo);
             std::swap(first.m_renderUtils, second.m_renderUtils);
             std::swap(first.m_context, second.m_context);
@@ -65,29 +63,32 @@ namespace VkRender {
 
         ~Editor() = default;
 
-        bool isSafeToDelete(size_t index) const { return m_renderStates[index] == RenderState::Idle; }
+        void addUI(const std::string &layerName) { m_guiManager->pushLayer(layerName); }
 
-        void setRenderState(size_t index, RenderState state) { m_renderStates[index] = state; }
+        const EditorSizeLimits &getSizeLimits() const { return m_sizeLimits; }
 
-        void addUI(const std::string& layerName) { m_guiManager->pushLayer(layerName); }
-
-        [[nodiscard]] const EditorSizeLimits &getSizeLimits() const {return m_sizeLimits;}
         VulkanRenderPassCreateInfo &getCreateInfo() { return m_createInfo; }
-        [[nodiscard]] ImGuiContext *guiContext() const { return m_guiManager->m_imguiContext; }
-        [[nodiscard]] UUID getUUID() const { return m_uuid; }
-        EditorUI& ui() { return m_ui; }
-        void setUIState(const EditorUI& state) { m_ui = state; }
+
+        const VulkanRenderPassCreateInfo &getCreateInfo() const { return m_createInfo; }
+
+        ImGuiContext *guiContext() const { return m_guiManager->m_imguiContext; }
+
+        UUID getUUID() const { return m_uuid; }
+
+        EditorUI &ui() { return m_ui; }
+
+        void setUIState(const EditorUI &state) { m_ui = state; }
 
         void render(CommandBuffer &drawCmdBuffers);
 
         void update(bool updateGraph, float frametime, Input *input);
 
         void updateBorderState(const glm::vec2 &mousePos);
-        int32_t roundToGrid(double value, int gridSize);
 
         EditorBorderState checkLineBorderState(const glm::vec2 &mousePos, bool verticalResize);
 
         bool validateEditorSize(VulkanRenderPassCreateInfo &createInfo);
+
         void resize(VulkanRenderPassCreateInfo &createInfo);
 
     private:
@@ -97,10 +98,6 @@ namespace VkRender {
         Renderer *m_context;
         EditorSizeLimits m_sizeLimits;
 
-        uint32_t m_applicationWidth = 0;
-        uint32_t m_applicationHeight = 0;
-
-        std::vector<RenderState> m_renderStates;  // States for each swapchain image
         VulkanRenderPassCreateInfo m_createInfo;
         std::unique_ptr<GuiManager> m_guiManager;
         EditorUI m_ui;

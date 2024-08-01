@@ -54,7 +54,7 @@
 
 #include "Viewer/VkRender/Editors/Viewport/EditorViewport.h"
 #include "Viewer/VkRender/Editors/EditorSceneHierarchy.h"
-#include "Viewer/VkRender/Editors/EditorMultiSenseViewer.h"
+#include "Viewer/VkRender/Editors/MultiSenseViewer/EditorMultiSenseViewer.h"
 #include "Viewer/VkRender/Editors/Test/EditorTest.h"
 #include "Viewer/VkRender/Core/VulkanResourceManager.h"
 
@@ -103,46 +103,99 @@ namespace VkRender {
         createDepthStencil();
         createMainRenderPass();
 
-        VulkanRenderPassCreateInfo mainEditorInfo(m_frameBuffers.data(), m_guiResources, this);
-        mainEditorInfo.appHeight = static_cast<int32_t>(m_height);
-        mainEditorInfo.appWidth = static_cast<int32_t>(m_width);
-        mainEditorInfo.height = static_cast<int32_t>(m_height);
-        mainEditorInfo.width = static_cast<int32_t>(m_width);
-        mainEditorInfo.borderSize = 0;
-        mainEditorInfo.editorTypeDescription = "MainEditor";
-        mainEditorInfo.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-        mainEditorInfo.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        mainEditorInfo.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        mainEditorInfo.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        mainEditorInfo.clearValue.push_back({0.1f, 0.1f, 0.3f, 1.0f});
-        mainEditorInfo.clearValue.push_back({1.0f, 1.0f, 1.0f, 1.0f});
-        mainEditorInfo.clearValue.push_back({0.1f, 0.4f, 0.1f, 1.0f});
-        mainEditorInfo.resizeable = false;
-        m_mainEditor = std::make_unique<Editor>(mainEditorInfo);
+
+        VulkanRenderPassCreateInfo mainMenuEditor(m_frameBuffers.data(), m_guiResources, this);
+        mainMenuEditor.appHeight = static_cast<int32_t>(m_height);
+        mainMenuEditor.appWidth = static_cast<int32_t>(m_width);
+        mainMenuEditor.height = static_cast<int32_t>(m_height);
+        mainMenuEditor.width = static_cast<int32_t>(m_width);
+        mainMenuEditor.borderSize = 0;
+        mainMenuEditor.editorTypeDescription = "MainEditor";
+        mainMenuEditor.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+        mainMenuEditor.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        mainMenuEditor.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        mainMenuEditor.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        mainMenuEditor.clearValue.push_back({0.1f, 0.1f, 0.3f, 1.0f});
+        mainMenuEditor.clearValue.push_back({1.0f, 1.0f, 1.0f, 1.0f});
+        mainMenuEditor.clearValue.push_back({0.1f, 0.4f, 0.1f, 1.0f});
+        mainMenuEditor.resizeable = false;
+        m_mainEditor = std::make_unique<Editor>(mainMenuEditor);
         m_mainEditor->addUI("DebugWindow");
         m_mainEditor->addUI("MenuLayer");
 
-        auto sizeLimits = m_mainEditor->getSizeLimits();
-        VulkanRenderPassCreateInfo otherEditorInfo(m_frameBuffers.data(), m_guiResources, this);
-        otherEditorInfo.appHeight = static_cast<int32_t>(m_height);
-        otherEditorInfo.appWidth = static_cast<int32_t>(m_width);
-        otherEditorInfo.borderSize = 5;
-        otherEditorInfo.height = static_cast<int32_t>(m_height) - sizeLimits.MENU_BAR_HEIGHT;//- 100;
-        otherEditorInfo.width = static_cast<int32_t>(m_width);//- 200;
-        otherEditorInfo.x = 0;//+ 100;
-        otherEditorInfo.y = sizeLimits.MENU_BAR_HEIGHT;//+ 050;
-        otherEditorInfo.editorIndex = m_editors.size();
-        otherEditorInfo.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-        otherEditorInfo.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        otherEditorInfo.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        otherEditorInfo.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        otherEditorInfo.editorTypeDescription = "Test Window";
-        std::array<VkClearValue, 3> clearValues{};
-        otherEditorInfo.clearValue.push_back({0.1f, 0.4f, 0.1f, 1.0f});
-        otherEditorInfo.clearValue.push_back({1.0f, 1.0f, 1.0f, 1.0f});
-        otherEditorInfo.clearValue.push_back({0.1f, 0.4f, 0.1f, 1.0f});
-        Editor editor = createEditor(otherEditorInfo);
-        m_editors.push_back(std::move(editor));
+
+        /*
+
+
+         */
+
+        loadEditorSettings(Utils::getRuntimeConfigFilePath());
+
+        if (m_editors.empty()){
+            // add a dummy editor to get started
+            auto sizeLimits = m_mainEditor->getSizeLimits();
+            VulkanRenderPassCreateInfo otherEditorInfo(m_frameBuffers.data(), m_guiResources, this);
+            otherEditorInfo.appHeight = static_cast<int32_t>(m_height);
+            otherEditorInfo.appWidth = static_cast<int32_t>(m_width);
+            otherEditorInfo.borderSize = 5;
+            otherEditorInfo.height = static_cast<int32_t>(m_height) - sizeLimits.MENU_BAR_HEIGHT;//- 100;
+            otherEditorInfo.width = static_cast<int32_t>(m_width);//- 200;
+            otherEditorInfo.x = 0;//+ 100;
+            otherEditorInfo.y = sizeLimits.MENU_BAR_HEIGHT;//+ 050;
+            otherEditorInfo.editorIndex = m_editors.size();
+            otherEditorInfo.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+            otherEditorInfo.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            otherEditorInfo.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            otherEditorInfo.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+            otherEditorInfo.editorTypeDescription = "Test Window";
+            std::array<VkClearValue, 3> clearValues{};
+            otherEditorInfo.clearValue.push_back({0.1f, 0.4f, 0.1f, 1.0f});
+            otherEditorInfo.clearValue.push_back({1.0f, 1.0f, 1.0f, 1.0f});
+            otherEditorInfo.clearValue.push_back({0.1f, 0.4f, 0.1f, 1.0f});
+            Editor editor = createEditor(otherEditorInfo);
+            m_editors.push_back(std::move(editor));
+
+        }
+    }
+
+    // TODO This should actually be handled by RendererConfig. This class handles everything saving and loading config files
+    void Renderer::loadEditorSettings(const std::filesystem::path& filePath) {
+        std::ifstream inFile(filePath);
+        if (!inFile.is_open()) {
+            Log::Logger::getInstance()->error("Failed to open file for reading: {}", filePath.string());
+            return;
+        }
+
+        nlohmann::json jsonContent;
+        inFile >> jsonContent;
+        inFile.close();
+
+        Log::Logger::getInstance()->info("Successfully read editor settings from: {}", filePath.string());
+
+        if (jsonContent.contains("editors")) {
+            for (const auto& jsonEditor : jsonContent["editors"]) {
+                VulkanRenderPassCreateInfo createInfo(m_frameBuffers.data(), m_guiResources, this);
+
+                createInfo.width = jsonEditor.value("width", 0);
+                createInfo.appWidth = jsonEditor.value("appWidth", 0);
+                createInfo.height = jsonEditor.value("height", 0);
+                createInfo.appHeight = jsonEditor.value("appHeight", 0);
+                createInfo.x = jsonEditor.value("x", 0);
+                createInfo.y = jsonEditor.value("y", 0);
+                createInfo.borderSize = jsonEditor.value("borderSize", 3);
+                createInfo.editorTypeDescription = jsonEditor.value("editorTypeDescription", "");
+                createInfo.resizeable = jsonEditor.value("resizeable", true);
+                createInfo.editorIndex = jsonEditor.value("editorIndex", 0);
+
+                // Create an Editor object with the createInfo
+                Editor editor = createEditor(createInfo);
+                m_editors.push_back(std::move(editor));
+
+                Log::Logger::getInstance()->info("Loaded editor {}: type = {}, x = {}, y = {}, width = {}, height = {}",
+                                                 createInfo.editorIndex, createInfo.editorTypeDescription, createInfo.x,
+                                                 createInfo.y, createInfo.width, createInfo.height);
+            }
+        }
     }
 
     void Renderer::createMainRenderPass() {
@@ -248,34 +301,6 @@ namespace VkRender {
     }
     */
 
-    void Renderer::updateRenderingStates() {
-        for (auto &editor: m_editors) {
-            editor.setRenderState(currentFrame, RenderState::Idle);
-        }
-        for (auto &editor: m_oldEditors) {
-            editor.setRenderState(currentFrame, RenderState::Idle);
-        }
-        freeVulkanResources();
-    }
-
-    void Renderer::freeVulkanResources() {
-        // Iterate through the deque and clean up resources
-        for (auto it = m_oldEditors.begin(); it != m_oldEditors.end();) {
-            bool allIdle = true;
-            for (size_t i = 0; i < swapchain->imageCount; ++i) {
-                if (!(*it).isSafeToDelete(i)) {
-                    allIdle = false;
-                    break;
-                }
-            }
-            if (allIdle) {
-                it = m_oldEditors.erase(it);
-            } else {
-                ++it;
-            }
-        }
-    }
-
     void Renderer::buildCommandBuffers() {
         VkCommandBufferBeginInfo cmdBufInfo = Populate::commandBufferBeginInfo();
         cmdBufInfo.flags = 0;
@@ -351,7 +376,7 @@ namespace VkRender {
             resources.draw(&drawCmdBuffers);
 
         }
-*/
+
         // Render object
 
         /*
@@ -1036,14 +1061,23 @@ namespace VkRender {
     }
 
     void Renderer::cleanUp() {
+        if (std::filesystem::exists(Utils::getRuntimeConfigFilePath())) {
+            std::filesystem::remove(Utils::getRuntimeConfigFilePath());
+            Log::Logger::getInstance()->info("Removed runtime config file before cleanup {}",
+                                             Utils::getRuntimeConfigFilePath().string().c_str());
+        }
+
         auto startTime = std::chrono::steady_clock::now();
 
         m_usageMonitor->userEndSession();
+        RendererConfig::getInstance().getUserSetting().applicationWidth = m_width;
+        RendererConfig::getInstance().getUserSetting().applicationHeight = m_height;
 
         if (m_usageMonitor->hasUserLogCollectionConsent() &&
             RendererConfig::getInstance().getUserSetting().sendUsageLogOnExit)
             m_usageMonitor->sendUsageLog();
 
+        RendererConfig::getInstance().saveSettings(this);
         auto timeSpan = std::chrono::duration_cast<std::chrono::duration<float>>(
                 std::chrono::steady_clock::now() - startTime);
         Log::Logger::getInstance()->trace("Sending logs on exit took {}s", timeSpan.count());
@@ -1069,6 +1103,8 @@ namespace VkRender {
         for (auto &fb: m_frameBuffers) {
             vkDestroyFramebuffer(device, fb, nullptr);
         }
+
+
     }
 
     void Renderer::handleEditorResize() {

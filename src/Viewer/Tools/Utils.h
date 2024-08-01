@@ -389,7 +389,6 @@ namespace Utils {
         return value ? "true" : "false";
     }
 
-
 /**
  * Returns the systemCache path for Windows/Ubuntu. If it doesn't exist it is created
  * @return path to cache folder
@@ -448,6 +447,11 @@ namespace Utils {
             return getSystemCachePath();
         }
 #endif
+    }
+
+
+    static inline std::filesystem::path getRuntimeConfigFilePath(){
+        return getSystemCachePath() / "AppRuntimeConfig.json";
     }
 
     static inline bool checkRegexMatch(const std::string &str, const std::string &expression) {

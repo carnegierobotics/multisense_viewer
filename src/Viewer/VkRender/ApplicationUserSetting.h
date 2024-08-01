@@ -32,6 +32,9 @@ namespace VkRender::AppConfig {
 
         std::filesystem::path lastOpenedFolderPath;
         std::filesystem::path lastOpenedImportModelFolderPath;
+
+        uint32_t applicationWidth = 1280;
+        uint32_t applicationHeight = 720;
     };
 
     static void to_json(nlohmann::json &j, const ApplicationUserSetting &settings) {
@@ -43,7 +46,10 @@ namespace VkRender::AppConfig {
                 {"lastOpenedFolderPath",            settings.lastOpenedFolderPath.string()},
                 {"enableSecondaryView",             settings.editorUiState.enableSecondaryView},
                 {"fixAspectRatio",                  settings.editorUiState.fixAspectRatio},
-                {"lastOpenedImportModelFolderPath", settings.lastOpenedImportModelFolderPath.string()}
+                {"lastOpenedImportModelFolderPath", settings.lastOpenedImportModelFolderPath.string()},
+                {"applicationWidth",                settings.applicationWidth},
+                {"applicationHeight",               settings.applicationHeight},
+
         };
     }
 
@@ -56,6 +62,8 @@ namespace VkRender::AppConfig {
         j.at("fixAspectRatio").get_to(settings.editorUiState.fixAspectRatio);
         settings.lastOpenedFolderPath = j.at("lastOpenedFolderPath").get<std::string>();
         settings.lastOpenedImportModelFolderPath = j.at("lastOpenedImportModelFolderPath").get<std::string>();
+        j.at("applicationWidth").get_to(settings.applicationWidth);
+        j.at("applicationHeight").get_to(settings.applicationHeight);
     }
 }
 #endif //MULTISENSE_VIEWER_APPLICATIONUSERSETTING_H

@@ -108,14 +108,25 @@ void VulkanSwapchain::create(uint32_t *width, uint32_t *height, bool vsync)
         }
     }
 
-    // Determine the number of images
-    uint32_t desiredNumberOfSwapchainImages = surfCaps.minImageCount + 2;
-    if ((surfCaps.maxImageCount > 0) && (desiredNumberOfSwapchainImages > surfCaps.maxImageCount))
-    {
-        desiredNumberOfSwapchainImages = surfCaps.maxImageCount;
-        // Triple/Double buffering
+    // Desired number of images for triple buffering
+    uint32_t desiredNumberOfSwapchainImages = 3;
+
+    // Get the minimum number of images supported
+    uint32_t minNumberOfSwapchainImages = surfCaps.minImageCount;
+
+    // Get the maximum number of images supported (0 means no maximum)
+    uint32_t maxNumberOfSwapchainImages = surfCaps.maxImageCount;
+
+    // Ensure the desired number of images is at least the minimum
+    if (desiredNumberOfSwapchainImages < minNumberOfSwapchainImages) {
+        desiredNumberOfSwapchainImages = minNumberOfSwapchainImages;
     }
-    desiredNumberOfSwapchainImages = std::min(surfCaps.maxImageCount, desiredNumberOfSwapchainImages);
+
+    // Ensure the desired number of images does not exceed the maximum (if a maximum is specified)
+    if ((maxNumberOfSwapchainImages > 0) && (desiredNumberOfSwapchainImages > maxNumberOfSwapchainImages)) {
+        desiredNumberOfSwapchainImages = maxNumberOfSwapchainImages;
+    }
+
 
     // Find the transformation of the surface
     VkSurfaceTransformFlagsKHR preTransform;

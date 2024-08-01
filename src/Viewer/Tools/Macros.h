@@ -84,7 +84,7 @@
 
 // Compiler specific warnings defined here
 #if defined(__clang__)
-  #define DISABLE_WARNING_NULLABILITY_COMPLETENESS DISABLE_WARNING_CLANG(-Wnullability-completeness)
+  #define DISABLE_WARNING_NULLABILITY_COMPLETENESS DISABLE_WARNING(-Wnullability-completeness)
 #elif defined(__GNUC__) || defined(__GNUG__)
 #define DISABLE_WARNING_NULLABILITY_COMPLETENESS
 #else

@@ -38,7 +38,7 @@
 #ifndef MULTISENSE_VIEWER_NEWVERSIONAVAILABLE_H
 #define MULTISENSE_VIEWER_NEWVERSIONAVAILABLE_H
 
-#include "Viewer/VkRender/ImGui/Layers/LayerSupport/Layer.h"
+#include "Viewer/VkRender/ImGui/Layer.h"
 
 
 void openURL(const std::string &url) {

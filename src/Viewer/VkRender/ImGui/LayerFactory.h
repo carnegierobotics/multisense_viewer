@@ -5,7 +5,7 @@
 #ifndef MULTISENSE_VIEWER_LAYERFACTORY_H
 #define MULTISENSE_VIEWER_LAYERFACTORY_H
 
-#include "Viewer/VkRender/ImGui/Layers/LayerSupport/Layer.h"
+#include "Viewer/VkRender/ImGui/Layer.h"
 
 
 namespace VkRender {

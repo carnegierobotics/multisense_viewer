@@ -5,7 +5,7 @@
 #ifndef MULTISENSE_VIEWER_SCENEHIERARCHY_H
 #define MULTISENSE_VIEWER_SCENEHIERARCHY_H
 
-#include "Viewer/VkRender/ImGui/Layers/LayerSupport/Layer.h"
+#include "Viewer/VkRender/ImGui/Layer.h"
 #include "Viewer/VkRender/Components/GLTFModelComponent.h"
 #include "Viewer/VkRender/Components/CameraGraphicsPipelineComponent.h"
 #include "Viewer/VkRender/Renderer.h"
@@ -13,7 +13,7 @@
 #include "Viewer/VkRender/Components/OBJModelComponent.h"
 #include "Viewer/VkRender/Entity.h"
 #include "Viewer/VkRender/Components/RenderComponents/DefaultGraphicsPipelineComponent2.h"
-#include "Viewer/VkRender/ImGui/Layers/LayerSupport/LayerUtils.h"
+#include "Viewer/VkRender/ImGui/LayerUtils.h"
 
 namespace VkRender {
 

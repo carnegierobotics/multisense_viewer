@@ -1,0 +1,109 @@
+{
+    "editors": [
+        {
+            "appHeight": 1022,
+            "appWidth": 1654,
+            "borderSize": 5,
+            "editorIndex": 0,
+            "editorTypeDescription": "Test Window",
+            "height": 113,
+            "resizeable": false,
+            "uiLayers": [],
+            "width": 1004,
+            "x": 650,
+            "y": 25
+        },
+        {
+            "appHeight": 1022,
+            "appWidth": 1654,
+            "borderSize": 5,
+            "editorIndex": 1,
+            "editorTypeDescription": "MultiSense Viewer",
+            "height": 997,
+            "resizeable": false,
+            "uiLayers": [
+                "SideBarLayer"
+            ],
+            "width": 215,
+            "x": 0,
+            "y": 25
+        },
+        {
+            "appHeight": 1022,
+            "appWidth": 1654,
+            "borderSize": 5,
+            "editorIndex": 2,
+            "editorTypeDescription": "Test Window",
+            "height": 997,
+            "resizeable": false,
+            "uiLayers": [],
+            "width": 445,
+            "x": 210,
+            "y": 25
+        },
+        {
+            "appHeight": 1022,
+            "appWidth": 1654,
+            "borderSize": 5,
+            "editorIndex": 3,
+            "editorTypeDescription": "Test Window",
+            "height": 513,
+            "resizeable": true,
+            "uiLayers": [],
+            "width": 547,
+            "x": 1107,
+            "y": 509
+        },
+        {
+            "appHeight": 1022,
+            "appWidth": 1654,
+            "borderSize": 5,
+            "editorIndex": 5,
+            "editorTypeDescription": "Test Window",
+            "height": 513,
+            "resizeable": true,
+            "uiLayers": [],
+            "width": 462,
+            "x": 650,
+            "y": 509
+        },
+        {
+            "appHeight": 1022,
+            "appWidth": 1654,
+            "borderSize": 5,
+            "editorIndex": 5,
+            "editorTypeDescription": "Test Window",
+            "height": 381,
+            "resizeable": true,
+            "uiLayers": [],
+            "width": 547,
+            "x": 1107,
+            "y": 133
+        },
+        {
+            "appHeight": 1022,
+            "appWidth": 1654,
+            "borderSize": 5,
+            "editorIndex": 6,
+            "editorTypeDescription": "Test Window",
+            "height": 381,
+            "resizeable": true,
+            "uiLayers": [],
+            "width": 462,
+            "x": 650,
+            "y": 133
+        }
+    ],
+    "generalSettings": {
+        "applicationHeight": 1022,
+        "applicationWidth": 1654,
+        "askForUsageLoggingPermissions": true,
+        "enableSecondaryView": false,
+        "fixAspectRatio": false,
+        "lastOpenedFolderPath": "",
+        "lastOpenedImportModelFolderPath": "",
+        "logLevel": 2,
+        "sendUsageLogOnExit": true,
+        "userConsentToSendLogs": true
+    }
+}

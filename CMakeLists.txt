@@ -99,7 +99,7 @@ set(SOURCE_FILES
         src/Viewer/VkRender/ImGui/Widgets.cpp
         src/Viewer/VkRender/ImGui/GuiManager.cpp
         src/Viewer/VkRender/ImGui/AdditionalWindows/DebugWindow.h
-        src/Viewer/VkRender/ImGui/Layers/LayerSupport/LayerFactory.cpp
+        src/Viewer/VkRender/ImGui/LayerFactory.cpp
         src/Viewer/VkRender/ImGui/GuiResources.cpp
 
         src/Viewer/Tools/StbInclude.cpp
@@ -112,6 +112,7 @@ set(SOURCE_FILES
         src/Viewer/Scenes/MultiSenseViewer/Modules/LibMultiSense/CommonHeader.h
         src/Viewer/Scenes/MultiSenseViewer/Modules/LibMultiSense/LibMultiSenseConnector.cpp
         src/Viewer/Scenes/MultiSenseViewer/Modules/LibMultiSense/MultiSenseTaskManager.cpp
+        src/Viewer/VkRender/Editors/MainContextLayer.h
 )
 
 set (SCRIPT_FILES
@@ -149,9 +150,16 @@ endif()
 
 list(APPEND SOURCE_FILES ${SCRIPT_FILES})
 
-# Copy Assets folders to output directory
+# Custom command and target to copy assets if they have changed
 file(GLOB ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/Assets/*")
-file(COPY ${ASSETS} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/Assets)
+add_custom_command(
+        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/Assets
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/Assets ${CMAKE_CURRENT_BINARY_DIR}/Assets
+        DEPENDS ${ASSETS}
+        COMMENT "Copying assets..."
+)
+
+add_custom_target(copy_assets ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/Assets)
 
 if (UNIX) # Linux
     if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
@@ -170,6 +178,7 @@ if (UNIX) # Linux
 
     add_executable(MultiSense-Viewer ${SOURCE_FILES})
     target_link_libraries(MultiSense-Viewer ${LIBRARIES} ${GTK3_LIBRARIES} fmt::fmt)
+    add_dependencies(MultiSense-Viewer copy_assets)
 
     set_project_warnings(MultiSense-Viewer)
 
@@ -206,6 +215,7 @@ if (WIN32)
 
     add_executable(MultiSense-Viewer WIN32 ${SOURCE_FILES})
     target_link_libraries(MultiSense-Viewer ${LIBRARIES} libsll libcrypto fmt::fmt userenv.lib)
+    add_dependencies(MultiSense-Viewer copy_assets)
 
     set_project_warnings(MultiSense-Viewer)
 

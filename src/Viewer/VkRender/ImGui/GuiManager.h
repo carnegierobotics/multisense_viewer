@@ -50,9 +50,9 @@
 #include "Viewer/VkRender/Core/Texture.h"
 #include "Viewer/VkRender/Core/VulkanDevice.h"
 #include "Viewer/VkRender/Core/RenderDefinitions.h"
-#include "Viewer/VkRender/ImGui/Layers/LayerSupport/Layer.h"
+#include "Viewer/VkRender/ImGui/Layer.h"
 #include "Viewer/VkRender/ImGui/Widgets.h"
-#include "Viewer/VkRender/ImGui/Layers/LayerSupport/LayerFactory.h"
+#include "Viewer/VkRender/ImGui/LayerFactory.h"
 #include "Viewer/VkRender/EditorIncludes.h"
 #include "GuiResources.h"
 #include "Viewer/VkRender/Core/VulkanGraphicsPipeline.h"
@@ -62,11 +62,11 @@ namespace VkRender {
 
     class GuiManager {
     public:
-        GuiObjectHandles handles{};
+        GuiObjectHandles handles;
 
         GuiManager(VulkanDevice &vulkanDevice, VkRenderPass const &renderPass, EditorUI *editorUi,
                    VkSampleCountFlagBits msaaSamples, uint32_t imageCount, Renderer *ctx, ImGuiContext *imguiCtx,
-                   const GuiResources *guiResources); // TODO context should be pass by reference as it is no nullable?
+                   const GuiResources *guiResources, SharedContextData& sharedData); // TODO context should be pass by reference as it is no nullable?
 
         ~GuiManager() {
             //Log::Logger::getInstance()->info("Saving ImGui file: {}", (Utils::getSystemCachePath() / "imgui.ini").string().c_str());
@@ -109,7 +109,7 @@ namespace VkRender {
             }
         }
 
-        ImGuiContext *m_imguiContext;
+        ImGuiContext *m_imguiContext = nullptr;
 
     private:
 

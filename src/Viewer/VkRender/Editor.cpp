@@ -13,21 +13,22 @@
 namespace VkRender {
 
 
-    Editor::Editor(VulkanRenderPassCreateInfo &createInfo, UUID _uuid) : m_createInfo(createInfo),
+    Editor::Editor(VulkanRenderPassCreateInfo &createInfo, UUID _uuid) : m_createInfo(std::move(createInfo)),
                                                                          m_renderUtils(createInfo.context->data()),
                                                                          m_context(createInfo.context),
                                                                          m_sizeLimits(createInfo.appWidth, createInfo.appHeight),
                                                                          m_uuid(_uuid){
-        m_ui.borderSize = createInfo.borderSize;
-        m_ui.height = createInfo.height;
-        m_ui.width = createInfo.width;
-        m_ui.x = createInfo.x;
-        m_ui.y = createInfo.y;
-        m_ui.index = createInfo.editorIndex;
+        m_ui.borderSize = m_createInfo.borderSize;
+        m_ui.height = m_createInfo.height;
+        m_ui.width = m_createInfo.width;
+        m_ui.x = m_createInfo.x;
+        m_ui.y = m_createInfo.y;
+        m_ui.index = m_createInfo.editorIndex;
 
         for (size_t i = 0; i < m_renderUtils.swapchainImages; ++i) {
-            m_renderPasses.emplace_back(createInfo);
+            m_renderPasses.emplace_back(m_createInfo);
         }
+
 
         m_guiManager = std::make_unique<GuiManager>(*m_renderUtils.device,
                                                     m_renderPasses.begin()->getRenderPass(), // TODO verify if this is ok?
@@ -35,8 +36,9 @@ namespace VkRender {
                                                     m_renderUtils.msaaSamples,
                                                     m_renderUtils.swapchainImages,
                                                     m_context,
-                                                    ImGui::CreateContext(&createInfo.guiResources->fontAtlas),
-                                                    createInfo.guiResources.get());
+                                                    ImGui::CreateContext(&m_createInfo.guiResources->fontAtlas),
+                                                    m_createInfo.guiResources.get(),
+                                                    m_createInfo.sharedUIContextData);
 
         Log::Logger::getInstance()->info("Creating new Editor. UUID: {}, size: {}x{}, at pos: ({},{})", m_uuid.operator std::string(), m_ui.width, m_ui.height, m_ui.x, m_ui.y);
 
@@ -44,18 +46,18 @@ namespace VkRender {
 
 
     void Editor::resize(VulkanRenderPassCreateInfo &createInfo){
-        m_createInfo = createInfo;
-        m_sizeLimits = EditorSizeLimits(createInfo.appWidth, createInfo.appHeight);
+        m_createInfo = std::move(createInfo);
+        m_sizeLimits = EditorSizeLimits(m_createInfo.appWidth, m_createInfo.appHeight);
 
-        m_ui.height = createInfo.height;
-        m_ui.width = createInfo.width;
-        m_ui.x = createInfo.x;
-        m_ui.y = createInfo.y;
+        m_ui.height = m_createInfo.height;
+        m_ui.width = m_createInfo.width;
+        m_ui.x = m_createInfo.x;
+        m_ui.y = m_createInfo.y;
 
         m_renderPasses.clear();
 
         for (size_t i = 0; i < m_renderUtils.swapchainImages; ++i) {
-            m_renderPasses.emplace_back(createInfo);
+            m_renderPasses.emplace_back(m_createInfo);
         }
         m_guiManager->resize(m_ui.width, m_ui.height, m_renderPasses.back().getRenderPass(), m_renderUtils.msaaSamples, m_createInfo.guiResources);
 
@@ -84,8 +86,10 @@ namespace VkRender {
         renderPassBeginInfo.renderArea.offset.y = static_cast<int32_t>(m_ui.y);
         renderPassBeginInfo.renderArea.extent.width = m_ui.width;
         renderPassBeginInfo.renderArea.extent.height = m_ui.height;
-        renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(m_createInfo.clearValue.size());
-        renderPassBeginInfo.pClearValues = m_createInfo.clearValue.data();
+
+        renderPassBeginInfo.clearValueCount = 0;
+        renderPassBeginInfo.pClearValues = nullptr;
+
         renderPassBeginInfo.framebuffer = m_createInfo.frameBuffers[imageIndex];
         vkCmdBeginRenderPass(drawCmdBuffers.buffers[currentFrame], &renderPassBeginInfo,
                              VK_SUBPASS_CONTENTS_INLINE);

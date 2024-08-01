@@ -58,7 +58,7 @@ int main() {
     } catch (std::runtime_error& e){
         Log::Logger::getInstance()->fatal("RuntimeError: {}", e.what());
         app.cleanUp();
-        VkRender::RendererConfig::removeRuntimeSettingsFile();
+        //VkRender::RendererConfig::removeRuntimeSettingsFile();
     }
     Log::LOG_ALWAYS("<=============================== END OF PROGRAM ===========================>");
     return 0;

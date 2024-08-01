@@ -104,37 +104,26 @@ namespace VkRender {
         createMainRenderPass();
 
 
-        VulkanRenderPassCreateInfo mainMenuEditor(m_frameBuffers.data(), m_guiResources, this);
+        VulkanRenderPassCreateInfo mainMenuEditor(m_frameBuffers.data(), m_guiResources, this, m_sharedContextData);
         mainMenuEditor.appHeight = static_cast<int32_t>(m_height);
         mainMenuEditor.appWidth = static_cast<int32_t>(m_width);
         mainMenuEditor.height = static_cast<int32_t>(m_height);
         mainMenuEditor.width = static_cast<int32_t>(m_width);
         mainMenuEditor.borderSize = 0;
         mainMenuEditor.editorTypeDescription = "MainEditor";
-        mainMenuEditor.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-        mainMenuEditor.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        mainMenuEditor.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        mainMenuEditor.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        mainMenuEditor.clearValue.push_back({0.1f, 0.1f, 0.3f, 1.0f});
-        mainMenuEditor.clearValue.push_back({1.0f, 1.0f, 1.0f, 1.0f});
-        mainMenuEditor.clearValue.push_back({0.1f, 0.4f, 0.1f, 1.0f});
         mainMenuEditor.resizeable = false;
         m_mainEditor = std::make_unique<Editor>(mainMenuEditor);
         m_mainEditor->addUI("DebugWindow");
         m_mainEditor->addUI("MenuLayer");
+        m_mainEditor->addUI("MainContextLayer");
 
 
-        /*
-
-
-         */
-
-        loadEditorSettings(Utils::getRuntimeConfigFilePath());
+        loadEditorSettings(Utils::getMultiSenseViewerProjectConfig());
 
         if (m_editors.empty()) {
             // add a dummy editor to get started
             auto sizeLimits = m_mainEditor->getSizeLimits();
-            VulkanRenderPassCreateInfo otherEditorInfo(m_frameBuffers.data(), m_guiResources, this);
+            VulkanRenderPassCreateInfo otherEditorInfo(m_frameBuffers.data(), m_guiResources, this, m_sharedContextData);
             otherEditorInfo.appHeight = static_cast<int32_t>(m_height);
             otherEditorInfo.appWidth = static_cast<int32_t>(m_width);
             otherEditorInfo.borderSize = 5;
@@ -143,15 +132,9 @@ namespace VkRender {
             otherEditorInfo.x = 0;//+ 100;
             otherEditorInfo.y = sizeLimits.MENU_BAR_HEIGHT;//+ 050;
             otherEditorInfo.editorIndex = m_editors.size();
-            otherEditorInfo.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-            otherEditorInfo.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-            otherEditorInfo.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-            otherEditorInfo.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
             otherEditorInfo.editorTypeDescription = "Test Window";
             std::array<VkClearValue, 3> clearValues{};
-            otherEditorInfo.clearValue.push_back({0.1f, 0.4f, 0.1f, 1.0f});
-            otherEditorInfo.clearValue.push_back({1.0f, 1.0f, 1.0f, 1.0f});
-            otherEditorInfo.clearValue.push_back({0.1f, 0.4f, 0.1f, 1.0f});
+            otherEditorInfo.uiContext = getMainUIContext();
             Editor editor = createEditor(otherEditorInfo);
             m_editors.push_back(std::move(editor));
 
@@ -174,7 +157,7 @@ namespace VkRender {
 
         if (jsonContent.contains("editors")) {
             for (const auto &jsonEditor: jsonContent["editors"]) {
-                VulkanRenderPassCreateInfo createInfo(m_frameBuffers.data(), m_guiResources, this);
+                VulkanRenderPassCreateInfo createInfo(m_frameBuffers.data(), m_guiResources, this, m_sharedContextData);
 
                 createInfo.width = jsonEditor.value("width", 0);
                 createInfo.appWidth = jsonEditor.value("appWidth", 0);
@@ -186,6 +169,7 @@ namespace VkRender {
                 createInfo.editorTypeDescription = jsonEditor.value("editorTypeDescription", "");
                 createInfo.resizeable = jsonEditor.value("resizeable", true);
                 createInfo.editorIndex = jsonEditor.value("editorIndex", 0);
+                createInfo.uiContext = getMainUIContext();
 
                 if (jsonEditor.contains("uiLayers") && jsonEditor["uiLayers"].is_array()) {
                     createInfo.uiLayers = jsonEditor["uiLayers"].get<std::vector<std::string>>();
@@ -205,7 +189,7 @@ namespace VkRender {
     }
 
     void Renderer::createMainRenderPass() {
-        VulkanRenderPassCreateInfo renderPassCreateInfo(nullptr, m_guiResources, this);
+        VulkanRenderPassCreateInfo renderPassCreateInfo(nullptr, m_guiResources, this, m_sharedContextData);
         renderPassCreateInfo.appHeight = static_cast<int32_t>(m_height);
         renderPassCreateInfo.appWidth = static_cast<int32_t>(m_width);
         renderPassCreateInfo.height = static_cast<int32_t>(m_height);
@@ -961,20 +945,23 @@ namespace VkRender {
     }
 
     Editor Renderer::createEditor(VulkanRenderPassCreateInfo &createInfo) {
-        // Randomly generate a background color
-        return createEditorWithUUID(UUID(), createInfo);
+        auto& editor = createEditorWithUUID(UUID(), createInfo);
+        return std::move(editor);
     }
 
-    Editor Renderer::createEditorWithUUID(UUID uuid, VulkanRenderPassCreateInfo &createInfo) {
+    Editor& Renderer::createEditorWithUUID(UUID uuid, VulkanRenderPassCreateInfo &createInfo) {
         // Randomly generate a background color
         if (createInfo.editorTypeDescription == "UI") {
-            return EditorViewport(createInfo);
+            auto editor = EditorViewport(createInfo);
+            return editor;
         } else if (createInfo.editorTypeDescription == "Scene Hierarchy") {
-            return EditorSceneHierarchy(createInfo);
+            auto editor = EditorSceneHierarchy(createInfo);
+            return editor;
         } else if (createInfo.editorTypeDescription == "MultiSense Viewer") {
-            return EditorMultiSenseViewer(createInfo);
+            auto editor = EditorMultiSenseViewer(createInfo);
+            return editor;
         } else {
-            return EditorTest(createInfo, uuid);
+            return  EditorTest(createInfo, uuid);
         }
     }
 
@@ -1112,6 +1099,8 @@ namespace VkRender {
             vkDestroyFramebuffer(device, fb, nullptr);
         }
 
+        m_editors.clear();
+        m_mainEditor.reset();
 
     }
 
@@ -1450,7 +1439,9 @@ namespace VkRender {
     void Renderer::splitEditor(uint32_t splitEditorIndex) {
         auto &editor = m_editors[splitEditorIndex];
         VulkanRenderPassCreateInfo &editorCreateInfo = editor.getCreateInfo();
-        VulkanRenderPassCreateInfo newEditorCreateInfo = editorCreateInfo;
+        VulkanRenderPassCreateInfo newEditorCreateInfo(m_frameBuffers.data(), m_guiResources, this, m_sharedContextData);
+        VulkanRenderPassCreateInfo::copy(&newEditorCreateInfo, &editorCreateInfo);
+
         if (editor.ui().dragHorizontal) {
             editorCreateInfo.width -= editor.ui().dragDelta.x;
             editorCreateInfo.x += editor.ui().dragDelta.x;
@@ -1532,7 +1523,10 @@ namespace VkRender {
     }
 
     VulkanRenderPassCreateInfo Renderer::getNewEditorCreateInfo(Editor &editor) {
-        VulkanRenderPassCreateInfo newEditorCI = editor.getCreateInfo();
+
+        VulkanRenderPassCreateInfo newEditorCI(m_frameBuffers.data(), m_guiResources, this, m_sharedContextData);
+        VulkanRenderPassCreateInfo::copy(&newEditorCI, &editor.getCreateInfo());
+
         switch (editor.ui().lastClickedBorderType) {
             case EditorBorderState::Left:
                 newEditorCI.x = editor.ui().x + editor.ui().cursorDelta.x;

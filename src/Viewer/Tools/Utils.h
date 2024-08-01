@@ -83,6 +83,9 @@ namespace Utils {
     static std::filesystem::path getModelsPath() {
         return {"./Assets/Models"};
     }
+    static std::filesystem::path getMultiSenseViewerProjectConfig() {
+        return {"./Assets/Projects/MultiSenseViewer.json"};
+    }
 
     static std::filesystem::path getScriptsPath() {
         return {"Scripts/"};

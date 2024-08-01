@@ -88,7 +88,7 @@ namespace VkRender {
         void destroyEntity(Entity entity);
         Entity createEntityWithUUID(UUID uuid, const std::string &name);
         Editor createEditor(VulkanRenderPassCreateInfo &createInfo);
-        Editor createEditorWithUUID(UUID uuid, VulkanRenderPassCreateInfo &createInfo);
+        Editor& createEditorWithUUID(UUID uuid, VulkanRenderPassCreateInfo &createInfo);
 
         VkRender::Entity findEntityByName(std::string_view name);
         void markEntityForDestruction(Entity entity);
@@ -98,6 +98,7 @@ namespace VkRender {
         std::vector<SwapChainBuffer>& swapChainBuffers(){return swapchain->buffers;}
         VmaAllocator& allocator(){return m_allocator;}
         VkDevice &vkDevice() {return device;}
+        ImGuiContext* getMainUIContext(){return m_mainEditor->guiContext();}
 
         //GuiObjectHandles& UIContext() {return m_guiManager->handles;}
 
@@ -146,6 +147,7 @@ namespace VkRender {
         std::unique_ptr<Editor> m_mainEditor;
 
         std::shared_ptr<GuiResources> m_guiResources;
+        SharedContextData m_sharedContextData;
 
         friend class Entity;
         friend class RendererConfig;
@@ -166,13 +168,8 @@ namespace VkRender {
 
         void handleClickState(Editor &editor);
 
-        void updateCursor();
 
         void handleDragState(Editor &editor);
-
-        void logStates();
-
-        void updateResizeIntervals();
 
         VulkanRenderPassCreateInfo getNewEditorCreateInfo(Editor &editor);
 

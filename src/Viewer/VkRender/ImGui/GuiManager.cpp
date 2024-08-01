@@ -62,9 +62,11 @@ namespace VkRender {
 
 
 
-    GuiManager::GuiManager(VulkanDevice& vulkanDevice, const VkRenderPass  &renderPass, EditorUI *editorUi,
+    GuiManager::GuiManager(VulkanDevice &vulkanDevice, VkRenderPass const &renderPass, EditorUI *editorUi,
                            VkSampleCountFlagBits msaaSamples, uint32_t imageCount, Renderer *ctx,
-                           ImGuiContext *imguiCtx, const GuiResources *guiResources) : m_guiResources(guiResources), m_vulkanDevice(vulkanDevice) {
+                           ImGuiContext *imguiCtx,
+                           const GuiResources *guiResources, SharedContextData& sharedData) : handles(sharedData),
+            m_guiResources(guiResources), m_vulkanDevice(vulkanDevice) {
         vertexBuffer.resize(imageCount);
         indexBuffer.resize(imageCount);
         indexCount.resize(imageCount);
@@ -128,6 +130,7 @@ namespace VkRender {
         pipelineCreateInfo.pushConstBlockSize = sizeof(GuiResources::PushConstBlock);
         m_pipeline = std::make_unique<VulkanGraphicsPipeline>(pipelineCreateInfo);
 
+        // Create buffers to make sure they are initialized. We risk destroying without initializing if everything is null
     }
 
     void GuiManager::resize(uint32_t width, uint32_t height, const VkRenderPass &renderPass, VkSampleCountFlagBits msaaSamples, std::shared_ptr<GuiResources> guiResources) {
@@ -154,7 +157,9 @@ namespace VkRender {
         handles.info->applicationHeight = static_cast<float>(editorUI.height);
 
         handles.info->editorWidth = static_cast<float>(editorUI.width);
-        handles.info->editorHeight = static_cast<float>(editorUI.height - handles.info->menuBarHeight - handles.info->editorUILayerHeight);
+        handles.info->editorHeight = static_cast<float>(editorUI.height);
+        handles.info->editorSize = ImVec2(handles.info->editorWidth, handles.info->editorHeight);
+        handles.info->editorStartPos = ImVec2(0.0f, 0.0f);
 
         handles.info->aspect = static_cast<float>(editorUI.width) / static_cast<float>(editorUI.height);
         handles.input = pInput;

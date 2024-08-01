@@ -46,7 +46,7 @@
 * @note To be filled by an external source like the VulkanDevice
 */
 struct Buffer {
-    VkDevice m_Device{};
+    VkDevice m_Device = VK_NULL_HANDLE;
     VkBuffer m_Buffer = VK_NULL_HANDLE;
     VkDeviceMemory m_Memory = VK_NULL_HANDLE;
     VkDescriptorBufferInfo m_DescriptorBufferInfo{};

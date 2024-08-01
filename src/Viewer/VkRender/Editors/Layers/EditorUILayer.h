@@ -5,7 +5,7 @@
 #ifndef MULTISENSE_VIEWER_EDITORUILAYER
 #define MULTISENSE_VIEWER_EDITORUILAYER
 
-#include "Viewer/VkRender/ImGui/Layers/LayerSupport/Layer.h"
+#include "Viewer/VkRender/ImGui/Layer.h"
 #include "Viewer/VkRender/ImGui/IconsFontAwesome6.h"
 
 /** Is attached to the renderer through the GuiManager and instantiated in the GuiManager Constructor through

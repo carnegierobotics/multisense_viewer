@@ -2,11 +2,11 @@
 // Created by magnus on 4/7/24.
 //
 
-#ifndef MULTISENSE_VIEWER_SIDEBARLAYER_H
-#define MULTISENSE_VIEWER_SIDEBARLAYER_H
+#ifndef MULTISENSE_VIEWER_SIDEBARLAYEROLD_H
+#define MULTISENSE_VIEWER_SIDEBARLAYEROLD_H
 
-#include "Viewer/VkRender/ImGui/Layers/LayerSupport/Layer.h"
-#include "Viewer/VkRender/ImGui/Layers/LayerSupport/LayerUtils.h"
+#include "Viewer/VkRender/ImGui/Layer.h"
+#include "Viewer/VkRender/ImGui/LayerUtils.h"
 
 #include "Viewer/VkRender/Components/GLTFModelComponent.h"
 #include "Viewer/VkRender/Components/CameraGraphicsPipelineComponent.h"
@@ -21,6 +21,7 @@
  *
 **/
 
+/*
 namespace VkRender {
 
     class SideBarLayer : public VkRender::Layer {
@@ -415,4 +416,4 @@ namespace VkRender {
     };
 
 }
-#endif //MULTISENSE_VIEWER_SIDEBARLAYER_H
+#endif //MULTISENSE_VIEWER_SIDEBARLAYEROLD_H

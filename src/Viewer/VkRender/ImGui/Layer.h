@@ -166,6 +166,10 @@ namespace VkRender {
         bool updateGLTFPath = false;
     };
 
+    struct SharedContextData {
+        bool openAddDevicePopup = false;
+    };
+
     /** @brief Handle which is the MAIN link between ''frontend and backend'' */
     struct GuiObjectHandles {
         /** @brief Handle for current devices located in sidebar */
@@ -191,7 +195,7 @@ namespace VkRender {
         const VkRender::MouseButtons *mouse{};
 
         /** @brief Initialize \refitem clearColor because MSVC does not allow initializer list for std::array */
-        GuiObjectHandles() {
+        GuiObjectHandles(SharedContextData& sharedData) : shared(sharedData) {
             clearColor[0] = 0.870f;
             clearColor[1] = 0.878f;
             clearColor[2] = 0.862f;
@@ -212,7 +216,8 @@ namespace VkRender {
         int imagesPerScene = 100;
         bool revertWindowLayout = false;
         bool fixAspectRatio = false;
-        EditorUI* editorUi;
+        EditorUI* editorUi{};
+        SharedContextData& shared;
     };
 
     /**

@@ -6,10 +6,10 @@
 #define WELCOMESCREENLAYER_H
 
 #include "Viewer/VkRender/Editors/MultiSenseViewer/Layers/ConfigurationPage.h"
-#include "Viewer/VkRender/Editors/MultiSenseViewer/Layers/Sidebar.h"
+#include "Viewer/VkRender/Editors/MultiSenseViewer/Layers/SideBarLayer.h"
 #include "Viewer/VkRender/Editors/MultiSenseViewer/Layers/WelcomeScreen.h"
 #include "Viewer/VkRender/Editors/MultiSenseViewer/Layers/CameraStreamView.h"
-#include "Viewer/VkRender/ImGui/Layers/LayerSupport/Layer.h"
+#include "Viewer/VkRender/ImGui/Layer.h"
 
 /** Is attached to the renderer through the GuiManager and instantiated in the GuiManager Constructor through
  *         pushLayer<[LayerName]>();
@@ -38,13 +38,13 @@ namespace VkRender {
             ImVec2 winSize = ImGui::GetWindowSize();
 
             // Keep all logic inside each function call. Call each element here for a nice orderly overview
-            drawSideBar(uiContext);
+            //drawSideBar(uiContext);
             // Draw welcome screen
-            drawWelcomeScreen(uiContext);
+            //drawWelcomeScreen(uiContext);
             // Draw Main preview page, after we obtained a successfull connection
-            drawConfigurationPage(uiContext);
+            //drawConfigurationPage(uiContext);
             // Draw the 2D view (Camera stream, layouts etc..)
-            drawCameraStreamView(uiContext);
+            //drawCameraStreamView(uiContext);
             // Draw the 3D View
 
             ImGui::End();

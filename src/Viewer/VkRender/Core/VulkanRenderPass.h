@@ -16,6 +16,7 @@
 namespace VkRender {
     class Renderer;
 
+    /**@brief Very early iteration of a editor create info which also includes renderpass create info. TODO They should be separated into EditorCreateInfo and RenderPass even though they share a lot of information*/
     struct VulkanRenderPassCreateInfo {
         Renderer *context = nullptr;
         int32_t width = 0, appWidth = 0;
@@ -24,6 +25,11 @@ namespace VkRender {
         int32_t y = 0;
         uint32_t borderSize = 3;
         std::string editorTypeDescription;
+        bool resizeable = true;
+        size_t editorIndex = 0;
+        std::vector<std::string> uiLayers;
+        ImGuiContext* uiContext = nullptr;
+
         VkAttachmentLoadOp loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
         VkImageLayout initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         VkImageLayout finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -31,17 +37,75 @@ namespace VkRender {
 
         VkFramebuffer* frameBuffers{};
         std::shared_ptr<GuiResources> guiResources;
-        std::vector<VkClearValue> clearValue;
-        bool resizeable = true;
-        size_t editorIndex = 0;
-        VulkanRenderPassCreateInfo() = default;
 
-        VulkanRenderPassCreateInfo(VkFramebuffer * fbPtr, std::shared_ptr<GuiResources> guiRes, Renderer *ctx)
-                : context(ctx), frameBuffers(fbPtr), guiResources(std::move(guiRes)) {
+
+        SharedContextData& sharedUIContextData;
+
+        static void copy(VulkanRenderPassCreateInfo* dst, VulkanRenderPassCreateInfo* src){
+            dst->appHeight = src->appHeight;
+            dst->appWidth = src->appWidth;
+            dst->height = src->height;
+            dst->width = src->width;
+            dst->x = src->x;
+            dst->y = src->y;
+            dst->borderSize = src->borderSize;
+            dst->editorTypeDescription = src->editorTypeDescription;
+            dst->resizeable = src->resizeable;
+            dst->editorIndex = src->editorIndex;
+            dst->uiContext = src->uiContext;
+            dst->uiLayers = src->uiLayers;
+        }
+
+        VulkanRenderPassCreateInfo() = delete;
+
+        VulkanRenderPassCreateInfo(VkFramebuffer * fbPtr, std::shared_ptr<GuiResources> guiRes, Renderer *ctx, SharedContextData& sharedData)
+                : context(ctx), frameBuffers(fbPtr), guiResources(std::move(guiRes)), sharedUIContextData(sharedData) {
 
         }
 
-        std::vector<std::string> uiLayers;
+        // Move constructor
+        VulkanRenderPassCreateInfo(VulkanRenderPassCreateInfo&& other) noexcept
+                : context(other.context), width(other.width), appWidth(other.appWidth),
+                  height(other.height), appHeight(other.appHeight), x(other.x), y(other.y),
+                  borderSize(other.borderSize), editorTypeDescription(std::move(other.editorTypeDescription)),
+                  loadOp(other.loadOp), initialLayout(other.initialLayout), finalLayout(other.finalLayout),
+                  storeOp(other.storeOp), frameBuffers(other.frameBuffers), guiResources(std::move(other.guiResources)), resizeable(other.resizeable), editorIndex(other.editorIndex),
+                  uiLayers(std::move(other.uiLayers)), uiContext(other.uiContext), sharedUIContextData(other.sharedUIContextData) {
+            other.context = nullptr;
+            other.frameBuffers = nullptr;
+            other.uiContext = nullptr;
+        }
+
+        // Move assignment operator
+        VulkanRenderPassCreateInfo& operator=(VulkanRenderPassCreateInfo&& other) noexcept {
+            if (this != &other) {
+                context = other.context;
+                width = other.width;
+                appWidth = other.appWidth;
+                height = other.height;
+                appHeight = other.appHeight;
+                x = other.x;
+                y = other.y;
+                borderSize = other.borderSize;
+                editorTypeDescription = std::move(other.editorTypeDescription);
+                loadOp = other.loadOp;
+                initialLayout = other.initialLayout;
+                finalLayout = other.finalLayout;
+                storeOp = other.storeOp;
+                frameBuffers = other.frameBuffers;
+                guiResources = std::move(other.guiResources);
+                resizeable = other.resizeable;
+                editorIndex = other.editorIndex;
+                uiLayers = std::move(other.uiLayers);
+                uiContext = other.uiContext;
+                // sharedUIContextData is not moved because it's a reference
+                other.context = nullptr;
+                other.frameBuffers = nullptr;
+                other.uiContext = nullptr;
+            }
+            return *this;
+        }
+
     };
 
     struct VulkanRenderPass {

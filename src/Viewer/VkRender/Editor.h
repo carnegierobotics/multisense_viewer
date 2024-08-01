@@ -23,11 +23,12 @@ namespace VkRender {
     class Editor {
     public:
 
+        Editor() = delete;
         explicit Editor(VulkanRenderPassCreateInfo &createInfo, UUID uuid = UUID());
 
         // Implement move constructor
         Editor(Editor &&other) noexcept: m_context(other.m_context), m_renderUtils(other.m_renderUtils),
-                                         m_createInfo(other.m_createInfo),
+                                         m_createInfo(std::move(other.m_createInfo)),
                                          m_sizeLimits(other.m_createInfo.appWidth, other.m_createInfo.appHeight) {
             swap(*this, other);
         }
@@ -42,7 +43,6 @@ namespace VkRender {
 
         // No copying allowed
         Editor(const Editor &) = delete;
-
         Editor &operator=(const Editor &) = delete;
 
         // Implement a swap function

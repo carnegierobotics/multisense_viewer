@@ -113,12 +113,15 @@ namespace VkRender {
         bool resizeHovered = false;
         bool cornerBottomLeftHovered = false; // Hover state
         bool cornerBottomLeftClicked = false; // Single push down event
+        bool rightClickBorder = false; // Single push down event
         bool dragHorizontal = false;  // Holding after click event
         bool dragVertical = false;  // Holding after click event
         bool dragActive = false;  // Holding after click event
         bool createNewEditorByCopy = false;
         bool splitting = false;
+        bool shouldMerge = false;
         EditorBorderState lastClickedBorderType = EditorBorderState::None;
+        EditorBorderState lastRightClickedBorderType = EditorBorderState::None;
         EditorBorderState lastHoveredBorderType = EditorBorderState::None;
         glm::ivec2 lastPressedPos{};
         glm::ivec2 dragDelta{};

@@ -162,7 +162,7 @@ namespace VkRender {
 
         void handleHoverState(Editor &editor);
 
-        void handleMouseClick(Editor &editor);
+        void handleLeftMouseClick(Editor &editor);
 
         void handleClickState(Editor &editor);
 
@@ -191,6 +191,14 @@ namespace VkRender {
         void recreateEditor(Editor &editor, VulkanRenderPassCreateInfo &createInfo);
 
         void loadEditorSettings(const std::filesystem::path &filePath);
+
+        void mergeEditors(const std::array<UUID, 2>& mergeEditorIndices);
+
+        void handleRightMouseClick(Editor &editor);
+
+        void checkIfEditorsShouldMerge();
+
+        Editor *findEditorByUUID(const UUID &uuid);
     };
 }
 

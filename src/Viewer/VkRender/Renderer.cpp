@@ -131,7 +131,7 @@ namespace VkRender {
 
         loadEditorSettings(Utils::getRuntimeConfigFilePath());
 
-        if (m_editors.empty()){
+        if (m_editors.empty()) {
             // add a dummy editor to get started
             auto sizeLimits = m_mainEditor->getSizeLimits();
             VulkanRenderPassCreateInfo otherEditorInfo(m_frameBuffers.data(), m_guiResources, this);
@@ -159,7 +159,7 @@ namespace VkRender {
     }
 
     // TODO This should actually be handled by RendererConfig. This class handles everything saving and loading config files
-    void Renderer::loadEditorSettings(const std::filesystem::path& filePath) {
+    void Renderer::loadEditorSettings(const std::filesystem::path &filePath) {
         std::ifstream inFile(filePath);
         if (!inFile.is_open()) {
             Log::Logger::getInstance()->error("Failed to open file for reading: {}", filePath.string());
@@ -173,7 +173,7 @@ namespace VkRender {
         Log::Logger::getInstance()->info("Successfully read editor settings from: {}", filePath.string());
 
         if (jsonContent.contains("editors")) {
-            for (const auto& jsonEditor : jsonContent["editors"]) {
+            for (const auto &jsonEditor: jsonContent["editors"]) {
                 VulkanRenderPassCreateInfo createInfo(m_frameBuffers.data(), m_guiResources, this);
 
                 createInfo.width = jsonEditor.value("width", 0);
@@ -252,6 +252,7 @@ namespace VkRender {
             }
         }
     }
+
     /*
     // Helper function to attempt cleanup and destroy the entity if successful
     template<typename T>
@@ -978,6 +979,7 @@ namespace VkRender {
          *  THIS INCLUDES RENDERING SELECTED OBJECTS AND COPYING CONTENTS BACK TO CPU INSTEAD OF DISPLAYING TO SCREEN **/
 
     }
+
     void Renderer::windowResized(int32_t dx, int32_t dy, double widthScale, double heightScale) {
         m_renderUtils.device = m_vulkanDevice;
         m_renderUtils.instance = &instance;
@@ -1108,10 +1110,12 @@ namespace VkRender {
     }
 
     void Renderer::handleEditorResize() {
+        //// UPDATE EDITOR WITH UI EVENTS - Very little logic here
         for (auto &editor: m_editors) {
             handleHoverState(editor);
             handleClickState(editor);
         }
+
         bool anyCornerHovered = false;
         bool anyCornerClicked = false;
         bool anyResizeHovered = false;
@@ -1124,13 +1128,19 @@ namespace VkRender {
                 EditorBorderState::Right == editor.ui().lastHoveredBorderType)
                 horizontalResizeHovered = true;
         }
+
+        //// UPDATE EDITOR Based on UI EVENTS
         for (auto &editor: m_editors) {
             // Dont update the editor if managed by another instance
             if (!editor.ui().indirectlyActivated) {
                 handleIndirectClickState(editor);
             }
             handleDragState(editor);
+
         }
+
+        checkIfEditorsShouldMerge();
+
         resizeEditors(anyCornerClicked);
         for (auto &editor: m_editors) {
             editor.update((frameCounter == 0), frameTimer, &input);
@@ -1151,10 +1161,21 @@ namespace VkRender {
                 editor.ui().dragDelta = glm::ivec2(0, 0);
                 editor.ui().cursorDelta = glm::ivec2(0, 0);
             }
+            if (!mouse.right) {
+                editor.ui().rightClickBorder = false;
+                editor.ui().lastRightClickedBorderType = None;
+            }
             if (mouse.left && mouse.action == GLFW_PRESS) {
-                Log::Logger::getInstance()->info("We clicked Editor: {}'s area :{}",
+                Log::Logger::getInstance()->info("We Left-clicked Editor: {}'s area :{}",
                                                  editor.ui().index,
                                                  editor.ui().lastClickedBorderType);
+            }
+
+            if (mouse.right && mouse.action == GLFW_PRESS) {
+                Log::Logger::getInstance()->info("We Right-clicked Editor: {}'s area :{}. Merge? {}",
+                                                 editor.ui().index,
+                                                 editor.ui().lastClickedBorderType,
+                                                 editor.ui().rightClickBorder);
             }
         }
         bool splitEditors = false;
@@ -1170,6 +1191,20 @@ namespace VkRender {
         if (splitEditors) {
             splitEditor(splitEditorIndex);
         }
+
+        bool mergeEditor = false;
+        std::array<UUID, 2> editorsUUID;
+        for (size_t index = 0; auto &editor: m_editors) {
+            if (editor.ui().shouldMerge) {
+                editorsUUID[index] = editor.getUUID();
+                index++;
+                mergeEditor = true;
+            }
+        }
+        if (mergeEditor)
+            mergeEditors(editorsUUID);
+
+
         //
         if (anyCornerClicked) {
             glfwSetCursor(window, m_cursors.crossHair);
@@ -1236,17 +1271,27 @@ namespace VkRender {
 
     void Renderer::handleClickState(Editor &editor) {
         if (mouse.left && mouse.action == GLFW_PRESS) {
-            handleMouseClick(editor);
+            handleLeftMouseClick(editor);
+        }
+        if (mouse.right && mouse.action == GLFW_PRESS) {
+            handleRightMouseClick(editor);
         }
     }
 
-    void Renderer::handleMouseClick(Editor &editor) {
+    void Renderer::handleLeftMouseClick(Editor &editor) {
         editor.ui().lastPressedPos = editor.ui().cursorPos;
         editor.ui().lastClickedBorderType = editor.ui().lastHoveredBorderType;
         editor.ui().resizeActive = !editor.ui().cornerBottomLeftHovered && editor.ui().resizeHovered;
         editor.ui().active = editor.ui().lastHoveredBorderType != EditorBorderState::None;
         if (editor.ui().cornerBottomLeftHovered) {
             editor.ui().cornerBottomLeftClicked = true;
+        }
+    }
+
+    void Renderer::handleRightMouseClick(Editor &editor) {
+        editor.ui().lastRightClickedBorderType = editor.ui().lastHoveredBorderType;
+        if (editor.ui().resizeHovered) {
+            editor.ui().rightClickBorder = true;
         }
     }
 
@@ -1328,6 +1373,68 @@ namespace VkRender {
         }
     }
 
+
+    void Renderer::checkIfEditorsShouldMerge() {
+        int debug = 1;
+
+        for (size_t i = 0; i < m_editors.size(); ++i) {
+            if (m_editors[i].ui().shouldMerge)
+                continue;
+
+            if (m_editors[i].ui().rightClickBorder &&
+                m_editors[i].ui().lastRightClickedBorderType & EditorBorderState::VerticalBorders) {
+
+                for (size_t j = i + 1; j < m_editors.size(); ++j) {
+                    if (m_editors[j].ui().rightClickBorder &&
+                        m_editors[j].ui().lastRightClickedBorderType & EditorBorderState::VerticalBorders) {
+                        auto &ci2 = m_editors[j].ui();
+                        auto &ci1 = m_editors[i].ui();
+
+                        // otherEditor is on the rightmost side
+                        bool matchTopCorner = ci1.x + ci1.width - ci1.borderSize == ci2.x; // Top corner of editor
+                        bool matchBottomCorner = ci1.height == ci2.height;
+
+                        // otherEditor is on the leftmost side
+                        bool matchTopCornerLeft = ci2.x + ci2.width - ci2.borderSize == ci1.x;
+                        bool matchBottomCornerLeft = ci1.height == ci2.height;
+
+
+                        if ((matchTopCorner && matchBottomCorner) || (matchTopCornerLeft && matchBottomCornerLeft)) {
+                            ci1.shouldMerge = true;
+                            ci2.shouldMerge = true;
+                        }
+
+                    }
+                }
+            }
+
+            if (m_editors[i].ui().rightClickBorder &&
+                m_editors[i].ui().lastRightClickedBorderType & EditorBorderState::HorizontalBorders) {
+                for (size_t j = i + 1; j < m_editors.size(); ++j) {
+                    if (m_editors[j].ui().rightClickBorder &&
+                        m_editors[j].ui().lastRightClickedBorderType & EditorBorderState::HorizontalBorders) {
+                        auto &ci2 = m_editors[j].ui();
+                        auto &ci1 = m_editors[i].ui();
+                        // otherEditor is on the topmost side
+                        bool matchLeftCorner = ci1.y + ci1.height - ci1.borderSize == ci2.y; // Top corner of editor
+                        bool matchRightCorner = ci1.width == ci2.width;
+
+                        // otherEditor is on the bottom
+                        bool matchLeftCornerBottom = ci2.y + ci2.height - ci2.borderSize == ci1.y;
+                        bool matchRightCornerBottom = ci1.width == ci2.width;
+
+                        if ((matchLeftCorner && matchRightCorner) ||
+                            (matchLeftCornerBottom && matchRightCornerBottom)) {
+                            ci1.shouldMerge = true;
+                            ci2.shouldMerge = true;
+                        }
+                    }
+                }
+            }
+        }
+
+    }
+
     void Renderer::splitEditor(uint32_t splitEditorIndex) {
         auto &editor = m_editors[splitEditorIndex];
         VulkanRenderPassCreateInfo &editorCreateInfo = editor.getCreateInfo();
@@ -1361,6 +1468,54 @@ namespace VkRender {
             newEditor.ui().lastClickedBorderType = EditorBorderState::Top;
         }
         m_editors.push_back(std::move(newEditor));
+    }
+
+    void Renderer::mergeEditors(const std::array<UUID, 2> &mergeEditorIndices) {
+
+        UUID id1 = mergeEditorIndices[0];
+        UUID id2 = mergeEditorIndices[1];
+
+        auto* editor1 = findEditorByUUID(id1);
+        auto* editor2 = findEditorByUUID(id2);
+
+        if (!editor1 || !editor2){
+            Log::Logger::getInstance()->info("Wanted to merge editors: {} and {} but they were not found", id1.operator std::string(), id2.operator std::string());
+            return;
+        }
+        // Implement your merging logic here
+        // For example, combine editor2's properties into editor1
+        // editor1.someProperty += editor2.someProperty;
+        editor1->ui().shouldMerge = false;
+        editor2->ui().shouldMerge = false;
+
+        auto &ci1 = editor1->getCreateInfo();
+        auto &ci2 = editor2->getCreateInfo();
+
+        int32_t newX = std::min(ci1.x, ci2.x);
+        int32_t newY = std::min(ci1.y, ci2.y);
+        int32_t newWidth = ci1.width + ci2.width;
+        int32_t newHeight = ci1.height + ci2.height;
+
+        if (editor1->ui().lastRightClickedBorderType & EditorBorderState::HorizontalBorders) {
+            ci1.height = newHeight - ci1.borderSize;
+        } else if (editor1->ui().lastRightClickedBorderType & EditorBorderState::VerticalBorders) {
+            ci1.width = newWidth - ci1.borderSize;
+        }
+        ci1.x = newX;
+        ci1.y = newY;
+
+        Log::Logger::getInstance()->info("Merging editor {} into editor {}.", editor2->ui().index, editor1->ui().index);
+
+        auto editor2UUID = editor2->getUUID();
+        // Remove editor2 safely based on UUID
+        m_editors.erase(
+                std::remove_if(m_editors.begin(), m_editors.end(),
+                               [editor2UUID](const Editor& editor) {
+                                   return editor.getUUID() == editor2UUID;
+                               }),
+                m_editors.end()
+        );
+        editor1->resize(ci1);
     }
 
     VulkanRenderPassCreateInfo Renderer::getNewEditorCreateInfo(Editor &editor) {
@@ -1463,6 +1618,14 @@ namespace VkRender {
                 return Entity{entity, this};
         }
         return {};
+    }
+    Editor* Renderer::findEditorByUUID(const UUID& uuid) {
+        for (auto& editor: m_editors){
+            if (uuid == editor.getUUID()){
+                return &editor;
+            }
+        }
+        return nullptr;
     }
 
 // Destroy when render resources are no longer in use

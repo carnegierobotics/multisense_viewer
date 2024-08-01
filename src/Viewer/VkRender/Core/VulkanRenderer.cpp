@@ -61,6 +61,8 @@ namespace VkRender {
         m_width = RendererConfig::getInstance().getUserSetting().applicationWidth;
         m_height = RendererConfig::getInstance().getUserSetting().applicationHeight;
 
+        Log::Logger::getInstance()->trace("Creating surface with size: ({},{})", m_width, m_height);
+
 
         // Create window instance
         // boilerplate stuff (ie. basic window setup, initialize OpenGL) occurs in abstract class

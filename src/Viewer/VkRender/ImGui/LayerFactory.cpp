@@ -13,6 +13,8 @@
 #include "Viewer/VkRender/Editors/MenuLayer.h"
 #include "Viewer/VkRender/Editors/MainContextLayer.h"
 #include "Viewer/VkRender/Editors/MultiSenseViewer/Layers/MultiSenseViewerLayer.h"
+#include "Viewer/VkRender/Editors/MultiSenseViewer/Layers/ConfigurationLayer.h"
+#include "Viewer/VkRender/Editors/MultiSenseViewer/Layers/LayoutSettingsLayer.h"
 
 namespace VkRender {
 
@@ -29,6 +31,8 @@ namespace VkRender {
         if (layerName == "SceneHierarchyLayer") return std::make_shared<SceneHierarchyLayer>();
         if (layerName == "EditorTestLayer") return std::make_shared<EditorTestLayer>();
         if (layerName == "MainContextLayer") return std::make_shared<MainContextLayer>();
+        if (layerName == "ConfigurationLayer") return std::make_shared<ConfigurationLayer>();
+        if (layerName == "LayoutSettingsLayer") return std::make_shared<LayoutSettingsLayer>();
 
         throw std::runtime_error("Tried to push layer: " + layerName + " Which doesn't exists");
     }

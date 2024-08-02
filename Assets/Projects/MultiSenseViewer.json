@@ -1,48 +1,91 @@
 {
     "editors": [
         {
-            "appHeight": 569,
-            "appWidth": 1320,
+            "appHeight": 859,
+            "appWidth": 1525,
             "borderSize": 5,
             "editorIndex": 0,
-            "editorTypeDescription": "Test Window",
-            "height": 544,
-            "resizeable": true,
-            "uiLayers": [],
-            "width": 856,
-            "x": 464,
+            "editorTypeDescription": "MultiSense Viewer",
+            "height": 117,
+            "resizeable": false,
+            "uiLayers": ["LayoutSettingsLayer"],
+            "width": 816,
+            "x": 709,
             "y": 25
         },
         {
-            "appHeight": 569,
-            "appWidth": 1320,
+            "appHeight": 859,
+            "appWidth": 1525,
             "borderSize": 5,
             "editorIndex": 1,
             "editorTypeDescription": "MultiSense Viewer",
-            "height": 544,
+            "height": 834,
             "resizeable": false,
-            "uiLayers": ["SideBarLayer"],
-            "width": 191,
+            "uiLayers": [
+                "SideBarLayer"
+            ],
+            "width": 218,
             "x": 0,
             "y": 25
         },
         {
-            "appHeight": 569,
-            "appWidth": 1320,
+            "appHeight": 859,
+            "appWidth": 1525,
             "borderSize": 5,
             "editorIndex": 2,
+            "editorTypeDescription": "MultiSense Viewer",
+            "height": 834,
+            "resizeable": false,
+            "uiLayers": [
+                "ConfigurationLayer"
+            ],
+            "width": 501,
+            "x": 213,
+            "y": 25
+        },
+        {
+            "appHeight": 859,
+            "appWidth": 1525,
+            "borderSize": 5,
+            "editorIndex": 3,
             "editorTypeDescription": "Test Window",
-            "height": 544,
+            "height": 422,
             "resizeable": true,
             "uiLayers": [],
-            "width": 283,
-            "x": 186,
-            "y": 25
+            "width": 408,
+            "x": 1117,
+            "y": 437
+        },
+        {
+            "appHeight": 859,
+            "appWidth": 1525,
+            "borderSize": 5,
+            "editorIndex": 5,
+            "editorTypeDescription": "Test Window",
+            "height": 422,
+            "resizeable": true,
+            "uiLayers": [],
+            "width": 413,
+            "x": 709,
+            "y": 437
+        },
+        {
+            "appHeight": 859,
+            "appWidth": 1525,
+            "borderSize": 5,
+            "editorIndex": 5,
+            "editorTypeDescription": "Test Window",
+            "height": 305,
+            "resizeable": true,
+            "uiLayers": [],
+            "width": 816,
+            "x": 709,
+            "y": 137
         }
     ],
     "generalSettings": {
-        "applicationHeight": 569,
-        "applicationWidth": 1320,
+        "applicationHeight": 859,
+        "applicationWidth": 1525,
         "askForUsageLoggingPermissions": true,
         "enableSecondaryView": false,
         "fixAspectRatio": false,

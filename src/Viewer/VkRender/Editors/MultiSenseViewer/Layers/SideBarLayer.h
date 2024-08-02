@@ -179,6 +179,7 @@ namespace VkRender {
         //addPopup(uiContext);
         //askUsageLoggingPermissionPopUp(uiContext);
         // Settings button
+        /*
         {
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
             if (ImGui::Button("Settings", ImVec2(uiContext.editorUi->width, 17.0f))) {
@@ -187,6 +188,8 @@ namespace VkRender {
             }
             ImGui::PopStyleVar();
         }
+         */
+
 
         drawProfilesInSidebar(uiContext);
         addDeviceButton(uiContext);

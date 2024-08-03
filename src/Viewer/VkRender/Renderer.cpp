@@ -128,7 +128,8 @@ namespace VkRender {
         if (m_editors.empty()) {
             // add a dummy editor to get started
             auto sizeLimits = m_mainEditor->getSizeLimits();
-            VulkanRenderPassCreateInfo otherEditorInfo(m_frameBuffers.data(), m_guiResources, this, &m_sharedContextData);
+            VulkanRenderPassCreateInfo otherEditorInfo(m_frameBuffers.data(), m_guiResources, this,
+                                                       &m_sharedContextData);
             otherEditorInfo.appHeight = static_cast<int32_t>(m_height);
             otherEditorInfo.appWidth = static_cast<int32_t>(m_width);
             otherEditorInfo.borderSize = 5;
@@ -162,12 +163,11 @@ namespace VkRender {
 
         if (jsonContent.contains("editors")) {
             for (const auto &jsonEditor: jsonContent["editors"]) {
-                VulkanRenderPassCreateInfo createInfo(m_frameBuffers.data(), m_guiResources, this, &m_sharedContextData);
+                VulkanRenderPassCreateInfo createInfo(m_frameBuffers.data(), m_guiResources, this,
+                                                      &m_sharedContextData);
 
                 createInfo.width = jsonEditor.value("width", 0);
-                createInfo.appWidth = jsonEditor.value("appWidth", 0);
                 createInfo.height = jsonEditor.value("height", 0);
-                createInfo.appHeight = jsonEditor.value("appHeight", 0);
                 createInfo.x = jsonEditor.value("x", 0);
                 createInfo.y = jsonEditor.value("y", 0);
                 createInfo.borderSize = jsonEditor.value("borderSize", 3);
@@ -968,7 +968,7 @@ namespace VkRender {
             return editor;
         } else {
 
-            return  EditorTest(createInfo, uuid);
+            return EditorTest(createInfo, uuid);
         }
     }
 
@@ -1023,6 +1023,7 @@ namespace VkRender {
         // When we resize, the window will always increase to the bottom and to the right
         // Just add the extra size to the rightmost editors and the ones bordering the bottom
 
+        /*
         // FInd the ones bordering the right application border
         for (auto &editor: m_editors) {
             auto &ci = editor.getCreateInfo();
@@ -1034,7 +1035,38 @@ namespace VkRender {
                 ci.height += dy;
             }
         }
+        */
+        std::vector<int32_t> roundedTransformedCoordinates;
+        std::vector<double> transformedCoordinates;
+        double initialTotalChange = 0;
 
+        double sumCoords = 0;
+        double sumRoundedCoords = 0;
+
+        for (auto &editor: m_editors) {
+            auto &ci = editor.getCreateInfo();
+            double addWidth = static_cast<double>(ci.width) * widthScale - static_cast<double>(ci.width);
+
+            double transformed = static_cast<double>(ci.x) * widthScale - static_cast<double>(ci.x);
+            int32_t rounded = std::round(ci.x * widthScale);
+
+            roundedTransformedCoordinates.emplace_back(rounded);
+            transformedCoordinates.emplace_back(transformed);
+
+            sumCoords += ci.x;
+            sumRoundedCoords += rounded;
+        }
+        initialTotalChange = sumRoundedCoords - sumCoords;
+
+
+        /*
+        // Sort editors by their x-coordinate
+        std::vector<std::pair<int32_t, size_t>> sortedEditors;
+        for (size_t i = 0; i < m_editors.size(); ++i) {
+            sortedEditors.emplace_back(m_editors[i].getCreateInfo().x, i);
+        }
+        std::sort(sortedEditors.begin(), sortedEditors.end());
+        */
         // TODO figure out what to do if we resize the application such that our editor gets overlapped.
         // TODO easy solution, just block resizing the application
         /*
@@ -1446,7 +1478,8 @@ namespace VkRender {
     void Renderer::splitEditor(uint32_t splitEditorIndex) {
         auto &editor = m_editors[splitEditorIndex];
         VulkanRenderPassCreateInfo &editorCreateInfo = editor.getCreateInfo();
-        VulkanRenderPassCreateInfo newEditorCreateInfo(m_frameBuffers.data(), m_guiResources, this, &m_sharedContextData);
+        VulkanRenderPassCreateInfo newEditorCreateInfo(m_frameBuffers.data(), m_guiResources, this,
+                                                       &m_sharedContextData);
         VulkanRenderPassCreateInfo::copy(&newEditorCreateInfo, &editorCreateInfo);
 
         if (editor.ui().dragHorizontal) {

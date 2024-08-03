@@ -33,7 +33,7 @@ namespace VkRender::AppConfig {
         std::filesystem::path lastOpenedFolderPath;
         std::filesystem::path lastOpenedImportModelFolderPath;
 
-        uint32_t applicationWidth = 1480;
+        uint32_t applicationWidth = 1280;
         uint32_t applicationHeight = 720;
     };
 

@@ -239,9 +239,7 @@ namespace VkRender {
 
                 nlohmann::json jsonEditor;
                 jsonEditor["width"] = createInfo.width;
-                jsonEditor["appWidth"] = createInfo.appWidth;
                 jsonEditor["height"] = createInfo.height;
-                jsonEditor["appHeight"] = createInfo.appHeight;
                 jsonEditor["x"] = createInfo.x;
                 jsonEditor["y"] = createInfo.y;
                 jsonEditor["borderSize"] = createInfo.borderSize;

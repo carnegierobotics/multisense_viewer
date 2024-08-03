@@ -58,22 +58,39 @@ namespace VkRender {
         m_settings.validation = true;
 #endif
 
-        m_width = RendererConfig::getInstance().getUserSetting().applicationWidth;
-        m_height = RendererConfig::getInstance().getUserSetting().applicationHeight;
+
 
         Log::Logger::getInstance()->trace("Creating surface with size: ({},{})", m_width, m_height);
 
 
         // Create window instance
-        // boilerplate stuff (ie. basic window setup, initialize OpenGL) occurs in abstract class
+        // boilerplate stuff (ie. basic window setup)
         glfwInit();
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+        glfwWindowHint(GLFW_DECORATED, GLFW_TRUE); // Ensure the window is decorated
+        glfwWindowHint(GLFW_VISIBLE , GLFW_TRUE); // Ensure the window is decorated
+        glfwWindowHint(GLFW_MAXIMIZED  , GLFW_FALSE); // Ensure the window is decorated
 
-        //m_Width = 1200;
-        //m_Height = 540;
-        window = glfwCreateWindow(static_cast<int>(m_width), static_cast<int>(m_height), title.c_str(), nullptr,
-                                  nullptr);
+        const auto& monitor = glfwGetPrimaryMonitor();
+        const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+
+        glfwWindowHint(GLFW_RED_BITS, mode->redBits);
+        glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
+        glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);
+        glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate);
+        m_width = mode->width;
+        m_height = mode->height;
+
+        m_width = RendererConfig::getInstance().getUserSetting().applicationWidth;
+        m_height = RendererConfig::getInstance().getUserSetting().applicationHeight;
+
+        window = glfwCreateWindow(static_cast<int>(m_width), static_cast<int>(m_height), title.c_str(), nullptr, nullptr);
+        if (!window){
+            throw std::runtime_error("Failed to create glfw surface");
+        }
+
+
         glfwMakeContextCurrent(window);
         glfwSetWindowUserPointer(window, this);
         glfwSetKeyCallback(window, VulkanRenderer::keyCallback);

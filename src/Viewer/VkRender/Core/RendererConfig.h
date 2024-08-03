@@ -241,8 +241,7 @@ namespace VkRender {
 
 
 
-        ~RendererConfig() {
-        }
+        ~RendererConfig() = default;
 
         CRLServerInfo m_ServerInfo{};
         AppConfig::ApplicationUserSetting m_UserSetting{};

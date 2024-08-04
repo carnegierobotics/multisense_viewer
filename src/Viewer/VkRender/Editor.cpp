@@ -16,8 +16,9 @@ namespace VkRender {
     Editor::Editor(VulkanRenderPassCreateInfo &createInfo, UUID _uuid) : m_createInfo(createInfo),
                                                                          m_renderUtils(createInfo.context->data()),
                                                                          m_context(createInfo.context),
-                                                                         m_sizeLimits(createInfo.appWidth, createInfo.appHeight),
-                                                                         m_uuid(_uuid){
+                                                                         m_sizeLimits(createInfo.appWidth,
+                                                                                      createInfo.appHeight),
+                                                                         m_uuid(_uuid) {
         m_ui.borderSize = m_createInfo.borderSize;
         m_ui.height = m_createInfo.height;
         m_ui.width = m_createInfo.width;
@@ -40,12 +41,13 @@ namespace VkRender {
                                                     m_createInfo.guiResources.get(),
                                                     m_createInfo.sharedUIContextData);
 
-        Log::Logger::getInstance()->info("Creating new Editor. UUID: {}, size: {}x{}, at pos: ({},{})", m_uuid.operator std::string(), m_ui.width, m_ui.height, m_ui.x, m_ui.y);
+        Log::Logger::getInstance()->info("Creating new Editor. UUID: {}, size: {}x{}, at pos: ({},{})",
+                                         m_uuid.operator std::string(), m_ui.width, m_ui.height, m_ui.x, m_ui.y);
 
     }
 
 
-    void Editor::resize(VulkanRenderPassCreateInfo &createInfo){
+    void Editor::resize(VulkanRenderPassCreateInfo &createInfo) {
         m_createInfo = createInfo;
         m_sizeLimits = EditorSizeLimits(m_createInfo.appWidth, m_createInfo.appHeight);
 
@@ -59,33 +61,50 @@ namespace VkRender {
         for (size_t i = 0; i < m_renderUtils.swapchainImages; ++i) {
             m_renderPasses.emplace_back(m_createInfo);
         }
-        m_guiManager->resize(m_ui.width, m_ui.height, m_renderPasses.back().getRenderPass(), m_renderUtils.msaaSamples, m_createInfo.guiResources);
+        m_guiManager->resize(m_ui.width, m_ui.height, m_renderPasses.back().getRenderPass(), m_renderUtils.msaaSamples,
+                             m_createInfo.guiResources);
 
-        Log::Logger::getInstance()->info("Resizing Editor. UUID: {} : {}, size: {}x{}, at pos: ({},{})", m_uuid.operator std::string(), m_createInfo.editorIndex, m_ui.width, m_ui.height, m_ui.x, m_ui.y);
+        Log::Logger::getInstance()->info("Resizing Editor. UUID: {} : {}, size: {}x{}, at pos: ({},{})",
+                                         m_uuid.operator std::string(), m_createInfo.editorIndex, m_ui.width,
+                                         m_ui.height, m_ui.x, m_ui.y);
     }
 
     void Editor::render(CommandBuffer &drawCmdBuffers) {
         const uint32_t &currentFrame = *drawCmdBuffers.frameIndex;
         const uint32_t &imageIndex = *drawCmdBuffers.activeImageIndex;
 
+        if (m_createInfo.x + m_createInfo.width > m_createInfo.appWidth) {
+            Log::Logger::getInstance()->warning("Editor {} : {}'s width + offset is more than application width: {}/{}",
+                                                m_uuid.operator std::string(), m_createInfo.editorIndex,
+                                                m_createInfo.appWidth, m_createInfo.width + m_createInfo.x);
+            return;
+        }
+
+        if (m_createInfo.y + m_createInfo.height > m_createInfo.appHeight) {
+            Log::Logger::getInstance()->warning(
+                    "Editor {} : {}'s height + offset is more than application height: {}/{}",
+                    m_uuid.operator std::string(), m_createInfo.editorIndex, m_createInfo.appHeight,
+                    m_createInfo.height + m_createInfo.y);
+            return;
+        }
         VkViewport viewport{};
-        viewport.x = static_cast<float>(m_ui.x);
-        viewport.y = static_cast<float>(m_ui.y);
-        viewport.width = static_cast<float>(m_ui.width);
-        viewport.height = static_cast<float>(m_ui.height);
+        viewport.x = static_cast<float>(m_createInfo.x);
+        viewport.y = static_cast<float>(m_createInfo.y);
+        viewport.width = static_cast<float>(m_createInfo.width);
+        viewport.height = static_cast<float>(m_createInfo.height);
         viewport.minDepth = 0.0f;
         viewport.maxDepth = 1.0f;
 
         VkRect2D scissor{};
-        scissor.offset = {static_cast<int32_t>(m_ui.x), static_cast<int32_t>(m_ui.y)};
-        scissor.extent = {static_cast<uint32_t>(m_ui.width), static_cast<uint32_t>(m_ui.height)};
+        scissor.offset = {static_cast<int32_t>(m_createInfo.x), static_cast<int32_t>(m_createInfo.y)};
+        scissor.extent = {static_cast<uint32_t>(m_createInfo.width), static_cast<uint32_t>(m_createInfo.height)};
         /// *** Color render pass *** ///
         VkRenderPassBeginInfo renderPassBeginInfo = Populate::renderPassBeginInfo();
         renderPassBeginInfo.renderPass = m_renderPasses[currentFrame].getRenderPass(); // Increase reference count by 1 here?
-        renderPassBeginInfo.renderArea.offset.x = static_cast<int32_t>(m_ui.x);
-        renderPassBeginInfo.renderArea.offset.y = static_cast<int32_t>(m_ui.y);
-        renderPassBeginInfo.renderArea.extent.width = m_ui.width;
-        renderPassBeginInfo.renderArea.extent.height = m_ui.height;
+        renderPassBeginInfo.renderArea.offset.x = static_cast<int32_t>(m_createInfo.x);
+        renderPassBeginInfo.renderArea.offset.y = static_cast<int32_t>(m_createInfo.y);
+        renderPassBeginInfo.renderArea.extent.width = m_createInfo.width;
+        renderPassBeginInfo.renderArea.extent.height = m_createInfo.height;
 
         renderPassBeginInfo.clearValueCount = 0;
         renderPassBeginInfo.pClearValues = nullptr;
@@ -96,8 +115,8 @@ namespace VkRender {
         drawCmdBuffers.renderPassType = RENDER_PASS_UI;
         vkCmdSetViewport(drawCmdBuffers.buffers[currentFrame], 0, 1, &viewport);
         vkCmdSetScissor(drawCmdBuffers.buffers[currentFrame], 0, 1, &scissor);
-        m_guiManager->drawFrame(drawCmdBuffers.buffers[currentFrame], currentFrame, m_ui.width,
-                                m_ui.height, m_ui.x, m_ui.y);
+        m_guiManager->drawFrame(drawCmdBuffers.buffers[currentFrame], currentFrame, m_createInfo.width,
+                                m_createInfo.height, m_createInfo.x, m_createInfo.y);
         vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
     }
 
@@ -108,60 +127,68 @@ namespace VkRender {
     void Editor::updateBorderState(const glm::vec2 &mousePos) {
         // Check corners first to give them higher priority
         // Top-left corner
-        if (mousePos.x >= m_ui.x && mousePos.x <= m_ui.x + (m_ui.borderSize) && mousePos.y >= m_ui.y && mousePos.y <= m_ui.y + (m_ui.borderSize)) {
-            m_ui.lastHoveredBorderType =  EditorBorderState::TopLeft;
+        if (mousePos.x >= m_ui.x && mousePos.x <= m_ui.x + (m_ui.borderSize) && mousePos.y >= m_ui.y &&
+            mousePos.y <= m_ui.y + (m_ui.borderSize)) {
+            m_ui.lastHoveredBorderType = EditorBorderState::TopLeft;
             return;
         }
         // Top-right corner
-        if (mousePos.x >= m_ui.x + m_ui.width - (m_ui.borderSize) && mousePos.x <= m_ui.x + m_ui.width && mousePos.y >= m_ui.y &&
+        if (mousePos.x >= m_ui.x + m_ui.width - (m_ui.borderSize) && mousePos.x <= m_ui.x + m_ui.width &&
+            mousePos.y >= m_ui.y &&
             mousePos.y <= m_ui.y + (m_ui.borderSize)) {
-            m_ui.lastHoveredBorderType =  EditorBorderState::TopRight;
+            m_ui.lastHoveredBorderType = EditorBorderState::TopRight;
             return;
         }
         // Bottom-left corner
-        if (mousePos.x >= m_ui.x && mousePos.x <= m_ui.x + (m_ui.borderSize) && mousePos.y >= m_ui.y + m_ui.height - (m_ui.borderSize) &&
+        if (mousePos.x >= m_ui.x && mousePos.x <= m_ui.x + (m_ui.borderSize) &&
+            mousePos.y >= m_ui.y + m_ui.height - (m_ui.borderSize) &&
             mousePos.y <= m_ui.y + m_ui.height) {
-            m_ui.lastHoveredBorderType =  EditorBorderState::BottomLeft;
+            m_ui.lastHoveredBorderType = EditorBorderState::BottomLeft;
             return;
         }
         // Bottom-right corner
         if (mousePos.x >= m_ui.x + m_ui.width - (m_ui.borderSize) && mousePos.x <= m_ui.x + m_ui.width &&
             mousePos.y >= m_ui.y + m_ui.height - (m_ui.borderSize) &&
             mousePos.y <= m_ui.y + m_ui.height) {
-            m_ui.lastHoveredBorderType =  EditorBorderState::BottomRight;
+            m_ui.lastHoveredBorderType = EditorBorderState::BottomRight;
             return;
         }
 
         // Check borders
         // Left border
-        if (mousePos.x >= m_ui.x && mousePos.x <= m_ui.x + (m_ui.borderSize) && mousePos.y >= m_ui.y && mousePos.y <= m_ui.y + m_ui.height) {
-            m_ui.lastHoveredBorderType =  EditorBorderState::Left;
+        if (mousePos.x >= m_ui.x && mousePos.x <= m_ui.x + (m_ui.borderSize) && mousePos.y >= m_ui.y &&
+            mousePos.y <= m_ui.y + m_ui.height) {
+            m_ui.lastHoveredBorderType = EditorBorderState::Left;
             return;
         }
         // Right border
-        if (mousePos.x >= m_ui.x + m_ui.width - (m_ui.borderSize) && mousePos.x <= m_ui.x + m_ui.width && mousePos.y >= m_ui.y &&
+        if (mousePos.x >= m_ui.x + m_ui.width - (m_ui.borderSize) && mousePos.x <= m_ui.x + m_ui.width &&
+            mousePos.y >= m_ui.y &&
             mousePos.y <= m_ui.y + m_ui.height) {
-            m_ui.lastHoveredBorderType =  EditorBorderState::Right;
+            m_ui.lastHoveredBorderType = EditorBorderState::Right;
             return;
         }
         // Top border
-        if (mousePos.x >= m_ui.x && mousePos.x <= m_ui.x + m_ui.width && mousePos.y >= m_ui.y && mousePos.y <= m_ui.y + (m_ui.borderSize)) {
-            m_ui.lastHoveredBorderType =  EditorBorderState::Top;
+        if (mousePos.x >= m_ui.x && mousePos.x <= m_ui.x + m_ui.width && mousePos.y >= m_ui.y &&
+            mousePos.y <= m_ui.y + (m_ui.borderSize)) {
+            m_ui.lastHoveredBorderType = EditorBorderState::Top;
             return;
         }
         // Bottom border
-        if (mousePos.x >= m_ui.x && mousePos.x <= m_ui.x + m_ui.width && mousePos.y >= m_ui.y + m_ui.height - (m_ui.borderSize) &&
+        if (mousePos.x >= m_ui.x && mousePos.x <= m_ui.x + m_ui.width &&
+            mousePos.y >= m_ui.y + m_ui.height - (m_ui.borderSize) &&
             mousePos.y <= m_ui.y + m_ui.height) {
-            m_ui.lastHoveredBorderType =  EditorBorderState::Bottom;
+            m_ui.lastHoveredBorderType = EditorBorderState::Bottom;
             return;
         }
-        if (mousePos.x >= m_ui.x && mousePos.x <= m_ui.x + m_ui.width && mousePos.y >= m_ui.y && mousePos.y <= m_ui.y + m_ui.height) {
+        if (mousePos.x >= m_ui.x && mousePos.x <= m_ui.x + m_ui.width && mousePos.y >= m_ui.y &&
+            mousePos.y <= m_ui.y + m_ui.height) {
 
             m_ui.lastHoveredBorderType = EditorBorderState::Inside;
             return;
         }
         // Outside the editor, not on any border
-        m_ui.lastHoveredBorderType =  EditorBorderState::None;
+        m_ui.lastHoveredBorderType = EditorBorderState::None;
     }
 
     EditorBorderState Editor::checkLineBorderState(const glm::vec2 &mousePos, bool verticalResize) {
@@ -194,21 +221,21 @@ namespace VkRender {
     bool Editor::validateEditorSize(VulkanRenderPassCreateInfo &createInfo) {
         // Ensure the x offset is within the allowed range
         if (createInfo.x < m_sizeLimits.MIN_OFFSET_X) {
-           return false;
+            return false;
         }
         if (createInfo.x > m_sizeLimits.MAX_OFFSET_WIDTH) {
-           return false;
+            return false;
         }
         // Ensure the y offset is within the allowed range
         if (createInfo.y < m_sizeLimits.MIN_OFFSET_Y) {
-           return false;
+            return false;
         }
         if (createInfo.y > m_sizeLimits.MAX_OFFSET_HEIGHT) {
-           return false;
+            return false;
         }
         // Ensure the width is within the allowed range considering the offset
         if (createInfo.width < m_sizeLimits.MIN_SIZE) {
-           return false;
+            return false;
         }
         if (createInfo.width > m_sizeLimits.MAX_WIDTH - createInfo.x) {
             return false;

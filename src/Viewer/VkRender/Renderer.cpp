@@ -106,7 +106,7 @@ namespace VkRender {
 
         m_sharedContextData.multiSenseRendererBridge = std::make_shared<MultiSense::MultiSenseRendererBridge>();
         m_sharedContextData.multiSenseRendererGigEVisionBridge = std::make_shared<
-            MultiSense::MultiSenseRendererGigEVisionBridge>();
+                MultiSense::MultiSenseRendererGigEVisionBridge>();
 
 
         VulkanRenderPassCreateInfo mainMenuEditor(m_frameBuffers.data(), m_guiResources, this, &m_sharedContextData);
@@ -216,10 +216,10 @@ namespace VkRender {
         frameBufferAttachments[0] = m_colorImage.view;
         frameBufferAttachments[1] = m_depthStencil.view;
         VkFramebufferCreateInfo frameBufferCreateInfo = Populate::framebufferCreateInfo(m_width,
-            m_height,
-            frameBufferAttachments.data(),
-            frameBufferAttachments.size(),
-            m_mainRenderPasses.begin()->get()->getRenderPass());
+                                                                                        m_height,
+                                                                                        frameBufferAttachments.data(),
+                                                                                        frameBufferAttachments.size(),
+                                                                                        m_mainRenderPasses.begin()->get()->getRenderPass());
         // TODO verify if this is ok?
         m_frameBuffers.resize(m_renderUtils.swapchainImages);
         for (uint32_t i = 0; i < m_frameBuffers.size(); i++) {
@@ -1019,150 +1019,12 @@ namespace VkRender {
         createDepthStencil();
         createMainRenderPass();
 
-        // When we resize, the window will always increase to the bottom and to the right
-        // Just add the extra size to the rightmost editors and the ones bordering the bottom
 
-        // Sort editors by their x-coordinate and length
-        std::vector<std::pair<int32_t, size_t> > horizontalSortedEditors;
-        for (size_t i = 0; i < m_editors.size(); ++i) {
-            horizontalSortedEditors.emplace_back(m_editors[i].getCreateInfo().x + m_editors[i].getCreateInfo().width, i);
-        }
-        // Sort editors by their x-coordinate and length
-        std::sort(horizontalSortedEditors.begin(), horizontalSortedEditors.end());
+        if (dx != 0)
+            windowResizeEditorsHorizontal(dx, widthScale);
+        if (dy != 0)
+            windowResizeEditorsVertical(dy, heightScale);
 
-        std::vector<std::pair<int32_t, size_t> > verticalSortedEditors;
-        for (size_t i = 0; i < m_editors.size(); ++i) {
-            verticalSortedEditors.emplace_back(m_editors[i].getCreateInfo().y + m_editors[i].getCreateInfo().height, i);
-        }
-        std::sort(verticalSortedEditors.begin(), verticalSortedEditors.end());
-        std::vector<size_t> maxHorizontalEditors;
-        std::map<size_t, std::vector<size_t>> indicesHorizontalEditors;
-
-        std::vector<size_t> maxVerticalEditors;
-        std::map<size_t, std::vector<size_t>> indicesVerticalEditors;
-
-
-        for (auto &sortedEditor: horizontalSortedEditors) {
-            size_t index = sortedEditor.second;
-            auto &editor = m_editors[index];
-            // Find the matching neighbors to the right (We sorted our editors list)
-            auto &ci = editor.getCreateInfo();
-            int32_t nextEditorX = ci.x + ci.width - ci.borderSize;
-            for (auto &nextSortedEditor: horizontalSortedEditors) {
-                auto &nextEditorPosX = m_editors[nextSortedEditor.second].getCreateInfo().x;
-                Log::Logger::getInstance()->info("Comparing Editor {} to {}, pos-x {} to {}", ci.editorIndex, m_editors[nextSortedEditor.second].getCreateInfo().editorIndex, nextEditorX, nextEditorPosX);
-                if (nextEditorX == nextEditorPosX) {
-                    indicesHorizontalEditors[index].emplace_back(nextSortedEditor.second);
-                }
-            }
-        }
-        // Now make sure we are filling the screen
-        // Find the ones touching the application border to the right and add/remove width depending on how much we're missing
-        for (auto &nextSortedEditor: horizontalSortedEditors) {
-            auto &nextEditor = m_editors[nextSortedEditor.second].getCreateInfo();
-            if (nextEditor.x + nextEditor.width == m_width - dx) {
-                maxHorizontalEditors.emplace_back(nextSortedEditor.second);
-            }
-        }
-        for (auto &sortedEditor: verticalSortedEditors) {
-            size_t index = sortedEditor.second;
-            auto &editor = m_editors[index];
-            // Find the matching neighbors to the right (We sorted our editors list)
-            auto &ci = editor.getCreateInfo();
-            int32_t nextEditorY = ci.y + ci.height - ci.borderSize;
-            for (auto &nextSortedEditor: verticalSortedEditors) {
-                auto &nextEditorPosY = m_editors[nextSortedEditor.second].getCreateInfo().y;
-                Log::Logger::getInstance()->info("Comparing Editor {} to {}, y-Pos {} to {}", ci.editorIndex, m_editors[nextSortedEditor.second].getCreateInfo().editorIndex, nextEditorY, nextEditorPosY);
-                if (nextEditorY == nextEditorPosY) {
-                    indicesVerticalEditors[index].emplace_back(nextSortedEditor.second);
-                }
-            }
-        }
-        // Now make sure we are filling the screen
-        // Find the ones touching the application border to the right and add/remove width depending on how much we're missing
-        for (auto &nextSortedEditor: verticalSortedEditors) {
-            auto &nextEditor = m_editors[nextSortedEditor.second].getCreateInfo();
-            if (nextEditor.y + nextEditor.height == m_height - dy) {
-                maxVerticalEditors.emplace_back(nextSortedEditor.second);
-            }
-        }
-
-        // Perform the actual resize events
-        for (auto &sortedEditor: indicesHorizontalEditors) {
-            size_t index = sortedEditor.first;
-            auto &ci = m_editors[index].getCreateInfo();
-            // ci and nextCI indicesHorizontalEditors should all match after resize
-            auto newWidth = static_cast<int32_t>(ci.width * widthScale);
-            if (newWidth < m_editors[index].getSizeLimits().MIN_SIZE)
-                newWidth = m_editors[index].getSizeLimits().MIN_SIZE;
-            ci.width = newWidth;
-            int32_t nextX = newWidth + ci.x - static_cast<int32_t>(ci.borderSize);
-            for (auto &idx: sortedEditor.second) {
-                auto &nextCI = m_editors[idx].getCreateInfo();
-                nextCI.x = nextX;
-                Log::Logger::getInstance()->info("Editor {}, next X: {}. From editor {}: width+x: {}", nextCI.editorIndex, nextCI.x, ci.editorIndex, ci.x + ci.width - ci.borderSize);
-            }
-        }        // Perform the actual resize events
-        for (auto &sortedEditor: indicesVerticalEditors) {
-            size_t index = sortedEditor.first;
-            auto &ci = m_editors[index].getCreateInfo();
-            // ci and nextCI indicesVerticalEditors should all match after resize
-            auto newHeight = static_cast<int32_t>(ci.height * heightScale);
-            if (newHeight < m_editors[index].getSizeLimits().MIN_SIZE)
-                newHeight = m_editors[index].getSizeLimits().MIN_SIZE;
-            ci.height = newHeight;
-            int32_t nextY = newHeight + ci.y - static_cast<int32_t>(ci.borderSize);
-            for (auto &idx: sortedEditor.second) {
-                auto &nextCI = m_editors[idx].getCreateInfo();
-                nextCI.y = nextY;
-                Log::Logger::getInstance()->info("Editor {}, next y: {}. From editor {}: height+y: {}", nextCI.editorIndex, nextCI.y, ci.editorIndex, ci.y + ci.height - ci.borderSize);
-            }
-        }
-
-        for (auto &idx: maxHorizontalEditors) {
-            auto &ci = m_editors[idx].getCreateInfo();
-            int32_t posRightSide = ci.x + ci.width;
-            int diff = m_width - posRightSide;
-            if (diff)
-                ci.width += diff;
-        }
-        for (auto &idx: maxVerticalEditors) {
-            auto &ci = m_editors[idx].getCreateInfo();
-            int32_t posBottom = ci.y + ci.height;
-            int diff = m_height - posBottom;
-            if (diff)
-                ci.height += diff;
-        }
-
-        /*
-        // FInd the ones bordering the right application border
-        for (auto &editor: m_editors) {
-            auto &ci = editor.getCreateInfo();
-            if (ci.x + ci.width == m_width - dx) {
-                ci.width += dx;
-            }
-
-            if (ci.y + ci.height == m_height - dy) {
-                ci.height += dy;
-            }
-        }
-        */
-
-        /*
-
-        */
-        // TODO figure out what to do if we resize the application such that our editor gets overlapped.
-        // TODO easy solution, just block resizing the application
-        /*
-        for (auto it = m_editors.begin(); it != m_editors.end();) {
-            // If our resize is not valid, delete the editor
-            if (!it->validateEditorSize(it->getCreateInfo())) {
-                it = m_editors.erase(it); // Erase returns the next iterator
-            } else {
-                ++it; // Only increment if we didn't erase
-            }
-        }
-        */
         for (auto &editor: m_editors) {
             auto &ci = editor.getCreateInfo();
             ci.appHeight = m_height;
@@ -1176,6 +1038,251 @@ namespace VkRender {
         ci.appHeight = m_height;
         ci.frameBuffers = m_frameBuffers.data();
         m_mainEditor->resize(ci);
+    }
+
+    void Renderer::windowResizeEditorsHorizontal(int32_t dx, double widthScale) {
+        std::vector<size_t> maxHorizontalEditors;
+        std::map<size_t, std::vector<size_t>> indicesHorizontalEditors;
+        for (size_t i = 0; auto &sortedEditor: m_editors) {
+            auto &editor = sortedEditor;
+            // Find the matching neighbors to the right (We sorted our editors list)
+            auto &ci = editor.getCreateInfo();
+            int32_t nextEditorX = ci.x + ci.width - ci.borderSize;
+            for (size_t j = 0; auto &nextSortedEditor: m_editors) {
+                auto &nextEditorPosX = nextSortedEditor.getCreateInfo().x;
+                //Log::Logger::getInstance()->info("Comparing Editor {} to {}, pos-x {} to {}", ci.editorIndex, m_editors[nextSortedEditor.second].getCreateInfo().editorIndex, nextEditorX, nextEditorPosX);
+                if (nextEditorX == nextEditorPosX) {
+                    indicesHorizontalEditors[i].emplace_back(j);
+                }
+                j++;
+            }
+            i++;
+        }
+        // Now make sure we are filling the screen
+        // Find the ones touching the application border to the right and add/remove width depending on how much we're missing
+        for (size_t i = 0; auto &nextSortedEditor: m_editors) {
+            auto &nextEditor = nextSortedEditor.getCreateInfo();
+            if (nextEditor.x + nextEditor.width == m_width - dx) {
+                maxHorizontalEditors.emplace_back(i);
+            }
+            i++;
+        }
+
+        for (auto &editorIdx: indicesHorizontalEditors) {
+            size_t index = editorIdx.first;
+            auto &ci = m_editors[index].getCreateInfo();
+            // ci and nextCI indicesHorizontalEditors should all match after resize
+            auto newWidth = static_cast<int32_t>(ci.width * widthScale);
+            if (newWidth < m_editors[index].getSizeLimits().MIN_SIZE)
+                newWidth = m_editors[index].getSizeLimits().MIN_SIZE;
+            Log::Logger::getInstance()->info("Editor {}, New Width: {}, Increase: {}", ci.editorIndex, newWidth,
+                                             newWidth - ci.width);
+            int32_t increase = newWidth - ci.width;
+            ci.width = newWidth;
+        }
+
+
+
+
+        // Extract entries from the map to a vector
+        std::vector<std::pair<size_t, std::vector<size_t>>> entries(indicesHorizontalEditors.begin(),
+                                                                    indicesHorizontalEditors.end());
+
+        // Comparator function to sort by ciX
+        auto comparator = [&](const std::pair<size_t, std::vector<size_t>> &a,
+                              const std::pair<size_t, std::vector<size_t>> &b) {
+            // Assuming you want to sort based on the ciX value of the first editor in each vector
+            size_t indexA = a.second.front(); // or however you decide which index to use
+            size_t indexB = b.second.front();
+            return m_editors[indexA].getCreateInfo().x < m_editors[indexB].getCreateInfo().x;
+        };
+
+        // Sort the vector using the comparator
+        std::sort(entries.begin(), entries.end(), comparator);
+
+        for (auto &editorIdx: entries) {
+            auto &ci = m_editors[editorIdx.first].getCreateInfo();
+
+            int32_t nextX = ci.width + ci.x - static_cast<int32_t>(ci.borderSize);
+            for (auto &idx: editorIdx.second) {
+                auto &nextCI = m_editors[idx].getCreateInfo();
+                nextCI.x = nextX;
+                Log::Logger::getInstance()->info("Editor {}, next X: {}. From editor {}: width+x: {}",
+                                                 nextCI.editorIndex, nextCI.x, ci.editorIndex,
+                                                 ci.x + ci.width - ci.borderSize);
+            }
+        }        // Perform the actual resize events
+
+
+        // Map to store counts and indices of editors bordering the same editor
+        std::map<size_t, std::pair<size_t, std::vector<size_t>>> identicalBorders;
+
+        // Iterate over the map to count bordering editors and store indices
+        for (const auto &editorIndices: entries) {
+            const size_t thisEditor = editorIndices.first;
+            const std::vector<size_t> &bordersToEditors = editorIndices.second;
+
+            for (const size_t borderedEditor: bordersToEditors) {
+                // Increment the count of the bordered editor
+                identicalBorders[borderedEditor].first++;
+                // Store the index of the editor sharing the border
+                identicalBorders[borderedEditor].second.push_back(thisEditor);
+            }
+        }
+
+        for (const auto &borderInfo: identicalBorders) {
+            size_t editorIndex = borderInfo.first;
+            size_t count = borderInfo.second.first;
+            const std::vector<size_t> &sharingEditors = borderInfo.second.second;
+            // Find the editor with the largest width
+            size_t maxWidthIndex = *std::max_element(sharingEditors.begin(), sharingEditors.end(),
+                                                     [&](size_t a, size_t b) {
+                                                         return m_editors[a].getCreateInfo().width <
+                                                                m_editors[b].getCreateInfo().width;
+                                                     });
+            int largestPos =
+                    m_editors[maxWidthIndex].getCreateInfo().width + m_editors[maxWidthIndex].getCreateInfo().x;
+            // Loop over the others and check if their pos does not match, their width is adjusted such that width + x matches largestPos:
+            // Loop over the others and adjust their width if needed
+            for (size_t index: sharingEditors) {
+                auto &editorCreateInfo = m_editors[index].getCreateInfo();
+                int currentPos = editorCreateInfo.width + editorCreateInfo.x;
+                if (currentPos != largestPos) {
+                    // Adjust the width so that width + x matches largestPos
+                    editorCreateInfo.width = largestPos - editorCreateInfo.x;
+                }
+            }
+        }
+
+
+        for (auto &idx: maxHorizontalEditors) {
+            auto &ci = m_editors[idx].getCreateInfo();
+            int32_t posRightSide = ci.x + ci.width;
+            int diff = m_width - posRightSide;
+            if (diff)
+                ci.width += diff;
+        }
+    }
+
+    void Renderer::windowResizeEditorsVertical(int32_t dy, double heightScale) {
+        std::vector<size_t> maxHorizontalEditors;
+        std::map<size_t, std::vector<size_t>> indicesVertical;
+        for (size_t i = 0; auto &sortedEditor: m_editors) {
+            auto &editor = sortedEditor;
+            // Find the matching neighbors to the right (We sorted our editors list)
+            auto &ci = editor.getCreateInfo();
+            int32_t nextEditorY = ci.y + ci.height - ci.borderSize;
+            for (size_t j = 0; auto &nextSortedEditor: m_editors) {
+                auto &nextEditorPosY = nextSortedEditor.getCreateInfo().y;
+                //Log::Logger::getInstance()->info("Comparing Editor {} to {}, pos-x {} to {}", ci.editorIndex, m_editors[nextSortedEditor.second].getCreateInfo().editorIndex, nextEditorY, nextEditorPosY);
+                if (nextEditorY == nextEditorPosY) {
+                    indicesVertical[i].emplace_back(j);
+                }
+                j++;
+            }
+            i++;
+        }
+        // Now make sure we are filling the screen
+        // Find the ones touching the application border to the right and add/remove width depending on how much we're missing
+        for (size_t i = 0; auto &nextSortedEditor: m_editors) {
+            auto &nextEditor = nextSortedEditor.getCreateInfo();
+            if (nextEditor.y + nextEditor.height == m_height - dy) {
+                maxHorizontalEditors.emplace_back(i);
+            }
+            i++;
+        }
+
+        for (auto &editorIdx: indicesVertical) {
+            size_t index = editorIdx.first;
+            auto &ci = m_editors[index].getCreateInfo();
+            // ci and nextCI indicesVertical should all match after resize
+            auto newHeight = static_cast<int32_t>(ci.height * heightScale);
+            if (newHeight < m_editors[index].getSizeLimits().MIN_SIZE)
+                newHeight = m_editors[index].getSizeLimits().MIN_SIZE;
+            Log::Logger::getInstance()->info("Editor {}, New Height: {}, Increase: {}", ci.editorIndex, newHeight,
+                                             newHeight - ci.height);
+            ci.height = newHeight;
+        }
+
+// Extract entries from the map to a vector
+        std::vector<std::pair<size_t, std::vector<size_t>>> entries(indicesVertical.begin(),
+                                                                    indicesVertical.end());
+
+// Comparator function to sort by ciX
+        auto comparator = [&](const std::pair<size_t, std::vector<size_t>> &a,
+                              const std::pair<size_t, std::vector<size_t>> &b) {
+            // Assuming you want to sort based on the ciX value of the first editor in each vector
+            size_t indexA = a.second.front(); // or however you decide which index to use
+            size_t indexB = b.second.front();
+            return m_editors[indexA].getCreateInfo().y < m_editors[indexB].getCreateInfo().y;
+        };
+
+// Sort the vector using the comparator
+        std::sort(entries.begin(), entries.end(), comparator);
+
+
+        for (auto &editorIdx: entries) {
+            auto &ci = m_editors[editorIdx.first].getCreateInfo();
+
+            int32_t nextY = ci.height + ci.y - static_cast<int32_t>(ci.borderSize);
+            for (auto &idx: editorIdx.second) {
+                auto &nextCI = m_editors[idx].getCreateInfo();
+                nextCI.y = nextY;
+                Log::Logger::getInstance()->info("Editor {}, next X: {}. From editor {}: height+y: {}",
+                                                 nextCI.editorIndex, nextCI.y, ci.editorIndex,
+                                                 ci.y + ci.height - ci.borderSize);
+            }
+        }        // Perform the actual resize events
+
+
+        // Map to store counts and indices of editors bordering the same editor
+        std::map<size_t, std::pair<size_t, std::vector<size_t>>> identicalBorders;
+
+        // Iterate over the map to count bordering editors and store indices
+        for (const auto &editorIndices: entries) {
+            const size_t thisEditor = editorIndices.first;
+            const std::vector<size_t> &bordersToEditors = editorIndices.second;
+
+            for (const size_t borderedEditor: bordersToEditors) {
+                // Increment the count of the bordered editor
+                identicalBorders[borderedEditor].first++;
+                // Store the index of the editor sharing the border
+                identicalBorders[borderedEditor].second.push_back(thisEditor);
+            }
+        }
+
+        for (const auto &borderInfo: identicalBorders) {
+            size_t editorIndex = borderInfo.first;
+            size_t count = borderInfo.second.first;
+            const std::vector<size_t> &sharingEditors = borderInfo.second.second;
+            // Find the editor with the largest width
+            size_t maxWidthIndex = *std::max_element(sharingEditors.begin(), sharingEditors.end(),
+                                                     [&](size_t a, size_t b) {
+                                                         return m_editors[a].getCreateInfo().height <
+                                                                m_editors[b].getCreateInfo().height;
+                                                     });
+            int largestPos =
+                    m_editors[maxWidthIndex].getCreateInfo().height + m_editors[maxWidthIndex].getCreateInfo().y;
+            // Loop over the others and check if their pos does not match, their height is adjusted such that height + x matches largestPos:
+            // Loop over the others and adjust their height if needed
+            for (size_t index: sharingEditors) {
+                auto &editorCreateInfo = m_editors[index].getCreateInfo();
+                int currentPos = editorCreateInfo.height + editorCreateInfo.y;
+                if (currentPos != largestPos) {
+                    // Adjust the height so that height + x matches largestPos
+                    editorCreateInfo.height = largestPos - editorCreateInfo.y;
+                }
+            }
+        }
+
+
+        for (auto &idx: maxHorizontalEditors) {
+            auto &ci = m_editors[idx].getCreateInfo();
+            int32_t posHeight = ci.y + ci.height;
+            int diff = m_height - posHeight;
+            if (diff)
+                ci.height += diff;
+        }
     }
 
     void Renderer::cleanUp() {
@@ -1197,14 +1304,14 @@ namespace VkRender {
 
         RendererConfig::getInstance().saveSettings(this);
         auto timeSpan = std::chrono::duration_cast<std::chrono::duration<float> >(
-            std::chrono::steady_clock::now() - startTime);
+                std::chrono::steady_clock::now() - startTime);
         Log::Logger::getInstance()->trace("Sending logs on exit took {}s", timeSpan.count());
 
         startTime = std::chrono::steady_clock::now();
         // Shutdown GUI manually since it contains thread. Not strictly necessary but nice to have
         //m_guiManager.reset();
         timeSpan = std::chrono::duration_cast<std::chrono::duration<float> >(
-            std::chrono::steady_clock::now() - startTime);
+                std::chrono::steady_clock::now() - startTime);
         Log::Logger::getInstance()->trace("Deleting GUI on exit took {}s", timeSpan.count());
 
         startTime = std::chrono::steady_clock::now();
@@ -1215,7 +1322,7 @@ namespace VkRender {
             m_registry.destroy(entity);
         }
         timeSpan = std::chrono::duration_cast<std::chrono::duration<float> >(
-            std::chrono::steady_clock::now() - startTime);
+                std::chrono::steady_clock::now() - startTime);
         Log::Logger::getInstance()->trace("Deleting entities on exit took {}s", timeSpan.count());
         // Destroy framebuffer
         for (auto &fb: m_frameBuffers) {
@@ -1454,11 +1561,11 @@ namespace VkRender {
             editor.ui().lastClickedBorderType = editor.checkLineBorderState(mouse.pos, true);
 
             Log::Logger::getInstance()->info(
-                "Indirect access from Editor {} to Editor {}' border: {}. Our editor resize {} {}",
-                editor.ui().index,
-                otherEditor.ui().index,
-                otherEditor.ui().lastClickedBorderType, editor.ui().resizeActive,
-                editor.ui().lastClickedBorderType);
+                    "Indirect access from Editor {} to Editor {}' border: {}. Our editor resize {} {}",
+                    editor.ui().index,
+                    otherEditor.ui().index,
+                    otherEditor.ui().lastClickedBorderType, editor.ui().resizeActive,
+                    editor.ui().lastClickedBorderType);
         }
         otherBorder = otherEditor.checkLineBorderState(mouse.pos, false);
         if (otherBorder & EditorBorderState::VerticalBorders) {
@@ -1469,11 +1576,11 @@ namespace VkRender {
             otherEditor.ui().lastHoveredBorderType = otherBorder;
             editor.ui().lastClickedBorderType = editor.checkLineBorderState(mouse.pos, false);
             Log::Logger::getInstance()->info(
-                "Indirect access from Editor {} to Editor {}' border: {}. Our editor resize {} {}",
-                editor.ui().index,
-                otherEditor.ui().index,
-                otherEditor.ui().lastClickedBorderType, editor.ui().resizeActive,
-                editor.ui().lastClickedBorderType);
+                    "Indirect access from Editor {} to Editor {}' border: {}. Our editor resize {} {}",
+                    editor.ui().index,
+                    otherEditor.ui().index,
+                    otherEditor.ui().lastClickedBorderType, editor.ui().resizeActive,
+                    editor.ui().lastClickedBorderType);
         }
     }
 
@@ -1632,11 +1739,11 @@ namespace VkRender {
         auto editor2UUID = editor2->getUUID();
         // Remove editor2 safely based on UUID
         m_editors.erase(
-            std::remove_if(m_editors.begin(), m_editors.end(),
-                           [editor2UUID](const Editor &editor) {
-                               return editor.getUUID() == editor2UUID;
-                           }),
-            m_editors.end()
+                std::remove_if(m_editors.begin(), m_editors.end(),
+                               [editor2UUID](const Editor &editor) {
+                                   return editor.getUUID() == editor2UUID;
+                               }),
+                m_editors.end()
         );
         editor1->resize(ci1);
     }
@@ -1662,8 +1769,8 @@ namespace VkRender {
                 break;
             default:
                 Log::Logger::getInstance()->trace(
-                    "Resize is somehow active but we have not clicked any borders: {}",
-                    editor.ui().index);
+                        "Resize is somehow active but we have not clicked any borders: {}",
+                        editor.ui().index);
                 break;
         }
         return newEditorCI;
@@ -1778,8 +1885,8 @@ namespace VkRender {
             m_registry.destroy(entity);
         } else {
             Log::Logger::getInstance()->warning(
-                "Attempted to delete an invalid or already deleted entity with UUID: {}",
-                entity.getUUID().operator std::string());
+                    "Attempted to delete an invalid or already deleted entity with UUID: {}",
+                    entity.getUUID().operator std::string());
         }
     }
 
@@ -1993,7 +2100,7 @@ namespace VkRender {
 
     template<>
     void Renderer::onComponentAdded<VkRender::DefaultPBRGraphicsPipelineComponent>(Entity entity,
-        VkRender::DefaultPBRGraphicsPipelineComponent &component) {
+                                                                                   VkRender::DefaultPBRGraphicsPipelineComponent &component) {
     }
 
 

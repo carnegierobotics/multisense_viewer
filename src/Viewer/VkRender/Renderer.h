@@ -196,6 +196,10 @@ namespace VkRender {
         void checkIfEditorsShouldMerge();
 
         Editor *findEditorByUUID(const UUID &uuid);
+
+        void windowResizeEditorsHorizontal(int32_t dx, double widthScale);
+
+        void windowResizeEditorsVertical(int32_t dy, double heightScale);
     };
 }
 

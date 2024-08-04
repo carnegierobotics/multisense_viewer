@@ -25,6 +25,13 @@ namespace VkRender {
 
         }
 
+        void onRender(CommandBuffer &drawCmdBuffers) override {
+
+        }
+
+        void onUpdate() override {
+
+        }
 
     };
 }

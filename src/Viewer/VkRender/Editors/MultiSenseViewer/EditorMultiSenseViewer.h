@@ -25,6 +25,13 @@ namespace VkRender {
 
 
             addUI("DebugWindow");
+        }
+
+        void onRender(CommandBuffer &drawCmdBuffers) override {
+
+        }
+
+        void onUpdate() override {
 
         }
     };

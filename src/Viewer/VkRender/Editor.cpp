@@ -115,6 +115,9 @@ namespace VkRender {
         drawCmdBuffers.renderPassType = RENDER_PASS_UI;
         vkCmdSetViewport(drawCmdBuffers.buffers[currentFrame], 0, 1, &viewport);
         vkCmdSetScissor(drawCmdBuffers.buffers[currentFrame], 0, 1, &scissor);
+
+        onRender(drawCmdBuffers);
+
         m_guiManager->drawFrame(drawCmdBuffers.buffers[currentFrame], currentFrame, m_createInfo.width,
                                 m_createInfo.height, m_createInfo.x, m_createInfo.y);
         vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
@@ -122,6 +125,7 @@ namespace VkRender {
 
     void Editor::update(bool updateGraph, float frameTime, Input *input) {
         m_guiManager->update(updateGraph, frameTime, m_ui, input);
+        onUpdate();
     }
 
     void Editor::updateBorderState(const glm::vec2 &mousePos) {
@@ -252,17 +256,17 @@ namespace VkRender {
     }
 
     void
-    Editor::windowResizeEditorsHorizontal(int32_t dx, double widthScale, std::vector<Editor> &editors, uint32_t width) {
+    Editor::windowResizeEditorsHorizontal(int32_t dx, double widthScale, std::vector<std::unique_ptr<Editor>> &editors, uint32_t width) {
         std::vector<size_t> maxHorizontalEditors;
         std::map<size_t, std::vector<size_t>> indicesHorizontalEditors;
         for (size_t i = 0; auto &sortedEditor: editors) {
             auto &editor = sortedEditor;
             // Find the matching neighbors to the right (We sorted our editors list)
-            auto &ci = editor.getCreateInfo();
+            auto &ci = editor->getCreateInfo();
             int32_t nextEditorX = ci.x + ci.width;
             for (size_t j = 0; auto &nextSortedEditor: editors) {
-                auto &nextEditorPosX = nextSortedEditor.getCreateInfo().x;
-                //Log::Logger::getInstance()->info("Comparing Editor {} to {}, pos-x {} to {}", ci.editorIndex, editors[nextSortedEditor.second].getCreateInfo().editorIndex, nextEditorX, nextEditorPosX);
+                auto &nextEditorPosX = nextSortedEditor->getCreateInfo().x;
+                //Log::Logger::getInstance()->info("Comparing Editor {} to {}, pos-x {} to {}", ci.editorIndex, editors[nextSortedEditor->second].getCreateInfo().editorIndex, nextEditorX, nextEditorPosX);
                 if (nextEditorX == nextEditorPosX) {
                     indicesHorizontalEditors[i].emplace_back(j);
                 }
@@ -273,7 +277,7 @@ namespace VkRender {
         // Now make sure we are filling the screen
         // Find the ones touching the application border to the right and add/remove width depending on how much we're missing
         for (size_t i = 0; auto &nextSortedEditor: editors) {
-            auto &nextEditor = nextSortedEditor.getCreateInfo();
+            auto &nextEditor = nextSortedEditor->getCreateInfo();
             if (nextEditor.x + nextEditor.width == width - dx) {
                 maxHorizontalEditors.emplace_back(i);
             }
@@ -282,11 +286,11 @@ namespace VkRender {
 
         for (auto &editorIdx: indicesHorizontalEditors) {
             size_t index = editorIdx.first;
-            auto &ci = editors[index].getCreateInfo();
+            auto &ci = editors[index]->getCreateInfo();
             // ci and nextCI indicesHorizontalEditors should all match after resize
             auto newWidth = static_cast<int32_t>(ci.width * widthScale);
-            if (newWidth < editors[index].getSizeLimits().MIN_SIZE)
-                newWidth = editors[index].getSizeLimits().MIN_SIZE;
+            if (newWidth < editors[index]->getSizeLimits().MIN_SIZE)
+                newWidth = editors[index]->getSizeLimits().MIN_SIZE;
             Log::Logger::getInstance()->info("Editor {}, New Width: {}, Increase: {}", ci.editorIndex, newWidth,
                                              newWidth - ci.width);
             int32_t increase = newWidth - ci.width;
@@ -306,18 +310,18 @@ namespace VkRender {
             // Assuming you want to sort based on the ciX value of the first editor in each vector
             size_t indexA = a.second.front(); // or however you decide which index to use
             size_t indexB = b.second.front();
-            return editors[indexA].getCreateInfo().x < editors[indexB].getCreateInfo().x;
+            return editors[indexA]->getCreateInfo().x < editors[indexB]->getCreateInfo().x;
         };
 
         // Sort the vector using the comparator
         std::sort(entries.begin(), entries.end(), comparator);
 
         for (auto &editorIdx: entries) {
-            auto &ci = editors[editorIdx.first].getCreateInfo();
+            auto &ci = editors[editorIdx.first]->getCreateInfo();
 
             int32_t nextX = ci.width + ci.x;
             for (auto &idx: editorIdx.second) {
-                auto &nextCI = editors[idx].getCreateInfo();
+                auto &nextCI = editors[idx]->getCreateInfo();
                 nextCI.x = nextX;
                 Log::Logger::getInstance()->info("Editor {}, next X: {}. From editor {}: width+x: {}",
                                                  nextCI.editorIndex, nextCI.x, ci.editorIndex,
@@ -349,15 +353,15 @@ namespace VkRender {
             // Find the editor with the largest width
             size_t maxWidthIndex = *std::max_element(sharingEditors.begin(), sharingEditors.end(),
                                                      [&](size_t a, size_t b) {
-                                                         return editors[a].getCreateInfo().width <
-                                                                editors[b].getCreateInfo().width;
+                                                         return editors[a]->getCreateInfo().width <
+                                                                editors[b]->getCreateInfo().width;
                                                      });
             int largestPos =
-                    editors[maxWidthIndex].getCreateInfo().width + editors[maxWidthIndex].getCreateInfo().x;
+                    editors[maxWidthIndex]->getCreateInfo().width + editors[maxWidthIndex]->getCreateInfo().x;
             // Loop over the others and check if their pos does not match, their width is adjusted such that width + x matches largestPos:
             // Loop over the others and adjust their width if needed
             for (size_t index: sharingEditors) {
-                auto &editorCreateInfo = editors[index].getCreateInfo();
+                auto &editorCreateInfo = editors[index]->getCreateInfo();
                 int currentPos = editorCreateInfo.width + editorCreateInfo.x;
                 if (currentPos != largestPos) {
                     // Adjust the width so that width + x matches largestPos
@@ -368,7 +372,7 @@ namespace VkRender {
 
 
         for (auto &idx: maxHorizontalEditors) {
-            auto &ci = editors[idx].getCreateInfo();
+            auto &ci = editors[idx]->getCreateInfo();
             int32_t posRightSide = ci.x + ci.width;
             int diff = width - posRightSide;
             if (diff)
@@ -376,17 +380,17 @@ namespace VkRender {
         }
     }
 
-    void Editor::windowResizeEditorsVertical(int32_t dy, double heightScale, std::vector<Editor> &editors, uint32_t height) {
+    void Editor::windowResizeEditorsVertical(int32_t dy, double heightScale, std::vector<std::unique_ptr<Editor>> &editors, uint32_t height) {
         std::vector<size_t> maxHorizontalEditors;
         std::map<size_t, std::vector<size_t>> indicesVertical;
         for (size_t i = 0; auto &sortedEditor: editors) {
             auto &editor = sortedEditor;
             // Find the matching neighbors to the right (We sorted our editors list)
-            auto &ci = editor.getCreateInfo();
+            auto &ci = editor->getCreateInfo();
             int32_t nextEditorY = ci.y + ci.height;
             for (size_t j = 0; auto &nextSortedEditor: editors) {
-                auto &nextEditorPosY = nextSortedEditor.getCreateInfo().y;
-                //Log::Logger::getInstance()->info("Comparing Editor {} to {}, pos-x {} to {}", ci.editorIndex, editors[nextSortedEditor.second].getCreateInfo().editorIndex, nextEditorY, nextEditorPosY);
+                auto &nextEditorPosY = nextSortedEditor->getCreateInfo().y;
+                //Log::Logger::getInstance()->info("Comparing Editor {} to {}, pos-x {} to {}", ci.editorIndex, editors[nextSortedEditor->second].getCreateInfo().editorIndex, nextEditorY, nextEditorPosY);
                 if (nextEditorY == nextEditorPosY) {
                     indicesVertical[i].emplace_back(j);
                 }
@@ -397,7 +401,7 @@ namespace VkRender {
         // Now make sure we are filling the screen
         // Find the ones touching the application border to the right and add/remove width depending on how much we're missing
         for (size_t i = 0; auto &nextSortedEditor: editors) {
-            auto &nextEditor = nextSortedEditor.getCreateInfo();
+            auto &nextEditor = nextSortedEditor->getCreateInfo();
             if (nextEditor.y + nextEditor.height == height - dy) {
                 maxHorizontalEditors.emplace_back(i);
             }
@@ -406,11 +410,11 @@ namespace VkRender {
 
         for (auto &editorIdx: indicesVertical) {
             size_t index = editorIdx.first;
-            auto &ci = editors[index].getCreateInfo();
+            auto &ci = editors[index]->getCreateInfo();
         // ci and nextCI indicesVertical should all match after resize
             auto newHeight = static_cast<int32_t>(ci.height * heightScale);
-            if (newHeight < editors[index].getSizeLimits().MIN_SIZE)
-                newHeight = editors[index].getSizeLimits().MIN_SIZE;
+            if (newHeight < editors[index]->getSizeLimits().MIN_SIZE)
+                newHeight = editors[index]->getSizeLimits().MIN_SIZE;
             Log::Logger::getInstance()->info("Editor {}, New Height: {}, Increase: {}", ci.editorIndex, newHeight,
                                              newHeight - ci.height);
             ci.height = newHeight;
@@ -426,7 +430,7 @@ namespace VkRender {
             // Assuming you want to sort based on the ciX value of the first editor in each vector
             size_t indexA = a.second.front(); // or however you decide which index to use
             size_t indexB = b.second.front();
-            return editors[indexA].getCreateInfo().y < editors[indexB].getCreateInfo().y;
+            return editors[indexA]->getCreateInfo().y < editors[indexB]->getCreateInfo().y;
         };
 
         // Sort the vector using the comparator
@@ -434,11 +438,11 @@ namespace VkRender {
 
 
         for (auto &editorIdx: entries) {
-            auto &ci = editors[editorIdx.first].getCreateInfo();
+            auto &ci = editors[editorIdx.first]->getCreateInfo();
 
             int32_t nextY = ci.height + ci.y;
             for (auto &idx: editorIdx.second) {
-                auto &nextCI = editors[idx].getCreateInfo();
+                auto &nextCI = editors[idx]->getCreateInfo();
                 nextCI.y = nextY;
                 Log::Logger::getInstance()->info("Editor {}, next X: {}. From editor {}: height+y: {}",
                                                  nextCI.editorIndex, nextCI.y, ci.editorIndex,
@@ -470,15 +474,15 @@ namespace VkRender {
             // Find the editor with the largest width
             size_t maxWidthIndex = *std::max_element(sharingEditors.begin(), sharingEditors.end(),
                                                      [&](size_t a, size_t b) {
-                                                         return editors[a].getCreateInfo().height <
-                                                                editors[b].getCreateInfo().height;
+                                                         return editors[a]->getCreateInfo().height <
+                                                                editors[b]->getCreateInfo().height;
                                                      });
             int largestPos =
-                    editors[maxWidthIndex].getCreateInfo().height + editors[maxWidthIndex].getCreateInfo().y;
+                    editors[maxWidthIndex]->getCreateInfo().height + editors[maxWidthIndex]->getCreateInfo().y;
             // Loop over the others and check if their pos does not match, their height is adjusted such that height + x matches largestPos:
             // Loop over the others and adjust their height if needed
             for (size_t index: sharingEditors) {
-                auto &editorCreateInfo = editors[index].getCreateInfo();
+                auto &editorCreateInfo = editors[index]->getCreateInfo();
                 int currentPos = editorCreateInfo.height + editorCreateInfo.y;
                 if (currentPos != largestPos) {
                 // Adjust the height so that height + x matches largestPos
@@ -487,7 +491,7 @@ namespace VkRender {
             }
         }
         for (auto &idx: maxHorizontalEditors) {
-            auto &ci = editors[idx].getCreateInfo();
+            auto &ci = editors[idx]->getCreateInfo();
             int32_t posHeight = ci.y + ci.height;
             int diff = height - posHeight;
             if (diff)
@@ -498,39 +502,39 @@ namespace VkRender {
 
 
 
-    void Editor::handleHoverState(Editor &editor, const VkRender::MouseButtons& mouse) {
-        editor.updateBorderState(mouse.pos);
+    void Editor::handleHoverState(std::unique_ptr<Editor> &editor, const VkRender::MouseButtons& mouse) {
+        editor->updateBorderState(mouse.pos);
 
-        editor.ui().dragDelta = glm::ivec2(0.0f);
-        if (editor.ui().resizeActive) {
+        editor->ui().dragDelta = glm::ivec2(0.0f);
+        if (editor->ui().resizeActive) {
             // Use global mouse value, since we move it outside of the editor to resize it
-            editor.ui().cursorDelta.x = static_cast<int32_t>(mouse.dx);
-            editor.ui().cursorDelta.y = static_cast<int32_t>(mouse.dy);
-            editor.ui().cursorPos.x = editor.ui().cursorPos.x + editor.ui().cursorDelta.x;
-            editor.ui().cursorPos.y = editor.ui().cursorPos.y + editor.ui().cursorDelta.y;
-        } else if (editor.ui().lastHoveredBorderType == None) {
-            editor.ui().cursorPos = glm::ivec2(0.0f);
-            editor.ui().cursorDelta = glm::ivec2(0.0f);
-            editor.ui().lastPressedPos = glm::ivec2(0.0f);
+            editor->ui().cursorDelta.x = static_cast<int32_t>(mouse.dx);
+            editor->ui().cursorDelta.y = static_cast<int32_t>(mouse.dy);
+            editor->ui().cursorPos.x = editor->ui().cursorPos.x + editor->ui().cursorDelta.x;
+            editor->ui().cursorPos.y = editor->ui().cursorPos.y + editor->ui().cursorDelta.y;
+        } else if (editor->ui().lastHoveredBorderType == None) {
+            editor->ui().cursorPos = glm::ivec2(0.0f);
+            editor->ui().cursorDelta = glm::ivec2(0.0f);
+            editor->ui().lastPressedPos = glm::ivec2(0.0f);
         } else {
-            int32_t newCursorPosX = std::min(std::max(static_cast<int32_t>(mouse.x) - editor.ui().x, 0),
-                                             editor.ui().width);
-            int32_t newCursorPosY = std::min(std::max(static_cast<int32_t>(mouse.y) - editor.ui().y, 0),
-                                             editor.ui().height);
-            editor.ui().cursorDelta.x = newCursorPosX - editor.ui().cursorPos.x;
-            editor.ui().cursorDelta.y = newCursorPosY - editor.ui().cursorPos.y;
-            editor.ui().cursorPos.x = newCursorPosX;
-            editor.ui().cursorPos.y = newCursorPosY;
+            int32_t newCursorPosX = std::min(std::max(static_cast<int32_t>(mouse.x) - editor->ui().x, 0),
+                                             editor->ui().width);
+            int32_t newCursorPosY = std::min(std::max(static_cast<int32_t>(mouse.y) - editor->ui().y, 0),
+                                             editor->ui().height);
+            editor->ui().cursorDelta.x = newCursorPosX - editor->ui().cursorPos.x;
+            editor->ui().cursorDelta.y = newCursorPosY - editor->ui().cursorPos.y;
+            editor->ui().cursorPos.x = newCursorPosX;
+            editor->ui().cursorPos.y = newCursorPosY;
         }
-        editor.ui().cornerBottomLeftHovered = editor.ui().lastHoveredBorderType == EditorBorderState::BottomLeft;
-        editor.ui().resizeHovered = (EditorBorderState::Left == editor.ui().lastHoveredBorderType ||
-                                     EditorBorderState::Right == editor.ui().lastHoveredBorderType ||
-                                     EditorBorderState::Top == editor.ui().lastHoveredBorderType ||
-                                     EditorBorderState::Bottom == editor.ui().lastHoveredBorderType);
-        editor.ui().hovered = editor.ui().lastHoveredBorderType != EditorBorderState::None;
+        editor->ui().cornerBottomLeftHovered = editor->ui().lastHoveredBorderType == EditorBorderState::BottomLeft;
+        editor->ui().resizeHovered = (EditorBorderState::Left == editor->ui().lastHoveredBorderType ||
+                                     EditorBorderState::Right == editor->ui().lastHoveredBorderType ||
+                                     EditorBorderState::Top == editor->ui().lastHoveredBorderType ||
+                                     EditorBorderState::Bottom == editor->ui().lastHoveredBorderType);
+        editor->ui().hovered = editor->ui().lastHoveredBorderType != EditorBorderState::None;
     }
 
-    void Editor::handleClickState(Editor &editor, const VkRender::MouseButtons& mouse) {
+    void Editor::handleClickState(std::unique_ptr<Editor> &editor, const VkRender::MouseButtons& mouse) {
         if (mouse.left && mouse.action == GLFW_PRESS) {
             handleLeftMouseClick(editor);
         }
@@ -539,99 +543,99 @@ namespace VkRender {
         }
     }
 
-    void Editor::handleLeftMouseClick(Editor &editor) {
-        editor.ui().lastPressedPos = editor.ui().cursorPos;
-        editor.ui().lastClickedBorderType = editor.ui().lastHoveredBorderType;
-        editor.ui().resizeActive = !editor.ui().cornerBottomLeftHovered && editor.ui().resizeHovered;
-        editor.ui().active = editor.ui().lastHoveredBorderType != EditorBorderState::None;
-        if (editor.ui().cornerBottomLeftHovered) {
-            editor.ui().cornerBottomLeftClicked = true;
+    void Editor::handleLeftMouseClick(std::unique_ptr<Editor> &editor) {
+        editor->ui().lastPressedPos = editor->ui().cursorPos;
+        editor->ui().lastClickedBorderType = editor->ui().lastHoveredBorderType;
+        editor->ui().resizeActive = !editor->ui().cornerBottomLeftHovered && editor->ui().resizeHovered;
+        editor->ui().active = editor->ui().lastHoveredBorderType != EditorBorderState::None;
+        if (editor->ui().cornerBottomLeftHovered) {
+            editor->ui().cornerBottomLeftClicked = true;
         }
     }
 
-    void Editor::handleRightMouseClick(Editor &editor) {
-        editor.ui().lastRightClickedBorderType = editor.ui().lastHoveredBorderType;
-        if (editor.ui().resizeHovered) {
-            editor.ui().rightClickBorder = true;
+    void Editor::handleRightMouseClick(std::unique_ptr<Editor> &editor) {
+        editor->ui().lastRightClickedBorderType = editor->ui().lastHoveredBorderType;
+        if (editor->ui().resizeHovered) {
+            editor->ui().rightClickBorder = true;
         }
     }
 
 
-    void Editor::handleDragState(Editor &editor, const VkRender::MouseButtons& mouse) {
+    void Editor::handleDragState(std::unique_ptr<Editor> &editor, const VkRender::MouseButtons& mouse) {
         if (!mouse.left) return;
-        if (editor.ui().lastClickedBorderType != EditorBorderState::None) {
-            int32_t dragX = editor.ui().cursorPos.x - editor.ui().lastPressedPos.x;
-            int32_t dragY = editor.ui().cursorPos.y - editor.ui().lastPressedPos.y;
-            editor.ui().dragDelta = glm::ivec2(dragX, dragY);
-            //Log::Logger::getInstance()->info("Editor {}, DragDelta: {},{}", editor.ui().index, editor.ui().dragDelta.x, editor.ui().dragDelta.y);
-            editor.ui().dragHorizontal = editor.ui().dragDelta.x > 50;
-            editor.ui().dragVertical = editor.ui().dragDelta.y < -50;
-            editor.ui().dragActive = dragX > 0 || dragY > 0;
+        if (editor->ui().lastClickedBorderType != EditorBorderState::None) {
+            int32_t dragX = editor->ui().cursorPos.x - editor->ui().lastPressedPos.x;
+            int32_t dragY = editor->ui().cursorPos.y - editor->ui().lastPressedPos.y;
+            editor->ui().dragDelta = glm::ivec2(dragX, dragY);
+            //Log::Logger::getInstance()->info("Editor {}, DragDelta: {},{}", editor->ui().index, editor->ui().dragDelta.x, editor->ui().dragDelta.y);
+            editor->ui().dragHorizontal = editor->ui().dragDelta.x > 50;
+            editor->ui().dragVertical = editor->ui().dragDelta.y < -50;
+            editor->ui().dragActive = dragX > 0 || dragY > 0;
         }
     }
 
-    void Editor::handleIndirectClickState(std::vector<Editor>& editors, Editor &editor, const VkRender::MouseButtons& mouse) {
+    void Editor::handleIndirectClickState(std::vector<std::unique_ptr<Editor>>& editors, std::unique_ptr<Editor> &editor, const VkRender::MouseButtons& mouse) {
         if (mouse.left && mouse.action == GLFW_PRESS) {
             //&& (!anyCornerHovered && !anyCornerClicked)) {
             for (auto &otherEditor: editors) {
-                if (editor != otherEditor && otherEditor.ui().lastClickedBorderType == EditorBorderState::None &&
-                    editor.ui().lastClickedBorderType != EditorBorderState::None) {
+                if (editor != otherEditor && otherEditor->ui().lastClickedBorderType == EditorBorderState::None &&
+                    editor->ui().lastClickedBorderType != EditorBorderState::None) {
                     checkAndSetIndirectResize(editor, otherEditor, mouse);
                 }
             }
         }
     }
 
-    void Editor::checkAndSetIndirectResize(Editor &editor, Editor &otherEditor, const VkRender::MouseButtons& mouse) {
-        auto otherBorder = otherEditor.checkLineBorderState(mouse.pos, true);
+    void Editor::checkAndSetIndirectResize(std::unique_ptr<Editor> &editor, std::unique_ptr<Editor> &otherEditor, const VkRender::MouseButtons& mouse) {
+        auto otherBorder = otherEditor->checkLineBorderState(mouse.pos, true);
         if (otherBorder & EditorBorderState::HorizontalBorders) {
-            otherEditor.ui().resizeActive = true;
-            otherEditor.ui().active = true;
-            otherEditor.ui().indirectlyActivated = true;
-            otherEditor.ui().lastClickedBorderType = otherBorder;
-            otherEditor.ui().lastHoveredBorderType = otherBorder;
-            editor.ui().lastClickedBorderType = editor.checkLineBorderState(mouse.pos, true);
+            otherEditor->ui().resizeActive = true;
+            otherEditor->ui().active = true;
+            otherEditor->ui().indirectlyActivated = true;
+            otherEditor->ui().lastClickedBorderType = otherBorder;
+            otherEditor->ui().lastHoveredBorderType = otherBorder;
+            editor->ui().lastClickedBorderType = editor->checkLineBorderState(mouse.pos, true);
 
             Log::Logger::getInstance()->info(
                     "Indirect access from Editor {} to Editor {}' border: {}. Our editor resize {} {}",
-                    editor.ui().index,
-                    otherEditor.ui().index,
-                    otherEditor.ui().lastClickedBorderType, editor.ui().resizeActive,
-                    editor.ui().lastClickedBorderType);
+                    editor->ui().index,
+                    otherEditor->ui().index,
+                    otherEditor->ui().lastClickedBorderType, editor->ui().resizeActive,
+                    editor->ui().lastClickedBorderType);
         }
-        otherBorder = otherEditor.checkLineBorderState(mouse.pos, false);
+        otherBorder = otherEditor->checkLineBorderState(mouse.pos, false);
         if (otherBorder & EditorBorderState::VerticalBorders) {
-            otherEditor.ui().resizeActive = true;
-            otherEditor.ui().active = true;
-            otherEditor.ui().indirectlyActivated = true;
-            otherEditor.ui().lastClickedBorderType = otherBorder;
-            otherEditor.ui().lastHoveredBorderType = otherBorder;
-            editor.ui().lastClickedBorderType = editor.checkLineBorderState(mouse.pos, false);
+            otherEditor->ui().resizeActive = true;
+            otherEditor->ui().active = true;
+            otherEditor->ui().indirectlyActivated = true;
+            otherEditor->ui().lastClickedBorderType = otherBorder;
+            otherEditor->ui().lastHoveredBorderType = otherBorder;
+            editor->ui().lastClickedBorderType = editor->checkLineBorderState(mouse.pos, false);
             Log::Logger::getInstance()->info(
                     "Indirect access from Editor {} to Editor {}' border: {}. Our editor resize {} {}",
-                    editor.ui().index,
-                    otherEditor.ui().index,
-                    otherEditor.ui().lastClickedBorderType, editor.ui().resizeActive,
-                    editor.ui().lastClickedBorderType);
+                    editor->ui().index,
+                    otherEditor->ui().index,
+                    otherEditor->ui().lastClickedBorderType, editor->ui().resizeActive,
+                    editor->ui().lastClickedBorderType);
         }
     }
 
 
 
-    void Editor::checkIfEditorsShouldMerge(std::vector<Editor>& editors) {
+    void Editor::checkIfEditorsShouldMerge(std::vector<std::unique_ptr<Editor>>& editors) {
         int debug = 1;
 
         for (size_t i = 0; i < editors.size(); ++i) {
-            if (editors[i].ui().shouldMerge)
+            if (editors[i]->ui().shouldMerge)
                 continue;
 
-            if (editors[i].ui().rightClickBorder &&
-                editors[i].ui().lastRightClickedBorderType & EditorBorderState::VerticalBorders) {
+            if (editors[i]->ui().rightClickBorder &&
+                editors[i]->ui().lastRightClickedBorderType & EditorBorderState::VerticalBorders) {
                 for (size_t j = i + 1; j < editors.size(); ++j) {
-                    if (editors[j].ui().rightClickBorder &&
-                        editors[j].ui().lastRightClickedBorderType & EditorBorderState::VerticalBorders) {
-                        auto &ci2 = editors[j].ui();
-                        auto &ci1 = editors[i].ui();
+                    if (editors[j]->ui().rightClickBorder &&
+                        editors[j]->ui().lastRightClickedBorderType & EditorBorderState::VerticalBorders) {
+                        auto &ci2 = editors[j]->ui();
+                        auto &ci1 = editors[i]->ui();
 
                         // otherEditor is on the rightmost side
                         bool matchTopCorner = ci1.x + ci1.width == ci2.x; // Top corner of editor
@@ -650,13 +654,13 @@ namespace VkRender {
                 }
             }
 
-            if (editors[i].ui().rightClickBorder &&
-                editors[i].ui().lastRightClickedBorderType & EditorBorderState::HorizontalBorders) {
+            if (editors[i]->ui().rightClickBorder &&
+                editors[i]->ui().lastRightClickedBorderType & EditorBorderState::HorizontalBorders) {
                 for (size_t j = i + 1; j < editors.size(); ++j) {
-                    if (editors[j].ui().rightClickBorder &&
-                        editors[j].ui().lastRightClickedBorderType & EditorBorderState::HorizontalBorders) {
-                        auto &ci2 = editors[j].ui();
-                        auto &ci1 = editors[i].ui();
+                    if (editors[j]->ui().rightClickBorder &&
+                        editors[j]->ui().lastRightClickedBorderType & EditorBorderState::HorizontalBorders) {
+                        auto &ci2 = editors[j]->ui();
+                        auto &ci1 = editors[i]->ui();
                         // otherEditor is on the topmost side
                         bool matchLeftCorner = ci1.y + ci1.height == ci2.y; // Top corner of editor
                         bool matchRightCorner = ci1.width == ci2.width;
@@ -678,8 +682,8 @@ namespace VkRender {
 
 
 
-    bool Editor::isValidResize(VulkanRenderPassCreateInfo &newEditorCI, Editor &editor) {
-        return editor.validateEditorSize(newEditorCI);
+    bool Editor::isValidResize(VulkanRenderPassCreateInfo &newEditorCI, std::unique_ptr<Editor> &editor) {
+        return editor->validateEditorSize(newEditorCI);
     }
 
 

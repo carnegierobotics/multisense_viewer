@@ -81,28 +81,39 @@ namespace VkRender {
          */
         void cleanUp();
 
-        void closeApplication() override{
+        void closeApplication() override {
             VulkanRenderer::closeApplication();
         }
 
         Entity createEntity(const std::string &name);
+
         void destroyEntity(Entity entity);
+
         Entity createEntityWithUUID(UUID uuid, const std::string &name);
-        Editor createEditor(VulkanRenderPassCreateInfo &createInfo);
-        Editor createEditorWithUUID(UUID uuid, VulkanRenderPassCreateInfo &createInfo);
+
+        std::unique_ptr<Editor> createEditor(VulkanRenderPassCreateInfo &createInfo);
+
+        std::unique_ptr<Editor> createEditorWithUUID(UUID uuid, VulkanRenderPassCreateInfo &createInfo);
 
         VkRender::Entity findEntityByName(std::string_view name);
 
-        entt::registry& registry() {return m_registry;}
-        RenderUtils& data() {return m_renderUtils;}
-        std::vector<SwapChainBuffer>& swapChainBuffers(){return swapchain->buffers;}
-        VmaAllocator& allocator(){return m_allocator;}
-        VkDevice &vkDevice() {return device;}
-        ImGuiContext* getMainUIContext(){return m_mainEditor->guiContext();}
-        
+        entt::registry &registry() { return m_registry; }
+
+        RenderUtils &data() { return m_renderUtils; }
+
+        std::vector<SwapChainBuffer> &swapChainBuffers() { return swapchain->buffers; }
+
+        VmaAllocator &allocator() { return m_allocator; }
+
+        VkDevice &vkDevice() { return device; }
+
+        ImGuiContext *getMainUIContext() { return m_mainEditor->guiContext(); }
+
         Camera &createNewCamera(const std::string &name, uint32_t width, uint32_t height);
-        Camera& getCamera();
-        Camera& getCamera(std::string tag);
+
+        Camera &getCamera();
+
+        Camera &getCamera(std::string tag);
 
         std::shared_ptr<UsageMonitor> m_usageMonitor; // TODO make private, used widely in imgui code to record user actions
 
@@ -134,7 +145,7 @@ namespace VkRender {
         std::unordered_map<std::string, Camera> m_cameras;
         //std::unique_ptr<VkRender::GuiManager> m_guiManager{};
         std::vector<std::unique_ptr<Scene>> m_scenes;
-        std::vector<Editor> m_editors;
+        std::vector<std::unique_ptr<Editor>> m_editors;
         std::vector<std::shared_ptr<VulkanRenderPass>> m_mainRenderPasses;
         std::vector<VkFramebuffer> m_frameBuffers;
         entt::registry m_registry;
@@ -149,6 +160,7 @@ namespace VkRender {
         SharedContextData m_sharedContextData;
 
         friend class Entity;
+
         friend class RendererConfig;
 
 
@@ -160,7 +172,7 @@ namespace VkRender {
 
         void createMainRenderPass();
 
-        VulkanRenderPassCreateInfo getNewEditorCreateInfo(Editor &editor);
+        VulkanRenderPassCreateInfo getNewEditorCreateInfo( std::unique_ptr<Editor> &editor);
 
         void resizeEditors(bool anyCornerClicked);
 
@@ -168,13 +180,13 @@ namespace VkRender {
 
         void handleEditorResize();
 
-        void recreateEditor(Editor &editor, VulkanRenderPassCreateInfo &createInfo);
+        void recreateEditor(std::unique_ptr<Editor> &editor, VulkanRenderPassCreateInfo &createInfo);
 
         void loadEditorSettings(const std::filesystem::path &filePath);
 
-        void mergeEditors(const std::array<UUID, 2>& mergeEditorIndices);
+        void mergeEditors(const std::array<UUID, 2> &mergeEditorIndices);
 
-        Editor *findEditorByUUID(const UUID &uuid);
+        std::unique_ptr<Editor>& findEditorByUUID(const UUID &uuid);
     };
 }
 

@@ -6,6 +6,7 @@
 #define MULTISENSE_VIEWER_EDITORVIEWPORT_H
 
 #include "Viewer/VkRender/Editor.h"
+#include "Viewer/Scenes/Default/DefaultScene.h"
 
 namespace VkRender {
 
@@ -20,11 +21,16 @@ namespace VkRender {
             addUI("DebugWindow");
 
             // Grid and objects
-
-
+            m_scene = std::make_unique<DefaultScene>(*m_context);
         }
 
+        void onUpdate() override {
+            m_scene->update();
+        }
 
+        void onRender(CommandBuffer& drawCmdBuffers) override;
+
+        std::unique_ptr<DefaultScene> m_scene;
     };
 }
 

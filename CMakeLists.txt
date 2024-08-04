@@ -114,6 +114,7 @@ set(SOURCE_FILES
         src/Viewer/Scenes/MultiSenseViewer/Modules/LibMultiSense/MultiSenseTaskManager.cpp
         src/Viewer/VkRender/Editors/MainContextLayer.h
         src/Viewer/VkRender/Editors/MultiSenseViewer/Layers/LayoutSettingsLayer.h
+        src/Viewer/VkRender/Editors/Viewport/EditorViewport.cpp
 )
 
 set (SCRIPT_FILES

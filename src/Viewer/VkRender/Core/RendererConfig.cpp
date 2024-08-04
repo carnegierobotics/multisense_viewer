@@ -235,8 +235,7 @@ namespace VkRender {
             nlohmann::json jsonEditors = nlohmann::json::array();
 
             for (auto& editor : ctx->m_editors) {
-                VulkanRenderPassCreateInfo& createInfo = editor.getCreateInfo();
-
+                VulkanRenderPassCreateInfo& createInfo = editor->getCreateInfo();
                 nlohmann::json jsonEditor;
                 jsonEditor["width"] = createInfo.width;
                 jsonEditor["height"] = createInfo.height;

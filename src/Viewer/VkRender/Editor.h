@@ -80,6 +80,14 @@ namespace VkRender {
         void setUIState(const EditorUI &state) { m_ui = state; }
 
         void render(CommandBuffer &drawCmdBuffers);
+        virtual void onRender(CommandBuffer& drawCmdBuffers) {
+            int render = 1;
+        }
+
+        // Add the missing virtual method declaration
+        virtual void onUpdate() {
+            // Default implementation (if any)
+        }
 
         void update(bool updateGraph, float frametime, Input *input);
 
@@ -90,32 +98,31 @@ namespace VkRender {
         bool validateEditorSize(VulkanRenderPassCreateInfo &createInfo);
 
         void resize(VulkanRenderPassCreateInfo &createInfo);
-        static void windowResizeEditorsHorizontal(int32_t dx, double widthScale, std::vector<Editor> &editors, uint32_t width);
-        static void windowResizeEditorsVertical(int32_t dy, double heightScale, std::vector<Editor> &editors, uint32_t height);
+        static void windowResizeEditorsHorizontal(int32_t dx, double widthScale,std::vector<std::unique_ptr<Editor>>& editors, uint32_t width);
+        static void windowResizeEditorsVertical(int32_t dy, double heightScale,std::vector<std::unique_ptr<Editor>>& editors, uint32_t height);
 
-        static void handleIndirectClickState(std::vector<Editor> &editors, Editor &editor, const MouseButtons &mouse);
+        static void handleIndirectClickState(std::vector<std::unique_ptr<Editor>>&editors, std::unique_ptr<Editor> &editor, const MouseButtons &mouse);
 
-        static bool isValidResize(VulkanRenderPassCreateInfo &newEditorCI, Editor &editor);
+        static bool isValidResize(VulkanRenderPassCreateInfo &newEditorCI, std::unique_ptr<Editor> &editor);
 
-        static void checkIfEditorsShouldMerge(std::vector<Editor> &editors);
+        static void checkIfEditorsShouldMerge(std::vector<std::unique_ptr<Editor>>& editors);
 
-        static void checkAndSetIndirectResize(Editor &editor, Editor &otherEditor, const MouseButtons &mouse);
+        static void checkAndSetIndirectResize(std::unique_ptr<Editor> &editor, std::unique_ptr<Editor> &otherEditor, const MouseButtons &mouse);
 
-        static void handleRightMouseClick(Editor &editor);
+        static void handleRightMouseClick(std::unique_ptr<Editor> &editor);
 
-        static void handleLeftMouseClick(Editor &editor);
+        static void handleLeftMouseClick(std::unique_ptr<Editor> &editor);
 
-        static void handleClickState(Editor &editor, const MouseButtons& mouse);
+        static void handleClickState(std::unique_ptr<Editor> &editor, const MouseButtons& mouse);
 
-        static void handleHoverState(Editor &editor, const MouseButtons &mouse);
+        static void handleHoverState(std::unique_ptr<Editor> &editor, const MouseButtons &mouse);
 
-        static void handleDragState(Editor &editor, const MouseButtons &mouse);
+        static void handleDragState(std::unique_ptr<Editor> &editor, const MouseButtons &mouse);
 
     private:
         UUID m_uuid;
         std::vector<VulkanRenderPass> m_renderPasses;
         RenderUtils &m_renderUtils;
-        Renderer *m_context;
         EditorSizeLimits m_sizeLimits;
 
         VulkanRenderPassCreateInfo m_createInfo;
@@ -123,7 +130,8 @@ namespace VkRender {
         EditorUI m_ui;
 
 
-
+    protected:
+        Renderer *m_context;
     };
 }
 

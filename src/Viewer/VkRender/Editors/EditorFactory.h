@@ -22,27 +22,34 @@ namespace VkRender {
     // Define the factory class
     class EditorFactory {
     public:
-
-        explicit EditorFactory(const VulkanRenderPassCreateInfo& createInfo) : m_defaultCreateInfo(
-                const_cast<VulkanRenderPassCreateInfo &>(createInfo)) {
-            registerEditor(EditorType::SceneHierarchy, [](VulkanRenderPassCreateInfo &ci, UUID) { return EditorSceneHierarchy(ci); });
-            registerEditor(EditorType::MultiSenseViewer, [](VulkanRenderPassCreateInfo &ci, UUID) { return EditorMultiSenseViewer(ci); });
-            registerEditor(EditorType::Viewport, [](VulkanRenderPassCreateInfo &ci, UUID) { return EditorViewport(ci); });
-            registerEditor(EditorType::TestWindow, [](VulkanRenderPassCreateInfo &ci, UUID uuid) { return EditorTest(ci, uuid); });
+        explicit EditorFactory(const VulkanRenderPassCreateInfo& createInfo)
+                : m_defaultCreateInfo(const_cast<VulkanRenderPassCreateInfo&>(createInfo)) {
+            registerEditor(EditorType::SceneHierarchy, [](VulkanRenderPassCreateInfo &ci, UUID) {
+                return std::make_unique<EditorSceneHierarchy>(ci);
+            });
+            registerEditor(EditorType::MultiSenseViewer, [](VulkanRenderPassCreateInfo &ci, UUID) {
+                return std::make_unique<EditorMultiSenseViewer>(ci);
+            });
+            registerEditor(EditorType::Viewport, [](VulkanRenderPassCreateInfo &ci, UUID) {
+                return std::make_unique<EditorViewport>(ci);
+            });
+            registerEditor(EditorType::TestWindow, [](VulkanRenderPassCreateInfo &ci, UUID uuid) {
+                return std::make_unique<EditorTest>(ci, uuid);
+            });
         }
-        using CreatorFunc = std::function<Editor(VulkanRenderPassCreateInfo&, UUID)>;
+
+        using CreatorFunc = std::function<std::unique_ptr<Editor>(VulkanRenderPassCreateInfo&, UUID)>;
 
         void registerEditor(EditorType type, CreatorFunc func) {
             m_creators[type] = std::move(func);
         }
 
-        Editor createEditor(EditorType type, VulkanRenderPassCreateInfo &createInfo, UUID uuid) {
+        std::unique_ptr<Editor> createEditor(EditorType type, VulkanRenderPassCreateInfo &createInfo, UUID uuid) {
             auto it = m_creators.find(type);
             if (it != m_creators.end()) {
                 return it->second(createInfo, uuid);
             }
-            Editor editor(m_defaultCreateInfo);
-            return editor;
+            return std::make_unique<Editor>(m_defaultCreateInfo);
         }
 
     private:

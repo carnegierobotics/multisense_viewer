@@ -33,7 +33,7 @@
         },{
             "borderSize": 5,
             "editorIndex": 3,
-            "editorTypeDescription": "MultiSense Viewer",
+            "editorTypeDescription": "Viewport",
             "resizeable": true,
             "uiLayers": [],
             "width": 65,

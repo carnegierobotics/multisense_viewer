@@ -508,8 +508,6 @@ namespace VkRender {
     }
 
     void VulkanRenderer::renderLoop() {
-        destWidth = m_width;
-        destHeight = m_height;
         auto graphLastTimestamp = std::chrono::high_resolution_clock::now();
         drawCmdBuffers.frameIndex = &currentFrame;
         drawCmdBuffers.activeImageIndex = &imageIndex;
@@ -666,18 +664,15 @@ namespace VkRender {
     /** CALLBACKS **/
     void VulkanRenderer::setWindowSize(uint32_t _width, uint32_t _height) {
         if (frameID > 1) {
-            destWidth = _width;
-            destHeight = _height;
-            //Log::Logger::getInstance()->info("New window size was set. Recreating..");
-            //windowResize();
+            Log::Logger::getInstance()->info("New window size was set. Recreating..");
+            windowResize();
         }
     }
 
     void VulkanRenderer::resizeCallback(GLFWwindow *window, int width, int height) {
         auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
         if (width > 0 || height > 0) {
-            if (myApp->destWidth != static_cast<uint32_t>(width) &&
-                myApp->destHeight != static_cast<uint32_t>(height))
+            if (myApp->m_width != width || myApp->m_height != height)
                 myApp->setWindowSize(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
         }
     }

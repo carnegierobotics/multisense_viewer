@@ -268,8 +268,6 @@ namespace VkRender {
         void setMultiSampling(VkSampleCountFlagBits samples);
 
     private:
-        uint32_t destWidth{};
-        uint32_t destHeight{};
         float lastFPS{};
 
         VkSampleCountFlagBits getMaxUsableSampleCount();

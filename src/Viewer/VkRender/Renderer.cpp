@@ -1023,58 +1023,115 @@ namespace VkRender {
         // Just add the extra size to the rightmost editors and the ones bordering the bottom
 
         // Sort editors by their x-coordinate and length
-        std::vector<std::pair<int32_t, size_t> > sortedEditors;
+        std::vector<std::pair<int32_t, size_t> > horizontalSortedEditors;
         for (size_t i = 0; i < m_editors.size(); ++i) {
-            sortedEditors.emplace_back(m_editors[i].getCreateInfo().x + m_editors[i].getCreateInfo().width, i);
+            horizontalSortedEditors.emplace_back(m_editors[i].getCreateInfo().x + m_editors[i].getCreateInfo().width, i);
         }
-        std::sort(sortedEditors.begin(), sortedEditors.end());
-        std::vector<size_t> rightEditors;
-        std::map<size_t, std::vector<size_t>> indices;
+        // Sort editors by their x-coordinate and length
+        std::sort(horizontalSortedEditors.begin(), horizontalSortedEditors.end());
 
-        for (auto &sortedEditor: sortedEditors) {
+        std::vector<std::pair<int32_t, size_t> > verticalSortedEditors;
+        for (size_t i = 0; i < m_editors.size(); ++i) {
+            verticalSortedEditors.emplace_back(m_editors[i].getCreateInfo().y + m_editors[i].getCreateInfo().height, i);
+        }
+        std::sort(verticalSortedEditors.begin(), verticalSortedEditors.end());
+        std::vector<size_t> maxHorizontalEditors;
+        std::map<size_t, std::vector<size_t>> indicesHorizontalEditors;
+
+        std::vector<size_t> maxVerticalEditors;
+        std::map<size_t, std::vector<size_t>> indicesVerticalEditors;
+
+
+        for (auto &sortedEditor: horizontalSortedEditors) {
             size_t index = sortedEditor.second;
             auto &editor = m_editors[index];
-
             // Find the matching neighbors to the right (We sorted our editors list)
             auto &ci = editor.getCreateInfo();
             int32_t nextEditorX = ci.x + ci.width - ci.borderSize;
-            for (auto &nextSortedEditor: sortedEditors) {
-                auto &nextEditor = m_editors[nextSortedEditor.second].getCreateInfo();
-                if (nextEditorX == nextEditor.x) {
-                    indices[index].emplace_back(nextSortedEditor.second);
+            for (auto &nextSortedEditor: horizontalSortedEditors) {
+                auto &nextEditorPosX = m_editors[nextSortedEditor.second].getCreateInfo().x;
+                Log::Logger::getInstance()->info("Comparing Editor {} to {}, pos-x {} to {}", ci.editorIndex, m_editors[nextSortedEditor.second].getCreateInfo().editorIndex, nextEditorX, nextEditorPosX);
+                if (nextEditorX == nextEditorPosX) {
+                    indicesHorizontalEditors[index].emplace_back(nextSortedEditor.second);
                 }
             }
         }
         // Now make sure we are filling the screen
         // Find the ones touching the application border to the right and add/remove width depending on how much we're missing
-        for (auto &nextSortedEditor: sortedEditors) {
+        for (auto &nextSortedEditor: horizontalSortedEditors) {
             auto &nextEditor = m_editors[nextSortedEditor.second].getCreateInfo();
             if (nextEditor.x + nextEditor.width == m_width - dx) {
-                rightEditors.emplace_back(nextSortedEditor.second);
+                maxHorizontalEditors.emplace_back(nextSortedEditor.second);
+            }
+        }
+        for (auto &sortedEditor: verticalSortedEditors) {
+            size_t index = sortedEditor.second;
+            auto &editor = m_editors[index];
+            // Find the matching neighbors to the right (We sorted our editors list)
+            auto &ci = editor.getCreateInfo();
+            int32_t nextEditorY = ci.y + ci.height - ci.borderSize;
+            for (auto &nextSortedEditor: verticalSortedEditors) {
+                auto &nextEditorPosY = m_editors[nextSortedEditor.second].getCreateInfo().y;
+                Log::Logger::getInstance()->info("Comparing Editor {} to {}, y-Pos {} to {}", ci.editorIndex, m_editors[nextSortedEditor.second].getCreateInfo().editorIndex, nextEditorY, nextEditorPosY);
+                if (nextEditorY == nextEditorPosY) {
+                    indicesVerticalEditors[index].emplace_back(nextSortedEditor.second);
+                }
+            }
+        }
+        // Now make sure we are filling the screen
+        // Find the ones touching the application border to the right and add/remove width depending on how much we're missing
+        for (auto &nextSortedEditor: verticalSortedEditors) {
+            auto &nextEditor = m_editors[nextSortedEditor.second].getCreateInfo();
+            if (nextEditor.y + nextEditor.height == m_height - dy) {
+                maxVerticalEditors.emplace_back(nextSortedEditor.second);
             }
         }
 
         // Perform the actual resize events
-        for (auto &sortedEditor: indices) {
+        for (auto &sortedEditor: indicesHorizontalEditors) {
             size_t index = sortedEditor.first;
             auto &ci = m_editors[index].getCreateInfo();
-            // ci and nextCI indices should all match after resize
-            int32_t newWidth = ci.width * widthScale;
-            int32_t newX = ci.x * widthScale;
+            // ci and nextCI indicesHorizontalEditors should all match after resize
+            auto newWidth = static_cast<int32_t>(ci.width * widthScale);
+            if (newWidth < m_editors[index].getSizeLimits().MIN_SIZE)
+                newWidth = m_editors[index].getSizeLimits().MIN_SIZE;
             ci.width = newWidth;
-            int32_t nextX = newWidth + newX - ci.borderSize;
+            int32_t nextX = newWidth + ci.x - static_cast<int32_t>(ci.borderSize);
             for (auto &idx: sortedEditor.second) {
                 auto &nextCI = m_editors[idx].getCreateInfo();
                 nextCI.x = nextX;
+                Log::Logger::getInstance()->info("Editor {}, next X: {}. From editor {}: width+x: {}", nextCI.editorIndex, nextCI.x, ci.editorIndex, ci.x + ci.width - ci.borderSize);
+            }
+        }        // Perform the actual resize events
+        for (auto &sortedEditor: indicesVerticalEditors) {
+            size_t index = sortedEditor.first;
+            auto &ci = m_editors[index].getCreateInfo();
+            // ci and nextCI indicesVerticalEditors should all match after resize
+            auto newHeight = static_cast<int32_t>(ci.height * heightScale);
+            if (newHeight < m_editors[index].getSizeLimits().MIN_SIZE)
+                newHeight = m_editors[index].getSizeLimits().MIN_SIZE;
+            ci.height = newHeight;
+            int32_t nextY = newHeight + ci.y - static_cast<int32_t>(ci.borderSize);
+            for (auto &idx: sortedEditor.second) {
+                auto &nextCI = m_editors[idx].getCreateInfo();
+                nextCI.y = nextY;
+                Log::Logger::getInstance()->info("Editor {}, next y: {}. From editor {}: height+y: {}", nextCI.editorIndex, nextCI.y, ci.editorIndex, ci.y + ci.height - ci.borderSize);
             }
         }
 
-        for (auto &idx: rightEditors) {
+        for (auto &idx: maxHorizontalEditors) {
             auto &ci = m_editors[idx].getCreateInfo();
             int32_t posRightSide = ci.x + ci.width;
             int diff = m_width - posRightSide;
             if (diff)
                 ci.width += diff;
+        }
+        for (auto &idx: maxVerticalEditors) {
+            auto &ci = m_editors[idx].getCreateInfo();
+            int32_t posBottom = ci.y + ci.height;
+            int diff = m_height - posBottom;
+            if (diff)
+                ci.height += diff;
         }
 
         /*

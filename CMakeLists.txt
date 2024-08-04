@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.25)
 
-option(WARNINGS_AS_ERRORS "Treat compiler warnings as errors" TRUE)
+option(WARNINGS_AS_ERRORS "Treat compiler warnings as errors" FALSE)
 option(ENABLE_SYCL "Compile with SYCL support. Provided that llvm-sycl clang++ is in path" FALSE)
 
 if (ENABLE_SYCL)

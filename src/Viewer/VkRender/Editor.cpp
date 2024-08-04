@@ -61,7 +61,7 @@ namespace VkRender {
         }
         m_guiManager->resize(m_ui.width, m_ui.height, m_renderPasses.back().getRenderPass(), m_renderUtils.msaaSamples, m_createInfo.guiResources);
 
-        Log::Logger::getInstance()->info("Resizing Editor. UUID: {}, size: {}x{}, at pos: ({},{})", m_uuid.operator std::string(), m_ui.width, m_ui.height, m_ui.x, m_ui.y);
+        Log::Logger::getInstance()->info("Resizing Editor. UUID: {} : {}, size: {}x{}, at pos: ({},{})", m_uuid.operator std::string(), m_createInfo.editorIndex, m_ui.width, m_ui.height, m_ui.x, m_ui.y);
     }
 
     void Editor::render(CommandBuffer &drawCmdBuffers) {

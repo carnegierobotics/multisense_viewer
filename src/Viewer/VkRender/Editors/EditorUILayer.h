@@ -7,6 +7,7 @@
 
 #include "Viewer/VkRender/ImGui/Layer.h"
 #include "Viewer/VkRender/ImGui/IconsFontAwesome6.h"
+#include "EditorDefinitions.h"
 
 /** Is attached to the renderer through the GuiManager and instantiated in the GuiManager Constructor through
  *         pushLayer<[LayerName]>();
@@ -31,27 +32,22 @@ namespace VkRender {
 
         void togglePopup(VkRender::GuiObjectHandles &handles) {
             static bool toggles[] = {true, false, false, false, false};
-
             // Options for the combo box
-            const char *items[] = {"UI", "MultiSense Viewer", "Scene Hierarchy", "Test Window"};
+            auto items = getEditorTypes();
             static int item_current_idx = 0; // Here we store our current item index
-
-
             handles.editorUi->changed = false;
 
+            handles.editorUi->changed = false;
             if (ImGui::BeginPopup("EditorSelectionPopup")) {
-
                 ImGui::SeparatorText("Editor Types");
-                for (int i = 0; i < IM_ARRAYSIZE(items); i++)
-                    if (ImGui::Selectable(items[i])) {
+                for (int i = 0; i < items.size(); i++) {
+                    if (ImGui::Selectable(editorTypeToString(items[i]).c_str())) {
                         item_current_idx = i;
                         handles.editorUi->selectedType = items[item_current_idx];
                         handles.editorUi->changed = true;
                     }
-
+                }
                 ImGui::MenuItem("Console", nullptr, &handles.showDebugWindow);
-
-
                 ImGui::EndPopup();
             }
         }

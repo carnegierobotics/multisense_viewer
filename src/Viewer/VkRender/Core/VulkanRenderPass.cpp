@@ -20,7 +20,7 @@ namespace VkRender {
         uint32_t width =  std::max(createInfo.width , 0);
         uint32_t height = std::max(createInfo.height, 0);
         const auto &data = createInfo.context->data();
-        std::string editorTypeDescription = createInfo.editorTypeDescription;
+        std::string editorTypeDescription = editorTypeToString(createInfo.editorTypeDescription);
 
         //// COLOR IMAGE RESOURCE /////
         VkImageCreateInfo colorImageCI = Populate::imageCreateInfo();

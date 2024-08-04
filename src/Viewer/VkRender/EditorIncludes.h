@@ -11,6 +11,7 @@
 #include <fmt/ostream.h>
 
 #include "Viewer/VkRender/pch.h"
+#include "Viewer/VkRender/Editors/EditorDefinitions.h"
 
 namespace VkRender {
     typedef enum EditorBorderState {
@@ -140,7 +141,7 @@ namespace VkRender {
 
         // Selection menu
         std::string type;
-        std::string selectedType;
+        EditorType selectedType;
         bool changed = false;
 
         // assign some random background colors

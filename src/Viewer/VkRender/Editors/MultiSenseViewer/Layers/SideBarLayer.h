@@ -219,33 +219,6 @@ namespace VkRender {
 
         }
 
-        void togglePopup(VkRender::GuiObjectHandles &handles) {
-            static bool toggles[] = {true, false, false, false, false};
-
-            // Options for the combo box
-            const char *items[] = {"UI", "MultiSense Viewer", "Scene Hierarchy", "Test Window"};
-            static int item_current_idx = 0; // Here we store our current item index
-
-
-            handles.editorUi->changed = false;
-
-            if (ImGui::BeginPopup("EditorSelectionPopup")) {
-
-                ImGui::SeparatorText("Editor Types");
-                for (int i = 0; i < IM_ARRAYSIZE(items); i++)
-                    if (ImGui::Selectable(items[i])) {
-                        item_current_idx = i;
-                        handles.editorUi->selectedType = items[item_current_idx];
-                        handles.editorUi->changed = true;
-                    }
-
-                ImGui::MenuItem("Console", nullptr, &handles.showDebugWindow);
-
-
-                ImGui::EndPopup();
-            }
-        }
-
         /** Called once per frame **/
         void onUIRender(VkRender::GuiObjectHandles &handles) override {
             bool pOpen = true;

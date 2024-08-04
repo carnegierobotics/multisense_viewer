@@ -90,6 +90,26 @@ namespace VkRender {
         bool validateEditorSize(VulkanRenderPassCreateInfo &createInfo);
 
         void resize(VulkanRenderPassCreateInfo &createInfo);
+        static void windowResizeEditorsHorizontal(int32_t dx, double widthScale, std::vector<Editor> &editors, uint32_t width);
+        static void windowResizeEditorsVertical(int32_t dy, double heightScale, std::vector<Editor> &editors, uint32_t height);
+
+        static void handleIndirectClickState(std::vector<Editor> &editors, Editor &editor, const MouseButtons &mouse);
+
+        static bool isValidResize(VulkanRenderPassCreateInfo &newEditorCI, Editor &editor);
+
+        static void checkIfEditorsShouldMerge(std::vector<Editor> &editors);
+
+        static void checkAndSetIndirectResize(Editor &editor, Editor &otherEditor, const MouseButtons &mouse);
+
+        static void handleRightMouseClick(Editor &editor);
+
+        static void handleLeftMouseClick(Editor &editor);
+
+        static void handleClickState(Editor &editor, const MouseButtons& mouse);
+
+        static void handleHoverState(Editor &editor, const MouseButtons &mouse);
+
+        static void handleDragState(Editor &editor, const MouseButtons &mouse);
 
     private:
         UUID m_uuid;
@@ -101,6 +121,7 @@ namespace VkRender {
         VulkanRenderPassCreateInfo m_createInfo;
         std::unique_ptr<GuiManager> m_guiManager;
         EditorUI m_ui;
+
 
 
     };

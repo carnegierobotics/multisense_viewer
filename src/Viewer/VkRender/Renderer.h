@@ -51,6 +51,7 @@
 #include "Viewer/VkRender/Core/Camera.h"
 #include "Viewer/VkRender/Core/UUID.h"
 #include "Viewer/VkRender/Editor.h"
+#include "Viewer/VkRender/Editors/EditorFactory.h"
 
 namespace VkRender {
     class Entity;
@@ -91,7 +92,6 @@ namespace VkRender {
         Editor createEditorWithUUID(UUID uuid, VulkanRenderPassCreateInfo &createInfo);
 
         VkRender::Entity findEntityByName(std::string_view name);
-        void markEntityForDestruction(Entity entity);
 
         entt::registry& registry() {return m_registry;}
         RenderUtils& data() {return m_renderUtils;}
@@ -99,9 +99,7 @@ namespace VkRender {
         VmaAllocator& allocator(){return m_allocator;}
         VkDevice &vkDevice() {return device;}
         ImGuiContext* getMainUIContext(){return m_mainEditor->guiContext();}
-
-        //GuiObjectHandles& UIContext() {return m_guiManager->handles;}
-
+        
         Camera &createNewCamera(const std::string &name, uint32_t width, uint32_t height);
         Camera& getCamera();
         Camera& getCamera(std::string tag);
@@ -143,6 +141,7 @@ namespace VkRender {
         std::unordered_map<UUID, entt::entity> m_entityMap;
         std::string m_selectedCameraTag = "Default Camera";
         RenderUtils m_renderUtils{};
+        std::unique_ptr<EditorFactory> m_editorFactory;
 
         std::unique_ptr<Editor> m_mainEditor;
 
@@ -161,27 +160,11 @@ namespace VkRender {
 
         void createMainRenderPass();
 
-
-        void handleHoverState(Editor &editor);
-
-        void handleLeftMouseClick(Editor &editor);
-
-        void handleClickState(Editor &editor);
-
-
-        void handleDragState(Editor &editor);
-
         VulkanRenderPassCreateInfo getNewEditorCreateInfo(Editor &editor);
 
         void resizeEditors(bool anyCornerClicked);
 
-        bool isValidResize(VulkanRenderPassCreateInfo &newEditorCI, Editor &editor);
-
         void splitEditor(uint32_t splitEditorIndex);
-
-        void handleIndirectClickState(Editor &editor);
-
-        void checkAndSetIndirectResize(Editor &editor, Editor &otherEditor);
 
         void handleEditorResize();
 
@@ -191,15 +174,7 @@ namespace VkRender {
 
         void mergeEditors(const std::array<UUID, 2>& mergeEditorIndices);
 
-        void handleRightMouseClick(Editor &editor);
-
-        void checkIfEditorsShouldMerge();
-
         Editor *findEditorByUUID(const UUID &uuid);
-
-        void windowResizeEditorsHorizontal(int32_t dx, double widthScale);
-
-        void windowResizeEditorsVertical(int32_t dy, double heightScale);
     };
 }
 

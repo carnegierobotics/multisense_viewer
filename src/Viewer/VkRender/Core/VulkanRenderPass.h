@@ -12,6 +12,7 @@
 #include <utility>
 
 #include "Viewer/VkRender/ImGui/GuiManager.h"
+#include "Viewer/VkRender/Editors/EditorDefinitions.h"
 
 namespace VkRender {
     class Renderer;
@@ -19,12 +20,12 @@ namespace VkRender {
     /**@brief Very early iteration of a editor create info which also includes renderpass create info. TODO They should be separated into EditorCreateInfo and RenderPass even though they share a lot of information*/
     struct VulkanRenderPassCreateInfo {
         Renderer *context = nullptr;
-        int32_t width = 0, appWidth = 0;
-        int32_t height = 0, appHeight = 0;
+        int32_t width = 10, appWidth = 10;
+        int32_t height = 10, appHeight = 10;
         int32_t x = 0;
         int32_t y = 0;
         uint32_t borderSize = 5;
-        std::string editorTypeDescription;
+        EditorType editorTypeDescription;
         bool resizeable = true;
         size_t editorIndex = 0;
         std::vector<std::string> uiLayers;

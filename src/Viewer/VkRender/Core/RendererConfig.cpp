@@ -250,7 +250,7 @@ namespace VkRender {
 
                 jsonEditors.push_back(jsonEditor);
                 Log::Logger::getInstance()->info("Editor {}: type = {}, x = {}, y = {}, width = {}, height = {}",
-                                                 createInfo.editorIndex, createInfo.editorTypeDescription, createInfo.x, createInfo.y, createInfo.width, createInfo.height);
+                                                 createInfo.editorIndex, editorTypeToString(createInfo.editorTypeDescription), createInfo.x, createInfo.y, createInfo.width, createInfo.height);
             }
             jsonContent["editors"] = jsonEditors;
 

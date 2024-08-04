@@ -17,10 +17,10 @@ namespace VkRender {
                 createInfo) {
 
             addUI("EditorUILayer");
-
-            addUI("SideBarLayer");
-
             addUI("DebugWindow");
+
+            // Grid and objects
+
 
         }
 

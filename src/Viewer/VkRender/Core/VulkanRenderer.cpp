@@ -57,20 +57,14 @@ namespace VkRender {
 #else
         m_settings.validation = true;
 #endif
-
-
-
-        Log::Logger::getInstance()->trace("Creating surface with size: ({},{})", m_width, m_height);
-
-
         // Create window instance
         // boilerplate stuff (ie. basic window setup)
         glfwInit();
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-        glfwWindowHint(GLFW_DECORATED, GLFW_TRUE); // Ensure the window is decorated
-        glfwWindowHint(GLFW_VISIBLE , GLFW_TRUE); // Ensure the window is decorated
-        glfwWindowHint(GLFW_MAXIMIZED  , GLFW_FALSE); // Ensure the window is decorated
+        glfwWindowHint(GLFW_DECORATED, GLFW_TRUE);
+        glfwWindowHint(GLFW_VISIBLE , GLFW_TRUE);
+        glfwWindowHint(GLFW_MAXIMIZED  , GLFW_TRUE);
 
         const auto& monitor = glfwGetPrimaryMonitor();
         const GLFWvidmode* mode = glfwGetVideoMode(monitor);
@@ -82,8 +76,13 @@ namespace VkRender {
         m_width = mode->width;
         m_height = mode->height;
 
-        m_width = RendererConfig::getInstance().getUserSetting().applicationWidth;
-        m_height = RendererConfig::getInstance().getUserSetting().applicationHeight;
+        //m_width = 1280;
+        //m_height = 720;
+
+        RendererConfig::getInstance().getUserSetting().applicationHeight = m_height;
+        RendererConfig::getInstance().getUserSetting().applicationWidth = m_width;
+
+        Log::Logger::getInstance()->trace("Creating surface with size: ({},{})", m_width, m_height);
 
         window = glfwCreateWindow(static_cast<int>(m_width), static_cast<int>(m_height), title.c_str(), nullptr, nullptr);
         if (!window){

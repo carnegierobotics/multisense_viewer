@@ -23,7 +23,7 @@ namespace VkRender {
         int32_t height = 0, appHeight = 0;
         int32_t x = 0;
         int32_t y = 0;
-        uint32_t borderSize = 3;
+        uint32_t borderSize = 5;
         std::string editorTypeDescription;
         bool resizeable = true;
         size_t editorIndex = 0;

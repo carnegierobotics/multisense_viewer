@@ -1,5 +1,47 @@
 {
-    "editors": [],
+    "editors": [
+        {
+            "borderSize": 5,
+            "editorIndex": 0,
+            "editorTypeDescription": "MultiSense Viewer",
+            "resizeable": false,
+            "uiLayers": ["SideBarLayer"],
+            "width": 10,
+            "height": 100,
+            "x": 0,
+            "y": 0
+        },{
+            "borderSize": 5,
+            "editorIndex": 1,
+            "editorTypeDescription": "MultiSense Viewer",
+            "resizeable": false,
+            "uiLayers": ["ConfigurationLayer"],
+            "width": 25,
+            "height": 100,
+            "x": 10,
+            "y": 0
+        },{
+            "borderSize": 5,
+            "editorIndex": 2,
+            "editorTypeDescription": "MultiSense Viewer",
+            "resizeable": false,
+            "uiLayers": ["LayoutSettingsLayer"],
+            "width": 65,
+            "height": 10,
+            "x": 35,
+            "y": 0
+        },{
+            "borderSize": 5,
+            "editorIndex": 3,
+            "editorTypeDescription": "MultiSense Viewer",
+            "resizeable": true,
+            "uiLayers": [],
+            "width": 65,
+            "height": 90,
+            "x": 35,
+            "y": 10
+        }
+    ],
     "generalSettings": {
         "applicationHeight": 720,
         "applicationWidth": 1280,

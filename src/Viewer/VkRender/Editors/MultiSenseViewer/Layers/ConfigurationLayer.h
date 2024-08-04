@@ -96,6 +96,8 @@ namespace VkRender {
                 float labelSize = ImGui::CalcTextSize(tabLabel.c_str()).x;
                 float startPos = (tabBarWidth / 2) - (labelSize / 2);
                 float spaceSize = ImGui::CalcTextSize(std::string(" ").c_str()).x;
+                if (startPos < 1)
+                    startPos = 0;
                 std::string spaces(int(startPos / spaceSize), ' ');
 
                 if (ImGui::BeginTabItem((spaces + tabLabel).c_str())) {
@@ -115,6 +117,8 @@ namespace VkRender {
                 tabLabel = "Camera Settings";
                 labelSize = ImGui::CalcTextSize(tabLabel.c_str()).x;
                 startPos = (tabBarWidth / 2) - (labelSize / 2);
+                if (startPos < 1)
+                    startPos = 0;
                 spaces = std::string(int(startPos / spaceSize), ' ');
 
                 if (ImGui::BeginTabItem((spaces + tabLabel).c_str())) {

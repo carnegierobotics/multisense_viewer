@@ -155,29 +155,27 @@ namespace VkRender {
         }
 
         // Check borders
-        // Left border
-        if (mousePos.x >= m_ui.x && mousePos.x <= m_ui.x + (m_ui.borderSize) && mousePos.y >= m_ui.y &&
-            mousePos.y <= m_ui.y + m_ui.height) {
+        // Left border including borderSize pixels outside the window
+        if (mousePos.x >= m_ui.x - m_ui.borderSize && mousePos.x <= m_ui.x + m_ui.borderSize &&
+            mousePos.y >= m_ui.y && mousePos.y <= m_ui.y + m_ui.height) {
             m_ui.lastHoveredBorderType = EditorBorderState::Left;
             return;
         }
-        // Right border
-        if (mousePos.x >= m_ui.x + m_ui.width - (m_ui.borderSize) && mousePos.x <= m_ui.x + m_ui.width &&
-            mousePos.y >= m_ui.y &&
-            mousePos.y <= m_ui.y + m_ui.height) {
+        // Right border including borderSize pixels outside the window
+        if (mousePos.x >= m_ui.x + m_ui.width - m_ui.borderSize && mousePos.x <= m_ui.x + m_ui.width + m_ui.borderSize &&
+            mousePos.y >= m_ui.y && mousePos.y <= m_ui.y + m_ui.height) {
             m_ui.lastHoveredBorderType = EditorBorderState::Right;
             return;
         }
-        // Top border
-        if (mousePos.x >= m_ui.x && mousePos.x <= m_ui.x + m_ui.width && mousePos.y >= m_ui.y &&
-            mousePos.y <= m_ui.y + (m_ui.borderSize)) {
+// Top border including borderSize pixels outside the window
+        if (mousePos.x >= m_ui.x && mousePos.x <= m_ui.x + m_ui.width &&
+            mousePos.y >= m_ui.y - m_ui.borderSize && mousePos.y <= m_ui.y + m_ui.borderSize) {
             m_ui.lastHoveredBorderType = EditorBorderState::Top;
             return;
         }
-        // Bottom border
+// Bottom border including borderSize pixels outside the window
         if (mousePos.x >= m_ui.x && mousePos.x <= m_ui.x + m_ui.width &&
-            mousePos.y >= m_ui.y + m_ui.height - (m_ui.borderSize) &&
-            mousePos.y <= m_ui.y + m_ui.height) {
+            mousePos.y >= m_ui.y + m_ui.height - m_ui.borderSize && mousePos.y <= m_ui.y + m_ui.height + m_ui.borderSize) {
             m_ui.lastHoveredBorderType = EditorBorderState::Bottom;
             return;
         }
@@ -194,22 +192,21 @@ namespace VkRender {
     EditorBorderState Editor::checkLineBorderState(const glm::vec2 &mousePos, bool verticalResize) {
         // Check borders
         if (verticalResize) {
-            // Top border
-            if (mousePos.y >= m_ui.y && mousePos.y <= m_ui.y + (m_ui.borderSize)) {
+            // Top border including borderSize pixels outside the window
+            if (mousePos.y >= m_ui.y - m_ui.borderSize && mousePos.y <= m_ui.y + m_ui.borderSize) {
                 return EditorBorderState::Top;
             }
-            // Bottom border
-            if (mousePos.y >= m_ui.y + m_ui.height - (m_ui.borderSize) &&
-                mousePos.y <= m_ui.y + m_ui.height) {
+            // Bottom border including borderSize pixels outside the window
+            if (mousePos.y >= m_ui.y + m_ui.height - m_ui.borderSize && mousePos.y <= m_ui.y + m_ui.height + m_ui.borderSize) {
                 return EditorBorderState::Bottom;
             }
         } else {
-            // Left border
-            if (mousePos.x >= m_ui.x && mousePos.x <= m_ui.x + (m_ui.borderSize)) {
+            // Left border including borderSize pixels outside the window
+            if (mousePos.x >= m_ui.x - m_ui.borderSize && mousePos.x <= m_ui.x + m_ui.borderSize) {
                 return EditorBorderState::Left;
             }
-            // Right border
-            if (mousePos.x >= m_ui.x + m_ui.width - (m_ui.borderSize) && mousePos.x <= m_ui.x + m_ui.width) {
+            // Right border including borderSize pixels outside the window
+            if (mousePos.x >= m_ui.x + m_ui.width - m_ui.borderSize && mousePos.x <= m_ui.x + m_ui.width + m_ui.borderSize) {
                 return EditorBorderState::Right;
             }
         }

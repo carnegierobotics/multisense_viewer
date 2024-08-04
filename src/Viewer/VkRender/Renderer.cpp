@@ -165,15 +165,40 @@ namespace VkRender {
                 VulkanRenderPassCreateInfo createInfo(m_frameBuffers.data(), m_guiResources, this,
                                                       &m_sharedContextData);
 
-                createInfo.width = jsonEditor.value("width", 0);
-                createInfo.height = jsonEditor.value("height", 0);
-                createInfo.x = jsonEditor.value("x", 0);
-                createInfo.y = jsonEditor.value("y", 0);
-                createInfo.borderSize = jsonEditor.value("borderSize", 3);
+                int32_t mainMenuBarOffset = 0;
+                int32_t width = std::round(jsonEditor.value("width", 0.0) / 100 * m_width);
+                int32_t height = std::round(jsonEditor.value("height", 0.0) / 100 * m_height);
+                int32_t offsetX = std::round(jsonEditor.value("x", 0.0) / 100 * m_width);
+                int32_t offsetY = std::round(jsonEditor.value("y", 0.0) / 100 * m_height);
+
+                mainMenuBarOffset = offsetY == 0 ? 25 : 0;
+
+                createInfo.x =  offsetX;
+                createInfo.y =  offsetY;
+                createInfo.y += mainMenuBarOffset;
+
+                createInfo.width = width;
+                createInfo.height = height - mainMenuBarOffset;
+
+                if (createInfo.width + createInfo.x > m_width) {
+                    createInfo.width = m_width - createInfo.x;
+                }
+
+                if (createInfo.height + createInfo.y > m_height) {
+                    createInfo.height = m_height - createInfo.y;
+                }
+
+                createInfo.appWidth = m_width;
+                createInfo.appHeight = m_height;
+
+
+                createInfo.borderSize = jsonEditor.value("borderSize", 5);
                 createInfo.editorTypeDescription = jsonEditor.value("editorTypeDescription", "");
                 createInfo.resizeable = jsonEditor.value("resizeable", true);
                 createInfo.editorIndex = jsonEditor.value("editorIndex", 0);
                 createInfo.uiContext = getMainUIContext();
+
+
 
                 if (jsonEditor.contains("uiLayers") && jsonEditor["uiLayers"].is_array()) {
                     createInfo.uiLayers = jsonEditor["uiLayers"].get<std::vector<std::string> >();
@@ -1047,7 +1072,7 @@ namespace VkRender {
             auto &editor = sortedEditor;
             // Find the matching neighbors to the right (We sorted our editors list)
             auto &ci = editor.getCreateInfo();
-            int32_t nextEditorX = ci.x + ci.width - ci.borderSize;
+            int32_t nextEditorX = ci.x + ci.width;
             for (size_t j = 0; auto &nextSortedEditor: m_editors) {
                 auto &nextEditorPosX = nextSortedEditor.getCreateInfo().x;
                 //Log::Logger::getInstance()->info("Comparing Editor {} to {}, pos-x {} to {}", ci.editorIndex, m_editors[nextSortedEditor.second].getCreateInfo().editorIndex, nextEditorX, nextEditorPosX);
@@ -1103,13 +1128,13 @@ namespace VkRender {
         for (auto &editorIdx: entries) {
             auto &ci = m_editors[editorIdx.first].getCreateInfo();
 
-            int32_t nextX = ci.width + ci.x - static_cast<int32_t>(ci.borderSize);
+            int32_t nextX = ci.width + ci.x;
             for (auto &idx: editorIdx.second) {
                 auto &nextCI = m_editors[idx].getCreateInfo();
                 nextCI.x = nextX;
                 Log::Logger::getInstance()->info("Editor {}, next X: {}. From editor {}: width+x: {}",
                                                  nextCI.editorIndex, nextCI.x, ci.editorIndex,
-                                                 ci.x + ci.width - ci.borderSize);
+                                                 ci.x + ci.width);
             }
         }        // Perform the actual resize events
 
@@ -1171,7 +1196,7 @@ namespace VkRender {
             auto &editor = sortedEditor;
             // Find the matching neighbors to the right (We sorted our editors list)
             auto &ci = editor.getCreateInfo();
-            int32_t nextEditorY = ci.y + ci.height - ci.borderSize;
+            int32_t nextEditorY = ci.y + ci.height;
             for (size_t j = 0; auto &nextSortedEditor: m_editors) {
                 auto &nextEditorPosY = nextSortedEditor.getCreateInfo().y;
                 //Log::Logger::getInstance()->info("Comparing Editor {} to {}, pos-x {} to {}", ci.editorIndex, m_editors[nextSortedEditor.second].getCreateInfo().editorIndex, nextEditorY, nextEditorPosY);
@@ -1224,13 +1249,13 @@ namespace VkRender {
         for (auto &editorIdx: entries) {
             auto &ci = m_editors[editorIdx.first].getCreateInfo();
 
-            int32_t nextY = ci.height + ci.y - static_cast<int32_t>(ci.borderSize);
+            int32_t nextY = ci.height + ci.y;
             for (auto &idx: editorIdx.second) {
                 auto &nextCI = m_editors[idx].getCreateInfo();
                 nextCI.y = nextY;
                 Log::Logger::getInstance()->info("Editor {}, next X: {}. From editor {}: height+y: {}",
                                                  nextCI.editorIndex, nextCI.y, ci.editorIndex,
-                                                 ci.y + ci.height - ci.borderSize);
+                                                 ci.y + ci.height);
             }
         }        // Perform the actual resize events
 
@@ -1620,11 +1645,11 @@ namespace VkRender {
                         auto &ci1 = m_editors[i].ui();
 
                         // otherEditor is on the rightmost side
-                        bool matchTopCorner = ci1.x + ci1.width - ci1.borderSize == ci2.x; // Top corner of editor
+                        bool matchTopCorner = ci1.x + ci1.width == ci2.x; // Top corner of editor
                         bool matchBottomCorner = ci1.height == ci2.height;
 
                         // otherEditor is on the leftmost side
-                        bool matchTopCornerLeft = ci2.x + ci2.width - ci2.borderSize == ci1.x;
+                        bool matchTopCornerLeft = ci2.x + ci2.width == ci1.x;
                         bool matchBottomCornerLeft = ci1.height == ci2.height;
 
 
@@ -1644,11 +1669,11 @@ namespace VkRender {
                         auto &ci2 = m_editors[j].ui();
                         auto &ci1 = m_editors[i].ui();
                         // otherEditor is on the topmost side
-                        bool matchLeftCorner = ci1.y + ci1.height - ci1.borderSize == ci2.y; // Top corner of editor
+                        bool matchLeftCorner = ci1.y + ci1.height == ci2.y; // Top corner of editor
                         bool matchRightCorner = ci1.width == ci2.width;
 
                         // otherEditor is on the bottom
-                        bool matchLeftCornerBottom = ci2.y + ci2.height - ci2.borderSize == ci1.y;
+                        bool matchLeftCornerBottom = ci2.y + ci2.height == ci1.y;
                         bool matchRightCornerBottom = ci1.width == ci2.width;
 
                         if ((matchLeftCorner && matchRightCorner) ||
@@ -1672,11 +1697,11 @@ namespace VkRender {
         if (editor.ui().dragHorizontal) {
             editorCreateInfo.width -= editor.ui().dragDelta.x;
             editorCreateInfo.x += editor.ui().dragDelta.x;
-            newEditorCreateInfo.width = editor.ui().dragDelta.x + editorCreateInfo.borderSize;
+            newEditorCreateInfo.width = editor.ui().dragDelta.x;
         } else {
             editorCreateInfo.height += editor.ui().dragDelta.y;
-            newEditorCreateInfo.height = -editor.ui().dragDelta.y + editorCreateInfo.borderSize;
-            newEditorCreateInfo.y = editorCreateInfo.height + editorCreateInfo.y - editorCreateInfo.borderSize;
+            newEditorCreateInfo.height = -editor.ui().dragDelta.y;
+            newEditorCreateInfo.y = editorCreateInfo.height + editorCreateInfo.y;
         }
         newEditorCreateInfo.editorIndex = m_editors.size();
         if (!editor.validateEditorSize(newEditorCreateInfo) ||
@@ -1727,9 +1752,9 @@ namespace VkRender {
         int32_t newHeight = ci1.height + ci2.height;
 
         if (editor1->ui().lastRightClickedBorderType & EditorBorderState::HorizontalBorders) {
-            ci1.height = newHeight - ci1.borderSize;
+            ci1.height = newHeight;
         } else if (editor1->ui().lastRightClickedBorderType & EditorBorderState::VerticalBorders) {
-            ci1.width = newWidth - ci1.borderSize;
+            ci1.width = newWidth ;
         }
         ci1.x = newX;
         ci1.y = newY;

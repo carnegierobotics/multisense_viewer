@@ -11,7 +11,7 @@
 #include "Viewer/VkRender/Components/RenderComponents/RenderBase.h"
 #include "Viewer/Tools/Utils.h"
 #include "Viewer/Tools/Logger.h"
-#include "Viewer/VkRender/Components.h"
+#include "Viewer/VkRender/Components/Components.h"
 
 namespace VkRender {
     struct CustomModelComponent : RenderBase {

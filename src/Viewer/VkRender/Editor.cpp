@@ -14,7 +14,6 @@ namespace VkRender {
 
 
     Editor::Editor(VulkanRenderPassCreateInfo &createInfo, UUID _uuid) : m_createInfo(createInfo),
-                                                                         m_renderUtils(createInfo.context->data()),
                                                                          m_context(createInfo.context),
                                                                          m_sizeLimits(createInfo.appWidth,
                                                                                       createInfo.appHeight),
@@ -26,16 +25,15 @@ namespace VkRender {
         m_ui.y = m_createInfo.y;
         m_ui.index = m_createInfo.editorIndex;
 
-        for (size_t i = 0; i < m_renderUtils.swapchainImages; ++i) {
+        for (size_t i = 0; i < m_createInfo.swapchainImageCount; ++i) {
             m_renderPasses.emplace_back(m_createInfo);
         }
 
-
-        m_guiManager = std::make_unique<GuiManager>(*m_renderUtils.device,
+        m_guiManager = std::make_unique<GuiManager>(m_context->vkDevice(),
                                                     m_renderPasses.begin()->getRenderPass(), // TODO verify if this is ok?
                                                     &m_ui,
-                                                    m_renderUtils.msaaSamples,
-                                                    m_renderUtils.swapchainImages,
+                                                    m_createInfo.msaaSamples,
+                                                    m_createInfo.swapchainImageCount,
                                                     m_context,
                                                     ImGui::CreateContext(&m_createInfo.guiResources->fontAtlas),
                                                     m_createInfo.guiResources.get(),
@@ -58,10 +56,10 @@ namespace VkRender {
 
         m_renderPasses.clear();
 
-        for (size_t i = 0; i < m_renderUtils.swapchainImages; ++i) {
+        for (size_t i = 0; i < m_createInfo.swapchainImageCount; ++i) {
             m_renderPasses.emplace_back(m_createInfo);
         }
-        m_guiManager->resize(m_ui.width, m_ui.height, m_renderPasses.back().getRenderPass(), m_renderUtils.msaaSamples,
+        m_guiManager->resize(m_ui.width, m_ui.height, m_renderPasses.back().getRenderPass(), m_createInfo.msaaSamples,
                              m_createInfo.guiResources);
 
         Log::Logger::getInstance()->info("Resizing Editor. UUID: {} : {}, size: {}x{}, at pos: ({},{})",

@@ -27,7 +27,7 @@ namespace VkRender {
         explicit Editor(VulkanRenderPassCreateInfo &createInfo, UUID uuid = UUID());
 
         // Implement move constructor
-        Editor(Editor &&other) noexcept: m_context(other.m_context), m_renderUtils(other.m_renderUtils),
+        Editor(Editor &&other) noexcept: m_context(other.m_context),
                                          m_createInfo(other.m_createInfo),
                                          m_sizeLimits(other.m_createInfo.appWidth, other.m_createInfo.appHeight) {
             swap(*this, other);
@@ -51,7 +51,6 @@ namespace VkRender {
             std::swap(first.m_ui, second.m_ui);
             std::swap(first.m_renderPasses, second.m_renderPasses);
             std::swap(first.m_createInfo, second.m_createInfo);
-            std::swap(first.m_renderUtils, second.m_renderUtils);
             std::swap(first.m_context, second.m_context);
             std::swap(first.m_uuid, second.m_uuid);
         }
@@ -122,7 +121,6 @@ namespace VkRender {
     private:
         UUID m_uuid;
         std::vector<VulkanRenderPass> m_renderPasses;
-        RenderUtils &m_renderUtils;
         EditorSizeLimits m_sizeLimits;
 
         VulkanRenderPassCreateInfo m_createInfo;

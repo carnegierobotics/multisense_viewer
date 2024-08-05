@@ -99,13 +99,13 @@ namespace VkRender {
 
         entt::registry &registry() { return m_registry; }
 
-        RenderUtils &data() { return m_renderUtils; }
+        std::unique_ptr<Scene>& scene(){return m_scene;}
 
         std::vector<SwapChainBuffer> &swapChainBuffers() { return swapchain->buffers; }
 
         VmaAllocator &allocator() { return m_allocator; }
 
-        VkDevice &vkDevice() { return device; }
+        VulkanDevice &vkDevice() { return *m_vulkanDevice; }
 
         ImGuiContext *getMainUIContext() { return m_mainEditor->guiContext(); }
 
@@ -151,10 +151,10 @@ namespace VkRender {
         entt::registry m_registry;
         std::unordered_map<UUID, entt::entity> m_entityMap;
         std::string m_selectedCameraTag = "Default Camera";
-        RenderUtils m_renderUtils{};
         std::unique_ptr<EditorFactory> m_editorFactory;
 
         std::unique_ptr<Editor> m_mainEditor;
+        std::unique_ptr<Scene> m_scene;
 
         std::shared_ptr<GuiResources> m_guiResources;
         SharedContextData m_sharedContextData;

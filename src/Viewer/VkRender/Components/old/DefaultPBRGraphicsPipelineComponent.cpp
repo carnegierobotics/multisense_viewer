@@ -7,6 +7,7 @@
 namespace VkRender {
 
 
+    /*
     void DefaultPBRGraphicsPipelineComponent::renderNode(CommandBuffer *commandBuffer, uint32_t cbIndex,
                                                          Node *node,
                                                          Material::AlphaMode alphaMode) {
@@ -126,9 +127,9 @@ namespace VkRender {
 
     void DefaultPBRGraphicsPipelineComponent::setupDescriptors(Resource& resource, const GLTFModelComponent &component,
                                                                const SkyboxGraphicsPipelineComponent &skyboxComponent) {
-/*
+
 			Descriptor Pool
-		*/
+
         uint32_t imageSamplerCount = 0;
         uint32_t materialCount = 0;
         uint32_t meshCount = 0;
@@ -161,9 +162,6 @@ namespace VkRender {
         CHECK_RESULT(
                 vkCreateDescriptorPool(vulkanDevice->m_LogicalDevice, &descriptorPoolCI, nullptr, &resource.descriptorPool));
 
-        /*
-            Descriptor sets
-        */
 
         // Scene (matrices and environment maps)
         {
@@ -606,4 +604,5 @@ namespace VkRender {
         resource.shaderMaterialBuffer.m_DescriptorBufferInfo.range = bufferSize;
         resource.shaderMaterialBuffer.m_Device = vulkanDevice->m_LogicalDevice;
     }
+    */
 };

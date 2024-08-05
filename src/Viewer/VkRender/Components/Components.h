@@ -195,21 +195,6 @@ namespace VkRender {
         float LineSpacing = 0.0f;
     };
 
-    struct DepthRenderPassComponent {
-        bool render = true;
-    };
-
-    struct SecondaryRenderViewComponent {
-        bool render = true;
-    };
-
-    struct ImageViewComponent {
-        bool render = true;
-    };
-
-    struct DeleteComponent {
-        bool now = true;
-    };
 
     template<typename... Component>
     struct ComponentGroup {

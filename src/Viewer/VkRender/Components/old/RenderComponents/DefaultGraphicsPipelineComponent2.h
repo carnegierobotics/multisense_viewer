@@ -11,7 +11,7 @@
 #include "Viewer/VkRender/Components/RenderComponents/RenderBase.h"
 #include "Viewer/Tools/Logger.h"
 #include "Viewer/Tools/Utils.h"
-#include "Viewer/VkRender/Components.h"
+#include "Viewer/VkRender/Components/Components.h"
 
 namespace VkRender {
 
@@ -27,42 +27,43 @@ namespace VkRender {
         DefaultGraphicsPipelineComponent2(const DefaultGraphicsPipelineComponent2 &) = delete;
 
         DefaultGraphicsPipelineComponent2 &operator=(const DefaultGraphicsPipelineComponent2 &) = delete;
+        /*
+               explicit DefaultGraphicsPipelineComponent2(VkRender::RenderUtils *utils,
+                                                          const std::string &vertexShader = "default.vert.spv",
+                                                          const std::string &fragmentShader = "default.frag.spv") {
 
-        explicit DefaultGraphicsPipelineComponent2(VkRender::RenderUtils *utils,
-                                                   const std::string &vertexShader = "default.vert.spv",
-                                                   const std::string &fragmentShader = "default.frag.spv") {
+                   m_numSwapChainImages = utils->swapchainImages;
+                   m_vulkanDevice = utils->device;
+                   m_utils = utils;
+                   // Number of resources per render pass
+                   m_renderData.resize(m_numSwapChainImages);
+                   m_emptyTexture.fromKtxFile((Utils::getTexturePath() / "empty.ktx").string(), VK_FORMAT_R8G8B8A8_UNORM, m_vulkanDevice, m_vulkanDevice->m_TransferQueue);
 
-            m_numSwapChainImages = utils->swapchainImages;
-            m_vulkanDevice = utils->device;
-            m_utils = utils;
-            // Number of resources per render pass
-            m_renderData.resize(m_numSwapChainImages);
-            m_emptyTexture.fromKtxFile((Utils::getTexturePath() / "empty.ktx").string(), VK_FORMAT_R8G8B8A8_UNORM, m_vulkanDevice, m_vulkanDevice->m_TransferQueue);
+                   // Assume we get a modelComponent that has vertex and index buffers in gpu memory. We need to create graphics resources which are:
+                   // Descriptor sets: pool, layout, sets
+                   // Uniform Buffers:
+                   setupUniformBuffers();
+                   setupDescriptors();
+                   // First create normal render pass resources
+                   // Graphics pipelines
+                   for (auto &data: m_renderData) {
 
-            // Assume we get a modelComponent that has vertex and index buffers in gpu memory. We need to create graphics resources which are:
-            // Descriptor sets: pool, layout, sets
-            // Uniform Buffers:
-            setupUniformBuffers();
-            setupDescriptors();
-            // First create normal render pass resources
-            // Graphics pipelines
-            for (auto &data: m_renderData) {
-                /*
-                               setupPipeline(data, RENDER_PASS_COLOR, vertexShader, fragmentShader, utils->msaaSamples,
-                                             *utils->renderPass);
+                                      setupPipeline(data, RENDER_PASS_COLOR, vertexShader, fragmentShader, utils->msaaSamples,
+                                                    *utils->renderPass);
 
-                               setupPipeline(data, RENDER_PASS_SECOND, vertexShader, fragmentShader, utils->msaaSamples,
-                                             *utils->renderPass);
+                                      setupPipeline(data, RENDER_PASS_SECOND, vertexShader, fragmentShader, utils->msaaSamples,
+                                                    *utils->renderPass);
 
 
-                               setupPipeline(data, RENDER_PASS_DEPTH_ONLY, vertexShader, fragmentShader,
-                                             VK_SAMPLE_COUNT_1_BIT,
-                                             utils->depthRenderPass->renderPass);
-                               */
-            }
+                                      setupPipeline(data, RENDER_PASS_DEPTH_ONLY, vertexShader, fragmentShader,
+                                                    VK_SAMPLE_COUNT_1_BIT,
+                                                    utils->depthRenderPass->renderPass);
 
-            m_vertexShader = vertexShader;
-            m_fragmentShader = fragmentShader;
+                   }
+
+                   m_vertexShader = vertexShader;
+                   m_fragmentShader = fragmentShader;
+
         }
 
         ~DefaultGraphicsPipelineComponent2() override {
@@ -129,7 +130,7 @@ namespace VkRender {
         std::string m_fragmentShader;
         VkRender::RenderUtils *m_utils;
 
-
+*/
     };
 
 

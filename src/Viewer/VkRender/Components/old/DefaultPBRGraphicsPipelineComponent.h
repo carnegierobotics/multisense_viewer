@@ -11,7 +11,7 @@
 #include "Viewer/VkRender/Components/SkyboxGraphicsPipelineComponent.h"
 #include "Viewer/VkRender/Components/GLTFDefines.h"
 #include "Viewer/Tools/Utils.h"
-#include "Viewer/VkRender/Components.h"
+#include "Viewer/VkRender/Components/Components.h"
 
 namespace VkRender {
 
@@ -23,6 +23,7 @@ namespace VkRender {
         DefaultPBRGraphicsPipelineComponent &
         operator=(const DefaultPBRGraphicsPipelineComponent &other) { return *this; }
 
+        /*
         DefaultPBRGraphicsPipelineComponent(RenderUtils *utils,
                                             const GLTFModelComponent &modelComponent,
                                             const SkyboxGraphicsPipelineComponent &skyboxComponent) {
@@ -34,13 +35,14 @@ namespace VkRender {
             createMaterialBuffer(resources[i], modelComponent);
             setupUniformBuffers(resources[i]);
             setupDescriptors(resources[i], modelComponent, skyboxComponent);
-            /*
+
             resources[i].shaderValuesParams = skyboxComponent.shaderValuesParams;
                 setupPipelines(resources[i]);
-                */
+
             }
 
         }
+
 
         ~DefaultPBRGraphicsPipelineComponent() {
 
@@ -61,7 +63,7 @@ namespace VkRender {
             }
         };
 
-        RenderUtils *renderUtils;
+
         VulkanDevice *vulkanDevice;
 
         struct DescriptorSetLayouts {
@@ -144,6 +146,7 @@ namespace VkRender {
 
         void updateTransform(const TransformComponent &transform);
 
+        */
     };
 
 }

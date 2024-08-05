@@ -6,16 +6,13 @@
 
 #include "Viewer/VkRender/Renderer.h"
 #include "Viewer/VkRender/Entity.h"
-#include "Viewer/VkRender/Components.h"
-#include "Viewer/VkRender/Components/SkyboxGraphicsPipelineComponent.h"
-#include "Viewer/VkRender/Components/DefaultPBRGraphicsPipelineComponent.h"
-#include "Viewer/VkRender/Components/GLTFModelComponent.h"
-#include "Viewer/VkRender/Components/SecondaryCameraComponent.h"
+#include "Viewer/VkRender/Components/Components.h"
 
 
 void MultiSense::setup() {
     Log::Logger::getInstance()->info("Setup from the MultiSense Script");
 
+    /*
     {
         auto ent = m_context->createEntity("KS21");
         auto &component = ent.addComponent<VkRender::GLTFModelComponent>(Utils::getModelsPath() / "ks21_pbr.gltf",
@@ -39,6 +36,7 @@ void MultiSense::setup() {
         ent.addComponent<VkRender::DefaultPBRGraphicsPipelineComponent>(&m_context->data(), component, sky);
     }
 
+     */
 }
 
 
@@ -49,6 +47,7 @@ void MultiSense::update() {
     glm::vec4 cameraPos4 = invView * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
     auto cameraWorldPosition = glm::vec3(cameraPos4);
 
+    /*
     auto model = m_context->findEntityByName("KS21");
     if (model) {
         auto &obj = model.getComponent<VkRender::DefaultPBRGraphicsPipelineComponent>();
@@ -89,5 +88,6 @@ void MultiSense::update() {
         }
         obj.update(m_context->data().swapchainIndex);
     }
+     */
 
 }

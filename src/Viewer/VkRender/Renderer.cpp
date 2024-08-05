@@ -42,15 +42,8 @@
 #include "Viewer/Tools/Populate.h"
 #include "Viewer/Tools/Macros.h"
 
-#include "Viewer/VkRender/Components.h"
-#include "Viewer/VkRender/Components/GLTFModelComponent.h"
-#include "Viewer/VkRender/Components/SkyboxGraphicsPipelineComponent.h"
-#include "Viewer/VkRender/Components/DefaultPBRGraphicsPipelineComponent.h"
-#include "Viewer/VkRender/Components/SecondaryCameraComponent.h"
-#include "Viewer/VkRender/Components/OBJModelComponent.h"
-#include "Viewer/VkRender/Components/RenderComponents/DefaultGraphicsPipelineComponent2.h"
-#include "Viewer/VkRender/Components/CameraGraphicsPipelineComponent.h"
-#include "Viewer/VkRender/Components/CustomModels.h"
+#include "Viewer/VkRender/Components/Components.h"
+
 
 #include "Viewer/VkRender/Editors/EditorDefinitions.h"
 #include "Viewer/VkRender/Core/VulkanResourceManager.h"
@@ -65,17 +58,8 @@ namespace VkRender {
         VulkanRenderer::prepare();
         VulkanResourceManager::getInstance(m_vulkanDevice, m_allocator);
         m_guiResources = std::make_shared<GuiResources>(m_vulkanDevice);
-        m_renderUtils.device = m_vulkanDevice;
-        m_renderUtils.instance = &instance;
-        m_renderUtils.msaaSamples = msaaSamples;
-        m_renderUtils.swapchainImages = swapchain->imageCount;
-        m_renderUtils.swapchainIndex = currentFrame;
-        m_renderUtils.width = m_width;
-        m_renderUtils.height = m_height;
-        m_renderUtils.depthFormat = depthFormat;
-        m_renderUtils.swapchainColorFormat = swapchain->colorFormat;
-        m_renderUtils.graphicsQueue = graphicsQueue;
         backendInitialized = true;
+
         // Create default camera object
         createNewCamera(m_selectedCameraTag, m_width, m_height);
         m_logger->info("Initialized Backend");
@@ -88,13 +72,7 @@ namespace VkRender {
         m_cameras[m_selectedCameraTag].setPerspective(60.0f,
                                                       static_cast<float>(m_width) / static_cast<float>(m_height));
         m_cameras[m_selectedCameraTag].resetPosition();
-        // Run Once
-        m_renderUtils.device = m_vulkanDevice;
-        m_renderUtils.instance = &instance;
         // m_renderUtils.renderPass = &renderPass;
-        m_renderUtils.msaaSamples = msaaSamples;
-        m_renderUtils.swapchainImages = swapchain->imageCount;
-        m_renderUtils.swapchainIndex = currentFrame;
         createColorResources();
         createDepthStencil();
         createMainRenderPass();
@@ -114,12 +92,17 @@ namespace VkRender {
         mainMenuEditor.borderSize = 0;
         mainMenuEditor.editorTypeDescription = EditorType::None;
         mainMenuEditor.resizeable = false;
+        mainMenuEditor.msaaSamples = msaaSamples;
+        mainMenuEditor.swapchainImageCount = swapchain->imageCount;
+        mainMenuEditor.swapchainColorFormat = swapchain->colorFormat;
+        mainMenuEditor.depthFormat = depthFormat;
         m_mainEditor = std::make_unique<Editor>(mainMenuEditor);
         m_mainEditor->addUI("DebugWindow");
         m_mainEditor->addUI("MenuLayer");
         m_mainEditor->addUI("MainContextLayer");
 
-        m_editorFactory = std::make_unique<EditorFactory>(VulkanRenderPassCreateInfo(m_frameBuffers.data(), m_guiResources, this, &m_sharedContextData));
+        m_editorFactory = std::make_unique<EditorFactory>(
+                VulkanRenderPassCreateInfo(m_frameBuffers.data(), m_guiResources, this, &m_sharedContextData));
 
         loadEditorSettings(Utils::getMultiSenseViewerProjectConfig());
 
@@ -137,11 +120,21 @@ namespace VkRender {
             otherEditorInfo.y = sizeLimits.MENU_BAR_HEIGHT; //+ 050;
             otherEditorInfo.editorIndex = m_editors.size();
             otherEditorInfo.editorTypeDescription = EditorType::TestWindow;
+            otherEditorInfo.msaaSamples = msaaSamples;
+            otherEditorInfo.swapchainImageCount = swapchain->imageCount;
+            otherEditorInfo.swapchainColorFormat = swapchain->colorFormat;
+            otherEditorInfo.depthFormat = depthFormat;
             std::array<VkClearValue, 3> clearValues{};
             otherEditorInfo.uiContext = getMainUIContext();
             auto editor = createEditor(otherEditorInfo);
             m_editors.push_back(std::move(editor));
         }
+
+        // Load scenes
+
+        m_scene = std::make_unique<DefaultScene>(*this);
+
+
     }
 
     // TODO This should actually be handled by RendererConfig. This class handles everything saving and loading config files
@@ -171,8 +164,8 @@ namespace VkRender {
 
                 mainMenuBarOffset = offsetY == 0 ? 25 : 0;
 
-                createInfo.x =  offsetX;
-                createInfo.y =  offsetY;
+                createInfo.x = offsetX;
+                createInfo.y = offsetY;
                 createInfo.y += mainMenuBarOffset;
 
                 createInfo.width = width;
@@ -196,7 +189,10 @@ namespace VkRender {
                 createInfo.editorIndex = jsonEditor.value("editorIndex", 0);
                 createInfo.uiContext = getMainUIContext();
 
-
+                createInfo.msaaSamples = msaaSamples;
+                createInfo.swapchainImageCount = swapchain->imageCount;
+                createInfo.swapchainColorFormat = swapchain->colorFormat;
+                createInfo.depthFormat = depthFormat;
 
                 if (jsonEditor.contains("uiLayers") && jsonEditor["uiLayers"].is_array()) {
                     createInfo.uiLayers = jsonEditor["uiLayers"].get<std::vector<std::string> >();
@@ -207,7 +203,8 @@ namespace VkRender {
                 m_editors.push_back(std::move(createEditor(createInfo)));
 
                 Log::Logger::getInstance()->info("Loaded editor {}: type = {}, x = {}, y = {}, width = {}, height = {}",
-                                                 createInfo.editorIndex, editorTypeToString(createInfo.editorTypeDescription), createInfo.x,
+                                                 createInfo.editorIndex,
+                                                 editorTypeToString(createInfo.editorTypeDescription), createInfo.x,
                                                  createInfo.y, createInfo.width, createInfo.height);
             }
         }
@@ -227,6 +224,10 @@ namespace VkRender {
         renderPassCreateInfo.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         renderPassCreateInfo.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
         renderPassCreateInfo.editorTypeDescription = EditorType::None;
+        renderPassCreateInfo.msaaSamples = msaaSamples;
+        renderPassCreateInfo.swapchainImageCount = swapchain->imageCount;
+        renderPassCreateInfo.swapchainColorFormat = swapchain->colorFormat;
+        renderPassCreateInfo.depthFormat = depthFormat;
         m_mainRenderPasses.resize(swapchain->imageCount);
         // Start timing UI render pass setup
         auto startUIRenderPassSetup = std::chrono::high_resolution_clock::now();
@@ -242,11 +243,11 @@ namespace VkRender {
                                                                                         frameBufferAttachments.size(),
                                                                                         m_mainRenderPasses.begin()->get()->getRenderPass());
         // TODO verify if this is ok?
-        m_frameBuffers.resize(m_renderUtils.swapchainImages);
+        m_frameBuffers.resize(swapchain->imageCount);
         for (uint32_t i = 0; i < m_frameBuffers.size(); i++) {
             auto startFramebufferCreation = std::chrono::high_resolution_clock::now();
             frameBufferAttachments[2] = swapChainBuffers()[i].view;
-            VkResult result = vkCreateFramebuffer(m_renderUtils.device->m_LogicalDevice, &frameBufferCreateInfo,
+            VkResult result = vkCreateFramebuffer(device, &frameBufferCreateInfo,
                                                   nullptr, &m_frameBuffers[i]);
             if (result != VK_SUCCESS) {
                 throw std::runtime_error("Failed to create framebuffer");
@@ -804,27 +805,25 @@ namespace VkRender {
             scene->update();
         }
         m_mainEditor->update((frameCounter == 0), frameTimer, &input);
-        //m_selectedCameraTag = m_guiManager->handles.m_cameraSelection.tag;
-        m_renderUtils.swapchainIndex = currentFrame;
-        m_renderUtils.input = &input;
-        // New version available?
-        /*
+
         std::string versionRemote;
-        if (m_guiManager->handles.askUserForNewVersion && m_usageMonitor->getLatestAppVersionRemote(&versionRemote)) {
+        /*
+        if (m_mainEditor->handles.askUserForNewVersion && m_usageMonitor->getLatestAppVersionRemote(&versionRemote)) {
             std::string localAppVersion = RendererConfig::getInstance().getAppVersion();
             Log::Logger::getInstance()->info("New Version is Available: Local version={}, available version={}",
                                              localAppVersion, versionRemote);
-            m_guiManager->handles.newVersionAvailable = Utils::isLocalVersionLess(localAppVersion, versionRemote);
+            m_mainEditor->handles.newVersionAvailable = Utils::isLocalVersionLess(localAppVersion, versionRemote);
         }
-        */
+         */
+
         m_logger->frameNumber = frameID;
         m_sharedContextData.multiSenseRendererBridge->update();
-        // TODO definitely reconsider if we should call crl updates here?
+        // TODO reconsider if we should call crl updates here?
 
         //if (keyPress == GLFW_KEY_SPACE) {
         //    m_cameras[m_selectedCameraTag].resetPosition();
         //}
-        /**@brief Record commandbuffers for obj models */
+        /**@brief Record commandbuffers for obj models
         // Accessing components in a non-copying manner
 
         for (auto entity: m_registry.view<DefaultGraphicsPipelineComponent2>()) {
@@ -835,7 +834,7 @@ namespace VkRender {
             resources.updateView(currentCamera);
             resources.update(currentFrame);
         }
-        /**@brief Record commandbuffers for obj models */
+        /**@brief Record commandbuffers for obj models
         // Accessing components in a non-copying manner
         for (auto entity: m_registry.view<CustomModelComponent>()) {
             auto &resources = m_registry.get<CustomModelComponent>(entity);
@@ -845,7 +844,7 @@ namespace VkRender {
             resources.updateView(currentCamera);
             resources.update(currentFrame);
         }
-        /**@brief Record commandbuffers for obj models */
+        /**@brief Record commandbuffers for obj models
         // Accessing components in a non-copying manner
         for (auto entity: m_registry.view<CameraGraphicsPipelineComponent>()) {
             auto &resources = m_registry.get<CameraGraphicsPipelineComponent>(entity);
@@ -855,7 +854,7 @@ namespace VkRender {
             resources.updateTransform(transform);
             resources.updateView(currentCamera);
             resources.update(currentFrame);
-        } /**@brief Record commandbuffers for gltf models */
+        } /**@brief Record commandbuffers for gltf models
         // Accessing components in a non-copying manner
         for (auto entity: m_registry.view<DefaultPBRGraphicsPipelineComponent>()) {
             auto &resources = m_registry.get<DefaultPBRGraphicsPipelineComponent>(entity);
@@ -889,7 +888,7 @@ namespace VkRender {
 
             auto entity = createEntity(filename.replace_extension().string());
             auto &component = entity.addComponent<OBJModelComponent>(m_guiManager->handles.m_paths.importFilePath,
-                                                                     m_renderUtils.device);
+                                                                     m_vulkanDevice);
 
             entity.addComponent<DefaultGraphicsPipelineComponent2>(&m_renderUtils).bind(component);
             entity.addComponent<DepthRenderPassComponent>();
@@ -902,13 +901,13 @@ namespace VkRender {
             auto entity = createEntity(filename.replace_extension().string());
             auto &component = entity.addComponent<VkRender::GLTFModelComponent>(
                     m_guiManager->handles.m_paths.importFilePath.string(),
-                    m_renderUtils.device);
+                    m_vulkanDevice);
             auto &sky = findEntityByName("Skybox").getComponent<VkRender::SkyboxGraphicsPipelineComponent>();
             entity.addComponent<VkRender::DefaultPBRGraphicsPipelineComponent>(&m_renderUtils, component, sky);
             entity.addComponent<DepthRenderPassComponent>();
 
         }
-    */
+
         // Update camera gizmos
         for (auto entity: m_registry.view<CameraGraphicsPipelineComponent>()) {
             auto &resources = m_registry.get<CameraGraphicsPipelineComponent>(entity);
@@ -921,6 +920,7 @@ namespace VkRender {
             resources.updateView(currentCamera);
             resources.update(currentFrame);
         }
+        */
     }
 
     std::unique_ptr<Editor> Renderer::createEditor(VulkanRenderPassCreateInfo &createInfo) {
@@ -960,14 +960,6 @@ namespace VkRender {
     }
 
     void Renderer::windowResized(int32_t dx, int32_t dy, double widthScale, double heightScale) {
-        m_renderUtils.device = m_vulkanDevice;
-        m_renderUtils.instance = &instance;
-        //m_renderUtils.renderPass = &renderPass;
-        m_renderUtils.msaaSamples = msaaSamples;
-        m_renderUtils.swapchainImages = swapchain->imageCount;
-        m_renderUtils.swapchainIndex = currentFrame;
-        m_renderUtils.width = m_width;
-        m_renderUtils.height = m_height;
 
         if ((m_width > 0.0) && (m_height > 0.0)) {
             for (auto &camera: m_cameras)
@@ -1241,8 +1233,8 @@ namespace VkRender {
         UUID id1 = mergeEditorIndices[0];
         UUID id2 = mergeEditorIndices[1];
 
-        auto& editor1 = findEditorByUUID(id1);
-        auto& editor2 = findEditorByUUID(id2);
+        auto &editor1 = findEditorByUUID(id1);
+        auto &editor2 = findEditorByUUID(id2);
 
         if (!editor1 || !editor2) {
             Log::Logger::getInstance()->info("Wanted to merge editors: {} and {} but they were not found",
@@ -1266,7 +1258,7 @@ namespace VkRender {
         if (editor1->ui().lastRightClickedBorderType & EditorBorderState::HorizontalBorders) {
             ci1.height = newHeight;
         } else if (editor1->ui().lastRightClickedBorderType & EditorBorderState::VerticalBorders) {
-            ci1.width = newWidth ;
+            ci1.width = newWidth;
         }
         ci1.x = newX;
         ci1.y = newY;
@@ -1277,7 +1269,7 @@ namespace VkRender {
         // Remove editor2 safely based on UUID
         m_editors.erase(
                 std::remove_if(m_editors.begin(), m_editors.end(),
-                               [editor2UUID](const std::unique_ptr<Editor>& editor) {
+                               [editor2UUID](const std::unique_ptr<Editor> &editor) {
                                    return editor->getUUID() == editor2UUID;
                                }),
                 m_editors.end()
@@ -1285,7 +1277,7 @@ namespace VkRender {
         editor1->resize(ci1);
     }
 
-    VulkanRenderPassCreateInfo Renderer::getNewEditorCreateInfo( std::unique_ptr<Editor> &editor) {
+    VulkanRenderPassCreateInfo Renderer::getNewEditorCreateInfo(std::unique_ptr<Editor> &editor) {
         VulkanRenderPassCreateInfo newEditorCI(m_frameBuffers.data(), m_guiResources, this, &m_sharedContextData);
         VulkanRenderPassCreateInfo::copy(&newEditorCI, &editor->getCreateInfo());
 
@@ -1385,13 +1377,14 @@ namespace VkRender {
         return {};
     }
 
-    std::unique_ptr<Editor>& Renderer::findEditorByUUID(const UUID &uuid) {
+    std::unique_ptr<Editor> &Renderer::findEditorByUUID(const UUID &uuid) {
         for (auto &editor: m_editors) {
             if (uuid == editor->getUUID()) {
                 return editor;
             }
         }
     }
+
     void Renderer::postRenderActions() {
         // Reset mousewheel across imgui contexts
         /*
@@ -1429,7 +1422,7 @@ namespace VkRender {
         auto camera = Camera(m_width, m_height);
         m_cameras[name] = camera;
         auto &c = e.addComponent<CameraComponent>(&m_cameras[m_selectedCameraTag]);
-        auto &gizmo = e.addComponent<CameraGraphicsPipelineComponent>(&m_renderUtils);
+        //auto &gizmo = e.addComponent<CameraGraphicsPipelineComponent>(&m_renderUtils);
         auto &transform = e.getComponent<TransformComponent>();
         transform.scale = glm::vec3(0.2f, 0.2f, 0.2f);
 
@@ -1466,11 +1459,11 @@ namespace VkRender {
         std::string description = "Renderer:";
         VkImageCreateInfo imageCI = Populate::imageCreateInfo();
         imageCI.imageType = VK_IMAGE_TYPE_2D;
-        imageCI.format = m_renderUtils.depthFormat;
+        imageCI.format = depthFormat;
         imageCI.extent = {m_width, m_height, 1};
         imageCI.mipLevels = 1;
         imageCI.arrayLayers = 1;
-        imageCI.samples = m_renderUtils.msaaSamples;
+        imageCI.samples = msaaSamples;
         imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
         imageCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
@@ -1481,31 +1474,31 @@ namespace VkRender {
                                          &m_depthStencil.allocation, nullptr);
         if (result != VK_SUCCESS) throw std::runtime_error("Failed to create depth image");
         vmaSetAllocationName(allocator(), m_depthStencil.allocation, (description + "DepthStencil").c_str());
-        VALIDATION_DEBUG_NAME(m_renderUtils.device->m_LogicalDevice,
+        VALIDATION_DEBUG_NAME(m_vulkanDevice->m_LogicalDevice,
                               reinterpret_cast<uint64_t>(m_depthStencil.image), VK_OBJECT_TYPE_IMAGE,
                               (description + "DepthImage").c_str());
 
         VkImageViewCreateInfo imageViewCI = Populate::imageViewCreateInfo();
         imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
         imageViewCI.image = m_depthStencil.image;
-        imageViewCI.format = m_renderUtils.depthFormat;
+        imageViewCI.format = depthFormat;
         imageViewCI.subresourceRange.baseMipLevel = 0;
         imageViewCI.subresourceRange.levelCount = 1;
         imageViewCI.subresourceRange.baseArrayLayer = 0;
         imageViewCI.subresourceRange.layerCount = 1;
         imageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-        if (m_renderUtils.depthFormat >= VK_FORMAT_D16_UNORM_S8_UINT) {
+        if (depthFormat >= VK_FORMAT_D16_UNORM_S8_UINT) {
             imageViewCI.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
         }
-        result = vkCreateImageView(m_renderUtils.device->m_LogicalDevice, &imageViewCI, nullptr,
+        result = vkCreateImageView(m_vulkanDevice->m_LogicalDevice, &imageViewCI, nullptr,
                                    &m_depthStencil.view);
         if (result != VK_SUCCESS) throw std::runtime_error("Failed to create depth image view");
 
-        VALIDATION_DEBUG_NAME(m_renderUtils.device->m_LogicalDevice,
+        VALIDATION_DEBUG_NAME(m_vulkanDevice->m_LogicalDevice,
                               reinterpret_cast<uint64_t>(m_depthStencil.view), VK_OBJECT_TYPE_IMAGE_VIEW,
                               (description + "DepthView").c_str());
 
-        VkCommandBuffer copyCmd = m_renderUtils.device->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+        VkCommandBuffer copyCmd = m_vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
         VkImageSubresourceRange subresourceRange = {};
         subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
@@ -1516,7 +1509,7 @@ namespace VkRender {
                               VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, subresourceRange,
                               VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 
-        m_renderUtils.device->flushCommandBuffer(copyCmd, m_renderUtils.graphicsQueue, true);
+        m_vulkanDevice->flushCommandBuffer(copyCmd, graphicsQueue, true);
     }
 
 
@@ -1525,11 +1518,11 @@ namespace VkRender {
 
         VkImageCreateInfo imageCI = Populate::imageCreateInfo();
         imageCI.imageType = VK_IMAGE_TYPE_2D;
-        imageCI.format = m_renderUtils.swapchainColorFormat;
+        imageCI.format = swapchain->colorFormat;
         imageCI.extent = {m_width, m_height, 1};
         imageCI.mipLevels = 1;
         imageCI.arrayLayers = 1;
-        imageCI.samples = m_renderUtils.msaaSamples;
+        imageCI.samples = msaaSamples;
         imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
         imageCI.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
         imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -1541,7 +1534,7 @@ namespace VkRender {
         VkResult result = vmaCreateImage(allocator(), &imageCI, &allocInfo, &m_colorImage.image,
                                          &m_colorImage.allocation, nullptr);
         if (result != VK_SUCCESS) throw std::runtime_error("Failed to create color image");
-        VALIDATION_DEBUG_NAME(m_renderUtils.device->m_LogicalDevice,
+        VALIDATION_DEBUG_NAME(m_vulkanDevice->m_LogicalDevice,
                               reinterpret_cast<uint64_t>(m_colorImage.image), VK_OBJECT_TYPE_IMAGE,
                               (description + "ColorImageResource").c_str());
         // Set user data for debugging
@@ -1550,16 +1543,16 @@ namespace VkRender {
         VkImageViewCreateInfo imageViewCI = Populate::imageViewCreateInfo();
         imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
         imageViewCI.image = m_colorImage.image;
-        imageViewCI.format = m_renderUtils.swapchainColorFormat;
+        imageViewCI.format = swapchain->colorFormat;
         imageViewCI.subresourceRange.baseMipLevel = 0;
         imageViewCI.subresourceRange.levelCount = 1;
         imageViewCI.subresourceRange.baseArrayLayer = 0;
         imageViewCI.subresourceRange.layerCount = 1;
         imageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        result = vkCreateImageView(m_renderUtils.device->m_LogicalDevice, &imageViewCI, nullptr,
+        result = vkCreateImageView(m_vulkanDevice->m_LogicalDevice, &imageViewCI, nullptr,
                                    &m_colorImage.view);
         if (result != VK_SUCCESS) throw std::runtime_error("Failed to create color image view");
-        VALIDATION_DEBUG_NAME(m_renderUtils.device->m_LogicalDevice,
+        VALIDATION_DEBUG_NAME(m_vulkanDevice->m_LogicalDevice,
                               reinterpret_cast<uint64_t>(m_colorImage.view), VK_OBJECT_TYPE_IMAGE_VIEW,
                               (description + "ColorViewResource").c_str());
     }
@@ -1599,65 +1592,6 @@ namespace VkRender {
 
     template<>
     void Renderer::onComponentAdded<TextComponent>(Entity entity, TextComponent &component) {
-    }
-
-    template<>
-    void Renderer::onComponentAdded<DeleteComponent>(Entity entity, DeleteComponent &component) {
-    }
-
-    template<>
-    void Renderer::onComponentAdded<GLTFModelComponent>(Entity entity, GLTFModelComponent &component) {
-    }
-
-    template<>
-    void Renderer::onComponentAdded<CustomModelComponent>(Entity entity, CustomModelComponent &component) {
-    }
-
-    template<>
-    void Renderer::onComponentAdded<VkRender::SkyboxGraphicsPipelineComponent>(Entity entity,
-                                                                               VkRender::SkyboxGraphicsPipelineComponent
-                                                                               &component) {
-    }
-
-    template<>
-    void Renderer::onComponentAdded<VkRender::DefaultPBRGraphicsPipelineComponent>(Entity entity,
-                                                                                   VkRender::DefaultPBRGraphicsPipelineComponent &component) {
-    }
-
-
-    template<>
-    void Renderer::onComponentAdded<SecondaryCameraComponent>(Entity entity,
-                                                              SecondaryCameraComponent &component) {
-    }
-
-    template<>
-    void Renderer::onComponentAdded<OBJModelComponent>(Entity entity,
-                                                       OBJModelComponent &component) {
-    }
-
-    template<>
-    void Renderer::onComponentAdded<DepthRenderPassComponent>(Entity entity,
-                                                              DepthRenderPassComponent &component) {
-    }
-
-    template<>
-    void Renderer::onComponentAdded<ImageViewComponent>(Entity entity,
-                                                        ImageViewComponent &component) {
-    }
-
-    template<>
-    void Renderer::onComponentAdded<CameraGraphicsPipelineComponent>(Entity entity,
-                                                                     CameraGraphicsPipelineComponent &component) {
-    }
-
-    template<>
-    void Renderer::onComponentAdded<DefaultGraphicsPipelineComponent2>(Entity entity,
-                                                                       DefaultGraphicsPipelineComponent2 &component) {
-    }
-
-    template<>
-    void Renderer::onComponentAdded<SecondaryRenderViewComponent>(Entity entity,
-                                                                  SecondaryRenderViewComponent &component) {
     }
 
     DISABLE_WARNING_POP

@@ -6,13 +6,8 @@
 #define MULTISENSE_VIEWER_SCENEHIERARCHY_H
 
 #include "Viewer/VkRender/ImGui/Layer.h"
-#include "Viewer/VkRender/Components/GLTFModelComponent.h"
-#include "Viewer/VkRender/Components/CameraGraphicsPipelineComponent.h"
 #include "Viewer/VkRender/Renderer.h"
-#include "Viewer/VkRender/Components/SkyboxGraphicsPipelineComponent.h"
-#include "Viewer/VkRender/Components/OBJModelComponent.h"
 #include "Viewer/VkRender/Entity.h"
-#include "Viewer/VkRender/Components/RenderComponents/DefaultGraphicsPipelineComponent2.h"
 #include "Viewer/VkRender/ImGui/LayerUtils.h"
 
 namespace VkRender {
@@ -36,6 +31,7 @@ namespace VkRender {
 
 
         void processEntities(GuiObjectHandles &handles) {
+            /*
             auto view = handles.m_context->registry().view<TagComponent>(
                     entt::exclude<SkyboxGraphicsPipelineComponent, VkRender::ScriptComponent>);
 
@@ -45,11 +41,13 @@ namespace VkRender {
                 // Process each entity here
                 processEntity(handles, entity, tag);
             }
+             */
         }
 
         void processEntity(GuiObjectHandles &handles, entt::entity entity, TagComponent &tag) {
             // Your processing logic here
             // This function is called for both component types
+            /*
             if (ImGui::TreeNodeEx(tag.Tag.c_str(), ImGuiTreeNodeFlags_None)) {
                 auto e = Entity(entity, handles.m_context);
                 if (e.hasComponent<DefaultGraphicsPipelineComponent2>()) {
@@ -70,6 +68,7 @@ namespace VkRender {
 
                 ImGui::TreePop();
             }
+             */
         }
 
         // Example function to handle file import (you'll need to implement the actual logic)

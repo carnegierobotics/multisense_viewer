@@ -84,17 +84,18 @@ set(SOURCE_FILES
         src/Viewer/VkRender/Renderer.cpp
         src/Viewer/VkRender/Editor.cpp
         src/Viewer/VkRender/Entity.cpp
-        src/Viewer/VkRender/Components/SkyboxGraphicsPipelineComponent.cpp
-        src/Viewer/VkRender/Components/DefaultPBRGraphicsPipelineComponent.cpp
-        src/Viewer/VkRender/Components/GLTFModelComponent.cpp
-        src/Viewer/VkRender/Components/CustomModels.cpp
-        src/Viewer/VkRender/Components/GLTFDefines.h
-        src/Viewer/VkRender/Components/SecondaryCameraComponent.cpp
-        src/Viewer/VkRender/Components/OBJModelComponent.cpp
-        src/Viewer/VkRender/Components/RenderComponents/DefaultGraphicsPipelineComponent2.cpp
-        src/Viewer/VkRender/Components/CameraGraphicsPipelineComponent.h
         src/Viewer/VkRender/UsageMonitor.cpp
         src/Viewer/VkRender/ApplicationUserSetting.h
+
+        #src/Viewer/VkRender/Components/SkyboxGraphicsPipelineComponent.cpp
+        #src/Viewer/VkRender/Components/DefaultPBRGraphicsPipelineComponent.cpp
+        #src/Viewer/VkRender/Components/GLTFModelComponent.cpp
+        #src/Viewer/VkRender/Components/CustomModels.cpp
+        #src/Viewer/VkRender/Components/GLTFDefines.h
+        #src/Viewer/VkRender/Components/SecondaryCameraComponent.cpp
+        #src/Viewer/VkRender/Components/OBJModelComponent.cpp
+        #src/Viewer/VkRender/Components/RenderComponents/DefaultGraphicsPipelineComponent2.cpp
+        #src/Viewer/VkRender/Components/CameraGraphicsPipelineComponent.h
 
         src/Viewer/VkRender/ImGui/Widgets.cpp
         src/Viewer/VkRender/ImGui/GuiManager.cpp
@@ -102,19 +103,20 @@ set(SOURCE_FILES
         src/Viewer/VkRender/ImGui/LayerFactory.cpp
         src/Viewer/VkRender/ImGui/GuiResources.cpp
 
+        src/Viewer/VkRender/Editors/MainContextLayer.h
+        src/Viewer/VkRender/Editors/MultiSenseViewer/Layers/LayoutSettingsLayer.h
+        src/Viewer/VkRender/Editors/Viewport/EditorViewport.cpp
+
         src/Viewer/Tools/StbInclude.cpp
         src/Viewer/Tools/Logger.cpp
         src/Viewer/Tools/ThreadPool.h
-
-        src/Viewer/Scenes/ScriptSupport/ScriptUtils.h
 
         src/Viewer/Scenes/MultiSenseViewer/Modules/LibMultiSense/MultiSenseRendererBridge.cpp
         src/Viewer/Scenes/MultiSenseViewer/Modules/LibMultiSense/CommonHeader.h
         src/Viewer/Scenes/MultiSenseViewer/Modules/LibMultiSense/LibMultiSenseConnector.cpp
         src/Viewer/Scenes/MultiSenseViewer/Modules/LibMultiSense/MultiSenseTaskManager.cpp
-        src/Viewer/VkRender/Editors/MainContextLayer.h
-        src/Viewer/VkRender/Editors/MultiSenseViewer/Layers/LayoutSettingsLayer.h
-        src/Viewer/VkRender/Editors/Viewport/EditorViewport.cpp
+
+        src/Viewer/Scenes/ScriptSupport/ScriptUtils.h
 )
 
 set (SCRIPT_FILES

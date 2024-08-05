@@ -885,6 +885,7 @@ namespace VkRender {
     }
 
     void SkyboxGraphicsPipelineComponent::setupUniformBuffers() {
+        /*
         bufferSkyboxVert.resize(renderUtils->swapchainImages);
         bufferSkyboxFrag.resize(renderUtils->swapchainImages);
         for (size_t i = 0; i < renderUtils->swapchainImages; ++i) {
@@ -899,6 +900,7 @@ namespace VkRender {
             bufferSkyboxFrag[i].map();
 
         }
+         */
     }
 
     void
@@ -919,6 +921,7 @@ namespace VkRender {
             materialCount++;
         }
 
+        /*
         std::vector<VkDescriptorPoolSize> poolSizes = {
                 {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         (4 + meshCount) * renderUtils->swapchainImages},
                 {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imageSamplerCount * renderUtils->swapchainImages},
@@ -986,6 +989,7 @@ namespace VkRender {
             vkUpdateDescriptorSets(vulkanDevice->m_LogicalDevice, static_cast<uint32_t>(writeDescriptorSets.size()),
                                    writeDescriptorSets.data(), 0, nullptr);
         }
+         */
     }
 
     void SkyboxGraphicsPipelineComponent::setupPipelines() {
@@ -1026,7 +1030,7 @@ namespace VkRender {
 
         VkPipelineMultisampleStateCreateInfo multisampleStateCI{};
         multisampleStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-        multisampleStateCI.rasterizationSamples = renderUtils->msaaSamples;
+        //multisampleStateCI.rasterizationSamples = renderUtils->msaaSamples;
 
 
         std::vector<VkDynamicState> dynamicStateEnables = {
@@ -1074,7 +1078,7 @@ namespace VkRender {
         VkGraphicsPipelineCreateInfo pipelineCI{};
         pipelineCI.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
         pipelineCI.layout = pipelineLayout;
-        pipelineCI.renderPass = *renderUtils->renderPass;
+        //pipelineCI.renderPass = *renderUtils->renderPass;
         pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
         pipelineCI.pVertexInputState = &vertexInputStateCI;
         pipelineCI.pRasterizationState = &rasterizationStateCI;
@@ -1103,8 +1107,8 @@ namespace VkRender {
     }
 
     void SkyboxGraphicsPipelineComponent::update() {
-        memcpy(bufferSkyboxFrag[renderUtils->swapchainIndex].mapped, &shaderValuesParams, sizeof(VkRender::ShaderValuesParams));
-        memcpy(bufferSkyboxVert[renderUtils->swapchainIndex].mapped, &uboMatrix, sizeof(VkRender::UBOMatrix));
+        //memcpy(bufferSkyboxFrag[renderUtils->swapchainIndex].mapped, &shaderValuesParams, sizeof(VkRender::ShaderValuesParams));
+        //memcpy(bufferSkyboxVert[renderUtils->swapchainIndex].mapped, &uboMatrix, sizeof(VkRender::UBOMatrix));
 
     }
 

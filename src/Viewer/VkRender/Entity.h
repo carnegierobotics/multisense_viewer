@@ -10,7 +10,7 @@
 
 #include "Viewer/Tools/Macros.h"
 #include "Viewer/VkRender/Renderer.h"
-#include "Viewer/VkRender/Components.h"
+#include "Viewer/VkRender/Components/Components.h"
 
 
 namespace VkRender {

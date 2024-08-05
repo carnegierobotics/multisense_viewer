@@ -30,9 +30,9 @@ namespace VkRender {
 
         SkyboxGraphicsPipelineComponent &operator=(const SkyboxGraphicsPipelineComponent &other) { return *this; }
 
+        /*
         SkyboxGraphicsPipelineComponent(VkRender::RenderUtils *utils,
                                         const VkRender::GLTFModelComponent &modelComponent) {
-            renderUtils = utils;
             vulkanDevice = utils->device;
 
             // Setup random number generation
@@ -54,8 +54,9 @@ namespace VkRender {
             generateBRDFLUT();
             setupUniformBuffers();
             setupDescriptors(modelComponent);
-            //setupPipelines();
+            setupPipelines();
         }
+         */
 
         ~SkyboxGraphicsPipelineComponent(){
 
@@ -66,7 +67,6 @@ namespace VkRender {
 
         };
         VulkanDevice *vulkanDevice = nullptr;
-        VkRender::RenderUtils *renderUtils = nullptr;
 
         struct Textures {
             TextureCubeMap environmentCube;

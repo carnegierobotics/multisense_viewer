@@ -30,6 +30,11 @@ namespace VkRender {
         size_t editorIndex = 0;
         std::vector<std::string> uiLayers;
         ImGuiContext* uiContext = nullptr;
+        uint32_t swapchainImageCount = 0;
+        VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
+        VkFormat swapchainColorFormat;
+        VkFormat depthFormat;
+
 
         VkAttachmentLoadOp loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
         VkImageLayout initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -53,6 +58,10 @@ namespace VkRender {
             dst->editorIndex = src->editorIndex;
             dst->uiContext = src->uiContext;
             dst->uiLayers = src->uiLayers;
+            dst->swapchainImageCount = src->swapchainImageCount;
+            dst->msaaSamples = src->msaaSamples;
+            dst->swapchainColorFormat = src->swapchainColorFormat;
+            dst->depthFormat = src->depthFormat;
         }
 
 

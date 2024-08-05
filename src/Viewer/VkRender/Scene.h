@@ -15,7 +15,7 @@ namespace VkRender {
         Scene() = delete;
         explicit Scene(Renderer& ctx) : m_context(ctx) {}
 
-        virtual void render() = 0;
+        virtual void render(CommandBuffer& drawCmdBuffers) = 0;
         virtual void update() = 0;
 
         // Virtual destructor

@@ -196,28 +196,6 @@ namespace VkRender {
         }
 
     };
-
-
-    /** Containing Basic Vulkan Resources for rendering for use in scripts **/
-    struct RenderUtils {
-        VulkanDevice *device{};
-        VkInstance *instance{};
-        VkRenderPass *renderPass{};
-        Input* input{};
-        uint32_t height = 0;
-        uint32_t width = 0;
-
-        // Multiple viewpoint (Off screen rendering)
-        VkFormat swapchainColorFormat {};
-        VkFormat depthFormat {};
-        uint32_t swapchainIndex = 0;
-        VkQueue graphicsQueue;
-        VkSampleCountFlagBits msaaSamples;
-        uint32_t swapchainImages = 0; // TODO rename to swapchain images
-
-    };
-
-
 }
 
 

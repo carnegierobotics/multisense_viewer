@@ -14,18 +14,17 @@ namespace VkRender {
 
 
     VulkanRenderPass::VulkanRenderPass(const VulkanRenderPassCreateInfo &createInfo) : m_logicalDevice(
-            createInfo.context->vkDevice()), m_allocator(createInfo.context->allocator()) {
+            createInfo.context->vkDevice().m_LogicalDevice), m_allocator(createInfo.context->allocator()) {
 
-        VkSampleCountFlagBits sampleCount = createInfo.context->data().msaaSamples;
+        VkSampleCountFlagBits sampleCount = createInfo.msaaSamples;
         uint32_t width =  std::max(createInfo.width , 0);
         uint32_t height = std::max(createInfo.height, 0);
-        const auto &data = createInfo.context->data();
         std::string editorTypeDescription = editorTypeToString(createInfo.editorTypeDescription);
 
         //// COLOR IMAGE RESOURCE /////
         VkImageCreateInfo colorImageCI = Populate::imageCreateInfo();
         colorImageCI.imageType = VK_IMAGE_TYPE_2D;
-        colorImageCI.format = data.swapchainColorFormat;
+        colorImageCI.format = createInfo.swapchainColorFormat;
         colorImageCI.extent = {width, height, 1};
         colorImageCI.mipLevels = 1;
         colorImageCI.arrayLayers = 1;
@@ -43,7 +42,7 @@ namespace VkRender {
                                          &m_colorImage.colorImageAllocation, nullptr);
         if (result != VK_SUCCESS) throw std::runtime_error("Failed to create colorImage");
 
-        VALIDATION_DEBUG_NAME(data.device->m_LogicalDevice,
+        VALIDATION_DEBUG_NAME(m_logicalDevice,
                               reinterpret_cast<uint64_t>(m_colorImage.image), VK_OBJECT_TYPE_IMAGE,
                               (editorTypeDescription + "UIPassImage").c_str());
 
@@ -69,25 +68,25 @@ namespace VkRender {
         VkImageViewCreateInfo colorImageViewCI = Populate::imageViewCreateInfo();
         colorImageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
         colorImageViewCI.image = m_colorImage.image;
-        colorImageViewCI.format = data.swapchainColorFormat;
+        colorImageViewCI.format = createInfo.swapchainColorFormat;
         colorImageViewCI.subresourceRange.baseMipLevel = 0;
         colorImageViewCI.subresourceRange.levelCount = 1;
         colorImageViewCI.subresourceRange.baseArrayLayer = 0;
         colorImageViewCI.subresourceRange.layerCount = 1;
         colorImageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 // Stencil aspect should only be set on depth + stencil formats (VK_FORMAT_D16_UNORM_S8_UINT..VK_FORMAT_D32_SFLOAT_S8_UINT
-        if (data.depthFormat >= VK_FORMAT_D16_UNORM_S8_UINT) {
+        if (createInfo.depthFormat >= VK_FORMAT_D16_UNORM_S8_UINT) {
             colorImageViewCI.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
         }
 
-        result = vkCreateImageView(data.device->m_LogicalDevice, &colorImageViewCI, nullptr,
+        result = vkCreateImageView(m_logicalDevice, &colorImageViewCI, nullptr,
                                    &m_colorImage.view);
         if (result != VK_SUCCESS) throw std::runtime_error("Failed to create colorImage view");
 
         /*
         if (multisampled) {
             colorImageViewCI.image = colorImage.resolvedImage;
-            result = vkCreateImageView(data.device->m_LogicalDevice, &colorImageViewCI, nullptr,
+            result = vkCreateImageView(m_logicalDevice, &colorImageViewCI, nullptr,
                                        &colorImage.resolvedView);
             if (result != VK_SUCCESS) throw std::runtime_error("Failed to create resolvedView");
         }
@@ -112,15 +111,15 @@ namespace VkRender {
         samplerInfo.maxLod = VK_LOD_CLAMP_NONE; // Maximum level of detail
         samplerInfo.mipLodBias = 0.0f; // Level of detail bias
 
-        if (vkCreateSampler(data.device->m_LogicalDevice, &samplerInfo, nullptr,
+        if (vkCreateSampler(m_logicalDevice, &samplerInfo, nullptr,
                             &m_colorImage.sampler) !=
             VK_SUCCESS) {
             throw std::runtime_error("failed to create texture sampler!");
         }
 
         VkAttachmentDescription uiColorAttachment = {};
-        uiColorAttachment.format = data.swapchainColorFormat;
-        uiColorAttachment.samples = data.msaaSamples;
+        uiColorAttachment.format = createInfo.swapchainColorFormat;
+        uiColorAttachment.samples = createInfo.msaaSamples;
         uiColorAttachment.loadOp = createInfo.loadOp; // Load since it follows the main pass
         uiColorAttachment.storeOp = createInfo.storeOp;
         uiColorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -132,7 +131,7 @@ namespace VkRender {
         uiColorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
         VkAttachmentDescription uiResolveAttachment = {};
-        uiResolveAttachment.format = data.swapchainColorFormat;
+        uiResolveAttachment.format = createInfo.swapchainColorFormat;
         uiResolveAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
         uiResolveAttachment.loadOp = createInfo.loadOp;
         uiResolveAttachment.storeOp = createInfo.storeOp;
@@ -145,8 +144,8 @@ namespace VkRender {
         uiResolveAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
         VkAttachmentDescription dummyDepthAttachment = {};
-        dummyDepthAttachment.format = data.depthFormat;
-        dummyDepthAttachment.samples = data.msaaSamples;
+        dummyDepthAttachment.format = createInfo.depthFormat;
+        dummyDepthAttachment.samples = createInfo.msaaSamples;
         dummyDepthAttachment.loadOp = createInfo.loadOp;
         dummyDepthAttachment.storeOp = createInfo.storeOp;
         dummyDepthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -193,11 +192,11 @@ namespace VkRender {
         uiRenderPassInfo.dependencyCount = static_cast<uint32_t>(uiDependencies.size());
         uiRenderPassInfo.pDependencies = uiDependencies.data();
 
-        if (vkCreateRenderPass(data.device->m_LogicalDevice, &uiRenderPassInfo, nullptr,
+        if (vkCreateRenderPass(m_logicalDevice, &uiRenderPassInfo, nullptr,
                                &m_renderPass) != VK_SUCCESS) {
             throw std::runtime_error("failed to create UI render pass!");
         }
-        VALIDATION_DEBUG_NAME(data.device->m_LogicalDevice,
+        VALIDATION_DEBUG_NAME(m_logicalDevice,
                               reinterpret_cast<uint64_t>(m_renderPass), VK_OBJECT_TYPE_RENDER_PASS,
                               (editorTypeDescription + "UIRenderPass").c_str());
 

@@ -3,10 +3,8 @@
 //
 #include "Viewer/VkRender/Renderer.h"
 #include "Viewer/VkRender/Entity.h"
-#include "Viewer/VkRender/Components/SkyboxGraphicsPipelineComponent.h"
 
 #include "Viewer/Scenes/Default/DefaultScene.h"
-#include "Viewer/VkRender/Components/CustomModels.h"
 
 namespace VkRender {
 
@@ -18,7 +16,7 @@ namespace VkRender {
         // Create grid
 
         auto grid = m_context.createEntity("3DViewerGrid");
-        grid.addComponent<VkRender::CustomModelComponent>(&m_context.data());
+        //grid.addComponent<VkRender::CustomModelComponent>(&m_context.data());
 
         loadSkybox();
         loadScripts();
@@ -28,12 +26,14 @@ namespace VkRender {
 
     void DefaultScene::loadScripts() {
         //std::vector<std::string> availableScriptNames{"MultiSense", "ImageViewer"};
+        /*
         std::vector<std::string> availableScriptNames{"MultiSense"};
 
         for (const auto &scriptName: availableScriptNames) {
             auto e = m_context.createEntity(scriptName);
             e.addComponent<ScriptComponent>(e.getName(),& m_context);
         }
+        */
 
         auto view = m_context.registry().view<ScriptComponent>();
         for (auto entity: view) {
@@ -45,9 +45,8 @@ namespace VkRender {
     void DefaultScene::loadSkybox() {
         // Load skybox
         auto skybox = m_context.createEntity("Skybox");
-        auto &modelComponent = skybox.addComponent<VkRender::GLTFModelComponent>(
-                Utils::getModelsPath() / "Box" / "Box.gltf", m_context.data().device);
-        skybox.addComponent<VkRender::SkyboxGraphicsPipelineComponent>(&m_context.data(), modelComponent);
+        //auto &modelComponent = skybox.addComponent<VkRender::GLTFModelComponent>(Utils::getModelsPath() / "Box" / "Box.gltf", m_context.data().device);
+        //skybox.addComponent<VkRender::SkyboxGraphicsPipelineComponent>(&m_context.data(), modelComponent);
 
     }
 
@@ -55,8 +54,17 @@ namespace VkRender {
 
     }
 
-    void DefaultScene::render() {
+    void DefaultScene::render(CommandBuffer &drawCmdBuffers) {
+        uint32_t currentFrame = *drawCmdBuffers.frameIndex;
+        /*
+        auto sky = m_context.findEntityByName("Skybox");
+        if (sky)
+            sky.getComponent<VkRender::SkyboxGraphicsPipelineComponent>().draw(&drawCmdBuffers, currentFrame);
+        auto modelComponent = m_context.findEntityByName("Skybox");
+        if (modelComponent)
+            modelComponent.getComponent<VkRender::GLTFModelComponent>().model->draw(drawCmdBuffers.buffers[currentFrame]);
 
+         */
     }
 
     void DefaultScene::update() {
@@ -68,13 +76,16 @@ namespace VkRender {
 
         auto skybox = m_context.findEntityByName("Skybox");
         if (skybox) {
+            /*
             auto &obj = skybox.getComponent<VkRender::SkyboxGraphicsPipelineComponent>();
             // Skybox
             obj.uboMatrix.projection = camera.matrices.perspective;
             obj.uboMatrix.model = glm::mat4(glm::mat3(camera.matrices.view));
-            obj.uboMatrix.model = glm::rotate(obj.uboMatrix.model, glm::radians(90.0f), glm::vec3(1.0, 0.0, 0.0)); // z-up rotation
+            obj.uboMatrix.model = glm::rotate(obj.uboMatrix.model, glm::radians(90.0f),
+                                              glm::vec3(1.0, 0.0, 0.0)); // z-up rotation
 
             obj.update();
+*/
         }
 
 

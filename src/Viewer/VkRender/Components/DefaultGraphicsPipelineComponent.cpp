@@ -24,28 +24,28 @@ namespace VkRender {
         if (resourcesIdle || force) {
             Log::Logger::getInstance()->trace("Cleaning up vulkan resources for DefaultGraphicsPipeline");
             for (auto &data: m_renderData) {
-                vkDestroyDescriptorSetLayout(m_vulkanDevice->m_LogicalDevice, data.descriptorSetLayout, nullptr);
-                vkDestroyDescriptorPool(m_vulkanDevice->m_LogicalDevice, data.descriptorPool, nullptr);
+                vkDestroyDescriptorSetLayout(m_vulkanDevice.m_LogicalDevice, data.descriptorSetLayout, nullptr);
+                vkDestroyDescriptorPool(m_vulkanDevice.m_LogicalDevice, data.descriptorPool, nullptr);
 
                 for (const auto &pipeline: data.pipeline) {
-                    vkDestroyPipeline(m_vulkanDevice->m_LogicalDevice, pipeline.second, nullptr);
+                    vkDestroyPipeline(m_vulkanDevice.m_LogicalDevice, pipeline.second, nullptr);
                 }
                 for (const auto &pipeline: data.pipelineLayout) {
-                    vkDestroyPipelineLayout(m_vulkanDevice->m_LogicalDevice, pipeline.second, nullptr);
+                    vkDestroyPipelineLayout(m_vulkanDevice.m_LogicalDevice, pipeline.second, nullptr);
                 }
             }
 
             if (vertices.buffer != VK_NULL_HANDLE) {
-                vkDestroyBuffer(m_vulkanDevice->m_LogicalDevice, vertices.buffer, nullptr);
+                vkDestroyBuffer(m_vulkanDevice.m_LogicalDevice, vertices.buffer, nullptr);
             }
             if (vertices.memory != VK_NULL_HANDLE) {
-                vkFreeMemory(m_vulkanDevice->m_LogicalDevice, vertices.memory, nullptr);
+                vkFreeMemory(m_vulkanDevice.m_LogicalDevice, vertices.memory, nullptr);
             }
             if (indices.buffer != VK_NULL_HANDLE) {
-                vkDestroyBuffer(m_vulkanDevice->m_LogicalDevice, indices.buffer, nullptr);
+                vkDestroyBuffer(m_vulkanDevice.m_LogicalDevice, indices.buffer, nullptr);
             }
             if (indices.memory != VK_NULL_HANDLE) {
-                vkFreeMemory(m_vulkanDevice->m_LogicalDevice, indices.memory, nullptr);
+                vkFreeMemory(m_vulkanDevice.m_LogicalDevice, indices.memory, nullptr);
             }
             resourcesDeleted = true;
         } else {
@@ -59,113 +59,150 @@ namespace VkRender {
     }
 
 
-    void DefaultGraphicsPipelineComponent2::update(uint32_t currentFrame) {
 
 
-        if (requestRebuildPipelines) {
-            // Check if all render data are ready
-            bool allReady = std::all_of(m_renderData.begin(), m_renderData.end(),
-                                        [](const DefaultRenderData &renderData) {
-                                            return !renderData.isBusy();
-                                        });
 
-            if (!allReady) return;
 
-            for (auto &renderData: m_renderData) {
 
-                for (auto &pipelineLayout: renderData.pipelineLayout) {
-                    vkDestroyPipelineLayout(m_vulkanDevice->m_LogicalDevice,
-                                            pipelineLayout.second, nullptr);
-                }
-                for (auto &pipeline: renderData.pipeline) {
-                    vkDestroyPipeline(m_vulkanDevice->m_LogicalDevice, pipeline.second, nullptr);
-                }
 
-                               setupPipeline(renderData, RENDER_PASS_COLOR, m_vertexShader, m_fragmentShader,
-                                             m_utils->msaaSamples, *m_utils->renderPass);
-                               setupPipeline(renderData, RENDER_PASS_SECOND, m_vertexShader, m_fragmentShader,
-                                             m_utils->msaaSamples, *m_utils->renderPass);
 
-                               setupPipeline(renderData, RENDER_PASS_DEPTH_ONLY, m_vertexShader, m_fragmentShader,
-                                             VK_SAMPLE_COUNT_1_BIT,
-                                             m_utils->depthRenderPass->renderPass);
+    */
 
-                requestRebuildPipelines = false;
-                resumeRendering();
+
+    DefaultGraphicsPipelineComponent::DefaultGraphicsPipelineComponent(Renderer &m_context,
+                                                                       const RenderPassInfo &renderPassInfo,
+                                                                       const std::string &vertexShader,
+                                                                       const std::string &fragmentShader)
+            : m_vulkanDevice(m_context.vkDevice()),
+              m_renderPassInfo(std::move(renderPassInfo)) {
+
+        m_numSwapChainImages = m_context.swapChainBuffers().size();
+        m_vulkanDevice = m_context.vkDevice();
+
+        m_emptyTexture.fromKtxFile((Utils::getTexturePath() / "empty.ktx").string(), VK_FORMAT_R8G8B8A8_UNORM,
+                                   &m_vulkanDevice, m_vulkanDevice.m_TransferQueue);
+
+        m_vertexShader = vertexShader;
+        m_fragmentShader = fragmentShader;
+
+        m_renderData.resize(m_numSwapChainImages);
+
+        setupUniformBuffers();
+        setupDescriptors();
+
+        setupPipeline();
+    }
+
+
+    bool DefaultGraphicsPipelineComponent::cleanUp(uint32_t currentFrame, bool force) {
+        return false;
+    }
+
+    void DefaultGraphicsPipelineComponent::pauseRendering() {
+        RenderBase::pauseRendering();
+    }
+
+    void DefaultGraphicsPipelineComponent::resumeRendering() {
+        RenderBase::resumeRendering();
+    }
+
+    bool DefaultGraphicsPipelineComponent::shouldStopRendering() {
+        return RenderBase::shouldStopRendering();
+    }
+
+
+    void DefaultGraphicsPipelineComponent::setupUniformBuffers() {
+        for (auto &data: m_renderData) {
+            m_vulkanDevice.createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+                                        &data.fragShaderParamsBuffer, sizeof(VkRender::ShaderValuesParams));
+            m_vulkanDevice.createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+                                        &data.mvpBuffer, sizeof(VkRender::UBOMatrix));
+
+            data.mvpBuffer.map();
+            data.fragShaderParamsBuffer.map();
+        }
+    }
+
+
+    void DefaultGraphicsPipelineComponent::setupDescriptors() {
+        std::vector<VkDescriptorPoolSize> poolSizes = {
+                {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         m_numSwapChainImages * 2},
+                {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, m_numSwapChainImages * 2},
+        };
+
+        VkDescriptorPoolCreateInfo descriptorPoolCI{};
+        descriptorPoolCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+        descriptorPoolCI.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+        descriptorPoolCI.pPoolSizes = poolSizes.data();
+        descriptorPoolCI.maxSets = m_numSwapChainImages * static_cast<uint32_t>(poolSizes.size());
+        CHECK_RESULT(
+                vkCreateDescriptorPool(m_vulkanDevice.m_LogicalDevice, &descriptorPoolCI, nullptr,
+                                       &m_sharedRenderData.descriptorPool));
+
+
+        // Scene (matrices and environment maps)
+        {
+            std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
+                    {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1,
+                                                                      VK_SHADER_STAGE_VERTEX_BIT |
+                                                                      VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+                    {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+                    {2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+            };
+            VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCI{};
+            descriptorSetLayoutCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+            descriptorSetLayoutCI.pBindings = setLayoutBindings.data();
+            descriptorSetLayoutCI.bindingCount = static_cast<uint32_t>(setLayoutBindings.size());
+            CHECK_RESULT(
+                    vkCreateDescriptorSetLayout(m_vulkanDevice.m_LogicalDevice, &descriptorSetLayoutCI,
+                                                nullptr,
+                                                &m_sharedRenderData.descriptorSetLayout));
+
+            for (auto &resource: m_renderData) {
+                VkDescriptorSetAllocateInfo descriptorSetAllocInfo{};
+                descriptorSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+                descriptorSetAllocInfo.descriptorPool = m_sharedRenderData.descriptorPool;
+                descriptorSetAllocInfo.pSetLayouts = &m_sharedRenderData.descriptorSetLayout;
+                descriptorSetAllocInfo.descriptorSetCount = 1;
+                VkResult res = vkAllocateDescriptorSets(m_vulkanDevice.m_LogicalDevice, &descriptorSetAllocInfo,
+                                                        &resource.descriptorSet);
+                if (res != VK_SUCCESS)
+                    throw std::runtime_error("Failed to allocate descriptor sets");
+
+                std::array<VkWriteDescriptorSet, 3> writeDescriptorSets{};
+
+                writeDescriptorSets[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                writeDescriptorSets[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                writeDescriptorSets[0].descriptorCount = 1;
+                writeDescriptorSets[0].dstSet = resource.descriptorSet;
+                writeDescriptorSets[0].dstBinding = 0;
+                writeDescriptorSets[0].pBufferInfo = &resource.mvpBuffer.m_DescriptorBufferInfo;
+
+                writeDescriptorSets[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                writeDescriptorSets[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                writeDescriptorSets[1].descriptorCount = 1;
+                writeDescriptorSets[1].dstSet = resource.descriptorSet;
+                writeDescriptorSets[1].dstBinding = 1;
+                writeDescriptorSets[1].pBufferInfo = &resource.fragShaderParamsBuffer.m_DescriptorBufferInfo;
+
+                writeDescriptorSets[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                writeDescriptorSets[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                writeDescriptorSets[2].descriptorCount = 1;
+                writeDescriptorSets[2].dstSet = resource.descriptorSet;
+                writeDescriptorSets[2].dstBinding = 2;
+                writeDescriptorSets[2].pImageInfo = &m_emptyTexture.m_descriptor;
+
+                vkUpdateDescriptorSets(m_vulkanDevice.m_LogicalDevice,
+                                       static_cast<uint32_t>(writeDescriptorSets.size()),
+                                       writeDescriptorSets.data(), 0, nullptr);
             }
-
         }
-
-        if (shouldStopRendering())
-            return;
-
-        memcpy(m_renderData[currentFrame].fragShaderParamsBuffer.mapped,
-               &fragShaderParams, sizeof(VkRender::ShaderValuesParams));
-
-        memcpy(m_renderData[currentFrame].mvpBuffer.mapped,
-               &mvp, sizeof(VkRender::UBOMatrix));
-
-    }
-
-    void DefaultGraphicsPipelineComponent2::updateTransform(const TransformComponent& transform){
-        mvp.model = transform.GetTransform();
-
-    }
-    void DefaultGraphicsPipelineComponent2::updateView(const Camera& camera){
-        mvp.view = camera.matrices.view;
-        mvp.projection = camera.matrices.perspective;
-        mvp.camPos = camera.pose.pos;
-
-    }
-
-    void DefaultGraphicsPipelineComponent2::reloadShaders() {
-        requestRebuildPipelines = true;
-        pauseRendering();
-    }
-
-    void DefaultGraphicsPipelineComponent2::draw(CommandBuffer *cmdBuffers) {
-        const uint32_t& cbIndex = *cmdBuffers->frameIndex;
-        auto renderPassType = cmdBuffers->renderPassType;
-
-        if (shouldStopRendering() || m_renderData[cbIndex].requestIdle[renderPassType]) {
-            m_renderData[cbIndex].busy[renderPassType] = false; // Since we are not going to record on this command buffer we can set is as not busy (True for next frame)
-            return;
-        }
-
-        vkCmdBindPipeline(cmdBuffers->buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS,
-                          m_renderData[cbIndex].pipeline[renderPassType]);
-
-        // TODO Make dynamic with amount of renderpassess allocated
-        vkCmdBindDescriptorSets(cmdBuffers->buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                m_renderData[cbIndex].pipelineLayout[renderPassType], 0, static_cast<uint32_t>(1),
-                                &m_renderData[cbIndex].descriptorSets[cbIndex], 0, nullptr);
-
-        // DrawCmdIndexed
-
-
-        VkDeviceSize offsets[1] = {0};
-        vkCmdBindVertexBuffers(cmdBuffers->buffers[cbIndex], 0, 1, &vertices.buffer, offsets);
-        if (indices.buffer != VK_NULL_HANDLE) {
-            vkCmdBindIndexBuffer(cmdBuffers->buffers[cbIndex], indices.buffer, 0,
-                                 VK_INDEX_TYPE_UINT32);
-        }
-
-        if (indices.buffer != VK_NULL_HANDLE) {
-            vkCmdDrawIndexed(cmdBuffers->buffers[cbIndex], indices.indexCount, 1,
-                             0, 0, 0);
-        } else {
-            vkCmdDraw(cmdBuffers->buffers[cbIndex], vertices.vertexCount, 1, 0, 0);
-        }
-
-        m_renderData[cbIndex].busy[renderPassType] = true;
     }
 
 
-    void DefaultGraphicsPipelineComponent2::setupPipeline(DefaultRenderData &data, RenderPassType type,
-                                                          const std::string &vertexShader,
-                                                          const std::string &fragmentShader,
-                                                          VkSampleCountFlagBits sampleCountFlagBits,
-                                                          VkRenderPass renderPass) {
+    void DefaultGraphicsPipelineComponent::setupPipeline() {
         VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI{};
         inputAssemblyStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
         inputAssemblyStateCI.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -203,7 +240,7 @@ namespace VkRender {
 
         VkPipelineMultisampleStateCreateInfo multisampleStateCI{};
         multisampleStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-        multisampleStateCI.rasterizationSamples = sampleCountFlagBits;
+        multisampleStateCI.rasterizationSamples = m_renderPassInfo.sampleCount;
 
 
         std::vector<VkDynamicState> dynamicStateEnables = {
@@ -215,22 +252,19 @@ namespace VkRender {
         dynamicStateCI.pDynamicStates = dynamicStateEnables.data();
         dynamicStateCI.dynamicStateCount = static_cast<uint32_t>(dynamicStateEnables.size());
 
-        // Pipeline layout
-        const std::vector<VkDescriptorSetLayout> setLayouts = {
-                data.descriptorSetLayout
-        };
+
         VkPipelineLayoutCreateInfo pipelineLayoutCI{};
         pipelineLayoutCI.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutCI.setLayoutCount = static_cast<uint32_t>(setLayouts.size());
-        pipelineLayoutCI.pSetLayouts = setLayouts.data();
+        pipelineLayoutCI.setLayoutCount = 1;
+        pipelineLayoutCI.pSetLayouts = &m_sharedRenderData.descriptorSetLayout;
         VkPushConstantRange pushConstantRange{};
         pushConstantRange.size = sizeof(uint32_t);
         pushConstantRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
         pipelineLayoutCI.pushConstantRangeCount = 1;
         pipelineLayoutCI.pPushConstantRanges = &pushConstantRange;
         CHECK_RESULT(
-                vkCreatePipelineLayout(m_vulkanDevice->m_LogicalDevice, &pipelineLayoutCI, nullptr,
-                                       &data.pipelineLayout[type]));
+                vkCreatePipelineLayout(m_vulkanDevice.m_LogicalDevice, &pipelineLayoutCI, nullptr,
+                                       &m_sharedRenderData.pipelineLayout));
 
         // Vertex bindings an attributes
         VkVertexInputBindingDescription vertexInputBinding = {0, sizeof(VkRender::Vertex),
@@ -252,8 +286,8 @@ namespace VkRender {
 
         VkGraphicsPipelineCreateInfo pipelineCI{};
         pipelineCI.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-        pipelineCI.layout = data.pipelineLayout[type];
-        pipelineCI.renderPass = renderPass;
+        pipelineCI.layout = m_sharedRenderData.pipelineLayout;
+        pipelineCI.renderPass = m_renderPassInfo.renderPass;
         pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
         pipelineCI.pVertexInputState = &vertexInputStateCI;
         pipelineCI.pRasterizationState = &rasterStateCI;
@@ -268,49 +302,93 @@ namespace VkRender {
         VkShaderModule vertModule{};
         VkShaderModule fragModule{};
 
-
-        shaderStages[0] = Utils::loadShader(m_vulkanDevice->m_LogicalDevice, "spv/" + vertexShader,
+        shaderStages[0] = Utils::loadShader(m_vulkanDevice.m_LogicalDevice, "spv/" + m_vertexShader,
                                             VK_SHADER_STAGE_VERTEX_BIT, &vertModule);
-        shaderStages[1] = Utils::loadShader(m_vulkanDevice->m_LogicalDevice, "spv/" + fragmentShader,
+        shaderStages[1] = Utils::loadShader(m_vulkanDevice.m_LogicalDevice, "spv/" + m_fragmentShader,
                                             VK_SHADER_STAGE_FRAGMENT_BIT, &fragModule);
 
         // Default pipeline with back-face culling
-        CHECK_RESULT(vkCreateGraphicsPipelines(m_vulkanDevice->m_LogicalDevice, nullptr, 1, &pipelineCI, nullptr,
-                                               &data.pipeline[type]));
+        CHECK_RESULT(vkCreateGraphicsPipelines(m_vulkanDevice.m_LogicalDevice, nullptr, 1, &pipelineCI, nullptr,
+                                               &m_sharedRenderData.pipeline));
 
         for (auto shaderStage: shaderStages) {
-            vkDestroyShaderModule(m_vulkanDevice->m_LogicalDevice, shaderStage.module, nullptr);
+            vkDestroyShaderModule(m_vulkanDevice.m_LogicalDevice, shaderStage.module, nullptr);
         }
-        // If the pipeline was updated and we had previously requested it to be idle
-        data.requestIdle[type] = false;
+    }
+
+
+    void DefaultGraphicsPipelineComponent::update(uint32_t currentFrame) {
+
+
+        if (shouldStopRendering())
+            return;
+
+        memcpy(m_renderData[currentFrame].fragShaderParamsBuffer.mapped,
+               &m_fragParams, sizeof(VkRender::ShaderValuesParams));
+
+        memcpy(m_renderData[currentFrame].mvpBuffer.mapped,
+               &m_vertexParams, sizeof(VkRender::UBOMatrix));
 
     }
 
-    void DefaultGraphicsPipelineComponent2::setTexture(const VkDescriptorImageInfo *info) {
+    void DefaultGraphicsPipelineComponent::updateTransform(const TransformComponent &transform) {
+        m_vertexParams.model = transform.GetTransform();
+
+    }
+
+    void DefaultGraphicsPipelineComponent::updateView(const Camera &camera) {
+        m_vertexParams.view = camera.matrices.view;
+        m_vertexParams.projection = camera.matrices.perspective;
+        m_vertexParams.camPos = camera.pose.pos;
+
+
+    }
+
+
+    void DefaultGraphicsPipelineComponent::draw(CommandBuffer &cmdBuffers) {
+        const uint32_t &cbIndex = *cmdBuffers.frameIndex;
+        vkCmdBindPipeline(cmdBuffers.buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, m_sharedRenderData.pipeline);
+        vkCmdBindDescriptorSets(cmdBuffers.buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                m_sharedRenderData.pipelineLayout, 0, static_cast<uint32_t>(1),
+                                &m_renderData[cbIndex].descriptorSet, 0, nullptr);
+        VkDeviceSize offsets[1] = {0};
+        vkCmdBindVertexBuffers(cmdBuffers.buffers[cbIndex], 0, 1, &vertices.buffer, offsets);
+        if (indices.buffer != VK_NULL_HANDLE) {
+            vkCmdBindIndexBuffer(cmdBuffers.buffers[cbIndex], indices.buffer, 0,
+                                 VK_INDEX_TYPE_UINT32);
+        }
+        if (indices.buffer != VK_NULL_HANDLE) {
+            vkCmdDrawIndexed(cmdBuffers.buffers[cbIndex], indices.indexCount, 1,
+                             0, 0, 0);
+        } else {
+            vkCmdDraw(cmdBuffers.buffers[cbIndex], vertices.vertexCount, 1, 0, 0);
+        }
+    }
+
+    void DefaultGraphicsPipelineComponent::setTexture(const VkDescriptorImageInfo *info) {
         VkWriteDescriptorSet writeDescriptorSets{};
 
         for (const auto &data: m_renderData) {
-            for (auto descriptorSet: data.descriptorSets) {
-                writeDescriptorSets.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-                writeDescriptorSets.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-                writeDescriptorSets.descriptorCount = 1;
-                writeDescriptorSets.dstSet = descriptorSet;
-                writeDescriptorSets.dstBinding = 2;
-                writeDescriptorSets.pImageInfo = info;
-                vkUpdateDescriptorSets(m_vulkanDevice->m_LogicalDevice, 1, &writeDescriptorSets, 0, nullptr);
-            }
+            writeDescriptorSets.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            writeDescriptorSets.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            writeDescriptorSets.descriptorCount = 1;
+            writeDescriptorSets.dstSet = data.descriptorSet;
+            writeDescriptorSets.dstBinding = 2;
+            writeDescriptorSets.pImageInfo = info;
+            vkUpdateDescriptorSets(m_vulkanDevice.m_LogicalDevice, 1, &writeDescriptorSets, 0, nullptr);
+
         }
     }
 
     template<>
     void
-    DefaultGraphicsPipelineComponent2::bind<VkRender::OBJModelComponent>(
+    DefaultGraphicsPipelineComponent::bind<VkRender::OBJModelComponent>(
             VkRender::OBJModelComponent &modelComponent) {
         // Bind possible textures
         if (modelComponent.m_pixels) {
             m_objTexture.fromBuffer(modelComponent.m_pixels, modelComponent.m_texSize, VK_FORMAT_R8G8B8A8_SRGB,
-                                    modelComponent.m_texWidth, modelComponent.m_texHeight, m_vulkanDevice,
-                                    m_vulkanDevice->m_TransferQueue);
+                                    modelComponent.m_texWidth, modelComponent.m_texHeight, &m_vulkanDevice,
+                                    m_vulkanDevice.m_TransferQueue);
             stbi_image_free(modelComponent.m_pixels);
 
             setTexture(&m_objTexture.m_descriptor);
@@ -329,7 +407,7 @@ namespace VkRender {
 
         // Create staging buffers
         // Vertex data
-        CHECK_RESULT(m_vulkanDevice->createBuffer(
+        CHECK_RESULT(m_vulkanDevice.createBuffer(
                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                 vertexBufferSize,
@@ -338,7 +416,7 @@ namespace VkRender {
                 modelComponent.m_vertices.data()));
         // Index data
         if (indexBufferSize > 0) {
-            CHECK_RESULT(m_vulkanDevice->createBuffer(
+            CHECK_RESULT(m_vulkanDevice.createBuffer(
                     VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                     indexBufferSize,
@@ -349,7 +427,7 @@ namespace VkRender {
 
         // Create m_vulkanDevice local buffers
         // Vertex buffer
-        CHECK_RESULT(m_vulkanDevice->createBuffer(
+        CHECK_RESULT(m_vulkanDevice.createBuffer(
                 VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                 vertexBufferSize,
@@ -357,7 +435,7 @@ namespace VkRender {
                 &vertices.memory));
         // Index buffer
         if (indexBufferSize > 0) {
-            CHECK_RESULT(m_vulkanDevice->createBuffer(
+            CHECK_RESULT(m_vulkanDevice.createBuffer(
                     VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                     indexBufferSize,
@@ -366,7 +444,7 @@ namespace VkRender {
         }
 
         // Copy from staging buffers
-        VkCommandBuffer copyCmd = m_vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+        VkCommandBuffer copyCmd = m_vulkanDevice.createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
 
         VkBufferCopy copyRegion = {};
 
@@ -378,162 +456,18 @@ namespace VkRender {
             vkCmdCopyBuffer(copyCmd, indexStaging.buffer, indices.buffer, 1, &copyRegion);
         }
 
-        m_vulkanDevice->flushCommandBuffer(copyCmd, m_vulkanDevice->m_TransferQueue, true);
+        m_vulkanDevice.flushCommandBuffer(copyCmd, m_vulkanDevice.m_TransferQueue, true);
 
-        vkDestroyBuffer(m_vulkanDevice->m_LogicalDevice, vertexStaging.buffer, nullptr);
-        vkFreeMemory(m_vulkanDevice->m_LogicalDevice, vertexStaging.memory, nullptr);
+        vkDestroyBuffer(m_vulkanDevice.m_LogicalDevice, vertexStaging.buffer, nullptr);
+        vkFreeMemory(m_vulkanDevice.m_LogicalDevice, vertexStaging.memory, nullptr);
         if (indexBufferSize > 0) {
-            vkDestroyBuffer(m_vulkanDevice->m_LogicalDevice, indexStaging.buffer, nullptr);
-            vkFreeMemory(m_vulkanDevice->m_LogicalDevice, indexStaging.memory, nullptr);
+            vkDestroyBuffer(m_vulkanDevice.m_LogicalDevice, indexStaging.buffer, nullptr);
+            vkFreeMemory(m_vulkanDevice.m_LogicalDevice, indexStaging.memory, nullptr);
         }
 
         modelComponent.m_vertices.clear();
         modelComponent.m_indices.clear();
-        boundToModel = true;
 
     }
 
-    */
-
-    void DefaultGraphicsPipelineComponent::draw(CommandBuffer *cmdBuffer) {
-
-    }
-
-    bool DefaultGraphicsPipelineComponent::cleanUp(uint32_t currentFrame, bool force) {
-        return false;
-    }
-
-    void DefaultGraphicsPipelineComponent::pauseRendering() {
-        RenderBase::pauseRendering();
-    }
-
-    void DefaultGraphicsPipelineComponent::resumeRendering() {
-        RenderBase::resumeRendering();
-    }
-
-    bool DefaultGraphicsPipelineComponent::shouldStopRendering() {
-        return RenderBase::shouldStopRendering();
-    }
-
-    void DefaultGraphicsPipelineComponent::update(uint32_t currentFrame) {
-
-    }
-
-
-    void DefaultGraphicsPipelineComponent::setupUniformBuffers() {
-        for (auto &data: m_renderData) {
-            m_vulkanDevice.createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                         VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-                                         &data.fragShaderParamsBuffer, sizeof(VkRender::ShaderValuesParams));
-            m_vulkanDevice.createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                         VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-                                         &data.mvpBuffer, sizeof(VkRender::UBOMatrix));
-
-            data.mvpBuffer.map();
-            data.fragShaderParamsBuffer.map();
-        }
-    }
-
-
-    void DefaultGraphicsPipelineComponent::setupDescriptors() {
-        /*
-        for (auto &resource: m_renderData) {
-
-
-            std::vector<VkDescriptorPoolSize> poolSizes = {
-                    {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         m_numSwapChainImages * 2},
-                    {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, m_numSwapChainImages * 2},
-            };
-
-            VkDescriptorPoolCreateInfo descriptorPoolCI{};
-            descriptorPoolCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-            descriptorPoolCI.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-            descriptorPoolCI.pPoolSizes = poolSizes.data();
-            descriptorPoolCI.maxSets = m_numSwapChainImages * static_cast<uint32_t>(poolSizes.size());
-            CHECK_RESULT(
-                    vkCreateDescriptorPool(m_vulkanDevice.m_LogicalDevice, &descriptorPoolCI, nullptr,
-                                           &resource.descriptorPool));
-
-
-            // Scene (matrices and environment maps)
-            {
-                std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
-                        {0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1,
-                                                                          VK_SHADER_STAGE_VERTEX_BIT |
-                                                                          VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-                        {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-                        {2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-                };
-                VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCI{};
-                descriptorSetLayoutCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-                descriptorSetLayoutCI.pBindings = setLayoutBindings.data();
-                descriptorSetLayoutCI.bindingCount = static_cast<uint32_t>(setLayoutBindings.size());
-                CHECK_RESULT(
-                        vkCreateDescriptorSetLayout(m_vulkanDevice.m_LogicalDevice, &descriptorSetLayoutCI,
-                                                    nullptr,
-                                                    &resource.descriptorSetLayout));
-
-                resource.descriptorSets.resize(m_numSwapChainImages);
-                for (size_t i = 0; i < resource.descriptorSets.size(); i++) {
-                    VkDescriptorSetAllocateInfo descriptorSetAllocInfo{};
-                    descriptorSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-                    descriptorSetAllocInfo.descriptorPool = resource.descriptorPool;
-                    descriptorSetAllocInfo.pSetLayouts = &resource.descriptorSetLayout;
-                    descriptorSetAllocInfo.descriptorSetCount = 1;
-                    VkResult res = vkAllocateDescriptorSets(m_vulkanDevice.m_LogicalDevice, &descriptorSetAllocInfo,
-                                                            &resource.descriptorSets[i]);
-                    if (res != VK_SUCCESS)
-                        throw std::runtime_error("Failed to allocate descriptor sets");
-
-                    std::array<VkWriteDescriptorSet, 3> writeDescriptorSets{};
-
-                    writeDescriptorSets[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-                    writeDescriptorSets[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-                    writeDescriptorSets[0].descriptorCount = 1;
-                    writeDescriptorSets[0].dstSet = resource.descriptorSets[i];
-                    writeDescriptorSets[0].dstBinding = 0;
-                    writeDescriptorSets[0].pBufferInfo = &resource.mvpBuffer.m_DescriptorBufferInfo;
-
-                    writeDescriptorSets[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-                    writeDescriptorSets[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-                    writeDescriptorSets[1].descriptorCount = 1;
-                    writeDescriptorSets[1].dstSet = resource.descriptorSets[i];
-                    writeDescriptorSets[1].dstBinding = 1;
-                    writeDescriptorSets[1].pBufferInfo = &resource.fragShaderParamsBuffer.m_DescriptorBufferInfo;
-
-                    writeDescriptorSets[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-                    writeDescriptorSets[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-                    writeDescriptorSets[2].descriptorCount = 1;
-                    writeDescriptorSets[2].dstSet = resource.descriptorSets[i];
-                    writeDescriptorSets[2].dstBinding = 2;
-                    writeDescriptorSets[2].pImageInfo = &m_emptyTexture.m_descriptor;
-
-                    vkUpdateDescriptorSets(m_vulkanDevice.m_LogicalDevice,
-                                           static_cast<uint32_t>(writeDescriptorSets.size()),
-                                           writeDescriptorSets.data(), 0, nullptr);
-                }
-            }
-        }
-        */
-    }
-
-
-    DefaultGraphicsPipelineComponent::DefaultGraphicsPipelineComponent(Renderer &m_context,
-                                                                       const std::string &vertexShader,
-                                                                       const std::string &fragmentShader) : m_vulkanDevice(m_context.vkDevice()) {
-
-        m_numSwapChainImages = m_context.swapChainBuffers().size();
-        m_vulkanDevice = m_context.vkDevice();
-
-        m_emptyTexture.fromKtxFile((Utils::getTexturePath() / "empty.ktx").string(), VK_FORMAT_R8G8B8A8_UNORM, &m_vulkanDevice, m_vulkanDevice.m_TransferQueue);
-
-        m_vertexShader = vertexShader;
-        m_fragmentShader = fragmentShader;
-
-        m_renderData.resize(m_numSwapChainImages);
-
-        setupUniformBuffers();
-        setupDescriptors();
-
-    }
 };

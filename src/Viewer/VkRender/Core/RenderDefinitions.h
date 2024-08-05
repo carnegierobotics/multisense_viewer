@@ -180,15 +180,15 @@ namespace VkRender {
     struct DefaultRenderData {
         Buffer fragShaderParamsBuffer;  // GPU Accessible, triple-buffered
         Buffer mvpBuffer;               // GPU Accessible, triple-buffered
-        std::vector<VkDescriptorSet> descriptorSets; // Triple-buffered
+        VkDescriptorSet descriptorSet; // Triple-buffered
     };
 
 /** @brief Shared resources across all frames */
     struct SharedRenderData {
         VkDescriptorPool descriptorPool{};
         VkDescriptorSetLayout descriptorSetLayout{};
-        std::unordered_map<RenderPassType, VkPipeline> pipeline{};
-        std::unordered_map<RenderPassType, VkPipelineLayout> pipelineLayout{};
+        VkPipeline pipeline{};
+        VkPipelineLayout pipelineLayout{};
     };
 
 }

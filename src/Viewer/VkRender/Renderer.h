@@ -109,6 +109,8 @@ namespace VkRender {
 
         ImGuiContext *getMainUIContext() { return m_mainEditor->guiContext(); }
 
+        uint32_t currentFrameIndex(){return currentFrame;}
+
         Camera &createNewCamera(const std::string &name, uint32_t width, uint32_t height);
 
         Camera &getCamera();

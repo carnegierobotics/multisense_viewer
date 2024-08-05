@@ -63,6 +63,10 @@ namespace VkRender {
                                          m_ui.height, m_ui.x, m_ui.y);
     }
 
+    void Editor::loadScene(){
+        onSceneLoad();
+    }
+
     void Editor::render(CommandBuffer &drawCmdBuffers) {
         const uint32_t &currentFrame = *drawCmdBuffers.frameIndex;
         const uint32_t &imageIndex = *drawCmdBuffers.activeImageIndex;

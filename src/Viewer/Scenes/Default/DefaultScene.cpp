@@ -15,10 +15,9 @@ namespace VkRender {
 
 
         auto entity = m_context.createEntity("FirstEntity");
-        auto &modelComponent = entity.addComponent<VkRender::OBJModelComponent>(Utils::getModelsPath() / "obj" / "quad.obj", &m_context.vkDevice());
+        auto &modelComponent = entity.addComponent<VkRender::OBJModelComponent>(Utils::getModelsPath() / "obj" / "s30.obj", &m_context.vkDevice());
         //auto &res = entity.addComponent<VkRender::DefaultGraphicsPipelineComponent2>(&m_context->data(),);
 
-        auto &res = entity.addComponent<VkRender::DefaultGraphicsPipelineComponent>(m_context);
 
         auto grid = m_context.createEntity("3DViewerGrid");
         //grid.addComponent<VkRender::CustomModelComponent>(&m_context.data());
@@ -70,6 +69,14 @@ namespace VkRender {
             modelComponent.getComponent<VkRender::GLTFModelComponent>().model->draw(drawCmdBuffers.buffers[currentFrame]);
 
          */
+
+        auto entity = m_context.findEntityByName("FirstEntity");
+        if (entity){
+            auto &resources = entity.getComponent<DefaultGraphicsPipelineComponent>();
+            resources.draw(drawCmdBuffers);
+
+        }
+
     }
 
     void DefaultScene::update() {
@@ -91,6 +98,16 @@ namespace VkRender {
 
             obj.update();
 */
+
+            auto entity = m_context.findEntityByName("FirstEntity");
+            if (entity){
+                    auto &resources = entity.getComponent<DefaultGraphicsPipelineComponent>();
+                    auto &transform = entity.getComponent<TransformComponent>();
+                    transform.scale = glm::vec3(0.6f, 0.6f, 0.6f);
+                    resources.updateTransform(transform);
+                    resources.updateView(camera);
+                    resources.update(m_context.currentFrameIndex());
+            }
         }
 
 

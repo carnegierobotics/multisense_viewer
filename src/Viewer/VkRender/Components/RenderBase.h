@@ -20,7 +20,7 @@ namespace VkRender {
 
         RenderBase &operator=(const RenderBase &) = delete;
 
-        virtual void draw(CommandBuffer *cmdBuffer) = 0;
+        virtual void draw(CommandBuffer& cmdBuffer) = 0;
 
         virtual bool cleanUp(uint32_t currentFrame, bool force = false) = 0;
 

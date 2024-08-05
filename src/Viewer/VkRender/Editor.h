@@ -83,10 +83,11 @@ namespace VkRender {
             int render = 1;
         }
 
-        // Add the missing virtual method declaration
         virtual void onUpdate() {
-            // Default implementation (if any)
         }
+        virtual void onSceneLoad() {
+        }
+        void loadScene();
 
         void update(bool updateGraph, float frametime, Input *input);
 
@@ -120,16 +121,16 @@ namespace VkRender {
 
     private:
         UUID m_uuid;
-        std::unique_ptr<VulkanRenderPass> m_renderPass;
         EditorSizeLimits m_sizeLimits;
-
-        VulkanRenderPassCreateInfo m_createInfo;
         std::unique_ptr<GuiManager> m_guiManager;
         EditorUI m_ui;
 
 
     protected:
         Renderer *m_context;
+        std::unique_ptr<VulkanRenderPass> m_renderPass;
+        VulkanRenderPassCreateInfo m_createInfo;
+
     };
 }
 

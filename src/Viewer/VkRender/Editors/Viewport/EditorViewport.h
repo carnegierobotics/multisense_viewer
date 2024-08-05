@@ -14,21 +14,12 @@ namespace VkRender {
     public:
         EditorViewport() = delete;
 
-        explicit EditorViewport(VulkanRenderPassCreateInfo &createInfo) : Editor(
-                createInfo) {
-
-            addUI("EditorUILayer");
-            addUI("DebugWindow");
-
-            // Grid and objects
-
-
-
-        }
-
+        explicit EditorViewport(VulkanRenderPassCreateInfo &createInfo);
         void onUpdate() override;
 
         void onRender(CommandBuffer& drawCmdBuffers) override;
+
+        void onSceneLoad() override;
 
     };
 }

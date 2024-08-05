@@ -137,6 +137,9 @@ namespace VkRender {
         m_scene = std::make_unique<DefaultScene>(*this);
 
 
+        for (auto &editor: m_editors) {
+            editor->loadScene();
+        }
     }
 
     // TODO This should actually be handled by RendererConfig. This class handles everything saving and loading config files

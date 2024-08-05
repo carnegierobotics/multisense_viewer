@@ -17,6 +17,11 @@ namespace VkRender {
 
     class DefaultGraphicsPipelineComponent : RenderBase {
     public:
+        struct RenderPassInfo {
+            VkSampleCountFlagBits sampleCount;
+            VkRenderPass renderPass;
+        };
+
 
         DefaultGraphicsPipelineComponent() = default;
 
@@ -30,11 +35,10 @@ namespace VkRender {
 
         ~DefaultGraphicsPipelineComponent() override = default;
 
-        explicit DefaultGraphicsPipelineComponent(Renderer &m_context, const std::string &vertexShader = "default.vert.spv",
-                                         const std::string &fragmentShader = "default.frag.spv");
+        explicit DefaultGraphicsPipelineComponent(Renderer &m_context, const RenderPassInfo &renderPassInfo,
+                                                  const std::string &vertexShader = "default.vert.spv",
+                                                  const std::string &fragmentShader = "default.frag.spv");
 
-    private:
-        void draw(CommandBuffer *cmdBuffer) override;
 
         bool cleanUp(uint32_t currentFrame, bool force) override;
 
@@ -46,7 +50,17 @@ namespace VkRender {
 
         void update(uint32_t currentFrame) override;
 
+        void updateTransform(const TransformComponent &transform);
+
+        void draw(CommandBuffer &cmdBuffers);
+
+        void updateView(const Camera &camera);
+
+        template <typename T>
+        void bind(T &modelComponent);
+
     private:
+
 
         struct Vertices {
             VkBuffer buffer = VK_NULL_HANDLE;
@@ -59,19 +73,22 @@ namespace VkRender {
             uint32_t indexCount = 0;
         };
 
-        VulkanDevice& m_vulkanDevice;
+        VulkanDevice &m_vulkanDevice;
+        RenderPassInfo m_renderPassInfo{};
         uint32_t m_numSwapChainImages = 0;
         Texture2D m_emptyTexture;
         Texture2D m_objTexture;
-        std::vector<DefaultRenderData> m_renderData;
+
         Indices indices{};
         Vertices vertices{};
 
         std::string m_vertexShader;
         std::string m_fragmentShader;
 
-        UBOMatrix m_vertexParams;
-        FragShaderParams m_fragParams;
+        UBOMatrix m_vertexParams; // Non GPU-accessible data, shared across frames
+        FragShaderParams m_fragParams; // Non GPU-accessible data, shared across frames
+        std::vector<DefaultRenderData> m_renderData;
+        SharedRenderData m_sharedRenderData;
 
 
         /*
@@ -129,8 +146,6 @@ namespace VkRender {
 
         void reloadShaders();
 
-        template <typename T>
-        void bind(T &modelComponent);
 
         void setTexture(const VkDescriptorImageInfo* info);
 
@@ -164,6 +179,11 @@ namespace VkRender {
         void setupUniformBuffers();
 
         void setupDescriptors();
+
+        void setupPipeline();
+
+
+        void setTexture(const VkDescriptorImageInfo *info);
     };
 
 

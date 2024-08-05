@@ -175,27 +175,22 @@ namespace VkRender {
         float dt = 0.0f;
     };
 
+
     /** @brief RenderData which are shared across render passes */
     struct DefaultRenderData {
-        Buffer fragShaderParamsBuffer;                 // GPU Accessible
-        Buffer mvpBuffer;                              // GPU Accessible
+        Buffer fragShaderParamsBuffer;  // GPU Accessible, triple-buffered
+        Buffer mvpBuffer;               // GPU Accessible, triple-buffered
+        std::vector<VkDescriptorSet> descriptorSets; // Triple-buffered
+    };
 
-        std::vector<VkDescriptorSet> descriptorSets;
+/** @brief Shared resources across all frames */
+    struct SharedRenderData {
         VkDescriptorPool descriptorPool{};
         VkDescriptorSetLayout descriptorSetLayout{};
-
         std::unordered_map<RenderPassType, VkPipeline> pipeline{};
         std::unordered_map<RenderPassType, VkPipelineLayout> pipelineLayout{};
-
-        std::unordered_map<RenderPassType, bool> busy{};
-        std::unordered_map<RenderPassType, bool> requestIdle{};
-
-
-        bool isBusy() const {
-            return std::any_of(busy.begin(), busy.end(), [](const auto& item) { return item.second; });
-        }
-
     };
+
 }
 
 

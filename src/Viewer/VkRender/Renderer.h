@@ -146,7 +146,7 @@ namespace VkRender {
         //std::unique_ptr<VkRender::GuiManager> m_guiManager{};
         std::vector<std::unique_ptr<Scene>> m_scenes;
         std::vector<std::unique_ptr<Editor>> m_editors;
-        std::vector<std::shared_ptr<VulkanRenderPass>> m_mainRenderPasses;
+        std::shared_ptr<VulkanRenderPass> m_mainRenderPass;
         std::vector<VkFramebuffer> m_frameBuffers;
         entt::registry m_registry;
         std::unordered_map<UUID, entt::entity> m_entityMap;

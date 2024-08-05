@@ -49,7 +49,7 @@ namespace VkRender {
         friend void swap(Editor &first, Editor &second) noexcept {
             std::swap(first.m_guiManager, second.m_guiManager);
             std::swap(first.m_ui, second.m_ui);
-            std::swap(first.m_renderPasses, second.m_renderPasses);
+            std::swap(first.m_renderPass, second.m_renderPass);
             std::swap(first.m_createInfo, second.m_createInfo);
             std::swap(first.m_context, second.m_context);
             std::swap(first.m_uuid, second.m_uuid);
@@ -120,7 +120,7 @@ namespace VkRender {
 
     private:
         UUID m_uuid;
-        std::vector<VulkanRenderPass> m_renderPasses;
+        std::unique_ptr<VulkanRenderPass> m_renderPass;
         EditorSizeLimits m_sizeLimits;
 
         VulkanRenderPassCreateInfo m_createInfo;

@@ -19,12 +19,8 @@ void ImageViewer::setup() {
                                                         VK_FORMAT_R8G8B8A8_UNORM);
     auto entity = m_context->createEntity("SecondaryView");
     entity.addComponent<VkRender::SecondaryRenderViewComponent>();
-    auto &modelComponent = entity.addComponent<VkRender::OBJModelComponent>(
-            Utils::getModelsPath() / "obj" / "quad.obj",
-            m_context->data().device);
-    auto &res = entity.addComponent<VkRender::DefaultGraphicsPipelineComponent2>(&m_context->data(),
-                                                                                 "SYCLRenderer.vert.spv",
-                                                                                 "SYCLRenderer.frag.spv");
+    auto &modelComponent = entity.addComponent<VkRender::OBJModelComponent>(Utils::getModelsPath() / "obj" / "quad.obj",m_context->data().device);
+    auto &res = entity.addComponent<VkRender::DefaultGraphicsPipelineComponent2>(&m_context->data(),"SYCLRenderer.vert.spv", "SYCLRenderer.frag.spv");
     res.bind(modelComponent);
     res.setTexture(&m_syclRenderTarget->m_descriptor);
 

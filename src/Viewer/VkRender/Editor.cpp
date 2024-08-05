@@ -25,12 +25,11 @@ namespace VkRender {
         m_ui.y = m_createInfo.y;
         m_ui.index = m_createInfo.editorIndex;
 
-        for (size_t i = 0; i < m_createInfo.swapchainImageCount; ++i) {
-            m_renderPasses.emplace_back(m_createInfo);
-        }
+
+        m_renderPass = std::make_unique<VulkanRenderPass>(m_createInfo);
 
         m_guiManager = std::make_unique<GuiManager>(m_context->vkDevice(),
-                                                    m_renderPasses.begin()->getRenderPass(), // TODO verify if this is ok?
+                                                    m_renderPass->getRenderPass(), // TODO verify if this is ok?
                                                     &m_ui,
                                                     m_createInfo.msaaSamples,
                                                     m_createInfo.swapchainImageCount,
@@ -54,12 +53,9 @@ namespace VkRender {
         m_ui.x = m_createInfo.x;
         m_ui.y = m_createInfo.y;
 
-        m_renderPasses.clear();
+        m_renderPass = std::make_unique<VulkanRenderPass>(m_createInfo);
 
-        for (size_t i = 0; i < m_createInfo.swapchainImageCount; ++i) {
-            m_renderPasses.emplace_back(m_createInfo);
-        }
-        m_guiManager->resize(m_ui.width, m_ui.height, m_renderPasses.back().getRenderPass(), m_createInfo.msaaSamples,
+        m_guiManager->resize(m_ui.width, m_ui.height, m_renderPass->getRenderPass(), m_createInfo.msaaSamples,
                              m_createInfo.guiResources);
 
         Log::Logger::getInstance()->info("Resizing Editor. UUID: {} : {}, size: {}x{}, at pos: ({},{})",
@@ -98,7 +94,7 @@ namespace VkRender {
         scissor.extent = {static_cast<uint32_t>(m_createInfo.width), static_cast<uint32_t>(m_createInfo.height)};
         /// *** Color render pass *** ///
         VkRenderPassBeginInfo renderPassBeginInfo = Populate::renderPassBeginInfo();
-        renderPassBeginInfo.renderPass = m_renderPasses[currentFrame].getRenderPass(); // Increase reference count by 1 here?
+        renderPassBeginInfo.renderPass = m_renderPass->getRenderPass(); // Increase reference count by 1 here?
         renderPassBeginInfo.renderArea.offset.x = static_cast<int32_t>(m_createInfo.x);
         renderPassBeginInfo.renderArea.offset.y = static_cast<int32_t>(m_createInfo.y);
         renderPassBeginInfo.renderArea.extent.width = m_createInfo.width;

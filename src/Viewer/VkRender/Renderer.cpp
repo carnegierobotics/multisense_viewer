@@ -47,6 +47,8 @@
 
 #include "Viewer/VkRender/Editors/EditorDefinitions.h"
 #include "Viewer/VkRender/Core/VulkanResourceManager.h"
+#include "Viewer/VkRender/Components/OBJModelComponent.h"
+#include "Viewer/VkRender/Components/DefaultGraphicsPipelineComponent.h"
 
 namespace VkRender {
     Renderer::Renderer(const std::string &title) : VulkanRenderer(title) {
@@ -228,12 +230,10 @@ namespace VkRender {
         renderPassCreateInfo.swapchainImageCount = swapchain->imageCount;
         renderPassCreateInfo.swapchainColorFormat = swapchain->colorFormat;
         renderPassCreateInfo.depthFormat = depthFormat;
-        m_mainRenderPasses.resize(swapchain->imageCount);
-        // Start timing UI render pass setup
+        // Start timingm_mainRenderPasses UI render pass setup
         auto startUIRenderPassSetup = std::chrono::high_resolution_clock::now();
-        for (auto &pass: m_mainRenderPasses) {
-            pass = std::make_shared<VulkanRenderPass>(renderPassCreateInfo);
-        }
+        m_mainRenderPass = std::make_shared<VulkanRenderPass>(renderPassCreateInfo);
+
         std::array<VkImageView, 3> frameBufferAttachments{};
         frameBufferAttachments[0] = m_colorImage.view;
         frameBufferAttachments[1] = m_depthStencil.view;
@@ -241,7 +241,7 @@ namespace VkRender {
                                                                                         m_height,
                                                                                         frameBufferAttachments.data(),
                                                                                         frameBufferAttachments.size(),
-                                                                                        m_mainRenderPasses.begin()->get()->getRenderPass());
+                                                                                        m_mainRenderPass->getRenderPass());
         // TODO verify if this is ok?
         m_frameBuffers.resize(swapchain->imageCount);
         for (uint32_t i = 0; i < m_frameBuffers.size(); i++) {
@@ -279,7 +279,7 @@ namespace VkRender {
         clearValues[2] = {{{0.1f, 0.1f, 0.1f, 1.0f}}};
         vkBeginCommandBuffer(drawCmdBuffers.buffers[currentFrame], &cmdBufInfo);
         VkRenderPassBeginInfo renderPassBeginInfo = Populate::renderPassBeginInfo();
-        renderPassBeginInfo.renderPass = m_mainRenderPasses[currentFrame]->getRenderPass();
+        renderPassBeginInfo.renderPass = m_mainRenderPass->getRenderPass();
         // Increase reference count by 1 here?
         renderPassBeginInfo.renderArea.offset.x = 0;
         renderPassBeginInfo.renderArea.offset.y = 0;
@@ -800,11 +800,10 @@ namespace VkRender {
             otherIO.MouseDown[1] = mouse.right;
         }
         updateEditors();
-        // update m_scenes:
-        for (const auto &scene: m_scenes) {
-            scene->update();
-        }
         m_mainEditor->update((frameCounter == 0), frameTimer, &input);
+        m_logger->frameNumber = frameID;
+        m_sharedContextData.multiSenseRendererBridge->update();
+        // TODO reconsider if we should call crl updates here?
 
         std::string versionRemote;
         /*
@@ -816,9 +815,7 @@ namespace VkRender {
         }
          */
 
-        m_logger->frameNumber = frameID;
-        m_sharedContextData.multiSenseRendererBridge->update();
-        // TODO reconsider if we should call crl updates here?
+
 
         //if (keyPress == GLFW_KEY_SPACE) {
         //    m_cameras[m_selectedCameraTag].resetPosition();
@@ -979,7 +976,6 @@ namespace VkRender {
         for (auto &fb: m_frameBuffers) {
             vkDestroyFramebuffer(device, fb, nullptr);
         }
-        m_mainRenderPasses.clear();
 
         vkDestroyImageView(device, m_depthStencil.view, nullptr);
         vmaDestroyImage(m_allocator, m_depthStencil.image, m_depthStencil.allocation);
@@ -1592,6 +1588,14 @@ namespace VkRender {
 
     template<>
     void Renderer::onComponentAdded<TextComponent>(Entity entity, TextComponent &component) {
+    }
+
+    template<>
+    void Renderer::onComponentAdded<OBJModelComponent>(Entity entity, OBJModelComponent &component) {
+    }
+
+    template<>
+    void Renderer::onComponentAdded<DefaultGraphicsPipelineComponent>(Entity entity, DefaultGraphicsPipelineComponent &component) {
     }
 
     DISABLE_WARNING_POP

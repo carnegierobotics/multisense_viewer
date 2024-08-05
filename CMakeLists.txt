@@ -87,14 +87,14 @@ set(SOURCE_FILES
         src/Viewer/VkRender/UsageMonitor.cpp
         src/Viewer/VkRender/ApplicationUserSetting.h
 
+        src/Viewer/VkRender/Components/OBJModelComponent.cpp
+        src/Viewer/VkRender/Components/DefaultGraphicsPipelineComponent.cpp
         #src/Viewer/VkRender/Components/SkyboxGraphicsPipelineComponent.cpp
         #src/Viewer/VkRender/Components/DefaultPBRGraphicsPipelineComponent.cpp
         #src/Viewer/VkRender/Components/GLTFModelComponent.cpp
         #src/Viewer/VkRender/Components/CustomModels.cpp
         #src/Viewer/VkRender/Components/GLTFDefines.h
         #src/Viewer/VkRender/Components/SecondaryCameraComponent.cpp
-        #src/Viewer/VkRender/Components/OBJModelComponent.cpp
-        #src/Viewer/VkRender/Components/RenderComponents/DefaultGraphicsPipelineComponent2.cpp
         #src/Viewer/VkRender/Components/CameraGraphicsPipelineComponent.h
 
         src/Viewer/VkRender/ImGui/Widgets.cpp

@@ -6,7 +6,6 @@
 #include "Viewer/Tools/Logger.h"
 #include "Viewer/VkRender/Core/RenderDefinitions.h"
 #include "Viewer/VkRender/Core/CommandBuffer.h"
-#include "Viewer/Tools/Utils.h"
 
 #define TINYOBJLOADER_IMPLEMENTATION // define this in only *one* .cc
 #define TINYOBJLOADER_USE_MAPBOX_EARCUT

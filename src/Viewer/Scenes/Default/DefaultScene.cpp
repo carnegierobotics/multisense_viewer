@@ -5,6 +5,8 @@
 #include "Viewer/VkRender/Entity.h"
 
 #include "Viewer/Scenes/Default/DefaultScene.h"
+#include "Viewer/VkRender/Components/OBJModelComponent.h"
+#include "Viewer/VkRender/Components/DefaultGraphicsPipelineComponent.h"
 
 namespace VkRender {
 
@@ -12,8 +14,11 @@ namespace VkRender {
     DefaultScene::DefaultScene(Renderer &ctx) : Scene(ctx) {
 
 
+        auto entity = m_context.createEntity("FirstEntity");
+        auto &modelComponent = entity.addComponent<VkRender::OBJModelComponent>(Utils::getModelsPath() / "obj" / "quad.obj", &m_context.vkDevice());
+        //auto &res = entity.addComponent<VkRender::DefaultGraphicsPipelineComponent2>(&m_context->data(),);
 
-        // Create grid
+        auto &res = entity.addComponent<VkRender::DefaultGraphicsPipelineComponent>(m_context);
 
         auto grid = m_context.createEntity("3DViewerGrid");
         //grid.addComponent<VkRender::CustomModelComponent>(&m_context.data());

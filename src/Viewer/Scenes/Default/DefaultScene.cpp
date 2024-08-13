@@ -83,33 +83,30 @@ namespace VkRender {
     }
 
     void DefaultScene::update(uint32_t frameIndex) {
-
-
-
-
-
+        auto cameraEntity = findEntityByName("DefaultCamera");
+        if (cameraEntity){
+            auto& camera = cameraEntity.getComponent<CameraComponent>().camera;
+            glm::mat4 invView = glm::inverse(camera.matrices.view);
+            glm::vec4 cameraPos4 = invView * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+            auto cameraWorldPosition = glm::vec3(cameraPos4);
+        }
         auto entity = findEntityByName("FirstEntity");
+
+
         if (entity) {
-            if (entity.hasComponent<DefaultGraphicsPipelineComponent>() && entity.hasComponent<TransformComponent>()) {
-                auto &resources = entity.getComponent<DefaultGraphicsPipelineComponent>();
+            if (entity.hasComponent<TransformComponent>()) {
                 auto &transform = entity.getComponent<TransformComponent>();
                 transform.scale = glm::vec3(0.6f, 0.6f, 0.6f);
-                resources.updateTransform(transform);
-
-                auto cameraEntity = findEntityByName("DefaultCamera");
-                if (cameraEntity){
-                    auto& camera = cameraEntity.getComponent<CameraComponent>().camera;
-                    glm::mat4 invView = glm::inverse(camera.matrices.view);
-                    glm::vec4 cameraPos4 = invView * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-                    auto cameraWorldPosition = glm::vec3(cameraPos4);
-                    resources.updateView(camera);
-
-                }
-
-                resources.update(frameIndex);
             }
-
         }
+        //////////// TODO deal with camera data and UBO across editors
+        auto renderables = m_registry.view<DefaultGraphicsPipelineComponent>();
+        for (auto entity: renderables) {
+            auto &resources = renderables.get<DefaultGraphicsPipelineComponent>(entity);
+            resources.update(frameIndex);
+        }
+
+
 
 
         auto view = m_registry.view<ScriptComponent>();

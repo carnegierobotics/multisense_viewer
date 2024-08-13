@@ -346,9 +346,6 @@ namespace VkRender {
             vkFreeMemory(m_vulkanDevice.m_LogicalDevice, indexStaging.memory, nullptr);
         }
 
-        modelComponent.m_vertices.clear();
-        modelComponent.m_indices.clear();
-
     }
 
 };

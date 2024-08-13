@@ -5,68 +5,9 @@
 #include "Viewer/VkRender/Components/DefaultGraphicsPipelineComponent.h"
 #include "Viewer/VkRender/Components/OBJModelComponent.h"
 #include "Viewer/VkRender/Renderer.h"
+#include "Viewer/VkRender/Core/VulkanResourceManager.h"
 
 namespace VkRender {
-
-
-    /*
-    bool DefaultGraphicsPipelineComponent2::cleanUp(uint32_t currentFrame, bool force) {
-        pauseRendering();
-        bool resourcesIdle = true;
-
-        for (auto &data: m_renderData) {
-            for (const auto &busy: data.busy) {
-                if (busy.second) {
-                    resourcesIdle = false;
-                }
-            }
-        }
-        if (resourcesIdle || force) {
-            Log::Logger::getInstance()->trace("Cleaning up vulkan resources for DefaultGraphicsPipeline");
-            for (auto &data: m_renderData) {
-                vkDestroyDescriptorSetLayout(m_vulkanDevice.m_LogicalDevice, data.descriptorSetLayout, nullptr);
-                vkDestroyDescriptorPool(m_vulkanDevice.m_LogicalDevice, data.descriptorPool, nullptr);
-
-                for (const auto &pipeline: data.pipeline) {
-                    vkDestroyPipeline(m_vulkanDevice.m_LogicalDevice, pipeline.second, nullptr);
-                }
-                for (const auto &pipeline: data.pipelineLayout) {
-                    vkDestroyPipelineLayout(m_vulkanDevice.m_LogicalDevice, pipeline.second, nullptr);
-                }
-            }
-
-            if (vertices.buffer != VK_NULL_HANDLE) {
-                vkDestroyBuffer(m_vulkanDevice.m_LogicalDevice, vertices.buffer, nullptr);
-            }
-            if (vertices.memory != VK_NULL_HANDLE) {
-                vkFreeMemory(m_vulkanDevice.m_LogicalDevice, vertices.memory, nullptr);
-            }
-            if (indices.buffer != VK_NULL_HANDLE) {
-                vkDestroyBuffer(m_vulkanDevice.m_LogicalDevice, indices.buffer, nullptr);
-            }
-            if (indices.memory != VK_NULL_HANDLE) {
-                vkFreeMemory(m_vulkanDevice.m_LogicalDevice, indices.memory, nullptr);
-            }
-            resourcesDeleted = true;
-        } else {
-            Log::Logger::getInstance()->trace("Waiting to clean up vulkan resources for DefaultGraphicsPipeline");
-            for (auto &busy: m_renderData[currentFrame].busy) {
-                busy.second = false;
-            }
-        }
-
-        return resourcesIdle;
-    }
-
-
-
-
-
-
-
-
-
-    */
 
 
     DefaultGraphicsPipelineComponent::DefaultGraphicsPipelineComponent(Renderer &m_context,
@@ -94,22 +35,39 @@ namespace VkRender {
     }
 
 
-    bool DefaultGraphicsPipelineComponent::cleanUp(uint32_t currentFrame, bool force) {
-        return false;
-    }
+    bool DefaultGraphicsPipelineComponent::cleanUp() {
+        auto logicalDevice = m_vulkanDevice.m_LogicalDevice;
+        VkFence fence;
+        VkFenceCreateInfo fenceInfo = Populate::fenceCreateInfo(0);
+        vkCreateFence(logicalDevice, &fenceInfo, nullptr, &fence);
 
-    void DefaultGraphicsPipelineComponent::pauseRendering() {
-        RenderBase::pauseRendering();
-    }
+        Indices& indices = this->indices;
+        Vertices& vertices = this->vertices;
+        VkDescriptorSetLayout layout =  m_sharedRenderData.descriptorSetLayout;
+        VkDescriptorPool pool =  m_sharedRenderData.descriptorPool;
 
-    void DefaultGraphicsPipelineComponent::resumeRendering() {
-        RenderBase::resumeRendering();
-    }
+        VulkanResourceManager::getInstance().deferDeletion(
+                [logicalDevice, indices, vertices, layout, pool]() {
+                    vkDestroyDescriptorSetLayout(logicalDevice, layout, nullptr);
+                    vkDestroyDescriptorPool(logicalDevice, pool, nullptr);
 
-    bool DefaultGraphicsPipelineComponent::shouldStopRendering() {
-        return RenderBase::shouldStopRendering();
-    }
+                    if (vertices.buffer != VK_NULL_HANDLE) {
+                        vkDestroyBuffer(logicalDevice, vertices.buffer, nullptr);
+                    }
+                    if (vertices.memory != VK_NULL_HANDLE) {
+                        vkFreeMemory(logicalDevice, vertices.memory, nullptr);
+                    }
+                    if (indices.buffer != VK_NULL_HANDLE) {
+                        vkDestroyBuffer(logicalDevice, indices.buffer, nullptr);
+                    }
+                    if (indices.memory != VK_NULL_HANDLE) {
+                        vkFreeMemory(logicalDevice, indices.memory, nullptr);
+                    }
+                },
+                fence);
 
+
+    }
 
     void DefaultGraphicsPipelineComponent::setupUniformBuffers() {
         for (auto &data: m_renderData) {
@@ -203,72 +161,9 @@ namespace VkRender {
 
 
     void DefaultGraphicsPipelineComponent::setupPipeline() {
-        VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCI{};
-        inputAssemblyStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-        inputAssemblyStateCI.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-
-        VkPipelineRasterizationStateCreateInfo rasterStateCI{};
-        rasterStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-        rasterStateCI.polygonMode = VK_POLYGON_MODE_FILL;
-        rasterStateCI.cullMode = VK_CULL_MODE_NONE;
-        rasterStateCI.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-        rasterStateCI.lineWidth = 1.0f;
-
-        VkPipelineColorBlendAttachmentState blendAttachmentState{};
-        blendAttachmentState.colorWriteMask =
-                VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
-                VK_COLOR_COMPONENT_A_BIT;
-        blendAttachmentState.blendEnable = VK_FALSE;
-
-        VkPipelineColorBlendStateCreateInfo colorBlendStateCI{};
-        colorBlendStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-        colorBlendStateCI.attachmentCount = 1;
-        colorBlendStateCI.pAttachments = &blendAttachmentState;
-
-        VkPipelineDepthStencilStateCreateInfo depthStencilStateCI{};
-        depthStencilStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-        depthStencilStateCI.depthTestEnable = VK_TRUE;
-        depthStencilStateCI.depthWriteEnable = VK_TRUE;
-        depthStencilStateCI.depthBoundsTestEnable = VK_FALSE;
-        depthStencilStateCI.stencilTestEnable = VK_FALSE;
-        depthStencilStateCI.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
-
-        VkPipelineViewportStateCreateInfo viewportStateCI{};
-        viewportStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-        viewportStateCI.viewportCount = 1;
-        viewportStateCI.scissorCount = 1;
-
-        VkPipelineMultisampleStateCreateInfo multisampleStateCI{};
-        multisampleStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-        multisampleStateCI.rasterizationSamples = m_renderPassInfo.sampleCount;
-
-
-        std::vector<VkDynamicState> dynamicStateEnables = {
-                VK_DYNAMIC_STATE_VIEWPORT,
-                VK_DYNAMIC_STATE_SCISSOR
-        };
-        VkPipelineDynamicStateCreateInfo dynamicStateCI{};
-        dynamicStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-        dynamicStateCI.pDynamicStates = dynamicStateEnables.data();
-        dynamicStateCI.dynamicStateCount = static_cast<uint32_t>(dynamicStateEnables.size());
-
-
-        VkPipelineLayoutCreateInfo pipelineLayoutCI{};
-        pipelineLayoutCI.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutCI.setLayoutCount = 1;
-        pipelineLayoutCI.pSetLayouts = &m_sharedRenderData.descriptorSetLayout;
-        VkPushConstantRange pushConstantRange{};
-        pushConstantRange.size = sizeof(uint32_t);
-        pushConstantRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-        pipelineLayoutCI.pushConstantRangeCount = 1;
-        pipelineLayoutCI.pPushConstantRanges = &pushConstantRange;
-        CHECK_RESULT(
-                vkCreatePipelineLayout(m_vulkanDevice.m_LogicalDevice, &pipelineLayoutCI, nullptr,
-                                       &m_sharedRenderData.pipelineLayout));
 
         // Vertex bindings an attributes
-        VkVertexInputBindingDescription vertexInputBinding = {0, sizeof(VkRender::Vertex),
-                                                              VK_VERTEX_INPUT_RATE_VERTEX};
+        VkVertexInputBindingDescription vertexInputBinding = {0, sizeof(VkRender::Vertex), VK_VERTEX_INPUT_RATE_VERTEX};
         std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
                 {0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0},
                 {1, 0, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3},
@@ -280,48 +175,30 @@ namespace VkRender {
         vertexInputStateCI.pVertexBindingDescriptions = &vertexInputBinding;
         vertexInputStateCI.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexInputAttributes.size());
         vertexInputStateCI.pVertexAttributeDescriptions = vertexInputAttributes.data();
-
-        // Pipelines
-        std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages{};
-
-        VkGraphicsPipelineCreateInfo pipelineCI{};
-        pipelineCI.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-        pipelineCI.layout = m_sharedRenderData.pipelineLayout;
-        pipelineCI.renderPass = m_renderPassInfo.renderPass;
-        pipelineCI.pInputAssemblyState = &inputAssemblyStateCI;
-        pipelineCI.pVertexInputState = &vertexInputStateCI;
-        pipelineCI.pRasterizationState = &rasterStateCI;
-        pipelineCI.pColorBlendState = &colorBlendStateCI;
-        pipelineCI.pMultisampleState = &multisampleStateCI;
-        pipelineCI.pViewportState = &viewportStateCI;
-        pipelineCI.pDepthStencilState = &depthStencilStateCI;
-        pipelineCI.pDynamicState = &dynamicStateCI;
-        pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
-        pipelineCI.pStages = shaderStages.data();
-
+        std::vector<VkPipelineShaderStageCreateInfo> shaderStages(2);
         VkShaderModule vertModule{};
         VkShaderModule fragModule{};
-
         shaderStages[0] = Utils::loadShader(m_vulkanDevice.m_LogicalDevice, "spv/" + m_vertexShader,
                                             VK_SHADER_STAGE_VERTEX_BIT, &vertModule);
         shaderStages[1] = Utils::loadShader(m_vulkanDevice.m_LogicalDevice, "spv/" + m_fragmentShader,
                                             VK_SHADER_STAGE_FRAGMENT_BIT, &fragModule);
 
-        // Default pipeline with back-face culling
-        CHECK_RESULT(vkCreateGraphicsPipelines(m_vulkanDevice.m_LogicalDevice, nullptr, 1, &pipelineCI, nullptr,
-                                               &m_sharedRenderData.pipeline));
+        VulkanGraphicsPipelineCreateInfo createInfo( m_renderPassInfo.renderPass, m_vulkanDevice);
+        createInfo.msaaSamples = m_renderPassInfo.sampleCount;
+        createInfo.shaders = shaderStages;
+        createInfo.descriptorSetLayout = m_sharedRenderData.descriptorSetLayout;
+        createInfo.vertexInputState = vertexInputStateCI;
+
+        m_sharedRenderData.graphicsPipeline = std::make_unique<VulkanGraphicsPipeline>(createInfo);
 
         for (auto shaderStage: shaderStages) {
             vkDestroyShaderModule(m_vulkanDevice.m_LogicalDevice, shaderStage.module, nullptr);
         }
+
     }
 
 
     void DefaultGraphicsPipelineComponent::update(uint32_t currentFrame) {
-
-
-        if (shouldStopRendering())
-            return;
 
         memcpy(m_renderData[currentFrame].fragShaderParamsBuffer.mapped,
                &m_fragParams, sizeof(VkRender::ShaderValuesParams));
@@ -347,9 +224,9 @@ namespace VkRender {
 
     void DefaultGraphicsPipelineComponent::draw(CommandBuffer &cmdBuffers) {
         const uint32_t &cbIndex = *cmdBuffers.frameIndex;
-        vkCmdBindPipeline(cmdBuffers.buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, m_sharedRenderData.pipeline);
+        vkCmdBindPipeline(cmdBuffers.buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, m_sharedRenderData.graphicsPipeline->getPipeline());
         vkCmdBindDescriptorSets(cmdBuffers.buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                m_sharedRenderData.pipelineLayout, 0, static_cast<uint32_t>(1),
+                                m_sharedRenderData.graphicsPipeline->getPipelineLayout(), 0, static_cast<uint32_t>(1),
                                 &m_renderData[cbIndex].descriptorSet, 0, nullptr);
         VkDeviceSize offsets[1] = {0};
         vkCmdBindVertexBuffers(cmdBuffers.buffers[cbIndex], 0, 1, &vertices.buffer, offsets);
@@ -378,6 +255,10 @@ namespace VkRender {
             vkUpdateDescriptorSets(m_vulkanDevice.m_LogicalDevice, 1, &writeDescriptorSets, 0, nullptr);
 
         }
+    }
+
+    DefaultGraphicsPipelineComponent::~DefaultGraphicsPipelineComponent() {
+        cleanUp();
     }
 
     template<>

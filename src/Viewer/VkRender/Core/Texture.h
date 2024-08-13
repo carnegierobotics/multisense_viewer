@@ -46,6 +46,7 @@
 #include "Viewer/VkRender/Core/Buffer.h"
 #include "Viewer/VkRender/Core/VulkanDevice.h"
 #include "Viewer/Tools/Macros.h"
+#include "VulkanResourceManager.h"
 
 class Texture {
 public:
@@ -88,12 +89,30 @@ public:
     virtual ~Texture() {
 
         if (m_device != nullptr) {
-            vkDestroyImageView(m_device->m_LogicalDevice, m_view, nullptr);
-            vkDestroyImage(m_device->m_LogicalDevice, m_image, nullptr);
-            if (m_sampler) {
-                vkDestroySampler(m_device->m_LogicalDevice, m_sampler, nullptr);
-            }
-            vkFreeMemory(m_device->m_LogicalDevice, m_deviceMemory, nullptr);
+
+
+
+        auto logicalDevice = m_device->m_LogicalDevice;
+        VkFence fence;
+        VkFenceCreateInfo fenceInfo = Populate::fenceCreateInfo(0);
+        vkCreateFence(logicalDevice, &fenceInfo, nullptr, &fence);
+
+        VkImageView view = m_view;
+        VkImage image = m_image;
+        VkSampler sampler = m_sampler;
+        VkDeviceMemory memory = m_deviceMemory;
+
+
+        VkRender::VulkanResourceManager::getInstance().deferDeletion(
+                [logicalDevice, view, image, sampler, memory]() {
+                    vkDestroyImageView(logicalDevice, view, nullptr);
+                    vkDestroyImage(logicalDevice, image, nullptr);
+                    if (sampler) {
+                        vkDestroySampler(logicalDevice, sampler, nullptr);
+                    }
+                    vkFreeMemory(logicalDevice, memory, nullptr);
+                },
+                fence);
         }
     }
 

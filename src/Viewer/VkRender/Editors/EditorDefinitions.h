@@ -15,13 +15,15 @@ namespace VkRender {
         MultiSenseViewer,
         SceneHierarchy,
         TestWindow,
+        MyProject,
         };
 
     static std::vector<EditorType> getEditorTypes() {
         return {EditorType::Viewport,
                 EditorType::MultiSenseViewer,
                 EditorType::SceneHierarchy,
-                EditorType::TestWindow};
+                EditorType::TestWindow,
+                EditorType::MyProject};
     };
     // Function to convert enum to string
     static std::string editorTypeToString(EditorType type) {
@@ -30,6 +32,7 @@ namespace VkRender {
             case EditorType::SceneHierarchy: return "Scene Hierarchy";
             case EditorType::TestWindow: return "Test Window";
             case EditorType::Viewport: return "Editor Viewport";
+            case EditorType::MyProject: return "MyProject";
             default: return "Unknown";
         }
     }
@@ -40,6 +43,7 @@ namespace VkRender {
         if (str == "Scene Hierarchy") return EditorType::SceneHierarchy;
         if (str == "Test Window") return EditorType::TestWindow;
         if (str == "Viewport") return EditorType::Viewport;
+        if (str == "MyProject") return EditorType::MyProject;
         throw std::invalid_argument("Unknown editor type string");
     }
 }

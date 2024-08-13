@@ -103,10 +103,15 @@ namespace VkRender {
         m_mainEditor->addUI("MenuLayer");
         m_mainEditor->addUI("MainContextLayer");
 
-        m_editorFactory = std::make_unique<EditorFactory>(
-                VulkanRenderPassCreateInfo(m_frameBuffers.data(), m_guiResources, this, &m_sharedContextData));
+        VulkanRenderPassCreateInfo defaultEditor = VulkanRenderPassCreateInfo(m_frameBuffers.data(), m_guiResources, this, &m_sharedContextData);
+        defaultEditor.editorTypeDescription = EditorType::TestWindow;
+        defaultEditor.msaaSamples = msaaSamples;
+        defaultEditor.swapchainImageCount = swapchain->imageCount;
+        defaultEditor.swapchainColorFormat = swapchain->colorFormat;
+        defaultEditor.depthFormat = depthFormat;
+        m_editorFactory = std::make_unique<EditorFactory>(defaultEditor);
 
-        loadEditorSettings(Utils::getMultiSenseViewerProjectConfig());
+        loadEditorSettings(Utils::getMyEditorProjectConfig());
 
         if (m_editors.empty()) {
             // add a dummy editor to get started

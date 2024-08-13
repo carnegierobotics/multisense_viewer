@@ -22,24 +22,11 @@ namespace VkRender {
 
         virtual void draw(CommandBuffer& cmdBuffer) = 0;
 
-        virtual bool cleanUp(uint32_t currentFrame, bool force = false) = 0;
-
-        virtual void pauseRendering() {
-            stopRendering = true;
-        };
-        virtual void resumeRendering() {
-            stopRendering = false;
-        };
-        virtual bool shouldStopRendering(){
-            return stopRendering;
-        }
-
         virtual void update(uint32_t currentFrame) = 0;
 
         virtual ~RenderBase() = default;
 
     private:
-        bool stopRendering = false;
     };
 }
 

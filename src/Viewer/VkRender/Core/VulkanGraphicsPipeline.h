@@ -23,16 +23,14 @@ namespace VkRender {
                 : renderPass(pass), vulkanDevice(device), shaders(shaderStages) {
         }
 
-        int32_t width = 0;
-        int32_t height = 0;
         VulkanDevice &vulkanDevice;
-
-        std::vector<VkShaderModule> modules{};
         std::vector<VkPipelineShaderStageCreateInfo> shaders{};
         VkRenderPass renderPass = VK_NULL_HANDLE;
         VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
         size_t pushConstBlockSize = 0;
         VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
+        VkPipelineVertexInputStateCreateInfo vertexInputState;
+
     };
 
     struct VulkanGraphicsPipeline {
@@ -49,7 +47,6 @@ namespace VkRender {
             std::swap(this->m_pipeline, other.m_pipeline);
             std::swap(this->m_shaderModules, other.m_shaderModules);
             std::swap(this->m_shaders, other.m_shaders);
-            std::swap(this->m_initialized, other.m_initialized);
         }
 
         // and move assignment operator
@@ -61,7 +58,6 @@ namespace VkRender {
                 std::swap(this->m_shaderModules, other.m_shaderModules);
                 std::swap(this->m_shaders, other.m_shaders);
                 std::swap(this->m_vulkanDevice, other.m_vulkanDevice);
-                std::swap(this->m_initialized, other.m_initialized);
             }
             return *this;
         }
@@ -87,11 +83,7 @@ namespace VkRender {
         VkPipeline m_pipeline{VK_NULL_HANDLE};
         std::vector<VkShaderModule> m_shaderModules{};
         std::vector<VkPipelineShaderStageCreateInfo> m_shaders{};
-
         VulkanDevice &m_vulkanDevice;
-        bool m_initialized = false;
-
-        void cleanUp();
     };
 }
 

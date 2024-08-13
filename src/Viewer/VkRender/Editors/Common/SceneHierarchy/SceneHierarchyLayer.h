@@ -9,6 +9,7 @@
 #include "Viewer/VkRender/Renderer.h"
 #include "Viewer/VkRender/Entity.h"
 #include "Viewer/VkRender/ImGui/LayerUtils.h"
+#include "Viewer/VkRender/Components/DefaultGraphicsPipelineComponent.h"
 
 namespace VkRender {
 
@@ -31,9 +32,8 @@ namespace VkRender {
 
 
         void processEntities(GuiObjectHandles &handles) {
-            /*
-            auto view = handles.m_context->registry().view<TagComponent>(
-                    entt::exclude<SkyboxGraphicsPipelineComponent, VkRender::ScriptComponent>);
+
+            auto view = handles.m_context->registry().view<TagComponent>();
 
             // Iterate over entities that have a GLTFModelComponent and a TagComponent
             for (auto entity: view) {
@@ -41,18 +41,18 @@ namespace VkRender {
                 // Process each entity here
                 processEntity(handles, entity, tag);
             }
-             */
+
         }
 
         void processEntity(GuiObjectHandles &handles, entt::entity entity, TagComponent &tag) {
             // Your processing logic here
             // This function is called for both component types
-            /*
+
             if (ImGui::TreeNodeEx(tag.Tag.c_str(), ImGuiTreeNodeFlags_None)) {
                 auto e = Entity(entity, handles.m_context);
-                if (e.hasComponent<DefaultGraphicsPipelineComponent2>()) {
+                if (e.hasComponent<DefaultGraphicsPipelineComponent>()) {
                     if (ImGui::SmallButton("Reload Shader")) {
-                        e.getComponent<DefaultGraphicsPipelineComponent2>().reloadShaders();
+                        //e.getComponent<DefaultGraphicsPipelineComponent>().reloadShaders();
                     }
                 }
 
@@ -63,12 +63,12 @@ namespace VkRender {
 
 
                 if (ImGui::SmallButton(("Delete ##" + tag.Tag).c_str())) {
-                    //handles.m_context->markEntityForDestruction(Entity(entity, handles.m_context));
+                    handles.m_context->destroyEntity(Entity(entity, handles.m_context));
                 }
 
                 ImGui::TreePop();
             }
-             */
+
         }
 
         // Example function to handle file import (you'll need to implement the actual logic)
@@ -113,8 +113,8 @@ namespace VkRender {
 
 
             // Set window position and size
-            ImVec2 window_pos = ImVec2(0.0f, 0.0f); // Position (x, y)
-            ImVec2 window_size = ImVec2(handles.info->applicationWidth, handles.info->applicationHeight); // Size (width, height)
+            ImVec2 window_pos = ImVec2(0.0f, handles.info->menuBarHeight); // Position (x, y)
+            ImVec2 window_size = ImVec2(handles.editorUi->width, handles.editorUi->height); // Size (width, height)
 
             // Set window flags to remove decorations
             ImGuiWindowFlags window_flags =
@@ -136,8 +136,8 @@ namespace VkRender {
             float maxHeight = 600.0f;
             ImGui::PushStyleColor(ImGuiCol_ChildBg, Colors::CRLGray424Main); // Example: Dark grey
             // Create the child window with calculated dimensions and scrolling enabled beyond maxHeight
+            ImGui::SetCursorPosX((window_size.x - width) / 2);
             ImGui::BeginChild("SceneHierarchyChild", ImVec2(width, (height > maxHeight) ? maxHeight : height), true);
-
 
             rightClickPopup();
 

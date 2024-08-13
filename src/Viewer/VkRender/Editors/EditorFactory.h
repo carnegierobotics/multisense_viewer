@@ -10,10 +10,11 @@
 #include "Viewer/VkRender/pch.h"
 
 #include "Viewer/VkRender/Editor.h"
-#include "Viewer/VkRender/Editors/Viewport/EditorViewport.h"
-#include "Viewer/VkRender/Editors/SceneHierarchy/EditorSceneHierarchy.h"
+#include "Viewer/VkRender/Editors/Common/Viewport/EditorViewport.h"
+#include "Viewer/VkRender/Editors/Common/SceneHierarchy/EditorSceneHierarchy.h"
 #include "Viewer/VkRender/Editors/MultiSenseViewer/EditorMultiSenseViewer.h"
-#include "Viewer/VkRender/Editors/Test/EditorTest.h"
+#include "Viewer/VkRender/Editors/Common/Test/EditorTest.h"
+#include "Viewer/VkRender/Editors/MyEditor/EditorMyProject.h"
 
 namespace VkRender {
 
@@ -33,6 +34,9 @@ namespace VkRender {
             registerEditor(EditorType::Viewport, [](VulkanRenderPassCreateInfo &ci, UUID) {
                 return std::make_unique<EditorViewport>(ci);
             });
+            registerEditor(EditorType::MyProject, [](VulkanRenderPassCreateInfo &ci, UUID uuid) {
+                return std::make_unique<EditorMyProject>(ci, uuid);
+            });
             registerEditor(EditorType::TestWindow, [](VulkanRenderPassCreateInfo &ci, UUID uuid) {
                 return std::make_unique<EditorTest>(ci, uuid);
             });
@@ -49,6 +53,9 @@ namespace VkRender {
             if (it != m_creators.end()) {
                 return it->second(createInfo, uuid);
             }
+            Log::Logger::getInstance()->warning("Failed to find editorType: {} in factory, reverting to {}", editorTypeToString(type),
+                                                editorTypeToString(EditorType::TestWindow));
+
             return std::make_unique<Editor>(m_defaultCreateInfo);
         }
 

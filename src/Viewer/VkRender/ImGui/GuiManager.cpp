@@ -127,6 +127,31 @@ namespace VkRender {
         pipelineCreateInfo.shaders = guiResources->shaders;
         pipelineCreateInfo.descriptorSetLayout = guiResources->descriptorSetLayout;
         pipelineCreateInfo.pushConstBlockSize = sizeof(GuiResources::PushConstBlock);
+
+        // Vertex bindings an attributes based on ImGui vertex definition
+        std::vector<VkVertexInputBindingDescription> vertexInputBindings = {
+                Populate
+                ::vertexInputBindingDescription(0, sizeof(ImDrawVert), VK_VERTEX_INPUT_RATE_VERTEX),
+        };
+        std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
+                Populate
+                ::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(ImDrawVert,
+                                                                                          pos)),    // Location 0: Position
+                Populate
+                ::vertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32_SFLOAT,
+                                                  offsetof(ImDrawVert, uv)),    // Location 1: UV
+                Populate
+                ::vertexInputAttributeDescription(0, 2, VK_FORMAT_R8G8B8A8_UNORM,
+                                                  offsetof(ImDrawVert, col)),    // Location 0: Color
+        };
+        VkPipelineVertexInputStateCreateInfo vertexInputState = Populate
+        ::pipelineVertexInputStateCreateInfo();
+        vertexInputState.vertexBindingDescriptionCount = static_cast<uint32_t>(vertexInputBindings.size());
+        vertexInputState.pVertexBindingDescriptions = vertexInputBindings.data();
+        vertexInputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexInputAttributes.size());
+        vertexInputState.pVertexAttributeDescriptions = vertexInputAttributes.data();
+
+        pipelineCreateInfo.vertexInputState = vertexInputState;
         m_pipeline = std::make_unique<VulkanGraphicsPipeline>(pipelineCreateInfo);
 
         // Create buffers to make sure they are initialized. We risk destroying without initializing if everything is null
@@ -141,6 +166,31 @@ namespace VkRender {
         pipelineCreateInfo.shaders = guiResources->shaders;
         pipelineCreateInfo.descriptorSetLayout = guiResources->descriptorSetLayout;
         pipelineCreateInfo.pushConstBlockSize = sizeof(GuiResources::PushConstBlock);
+
+        // Vertex bindings an attributes based on ImGui vertex definition
+        std::vector<VkVertexInputBindingDescription> vertexInputBindings = {
+                Populate
+                ::vertexInputBindingDescription(0, sizeof(ImDrawVert), VK_VERTEX_INPUT_RATE_VERTEX),
+        };
+        std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
+                Populate
+                ::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(ImDrawVert,
+                                                                                          pos)),    // Location 0: Position
+                Populate
+                ::vertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32_SFLOAT,
+                                                  offsetof(ImDrawVert, uv)),    // Location 1: UV
+                Populate
+                ::vertexInputAttributeDescription(0, 2, VK_FORMAT_R8G8B8A8_UNORM,
+                                                  offsetof(ImDrawVert, col)),    // Location 0: Color
+        };
+        VkPipelineVertexInputStateCreateInfo vertexInputState = Populate
+        ::pipelineVertexInputStateCreateInfo();
+        vertexInputState.vertexBindingDescriptionCount = static_cast<uint32_t>(vertexInputBindings.size());
+        vertexInputState.pVertexBindingDescriptions = vertexInputBindings.data();
+        vertexInputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexInputAttributes.size());
+        vertexInputState.pVertexAttributeDescriptions = vertexInputAttributes.data();
+
+        pipelineCreateInfo.vertexInputState = vertexInputState;
         m_pipeline = std::make_unique<VulkanGraphicsPipeline>(pipelineCreateInfo);
 
     }

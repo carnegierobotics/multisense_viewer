@@ -94,41 +94,16 @@ namespace VkRender {
 
 
         // TODO InputBinding and Attributes should be part of CreateInfo
-        // Vertex bindings an attributes based on ImGui vertex definition
-        std::vector<VkVertexInputBindingDescription> vertexInputBindings = {
-                Populate
-                ::vertexInputBindingDescription(0, sizeof(ImDrawVert), VK_VERTEX_INPUT_RATE_VERTEX),
-        };
-        std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
-                Populate
-                ::vertexInputAttributeDescription(0, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(ImDrawVert,
-                                                                                          pos)),    // Location 0: Position
-                Populate
-                ::vertexInputAttributeDescription(0, 1, VK_FORMAT_R32G32_SFLOAT,
-                                                  offsetof(ImDrawVert, uv)),    // Location 1: UV
-                Populate
-                ::vertexInputAttributeDescription(0, 2, VK_FORMAT_R8G8B8A8_UNORM,
-                                                  offsetof(ImDrawVert, col)),    // Location 0: Color
-        };
-        VkPipelineVertexInputStateCreateInfo vertexInputState = Populate
-        ::pipelineVertexInputStateCreateInfo();
-        vertexInputState.vertexBindingDescriptionCount = static_cast<uint32_t>(vertexInputBindings.size());
-        vertexInputState.pVertexBindingDescriptions = vertexInputBindings.data();
-        vertexInputState.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexInputAttributes.size());
-        vertexInputState.pVertexAttributeDescriptions = vertexInputAttributes.data();
-
-        pipelineCreateInfo.pVertexInputState = &vertexInputState;
+        pipelineCreateInfo.pVertexInputState = &createInfo.vertexInputState;
 
         if (vkCreateGraphicsPipelines(m_vulkanDevice.m_LogicalDevice, m_pipelineCache, 1, &pipelineCreateInfo,
                                       nullptr,
                                       &m_pipeline) != VK_SUCCESS)
             throw std::runtime_error("Failed to create graphics m_Pipeline");
 
-        m_initialized = true;
     }
 
     VulkanGraphicsPipeline::~VulkanGraphicsPipeline() {
-        if (m_initialized) {
             VkFence fence;
             VkFenceCreateInfo fenceCreateInfo {};
             fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
@@ -149,7 +124,6 @@ namespace VkRender {
                         vkDestroyPipelineLayout(logicalDevice, pipelineLayout, nullptr);
                     },
                     fence);
-
         }
-    }
+
 }

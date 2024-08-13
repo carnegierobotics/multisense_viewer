@@ -105,7 +105,8 @@ set(SOURCE_FILES
 
         src/Viewer/VkRender/Editors/MainContextLayer.h
         src/Viewer/VkRender/Editors/MultiSenseViewer/Layers/LayoutSettingsLayer.h
-        src/Viewer/VkRender/Editors/Viewport/EditorViewport.cpp
+        src/Viewer/VkRender/Editors/MyEditor/EditorMyProject.cpp
+        src/Viewer/VkRender/Editors/Common/Viewport/EditorViewport.cpp
 
         src/Viewer/Tools/StbInclude.cpp
         src/Viewer/Tools/Logger.cpp

@@ -59,6 +59,7 @@
 #include "Viewer/VkRender/Core/Texture.h"
 #include "Viewer/VkRender/Core/CommandBuffer.h"
 #include "Viewer/VkRender/Core/KeyInput.h"
+#include "VulkanGraphicsPipeline.h"
 
 // Predeclare to speed up compile times
 namespace VkRender {
@@ -187,8 +188,7 @@ namespace VkRender {
     struct SharedRenderData {
         VkDescriptorPool descriptorPool{};
         VkDescriptorSetLayout descriptorSetLayout{};
-        VkPipeline pipeline{};
-        VkPipelineLayout pipelineLayout{};
+        std::unique_ptr<VulkanGraphicsPipeline> graphicsPipeline;
     };
 
 }

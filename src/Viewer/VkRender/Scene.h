@@ -5,26 +5,70 @@
 #ifndef MULTISENSE_VIEWER_SCENE_H
 #define MULTISENSE_VIEWER_SCENE_H
 
+#include <entt/entt.hpp>
+
+#include "Viewer/VkRender/Core/CommandBuffer.h"
+#include "Viewer/VkRender/Core/UUID.h"
+#include "Viewer/VkRender/Components/Components.h"
 
 namespace VkRender {
-    class Renderer;
-
     class Scene {
 
     public:
-        Scene() = delete;
-        explicit Scene(Renderer& ctx) : m_context(ctx) {}
+        Scene() = default;
 
-        virtual void render(CommandBuffer& drawCmdBuffers) = 0;
-        virtual void update() = 0;
+        virtual void render(CommandBuffer &drawCmdBuffers) {};
 
-        // Virtual destructor
-        virtual ~Scene() = default;
+        virtual void update(uint32_t i) {};
+
+        ~Scene(){
+            m_registry.clear<>();
+        }
+
+        Entity createEntity(const std::string &name);
+
+        Entity createEntityWithUUID(UUID uuid, const std::string &name);
+
+        Entity findEntityByName(std::string_view name);
+
+        void destroyEntity(Entity entity);
+
+        Camera &createNewCamera(const std::string &name, uint32_t width, uint32_t height);
+
+        void onMouseEvent(MouseButtons& mouseButtons);
+        void onMouseScroll(float change);
+        /*
+        Camera &Renderer::getCamera() {
+            if (!m_selectedCameraTag.empty()) {
+                auto it = m_cameras.find(m_selectedCameraTag);
+                if (it != m_cameras.end()) {
+                    return m_cameras[m_selectedCameraTag];
+                }
+            } // TODO create a new camera with tag if it doesn't exist
+        }
+
+        Camera &Renderer::getCamera(std::string tag) {
+            if (!m_selectedCameraTag.empty()) {
+                auto it = m_cameras.find(tag);
+                if (it != m_cameras.end()) {
+                    return m_cameras[tag];
+                }
+            }
+            // TODO create a new camera with tag if it doesn't exist
+        }
+        */
 
     protected:
-        Renderer& m_context;
+        entt::registry m_registry;
+
+        friend class Entity;
+
+        template<typename T>
+        void onComponentAdded(Entity entity, T &component);
     };
 
+
 }
+
 
 #endif //MULTISENSE_VIEWER_SCENE_H

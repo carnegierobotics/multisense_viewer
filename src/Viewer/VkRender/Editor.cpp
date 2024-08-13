@@ -13,26 +13,24 @@
 namespace VkRender {
 
 
-    Editor::Editor(VulkanRenderPassCreateInfo &createInfo, UUID _uuid) : m_createInfo(createInfo),
-                                                                         m_context(createInfo.context),
-                                                                         m_sizeLimits(createInfo.appWidth,
-                                                                                      createInfo.appHeight),
-                                                                         m_uuid(_uuid) {
+    Editor::Editor(EditorCreateInfo &createInfo, UUID _uuid) : m_createInfo(createInfo),
+                                                               m_context(createInfo.context),
+                                                               m_sizeLimits(createInfo.pPassCreateInfo.width,
+                                                                            createInfo.pPassCreateInfo.height),
+                                                               m_uuid(_uuid) {
         m_ui.borderSize = m_createInfo.borderSize;
         m_ui.height = m_createInfo.height;
         m_ui.width = m_createInfo.width;
         m_ui.x = m_createInfo.x;
         m_ui.y = m_createInfo.y;
-        m_ui.index = m_createInfo.editorIndex;
 
-
-        m_renderPass = std::make_unique<VulkanRenderPass>(m_createInfo);
+        m_renderPass = std::make_unique<VulkanRenderPass>(&m_createInfo.pPassCreateInfo);
 
         m_guiManager = std::make_unique<GuiManager>(m_context->vkDevice(),
                                                     m_renderPass->getRenderPass(), // TODO verify if this is ok?
                                                     &m_ui,
-                                                    m_createInfo.msaaSamples,
-                                                    m_createInfo.swapchainImageCount,
+                                                    m_createInfo.pPassCreateInfo.msaaSamples,
+                                                    m_createInfo.pPassCreateInfo.swapchainImageCount,
                                                     m_context,
                                                     ImGui::CreateContext(&m_createInfo.guiResources->fontAtlas),
                                                     m_createInfo.guiResources.get(),
@@ -44,18 +42,18 @@ namespace VkRender {
     }
 
 
-    void Editor::resize(VulkanRenderPassCreateInfo &createInfo) {
+    void Editor::resize(EditorCreateInfo &createInfo) {
         m_createInfo = createInfo;
-        m_sizeLimits = EditorSizeLimits(m_createInfo.appWidth, m_createInfo.appHeight);
-
+        m_sizeLimits = EditorSizeLimits( createInfo.pPassCreateInfo.width,  createInfo.pPassCreateInfo.height);
         m_ui.height = m_createInfo.height;
         m_ui.width = m_createInfo.width;
         m_ui.x = m_createInfo.x;
         m_ui.y = m_createInfo.y;
 
-        m_renderPass = std::make_unique<VulkanRenderPass>(m_createInfo);
+        m_renderPass = std::make_unique<VulkanRenderPass>(&m_createInfo.pPassCreateInfo);
 
-        m_guiManager->resize(m_ui.width, m_ui.height, m_renderPass->getRenderPass(), m_createInfo.msaaSamples,
+        m_guiManager->resize(m_createInfo.width, m_createInfo.height, m_renderPass->getRenderPass(),
+                             m_createInfo.pPassCreateInfo.msaaSamples,
                              m_createInfo.guiResources);
 
         Log::Logger::getInstance()->info("Resizing Editor. UUID: {} : {}, size: {}x{}, at pos: ({},{})",
@@ -63,7 +61,7 @@ namespace VkRender {
                                          m_ui.height, m_ui.x, m_ui.y);
     }
 
-    void Editor::loadScene(){
+    void Editor::loadScene() {
         onSceneLoad();
     }
 
@@ -71,20 +69,22 @@ namespace VkRender {
         const uint32_t &currentFrame = *drawCmdBuffers.frameIndex;
         const uint32_t &imageIndex = *drawCmdBuffers.activeImageIndex;
 
-        if (m_createInfo.x + m_createInfo.width > m_createInfo.appWidth) {
+        /*
+        if (m_createInfo.x + m_createInfo.width > m_sizeLimits.MAX_WIDTH) {
             Log::Logger::getInstance()->warning("Editor {} : {}'s width + offset is more than application width: {}/{}",
                                                 m_uuid.operator std::string(), m_createInfo.editorIndex,
-                                                m_createInfo.appWidth, m_createInfo.width + m_createInfo.x);
+                                                m_sizeLimits.MAX_WIDTH, m_createInfo.width + m_createInfo.x);
             return;
         }
 
-        if (m_createInfo.y + m_createInfo.height > m_createInfo.appHeight) {
+        if (m_createInfo.y + m_createInfo.height > m_sizeLimits.MAX_HEIGHT) {
             Log::Logger::getInstance()->warning(
                     "Editor {} : {}'s height + offset is more than application height: {}/{}",
-                    m_uuid.operator std::string(), m_createInfo.editorIndex, m_createInfo.appHeight,
+                    m_uuid.operator std::string(), m_createInfo.editorIndex, m_sizeLimits.MAX_HEIGHT,
                     m_createInfo.height + m_createInfo.y);
             return;
         }
+        */
         VkViewport viewport{};
         viewport.x = static_cast<float>(m_createInfo.x);
         viewport.y = static_cast<float>(m_createInfo.y);
@@ -221,7 +221,7 @@ namespace VkRender {
         return EditorBorderState::None;
     }
 
-    bool Editor::validateEditorSize(VulkanRenderPassCreateInfo &createInfo) {
+    bool Editor::validateEditorSize(EditorCreateInfo &createInfo) {
         // Ensure the x offset is within the allowed range
         if (createInfo.x < m_sizeLimits.MIN_OFFSET_X) {
             return false;
@@ -247,14 +247,15 @@ namespace VkRender {
         if (createInfo.height < m_sizeLimits.MIN_SIZE) {
             return false;
         }
-        if (createInfo.height > m_sizeLimits.MAX_HEIGHT) {
+        if (createInfo.height > m_sizeLimits.MAX_HEIGHT - m_sizeLimits.MENU_BAR_HEIGHT) {
             return false;
         }
         return true;
     }
 
     void
-    Editor::windowResizeEditorsHorizontal(int32_t dx, double widthScale, std::vector<std::unique_ptr<Editor>> &editors, uint32_t width) {
+    Editor::windowResizeEditorsHorizontal(int32_t dx, double widthScale, std::vector<std::unique_ptr<Editor>> &editors,
+                                          uint32_t width) {
         std::vector<size_t> maxHorizontalEditors;
         std::map<size_t, std::vector<size_t>> indicesHorizontalEditors;
         for (size_t i = 0; auto &sortedEditor: editors) {
@@ -378,7 +379,9 @@ namespace VkRender {
         }
     }
 
-    void Editor::windowResizeEditorsVertical(int32_t dy, double heightScale, std::vector<std::unique_ptr<Editor>> &editors, uint32_t height) {
+    void
+    Editor::windowResizeEditorsVertical(int32_t dy, double heightScale, std::vector<std::unique_ptr<Editor>> &editors,
+                                        uint32_t height) {
         std::vector<size_t> maxHorizontalEditors;
         std::map<size_t, std::vector<size_t>> indicesVertical;
         for (size_t i = 0; auto &sortedEditor: editors) {
@@ -409,7 +412,7 @@ namespace VkRender {
         for (auto &editorIdx: indicesVertical) {
             size_t index = editorIdx.first;
             auto &ci = editors[index]->getCreateInfo();
-        // ci and nextCI indicesVertical should all match after resize
+            // ci and nextCI indicesVertical should all match after resize
             auto newHeight = static_cast<int32_t>(ci.height * heightScale);
             if (newHeight < editors[index]->getSizeLimits().MIN_SIZE)
                 newHeight = editors[index]->getSizeLimits().MIN_SIZE;
@@ -422,7 +425,7 @@ namespace VkRender {
         std::vector<std::pair<size_t, std::vector<size_t>>> entries(indicesVertical.begin(),
                                                                     indicesVertical.end());
 
-    // Comparator function to sort by ciX
+        // Comparator function to sort by ciX
         auto comparator = [&](const std::pair<size_t, std::vector<size_t>> &a,
                               const std::pair<size_t, std::vector<size_t>> &b) {
             // Assuming you want to sort based on the ciX value of the first editor in each vector
@@ -458,9 +461,9 @@ namespace VkRender {
             const std::vector<size_t> &bordersToEditors = editorIndices.second;
 
             for (const size_t borderedEditor: bordersToEditors) {
-        // Increment the count of the bordered editor
+                // Increment the count of the bordered editor
                 identicalBorders[borderedEditor].first++;
-        // Store the index of the editor sharing the border
+                // Store the index of the editor sharing the border
                 identicalBorders[borderedEditor].second.push_back(thisEditor);
             }
         }
@@ -483,7 +486,7 @@ namespace VkRender {
                 auto &editorCreateInfo = editors[index]->getCreateInfo();
                 int currentPos = editorCreateInfo.height + editorCreateInfo.y;
                 if (currentPos != largestPos) {
-                // Adjust the height so that height + x matches largestPos
+                    // Adjust the height so that height + x matches largestPos
                     editorCreateInfo.height = largestPos - editorCreateInfo.y;
                 }
             }
@@ -498,9 +501,7 @@ namespace VkRender {
     }
 
 
-
-
-    void Editor::handleHoverState(std::unique_ptr<Editor> &editor, const VkRender::MouseButtons& mouse) {
+    void Editor::handleHoverState(std::unique_ptr<Editor> &editor, const VkRender::MouseButtons &mouse) {
         editor->updateBorderState(mouse.pos);
 
         editor->ui().dragDelta = glm::ivec2(0.0f);
@@ -526,13 +527,13 @@ namespace VkRender {
         }
         editor->ui().cornerBottomLeftHovered = editor->ui().lastHoveredBorderType == EditorBorderState::BottomLeft;
         editor->ui().resizeHovered = (EditorBorderState::Left == editor->ui().lastHoveredBorderType ||
-                                     EditorBorderState::Right == editor->ui().lastHoveredBorderType ||
-                                     EditorBorderState::Top == editor->ui().lastHoveredBorderType ||
-                                     EditorBorderState::Bottom == editor->ui().lastHoveredBorderType);
+                                      EditorBorderState::Right == editor->ui().lastHoveredBorderType ||
+                                      EditorBorderState::Top == editor->ui().lastHoveredBorderType ||
+                                      EditorBorderState::Bottom == editor->ui().lastHoveredBorderType);
         editor->ui().hovered = editor->ui().lastHoveredBorderType != EditorBorderState::None;
     }
 
-    void Editor::handleClickState(std::unique_ptr<Editor> &editor, const VkRender::MouseButtons& mouse) {
+    void Editor::handleClickState(std::unique_ptr<Editor> &editor, const VkRender::MouseButtons &mouse) {
         if (mouse.left && mouse.action == GLFW_PRESS) {
             handleLeftMouseClick(editor);
         }
@@ -559,7 +560,7 @@ namespace VkRender {
     }
 
 
-    void Editor::handleDragState(std::unique_ptr<Editor> &editor, const VkRender::MouseButtons& mouse) {
+    void Editor::handleDragState(std::unique_ptr<Editor> &editor, const VkRender::MouseButtons &mouse) {
         if (!mouse.left) return;
         if (editor->ui().lastClickedBorderType != EditorBorderState::None) {
             int32_t dragX = editor->ui().cursorPos.x - editor->ui().lastPressedPos.x;
@@ -572,7 +573,9 @@ namespace VkRender {
         }
     }
 
-    void Editor::handleIndirectClickState(std::vector<std::unique_ptr<Editor>>& editors, std::unique_ptr<Editor> &editor, const VkRender::MouseButtons& mouse) {
+    void
+    Editor::handleIndirectClickState(std::vector<std::unique_ptr<Editor>> &editors, std::unique_ptr<Editor> &editor,
+                                     const VkRender::MouseButtons &mouse) {
         if (mouse.left && mouse.action == GLFW_PRESS) {
             //&& (!anyCornerHovered && !anyCornerClicked)) {
             for (auto &otherEditor: editors) {
@@ -584,7 +587,8 @@ namespace VkRender {
         }
     }
 
-    void Editor::checkAndSetIndirectResize(std::unique_ptr<Editor> &editor, std::unique_ptr<Editor> &otherEditor, const VkRender::MouseButtons& mouse) {
+    void Editor::checkAndSetIndirectResize(std::unique_ptr<Editor> &editor, std::unique_ptr<Editor> &otherEditor,
+                                           const VkRender::MouseButtons &mouse) {
         auto otherBorder = otherEditor->checkLineBorderState(mouse.pos, true);
         if (otherBorder & EditorBorderState::HorizontalBorders) {
             otherEditor->ui().resizeActive = true;
@@ -596,8 +600,8 @@ namespace VkRender {
 
             Log::Logger::getInstance()->info(
                     "Indirect access from Editor {} to Editor {}' border: {}. Our editor resize {} {}",
-                    editor->ui().index,
-                    otherEditor->ui().index,
+                    editor->m_createInfo.editorIndex,
+                    otherEditor->m_createInfo.editorIndex,
                     otherEditor->ui().lastClickedBorderType, editor->ui().resizeActive,
                     editor->ui().lastClickedBorderType);
         }
@@ -611,16 +615,15 @@ namespace VkRender {
             editor->ui().lastClickedBorderType = editor->checkLineBorderState(mouse.pos, false);
             Log::Logger::getInstance()->info(
                     "Indirect access from Editor {} to Editor {}' border: {}. Our editor resize {} {}",
-                    editor->ui().index,
-                    otherEditor->ui().index,
+                    editor->m_createInfo.editorIndex,
+                    otherEditor->m_createInfo.editorIndex,
                     otherEditor->ui().lastClickedBorderType, editor->ui().resizeActive,
                     editor->ui().lastClickedBorderType);
         }
     }
 
 
-
-    void Editor::checkIfEditorsShouldMerge(std::vector<std::unique_ptr<Editor>>& editors) {
+    void Editor::checkIfEditorsShouldMerge(std::vector<std::unique_ptr<Editor>> &editors) {
         int debug = 1;
 
         for (size_t i = 0; i < editors.size(); ++i) {
@@ -679,11 +682,9 @@ namespace VkRender {
     }
 
 
-
-    bool Editor::isValidResize(VulkanRenderPassCreateInfo &newEditorCI, std::unique_ptr<Editor> &editor) {
+    bool Editor::isValidResize(EditorCreateInfo &newEditorCI, std::unique_ptr<Editor> &editor) {
         return editor->validateEditorSize(newEditorCI);
     }
-
 
 
 }

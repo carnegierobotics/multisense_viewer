@@ -49,6 +49,10 @@ namespace VkRender {
             ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, handles.info->menuBarHeight));
             ImGui::BeginMainMenuBar();
             if (ImGui::BeginMenu("File")) {
+                if (ImGui::MenuItem("Load Scene")) {
+                    // Handle New action
+                    handles.m_context->loadScene("DefaultScene");
+                }
                 if (ImGui::MenuItem("Quit")) {
                     // Handle New action
                     handles.m_context->closeApplication();

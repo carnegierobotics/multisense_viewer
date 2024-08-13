@@ -15,21 +15,21 @@
 
 namespace VkRender {
     typedef enum EditorBorderState {
-        None        = 0,        // Cursor is not on any border
-        Left        = 1 << 0,   // Cursor is on the left border (1)
-        Right       = 1 << 1,   // Cursor is on the right border (2)
-        Top         = 1 << 2,   // Cursor is on the top border (4)
-        Bottom      = 1 << 3,   // Cursor is on the bottom border (8)
-        TopLeft     = 1 << 4,   // Cursor is on the top-left corner (16)
-        TopRight    = 1 << 5,   // Cursor is on the top-right corner (32)
-        BottomLeft  = 1 << 6,   // Cursor is on the bottom-left corner (64)
+        None = 0,        // Cursor is not on any border
+        Left = 1 << 0,   // Cursor is on the left border (1)
+        Right = 1 << 1,   // Cursor is on the right border (2)
+        Top = 1 << 2,   // Cursor is on the top border (4)
+        Bottom = 1 << 3,   // Cursor is on the bottom border (8)
+        TopLeft = 1 << 4,   // Cursor is on the top-left corner (16)
+        TopRight = 1 << 5,   // Cursor is on the top-right corner (32)
+        BottomLeft = 1 << 6,   // Cursor is on the bottom-left corner (64)
         BottomRight = 1 << 7,   // Cursor is on the bottom-right corner (128)
-        Inside      = 1 << 8,   // Cursor is inside (256)
+        Inside = 1 << 8,   // Cursor is inside (256)
 
-        AnyBorders   = Left | Right | Top | Bottom,
-        VerticalBorders   = Left | Right,
-        HorizontalBorders   =  Top | Bottom,
-        AnyCorner   = TopLeft | TopRight | BottomRight | BottomLeft,
+        AnyBorders = Left | Right | Top | Bottom,
+        VerticalBorders = Left | Right,
+        HorizontalBorders = Top | Bottom,
+        AnyCorner = TopLeft | TopRight | BottomRight | BottomLeft,
     } EditorBorderState;
 }
 
@@ -97,17 +97,17 @@ namespace VkRender {
             MAX_OFFSET_HEIGHT = appHeight - MIN_SIZE;
 
             MAX_WIDTH = appWidth;
-            MAX_HEIGHT = appHeight - MENU_BAR_HEIGHT;
+            MAX_HEIGHT = appHeight;
         }
     };
+
 
     struct EditorUI {
         int32_t x = 0;
         int32_t y = 0;
-        int32_t  borderSize = 0;
+        int32_t borderSize = 0;
         int32_t width = 0;
         int32_t height = 0;
-        size_t index = 0;
         bool resizeActive = false;
         bool prevResize = false;
         bool borderClicked = false;
@@ -145,7 +145,7 @@ namespace VkRender {
         bool changed = false;
 
         // assign some random background colors
-        EditorUI(){
+        EditorUI() {
             std::vector<ImVec4> c{{1.0f, 0.0f, 0.0f, 0.4f},
                                   {0.0f, 1.0f, 0.0f, 0.4f}, // 1: Green
                                   {0.0f, 0.0f, 1.0f, 0.4f}, // 2: Blue

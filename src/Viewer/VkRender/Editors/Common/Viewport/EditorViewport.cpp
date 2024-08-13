@@ -13,16 +13,18 @@
 namespace VkRender {
 
     void EditorViewport::onRender(CommandBuffer& drawCmdBuffers) {
-
-        m_context->scene()->render(drawCmdBuffers);
+        if (m_activeScene)
+            m_activeScene->render(drawCmdBuffers);
 
     }
 
     void EditorViewport::onUpdate() {
-        m_context->scene()->update();
+        if (m_activeScene)
+            m_activeScene->update(m_context->currentFrameIndex());
+
     }
 
-    EditorViewport::EditorViewport(VulkanRenderPassCreateInfo &createInfo) : Editor(createInfo) {
+    EditorViewport::EditorViewport(EditorCreateInfo &createInfo) : Editor(createInfo) {
 
         addUI("EditorUILayer");
         addUI("DebugWindow");
@@ -34,12 +36,16 @@ namespace VkRender {
     void EditorViewport::onSceneLoad() {
 
         DefaultGraphicsPipelineComponent::RenderPassInfo renderPassInfo{};
-        renderPassInfo.sampleCount = m_createInfo.msaaSamples;
+        renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
         renderPassInfo.renderPass = m_renderPass->getRenderPass();
-        auto entity = m_context->findEntityByName("FirstEntity");
-        if (entity) {
+
+        m_activeScene = m_context->activeScene();
+
+        auto entity = m_activeScene->findEntityByName("FirstEntity");
+        if (entity && !entity.hasComponent<DefaultGraphicsPipelineComponent>()) {
             auto &res = entity.addComponent<VkRender::DefaultGraphicsPipelineComponent>(*m_context, renderPassInfo);
             res.bind(entity.getComponent<VkRender::OBJModelComponent>());
         }
+
     }
 }

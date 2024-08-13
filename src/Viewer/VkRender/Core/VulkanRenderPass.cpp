@@ -13,18 +13,18 @@
 namespace VkRender {
 
 
-    VulkanRenderPass::VulkanRenderPass(const VulkanRenderPassCreateInfo &createInfo) : m_logicalDevice(
-            createInfo.context->vkDevice().m_LogicalDevice), m_allocator(createInfo.context->allocator()) {
+    VulkanRenderPass::VulkanRenderPass(const VulkanRenderPassCreateInfo *createInfo) : m_logicalDevice(
+            createInfo->vulkanDevice->m_LogicalDevice), m_allocator(*createInfo->allocator) {
 
-        VkSampleCountFlagBits sampleCount = createInfo.msaaSamples;
-        uint32_t width =  std::max(createInfo.width , 0);
-        uint32_t height = std::max(createInfo.height, 0);
-        std::string editorTypeDescription = editorTypeToString(createInfo.editorTypeDescription);
+        VkSampleCountFlagBits sampleCount = createInfo->msaaSamples;
+        uint32_t width =  std::max(createInfo->width , 1);
+        uint32_t height = std::max(createInfo->height, 1);
+        std::string editorTypeDescription = "TODO DESCRIPTION"; //editorTypeToString(createInfo->editorTypeDescription);
 
         //// COLOR IMAGE RESOURCE /////
         VkImageCreateInfo colorImageCI = Populate::imageCreateInfo();
         colorImageCI.imageType = VK_IMAGE_TYPE_2D;
-        colorImageCI.format = createInfo.swapchainColorFormat;
+        colorImageCI.format = createInfo->swapchainColorFormat;
         colorImageCI.extent = {width, height, 1};
         colorImageCI.mipLevels = 1;
         colorImageCI.arrayLayers = 1;
@@ -37,7 +37,7 @@ namespace VkRender {
         VmaAllocationCreateInfo allocCreateInfo = {};
         allocCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 
-        VkResult result = vmaCreateImage(createInfo.context->allocator(), &colorImageCI, &allocCreateInfo,
+        VkResult result = vmaCreateImage(m_allocator, &colorImageCI, &allocCreateInfo,
                                          &m_colorImage.image,
                                          &m_colorImage.colorImageAllocation, nullptr);
         if (result != VK_SUCCESS) throw std::runtime_error("Failed to create colorImage");
@@ -68,14 +68,14 @@ namespace VkRender {
         VkImageViewCreateInfo colorImageViewCI = Populate::imageViewCreateInfo();
         colorImageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
         colorImageViewCI.image = m_colorImage.image;
-        colorImageViewCI.format = createInfo.swapchainColorFormat;
+        colorImageViewCI.format = createInfo->swapchainColorFormat;
         colorImageViewCI.subresourceRange.baseMipLevel = 0;
         colorImageViewCI.subresourceRange.levelCount = 1;
         colorImageViewCI.subresourceRange.baseArrayLayer = 0;
         colorImageViewCI.subresourceRange.layerCount = 1;
         colorImageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 // Stencil aspect should only be set on depth + stencil formats (VK_FORMAT_D16_UNORM_S8_UINT..VK_FORMAT_D32_SFLOAT_S8_UINT
-        if (createInfo.depthFormat >= VK_FORMAT_D16_UNORM_S8_UINT) {
+        if (createInfo->depthFormat >= VK_FORMAT_D16_UNORM_S8_UINT) {
             colorImageViewCI.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
         }
 
@@ -118,36 +118,36 @@ namespace VkRender {
         }
 
         VkAttachmentDescription uiColorAttachment = {};
-        uiColorAttachment.format = createInfo.swapchainColorFormat;
-        uiColorAttachment.samples = createInfo.msaaSamples;
-        uiColorAttachment.loadOp = createInfo.loadOp; // Load since it follows the main pass
-        uiColorAttachment.storeOp = createInfo.storeOp;
+        uiColorAttachment.format = createInfo->swapchainColorFormat;
+        uiColorAttachment.samples = createInfo->msaaSamples;
+        uiColorAttachment.loadOp = createInfo->loadOp; // Load since it follows the main pass
+        uiColorAttachment.storeOp = createInfo->storeOp;
         uiColorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         uiColorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        uiColorAttachment.initialLayout = createInfo.initialLayout;
-        uiColorAttachment.finalLayout = createInfo.finalLayout;
+        uiColorAttachment.initialLayout = createInfo->initialLayout;
+        uiColorAttachment.finalLayout = createInfo->finalLayout;
         VkAttachmentReference uiColorAttachmentRef = {};
         uiColorAttachmentRef.attachment = 0;
         uiColorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
         VkAttachmentDescription uiResolveAttachment = {};
-        uiResolveAttachment.format = createInfo.swapchainColorFormat;
+        uiResolveAttachment.format = createInfo->swapchainColorFormat;
         uiResolveAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-        uiResolveAttachment.loadOp = createInfo.loadOp;
-        uiResolveAttachment.storeOp = createInfo.storeOp;
+        uiResolveAttachment.loadOp = createInfo->loadOp;
+        uiResolveAttachment.storeOp = createInfo->storeOp;
         uiResolveAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         uiResolveAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        uiResolveAttachment.initialLayout = createInfo.initialLayout;
-        uiResolveAttachment.finalLayout = createInfo.finalLayout;
+        uiResolveAttachment.initialLayout = createInfo->initialLayout;
+        uiResolveAttachment.finalLayout = createInfo->finalLayout;
         VkAttachmentReference uiResolveAttachmentRef = {};
         uiResolveAttachmentRef.attachment = 2;
         uiResolveAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
         VkAttachmentDescription dummyDepthAttachment = {};
-        dummyDepthAttachment.format = createInfo.depthFormat;
-        dummyDepthAttachment.samples = createInfo.msaaSamples;
-        dummyDepthAttachment.loadOp = createInfo.loadOp;
-        dummyDepthAttachment.storeOp = createInfo.storeOp;
+        dummyDepthAttachment.format = createInfo->depthFormat;
+        dummyDepthAttachment.samples = createInfo->msaaSamples;
+        dummyDepthAttachment.loadOp = createInfo->loadOp;
+        dummyDepthAttachment.storeOp = createInfo->storeOp;
         dummyDepthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         dummyDepthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
         dummyDepthAttachment.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;

@@ -282,7 +282,6 @@ namespace VkRender {
     }
 
     VulkanRenderer::~VulkanRenderer() {
-        VulkanResourceManager::destroyInstance();
 
         vkDestroyImageView(device, m_depthStencil.view, nullptr);
         vmaDestroyImage(m_allocator, m_depthStencil.image, m_depthStencil.allocation);
@@ -290,8 +289,14 @@ namespace VkRender {
         vkDestroyImageView(device, m_colorImage.view, nullptr);
         vmaDestroyImage(m_allocator, m_colorImage.image, m_colorImage.allocation);
 
+        for (auto &fb: m_frameBuffers) {
+            vkDestroyFramebuffer(device, fb, nullptr);
+        }
+
+        m_mainRenderPass.reset();
         // CleanUP all vulkan resources
         swapchain->cleanup();
+        VulkanResourceManager::destroyInstance();
 
         vkDestroyCommandPool(device, cmdPool, nullptr);
         vkDestroyCommandPool(device, cmdPoolCompute, nullptr);
@@ -445,6 +450,13 @@ namespace VkRender {
         m_logger->info("Initialized Renderer backend");
 
         rendererStartTime = std::chrono::system_clock::now();
+        VulkanResourceManager::getInstance(m_vulkanDevice, m_allocator);
+
+        createColorResources();
+        createDepthStencil();
+
+        createMainRenderPass();
+
     }
 
 
@@ -456,10 +468,6 @@ namespace VkRender {
     }
 
     void VulkanRenderer::windowResize() {
-        if (!backendInitialized) {
-            return;
-        }
-        backendInitialized = false;
         int32_t prevWidth = static_cast<int32_t>(m_width);
         int32_t prevHeight = static_cast<int32_t>(m_height);
         glfwGetFramebufferSize(window, reinterpret_cast<int *>(&m_width), reinterpret_cast<int *>(&m_height));
@@ -494,16 +502,27 @@ namespace VkRender {
         m_logger->info("Window Resized. New size is: {} x {}", m_width, m_height);
 
         // Notify derived class
+        for (auto &fb: m_frameBuffers) {
+            vkDestroyFramebuffer(device, fb, nullptr);
+        }
+
+        vkDestroyImageView(device, m_depthStencil.view, nullptr);
+        vmaDestroyImage(m_allocator, m_depthStencil.image, m_depthStencil.allocation);
+
+        vkDestroyImageView(device, m_colorImage.view, nullptr);
+        vmaDestroyImage(m_allocator, m_colorImage.image, m_colorImage.allocation);
+
+        createColorResources();
+        createDepthStencil();
+        createMainRenderPass();
+
         windowResized(widthChanged, heightChanged, widthScale, heightScale);
 
         // Command buffers need to be recreated as they may store
         // references to the recreated frame buffer
         destroyCommandBuffers();
         createCommandBuffers();
-        buildCommandBuffers();
         vkDeviceWaitIdle(device);
-
-        backendInitialized = true;
     }
 
     void VulkanRenderer::renderLoop() {
@@ -567,7 +586,6 @@ namespace VkRender {
 
         vkResetCommandBuffer(computeCommand.buffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
         /** call renderer compute function **/
-        compute();
         sInfo.commandBufferCount = 1;
         sInfo.pCommandBuffers = &computeCommand.buffers[currentFrame];
         sInfo.signalSemaphoreCount = 1;
@@ -822,12 +840,7 @@ namespace VkRender {
 
     void VulkanRenderer::mouseScrollCallback(GLFWwindow *window, double xoffset, double yoffset) {
         auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
-        /*
-        ImGuiIO &io = ImGui::GetIO();
         myApp->mouseScroll(static_cast<float>(yoffset));
-        io.MouseWheel += 0.5f * static_cast<float>(yoffset);
-    */
-
     }
 
     DISABLE_WARNING_POP
@@ -1224,4 +1237,187 @@ namespace VkRender {
         glfwSetWindowShouldClose(window, true);
     }
 
+    void VulkanRenderer::recordCommands() {
+        VkCommandBufferBeginInfo cmdBufInfo = Populate::commandBufferBeginInfo();
+        cmdBufInfo.flags = 0;
+        cmdBufInfo.pInheritanceInfo = nullptr;
+        std::array<VkClearValue, 3> clearValues{};
+        clearValues[0] = {{{0.1f, 0.1f, 0.1f, 1.0f}}};
+        clearValues[1].depthStencil = {1.0f, 0};
+        clearValues[2] = {{{0.1f, 0.1f, 0.1f, 1.0f}}};
+        vkBeginCommandBuffer(drawCmdBuffers.buffers[currentFrame], &cmdBufInfo);
+        VkRenderPassBeginInfo renderPassBeginInfo = Populate::renderPassBeginInfo();
+        renderPassBeginInfo.renderPass = m_mainRenderPass->getRenderPass();
+        // Increase reference count by 1 here?
+        renderPassBeginInfo.renderArea.offset.x = 0;
+        renderPassBeginInfo.renderArea.offset.y = 0;
+        renderPassBeginInfo.renderArea.extent.width = m_width;
+        renderPassBeginInfo.renderArea.extent.height = m_height;
+        renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+        renderPassBeginInfo.pClearValues = clearValues.data();
+        renderPassBeginInfo.framebuffer = m_frameBuffers[imageIndex];
+        vkCmdBeginRenderPass(drawCmdBuffers.buffers[currentFrame], &renderPassBeginInfo,
+                             VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
+
+        onRender();
+
+        VkImageSubresourceRange subresourceRange = {};
+        subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        subresourceRange.levelCount = 1;
+        subresourceRange.layerCount = 1;
+        Utils::setImageLayout(drawCmdBuffers.buffers[currentFrame], swapchain->buffers[imageIndex].image,
+                              VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                              VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, subresourceRange,
+                              VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+        vkEndCommandBuffer(drawCmdBuffers.buffers[currentFrame]);
+    }
+
+    void VulkanRenderer::createDepthStencil() {
+        std::string description = "VulkanRenderer:";
+        VkImageCreateInfo imageCI = Populate::imageCreateInfo();
+        imageCI.imageType = VK_IMAGE_TYPE_2D;
+        imageCI.format = depthFormat;
+        imageCI.extent = {m_width, m_height, 1};
+        imageCI.mipLevels = 1;
+        imageCI.arrayLayers = 1;
+        imageCI.samples = msaaSamples;
+        imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
+        imageCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+
+        VmaAllocationCreateInfo allocInfo = {};
+        allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+
+        VkResult result = vmaCreateImage(m_allocator, &imageCI, &allocInfo, &m_depthStencil.image,
+                                         &m_depthStencil.allocation, nullptr);
+        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create depth image");
+        vmaSetAllocationName(m_allocator, m_depthStencil.allocation, (description + "DepthStencil").c_str());
+        VALIDATION_DEBUG_NAME(m_vulkanDevice->m_LogicalDevice,
+                              reinterpret_cast<uint64_t>(m_depthStencil.image), VK_OBJECT_TYPE_IMAGE,
+                              (description + "DepthImage").c_str());
+
+        VkImageViewCreateInfo imageViewCI = Populate::imageViewCreateInfo();
+        imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        imageViewCI.image = m_depthStencil.image;
+        imageViewCI.format = depthFormat;
+        imageViewCI.subresourceRange.baseMipLevel = 0;
+        imageViewCI.subresourceRange.levelCount = 1;
+        imageViewCI.subresourceRange.baseArrayLayer = 0;
+        imageViewCI.subresourceRange.layerCount = 1;
+        imageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+        if (depthFormat >= VK_FORMAT_D16_UNORM_S8_UINT) {
+            imageViewCI.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+        }
+        result = vkCreateImageView(m_vulkanDevice->m_LogicalDevice, &imageViewCI, nullptr,
+                                   &m_depthStencil.view);
+        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create depth image view");
+
+        VALIDATION_DEBUG_NAME(m_vulkanDevice->m_LogicalDevice,
+                              reinterpret_cast<uint64_t>(m_depthStencil.view), VK_OBJECT_TYPE_IMAGE_VIEW,
+                              (description + "DepthView").c_str());
+
+        VkCommandBuffer copyCmd = m_vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+
+        VkImageSubresourceRange subresourceRange = {};
+        subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+        subresourceRange.levelCount = 1;
+        subresourceRange.layerCount = 1;
+
+        Utils::setImageLayout(copyCmd, m_depthStencil.image, VK_IMAGE_LAYOUT_UNDEFINED,
+                              VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, subresourceRange,
+                              VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+
+        m_vulkanDevice->flushCommandBuffer(copyCmd, graphicsQueue, true);
+    }
+
+
+    void VulkanRenderer::createColorResources() {
+        std::string description = "VulkanRenderer:";
+
+        VkImageCreateInfo imageCI = Populate::imageCreateInfo();
+        imageCI.imageType = VK_IMAGE_TYPE_2D;
+        imageCI.format = swapchain->colorFormat;
+        imageCI.extent = {m_width, m_height, 1};
+        imageCI.mipLevels = 1;
+        imageCI.arrayLayers = 1;
+        imageCI.samples = msaaSamples;
+        imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
+        imageCI.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+        imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+        VmaAllocationCreateInfo allocInfo = {};
+        allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+
+        VkResult result = vmaCreateImage(m_allocator, &imageCI, &allocInfo, &m_colorImage.image,
+                                         &m_colorImage.allocation, nullptr);
+        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create color image");
+        VALIDATION_DEBUG_NAME(m_vulkanDevice->m_LogicalDevice,
+                              reinterpret_cast<uint64_t>(m_colorImage.image), VK_OBJECT_TYPE_IMAGE,
+                              (description + "ColorImageResource").c_str());
+        // Set user data for debugging
+        //vmaSetAllocationUserData(m_allocator, m_colorImage.allocation, (void*)((description + "ColorResource").c_str()));
+
+        VkImageViewCreateInfo imageViewCI = Populate::imageViewCreateInfo();
+        imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        imageViewCI.image = m_colorImage.image;
+        imageViewCI.format = swapchain->colorFormat;
+        imageViewCI.subresourceRange.baseMipLevel = 0;
+        imageViewCI.subresourceRange.levelCount = 1;
+        imageViewCI.subresourceRange.baseArrayLayer = 0;
+        imageViewCI.subresourceRange.layerCount = 1;
+        imageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        result = vkCreateImageView(m_vulkanDevice->m_LogicalDevice, &imageViewCI, nullptr,
+                                   &m_colorImage.view);
+        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create color image view");
+        VALIDATION_DEBUG_NAME(m_vulkanDevice->m_LogicalDevice,
+                              reinterpret_cast<uint64_t>(m_colorImage.view), VK_OBJECT_TYPE_IMAGE_VIEW,
+                              (description + "ColorViewResource").c_str());
+    }
+
+    void VulkanRenderer::createMainRenderPass() {
+        VulkanRenderPassCreateInfo renderPassCreateInfo(m_vulkanDevice, &m_allocator);
+        renderPassCreateInfo.height = static_cast<int32_t>(m_height);
+        renderPassCreateInfo.width = static_cast<int32_t>(m_width);
+        renderPassCreateInfo.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        renderPassCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        renderPassCreateInfo.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        renderPassCreateInfo.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        renderPassCreateInfo.msaaSamples = msaaSamples;
+        renderPassCreateInfo.swapchainImageCount = swapchain->imageCount;
+        renderPassCreateInfo.swapchainColorFormat = swapchain->colorFormat;
+        renderPassCreateInfo.depthFormat = depthFormat;
+        // Start timingm_mainRenderPasses UI render pass setup
+        auto startUIRenderPassSetup = std::chrono::high_resolution_clock::now();
+        m_mainRenderPass = std::make_shared<VulkanRenderPass>(&renderPassCreateInfo);
+
+        std::array<VkImageView, 3> frameBufferAttachments{};
+        frameBufferAttachments[0] = m_colorImage.view;
+        frameBufferAttachments[1] = m_depthStencil.view;
+        VkFramebufferCreateInfo frameBufferCreateInfo = Populate::framebufferCreateInfo(m_width,
+                                                                                        m_height,
+                                                                                        frameBufferAttachments.data(),
+                                                                                        frameBufferAttachments.size(),
+                                                                                        m_mainRenderPass->getRenderPass());
+        // TODO verify if this is ok?
+        m_frameBuffers.resize(swapchain->imageCount);
+        for (uint32_t i = 0; i < m_frameBuffers.size(); i++) {
+            auto startFramebufferCreation = std::chrono::high_resolution_clock::now();
+            frameBufferAttachments[2] = swapchain->buffers[i].view;
+            VkResult result = vkCreateFramebuffer(device, &frameBufferCreateInfo,
+                                                  nullptr, &m_frameBuffers[i]);
+            if (result != VK_SUCCESS) {
+                throw std::runtime_error("Failed to create framebuffer");
+            }
+        }
+        m_logger->info("Prepared Renderer");
+    }
+    // Virtual functions
+    void VulkanRenderer::updateUniformBuffers() {
+
+    }
+
+    void VulkanRenderer::onRender() {
+
+    }
 }

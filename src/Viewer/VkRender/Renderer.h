@@ -85,21 +85,9 @@ namespace VkRender {
             VulkanRenderer::closeApplication();
         }
 
-        Entity createEntity(const std::string &name);
+        std::unique_ptr<Editor> createEditor(EditorCreateInfo &createInfo);
 
-        void destroyEntity(Entity entity);
-
-        Entity createEntityWithUUID(UUID uuid, const std::string &name);
-
-        std::unique_ptr<Editor> createEditor(VulkanRenderPassCreateInfo &createInfo);
-
-        std::unique_ptr<Editor> createEditorWithUUID(UUID uuid, VulkanRenderPassCreateInfo &createInfo);
-
-        VkRender::Entity findEntityByName(std::string_view name);
-
-        entt::registry &registry() { return m_registry; }
-
-        std::unique_ptr<Scene>& scene(){return m_scene;}
+        std::unique_ptr<Editor> createEditorWithUUID(UUID uuid, EditorCreateInfo &createInfo);
 
         std::vector<SwapChainBuffer> &swapChainBuffers() { return swapchain->buffers; }
 
@@ -108,34 +96,35 @@ namespace VkRender {
         VulkanDevice &vkDevice() { return *m_vulkanDevice; }
 
         ImGuiContext *getMainUIContext() { return m_mainEditor->guiContext(); }
-
         uint32_t currentFrameIndex(){return currentFrame;}
+
+        /*
 
         Camera &createNewCamera(const std::string &name, uint32_t width, uint32_t height);
 
         Camera &getCamera();
 
         Camera &getCamera(std::string tag);
+        */
 
         std::shared_ptr<UsageMonitor> m_usageMonitor; // TODO make private, used widely in imgui code to record user actions
 
+        void loadScene(std::filesystem::path string);
+
+        std::shared_ptr<Scene> activeScene();
+
     private:
-        template<typename T>
-        void onComponentAdded(Entity entity, T &component);
+
 
         void keyboardCallback(GLFWwindow *window, int key, int scancode, int action, int mods) override;
 
-        void recordCommands() override;
-
-        bool compute() override;
+        void onRender() override;
 
         void updateUniformBuffers() override;
 
         void windowResized(int32_t dx, int32_t dy, double widthScale, double heightScale) override;
 
         void addDeviceFeatures() override;
-
-        void buildCommandBuffers() override;
 
         void mouseMoved(float x, float y, bool &handled) override;
 
@@ -144,37 +133,23 @@ namespace VkRender {
         void postRenderActions() override;
 
     private:
-        std::unordered_map<std::string, Camera> m_cameras;
+        //std::unordered_map<std::string, Camera> m_cameras;
         //std::unique_ptr<VkRender::GuiManager> m_guiManager{};
-        std::vector<std::unique_ptr<Scene>> m_scenes;
         std::vector<std::unique_ptr<Editor>> m_editors;
-        std::shared_ptr<VulkanRenderPass> m_mainRenderPass;
-        std::vector<VkFramebuffer> m_frameBuffers;
-        entt::registry m_registry;
-        std::unordered_map<UUID, entt::entity> m_entityMap;
+        std::vector<std::shared_ptr<Scene>> m_scenes;
         std::string m_selectedCameraTag = "Default Camera";
         std::unique_ptr<EditorFactory> m_editorFactory;
 
         std::unique_ptr<Editor> m_mainEditor;
-        std::unique_ptr<Scene> m_scene;
 
         std::shared_ptr<GuiResources> m_guiResources;
         SharedContextData m_sharedContextData;
 
-        friend class Entity;
-
         friend class RendererConfig;
-
-
-        void createColorResources();
-
-        void createDepthStencil();
 
         void updateEditors();
 
-        void createMainRenderPass();
-
-        VulkanRenderPassCreateInfo getNewEditorCreateInfo( std::unique_ptr<Editor> &editor);
+        EditorCreateInfo getNewEditorCreateInfo( std::unique_ptr<Editor> &editor);
 
         void resizeEditors(bool anyCornerClicked);
 
@@ -182,7 +157,7 @@ namespace VkRender {
 
         void handleEditorResize();
 
-        void recreateEditor(std::unique_ptr<Editor> &editor, VulkanRenderPassCreateInfo &createInfo);
+        void recreateEditor(std::unique_ptr<Editor> &editor, EditorCreateInfo &createInfo);
 
         void loadEditorSettings(const std::filesystem::path &filePath);
 

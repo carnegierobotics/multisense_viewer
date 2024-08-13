@@ -10,7 +10,7 @@
 namespace VkRender {
     class EditorMyProject : public Editor {
     public:
-        explicit EditorMyProject(VulkanRenderPassCreateInfo &createInfo, UUID uuid = UUID());
+        explicit EditorMyProject(EditorCreateInfo &createInfo, UUID uuid = UUID());
 
         void onRender(CommandBuffer &drawCmdBuffers) override;
 

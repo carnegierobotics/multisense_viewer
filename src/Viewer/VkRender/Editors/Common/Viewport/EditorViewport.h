@@ -14,13 +14,20 @@ namespace VkRender {
     public:
         EditorViewport() = delete;
 
-        explicit EditorViewport(VulkanRenderPassCreateInfo &createInfo);
+        explicit EditorViewport(EditorCreateInfo &createInfo);
         void onUpdate() override;
 
         void onRender(CommandBuffer& drawCmdBuffers) override;
 
         void onSceneLoad() override;
 
+
+        ~EditorViewport(){
+            m_activeScene.reset();
+
+        }
+    private:
+        std::shared_ptr<Scene> m_activeScene;
     };
 }
 

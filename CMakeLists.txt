@@ -118,6 +118,7 @@ set(SOURCE_FILES
         src/Viewer/Scenes/MultiSenseViewer/Modules/LibMultiSense/MultiSenseTaskManager.cpp
 
         src/Viewer/Scenes/ScriptSupport/ScriptUtils.h
+        src/Viewer/VkRender/Scene.cpp
 )
 
 set (SCRIPT_FILES

@@ -42,10 +42,10 @@ void MultiSense::setup() {
 
 void MultiSense::update() {
 
-    auto &camera = m_context->getCamera();
-    glm::mat4 invView = glm::inverse(camera.matrices.view);
-    glm::vec4 cameraPos4 = invView * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-    auto cameraWorldPosition = glm::vec3(cameraPos4);
+    //auto &camera = m_context->getCamera();
+    //glm::mat4 invView = glm::inverse(camera.matrices.view);
+    //glm::vec4 cameraPos4 = invView * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+    //auto cameraWorldPosition = glm::vec3(cameraPos4);
 
     /*
     auto model = m_context->findEntityByName("KS21");

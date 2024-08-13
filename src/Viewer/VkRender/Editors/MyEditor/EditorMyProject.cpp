@@ -17,7 +17,7 @@ namespace VkRender {
     void EditorMyProject::onUpdate() {
     }
 
-    EditorMyProject::EditorMyProject(VulkanRenderPassCreateInfo &createInfo, UUID uuid) : Editor(createInfo, uuid) {
+    EditorMyProject::EditorMyProject(EditorCreateInfo &createInfo, UUID uuid) : Editor(createInfo, uuid) {
         addUI("EditorUILayer");
         addUI("DebugWindow");
 

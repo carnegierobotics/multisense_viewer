@@ -13,7 +13,7 @@ namespace VkRender {
     public:
         EditorTest() = delete;
 
-        explicit EditorTest(VulkanRenderPassCreateInfo &createInfo, UUID uuid = UUID()) : Editor(
+        explicit EditorTest(EditorCreateInfo &createInfo, UUID uuid = UUID()) : Editor(
                 createInfo, uuid) {
 
             if (createInfo.resizeable)

@@ -7,7 +7,7 @@
 
 namespace VkRender {
 
-    MultiSenseViewer::MultiSenseViewer(Renderer &ctx) : Scene(ctx) {
+    MultiSenseViewer::MultiSenseViewer(Renderer &ctx) {
 
     }
 
@@ -15,7 +15,7 @@ namespace VkRender {
 
     }
 
-    void MultiSenseViewer::update() {
+    void MultiSenseViewer::update(uint32_t i) {
 
     }
 

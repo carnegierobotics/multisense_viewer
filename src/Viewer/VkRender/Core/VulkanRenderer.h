@@ -64,6 +64,7 @@ DISABLE_WARNING_POP
 #include "Viewer/VkRender/Core/VulkanDevice.h"
 #include "Viewer/VkRender/Core/Camera.h"
 #include "Viewer/VkRender/Core/CommandBuffer.h"
+#include "VulkanRenderPass.h"
 
 
 namespace VkRender {
@@ -103,7 +104,6 @@ namespace VkRender {
         std::string m_name = "VulkanRenderer";
         /** @brief This application is written against Vulkan API v.1.1+ **/
         uint32_t apiVersion = VK_API_VERSION_1_1;
-        bool backendInitialized = false;
         uint32_t m_width;      // Default values - Actual values set in constructor
         uint32_t m_height;     // Default values - Actual values set in constructor
 
@@ -146,14 +146,10 @@ namespace VkRender {
         /** @brief (Virtual) Creates the application wide Vulkan instance */
         virtual VkResult createInstance(bool enableValidation);
 
-        /** @brief (Pure virtual) Render function to be implemented by the application */
-        virtual void recordCommands() = 0;
+        /** @brief (Pure virtual) compute render function to be implemented by the application */
 
         /** @brief (Pure virtual) compute render function to be implemented by the application */
-        virtual bool compute() = 0;
-
-        /** @brief (Pure virtual) compute render function to be implemented by the application */
-        virtual void updateUniformBuffers() = 0;
+        virtual void updateUniformBuffers();
 
         /** @brief (Virtual) Called after the mouse cursor moved and before internal events (like camera m_Rotation) is firstUpdate */
         virtual void mouseMoved(float x, float y, bool &handled) = 0;
@@ -165,6 +161,8 @@ namespace VkRender {
 
         /** @brief (Virtual) Called when the window has been resized, can be used by the sample application to recreate resources */
         virtual void windowResized(int32_t i, int32_t i1, double d, double d1);
+
+        virtual void onRender();
 
         virtual void postRenderActions() = 0; // TODO test
 
@@ -262,6 +260,9 @@ namespace VkRender {
         // Handle to Debug Utils
         VkDebugUtilsMessengerEXT debugUtilsMessenger{};
 
+        std::shared_ptr<VulkanRenderPass> m_mainRenderPass;
+        std::vector<VkFramebuffer> m_frameBuffers;
+
         int frameCounter = 0;
         int frameID = 0;
         bool recreateResourcesNextFrame = false;
@@ -294,6 +295,10 @@ namespace VkRender {
 
         void createPipelineCache();
 
+        void createColorResources();
+
+        void createDepthStencil();
+
         void destroyCommandBuffers();
 
         void setWindowSize(uint32_t width, uint32_t height);
@@ -311,12 +316,13 @@ namespace VkRender {
         void clipboard();
 #endif
 
-        void createColorResources();
-
         void computePipeline();
 
         static bool checkInstanceExtensionSupport(const std::vector<const char *> &checkExtensions);
 
+        void createMainRenderPass();
+
+        void recordCommands();
     };
 }
 #endif //MULTISENSE_VULKANRENDERER_H

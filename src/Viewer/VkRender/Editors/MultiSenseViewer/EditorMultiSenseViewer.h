@@ -12,7 +12,7 @@ namespace VkRender {
     public:
         EditorMultiSenseViewer() = delete;
 
-        explicit EditorMultiSenseViewer(VulkanRenderPassCreateInfo &createInfo) : Editor(
+        explicit EditorMultiSenseViewer(EditorCreateInfo &createInfo) : Editor(
                 createInfo) {
 
             if (createInfo.resizeable)

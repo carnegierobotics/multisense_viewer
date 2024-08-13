@@ -24,12 +24,12 @@ namespace VkRender {
     public:
 
         Editor() = delete;
-        explicit Editor(VulkanRenderPassCreateInfo &createInfo, UUID uuid = UUID());
+        explicit Editor(EditorCreateInfo &createInfo, UUID uuid = UUID());
 
         // Implement move constructor
         Editor(Editor &&other) noexcept: m_context(other.m_context),
                                          m_createInfo(other.m_createInfo),
-                                         m_sizeLimits(other.m_createInfo.appWidth, other.m_createInfo.appHeight) {
+                                         m_sizeLimits(other.m_createInfo.pPassCreateInfo.width, other.m_createInfo.pPassCreateInfo.height) {
             swap(*this, other);
         }
 
@@ -60,15 +60,15 @@ namespace VkRender {
             return other.getUUID() == getUUID();
         }
 
-        ~Editor() = default;
+        virtual ~Editor() = default;
 
         void addUI(const std::string &layerName) { m_guiManager->pushLayer(layerName); }
 
         const EditorSizeLimits &getSizeLimits() const { return m_sizeLimits; }
 
-        VulkanRenderPassCreateInfo &getCreateInfo() { return m_createInfo; }
+        EditorCreateInfo &getCreateInfo() { return m_createInfo; }
 
-        const VulkanRenderPassCreateInfo &getCreateInfo() const { return m_createInfo; }
+        const EditorCreateInfo &getCreateInfo() const { return m_createInfo; }
 
         ImGuiContext *guiContext() const { return m_guiManager->m_imguiContext; }
 
@@ -95,15 +95,15 @@ namespace VkRender {
 
         EditorBorderState checkLineBorderState(const glm::vec2 &mousePos, bool verticalResize);
 
-        bool validateEditorSize(VulkanRenderPassCreateInfo &createInfo);
+        bool validateEditorSize(EditorCreateInfo &createInfo);
 
-        void resize(VulkanRenderPassCreateInfo &createInfo);
+        void resize(EditorCreateInfo &createInfo);
         static void windowResizeEditorsHorizontal(int32_t dx, double widthScale,std::vector<std::unique_ptr<Editor>>& editors, uint32_t width);
         static void windowResizeEditorsVertical(int32_t dy, double heightScale,std::vector<std::unique_ptr<Editor>>& editors, uint32_t height);
 
         static void handleIndirectClickState(std::vector<std::unique_ptr<Editor>>&editors, std::unique_ptr<Editor> &editor, const MouseButtons &mouse);
 
-        static bool isValidResize(VulkanRenderPassCreateInfo &newEditorCI, std::unique_ptr<Editor> &editor);
+        static bool isValidResize(EditorCreateInfo &newEditorCI, std::unique_ptr<Editor> &editor);
 
         static void checkIfEditorsShouldMerge(std::vector<std::unique_ptr<Editor>>& editors);
 
@@ -125,11 +125,10 @@ namespace VkRender {
         std::unique_ptr<GuiManager> m_guiManager;
         EditorUI m_ui;
 
-
     protected:
         Renderer *m_context;
         std::unique_ptr<VulkanRenderPass> m_renderPass;
-        VulkanRenderPassCreateInfo m_createInfo;
+        EditorCreateInfo m_createInfo;
 
     };
 }

@@ -33,6 +33,7 @@ namespace VkRender {
 
         void processEntities(GuiObjectHandles &handles) {
 
+            /*
             auto view = handles.m_context->registry().view<TagComponent>();
 
             // Iterate over entities that have a GLTFModelComponent and a TagComponent
@@ -42,12 +43,14 @@ namespace VkRender {
                 processEntity(handles, entity, tag);
             }
 
+            */
         }
 
         void processEntity(GuiObjectHandles &handles, entt::entity entity, TagComponent &tag) {
             // Your processing logic here
             // This function is called for both component types
 
+            /*
             if (ImGui::TreeNodeEx(tag.Tag.c_str(), ImGuiTreeNodeFlags_None)) {
                 auto e = Entity(entity, handles.m_context);
                 if (e.hasComponent<DefaultGraphicsPipelineComponent>()) {
@@ -69,6 +72,7 @@ namespace VkRender {
                 ImGui::TreePop();
             }
 
+            */
         }
 
         // Example function to handle file import (you'll need to implement the actual logic)

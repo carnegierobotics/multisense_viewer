@@ -13,7 +13,7 @@ namespace VkRender {
     public:
         EditorSceneHierarchy() = delete;
 
-        explicit EditorSceneHierarchy(VulkanRenderPassCreateInfo &createInfo) : Editor(createInfo) {
+        explicit EditorSceneHierarchy(EditorCreateInfo &createInfo) : Editor(createInfo) {
 
             addUI("EditorUILayer");
             addUI("SceneHierarchyLayer");

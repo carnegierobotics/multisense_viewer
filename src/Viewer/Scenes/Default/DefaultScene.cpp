@@ -11,21 +11,24 @@
 namespace VkRender {
 
 
-    DefaultScene::DefaultScene(Renderer &ctx) : Scene(ctx) {
-
-
-        auto entity = m_context.createEntity("FirstEntity");
+    DefaultScene::DefaultScene(Renderer &ctx) {
+        Log::Logger::getInstance()->info("DefaultScene Constructor");
+        auto entity = createEntity("FirstEntity");
         auto &modelComponent = entity.addComponent<VkRender::OBJModelComponent>(
-                Utils::getModelsPath() / "obj" / "s30.obj", &m_context.vkDevice());
+                Utils::getModelsPath() / "obj" / "s30.obj", &ctx.vkDevice());
+
+
+        auto cameraEntity = createNewCamera("DefaultCamera", 1280, 720);
         //auto &res = entity.addComponent<VkRender::DefaultGraphicsPipelineComponent2>(&m_context->data(),);
 
+        /*
+          auto grid = m_context.createEntity("3DViewerGrid");
+          //grid.addComponent<VkRender::CustomModelComponent>(&m_context.data());
 
-        auto grid = m_context.createEntity("3DViewerGrid");
-        //grid.addComponent<VkRender::CustomModelComponent>(&m_context.data());
-
-        loadSkybox();
-        loadScripts();
-        addGuiLayers();
+          loadSkybox();
+          loadScripts();
+          addGuiLayers();
+          */
     }
 
 
@@ -38,18 +41,19 @@ namespace VkRender {
             auto e = m_context.createEntity(scriptName);
             e.addComponent<ScriptComponent>(e.getName(),& m_context);
         }
-        */
+
 
         auto view = m_context.registry().view<ScriptComponent>();
         for (auto entity: view) {
             auto &script = view.get<ScriptComponent>(entity);
             script.script->setup();
         }
+           */
     }
 
     void DefaultScene::loadSkybox() {
         // Load skybox
-        auto skybox = m_context.createEntity("Skybox");
+        //auto skybox = m_context.createEntity("Skybox");
         //auto &modelComponent = skybox.addComponent<VkRender::GLTFModelComponent>(Utils::getModelsPath() / "Box" / "Box.gltf", m_context.data().device);
         //skybox.addComponent<VkRender::SkyboxGraphicsPipelineComponent>(&m_context.data(), modelComponent);
 
@@ -59,49 +63,66 @@ namespace VkRender {
     }
 
     void DefaultScene::render(CommandBuffer &drawCmdBuffers) {
+
         /*
-        auto sky = m_context.findEntityByName("Skybox");
+        auto sky = findEntityByName("Skybox");
         if (sky)
             sky.getComponent<VkRender::SkyboxGraphicsPipelineComponent>().draw(&drawCmdBuffers, currentFrame);
-        auto modelComponent = m_context.findEntityByName("Skybox");
+        auto modelComponent = findEntityByName("Skybox");
         if (modelComponent)
             modelComponent.getComponent<VkRender::GLTFModelComponent>().model->draw(drawCmdBuffers.buffers[currentFrame]);
-
          */
-        auto entity = m_context.findEntityByName("FirstEntity");
+
+        auto entity = findEntityByName("FirstEntity");
         if (entity) {
-            auto &resources = entity.getComponent<DefaultGraphicsPipelineComponent>();
-            resources.draw(drawCmdBuffers);
+            if (entity.hasComponent<DefaultGraphicsPipelineComponent>()){
+                auto &resources = entity.getComponent<DefaultGraphicsPipelineComponent>();
+                resources.draw(drawCmdBuffers);
+            }
         }
     }
 
-    void DefaultScene::update() {
+    void DefaultScene::update(uint32_t frameIndex) {
 
-        auto &camera = m_context.getCamera();
-        glm::mat4 invView = glm::inverse(camera.matrices.view);
-        glm::vec4 cameraPos4 = invView * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-        auto cameraWorldPosition = glm::vec3(cameraPos4);
 
-        auto skybox = m_context.findEntityByName("Skybox");
-        if (skybox) {
-        }
 
-        auto entity = m_context.findEntityByName("FirstEntity");
+
+
+        auto entity = findEntityByName("FirstEntity");
         if (entity) {
-            auto &resources = entity.getComponent<DefaultGraphicsPipelineComponent>();
-            auto &transform = entity.getComponent<TransformComponent>();
-            transform.scale = glm::vec3(0.6f, 0.6f, 0.6f);
-            resources.updateTransform(transform);
-            resources.updateView(camera);
-            resources.update(m_context.currentFrameIndex());
+            if (entity.hasComponent<DefaultGraphicsPipelineComponent>() && entity.hasComponent<TransformComponent>()) {
+                auto &resources = entity.getComponent<DefaultGraphicsPipelineComponent>();
+                auto &transform = entity.getComponent<TransformComponent>();
+                transform.scale = glm::vec3(0.6f, 0.6f, 0.6f);
+                resources.updateTransform(transform);
+
+                auto cameraEntity = findEntityByName("DefaultCamera");
+                if (cameraEntity){
+                    auto& camera = cameraEntity.getComponent<CameraComponent>().camera;
+                    glm::mat4 invView = glm::inverse(camera.matrices.view);
+                    glm::vec4 cameraPos4 = invView * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+                    auto cameraWorldPosition = glm::vec3(cameraPos4);
+                    resources.updateView(camera);
+
+                }
+
+                resources.update(frameIndex);
+            }
+
         }
 
 
-        auto view = m_context.registry().view<ScriptComponent>();
+        auto view = m_registry.view<ScriptComponent>();
         for (auto entity: view) {
             auto &script = view.get<ScriptComponent>(entity);
             script.script->update();
         }
+
+    }
+
+    void DefaultScene::cleanUp() {
+        // Delete everything
+
     }
 
 

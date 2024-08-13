@@ -234,6 +234,7 @@ namespace VkRender {
             // Create editor settings JSON array
             nlohmann::json jsonEditors = nlohmann::json::array();
 
+            /*
             for (auto& editor : ctx->m_editors) {
                 VulkanRenderPassCreateInfo& createInfo = editor->getCreateInfo();
                 nlohmann::json jsonEditor;
@@ -251,6 +252,7 @@ namespace VkRender {
                 Log::Logger::getInstance()->info("Editor {}: type = {}, x = {}, y = {}, width = {}, height = {}",
                                                  createInfo.editorIndex, editorTypeToString(createInfo.editorTypeDescription), createInfo.x, createInfo.y, createInfo.width, createInfo.height);
             }
+            */
             jsonContent["editors"] = jsonEditors;
 
             jsonContent["generalSettings"]= m_UserSetting;

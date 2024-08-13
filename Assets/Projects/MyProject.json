@@ -2,7 +2,7 @@
   "editors": [
     {
       "borderSize": 5,
-      "editorIndex": 1,
+      "editorIndex": 0,
       "editorTypeDescription": "MyProject",
       "resizeable": true,
       "uiLayers": [],
@@ -12,17 +12,27 @@
       "y": 20
     },{
       "borderSize": 5,
-      "editorIndex": 0,
+      "editorIndex": 1,
       "editorTypeDescription": "Viewport",
       "resizeable": true,
       "uiLayers": [],
       "width": 80,
-      "height": 100,
+      "height": 50,
       "x": 0,
       "y": 0
     },{
       "borderSize": 5,
-      "editorIndex": 0,
+      "editorIndex": 2,
+      "editorTypeDescription": "Viewport",
+      "resizeable": true,
+      "uiLayers": [],
+      "width": 80,
+      "height": 50,
+      "x": 0,
+      "y": 50
+    },{
+      "borderSize": 5,
+      "editorIndex": 3,
       "editorTypeDescription": "Scene Hierarchy",
       "resizeable": true,
       "uiLayers": [],

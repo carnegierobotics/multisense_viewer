@@ -27,7 +27,9 @@ class DefaultScene : public Scene {
 
         void render(CommandBuffer& drawCmdBuffers) override;
 
-        void update() override;
+        void update(uint32_t i) override;
+
+        void cleanUp();
 
 
     private:

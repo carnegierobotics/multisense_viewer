@@ -7,8 +7,8 @@
 
 namespace VkRender {
 
-    Entity::Entity(entt::entity handle, Renderer *scene)
-            : m_entityHandle(handle), m_renderer(scene) {
+    Entity::Entity(entt::entity handle, Scene *scene)
+            : m_entityHandle(handle), m_scene(scene) {
     }
 
 }

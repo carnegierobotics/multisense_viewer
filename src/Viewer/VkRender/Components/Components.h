@@ -134,10 +134,10 @@ namespace VkRender {
 
 
     struct CameraComponent {
-        const Camera *camera;
+        Camera camera;
         bool drawGizmo = true;
 
-        explicit CameraComponent(Camera *cam) : camera(cam) {
+        explicit CameraComponent(const Camera &cam) : camera(cam) {
         }
 
         // Explicitly define the copy assignment operator
@@ -146,7 +146,7 @@ namespace VkRender {
         }
 
         // Overload the function call operator
-        const Camera *operator()() const {
+        Camera &operator()() {
             return camera;
         }
     };

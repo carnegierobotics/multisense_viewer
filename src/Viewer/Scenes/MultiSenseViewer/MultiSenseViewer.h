@@ -15,9 +15,7 @@ namespace VkRender {
 
         void render(CommandBuffer& drawCmdBuffers) override;
 
-        void update() override;
-
-        ~MultiSenseViewer() override = default;
+        void update(uint32_t i) override;
     };
 }
 

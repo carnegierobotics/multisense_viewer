@@ -12,6 +12,7 @@
 #include "Viewer/VkRender/Renderer.h"
 #include "Viewer/VkRender/Components/Components.h"
 
+#include "Viewer/VkRender/Scene.h"
 
 namespace VkRender {
 
@@ -19,23 +20,23 @@ namespace VkRender {
     {
     public:
         Entity() = default;
-        Entity(entt::entity handle, Renderer *scene);
+        Entity(entt::entity handle, Scene *scene);
         Entity(const Entity& other) = default;
 
         template<typename T, typename... Args>
         T& addComponent(Args&&... args)
         {
             VK_ASSERT(!hasComponent<T>(), "Entity already has component!");
-            T& component = m_renderer->m_registry.emplace<T>(m_entityHandle, std::forward<Args>(args)...);
-            m_renderer->onComponentAdded<T>(*this, component);
+            T& component = m_scene->m_registry.emplace<T>(m_entityHandle, std::forward<Args>(args)...);
+            m_scene->onComponentAdded<T>(*this, component);
             return component;
         }
 
         template<typename T, typename... Args>
         T& addOrReplaceComponent(Args&&... args)
         {
-            T& component = m_renderer->m_registry.emplace_or_replace<T>(m_entityHandle, std::forward<Args>(args)...);
-            m_renderer->onComponentAdded<T>(*this, component);
+            T& component = m_scene->m_registry.emplace_or_replace<T>(m_entityHandle, std::forward<Args>(args)...);
+            m_scene->onComponentAdded<T>(*this, component);
             return component;
         }
 
@@ -43,19 +44,19 @@ namespace VkRender {
         T& getComponent()
         {
             VK_ASSERT(hasComponent<T>(), "Entity does not have component!");
-            return m_renderer->m_registry.get<T>(m_entityHandle);
+            return m_scene->m_registry.get<T>(m_entityHandle);
         }
 
         template<typename T>
         bool hasComponent()
         {
-            return  m_renderer->m_registry.any_of<T>(m_entityHandle);
+            return  m_scene->m_registry.any_of<T>(m_entityHandle);
         }
         template<typename T>
         void removeComponent()
         {
             HZ_CORE_ASSERT(hasComponent<T>(), "Entity does not have component!");
-            m_renderer->m_registry.remove<T>(m_entityHandle);
+            m_scene->m_registry.remove<T>(m_entityHandle);
         }
 
 
@@ -70,7 +71,7 @@ namespace VkRender {
 
         bool operator==(const Entity& other) const
         {
-            return m_entityHandle == other.m_entityHandle && m_renderer == other.m_renderer;
+            return m_entityHandle == other.m_entityHandle && m_scene == other.m_scene;
         }
 
         bool operator!=(const Entity& other) const
@@ -81,7 +82,7 @@ namespace VkRender {
 
     private:
         entt::entity m_entityHandle{ entt::null };
-        Renderer* m_renderer = nullptr;
+        Scene* m_scene = nullptr;
 
     };
 

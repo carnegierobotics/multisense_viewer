@@ -58,27 +58,13 @@ namespace VkRender {
         m_logger = Log::Logger::getInstance();
         VulkanRenderer::initVulkan();
         VulkanRenderer::prepare();
-        VulkanResourceManager::getInstance(m_vulkanDevice, m_allocator);
         m_guiResources = std::make_shared<GuiResources>(m_vulkanDevice);
-        backendInitialized = true;
-
-        // Create default camera object
-        createNewCamera(m_selectedCameraTag, m_width, m_height);
         m_logger->info("Initialized Backend");
+
         config.setGpuDevice(physicalDevice);
-        // Start up usage monitor
         m_usageMonitor = std::make_shared<UsageMonitor>();
         m_usageMonitor->loadSettingsFromFile();
         m_usageMonitor->userStartSession(rendererStartTime);
-        m_cameras[m_selectedCameraTag].setType(Camera::arcball);
-        m_cameras[m_selectedCameraTag].setPerspective(60.0f,
-                                                      static_cast<float>(m_width) / static_cast<float>(m_height));
-        m_cameras[m_selectedCameraTag].resetPosition();
-        // m_renderUtils.renderPass = &renderPass;
-        createColorResources();
-        createDepthStencil();
-        createMainRenderPass();
-
         // Initialize shared data across editors:
 
         m_sharedContextData.multiSenseRendererBridge = std::make_shared<MultiSense::MultiSenseRendererBridge>();
@@ -86,29 +72,33 @@ namespace VkRender {
                 MultiSense::MultiSenseRendererGigEVisionBridge>();
 
 
-        VulkanRenderPassCreateInfo mainMenuEditor(m_frameBuffers.data(), m_guiResources, this, &m_sharedContextData);
-        mainMenuEditor.appHeight = static_cast<int32_t>(m_height);
-        mainMenuEditor.appWidth = static_cast<int32_t>(m_width);
-        mainMenuEditor.height = static_cast<int32_t>(m_height);
-        mainMenuEditor.width = static_cast<int32_t>(m_width);
+        VulkanRenderPassCreateInfo passCreateInfo(m_vulkanDevice, &m_allocator);
+        passCreateInfo.msaaSamples = msaaSamples;
+        passCreateInfo.swapchainImageCount = swapchain->imageCount;
+        passCreateInfo.swapchainColorFormat = swapchain->colorFormat;
+        passCreateInfo.depthFormat = depthFormat;
+        passCreateInfo.height = static_cast<int32_t>(m_height);
+        passCreateInfo.width = static_cast<int32_t>(m_width);
+
+        EditorCreateInfo mainMenuEditor(m_guiResources, this, &m_sharedContextData, m_vulkanDevice, &m_allocator,
+                                        m_frameBuffers.data());
         mainMenuEditor.borderSize = 0;
         mainMenuEditor.editorTypeDescription = EditorType::None;
         mainMenuEditor.resizeable = false;
-        mainMenuEditor.msaaSamples = msaaSamples;
-        mainMenuEditor.swapchainImageCount = swapchain->imageCount;
-        mainMenuEditor.swapchainColorFormat = swapchain->colorFormat;
-        mainMenuEditor.depthFormat = depthFormat;
+        mainMenuEditor.height = static_cast<int32_t>(m_height);
+        mainMenuEditor.width = static_cast<int32_t>(m_width);
+        mainMenuEditor.pPassCreateInfo = passCreateInfo;
+
         m_mainEditor = std::make_unique<Editor>(mainMenuEditor);
         m_mainEditor->addUI("DebugWindow");
         m_mainEditor->addUI("MenuLayer");
         m_mainEditor->addUI("MainContextLayer");
 
-        VulkanRenderPassCreateInfo defaultEditor = VulkanRenderPassCreateInfo(m_frameBuffers.data(), m_guiResources, this, &m_sharedContextData);
+
+        EditorCreateInfo defaultEditor = EditorCreateInfo(m_guiResources, this, &m_sharedContextData, m_vulkanDevice, &m_allocator,
+                                                          m_frameBuffers.data());
         defaultEditor.editorTypeDescription = EditorType::TestWindow;
-        defaultEditor.msaaSamples = msaaSamples;
-        defaultEditor.swapchainImageCount = swapchain->imageCount;
-        defaultEditor.swapchainColorFormat = swapchain->colorFormat;
-        defaultEditor.depthFormat = depthFormat;
+        defaultEditor.pPassCreateInfo = passCreateInfo;
         m_editorFactory = std::make_unique<EditorFactory>(defaultEditor);
 
         loadEditorSettings(Utils::getMyEditorProjectConfig());
@@ -116,10 +106,9 @@ namespace VkRender {
         if (m_editors.empty()) {
             // add a dummy editor to get started
             auto sizeLimits = m_mainEditor->getSizeLimits();
-            VulkanRenderPassCreateInfo otherEditorInfo(m_frameBuffers.data(), m_guiResources, this,
-                                                       &m_sharedContextData);
-            otherEditorInfo.appHeight = static_cast<int32_t>(m_height);
-            otherEditorInfo.appWidth = static_cast<int32_t>(m_width);
+            EditorCreateInfo otherEditorInfo(m_guiResources, this, &m_sharedContextData, m_vulkanDevice, &m_allocator,
+                                                             m_frameBuffers.data());
+            otherEditorInfo.pPassCreateInfo = passCreateInfo;
             otherEditorInfo.borderSize = 5;
             otherEditorInfo.height = static_cast<int32_t>(m_height) - sizeLimits.MENU_BAR_HEIGHT; //- 100;
             otherEditorInfo.width = static_cast<int32_t>(m_width); //- 200;
@@ -127,21 +116,16 @@ namespace VkRender {
             otherEditorInfo.y = sizeLimits.MENU_BAR_HEIGHT; //+ 050;
             otherEditorInfo.editorIndex = m_editors.size();
             otherEditorInfo.editorTypeDescription = EditorType::TestWindow;
-            otherEditorInfo.msaaSamples = msaaSamples;
-            otherEditorInfo.swapchainImageCount = swapchain->imageCount;
-            otherEditorInfo.swapchainColorFormat = swapchain->colorFormat;
-            otherEditorInfo.depthFormat = depthFormat;
-            std::array<VkClearValue, 3> clearValues{};
             otherEditorInfo.uiContext = getMainUIContext();
             auto editor = createEditor(otherEditorInfo);
             m_editors.push_back(std::move(editor));
         }
 
+
         // Load scenes
 
-        m_scene = std::make_unique<DefaultScene>(*this);
-
-
+        // Load the default scene
+        m_scenes.emplace_back(std::make_shared<DefaultScene>(*this));
         for (auto &editor: m_editors) {
             editor->loadScene();
         }
@@ -161,10 +145,11 @@ namespace VkRender {
 
         Log::Logger::getInstance()->info("Successfully read editor settings from: {}", filePath.string());
 
+
         if (jsonContent.contains("editors")) {
             for (const auto &jsonEditor: jsonContent["editors"]) {
-                VulkanRenderPassCreateInfo createInfo(m_frameBuffers.data(), m_guiResources, this,
-                                                      &m_sharedContextData);
+                EditorCreateInfo createInfo(m_guiResources, this, &m_sharedContextData, m_vulkanDevice, &m_allocator,
+                                            m_frameBuffers.data());
 
                 int32_t mainMenuBarOffset = 0;
                 int32_t width = std::round(jsonEditor.value("width", 0.0) / 100 * m_width);
@@ -189,21 +174,20 @@ namespace VkRender {
                     createInfo.height = m_height - createInfo.y;
                 }
 
-                createInfo.appWidth = m_width;
-                createInfo.appHeight = m_height;
-
-
                 createInfo.borderSize = jsonEditor.value("borderSize", 5);
                 createInfo.editorTypeDescription = stringToEditorType(jsonEditor.value("editorTypeDescription", ""));
                 createInfo.resizeable = jsonEditor.value("resizeable", true);
                 createInfo.editorIndex = jsonEditor.value("editorIndex", 0);
                 createInfo.uiContext = getMainUIContext();
 
-                createInfo.msaaSamples = msaaSamples;
-                createInfo.swapchainImageCount = swapchain->imageCount;
-                createInfo.swapchainColorFormat = swapchain->colorFormat;
-                createInfo.depthFormat = depthFormat;
-
+                VulkanRenderPassCreateInfo passCreateInfo(m_vulkanDevice, &m_allocator);
+                passCreateInfo.msaaSamples = msaaSamples;
+                passCreateInfo.swapchainImageCount = swapchain->imageCount;
+                passCreateInfo.swapchainColorFormat = swapchain->colorFormat;
+                passCreateInfo.depthFormat = depthFormat;
+                passCreateInfo.height = static_cast<int32_t>(m_height);
+                passCreateInfo.width = static_cast<int32_t>(m_width);
+                createInfo.pPassCreateInfo = passCreateInfo;
                 if (jsonEditor.contains("uiLayers") && jsonEditor["uiLayers"].is_array()) {
                     createInfo.uiLayers = jsonEditor["uiLayers"].get<std::vector<std::string> >();
                 } else {
@@ -218,51 +202,14 @@ namespace VkRender {
                                                  createInfo.y, createInfo.width, createInfo.height);
             }
         }
+
     }
 
-    void Renderer::createMainRenderPass() {
-        VulkanRenderPassCreateInfo renderPassCreateInfo(nullptr, m_guiResources, this, &m_sharedContextData);
-        renderPassCreateInfo.appHeight = static_cast<int32_t>(m_height);
-        renderPassCreateInfo.appWidth = static_cast<int32_t>(m_width);
-        renderPassCreateInfo.height = static_cast<int32_t>(m_height);
-        renderPassCreateInfo.width = static_cast<int32_t>(m_width);
-        renderPassCreateInfo.x = 0;
-        renderPassCreateInfo.y = 0;
-        renderPassCreateInfo.borderSize = 0;
-        renderPassCreateInfo.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        renderPassCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        renderPassCreateInfo.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        renderPassCreateInfo.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        renderPassCreateInfo.editorTypeDescription = EditorType::None;
-        renderPassCreateInfo.msaaSamples = msaaSamples;
-        renderPassCreateInfo.swapchainImageCount = swapchain->imageCount;
-        renderPassCreateInfo.swapchainColorFormat = swapchain->colorFormat;
-        renderPassCreateInfo.depthFormat = depthFormat;
-        // Start timingm_mainRenderPasses UI render pass setup
-        auto startUIRenderPassSetup = std::chrono::high_resolution_clock::now();
-        m_mainRenderPass = std::make_shared<VulkanRenderPass>(renderPassCreateInfo);
 
-        std::array<VkImageView, 3> frameBufferAttachments{};
-        frameBufferAttachments[0] = m_colorImage.view;
-        frameBufferAttachments[1] = m_depthStencil.view;
-        VkFramebufferCreateInfo frameBufferCreateInfo = Populate::framebufferCreateInfo(m_width,
-                                                                                        m_height,
-                                                                                        frameBufferAttachments.data(),
-                                                                                        frameBufferAttachments.size(),
-                                                                                        m_mainRenderPass->getRenderPass());
-        // TODO verify if this is ok?
-        m_frameBuffers.resize(swapchain->imageCount);
-        for (uint32_t i = 0; i < m_frameBuffers.size(); i++) {
-            auto startFramebufferCreation = std::chrono::high_resolution_clock::now();
-            frameBufferAttachments[2] = swapChainBuffers()[i].view;
-            VkResult result = vkCreateFramebuffer(device, &frameBufferCreateInfo,
-                                                  nullptr, &m_frameBuffers[i]);
-            if (result != VK_SUCCESS) {
-                throw std::runtime_error("Failed to create framebuffer");
-            }
-        }
-        m_logger->info("Prepared Renderer");
+    void Renderer::loadScene(std::filesystem::path string) {
+
     }
+
 
     void Renderer::addDeviceFeatures() {
         if (deviceFeatures.fillModeNonSolid) {
@@ -277,41 +224,9 @@ namespace VkRender {
         }
     }
 
+    /*
     void Renderer::buildCommandBuffers() {
-        VkCommandBufferBeginInfo cmdBufInfo = Populate::commandBufferBeginInfo();
-        cmdBufInfo.flags = 0;
-        cmdBufInfo.pInheritanceInfo = nullptr;
-        std::array<VkClearValue, 3> clearValues{};
-        clearValues[0] = {{{0.1f, 0.1f, 0.1f, 1.0f}}};
-        clearValues[1].depthStencil = {1.0f, 0};
-        clearValues[2] = {{{0.1f, 0.1f, 0.1f, 1.0f}}};
-        vkBeginCommandBuffer(drawCmdBuffers.buffers[currentFrame], &cmdBufInfo);
-        VkRenderPassBeginInfo renderPassBeginInfo = Populate::renderPassBeginInfo();
-        renderPassBeginInfo.renderPass = m_mainRenderPass->getRenderPass();
-        // Increase reference count by 1 here?
-        renderPassBeginInfo.renderArea.offset.x = 0;
-        renderPassBeginInfo.renderArea.offset.y = 0;
-        renderPassBeginInfo.renderArea.extent.width = m_width;
-        renderPassBeginInfo.renderArea.extent.height = m_height;
-        renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-        renderPassBeginInfo.pClearValues = clearValues.data();
-        renderPassBeginInfo.framebuffer = m_frameBuffers[imageIndex];
-        vkCmdBeginRenderPass(drawCmdBuffers.buffers[currentFrame], &renderPassBeginInfo,
-                             VK_SUBPASS_CONTENTS_INLINE);
-        vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
-        for (auto &editor: m_editors) {
-            editor->render(drawCmdBuffers);
-        }
-        m_mainEditor->render(drawCmdBuffers);
-        VkImageSubresourceRange subresourceRange = {};
-        subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        subresourceRange.levelCount = 1;
-        subresourceRange.layerCount = 1;
-        Utils::setImageLayout(drawCmdBuffers.buffers[currentFrame], swapchain->buffers[imageIndex].image,
-                              VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                              VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, subresourceRange,
-                              VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
-        vkEndCommandBuffer(drawCmdBuffers.buffers[currentFrame]);
+
         /*
         for (auto [entity, skybox, gltfComponent]: m_registry.view<VkRender::SkyboxGraphicsPipelineComponent, GLTFModelComponent>(
                 entt::exclude<DeleteComponent>).each()) {
@@ -769,28 +684,13 @@ namespace VkRender {
 
         CHECK_RESULT(vkEndCommandBuffer(drawCmdBuffers.buffers[currentFrame]))
 
-        */
-    }
 
-    bool Renderer::compute() {
-        VkCommandBufferBeginInfo beginInfo{};
-        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        if (vkBeginCommandBuffer(computeCommand.buffers[currentFrame], &beginInfo) != VK_SUCCESS) {
-            throw std::runtime_error("failed to begin recording compute command buffer!");
-        }
-        if (vkEndCommandBuffer(computeCommand.buffers[currentFrame]) != VK_SUCCESS) {
-            throw std::runtime_error("failed to record compute command buffer!");
-        }
-        return true;
     }
+    */
 
     void Renderer::updateUniformBuffers() {
-        if (!m_selectedCameraTag.empty()) {
-            auto it = m_cameras.find(m_selectedCameraTag);
-            if (it != m_cameras.end())
-                m_cameras[m_selectedCameraTag].update(frameTimer);
-        }
         // update imgui io:
+
         ImGui::SetCurrentContext(m_mainEditor->guiContext());
         ImGuiIO &mainIO = ImGui::GetIO();
         mainIO.DeltaTime = frameTimer;
@@ -803,7 +703,7 @@ namespace VkRender {
             ImGuiIO &otherIO = ImGui::GetIO();
             otherIO.DeltaTime = frameTimer;
             otherIO.WantCaptureMouse = true;
-            otherIO.MousePos = ImVec2(mouse.x - editor->ui().x, mouse.y - editor->ui().y);
+            otherIO.MousePos = ImVec2(mouse.x - editor->getCreateInfo().x, mouse.y - editor->getCreateInfo().y);
             otherIO.MouseDown[0] = mouse.left;
             otherIO.MouseDown[1] = mouse.right;
         }
@@ -811,6 +711,7 @@ namespace VkRender {
         m_mainEditor->update((frameCounter == 0), frameTimer, &input);
         m_logger->frameNumber = frameID;
         m_sharedContextData.multiSenseRendererBridge->update();
+
         // TODO reconsider if we should call crl updates here?
 
         std::string versionRemote;
@@ -928,16 +829,16 @@ namespace VkRender {
         */
     }
 
-    std::unique_ptr<Editor> Renderer::createEditor(VulkanRenderPassCreateInfo &createInfo) {
+    std::unique_ptr<Editor> Renderer::createEditor(EditorCreateInfo &createInfo) {
         auto editor = createEditorWithUUID(UUID(), createInfo);
         return editor;
     }
 
-    std::unique_ptr<Editor> Renderer::createEditorWithUUID(UUID uuid, VulkanRenderPassCreateInfo &createInfo) {
+    std::unique_ptr<Editor> Renderer::createEditorWithUUID(UUID uuid, EditorCreateInfo &createInfo) {
         return m_editorFactory->createEditor(createInfo.editorTypeDescription, createInfo, uuid);
     }
 
-    void Renderer::recreateEditor(std::unique_ptr<Editor> &editor, VulkanRenderPassCreateInfo &createInfo) {
+    void Renderer::recreateEditor(std::unique_ptr<Editor> &editor, EditorCreateInfo &createInfo) {
         auto newEditor = createEditor(createInfo);
         newEditor->ui() = editor->ui();
         editor = std::move(newEditor);
@@ -957,44 +858,19 @@ namespace VkRender {
         handleEditorResize();
     }
 
-    void Renderer::recordCommands() {
+    void Renderer::onRender() {
         /** Generate Draw Commands **/
-        buildCommandBuffers();
+        for (auto &editor: m_editors) {
+            editor->render(drawCmdBuffers);
+        }
+        m_mainEditor->render(drawCmdBuffers);
         /** IF WE SHOULD RENDER SECOND IMAGE FOR MOUSE PICKING EVENTS (Reason: let user see PerPixelInformation)
          *  THIS INCLUDES RENDERING SELECTED OBJECTS AND COPYING CONTENTS BACK TO CPU INSTEAD OF DISPLAYING TO SCREEN **/
     }
 
     void Renderer::windowResized(int32_t dx, int32_t dy, double widthScale, double heightScale) {
 
-        if ((m_width > 0.0) && (m_height > 0.0)) {
-            for (auto &camera: m_cameras)
-                camera.second.updateAspectRatio(static_cast<float>(m_width) / static_cast<float>(m_height));
-        }
         Widgets::clear();
-        // Update gui with new res
-        //m_guiManager->update((frameCounter == 0), frameTimer, m_renderUtils.width, m_renderUtils.height, &input);
-
-        // Notify scripts
-        auto view = m_registry.view<ScriptComponent>();
-        for (auto entity: view) {
-            auto &script = view.get<ScriptComponent>(entity);
-            //script.script->windowResize(&m_guiManager->handles);
-        }
-        // Destroy framebuffer
-        for (auto &fb: m_frameBuffers) {
-            vkDestroyFramebuffer(device, fb, nullptr);
-        }
-
-        vkDestroyImageView(device, m_depthStencil.view, nullptr);
-        vmaDestroyImage(m_allocator, m_depthStencil.image, m_depthStencil.allocation);
-
-        vkDestroyImageView(device, m_colorImage.view, nullptr);
-        vmaDestroyImage(m_allocator, m_colorImage.image, m_colorImage.allocation);
-
-        createColorResources();
-        createDepthStencil();
-        createMainRenderPass();
-
 
         if (dx != 0)
             Editor::windowResizeEditorsHorizontal(dx, widthScale, m_editors, m_width);
@@ -1003,15 +879,11 @@ namespace VkRender {
 
         for (auto &editor: m_editors) {
             auto &ci = editor->getCreateInfo();
-            ci.appHeight = m_height;
-            ci.appWidth = m_width;
             editor->resize(ci);
         }
         auto &ci = m_mainEditor->getCreateInfo();
         ci.width = m_width;
         ci.height = m_height;
-        ci.appWidth = m_width;
-        ci.appHeight = m_height;
         ci.frameBuffers = m_frameBuffers.data();
         m_mainEditor->resize(ci);
     }
@@ -1044,22 +916,14 @@ namespace VkRender {
         timeSpan = std::chrono::duration_cast<std::chrono::duration<float> >(
                 std::chrono::steady_clock::now() - startTime);
         Log::Logger::getInstance()->trace("Deleting GUI on exit took {}s", timeSpan.count());
-
         startTime = std::chrono::steady_clock::now();
 
-        auto view = m_registry.view<entt::any>();
-        // Step 3: Destroy entities
-        for (auto entity: view) {
-            m_registry.destroy(entity);
-        }
+
         timeSpan = std::chrono::duration_cast<std::chrono::duration<float> >(
                 std::chrono::steady_clock::now() - startTime);
         Log::Logger::getInstance()->trace("Deleting entities on exit took {}s", timeSpan.count());
         // Destroy framebuffer
-        for (auto &fb: m_frameBuffers) {
-            vkDestroyFramebuffer(device, fb, nullptr);
-        }
-
+        m_scenes.clear();
         m_editors.clear();
         m_mainEditor.reset();
     }
@@ -1124,13 +988,12 @@ namespace VkRender {
             }
             if (mouse.left && mouse.action == GLFW_PRESS) {
                 Log::Logger::getInstance()->info("We Left-clicked Editor: {}'s area :{}",
-                                                 editor->ui().index,
+                                                 editor->getCreateInfo().editorIndex,
                                                  editor->ui().lastClickedBorderType);
             }
-
             if (mouse.right && mouse.action == GLFW_PRESS) {
                 Log::Logger::getInstance()->info("We Right-clicked Editor: {}'s area :{}. Merge? {}",
-                                                 editor->ui().index,
+                                                 editor->getCreateInfo().editorIndex,
                                                  editor->ui().lastClickedBorderType,
                                                  editor->ui().rightClickBorder);
             }
@@ -1140,7 +1003,7 @@ namespace VkRender {
         for (size_t index = 0; auto &editor: m_editors) {
             if (editor->getCreateInfo().resizeable &&
                 editor->ui().cornerBottomLeftClicked &&
-                editor->ui().width > 100 && editor->ui().height > 100 &&
+                editor->getCreateInfo().width > 100 && editor->getCreateInfo().height > 100 &&
                 (editor->ui().dragHorizontal || editor->ui().dragVertical) &&
                 !editor->ui().splitting) {
                 splitEditors = true;
@@ -1197,10 +1060,11 @@ namespace VkRender {
 
     void Renderer::splitEditor(uint32_t splitEditorIndex) {
         auto &editor = m_editors[splitEditorIndex];
-        VulkanRenderPassCreateInfo &editorCreateInfo = editor->getCreateInfo();
-        VulkanRenderPassCreateInfo newEditorCreateInfo(m_frameBuffers.data(), m_guiResources, this,
-                                                       &m_sharedContextData);
-        VulkanRenderPassCreateInfo::copy(&newEditorCreateInfo, &editorCreateInfo);
+        EditorCreateInfo &editorCreateInfo = editor->getCreateInfo();
+        EditorCreateInfo newEditorCreateInfo(m_guiResources, this, &m_sharedContextData, m_vulkanDevice, &m_allocator,
+                                             m_frameBuffers.data());
+
+        EditorCreateInfo::copy(&newEditorCreateInfo, &editorCreateInfo);
 
         if (editor->ui().dragHorizontal) {
             editorCreateInfo.width -= editor->ui().dragDelta.x;
@@ -1267,7 +1131,8 @@ namespace VkRender {
         ci1.x = newX;
         ci1.y = newY;
 
-        Log::Logger::getInstance()->info("Merging editor {} into editor {}.", editor2->ui().index, editor1->ui().index);
+        Log::Logger::getInstance()->info("Merging editor {} into editor {}.", editor2->getCreateInfo().editorIndex,
+                                         editor1->getCreateInfo().editorIndex);
 
         auto editor2UUID = editor2->getUUID();
         // Remove editor2 safely based on UUID
@@ -1281,9 +1146,10 @@ namespace VkRender {
         editor1->resize(ci1);
     }
 
-    VulkanRenderPassCreateInfo Renderer::getNewEditorCreateInfo(std::unique_ptr<Editor> &editor) {
-        VulkanRenderPassCreateInfo newEditorCI(m_frameBuffers.data(), m_guiResources, this, &m_sharedContextData);
-        VulkanRenderPassCreateInfo::copy(&newEditorCI, &editor->getCreateInfo());
+    EditorCreateInfo Renderer::getNewEditorCreateInfo(std::unique_ptr<Editor> &editor) {
+        EditorCreateInfo newEditorCI(m_guiResources, this, &m_sharedContextData, m_vulkanDevice, &m_allocator,
+                                     m_frameBuffers.data());
+        EditorCreateInfo::copy(&newEditorCI, &editor->getCreateInfo());
 
         switch (editor->ui().lastClickedBorderType) {
             case EditorBorderState::Left:
@@ -1303,7 +1169,7 @@ namespace VkRender {
             default:
                 Log::Logger::getInstance()->trace(
                         "Resize is somehow active but we have not clicked any borders: {}",
-                        editor->ui().index);
+                        editor->getCreateInfo().editorIndex);
                 break;
         }
         return newEditorCI;
@@ -1315,10 +1181,15 @@ namespace VkRender {
         float dy = y - mouse.y;
         mouse.dx += dx;
         mouse.dy += dy;
-        Log::Logger::getInstance()->trace("Cursor velocity: ({},{}), pos: ({},{})", mouse.dx, mouse.dy, mouse.x,
-                                          mouse.y);
+        Log::Logger::getInstance()->trace("Cursor velocity: ({},{}), pos: ({},{})", mouse.dx, mouse.dy, mouse.x, mouse.y);
+
+        // Update scene cameras
+        for (auto& scene : m_scenes){
+            scene->onMouseEvent(mouse);
+        }
         // UPdate camera if we have one selected
         if (!m_selectedCameraTag.empty()) {
+            /*
             auto it = m_cameras.find(m_selectedCameraTag);
             if (it != m_cameras.end()) {
                 if (mouse.left) {
@@ -1339,6 +1210,7 @@ namespace VkRender {
                     //camera.orbitPan(static_cast<float>() -dx * 0.01f, static_cast<float>() -dy * 0.01f);
                 }
             }
+             */
         }
         mouse.x = x;
         mouse.y = y;
@@ -1346,6 +1218,12 @@ namespace VkRender {
     }
 
     void Renderer::mouseScroll(float change) {
+        ImGuiIO &io = ImGui::GetIO();
+        io.MouseWheel += 0.5f * static_cast<float>(change);
+
+        for (auto& scene : m_scenes){
+            scene->onMouseScroll(change);
+        }
         /*
         if (m_guiManager->handles.renderer3D) {
             m_cameras[m_selectedCameraTag].setArcBallPosition((change > 0.0f) ? 0.95f : 1.05f);
@@ -1353,33 +1231,6 @@ namespace VkRender {
          */
     }
 
-    Entity Renderer::createEntity(const std::string &name) {
-        return createEntityWithUUID(UUID(), name);
-    }
-
-
-    Entity Renderer::createEntityWithUUID(UUID uuid, const std::string &name) {
-        Entity entity = {m_registry.create(), this};
-        entity.addComponent<IDComponent>(uuid);
-        entity.addComponent<TransformComponent>();
-        auto &tag = entity.addComponent<TagComponent>();
-        tag.Tag = name.empty() ? "Entity" : name;
-        Log::Logger::getInstance()->info("Created Entity with UUID: {} and Tag: {}",
-                                         entity.getUUID().operator std::string(), entity.getName());
-        m_entityMap[uuid] = entity;
-
-        return entity;
-    }
-
-    Entity Renderer::findEntityByName(std::string_view name) {
-        auto view = m_registry.view<TagComponent>();
-        for (auto entity: view) {
-            const TagComponent &tc = view.get<TagComponent>(entity);
-            if (tc.Tag == name)
-                return Entity{entity, this};
-        }
-        return {};
-    }
 
     std::unique_ptr<Editor> &Renderer::findEditorByUUID(const UUID &uuid) {
         for (auto &editor: m_editors) {
@@ -1388,6 +1239,7 @@ namespace VkRender {
             }
         }
     }
+
 
     void Renderer::postRenderActions() {
         // Reset mousewheel across imgui contexts
@@ -1401,210 +1253,20 @@ namespace VkRender {
         */
     }
 
-    void Renderer::destroyEntity(Entity entity) {
-        if (!entity) {
-            Log::Logger::getInstance()->warning("Attempted to delete an entity that doesn't exist");
-            return;
-        }
-        // Checking if the entity is still valid before attempting to delete
-        if (m_registry.valid(entity)) {
-            Log::Logger::getInstance()->info("Deleting Entity with UUID: {} and Tag: {}",
-                                             entity.getUUID().operator std::string(), entity.getName());
+    /*
 
-            // Perform the deletion
-            m_entityMap.erase(entity.getUUID());
-            m_registry.destroy(entity);
-        } else {
-            Log::Logger::getInstance()->warning(
-                    "Attempted to delete an invalid or already deleted entity with UUID: {}",
-                    entity.getUUID().operator std::string());
-        }
-    }
-
-    Camera &Renderer::createNewCamera(const std::string &name, uint32_t width, uint32_t height) {
-        auto e = createEntity(name);
-        auto camera = Camera(m_width, m_height);
-        m_cameras[name] = camera;
-        auto &c = e.addComponent<CameraComponent>(&m_cameras[m_selectedCameraTag]);
-        //auto &gizmo = e.addComponent<CameraGraphicsPipelineComponent>(&m_renderUtils);
-        auto &transform = e.getComponent<TransformComponent>();
-        transform.scale = glm::vec3(0.2f, 0.2f, 0.2f);
-
-        return m_cameras[name];
-    }
-
-    Camera &Renderer::getCamera() {
-        if (!m_selectedCameraTag.empty()) {
-            auto it = m_cameras.find(m_selectedCameraTag);
-            if (it != m_cameras.end()) {
-                return m_cameras[m_selectedCameraTag];
-            }
-        } // TODO create a new camera with tag if it doesn't exist
-    }
-
-    Camera &Renderer::getCamera(std::string tag) {
-        if (!m_selectedCameraTag.empty()) {
-            auto it = m_cameras.find(tag);
-            if (it != m_cameras.end()) {
-                return m_cameras[tag];
-            }
-        }
-        // TODO create a new camera with tag if it doesn't exist
-    }
+           */
 
     void Renderer::keyboardCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
-        m_cameras[m_selectedCameraTag].keys.up = input.keys.up;
-        m_cameras[m_selectedCameraTag].keys.down = input.keys.down;
-        m_cameras[m_selectedCameraTag].keys.left = input.keys.left;
-        m_cameras[m_selectedCameraTag].keys.right = input.keys.right;
+        //m_cameras[m_selectedCameraTag].keys.up = input.keys.up;
+        //m_cameras[m_selectedCameraTag].keys.down = input.keys.down;
+        //m_cameras[m_selectedCameraTag].keys.left = input.keys.left;
+        //m_cameras[m_selectedCameraTag].keys.right = input.keys.right;
     }
 
-    void Renderer::createDepthStencil() {
-        std::string description = "Renderer:";
-        VkImageCreateInfo imageCI = Populate::imageCreateInfo();
-        imageCI.imageType = VK_IMAGE_TYPE_2D;
-        imageCI.format = depthFormat;
-        imageCI.extent = {m_width, m_height, 1};
-        imageCI.mipLevels = 1;
-        imageCI.arrayLayers = 1;
-        imageCI.samples = msaaSamples;
-        imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
-        imageCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-
-        VmaAllocationCreateInfo allocInfo = {};
-        allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
-
-        VkResult result = vmaCreateImage(allocator(), &imageCI, &allocInfo, &m_depthStencil.image,
-                                         &m_depthStencil.allocation, nullptr);
-        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create depth image");
-        vmaSetAllocationName(allocator(), m_depthStencil.allocation, (description + "DepthStencil").c_str());
-        VALIDATION_DEBUG_NAME(m_vulkanDevice->m_LogicalDevice,
-                              reinterpret_cast<uint64_t>(m_depthStencil.image), VK_OBJECT_TYPE_IMAGE,
-                              (description + "DepthImage").c_str());
-
-        VkImageViewCreateInfo imageViewCI = Populate::imageViewCreateInfo();
-        imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        imageViewCI.image = m_depthStencil.image;
-        imageViewCI.format = depthFormat;
-        imageViewCI.subresourceRange.baseMipLevel = 0;
-        imageViewCI.subresourceRange.levelCount = 1;
-        imageViewCI.subresourceRange.baseArrayLayer = 0;
-        imageViewCI.subresourceRange.layerCount = 1;
-        imageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-        if (depthFormat >= VK_FORMAT_D16_UNORM_S8_UINT) {
-            imageViewCI.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
-        }
-        result = vkCreateImageView(m_vulkanDevice->m_LogicalDevice, &imageViewCI, nullptr,
-                                   &m_depthStencil.view);
-        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create depth image view");
-
-        VALIDATION_DEBUG_NAME(m_vulkanDevice->m_LogicalDevice,
-                              reinterpret_cast<uint64_t>(m_depthStencil.view), VK_OBJECT_TYPE_IMAGE_VIEW,
-                              (description + "DepthView").c_str());
-
-        VkCommandBuffer copyCmd = m_vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-
-        VkImageSubresourceRange subresourceRange = {};
-        subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-        subresourceRange.levelCount = 1;
-        subresourceRange.layerCount = 1;
-
-        Utils::setImageLayout(copyCmd, m_depthStencil.image, VK_IMAGE_LAYOUT_UNDEFINED,
-                              VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, subresourceRange,
-                              VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
-
-        m_vulkanDevice->flushCommandBuffer(copyCmd, graphicsQueue, true);
+    std::shared_ptr<Scene> Renderer::activeScene() {
+        return m_scenes.front();
     }
 
 
-    void Renderer::createColorResources() {
-        std::string description = "Renderer:";
-
-        VkImageCreateInfo imageCI = Populate::imageCreateInfo();
-        imageCI.imageType = VK_IMAGE_TYPE_2D;
-        imageCI.format = swapchain->colorFormat;
-        imageCI.extent = {m_width, m_height, 1};
-        imageCI.mipLevels = 1;
-        imageCI.arrayLayers = 1;
-        imageCI.samples = msaaSamples;
-        imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
-        imageCI.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-        imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-
-        VmaAllocationCreateInfo allocInfo = {};
-        allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
-
-        VkResult result = vmaCreateImage(allocator(), &imageCI, &allocInfo, &m_colorImage.image,
-                                         &m_colorImage.allocation, nullptr);
-        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create color image");
-        VALIDATION_DEBUG_NAME(m_vulkanDevice->m_LogicalDevice,
-                              reinterpret_cast<uint64_t>(m_colorImage.image), VK_OBJECT_TYPE_IMAGE,
-                              (description + "ColorImageResource").c_str());
-        // Set user data for debugging
-        //vmaSetAllocationUserData(allocator(), m_colorImage.allocation, (void*)((description + "ColorResource").c_str()));
-
-        VkImageViewCreateInfo imageViewCI = Populate::imageViewCreateInfo();
-        imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        imageViewCI.image = m_colorImage.image;
-        imageViewCI.format = swapchain->colorFormat;
-        imageViewCI.subresourceRange.baseMipLevel = 0;
-        imageViewCI.subresourceRange.levelCount = 1;
-        imageViewCI.subresourceRange.baseArrayLayer = 0;
-        imageViewCI.subresourceRange.layerCount = 1;
-        imageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        result = vkCreateImageView(m_vulkanDevice->m_LogicalDevice, &imageViewCI, nullptr,
-                                   &m_colorImage.view);
-        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create color image view");
-        VALIDATION_DEBUG_NAME(m_vulkanDevice->m_LogicalDevice,
-                              reinterpret_cast<uint64_t>(m_colorImage.view), VK_OBJECT_TYPE_IMAGE_VIEW,
-                              (description + "ColorViewResource").c_str());
-    }
-
-
-    DISABLE_WARNING_PUSH
-    DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER
-
-    template<typename T>
-    void Renderer::onComponentAdded(Entity entity, T &component) {
-        static_assert(sizeof(T) == 0);
-    }
-
-    template<>
-    void Renderer::onComponentAdded<IDComponent>(Entity entity, IDComponent &component) {
-    }
-
-    template<>
-    void Renderer::onComponentAdded<TransformComponent>(Entity entity, TransformComponent &component) {
-    }
-
-    template<>
-    void Renderer::onComponentAdded<CameraComponent>(Entity entity, CameraComponent &component) {
-    }
-
-    template<>
-    void Renderer::onComponentAdded<ScriptComponent>(Entity entity, ScriptComponent &component) {
-    }
-
-    template<>
-    void Renderer::onComponentAdded<TagComponent>(Entity entity, TagComponent &component) {
-    }
-
-    template<>
-    void Renderer::onComponentAdded<Rigidbody2DComponent>(Entity entity, Rigidbody2DComponent &component) {
-    }
-
-    template<>
-    void Renderer::onComponentAdded<TextComponent>(Entity entity, TextComponent &component) {
-    }
-
-    template<>
-    void Renderer::onComponentAdded<OBJModelComponent>(Entity entity, OBJModelComponent &component) {
-    }
-
-    template<>
-    void Renderer::onComponentAdded<DefaultGraphicsPipelineComponent>(Entity entity, DefaultGraphicsPipelineComponent &component) {
-    }
-
-    DISABLE_WARNING_POP
 };

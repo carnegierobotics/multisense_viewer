@@ -58,7 +58,7 @@ namespace VkRender {
             ImGui::Begin("EditorTestWindow", nullptr, window_flags);
 
             ImGui::PushFont(handles.info->font24);
-            std::string txt = std::to_string(handles.editorUi->index);
+            std::string txt = std::to_string(0);
             ImVec2 txtSize = ImGui::CalcTextSize(txt.c_str());
 
             ImVec2 cursorPos = window_size / 2;

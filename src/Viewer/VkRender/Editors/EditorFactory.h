@@ -10,7 +10,7 @@
 #include "Viewer/VkRender/pch.h"
 
 #include "Viewer/VkRender/Editor.h"
-#include "Viewer/VkRender/Editors/Common/Viewport/EditorViewport.h"
+#include "Viewer/VkRender/Editors/Common/3DViewport/Editor3DViewport.h"
 #include "Viewer/VkRender/Editors/Common/SceneHierarchy/EditorSceneHierarchy.h"
 #include "Viewer/VkRender/Editors/MultiSenseViewer/EditorMultiSenseViewer.h"
 #include "Viewer/VkRender/Editors/Common/Test/EditorTest.h"
@@ -31,8 +31,8 @@ namespace VkRender {
             registerEditor(EditorType::MultiSenseViewer, [](EditorCreateInfo &ci, UUID) {
                 return std::make_unique<EditorMultiSenseViewer>(ci);
             });
-            registerEditor(EditorType::Viewport, [](EditorCreateInfo &ci, UUID) {
-                return std::make_unique<EditorViewport>(ci);
+            registerEditor(EditorType::Viewport3D, [](EditorCreateInfo &ci, UUID) {
+                return std::make_unique<Editor3DViewport>(ci);
             });
             registerEditor(EditorType::MyProject, [](EditorCreateInfo &ci, UUID uuid) {
                 return std::make_unique<EditorMyProject>(ci, uuid);

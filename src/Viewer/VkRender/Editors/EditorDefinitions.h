@@ -11,7 +11,8 @@ namespace VkRender {
     // Define the EditorType enum
     enum class EditorType {
         None,
-        Viewport,
+        Viewport3D,
+        Viewport2D,
         MultiSenseViewer,
         SceneHierarchy,
         TestWindow,
@@ -19,7 +20,7 @@ namespace VkRender {
         };
 
     static std::vector<EditorType> getEditorTypes() {
-        return {EditorType::Viewport,
+        return {EditorType::Viewport3D,
                 EditorType::MultiSenseViewer,
                 EditorType::SceneHierarchy,
                 EditorType::TestWindow,
@@ -31,7 +32,7 @@ namespace VkRender {
             case EditorType::MultiSenseViewer: return "MultiSense Viewer";
             case EditorType::SceneHierarchy: return "Scene Hierarchy";
             case EditorType::TestWindow: return "Test Window";
-            case EditorType::Viewport: return "Editor Viewport";
+            case EditorType::Viewport3D: return "3D Viewport";
             case EditorType::MyProject: return "MyProject";
             default: return "Unknown";
         }
@@ -42,7 +43,7 @@ namespace VkRender {
         if (str == "MultiSense Viewer") return EditorType::MultiSenseViewer;
         if (str == "Scene Hierarchy") return EditorType::SceneHierarchy;
         if (str == "Test Window") return EditorType::TestWindow;
-        if (str == "Viewport") return EditorType::Viewport;
+        if (str == "3D Viewport") return EditorType::Viewport3D;
         if (str == "MyProject") return EditorType::MyProject;
         throw std::invalid_argument("Unknown editor type string");
     }

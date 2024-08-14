@@ -61,11 +61,6 @@ namespace VkRender {
     void DefaultScene::addGuiLayers() {
     }
 
-    void DefaultScene::render(CommandBuffer &drawCmdBuffers) {
-
-
-    }
-
     void DefaultScene::update(uint32_t frameIndex) {
         auto cameraEntity = findEntityByName("DefaultCamera");
         if (cameraEntity){

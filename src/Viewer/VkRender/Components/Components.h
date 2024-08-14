@@ -102,6 +102,10 @@ namespace VkRender {
             translation = v;
         }
 
+        const glm::vec3 &getPosition() const {
+            return translation;
+        }
+
         void setFlipUpOption(const bool flipUp) {
             m_flipUpAxis = flipUp;
         }
@@ -159,7 +163,7 @@ namespace VkRender {
 
         ScriptComponent(const ScriptComponent &) = default;
 
-        ScriptComponent(std::string scriptName, Renderer* m_context) {
+        ScriptComponent(std::string scriptName, Renderer *m_context) {
             script = ComponentMethodFactory::Create(scriptName);
             script->m_context = m_context;
             if (script == nullptr) {
@@ -201,9 +205,9 @@ namespace VkRender {
     };
 
     using AllComponents =
-    ComponentGroup<TransformComponent,
-        CameraComponent, ScriptComponent,
-        Rigidbody2DComponent, TextComponent>;
+            ComponentGroup<TransformComponent,
+                    CameraComponent, ScriptComponent,
+                    Rigidbody2DComponent, TextComponent>;
 
     DISABLE_WARNING_POP
 }

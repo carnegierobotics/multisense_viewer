@@ -106,7 +106,7 @@ set(SOURCE_FILES
         src/Viewer/VkRender/Editors/MainContextLayer.h
         src/Viewer/VkRender/Editors/MultiSenseViewer/Layers/LayoutSettingsLayer.h
         src/Viewer/VkRender/Editors/MyEditor/EditorMyProject.cpp
-        src/Viewer/VkRender/Editors/Common/Viewport/EditorViewport.cpp
+        src/Viewer/VkRender/Editors/Common/3DViewport/Editor3DViewport.cpp
 
         src/Viewer/Tools/StbInclude.cpp
         src/Viewer/Tools/Logger.cpp
@@ -119,6 +119,7 @@ set(SOURCE_FILES
 
         src/Viewer/Scenes/ScriptSupport/ScriptUtils.h
         src/Viewer/VkRender/Scene.cpp
+        src/Viewer/VkRender/Editors/Common/3DViewport/Editor3DLayer.h
 )
 
 set (SCRIPT_FILES

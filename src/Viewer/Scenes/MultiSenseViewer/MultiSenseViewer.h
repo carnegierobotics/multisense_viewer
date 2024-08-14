@@ -13,9 +13,10 @@ namespace VkRender {
     public:
         explicit MultiSenseViewer(Renderer& ctx);
 
-        void render(CommandBuffer& drawCmdBuffers) override;
-
         void update(uint32_t i) override;
+
+        ~MultiSenseViewer() override{
+        }
     };
 }
 

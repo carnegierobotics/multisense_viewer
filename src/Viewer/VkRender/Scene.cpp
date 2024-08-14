@@ -65,29 +65,19 @@ namespace VkRender {
     void Scene::createNewCamera(const std::string &name, uint32_t width, uint32_t height) {
             auto e = createEntity(name);
             auto &c = e.addComponent<CameraComponent>(Camera(width, height));
-            //auto &gizmo = e.addComponent<CameraGraphicsPipelineComponent>(&m_renderUtils);
             auto &transform = e.getComponent<TransformComponent>();
-            transform.scale = glm::vec3(0.2f, 0.2f, 0.2f);
+            transform.setPosition(glm::vec3(1.0f, 0.0f, 2.0f));
+            c.camera.pose.pos = transform.getPosition();
+            auto &gizmo = e.addComponent<OBJModelComponent>(Utils::getModelsPath() / "obj" / "camera_gizmo.obj");
+
     }
 
-    void Scene::onMouseEvent(MouseButtons &mouse) {
-        auto view = m_registry.view<CameraComponent>();
-        for (auto entity : view) {
-            auto &cameraComponent = view.get<CameraComponent>(entity);
+    void Scene::onMouseEvent(const MouseButtons &mouse) {
 
-            if (mouse.left)
-                cameraComponent().rotate(mouse.dx, mouse.dy);
-
-        }
     }
 
     void Scene::onMouseScroll(float change) {
-        auto view = m_registry.view<CameraComponent>();
-        for (auto entity : view) {
-            auto &cameraComponent = view.get<CameraComponent>(entity);
-            cameraComponent().setArcBallPosition((change > 0.0f) ? 0.95f : 1.05f);
 
-        }
     }
 
     DISABLE_WARNING_PUSH

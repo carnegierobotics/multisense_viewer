@@ -25,8 +25,6 @@ class DefaultScene : public Scene {
 
         void addGuiLayers();
 
-        void render(CommandBuffer& drawCmdBuffers) override;
-
         void update(uint32_t i) override;
 
         void cleanUp();

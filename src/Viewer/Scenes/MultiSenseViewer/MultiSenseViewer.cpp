@@ -15,13 +15,11 @@ namespace VkRender {
         auto entity = createEntity("FirstEntity");
         auto &modelComponent = entity.addComponent<VkRender::OBJModelComponent>(
                 Utils::getModelsPath() / "obj" / "s30.obj");
+
         createNewCamera("DefaultCamera", 1280, 720);
 
     }
 
-    void MultiSenseViewer::render(CommandBuffer& drawCmdBuffers) {
-
-    }
 
     void MultiSenseViewer::update(uint32_t i) {
 

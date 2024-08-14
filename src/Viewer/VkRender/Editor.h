@@ -83,6 +83,8 @@ namespace VkRender {
             int render = 1;
         }
 
+        virtual void onMouseMove(const VkRender::MouseButtons& mouse){}
+        virtual void onMouseScroll(float change){}
         virtual void onUpdate() {
         }
         virtual void onSceneLoad() {
@@ -91,32 +93,21 @@ namespace VkRender {
 
         void update(bool updateGraph, float frametime, Input *input);
 
+
         void updateBorderState(const glm::vec2 &mousePos);
-
         EditorBorderState checkLineBorderState(const glm::vec2 &mousePos, bool verticalResize);
-
         bool validateEditorSize(EditorCreateInfo &createInfo);
-
         void resize(EditorCreateInfo &createInfo);
         static void windowResizeEditorsHorizontal(int32_t dx, double widthScale,std::vector<std::unique_ptr<Editor>>& editors, uint32_t width);
         static void windowResizeEditorsVertical(int32_t dy, double heightScale,std::vector<std::unique_ptr<Editor>>& editors, uint32_t height);
-
         static void handleIndirectClickState(std::vector<std::unique_ptr<Editor>>&editors, std::unique_ptr<Editor> &editor, const MouseButtons &mouse);
-
         static bool isValidResize(EditorCreateInfo &newEditorCI, std::unique_ptr<Editor> &editor);
-
         static void checkIfEditorsShouldMerge(std::vector<std::unique_ptr<Editor>>& editors);
-
         static void checkAndSetIndirectResize(std::unique_ptr<Editor> &editor, std::unique_ptr<Editor> &otherEditor, const MouseButtons &mouse);
-
         static void handleRightMouseClick(std::unique_ptr<Editor> &editor);
-
         static void handleLeftMouseClick(std::unique_ptr<Editor> &editor);
-
         static void handleClickState(std::unique_ptr<Editor> &editor, const MouseButtons& mouse);
-
         static void handleHoverState(std::unique_ptr<Editor> &editor, const MouseButtons &mouse);
-
         static void handleDragState(std::unique_ptr<Editor> &editor, const MouseButtons &mouse);
 
     private:

@@ -138,7 +138,7 @@ namespace VkRender {
         //std::unordered_map<std::string, Camera> m_cameras;
         //std::unique_ptr<VkRender::GuiManager> m_guiManager{};
         std::vector<std::unique_ptr<Editor>> m_editors;
-        std::vector<std::shared_ptr<Scene>> m_scenes;
+        std::shared_ptr<Scene> m_scene;
         std::string m_selectedCameraTag = "Default Camera";
         std::unique_ptr<EditorFactory> m_editorFactory;
 

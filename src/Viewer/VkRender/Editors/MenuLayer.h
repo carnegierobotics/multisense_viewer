@@ -30,7 +30,7 @@ namespace VkRender {
 
 
         /** Called once per frame **/
-        void onUIRender(VkRender::GuiObjectHandles& handles) override {
+        void onUIRender(VkRender::GuiObjectHandles &handles) override {
 
 
             // Push style variables
@@ -53,7 +53,7 @@ namespace VkRender {
                     // Handle New action
                     handles.m_context->loadScene("Default Scene");
                 }
-                if (ImGui::MenuItem("Load Other Scene")) {
+                if (ImGui::MenuItem("Load MultiSense Viewer Scene")) {
                     // Handle New action
                     handles.m_context->loadScene("MultiSense Viewer");
                 }

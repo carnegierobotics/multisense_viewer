@@ -13,15 +13,21 @@
 
 namespace VkRender {
     class Scene {
+        using DestroyCallback = std::function<void(entt::entity)>;
 
     public:
         Scene() = default;
 
-        virtual void render(CommandBuffer &drawCmdBuffers) {};
-
         virtual void update(uint32_t i) {};
 
-        ~Scene(){
+        virtual ~Scene() {
+            // Manually destroy all entities to trigger the on_destroy events
+            auto view = m_registry.view<entt::entity>();
+            for (auto entity: view) {
+                m_registry.destroy(entity);  // This will trigger any registered destroy callbacks
+            }
+
+            // Now clear the registry to clean up any remaining components
             m_registry.clear<>();
         }
 
@@ -35,8 +41,10 @@ namespace VkRender {
 
         void createNewCamera(const std::string &name, uint32_t width, uint32_t height);
 
-        void onMouseEvent(MouseButtons& mouseButtons);
+        void onMouseEvent(const MouseButtons &mouseButtons);
+
         void onMouseScroll(float change);
+
         /*
         Camera &Renderer::getCamera() {
             if (!m_selectedCameraTag.empty()) {
@@ -58,16 +66,32 @@ namespace VkRender {
         }
         */
 
-        entt::registry& getRegistry() {return m_registry;};
-        const std::string& getSceneName() {return m_sceneName;}
+        entt::registry &getRegistry() { return m_registry; };
+
+        const std::string &getSceneName() { return m_sceneName; }
+
+        void addDestroyCallback(DestroyCallback callback) {
+            m_destroyCallbacks.push_back(std::move(callback));
+            m_registry.on_destroy<entt::entity>().connect<&Scene::onEntityDestroyed>(*this);
+        }
 
     protected:
         entt::registry m_registry;
         std::string m_sceneName = "Unnamed Scene";
+        std::deque<DestroyCallback> m_destroyCallbacks;  // Store all registered destroy callbacks
+
         friend class Entity;
 
         template<typename T>
         void onComponentAdded(Entity entity, T &component);
+
+    private:
+        void onEntityDestroyed(entt::registry &registry, entt::entity entity) {
+            for (auto &callback: m_destroyCallbacks) {
+                callback(entity);  // Call each registered destroy function
+            }
+        }
+
     };
 
 

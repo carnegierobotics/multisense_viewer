@@ -135,6 +135,8 @@ namespace VkRender {
         ImVec4 backgroundColorHovered{};
         ImVec4 backgroundColorActive{};
 
+        bool setActiveCamera = false;
+
         bool active = false;
         bool hovered = false;
         bool indirectlyActivated = false;

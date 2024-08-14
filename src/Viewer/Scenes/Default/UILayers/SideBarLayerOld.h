@@ -9,7 +9,7 @@
 #include "Viewer/VkRender/ImGui/LayerUtils.h"
 
 #include "Viewer/VkRender/Components/GLTFModelComponent.h"
-#include "Viewer/VkRender/Components/CameraGraphicsPipelineComponent.h"
+#include "Viewer/VkRender/Components/CameraModelComponent.h"
 #include "Viewer/VkRender/Renderer.h"
 #include "Viewer/VkRender/Components/SkyboxGraphicsPipelineComponent.h"
 #include "Viewer/VkRender/Components/OBJModelComponent.h"

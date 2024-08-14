@@ -6,9 +6,11 @@
 
 #include "Viewer/VkRender/Renderer.h"
 #include "Viewer/VkRender/Components/Components.h"
-#include "Viewer/VkRender/Components/DefaultGraphicsPipelineComponent.h"
+#include "Viewer/VkRender/Components/DefaultGraphicsPipeline.h"
 #include "Viewer/VkRender/Entity.h"
 #include "Viewer/VkRender/Components/OBJModelComponent.h"
+#include "Viewer/VkRender/Components/CameraModelComponent.h"
+#include "Viewer/VkRender/Components/CameraModelGraphicsPipeline.h"
 
 namespace VkRender {
 
@@ -17,7 +19,11 @@ namespace VkRender {
             return;
 
 
-        for (auto& pipeline : m_renderPipelines){
+        for (auto &pipeline: m_renderPipelines) {
+            pipeline.second->draw(drawCmdBuffers);
+        }
+
+        for (auto &pipeline: m_cameraRenderPipelines) {
             pipeline.second->draw(drawCmdBuffers);
         }
 
@@ -27,43 +33,50 @@ namespace VkRender {
         if (!m_activeScene)
             return;
 
-        auto view = m_activeScene->getRegistry().view<VkRender::TransformComponent, OBJModelComponent>();
-        for (auto entity : view) {
-            auto& transform = view.get<VkRender::TransformComponent>(entity);
-
+        auto view = m_activeScene->getRegistry().view<TransformComponent, OBJModelComponent>();
+        for (auto entity: view) {
+            auto &transform = view.get<TransformComponent>(entity);
             if (!m_renderPipelines[entity]) { // Check if the pipeline already exists
-                DefaultGraphicsPipelineComponent::RenderPassInfo renderPassInfo{};
+                RenderPassInfo renderPassInfo{};
                 renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
                 renderPassInfo.renderPass = m_renderPass->getRenderPass();
-
-                auto pipeline = std::make_unique<DefaultGraphicsPipelineComponent>(*m_context, renderPassInfo);
-                auto& model = view.get<VkRender::OBJModelComponent>(entity);
+                auto pipeline = std::make_unique<DefaultGraphicsPipeline>(*m_context, renderPassInfo);
+                auto &model = view.get<OBJModelComponent>(entity);
                 pipeline->bind(model);
                 m_renderPipelines[entity] = std::move(pipeline);
             }
-
             m_renderPipelines[entity]->updateTransform(transform);
+        }
+        auto view2 = m_activeScene->getRegistry().view<TransformComponent, CameraModelComponent>();
+        for (auto entity: view2) {
+            auto &transform = view2.get<TransformComponent>(entity);
+            m_cameraRenderPipelines[entity]->updateTransform(transform);
+        }
+
+
+        // Update all pipelines with the current view and frame index
+        for (auto &pipeline: m_renderPipelines) {
+            if (ui().setActiveCamera) {
+                auto entity = m_activeScene->findEntityByName("DefaultCamera");
+                auto& camera = entity.getComponent<CameraComponent>();
+                pipeline.second->updateView(camera());
+            } else
+                pipeline.second->updateView(m_editorCamera);
+
+            pipeline.second->update(m_context->currentFrameIndex());
+        }
+        // Update all pipelines with the current view and frame index
+        for (auto &pipeline: m_cameraRenderPipelines) {
+            if (ui().setActiveCamera) {
+                auto entity = m_activeScene->findEntityByName("DefaultCamera");
+                auto& camera = entity.getComponent<CameraComponent>();
+                pipeline.second->updateView(camera());
+            } else
+                pipeline.second->updateView(m_editorCamera);
+            pipeline.second->update(m_context->currentFrameIndex());
         }
 
         m_activeScene->update(m_context->currentFrameIndex());
-
-        for (auto entity : view) {
-            auto& object = view.get<VkRender::TransformComponent>(entity);
-            m_renderPipelines[entity]->updateTransform(object);
-        }
-
-        // active camera
-        auto cameraView = m_activeScene->getRegistry().view<VkRender::CameraComponent>();
-        Camera* camera;
-        for (auto entity : cameraView) {
-            auto& c = cameraView.get<VkRender::CameraComponent>(entity);
-        }
-
-        // Update all pipelines with the current view and frame index
-        for (auto& pipeline : m_renderPipelines){
-                pipeline.second->updateView(m_editorCamera);
-                pipeline.second->update(m_context->currentFrameIndex());
-            }
     }
 
     void Editor3DViewport::onEntityDestroyed(entt::entity entity) {
@@ -87,28 +100,34 @@ namespace VkRender {
         // But we need it accessed in the pipeline
 
         m_editorCamera = Camera(1280, 720);
-        DefaultGraphicsPipelineComponent::RenderPassInfo renderPassInfo{};
+        RenderPassInfo renderPassInfo{};
         renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
         renderPassInfo.renderPass = m_renderPass->getRenderPass();
 
         m_activeScene = m_context->activeScene();
         // Pass the destroy function to the scene
         m_activeScene->addDestroyFunction(this, [this](entt::entity entity) {
-
             onEntityDestroyed(entity);
         });
 
-        auto view = m_activeScene->getRegistry().view<VkRender::OBJModelComponent>();
+        auto objModelView = m_activeScene->getRegistry().view<OBJModelComponent>();
         // Iterate over the entities in the view
-        for (entt::entity entity : view) {
-            m_renderPipelines[entity] = std::make_unique<DefaultGraphicsPipelineComponent>(*m_context, renderPassInfo);
-            auto& model = view.get<VkRender::OBJModelComponent>(entity);
+        for (entt::entity entity: objModelView) {
+            m_renderPipelines[entity] = std::make_unique<DefaultGraphicsPipeline>(*m_context, renderPassInfo);
+            auto &model = objModelView.get<OBJModelComponent>(entity);
             m_renderPipelines[entity]->bind(model);
+        }
+        auto cameraModelView = m_activeScene->getRegistry().view<CameraModelComponent>();
+        // Iterate over the entities in the view
+        for (entt::entity entity: cameraModelView) {
+            m_cameraRenderPipelines[entity] = std::make_unique<CameraModelGraphicsPipeline>(*m_context, renderPassInfo);
+            auto &model = cameraModelView.get<CameraModelComponent>(entity);
+            m_cameraRenderPipelines[entity]->bind(model);
         }
     }
 
     void Editor3DViewport::onMouseMove(const MouseButtons &mouse) {
-        if (ui().hovered && mouse.left){
+        if (ui().hovered && mouse.left) {
             m_editorCamera.rotate(mouse.dx, mouse.dy);
             m_activeScene->onMouseEvent(mouse);
         }

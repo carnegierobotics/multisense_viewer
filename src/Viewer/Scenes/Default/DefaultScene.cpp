@@ -6,7 +6,7 @@
 
 #include "Viewer/Scenes/Default/DefaultScene.h"
 #include "Viewer/VkRender/Components/OBJModelComponent.h"
-#include "Viewer/VkRender/Components/DefaultGraphicsPipelineComponent.h"
+#include "Viewer/VkRender/Components/DefaultGraphicsPipeline.h"
 
 namespace VkRender {
 

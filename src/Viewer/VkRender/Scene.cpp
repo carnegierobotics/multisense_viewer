@@ -6,8 +6,9 @@
 
 #include "Viewer/VkRender/Scene.h"
 #include "Viewer/VkRender/Components/Components.h"
-#include "Viewer/VkRender/Components/DefaultGraphicsPipelineComponent.h"
+#include "Viewer/VkRender/Components/DefaultGraphicsPipeline.h"
 #include "Viewer/VkRender/Components/OBJModelComponent.h"
+#include "Viewer/VkRender/Components/CameraModelComponent.h"
 
 namespace VkRender {
     Entity Scene::createEntityWithUUID(UUID uuid, const std::string &name) {
@@ -66,9 +67,9 @@ namespace VkRender {
             auto e = createEntity(name);
             auto &c = e.addComponent<CameraComponent>(Camera(width, height));
             auto &transform = e.getComponent<TransformComponent>();
-            transform.setPosition(glm::vec3(1.0f, 0.0f, 2.0f));
-            c.camera.pose.pos = transform.getPosition();
-            auto &gizmo = e.addComponent<OBJModelComponent>(Utils::getModelsPath() / "obj" / "camera_gizmo.obj");
+            //transform.setPosition(glm::vec3(1.0f, 0.0f, 2.0f));
+            //c.camera.pose.pos = transform.getPosition();
+            auto &gizmo = e.addComponent<CameraModelComponent>();
 
     }
 
@@ -120,7 +121,7 @@ namespace VkRender {
     }
 
     template<>
-    void Scene::onComponentAdded<DefaultGraphicsPipelineComponent>(Entity entity, DefaultGraphicsPipelineComponent &component) {
+    void Scene::onComponentAdded<CameraModelComponent>(Entity entity, CameraModelComponent &component) {
     }
 
     DISABLE_WARNING_POP

@@ -9,7 +9,7 @@
 #include "Viewer/VkRender/Renderer.h"
 #include "Viewer/VkRender/Entity.h"
 #include "Viewer/VkRender/ImGui/LayerUtils.h"
-#include "Viewer/VkRender/Components/DefaultGraphicsPipelineComponent.h"
+#include "Viewer/VkRender/Components/DefaultGraphicsPipeline.h"
 #include "Viewer/VkRender/Components/OBJModelComponent.h"
 
 namespace VkRender {
@@ -57,7 +57,7 @@ namespace VkRender {
             // This function is called for both component types
             if (ImGui::TreeNodeEx(tag.Tag.c_str(), ImGuiTreeNodeFlags_None)) {
                 auto e = Entity(entity, handles.m_context->activeScene().get());
-                if (e.hasComponent<DefaultGraphicsPipelineComponent>()) {
+                if (e.hasComponent<DefaultGraphicsPipeline>()) {
                     if (ImGui::SmallButton("Reload Shader")) {
                         //e.getComponent<DefaultGraphicsPipelineComponent>().reloadShaders();
                     }

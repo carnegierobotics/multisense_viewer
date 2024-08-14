@@ -15,34 +15,29 @@
 
 namespace VkRender {
 
-    class DefaultGraphicsPipelineComponent : RenderBase {
+    class DefaultGraphicsPipeline {
     public:
-        struct RenderPassInfo {
-            VkSampleCountFlagBits sampleCount;
-            VkRenderPass renderPass;
-        };
 
-
-        DefaultGraphicsPipelineComponent() = default;
+        DefaultGraphicsPipeline() = default;
 
         /** @brief
         // Delete copy constructors, we dont want to perform shallow copied of vulkan resources leading to double deletion.
         // If copy is necessary define custom copy constructor and use move semantics or references
         */
-        DefaultGraphicsPipelineComponent(const DefaultGraphicsPipelineComponent &) = delete;
+        DefaultGraphicsPipeline(const DefaultGraphicsPipeline &) = delete;
 
-        DefaultGraphicsPipelineComponent &operator=(const DefaultGraphicsPipelineComponent &) = delete;
+        DefaultGraphicsPipeline &operator=(const DefaultGraphicsPipeline &) = delete;
 
-        ~DefaultGraphicsPipelineComponent() override;
+        ~DefaultGraphicsPipeline();
 
-        explicit DefaultGraphicsPipelineComponent(Renderer &m_context, const RenderPassInfo &renderPassInfo,
+        explicit DefaultGraphicsPipeline(Renderer &m_context, const RenderPassInfo &renderPassInfo,
                                                   const std::string &vertexShader = "default.vert.spv",
                                                   const std::string &fragmentShader = "default.frag.spv");
 
 
         void cleanUp();
 
-        void update(uint32_t currentFrame) override;
+        void update(uint32_t currentFrame);
 
         void updateTransform(const TransformComponent &transform);
 
@@ -54,8 +49,6 @@ namespace VkRender {
         void bind(T &modelComponent);
 
     private:
-
-
         struct Vertices {
             VkBuffer buffer = VK_NULL_HANDLE;
             VkDeviceMemory memory = VK_NULL_HANDLE;
@@ -83,7 +76,6 @@ namespace VkRender {
         FragShaderParams m_fragParams; // Non GPU-accessible data, shared across frames
         std::vector<DefaultRenderData> m_renderData;
         SharedRenderData m_sharedRenderData;
-
 
         void setupUniformBuffers();
 

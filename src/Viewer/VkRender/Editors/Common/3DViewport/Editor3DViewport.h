@@ -7,7 +7,8 @@
 
 #include "Viewer/VkRender/Editor.h"
 #include "Viewer/Scenes/Default/DefaultScene.h"
-#include "Viewer/VkRender/Components/DefaultGraphicsPipelineComponent.h"
+#include "Viewer/VkRender/Components/DefaultGraphicsPipeline.h"
+#include "Viewer/VkRender/Components/CameraModelGraphicsPipeline.h"
 
 namespace VkRender {
 
@@ -40,7 +41,8 @@ namespace VkRender {
     private:
         Camera m_editorCamera;
         std::shared_ptr<Scene> m_activeScene;
-        std::unordered_map<entt::entity, std::unique_ptr<DefaultGraphicsPipelineComponent>> m_renderPipelines;
+        std::unordered_map<entt::entity, std::unique_ptr<DefaultGraphicsPipeline>> m_renderPipelines;
+        std::unordered_map<entt::entity, std::unique_ptr<CameraModelGraphicsPipeline>> m_cameraRenderPipelines;
 
         void onEntityDestroyed(entt::entity entity);
     };

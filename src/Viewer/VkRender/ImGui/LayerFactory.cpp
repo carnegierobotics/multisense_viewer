@@ -16,6 +16,7 @@
 #include "Viewer/VkRender/Editors/MultiSenseViewer/Layers/ConfigurationLayer.h"
 #include "Viewer/VkRender/Editors/MultiSenseViewer/Layers/LayoutSettingsLayer.h"
 #include "Viewer/VkRender/Editors/Common/3DViewport/Editor3DLayer.h"
+#include "Viewer/VkRender/Editors/Common/Properties/PropertiesLayer.h"
 
 namespace VkRender {
 
@@ -35,6 +36,7 @@ namespace VkRender {
         if (layerName == "ConfigurationLayer") return std::make_shared<ConfigurationLayer>();
         if (layerName == "LayoutSettingsLayer") return std::make_shared<LayoutSettingsLayer>();
         if (layerName == "Editor3DLayer") return std::make_shared<Editor3DLayer>();
+        if (layerName == "PropertiesLayer") return std::make_shared<PropertiesLayer>();
 
         throw std::runtime_error("Tried to push layer: " + layerName + " Which doesn't exists");
     }

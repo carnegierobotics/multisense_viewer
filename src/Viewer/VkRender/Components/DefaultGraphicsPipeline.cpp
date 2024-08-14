@@ -2,15 +2,16 @@
 // Created by magnus on 4/20/24.
 //
 
-#include "Viewer/VkRender/Components/DefaultGraphicsPipelineComponent.h"
+#include "Viewer/VkRender/Components/DefaultGraphicsPipeline.h"
 #include "Viewer/VkRender/Components/OBJModelComponent.h"
+#include "Viewer/VkRender/Components/CameraModelComponent.h"
 #include "Viewer/VkRender/Renderer.h"
 #include "Viewer/VkRender/Core/VulkanResourceManager.h"
 
 namespace VkRender {
 
 
-    DefaultGraphicsPipelineComponent::DefaultGraphicsPipelineComponent(Renderer &m_context,
+    DefaultGraphicsPipeline::DefaultGraphicsPipeline(Renderer &m_context,
                                                                        const RenderPassInfo &renderPassInfo,
                                                                        const std::string &vertexShader,
                                                                        const std::string &fragmentShader)
@@ -35,7 +36,7 @@ namespace VkRender {
     }
 
 
-    void DefaultGraphicsPipelineComponent::cleanUp() {
+    void DefaultGraphicsPipeline::cleanUp() {
         auto logicalDevice = m_vulkanDevice.m_LogicalDevice;
         VkFence fence;
         VkFenceCreateInfo fenceInfo = Populate::fenceCreateInfo(0);
@@ -69,7 +70,7 @@ namespace VkRender {
 
     }
 
-    void DefaultGraphicsPipelineComponent::setupUniformBuffers() {
+    void DefaultGraphicsPipeline::setupUniformBuffers() {
         for (auto &data: m_renderData) {
             m_vulkanDevice.createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                         VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
@@ -84,7 +85,7 @@ namespace VkRender {
     }
 
 
-    void DefaultGraphicsPipelineComponent::setupDescriptors() {
+    void DefaultGraphicsPipeline::setupDescriptors() {
         std::vector<VkDescriptorPoolSize> poolSizes = {
                 {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         m_numSwapChainImages * 2},
                 {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, m_numSwapChainImages * 2},
@@ -160,7 +161,7 @@ namespace VkRender {
     }
 
 
-    void DefaultGraphicsPipelineComponent::setupPipeline() {
+    void DefaultGraphicsPipeline::setupPipeline() {
 
         // Vertex bindings an attributes
         VkVertexInputBindingDescription vertexInputBinding = {0, sizeof(VkRender::Vertex), VK_VERTEX_INPUT_RATE_VERTEX};
@@ -199,32 +200,25 @@ namespace VkRender {
 
     }
 
-
-    void DefaultGraphicsPipelineComponent::update(uint32_t currentFrame) {
-
+    void DefaultGraphicsPipeline::update(uint32_t currentFrame) {
         memcpy(m_renderData[currentFrame].fragShaderParamsBuffer.mapped,
                &m_fragParams, sizeof(VkRender::ShaderValuesParams));
-
         memcpy(m_renderData[currentFrame].mvpBuffer.mapped,
                &m_vertexParams, sizeof(VkRender::UBOMatrix));
 
     }
-
-    void DefaultGraphicsPipelineComponent::updateTransform(const TransformComponent &transform) {
+    void DefaultGraphicsPipeline::updateTransform(const TransformComponent &transform) {
         m_vertexParams.model = transform.GetTransform();
 
     }
-
-    void DefaultGraphicsPipelineComponent::updateView(const Camera &camera) {
+    void DefaultGraphicsPipeline::updateView(const Camera &camera) {
         m_vertexParams.view = camera.matrices.view;
         m_vertexParams.projection = camera.matrices.perspective;
         m_vertexParams.camPos = camera.pose.pos;
-
-
     }
 
 
-    void DefaultGraphicsPipelineComponent::draw(CommandBuffer &cmdBuffers) {
+    void DefaultGraphicsPipeline::draw(CommandBuffer &cmdBuffers) {
         const uint32_t &cbIndex = *cmdBuffers.frameIndex;
         vkCmdBindPipeline(cmdBuffers.buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, m_sharedRenderData.graphicsPipeline->getPipeline());
         vkCmdBindDescriptorSets(cmdBuffers.buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -244,7 +238,7 @@ namespace VkRender {
         }
     }
 
-    void DefaultGraphicsPipelineComponent::setTexture(const VkDescriptorImageInfo *info) {
+    void DefaultGraphicsPipeline::setTexture(const VkDescriptorImageInfo *info) {
         VkWriteDescriptorSet writeDescriptorSets{};
 
         for (const auto &data: m_renderData) {
@@ -259,13 +253,13 @@ namespace VkRender {
         }
     }
 
-    DefaultGraphicsPipelineComponent::~DefaultGraphicsPipelineComponent() {
+    DefaultGraphicsPipeline::~DefaultGraphicsPipeline() {
         cleanUp();
     }
 
     template<>
     void
-    DefaultGraphicsPipelineComponent::bind<VkRender::OBJModelComponent>(
+    DefaultGraphicsPipeline::bind<VkRender::OBJModelComponent>(
             VkRender::OBJModelComponent &modelComponent) {
         // Bind possible textures
         if (modelComponent.m_pixels) {

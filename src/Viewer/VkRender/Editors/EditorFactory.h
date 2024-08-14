@@ -15,6 +15,7 @@
 #include "Viewer/VkRender/Editors/MultiSenseViewer/EditorMultiSenseViewer.h"
 #include "Viewer/VkRender/Editors/Common/Test/EditorTest.h"
 #include "Viewer/VkRender/Editors/MyEditor/EditorMyProject.h"
+#include "Viewer/VkRender/Editors/Common/Properties/EditorProperties.h"
 
 namespace VkRender {
 
@@ -39,6 +40,9 @@ namespace VkRender {
             });
             registerEditor(EditorType::TestWindow, [](EditorCreateInfo &ci, UUID uuid) {
                 return std::make_unique<EditorTest>(ci, uuid);
+            });
+            registerEditor(EditorType::Properties, [](EditorCreateInfo &ci, UUID uuid) {
+                return std::make_unique<EditorProperties>(ci, uuid);
             });
         }
 

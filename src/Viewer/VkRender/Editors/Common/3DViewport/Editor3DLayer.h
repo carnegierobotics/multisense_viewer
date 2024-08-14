@@ -36,24 +36,22 @@ namespace VkRender {
 
             // Set window position and size
             ImVec2 window_pos = ImVec2(5.0f, 55.0f); // Position (x, y)
-            ImVec2 window_size = ImVec2(100.0f, 50.0f); // Size (width, height)
+            ImVec2 window_size = ImVec2(handles.editorUi->width - 5.0f, handles.editorUi->height - 55.0f); // Size (width, height)
 
 
             // Set window flags to remove decorations
             ImGuiWindowFlags window_flags =
-                    ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus |
-                    ImGuiWindowFlags_NoFocusOnAppearing |
-                    ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs;
+                    ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBackground;
 
             // Set next window position and size
             ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always);
             ImGui::SetNextWindowSize(window_size, ImGuiCond_Always);
 
             // Create the parent window
-            ImGui::Begin("EditorBorderWindow", nullptr, window_flags);
+            ImGui::Begin("Editor3DLayer", nullptr, window_flags);
 
-            ImGui::PushFont(handles.info->font18);
-            ImGui::Checkbox("Set Active Camera", &handles.editorUi->hovered);
+            ImGui::PushFont(handles.info->font15);
+            ImGui::Checkbox("Set Active Camera", &handles.editorUi->setActiveCamera);
             ImGui::PopFont();
 
             ImGui::End();

@@ -88,7 +88,8 @@ set(SOURCE_FILES
         src/Viewer/VkRender/ApplicationUserSetting.h
 
         src/Viewer/VkRender/Components/OBJModelComponent.cpp
-        src/Viewer/VkRender/Components/DefaultGraphicsPipelineComponent.cpp
+        src/Viewer/VkRender/Components/DefaultGraphicsPipeline.cpp
+        src/Viewer/VkRender/Components/CameraModelGraphicsPipeline.cpp
         #src/Viewer/VkRender/Components/SkyboxGraphicsPipelineComponent.cpp
         #src/Viewer/VkRender/Components/DefaultPBRGraphicsPipelineComponent.cpp
         #src/Viewer/VkRender/Components/GLTFModelComponent.cpp

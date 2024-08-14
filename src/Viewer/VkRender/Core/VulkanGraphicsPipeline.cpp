@@ -39,7 +39,6 @@ namespace VkRender {
                 Populate::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0,
                                                                VK_FALSE);
 
-        VkPipelineRasterizationStateCreateInfo rasterizationState = createInfo.rasterizationStateCreateInfo;
         // Enable blending
         VkPipelineColorBlendAttachmentState blendAttachmentState{};
         blendAttachmentState.blendEnable = VK_TRUE;
@@ -80,7 +79,7 @@ namespace VkRender {
 
 
         pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
-        pipelineCreateInfo.pRasterizationState = &rasterizationState;
+        pipelineCreateInfo.pRasterizationState = &createInfo.rasterizationStateCreateInfo;
         pipelineCreateInfo.pColorBlendState = &colorBlendState;
         pipelineCreateInfo.pMultisampleState = &multisampleState;
         pipelineCreateInfo.pViewportState = &viewportState;

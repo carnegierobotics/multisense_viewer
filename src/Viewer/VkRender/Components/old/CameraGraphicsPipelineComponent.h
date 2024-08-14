@@ -10,12 +10,11 @@
 #include "Viewer/VkRender/Core/RenderDefinitions.h"
 #include "Viewer/VkRender/Core/CommandBuffer.h"
 #include "Viewer/Tools/Utils.h"
-#include "Viewer/VkRender/Components/RenderComponents/RenderBase.h"
 #include "Viewer/VkRender/Components/Components.h"
 
 namespace VkRender {
 
-    struct CameraGraphicsPipelineComponent : RenderBase {
+    struct CameraGraphicsPipelineComponent {
         CameraGraphicsPipelineComponent() = default;
 
         CameraGraphicsPipelineComponent(const CameraGraphicsPipelineComponent &) = delete;

@@ -12,16 +12,13 @@
 
 namespace VkRender {
 
-    void EditorViewport::onRender(CommandBuffer& drawCmdBuffers) {
+    void EditorViewport::onRender(CommandBuffer &drawCmdBuffers) {
         if (m_activeScene)
             m_activeScene->render(drawCmdBuffers);
 
-        auto renderEntity = m_activeScene->findEntityByName("RenderEntity"+ std::to_string(m_createInfo.editorIndex)); // Replace with renderables in the scene
-        if (renderEntity) {
-            if (renderEntity.hasComponent<DefaultGraphicsPipelineComponent>()){
-                auto &resources = renderEntity.getComponent<DefaultGraphicsPipelineComponent>();
-                resources.draw(drawCmdBuffers);
-            }
+
+        for (auto& pipeline : renderPipelines){
+            pipeline->draw(drawCmdBuffers);
         }
 
     }
@@ -30,6 +27,26 @@ namespace VkRender {
         if (m_activeScene)
             m_activeScene->update(m_context->currentFrameIndex());
 
+        auto view = m_activeScene->getRegistry().view<VkRender::TransformComponent, OBJModelComponent>();
+        // Iterate over the entities in the view
+        for (size_t i = 0; auto entity : view) {
+            auto& object = view.get<VkRender::TransformComponent>(entity);
+            renderPipelines[i]->updateTransform(object);
+            i++;
+        }
+
+        // active camera
+        auto cameraView = m_activeScene->getRegistry().view<VkRender::CameraComponent>();
+        // Iterate over the entities in the view
+        Camera* camera;
+        for (auto entity : cameraView) {
+            auto& c = cameraView.get<VkRender::CameraComponent>(entity);
+            camera = &c();
+        }
+        for (auto& pipeline : renderPipelines){
+            pipeline->updateView(*camera);
+            pipeline->update(m_context->currentFrameIndex());
+        }
     }
 
     EditorViewport::EditorViewport(EditorCreateInfo &createInfo) : Editor(createInfo) {
@@ -47,15 +64,15 @@ namespace VkRender {
         renderPassInfo.renderPass = m_renderPass->getRenderPass();
 
         m_activeScene = m_context->activeScene();
-        auto renderEntity =m_activeScene->createEntity("RenderEntity"+ std::to_string(m_createInfo.editorIndex));
-        auto& pipelineEntity = renderEntity.addComponent<DefaultGraphicsPipelineComponent>(*m_context, renderPassInfo);
 
-        auto entity = m_activeScene->findEntityByName("FirstEntity"); // Replace with renderables in the scene
-        // Then for each renderables create a graphics pipeline that fits
-        if (entity &&  entity.hasComponent<VkRender::OBJModelComponent>()) {
-            // Assuming the pipeline is already set up for the render pass
-            //auto& model = ;
-            pipelineEntity.bind(entity.getComponent<VkRender::OBJModelComponent>());
+        auto view = m_activeScene->getRegistry().view<VkRender::OBJModelComponent>();
+        // Iterate over the entities in the view
+        renderPipelines.resize(view.size_hint());
+        for (size_t i = 0; auto entity : view) {
+            renderPipelines[i] = std::make_unique<DefaultGraphicsPipelineComponent>(*m_context, renderPassInfo);
+            renderPipelines[i]->bind(view.get<VkRender::OBJModelComponent>(entity));
+            i++;
         }
+
     }
 }

@@ -35,7 +35,7 @@ namespace VkRender {
     }
 
 
-    bool DefaultGraphicsPipelineComponent::cleanUp() {
+    void DefaultGraphicsPipelineComponent::cleanUp() {
         auto logicalDevice = m_vulkanDevice.m_LogicalDevice;
         VkFence fence;
         VkFenceCreateInfo fenceInfo = Populate::fenceCreateInfo(0);

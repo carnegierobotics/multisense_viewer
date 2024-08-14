@@ -40,7 +40,7 @@ namespace VkRender {
                                                   const std::string &fragmentShader = "default.frag.spv");
 
 
-        bool cleanUp();
+        void cleanUp();
 
         void update(uint32_t currentFrame) override;
 

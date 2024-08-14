@@ -62,7 +62,7 @@ namespace VkRender {
         }
     }
 
-    Camera &Scene::createNewCamera(const std::string &name, uint32_t width, uint32_t height) {
+    void Scene::createNewCamera(const std::string &name, uint32_t width, uint32_t height) {
             auto e = createEntity(name);
             auto &c = e.addComponent<CameraComponent>(Camera(width, height));
             //auto &gizmo = e.addComponent<CameraGraphicsPipelineComponent>(&m_renderUtils);

@@ -15,10 +15,10 @@ namespace VkRender {
         Log::Logger::getInstance()->info("DefaultScene Constructor");
         auto entity = createEntity("FirstEntity");
         auto &modelComponent = entity.addComponent<VkRender::OBJModelComponent>(
-                Utils::getModelsPath() / "obj" / "s30.obj", &ctx.vkDevice());
+                Utils::getModelsPath() / "obj" / "s30.obj");
 
 
-        auto cameraEntity = createNewCamera("DefaultCamera", 1280, 720);
+        createNewCamera("DefaultCamera", 1280, 720);
         //auto &res = entity.addComponent<VkRender::DefaultGraphicsPipelineComponent2>(&m_context->data(),);
 
         /*
@@ -64,22 +64,7 @@ namespace VkRender {
 
     void DefaultScene::render(CommandBuffer &drawCmdBuffers) {
 
-        /*
-        auto sky = findEntityByName("Skybox");
-        if (sky)
-            sky.getComponent<VkRender::SkyboxGraphicsPipelineComponent>().draw(&drawCmdBuffers, currentFrame);
-        auto modelComponent = findEntityByName("Skybox");
-        if (modelComponent)
-            modelComponent.getComponent<VkRender::GLTFModelComponent>().model->draw(drawCmdBuffers.buffers[currentFrame]);
-         */
 
-        auto entity = findEntityByName("FirstEntity");
-        if (entity) {
-            if (entity.hasComponent<DefaultGraphicsPipelineComponent>()){
-                auto &resources = entity.getComponent<DefaultGraphicsPipelineComponent>();
-                resources.draw(drawCmdBuffers);
-            }
-        }
     }
 
     void DefaultScene::update(uint32_t frameIndex) {
@@ -90,24 +75,14 @@ namespace VkRender {
             glm::vec4 cameraPos4 = invView * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
             auto cameraWorldPosition = glm::vec3(cameraPos4);
         }
+
         auto entity = findEntityByName("FirstEntity");
-
-
         if (entity) {
             if (entity.hasComponent<TransformComponent>()) {
                 auto &transform = entity.getComponent<TransformComponent>();
                 transform.scale = glm::vec3(0.6f, 0.6f, 0.6f);
             }
         }
-        //////////// TODO deal with camera data and UBO across editors
-        auto renderables = m_registry.view<DefaultGraphicsPipelineComponent>();
-        for (auto entity: renderables) {
-            auto &resources = renderables.get<DefaultGraphicsPipelineComponent>(entity);
-            resources.update(frameIndex);
-        }
-
-
-
 
         auto view = m_registry.view<ScriptComponent>();
         for (auto entity: view) {

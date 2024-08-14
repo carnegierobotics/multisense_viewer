@@ -31,7 +31,7 @@ namespace std {
 namespace VkRender {
 
 
-    void OBJModelComponent::loadModel(std::filesystem::path modelPath) {
+    void OBJModelComponent::loadModel(const std::filesystem::path& modelPath) {
 
 
         tinyobj::ObjReaderConfig reader_config;
@@ -107,9 +107,10 @@ namespace VkRender {
 
     }
 
-    void OBJModelComponent::loadTexture(std::filesystem::path texturePath) {
+    void OBJModelComponent::loadTexture(const std::filesystem::path& texturePath) {
         int texWidth = 0, texHeight = 0, texChannels = 0;
-        auto path = texturePath.replace_extension(".png");
+        std::filesystem::path texPath = texturePath;
+        auto path = texPath.replace_extension(".png");
         m_pixels = stbi_load(path.string().c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
         if (!m_pixels) {
             Log::Logger::getInstance()->error("Failed to load texture: {}", texturePath.string());

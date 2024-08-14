@@ -33,7 +33,7 @@ namespace VkRender {
 
         void destroyEntity(Entity entity);
 
-        Camera &createNewCamera(const std::string &name, uint32_t width, uint32_t height);
+        void createNewCamera(const std::string &name, uint32_t width, uint32_t height);
 
         void onMouseEvent(MouseButtons& mouseButtons);
         void onMouseScroll(float change);
@@ -57,6 +57,8 @@ namespace VkRender {
             // TODO create a new camera with tag if it doesn't exist
         }
         */
+
+        entt::registry& getRegistry() {return m_registry;};
 
     protected:
         entt::registry m_registry;

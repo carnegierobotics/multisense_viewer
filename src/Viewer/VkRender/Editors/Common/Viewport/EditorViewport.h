@@ -7,6 +7,7 @@
 
 #include "Viewer/VkRender/Editor.h"
 #include "Viewer/Scenes/Default/DefaultScene.h"
+#include "Viewer/VkRender/Components/DefaultGraphicsPipelineComponent.h"
 
 namespace VkRender {
 
@@ -28,6 +29,8 @@ namespace VkRender {
         }
     private:
         std::shared_ptr<Scene> m_activeScene;
+        std::vector<std::unique_ptr<DefaultGraphicsPipelineComponent>> renderPipelines;
+
     };
 }
 

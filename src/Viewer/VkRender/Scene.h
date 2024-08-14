@@ -70,15 +70,19 @@ namespace VkRender {
 
         const std::string &getSceneName() { return m_sceneName; }
 
-        void addDestroyCallback(DestroyCallback callback) {
-            m_destroyCallbacks.push_back(std::move(callback));
+        void addDestroyFunction(void* owner, DestroyCallback callback) {
+            m_destroyCallbacks[owner].push_back(std::move(callback));
             m_registry.on_destroy<entt::entity>().connect<&Scene::onEntityDestroyed>(*this);
+        }
+
+        void removeDestroyFunction(void* owner) {
+            m_destroyCallbacks.erase(owner);
         }
 
     protected:
         entt::registry m_registry;
         std::string m_sceneName = "Unnamed Scene";
-        std::deque<DestroyCallback> m_destroyCallbacks;  // Store all registered destroy callbacks
+        std::unordered_map<void*, std::deque<DestroyCallback>> m_destroyCallbacks;
 
         friend class Entity;
 
@@ -87,8 +91,10 @@ namespace VkRender {
 
     private:
         void onEntityDestroyed(entt::registry &registry, entt::entity entity) {
-            for (auto &callback: m_destroyCallbacks) {
-                callback(entity);  // Call each registered destroy function
+            for (auto& [owner, callbacks] : m_destroyCallbacks) {
+                for (auto& callback : callbacks) {
+                    callback(entity);
+                }
             }
         }
 

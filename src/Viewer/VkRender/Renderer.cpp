@@ -471,9 +471,6 @@ namespace VkRender {
                 std::chrono::steady_clock::now() - startTime);
         Log::Logger::getInstance()->trace("Deleting entities on exit took {}s", timeSpan.count());
         // Destroy framebuffer
-        m_scene.reset();
-        m_editors.clear();
-        m_mainEditor.reset();
     }
 
     void Renderer::handleEditorResize() {

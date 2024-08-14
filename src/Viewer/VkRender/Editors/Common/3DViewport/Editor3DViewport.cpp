@@ -67,8 +67,7 @@ namespace VkRender {
     }
 
     void Editor3DViewport::onEntityDestroyed(entt::entity entity) {
-        m_renderPipelines.erase(entity);  // Remove the pipeline associated with the destroyed entity
-        // TODO DId experience segfault on shutdown and reloading scenes
+        m_renderPipelines.erase(entity);
     }
 
     Editor3DViewport::Editor3DViewport(EditorCreateInfo &createInfo) : Editor(createInfo) {
@@ -94,7 +93,8 @@ namespace VkRender {
 
         m_activeScene = m_context->activeScene();
         // Pass the destroy function to the scene
-        m_activeScene->addDestroyCallback([this](entt::entity entity) {
+        m_activeScene->addDestroyFunction(this, [this](entt::entity entity) {
+
             onEntityDestroyed(entity);
         });
 

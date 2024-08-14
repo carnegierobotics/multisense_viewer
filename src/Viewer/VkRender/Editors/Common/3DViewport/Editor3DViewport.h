@@ -25,7 +25,11 @@ namespace VkRender {
 
 
         ~Editor3DViewport() override {
-            m_activeScene.reset();
+            if (m_activeScene) {
+                m_activeScene->removeDestroyFunction(
+                        this); // Unregister the callback since we're destroying the class anyway
+                m_activeScene.reset();
+            }
 
         }
 

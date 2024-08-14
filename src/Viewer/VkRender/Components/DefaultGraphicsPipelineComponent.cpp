@@ -184,6 +184,8 @@ namespace VkRender {
                                             VK_SHADER_STAGE_FRAGMENT_BIT, &fragModule);
 
         VulkanGraphicsPipelineCreateInfo createInfo( m_renderPassInfo.renderPass, m_vulkanDevice);
+        createInfo.rasterizationStateCreateInfo = Populate::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT,
+                                                       VK_FRONT_FACE_COUNTER_CLOCKWISE);
         createInfo.msaaSamples = m_renderPassInfo.sampleCount;
         createInfo.shaders = shaderStages;
         createInfo.descriptorSetLayout = m_sharedRenderData.descriptorSetLayout;
@@ -270,8 +272,7 @@ namespace VkRender {
             m_objTexture.fromBuffer(modelComponent.m_pixels, modelComponent.m_texSize, VK_FORMAT_R8G8B8A8_SRGB,
                                     modelComponent.m_texWidth, modelComponent.m_texHeight, &m_vulkanDevice,
                                     m_vulkanDevice.m_TransferQueue);
-            stbi_image_free(modelComponent.m_pixels);
-
+            // TODO free m_pixels once we are done with it. We are currently leaving memory leaks
             setTexture(&m_objTexture.m_descriptor);
         }
         // Bind vertex/index buffers from model

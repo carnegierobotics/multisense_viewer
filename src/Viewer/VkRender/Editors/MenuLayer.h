@@ -49,9 +49,13 @@ namespace VkRender {
             ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, handles.info->menuBarHeight));
             ImGui::BeginMainMenuBar();
             if (ImGui::BeginMenu("File")) {
-                if (ImGui::MenuItem("Load Scene")) {
+                if (ImGui::MenuItem("Load Default Scene")) {
                     // Handle New action
-                    handles.m_context->loadScene("DefaultScene");
+                    handles.m_context->loadScene("Default Scene");
+                }
+                if (ImGui::MenuItem("Load Other Scene")) {
+                    // Handle New action
+                    handles.m_context->loadScene("MultiSense Viewer");
                 }
                 if (ImGui::MenuItem("Quit")) {
                     // Handle New action

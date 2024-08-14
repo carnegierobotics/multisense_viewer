@@ -49,6 +49,7 @@
 #include "Viewer/VkRender/Core/VulkanResourceManager.h"
 #include "Viewer/VkRender/Components/OBJModelComponent.h"
 #include "Viewer/VkRender/Components/DefaultGraphicsPipelineComponent.h"
+#include "Viewer/Scenes/MultiSenseViewer/MultiSenseViewer.h"
 
 namespace VkRender {
     Renderer::Renderer(const std::string &title) : VulkanRenderer(title) {
@@ -206,7 +207,29 @@ namespace VkRender {
     }
 
 
-    void Renderer::loadScene(std::filesystem::path string) {
+    void Renderer::loadScene(std::filesystem::path scenePath) {
+        // Load the default scene
+        if (scenePath == "Default Scene")
+            m_scenes.emplace_back(std::make_shared<DefaultScene>(*this));
+        else {
+            m_scenes.emplace_back(std::make_shared<MultiSenseViewer>(*this));
+        }
+        for (auto &editor: m_editors) {
+            editor->loadScene();
+        }
+    }
+
+    void Renderer::deleteScene(std::filesystem::path scenePath) {
+        // Find the scene to delete
+        auto it = std::remove_if(m_scenes.begin(), m_scenes.end(),
+                                 [&](const std::shared_ptr<Scene>& scene) {
+                                     return scene->getSceneName() == scenePath;
+                                 });
+
+        if (it != m_scenes.end()) {
+            // Erase the scene from the vector
+            m_scenes.erase(it, m_scenes.end());
+        }
 
     }
 
@@ -841,6 +864,7 @@ namespace VkRender {
     void Renderer::recreateEditor(std::unique_ptr<Editor> &editor, EditorCreateInfo &createInfo) {
         auto newEditor = createEditor(createInfo);
         newEditor->ui() = editor->ui();
+        newEditor->onSceneLoad();
         editor = std::move(newEditor);
     }
 
@@ -1094,6 +1118,8 @@ namespace VkRender {
             editor->ui().lastClickedBorderType = EditorBorderState::Bottom;
             newEditor->ui().lastClickedBorderType = EditorBorderState::Top;
         }
+
+        newEditor->onSceneLoad();
         m_editors.push_back(std::move(newEditor));
     }
 
@@ -1265,8 +1291,9 @@ namespace VkRender {
     }
 
     std::shared_ptr<Scene> Renderer::activeScene() {
+        if (m_scenes.empty())
+            return nullptr;
         return m_scenes.front();
     }
-
 
 };

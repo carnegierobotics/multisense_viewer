@@ -39,10 +39,7 @@ namespace VkRender {
                 Populate::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0,
                                                                VK_FALSE);
 
-        VkPipelineRasterizationStateCreateInfo rasterizationState =
-                Populate::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE,
-                                                               VK_FRONT_FACE_COUNTER_CLOCKWISE);
-
+        VkPipelineRasterizationStateCreateInfo rasterizationState = createInfo.rasterizationStateCreateInfo;
         // Enable blending
         VkPipelineColorBlendAttachmentState blendAttachmentState{};
         blendAttachmentState.blendEnable = VK_TRUE;
@@ -61,7 +58,7 @@ namespace VkRender {
 
         VkPipelineDepthStencilStateCreateInfo depthStencilState =
                 Populate
-                ::pipelineDepthStencilStateCreateInfo(VK_FALSE, VK_FALSE, VK_COMPARE_OP_LESS_OR_EQUAL);
+                ::pipelineDepthStencilStateCreateInfo(VK_TRUE, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
 
         VkPipelineViewportStateCreateInfo viewportState =
                 Populate

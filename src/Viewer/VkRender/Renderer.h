@@ -113,6 +113,8 @@ namespace VkRender {
 
         std::shared_ptr<Scene> activeScene();
 
+        void deleteScene(std::filesystem::path scenePath);
+
     private:
 
 
@@ -164,6 +166,7 @@ namespace VkRender {
         void mergeEditors(const std::array<UUID, 2> &mergeEditorIndices);
 
         std::unique_ptr<Editor>& findEditorByUUID(const UUID &uuid);
+
     };
 }
 

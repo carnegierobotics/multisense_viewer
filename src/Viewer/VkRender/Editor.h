@@ -129,7 +129,6 @@ namespace VkRender {
         Renderer *m_context;
         std::unique_ptr<VulkanRenderPass> m_renderPass;
         EditorCreateInfo m_createInfo;
-
     };
 }
 

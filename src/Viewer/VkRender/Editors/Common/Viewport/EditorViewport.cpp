@@ -13,6 +13,9 @@
 namespace VkRender {
 
     void EditorViewport::onRender(CommandBuffer &drawCmdBuffers) {
+        if (!m_activeScene)
+            return;
+
         if (m_activeScene)
             m_activeScene->render(drawCmdBuffers);
 
@@ -24,8 +27,10 @@ namespace VkRender {
     }
 
     void EditorViewport::onUpdate() {
-        if (m_activeScene)
-            m_activeScene->update(m_context->currentFrameIndex());
+        if (!m_activeScene)
+            return;
+
+        m_activeScene->update(m_context->currentFrameIndex());
 
         auto view = m_activeScene->getRegistry().view<VkRender::TransformComponent, OBJModelComponent>();
         // Iterate over the entities in the view
@@ -70,7 +75,8 @@ namespace VkRender {
         renderPipelines.resize(view.size_hint());
         for (size_t i = 0; auto entity : view) {
             renderPipelines[i] = std::make_unique<DefaultGraphicsPipelineComponent>(*m_context, renderPassInfo);
-            renderPipelines[i]->bind(view.get<VkRender::OBJModelComponent>(entity));
+            auto& model = view.get<VkRender::OBJModelComponent>(entity);
+            renderPipelines[i]->bind(model);
             i++;
         }
 

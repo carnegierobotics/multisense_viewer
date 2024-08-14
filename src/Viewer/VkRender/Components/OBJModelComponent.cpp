@@ -116,9 +116,10 @@ namespace VkRender {
             Log::Logger::getInstance()->error("Failed to load texture: {}", texturePath.string());
 
         }
-        m_texSize = 4 * texHeight * texWidth;
+        m_texSize = STBI_rgb_alpha * texHeight * texWidth;
         m_texHeight = texHeight;
         m_texWidth = texWidth;
+        // TODO free m_pixels once we are done with it. We are currently leaving memory leaks
 
 
     }

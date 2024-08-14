@@ -32,27 +32,34 @@ namespace VkRender {
 
 
         void processEntities(GuiObjectHandles &handles) {
+            auto scene = handles.m_context->activeScene();
+            if (!scene)
+                return;
+            auto &registry = scene->getRegistry();
 
-            /*
-            auto view = handles.m_context->registry().view<TagComponent>();
+            auto view = registry.view<TagComponent>();
+            ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_OpenOnDoubleClick;
 
-            // Iterate over entities that have a GLTFModelComponent and a TagComponent
-            for (auto entity: view) {
-                auto &tag = view.get<TagComponent>(entity);
-                // Process each entity here
-                processEntity(handles, entity, tag);
+            if (ImGui::TreeNodeEx(("Scene: " + handles.m_context->activeScene()->getSceneName()).c_str(), treeNodeFlags)) {
+
+                // Iterate over entities that have a GLTFModelComponent and a TagComponent
+                for (auto entity: view) {
+                    auto &tag = view.get<TagComponent>(entity);
+                    // Process each entity here
+                    processEntity(handles, entity, tag);
+                }
+                ImGui::TreePop();
             }
 
-            */
+
         }
 
         void processEntity(GuiObjectHandles &handles, entt::entity entity, TagComponent &tag) {
             // Your processing logic here
             // This function is called for both component types
 
-            /*
             if (ImGui::TreeNodeEx(tag.Tag.c_str(), ImGuiTreeNodeFlags_None)) {
-                auto e = Entity(entity, handles.m_context);
+                auto e = Entity(entity, handles.m_context->activeScene().get());
                 if (e.hasComponent<DefaultGraphicsPipelineComponent>()) {
                     if (ImGui::SmallButton("Reload Shader")) {
                         //e.getComponent<DefaultGraphicsPipelineComponent>().reloadShaders();
@@ -60,19 +67,18 @@ namespace VkRender {
                 }
 
                 if (e.hasComponent<TransformComponent>()) {
-                    auto& transform = e.getComponent<TransformComponent>();
+                    auto &transform = e.getComponent<TransformComponent>();
                     ImGui::Checkbox("Flip Up", &transform.getFlipUpOption());
                 }
 
 
                 if (ImGui::SmallButton(("Delete ##" + tag.Tag).c_str())) {
-                    handles.m_context->destroyEntity(Entity(entity, handles.m_context));
+                    //handles.m_context->destroyEntity(Entity(entity, handles.m_context));
                 }
 
                 ImGui::TreePop();
-            }
 
-            */
+            }
         }
 
         // Example function to handle file import (you'll need to implement the actual logic)
@@ -105,6 +111,24 @@ namespace VkRender {
                 if (ImGui::MenuItem("Load 3D GS file (.ply)")) {
                     openImportFileDialog("Load 3D GS file", "ply");
                 }
+
+                ImGui::EndPopup();
+            }
+            ImGui::PopStyleVar();  // Reset the padding to previous value
+
+        }
+        void rightClickPopup2(VkRender::GuiObjectHandles &handles) {
+            ImGui::SetNextWindowSize(ImVec2(250.0f, 0));
+            ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(30.0f,
+                                                                    15.0f)); // 20 pixels padding on the left and right, 10 pixels top and bottom
+
+            if (ImGui::BeginPopupContextWindow("right click scene menu", ImGuiPopupFlags_MouseButtonRight)) {
+
+                // Menu options for loading files
+                if (ImGui::MenuItem("Delete Scene")) {
+                    handles.m_context->deleteScene(handles.m_context->activeScene()->getSceneName());
+                }
+
 
                 ImGui::EndPopup();
             }
@@ -144,6 +168,7 @@ namespace VkRender {
             ImGui::BeginChild("SceneHierarchyChild", ImVec2(width, (height > maxHeight) ? maxHeight : height), true);
 
             rightClickPopup();
+            rightClickPopup2(handles);
 
             processEntities(handles);
 

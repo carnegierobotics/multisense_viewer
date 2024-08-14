@@ -28,9 +28,9 @@ namespace VkRender {
 
         }
     private:
+
         std::shared_ptr<Scene> m_activeScene;
         std::vector<std::unique_ptr<DefaultGraphicsPipelineComponent>> renderPipelines;
-
     };
 }
 

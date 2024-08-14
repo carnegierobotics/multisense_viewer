@@ -59,10 +59,11 @@ namespace VkRender {
         */
 
         entt::registry& getRegistry() {return m_registry;};
+        const std::string& getSceneName() {return m_sceneName;}
 
     protected:
         entt::registry m_registry;
-
+        std::string m_sceneName = "Unnamed Scene";
         friend class Entity;
 
         template<typename T>

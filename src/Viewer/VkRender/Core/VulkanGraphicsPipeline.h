@@ -31,6 +31,7 @@ namespace VkRender {
         VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
         VkPipelineVertexInputStateCreateInfo vertexInputState;
 
+        VkPipelineRasterizationStateCreateInfo rasterizationStateCreateInfo;
     };
 
     struct VulkanGraphicsPipeline {
@@ -38,7 +39,7 @@ namespace VkRender {
 
         VulkanGraphicsPipeline() = delete;
 
-        explicit VulkanGraphicsPipeline(const VulkanGraphicsPipelineCreateInfo &createInfo);
+        explicit    VulkanGraphicsPipeline(const VulkanGraphicsPipelineCreateInfo &createInfo);
 
         // Implement move constructor
         VulkanGraphicsPipeline(VulkanGraphicsPipeline &&other) noexcept: m_vulkanDevice(other.m_vulkanDevice) {

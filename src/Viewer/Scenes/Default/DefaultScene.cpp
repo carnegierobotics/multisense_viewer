@@ -12,12 +12,11 @@ namespace VkRender {
 
 
     DefaultScene::DefaultScene(Renderer &ctx) {
+        m_sceneName = "Default Scene";
         Log::Logger::getInstance()->info("DefaultScene Constructor");
         auto entity = createEntity("FirstEntity");
         auto &modelComponent = entity.addComponent<VkRender::OBJModelComponent>(
-                Utils::getModelsPath() / "obj" / "s30.obj");
-
-
+                Utils::getModelsPath() / "obj" / "viking_room.obj");
         createNewCamera("DefaultCamera", 1280, 720);
         //auto &res = entity.addComponent<VkRender::DefaultGraphicsPipelineComponent2>(&m_context->data(),);
 

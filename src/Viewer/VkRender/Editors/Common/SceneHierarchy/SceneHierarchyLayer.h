@@ -95,7 +95,7 @@ namespace VkRender {
                 auto &opts = RendererConfig::getInstance().getUserSetting();
                 opts.lastOpenedImportModelFolderPath = loadFileInfo.path;
                 // Load into the active scene
-                auto entity = handles.m_context->activeScene()->createEntity(loadFileInfo.path.filename());
+                auto entity = handles.m_context->activeScene()->createEntity(loadFileInfo.path.filename().string());
                 entity.addComponent<OBJModelComponent>(loadFileInfo.path);
                 // Additional processing of the file can be done here
                 Log::Logger::getInstance()->info("File selected: {}",  loadFileInfo.path.filename().string());

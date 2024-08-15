@@ -149,7 +149,7 @@ set(LIBRARIES
 
 if (ENABLE_SYCL)
     #list(APPEND SOURCE_FILES src/Viewer/SYCL/GaussianRenderer.cpp)
-    list(APPEND SCRIPT_FILES src/Viewer/VkRender/RenderPipelines/GaussianModelGraphicsPipeline.cpp)
+    list(APPEND SCRIPT_FILES src/Viewer/VkRender/RenderPipelines/3DGS/GaussianModelGraphicsPipeline.cpp)
     message(STATUS "[VkRenderINFO]: SYCL: Adding Gaussian Renderer to source")
     target_compile_options(ktx PRIVATE -msse4.1 -mssse3)
     list(APPEND LIBRARIES sycl)

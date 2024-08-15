@@ -6,6 +6,7 @@
 #include "Viewer/Scenes/MultiSenseViewer/MultiSenseViewer.h"
 #include "Viewer/VkRender/Components/OBJModelComponent.h"
 #include "Viewer/VkRender/Entity.h"
+#include "Viewer/VkRender/Components/GaussianModelComponent.h"
 
 namespace VkRender {
 
@@ -17,6 +18,11 @@ namespace VkRender {
                 Utils::getModelsPath() / "obj" / "s30.obj");
 
         createNewCamera("DefaultCamera", 1280, 720);
+
+
+        auto gaussianEntity = createEntity("GaussianEntity");
+        auto &gaussianEntityModelComponent = gaussianEntity.addComponent<GaussianModelComponent>(
+                Utils::getModelsPath() / "3dgs" / "coordinates.ply");
 
     }
 

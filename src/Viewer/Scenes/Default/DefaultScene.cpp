@@ -30,9 +30,6 @@ namespace VkRender {
           addGuiLayers();
           */
 
-        auto gaussianEntity = createEntity("GaussianEntity");
-        auto &gaussianEntityModelComponent = gaussianEntity.addComponent<GaussianModelComponent>(
-                Utils::getModelsPath() / "3dgs" / "coordinates.ply");
     }
 
 

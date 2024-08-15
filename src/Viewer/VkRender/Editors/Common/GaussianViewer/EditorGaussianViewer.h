@@ -8,7 +8,7 @@
 #include "Viewer/VkRender/Editor.h"
 #include "Viewer/VkRender/Core/Camera.h"
 #include "Viewer/VkRender/Scene.h"
-#include "Viewer/VkRender/RenderPipelines/GaussianModelGraphicsPipeline.h"
+#include "Viewer/VkRender/RenderPipelines/3DGS/GaussianModelGraphicsPipeline.h"
 
 namespace VkRender {
 
@@ -19,6 +19,7 @@ namespace VkRender {
         explicit EditorGaussianViewer(EditorCreateInfo &createInfo, UUID uuid = UUID()) : Editor(createInfo, uuid) {
             addUI("EditorUILayer");
             addUI("DebugWindow");
+            addUI("EditorGaussianViewerLayer");
         }
 
         void onRender(CommandBuffer &drawCmdBuffers) override;
@@ -34,7 +35,7 @@ namespace VkRender {
         void onSceneLoad() override;
 
     private:
-        Camera m_editorCamera;
+        Camera* m_activeCamera;
         std::shared_ptr<Scene> m_activeScene;
         std::unordered_map<entt::entity, std::unique_ptr<GaussianModelGraphicsPipeline>> m_gaussianRenderPipelines;
     };

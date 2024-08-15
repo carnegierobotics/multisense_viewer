@@ -135,7 +135,9 @@ namespace VkRender {
         ImVec4 backgroundColorHovered{};
         ImVec4 backgroundColorActive{};
 
+        // TODO fix this. UI Elements may not be needed for all editor tyypes, should probably be editor type specific
         bool setActiveCamera = false;
+        bool render3DGSImage = false;
 
         bool active = false;
         bool hovered = false;

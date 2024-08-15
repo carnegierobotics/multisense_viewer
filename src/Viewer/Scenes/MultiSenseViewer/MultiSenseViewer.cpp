@@ -30,8 +30,7 @@ namespace VkRender {
         auto gaussianEntity = createEntity("GaussianEntity");
         auto &gaussianEntityModelComponent = gaussianEntity.addComponent<GaussianModelComponent>(
                 Utils::getModelsPath() / "3dgs" / "3dgs.ply");
-        auto &gaussianEntityModel = gaussianEntity.addComponent<OBJModelComponent>(
-                Utils::getModelsPath() / "obj" / "quad.obj");
+        auto &gaussianEntityModel = gaussianEntity.addComponent<OBJModelComponent>(Utils::getModelsPath() / "obj" / "quad.obj");
 
     }
 

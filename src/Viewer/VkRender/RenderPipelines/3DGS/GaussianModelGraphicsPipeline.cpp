@@ -336,6 +336,19 @@ namespace VkRender {
             return;
         }
 
+        int rowSize = width * 4; // 4 bytes per pixel for RGBA8
+        std::vector<uint8_t> tempRow(rowSize);
+
+        for (int y = 0; y < height / 2; ++y) {
+            uint8_t* row1 = m_image + y * rowSize;
+            uint8_t* row2 = m_image + (height - y - 1) * rowSize;
+
+            // Swap rows
+            std::memcpy(tempRow.data(), row1, rowSize);
+            std::memcpy(row1, row2, rowSize);
+            std::memcpy(row2, tempRow.data(), rowSize);
+        }
+
         m_textureVideo->updateTextureFromBuffer(m_image, width * height * 4);
 
     }

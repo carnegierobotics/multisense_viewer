@@ -52,13 +52,15 @@ namespace VkRender {
             ImGui::Begin("EditorGaussianViewerLayer", nullptr, window_flags);
 
             ImGui::PushFont(handles.info->font15);
-            /*
-            if(ImGui::Button("Render 3DGS image")){
+
+            handles.editorUi->render3DGSImage = ImGui::Button("Render 3DGS image");
+
+            static bool toggle = false;
+
+            ImGui::Checkbox("Toggle rendering", &toggle);
+            if (toggle){
                 handles.editorUi->render3DGSImage = true;
             }
-            */
-            ImGui::Checkbox("Render continuously", &handles.editorUi->render3DGSImage);
-
             ImGui::PopFont();
 
             ImGui::End();

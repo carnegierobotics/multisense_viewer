@@ -185,7 +185,7 @@ namespace VkRender {
                                             VK_SHADER_STAGE_FRAGMENT_BIT, &fragModule);
 
         VulkanGraphicsPipelineCreateInfo createInfo( m_renderPassInfo.renderPass, m_vulkanDevice);
-        createInfo.rasterizationStateCreateInfo = Populate::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT,
+        createInfo.rasterizationStateCreateInfo = Populate::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE,
                                                        VK_FRONT_FACE_COUNTER_CLOCKWISE);
         createInfo.msaaSamples = m_renderPassInfo.sampleCount;
         createInfo.shaders = shaderStages;

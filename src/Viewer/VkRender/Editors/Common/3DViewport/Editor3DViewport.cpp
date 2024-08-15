@@ -11,6 +11,7 @@
 #include "Viewer/VkRender/Components/OBJModelComponent.h"
 #include "Viewer/VkRender/Components/CameraModelComponent.h"
 #include "Viewer/VkRender/RenderPipelines/CameraModelGraphicsPipeline.h"
+#include "Viewer/VkRender/Components/GaussianModelComponent.h"
 
 namespace VkRender {
 
@@ -31,7 +32,7 @@ namespace VkRender {
             onEntityDestroyed(entity);
         });
 
-        auto objModelView = m_activeScene->getRegistry().view<OBJModelComponent>();
+        auto objModelView = m_activeScene->getRegistry().view<OBJModelComponent>(entt::exclude<GaussianModelComponent>);
         // Iterate over the entities in the view
         for (entt::entity entity: objModelView) {
             m_renderPipelines[entity] = std::make_unique<DefaultGraphicsPipeline>(*m_context, renderPassInfo);
@@ -67,7 +68,7 @@ namespace VkRender {
         if (!m_activeScene)
             return;
 
-        auto view = m_activeScene->getRegistry().view<TransformComponent, OBJModelComponent>();
+        auto view = m_activeScene->getRegistry().view<TransformComponent, OBJModelComponent>(entt::exclude<GaussianModelComponent>);
         for (auto entity: view) {
             auto &transform = view.get<TransformComponent>(entity);
             if (!m_renderPipelines[entity]) { // Check if the pipeline already exists

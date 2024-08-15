@@ -3,7 +3,7 @@
 //
 
 
-#include "Viewer/VkRender/Components/CameraModelGraphicsPipeline.h"
+#include "Viewer/VkRender/RenderPipelines/CameraModelGraphicsPipeline.h"
 #include "Viewer/VkRender/Components/CameraModelComponent.h"
 #include "Viewer/VkRender/Renderer.h"
 

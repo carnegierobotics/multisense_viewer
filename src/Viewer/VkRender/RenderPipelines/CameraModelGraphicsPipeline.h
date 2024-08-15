@@ -5,10 +5,10 @@
 #ifndef MULTISENSE_VIEWER_CAMERAMODELGRAPHICSPIPELINE_H
 #define MULTISENSE_VIEWER_CAMERAMODELGRAPHICSPIPELINE_H
 
-#include "Viewer/VkRender/Components/RenderBase.h"
+#include "Viewer/VkRender/RenderPipelines//RenderBase.h"
 #include "Viewer/VkRender/Core/VulkanDevice.h"
 #include "Viewer/VkRender/Core/RenderDefinitions.h"
-#include "Components.h"
+#include "Viewer/VkRender/Components/Components.h"
 
 namespace VkRender {
     class Renderer;

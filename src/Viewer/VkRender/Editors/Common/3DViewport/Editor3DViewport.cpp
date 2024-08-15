@@ -6,11 +6,11 @@
 
 #include "Viewer/VkRender/Renderer.h"
 #include "Viewer/VkRender/Components/Components.h"
-#include "Viewer/VkRender/Components/DefaultGraphicsPipeline.h"
+#include "Viewer/VkRender/RenderPipelines/DefaultGraphicsPipeline.h"
 #include "Viewer/VkRender/Entity.h"
 #include "Viewer/VkRender/Components/OBJModelComponent.h"
 #include "Viewer/VkRender/Components/CameraModelComponent.h"
-#include "Viewer/VkRender/Components/CameraModelGraphicsPipeline.h"
+#include "Viewer/VkRender/RenderPipelines/CameraModelGraphicsPipeline.h"
 
 namespace VkRender {
 
@@ -53,6 +53,13 @@ namespace VkRender {
             m_cameraRenderPipelines[entity]->updateTransform(transform);
         }
 
+        auto cameraEntity = m_activeScene->findEntityByName("DefaultCamera");
+        if (cameraEntity){
+            auto& transform = cameraEntity.getComponent<TransformComponent>();
+            auto& camera = cameraEntity.getComponent<CameraComponent>()();
+            camera.pose.pos = transform.getPosition();
+            camera.updateViewMatrix();
+        }
 
         // Update all pipelines with the current view and frame index
         for (auto &pipeline: m_renderPipelines) {

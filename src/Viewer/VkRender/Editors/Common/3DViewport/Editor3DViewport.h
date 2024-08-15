@@ -7,8 +7,8 @@
 
 #include "Viewer/VkRender/Editor.h"
 #include "Viewer/Scenes/Default/DefaultScene.h"
-#include "Viewer/VkRender/Components/DefaultGraphicsPipeline.h"
-#include "Viewer/VkRender/Components/CameraModelGraphicsPipeline.h"
+#include "Viewer/VkRender/RenderPipelines/DefaultGraphicsPipeline.h"
+#include "Viewer/VkRender/RenderPipelines/CameraModelGraphicsPipeline.h"
 
 namespace VkRender {
 

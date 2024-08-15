@@ -16,6 +16,7 @@
 #include "Viewer/VkRender/Editors/Common/Test/EditorTest.h"
 #include "Viewer/VkRender/Editors/MyEditor/EditorMyProject.h"
 #include "Viewer/VkRender/Editors/Common/Properties/EditorProperties.h"
+#include "Viewer/VkRender/Editors/Common/GaussianViewer/EditorGaussianViewer.h"
 
 namespace VkRender {
 
@@ -24,8 +25,7 @@ namespace VkRender {
     // Define the factory class
     class EditorFactory {
     public:
-        explicit EditorFactory(const EditorCreateInfo& createInfo)
-                : m_defaultCreateInfo(const_cast<EditorCreateInfo&>(createInfo)) {
+        EditorFactory(){
             registerEditor(EditorType::SceneHierarchy, [](EditorCreateInfo &ci, UUID) {
                 return std::make_unique<EditorSceneHierarchy>(ci);
             });
@@ -44,6 +44,11 @@ namespace VkRender {
             registerEditor(EditorType::Properties, [](EditorCreateInfo &ci, UUID uuid) {
                 return std::make_unique<EditorProperties>(ci, uuid);
             });
+#ifdef SYCL_ENABLED
+            registerEditor(EditorType::GaussianViewer, [](EditorCreateInfo &ci, UUID uuid) {
+                return std::make_unique<EditorGaussianViewer>(ci, uuid);
+            });
+#endif
         }
 
         using CreatorFunc = std::function<std::unique_ptr<Editor>(EditorCreateInfo&, UUID)>;
@@ -59,13 +64,12 @@ namespace VkRender {
             }
             Log::Logger::getInstance()->warning("Failed to find editorType: {} in factory, reverting to {}", editorTypeToString(type),
                                                 editorTypeToString(EditorType::TestWindow));
-
-            return std::make_unique<Editor>(m_defaultCreateInfo);
+            createInfo.editorTypeDescription = EditorType::TestWindow;
+            return m_creators[EditorType::TestWindow](createInfo, uuid);
         }
 
     private:
         std::unordered_map<EditorType, CreatorFunc> m_creators;
-        EditorCreateInfo& m_defaultCreateInfo;
     };
 
 }

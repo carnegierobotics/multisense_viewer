@@ -9,7 +9,7 @@
 #include "Viewer/VkRender/Renderer.h"
 #include "Viewer/VkRender/Entity.h"
 #include "Viewer/VkRender/ImGui/LayerUtils.h"
-#include "Viewer/VkRender/Components/DefaultGraphicsPipeline.h"
+#include "Viewer/VkRender/RenderPipelines/DefaultGraphicsPipeline.h"
 #include "Viewer/VkRender/Components/OBJModelComponent.h"
 
 namespace VkRender {

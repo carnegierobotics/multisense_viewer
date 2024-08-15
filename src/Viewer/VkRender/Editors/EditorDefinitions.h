@@ -13,6 +13,7 @@ namespace VkRender {
         None,
         Viewport3D,
         Properties,
+        GaussianViewer,
         MultiSenseViewer,
         SceneHierarchy,
         TestWindow,
@@ -22,6 +23,7 @@ namespace VkRender {
     static std::vector<EditorType> getEditorTypes() {
         return {EditorType::Viewport3D,
                 EditorType::Properties,
+                EditorType::GaussianViewer,
                 EditorType::MultiSenseViewer,
                 EditorType::SceneHierarchy,
                 EditorType::TestWindow,
@@ -36,6 +38,7 @@ namespace VkRender {
             case EditorType::Viewport3D: return "3D Viewport";
             case EditorType::MyProject: return "MyProject";
             case EditorType::Properties: return "Properties";
+            case EditorType::GaussianViewer: return "Gaussian Viewer";
             default: return "Unknown";
         }
     }
@@ -48,6 +51,7 @@ namespace VkRender {
         if (str == "3D Viewport") return EditorType::Viewport3D;
         if (str == "MyProject") return EditorType::MyProject;
         if (str == "Properties") return EditorType::Properties;
+        if (str == "Gaussian Viewer") return EditorType::GaussianViewer;
         throw std::invalid_argument("Unknown editor type string");
     }
 }

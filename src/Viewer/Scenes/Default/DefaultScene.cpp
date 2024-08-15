@@ -6,7 +6,8 @@
 
 #include "Viewer/Scenes/Default/DefaultScene.h"
 #include "Viewer/VkRender/Components/OBJModelComponent.h"
-#include "Viewer/VkRender/Components/DefaultGraphicsPipeline.h"
+#include "Viewer/VkRender/RenderPipelines/DefaultGraphicsPipeline.h"
+#include "Viewer/VkRender/Components/GaussianModelComponent.h"
 
 namespace VkRender {
 
@@ -15,19 +16,23 @@ namespace VkRender {
         m_sceneName = "Default Scene";
         Log::Logger::getInstance()->info("DefaultScene Constructor");
         auto entity = createEntity("FirstEntity");
-        auto &modelComponent = entity.addComponent<VkRender::OBJModelComponent>(
+        auto &modelComponent = entity.addComponent<OBJModelComponent>(
                 Utils::getModelsPath() / "obj" / "viking_room.obj");
         createNewCamera("DefaultCamera", 1280, 720);
-        //auto &res = entity.addComponent<VkRender::DefaultGraphicsPipelineComponent2>(&m_context->data(),);
+        //auto &res = entity.addComponent<DefaultGraphicsPipelineComponent2>(&m_context->data(),);
 
         /*
           auto grid = m_context.createEntity("3DViewerGrid");
-          //grid.addComponent<VkRender::CustomModelComponent>(&m_context.data());
+          //grid.addComponent<CustomModelComponent>(&m_context.data());
 
           loadSkybox();
           loadScripts();
           addGuiLayers();
           */
+
+        auto gaussianEntity = createEntity("GaussianEntity");
+        auto &gaussianEntityModelComponent = gaussianEntity.addComponent<GaussianModelComponent>(
+                Utils::getModelsPath() / "3dgs" / "coordinates.ply");
     }
 
 
@@ -53,8 +58,8 @@ namespace VkRender {
     void DefaultScene::loadSkybox() {
         // Load skybox
         //auto skybox = m_context.createEntity("Skybox");
-        //auto &modelComponent = skybox.addComponent<VkRender::GLTFModelComponent>(Utils::getModelsPath() / "Box" / "Box.gltf", m_context.data().device);
-        //skybox.addComponent<VkRender::SkyboxGraphicsPipelineComponent>(&m_context.data(), modelComponent);
+        //auto &modelComponent = skybox.addComponent<GLTFModelComponent>(Utils::getModelsPath() / "Box" / "Box.gltf", m_context.data().device);
+        //skybox.addComponent<SkyboxGraphicsPipelineComponent>(&m_context.data(), modelComponent);
 
     }
 

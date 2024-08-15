@@ -90,12 +90,7 @@ namespace VkRender {
         m_mainEditor->addUI("MenuLayer");
         m_mainEditor->addUI("MainContextLayer");
 
-
-        EditorCreateInfo defaultEditor = EditorCreateInfo(m_guiResources, this, &m_sharedContextData, m_vulkanDevice, &m_allocator,
-                                                          m_frameBuffers.data());
-        defaultEditor.editorTypeDescription = EditorType::TestWindow;
-        defaultEditor.pPassCreateInfo = passCreateInfo;
-        m_editorFactory = std::make_unique<EditorFactory>(defaultEditor);
+        m_editorFactory = std::make_unique<EditorFactory>();
 
         loadEditorSettings(Utils::getMyEditorProjectConfig());
 

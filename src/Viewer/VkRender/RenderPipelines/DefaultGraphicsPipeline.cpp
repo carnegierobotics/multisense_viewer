@@ -2,7 +2,7 @@
 // Created by magnus on 4/20/24.
 //
 
-#include "Viewer/VkRender/Components/DefaultGraphicsPipeline.h"
+#include "Viewer/VkRender/RenderPipelines/DefaultGraphicsPipeline.h"
 #include "Viewer/VkRender/Components/OBJModelComponent.h"
 #include "Viewer/VkRender/Components/CameraModelComponent.h"
 #include "Viewer/VkRender/Renderer.h"

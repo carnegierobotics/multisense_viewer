@@ -11,9 +11,9 @@ if (ENABLE_SYCL)
 
     add_compile_definitions(SYCL_ENABLED)
     message(STATUS "[VkRenderINFO]: SYCL support enabled. Compiler: ${CMAKE_CXX_COMPILER} Flags: ${CMAKE_CXX_FLAGS}")
-else()
+else ()
     message(STATUS "[VkRenderINFO]: SYCL support not enabled.")
-endif()
+endif ()
 
 
 project(
@@ -86,10 +86,13 @@ set(SOURCE_FILES
         src/Viewer/VkRender/Entity.cpp
         src/Viewer/VkRender/UsageMonitor.cpp
         src/Viewer/VkRender/ApplicationUserSetting.h
+        src/Viewer/VkRender/Scene.cpp
+
+        src/Viewer/VkRender/RenderPipelines/DefaultGraphicsPipeline.cpp
+        src/Viewer/VkRender/RenderPipelines/CameraModelGraphicsPipeline.cpp
 
         src/Viewer/VkRender/Components/OBJModelComponent.cpp
-        src/Viewer/VkRender/Components/DefaultGraphicsPipeline.cpp
-        src/Viewer/VkRender/Components/CameraModelGraphicsPipeline.cpp
+        src/Viewer/VkRender/Components/GaussianModelComponent.cpp
         #src/Viewer/VkRender/Components/SkyboxGraphicsPipelineComponent.cpp
         #src/Viewer/VkRender/Components/DefaultPBRGraphicsPipelineComponent.cpp
         #src/Viewer/VkRender/Components/GLTFModelComponent.cpp
@@ -108,6 +111,7 @@ set(SOURCE_FILES
         src/Viewer/VkRender/Editors/MultiSenseViewer/Layers/LayoutSettingsLayer.h
         src/Viewer/VkRender/Editors/MyEditor/EditorMyProject.cpp
         src/Viewer/VkRender/Editors/Common/3DViewport/Editor3DViewport.cpp
+        src/Viewer/VkRender/Editors/Common/GaussianViewer/EditorGaussianViewer.cpp
 
         src/Viewer/Tools/StbInclude.cpp
         src/Viewer/Tools/Logger.cpp
@@ -117,13 +121,9 @@ set(SOURCE_FILES
         src/Viewer/Scenes/MultiSenseViewer/Modules/LibMultiSense/CommonHeader.h
         src/Viewer/Scenes/MultiSenseViewer/Modules/LibMultiSense/LibMultiSenseConnector.cpp
         src/Viewer/Scenes/MultiSenseViewer/Modules/LibMultiSense/MultiSenseTaskManager.cpp
-
-        src/Viewer/Scenes/ScriptSupport/ScriptUtils.h
-        src/Viewer/VkRender/Scene.cpp
-        src/Viewer/VkRender/Editors/Common/3DViewport/Editor3DLayer.h
 )
 
-set (SCRIPT_FILES
+set(SCRIPT_FILES
         src/Viewer/Scenes/Default/DefaultScene.cpp
         src/Viewer/Scenes/Default/Scripts/MultiSense.cpp
 
@@ -148,13 +148,13 @@ set(LIBRARIES
 )
 
 if (ENABLE_SYCL)
-    list(APPEND SOURCE_FILES src/Viewer/SYCL/GaussianRenderer.cpp)
-    list(APPEND SCRIPT_FILES src/Viewer/Scenes/Default/Scripts/ImageViewer.cpp)
+    #list(APPEND SOURCE_FILES src/Viewer/SYCL/GaussianRenderer.cpp)
+    list(APPEND SCRIPT_FILES src/Viewer/VkRender/RenderPipelines/GaussianModelGraphicsPipeline.cpp)
     message(STATUS "[VkRenderINFO]: SYCL: Adding Gaussian Renderer to source")
     target_compile_options(ktx PRIVATE -msse4.1 -mssse3)
     list(APPEND LIBRARIES sycl)
 
-endif()
+endif ()
 
 list(APPEND SOURCE_FILES ${SCRIPT_FILES})
 
@@ -229,9 +229,9 @@ if (WIN32)
 
     set_target_properties(MultiSense-Viewer PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
     set_target_properties(MultiSense-Viewer PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR})
-    set_target_properties(MultiSense PROPERTIES RUNTIME_OUTPUT_DIRECTORY  ${CMAKE_BINARY_DIR})
-    set_target_properties(MultiSense PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE  ${CMAKE_BINARY_DIR})
-    set_target_properties(MultiSense PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG  ${CMAKE_BINARY_DIR})
+    set_target_properties(MultiSense PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+    set_target_properties(MultiSense PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR})
+    set_target_properties(MultiSense PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR})
 
     set(THIRD_PARTY_DLLS
             ${CMAKE_CURRENT_SOURCE_DIR}/external/openssl_1.1.1/bin/libcrypto-1_1-x64.dll
@@ -271,10 +271,10 @@ endif ()
 # Compile definitions
 if (CMAKE_BUILD_TYPE MATCHES "Release")
     target_compile_definitions(MultiSense-Viewer PRIVATE VKRENDER_MULTISENSE_VIEWER_PRODUCTION)
-    else ()
+else ()
     target_compile_definitions(MultiSense-Viewer PRIVATE VKRENDER_MULTISENSE_VIEWER_DEBUG)
 endif ()
 
 if (PROPRIETARY_GIGEVISION_MODULE)
     target_compile_definitions(MultiSense-Viewer PRIVATE VKRENDER_GIGEVISION_ENABLED)
-endif()
+endif ()

@@ -97,12 +97,15 @@ namespace VkRender {
             quaternion = q;
             type = RotationType::Quaternion;
         }
+        glm::quat &getQuaternion() {
+            return quaternion;
+        }
 
         void setPosition(const glm::vec3 &v) {
             translation = v;
         }
 
-        const glm::vec3 &getPosition() const {
+        glm::vec3 &getPosition() {
             return translation;
         }
 

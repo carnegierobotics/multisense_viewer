@@ -6,9 +6,10 @@
 
 #include "Viewer/VkRender/Scene.h"
 #include "Viewer/VkRender/Components/Components.h"
-#include "Viewer/VkRender/Components/DefaultGraphicsPipeline.h"
+#include "Viewer/VkRender/RenderPipelines/DefaultGraphicsPipeline.h"
 #include "Viewer/VkRender/Components/OBJModelComponent.h"
 #include "Viewer/VkRender/Components/CameraModelComponent.h"
+#include "Viewer/VkRender/Components/GaussianModelComponent.h"
 
 namespace VkRender {
     Entity Scene::createEntityWithUUID(UUID uuid, const std::string &name) {
@@ -66,9 +67,9 @@ namespace VkRender {
     void Scene::createNewCamera(const std::string &name, uint32_t width, uint32_t height) {
             auto e = createEntity(name);
             auto &c = e.addComponent<CameraComponent>(Camera(width, height));
+            c.camera.setType(Camera::flycam);
             auto &transform = e.getComponent<TransformComponent>();
-            //transform.setPosition(glm::vec3(1.0f, 0.0f, 2.0f));
-            //c.camera.pose.pos = transform.getPosition();
+            c.camera.pose.pos = transform.getPosition();
             auto &gizmo = e.addComponent<CameraModelComponent>();
 
     }
@@ -122,6 +123,9 @@ namespace VkRender {
 
     template<>
     void Scene::onComponentAdded<CameraModelComponent>(Entity entity, CameraModelComponent &component) {
+    }
+    template<>
+    void Scene::onComponentAdded<GaussianModelComponent>(Entity entity, GaussianModelComponent &component) {
     }
 
     DISABLE_WARNING_POP

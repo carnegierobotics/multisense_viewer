@@ -8,7 +8,7 @@
 
 #include <stb_image.h>
 #include "Viewer/VkRender/Core/RenderDefinitions.h"
-#include "Viewer/VkRender/Components/RenderBase.h"
+#include "Viewer/VkRender/RenderPipelines//RenderBase.h"
 #include "Viewer/Tools/Logger.h"
 #include "Viewer/Tools/Utils.h"
 #include "Viewer/VkRender/Components/Components.h"

@@ -70,6 +70,10 @@ namespace VkRender {
             transform.setQuaternion(m_activeCamera->pose.q);
             transform.setPosition(m_activeCamera->pose.pos);
         }
+
+        if (ui().hovered)
+            m_activeCamera->update(m_context->deltaTime());
+
     }
 
     void VkRender::EditorGaussianViewer::onRender(CommandBuffer &drawCmdBuffers) {
@@ -98,15 +102,12 @@ namespace VkRender {
     }
 
     void EditorGaussianViewer::onKeyCallback(const Input &input) {
-        if (!ui().hovered)
-            return;
 
         m_activeCamera->keys.up = input.keys.up;
         m_activeCamera->keys.down = input.keys.down;
         m_activeCamera->keys.left = input.keys.left;
         m_activeCamera->keys.right = input.keys.right;
 
-        m_activeCamera->update(m_context->deltaTime());
 
     }
 

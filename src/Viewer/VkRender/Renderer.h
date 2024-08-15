@@ -95,17 +95,11 @@ namespace VkRender {
 
         VulkanDevice &vkDevice() { return *m_vulkanDevice; }
 
+        // TODO we should collect per frame info like this somewhere
+        float deltaTime() { return frameTimer; }
+
         ImGuiContext *getMainUIContext() { return m_mainEditor->guiContext(); }
         uint32_t currentFrameIndex(){return currentFrame;}
-
-        /*
-
-        Camera &createNewCamera(const std::string &name, uint32_t width, uint32_t height);
-
-        Camera &getCamera();
-
-        Camera &getCamera(std::string tag);
-        */
 
         std::shared_ptr<UsageMonitor> m_usageMonitor; // TODO make private, used widely in imgui code to record user actions
 

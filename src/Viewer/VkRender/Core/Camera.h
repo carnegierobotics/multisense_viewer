@@ -143,6 +143,7 @@ namespace VkRender {
             // This function constructs a 4x4 matrix from a quaternion.
             glm::mat4 rotMatrix = glm::mat4_cast(pose.q);
             glm::mat4 transMatrix = glm::translate(glm::mat4(1.0f), pose.pos);
+            //Log::Logger::getInstance()->info("Camera: {}, {}, {}", pose.pos.x, pose.pos.y, pose.pos.z);
             glm::mat4 transformationMatrix = transMatrix * rotMatrix;
             return transformationMatrix;
         }

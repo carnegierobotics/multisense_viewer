@@ -12,7 +12,7 @@
 namespace VkRender {
 
 
-    GaussianModelGraphicsPipeline::GaussianModelGraphicsPipeline() {
+    GaussianModelGraphicsPipeline::GaussianModelGraphicsPipeline(VulkanDevice& vulkanDevice) : m_vulkanDevice(vulkanDevice) {
         try {
             // Create a queue using the CPU device selector
             auto gpuSelector = [](const sycl::device &dev) {
@@ -82,12 +82,16 @@ namespace VkRender {
 
             width = camera.m_width;
             height = camera.m_height;
+            m_imageSize = width * height * 4;
             m_image = reinterpret_cast<uint8_t *>(std::malloc(width * height * 4));
             sorter = std::make_unique<Sorter>(queue, sortBufferSize);
 
             imageBuffer = sycl::malloc_device<uint8_t>(width * height * 4, queue);
             rangesBuffer = sycl::malloc_device<glm::ivec2>((width / 16) * (height / 16), queue);
             m_boundBuffers = true;
+
+            m_textureVideo = std::make_shared<TextureVideo>(width, height, &m_vulkanDevice, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_FORMAT_R8G8B8A8_UNORM);
+
         } catch (sycl::exception &e) {
             std::cerr << "Caught a SYCL exception: " << e.what() << std::endl;
             return;
@@ -128,6 +132,15 @@ namespace VkRender {
             free(m_image);
         }
     }
+
+    uint8_t *GaussianModelGraphicsPipeline::getImage() {
+        return m_image;
+    }
+
+    uint32_t GaussianModelGraphicsPipeline::getImageSize() {
+        return m_imageSize;
+    }
+
 
     void GaussianModelGraphicsPipeline::generateImage(Camera& camera) {
         auto params = Rasterizer::getHtanfovxyFocal(camera.m_Fov, camera.m_height, camera.m_width);
@@ -322,6 +335,9 @@ namespace VkRender {
             std::cerr << "Caught an unknown exception." << std::endl;
             return;
         }
+
+        m_textureVideo->updateTextureFromBuffer(m_image, width * height * 4);
+
     }
 
     void GaussianModelGraphicsPipeline::logTimes(std::chrono::duration<double, std::milli> t1,

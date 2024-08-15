@@ -798,6 +798,9 @@ namespace VkRender {
            */
 
     void Renderer::keyboardCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
+        for (auto &editor: m_editors) {
+            editor->onKeyCallback(input);
+        }
         //m_cameras[m_selectedCameraTag].keys.up = input.keys.up;
         //m_cameras[m_selectedCameraTag].keys.down = input.keys.down;
         //m_cameras[m_selectedCameraTag].keys.left = input.keys.left;

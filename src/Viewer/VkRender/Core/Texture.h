@@ -77,8 +77,7 @@ public:
 
     // TODO Somehow exchange is not available in llvm sycl branch?
     template<class T, class U = T>
-    T exchange(T& obj, U&& new_value)
-    {
+    T exchange(T &obj, U &&new_value) {
         T old_value = std::move(obj);
         obj = std::forward<U>(new_value);
         return old_value;
@@ -91,28 +90,27 @@ public:
         if (m_device != nullptr) {
 
 
+            auto logicalDevice = m_device->m_LogicalDevice;
+            VkFence fence;
+            VkFenceCreateInfo fenceInfo = Populate::fenceCreateInfo(0);
+            vkCreateFence(logicalDevice, &fenceInfo, nullptr, &fence);
 
-        auto logicalDevice = m_device->m_LogicalDevice;
-        VkFence fence;
-        VkFenceCreateInfo fenceInfo = Populate::fenceCreateInfo(0);
-        vkCreateFence(logicalDevice, &fenceInfo, nullptr, &fence);
-
-        VkImageView view = m_view;
-        VkImage image = m_image;
-        VkSampler sampler = m_sampler;
-        VkDeviceMemory memory = m_deviceMemory;
+            VkImageView view = m_view;
+            VkImage image = m_image;
+            VkSampler sampler = m_sampler;
+            VkDeviceMemory memory = m_deviceMemory;
 
 
-        VkRender::VulkanResourceManager::getInstance().deferDeletion(
-                [logicalDevice, view, image, sampler, memory]() {
-                    vkDestroyImageView(logicalDevice, view, nullptr);
-                    vkDestroyImage(logicalDevice, image, nullptr);
-                    if (sampler) {
-                        vkDestroySampler(logicalDevice, sampler, nullptr);
-                    }
-                    vkFreeMemory(logicalDevice, memory, nullptr);
-                },
-                fence);
+            VkRender::VulkanResourceManager::getInstance().deferDeletion(
+                    [logicalDevice, view, image, sampler, memory]() {
+                        vkDestroyImageView(logicalDevice, view, nullptr);
+                        vkDestroyImage(logicalDevice, image, nullptr);
+                        if (sampler) {
+                            vkDestroySampler(logicalDevice, sampler, nullptr);
+                        }
+                        vkFreeMemory(logicalDevice, memory, nullptr);
+                    },
+                    fence);
         }
     }
 
@@ -127,7 +125,7 @@ public:
 
 
     // Move constructor
-    Texture2D(Texture2D &&other)  noexcept : Texture(std::move(other)) {
+    Texture2D(Texture2D &&other) noexcept: Texture(std::move(other)) {
         // Move constructor logic specific to Texture2D
         m_device = exchange(other.m_device, nullptr);
         m_image = exchange(other.m_image, {});
@@ -225,22 +223,25 @@ public:
     TextureVideo() = default;
 
     ~TextureVideo() override {
+        if (m_device) {
 
-        switch (m_format) {
-            case VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM:
-            case VK_FORMAT_G8_B8R8_2PLANE_420_UNORM:
-                vkUnmapMemory(m_device->m_LogicalDevice, m_TexMemSecondary);
-                vkFreeMemory(m_device->m_LogicalDevice, m_TexMemSecondary, nullptr);
-                vkDestroyBuffer(m_device->m_LogicalDevice, m_TexBufferSecondary, nullptr);
-                vkDestroySamplerYcbcrConversion(m_device->m_LogicalDevice, m_YUVSamplerToRGB, nullptr);
-                vkUnmapMemory(m_device->m_LogicalDevice, m_TexMem);
-                vkFreeMemory(m_device->m_LogicalDevice, m_TexMem, nullptr);
-                vkDestroyBuffer(m_device->m_LogicalDevice, m_TexBuffer, nullptr);
-                break;
-            default:
-                vkUnmapMemory(m_device->m_LogicalDevice, m_TexMem);
-                vkFreeMemory(m_device->m_LogicalDevice, m_TexMem, nullptr);
-                vkDestroyBuffer(m_device->m_LogicalDevice, m_TexBuffer, nullptr);
+
+            switch (m_format) {
+                case VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM:
+                case VK_FORMAT_G8_B8R8_2PLANE_420_UNORM:
+                    vkUnmapMemory(m_device->m_LogicalDevice, m_TexMemSecondary);
+                    vkFreeMemory(m_device->m_LogicalDevice, m_TexMemSecondary, nullptr);
+                    vkDestroyBuffer(m_device->m_LogicalDevice, m_TexBufferSecondary, nullptr);
+                    vkDestroySamplerYcbcrConversion(m_device->m_LogicalDevice, m_YUVSamplerToRGB, nullptr);
+                    vkUnmapMemory(m_device->m_LogicalDevice, m_TexMem);
+                    vkFreeMemory(m_device->m_LogicalDevice, m_TexMem, nullptr);
+                    vkDestroyBuffer(m_device->m_LogicalDevice, m_TexBuffer, nullptr);
+                    break;
+                default:
+                    vkUnmapMemory(m_device->m_LogicalDevice, m_TexMem);
+                    vkFreeMemory(m_device->m_LogicalDevice, m_TexMem, nullptr);
+                    vkDestroyBuffer(m_device->m_LogicalDevice, m_TexBuffer, nullptr);
+            }
         }
     }
 
@@ -251,7 +252,7 @@ public:
 
     void createDefaultSampler();
 
-    void updateTextureFromBuffer(uint8_t* data, uint32_t size, VkImageLayout initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+    void updateTextureFromBuffer(uint8_t *data, uint32_t size, VkImageLayout initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
                                  VkImageLayout finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
     void updateTextureFromBufferYUV();

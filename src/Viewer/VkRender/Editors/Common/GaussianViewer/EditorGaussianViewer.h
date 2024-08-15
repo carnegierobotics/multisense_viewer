@@ -9,6 +9,7 @@
 #include "Viewer/VkRender/Core/Camera.h"
 #include "Viewer/VkRender/Scene.h"
 #include "Viewer/VkRender/RenderPipelines/3DGS/GaussianModelGraphicsPipeline.h"
+#include "Viewer/VkRender/RenderPipelines/GraphicsPipeline2D.h"
 
 namespace VkRender {
 
@@ -34,10 +35,13 @@ namespace VkRender {
 
         void onSceneLoad() override;
 
+        void onKeyCallback(const Input& input) override;
+
     private:
         Camera* m_activeCamera;
         std::shared_ptr<Scene> m_activeScene;
         std::unordered_map<entt::entity, std::unique_ptr<GaussianModelGraphicsPipeline>> m_gaussianRenderPipelines;
+        std::unordered_map<entt::entity, std::unique_ptr<GraphicsPipeline2D>> m_2DRenderPipeline;
     };
 }
 

@@ -14,6 +14,40 @@
 
 namespace VkRender {
 
+    void Editor3DViewport::onSceneLoad() {
+        // Once we load a scene we need to create pipelines according to the objects specified in the scene.
+        // For OBJModels we are alright with a default rendering pipeline (Phong lightining and stuff)
+        // The pipelines also define memory handles between CPU and GPU. It makes more logical scenes if these attributes belong to the OBJModelComponent
+        // But we need it accessed in the pipeline
+
+        m_editorCamera = Camera(1280, 720);
+        RenderPassInfo renderPassInfo{};
+        renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
+        renderPassInfo.renderPass = m_renderPass->getRenderPass();
+
+        m_activeScene = m_context->activeScene();
+        // Pass the destroy function to the scene
+        m_activeScene->addDestroyFunction(this, [this](entt::entity entity) {
+            onEntityDestroyed(entity);
+        });
+
+        auto objModelView = m_activeScene->getRegistry().view<OBJModelComponent>();
+        // Iterate over the entities in the view
+        for (entt::entity entity: objModelView) {
+            m_renderPipelines[entity] = std::make_unique<DefaultGraphicsPipeline>(*m_context, renderPassInfo);
+            auto &model = objModelView.get<OBJModelComponent>(entity);
+            m_renderPipelines[entity]->bind(model);
+        }
+        auto cameraModelView = m_activeScene->getRegistry().view<CameraModelComponent>();
+        // Iterate over the entities in the view
+        for (entt::entity entity: cameraModelView) {
+            m_cameraRenderPipelines[entity] = std::make_unique<CameraModelGraphicsPipeline>(*m_context, renderPassInfo);
+            auto &model = cameraModelView.get<CameraModelComponent>(entity);
+            m_cameraRenderPipelines[entity]->bind(model);
+        }
+    }
+
+
     void Editor3DViewport::onRender(CommandBuffer &drawCmdBuffers) {
         if (!m_activeScene)
             return;
@@ -53,13 +87,6 @@ namespace VkRender {
             m_cameraRenderPipelines[entity]->updateTransform(transform);
         }
 
-        auto cameraEntity = m_activeScene->findEntityByName("DefaultCamera");
-        if (cameraEntity){
-            auto& transform = cameraEntity.getComponent<TransformComponent>();
-            auto& camera = cameraEntity.getComponent<CameraComponent>()();
-            camera.pose.pos = transform.getPosition();
-            camera.updateViewMatrix();
-        }
 
         // Update all pipelines with the current view and frame index
         for (auto &pipeline: m_renderPipelines) {
@@ -98,39 +125,6 @@ namespace VkRender {
 
         // Grid and objects
 
-    }
-
-    void Editor3DViewport::onSceneLoad() {
-        // Once we load a scene we need to create pipelines according to the objects specified in the scene.
-        // For OBJModels we are alright with a default rendering pipeline (Phong lightining and stuff)
-        // The pipelines also define memory handles between CPU and GPU. It makes more logical scenes if these attributes belong to the OBJModelComponent
-        // But we need it accessed in the pipeline
-
-        m_editorCamera = Camera(1280, 720);
-        RenderPassInfo renderPassInfo{};
-        renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
-        renderPassInfo.renderPass = m_renderPass->getRenderPass();
-
-        m_activeScene = m_context->activeScene();
-        // Pass the destroy function to the scene
-        m_activeScene->addDestroyFunction(this, [this](entt::entity entity) {
-            onEntityDestroyed(entity);
-        });
-
-        auto objModelView = m_activeScene->getRegistry().view<OBJModelComponent>();
-        // Iterate over the entities in the view
-        for (entt::entity entity: objModelView) {
-            m_renderPipelines[entity] = std::make_unique<DefaultGraphicsPipeline>(*m_context, renderPassInfo);
-            auto &model = objModelView.get<OBJModelComponent>(entity);
-            m_renderPipelines[entity]->bind(model);
-        }
-        auto cameraModelView = m_activeScene->getRegistry().view<CameraModelComponent>();
-        // Iterate over the entities in the view
-        for (entt::entity entity: cameraModelView) {
-            m_cameraRenderPipelines[entity] = std::make_unique<CameraModelGraphicsPipeline>(*m_context, renderPassInfo);
-            auto &model = cameraModelView.get<CameraModelComponent>(entity);
-            m_cameraRenderPipelines[entity]->bind(model);
-        }
     }
 
     void Editor3DViewport::onMouseMove(const MouseButtons &mouse) {

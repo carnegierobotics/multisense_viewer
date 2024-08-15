@@ -13,13 +13,9 @@ layout (binding = 0) uniform UBO
 } ubo;
 
 layout(location = 0) out vec2 outUV;
-layout(location = 1) out vec4 fragPos;
 
 void main() {
-	vec4 pos = ubo.model * vec4(inPos, 1.0);
-	fragPos = pos;
-
-	gl_Position =  ubo.model * vec4(inPos.xyz, 1.0);
+	gl_Position =  vec4(inPos.xyz, 1.0);
     outUV = inUV0;
 }
 

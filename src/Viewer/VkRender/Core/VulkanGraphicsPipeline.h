@@ -12,7 +12,7 @@
 namespace VkRender {
 
     struct VulkanGraphicsPipelineCreateInfo {
-        VulkanGraphicsPipelineCreateInfo() = default;
+        VulkanGraphicsPipelineCreateInfo() = delete;
 
         VulkanGraphicsPipelineCreateInfo(const VkRenderPass &pass, VulkanDevice &device)
                 : renderPass(pass), vulkanDevice(device) {
@@ -30,6 +30,7 @@ namespace VkRender {
         size_t pushConstBlockSize = 0;
         VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
         VkPipelineVertexInputStateCreateInfo vertexInputState;
+        bool depthTesting = VK_TRUE;
 
         VkPipelineRasterizationStateCreateInfo rasterizationStateCreateInfo;
     };

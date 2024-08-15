@@ -7,6 +7,7 @@
 #include "Viewer/VkRender/Components/OBJModelComponent.h"
 #include "Viewer/VkRender/Entity.h"
 #include "Viewer/VkRender/Components/GaussianModelComponent.h"
+#include "Viewer/VkRender/Components/CameraModelComponent.h"
 
 namespace VkRender {
 
@@ -17,12 +18,20 @@ namespace VkRender {
         auto &modelComponent = entity.addComponent<VkRender::OBJModelComponent>(
                 Utils::getModelsPath() / "obj" / "s30.obj");
 
-        createNewCamera("DefaultCamera", 1280, 720);
+        auto e = createEntity("DefaultCamera");
+        auto &c = e.addComponent<CameraComponent>(Camera(1280, 720));
+        c.camera.setType(Camera::flycam);
+        auto &transform = e.getComponent<TransformComponent>();
+        transform.setPosition({0.0f, 0.0f, 4.0f});
+        c.camera.pose.pos = transform.getPosition();
+        auto &gizmo = e.addComponent<CameraModelComponent>();
 
 
         auto gaussianEntity = createEntity("GaussianEntity");
         auto &gaussianEntityModelComponent = gaussianEntity.addComponent<GaussianModelComponent>(
                 Utils::getModelsPath() / "3dgs" / "coordinates.ply");
+        auto &gaussianEntityModel = gaussianEntity.addComponent<OBJModelComponent>(
+                Utils::getModelsPath() / "obj" / "quad.obj");
 
     }
 

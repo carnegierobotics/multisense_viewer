@@ -36,7 +36,8 @@ namespace VkRender {
 
             // Set window position and size
             ImVec2 window_pos = ImVec2(5.0f, 55.0f); // Position (x, y)
-            ImVec2 window_size = ImVec2(handles.editorUi->width - 5.0f, handles.editorUi->height - 55.0f); // Size (width, height)
+            ImVec2 window_size = ImVec2(handles.editorUi->width - 5.0f,
+                                        handles.editorUi->height - 55.0f); // Size (width, height)
 
 
             // Set window flags to remove decorations
@@ -51,7 +52,13 @@ namespace VkRender {
             ImGui::Begin("EditorGaussianViewerLayer", nullptr, window_flags);
 
             ImGui::PushFont(handles.info->font15);
-            handles.editorUi->render3DGSImage = ImGui::Button("Render 3DGS image");
+            /*
+            if(ImGui::Button("Render 3DGS image")){
+                handles.editorUi->render3DGSImage = true;
+            }
+            */
+            ImGui::Checkbox("Render continuously", &handles.editorUi->render3DGSImage);
+
             ImGui::PopFont();
 
             ImGui::End();

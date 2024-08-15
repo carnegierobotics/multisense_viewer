@@ -9,13 +9,15 @@
 namespace VkRender {
 
 
-    VulkanGraphicsPipeline::VulkanGraphicsPipeline(const VulkanGraphicsPipelineCreateInfo &createInfo) : m_vulkanDevice(createInfo.vulkanDevice){
+    VulkanGraphicsPipeline::VulkanGraphicsPipeline(const VulkanGraphicsPipelineCreateInfo &createInfo) : m_vulkanDevice(
+            createInfo.vulkanDevice) {
 
 
         // Pipeline cache
         VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
         pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
-        if (vkCreatePipelineCache(m_vulkanDevice.m_LogicalDevice, &pipelineCacheCreateInfo, nullptr, &m_pipelineCache) !=
+        if (vkCreatePipelineCache(m_vulkanDevice.m_LogicalDevice, &pipelineCacheCreateInfo, nullptr,
+                                  &m_pipelineCache) !=
             VK_SUCCESS)
             throw std::runtime_error("Failed to create Pipeline Cache");
 
@@ -29,7 +31,8 @@ namespace VkRender {
         pipelineLayoutCreateInfo.pushConstantRangeCount = createInfo.pushConstBlockSize ? 1 : 0;
         pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
         if (
-                vkCreatePipelineLayout(m_vulkanDevice.m_LogicalDevice, &pipelineLayoutCreateInfo, nullptr, &m_pipelineLayout) !=
+                vkCreatePipelineLayout(m_vulkanDevice.m_LogicalDevice, &pipelineLayoutCreateInfo, nullptr,
+                                       &m_pipelineLayout) !=
                 VK_SUCCESS)
             throw std::runtime_error("Failed to create m_Pipeline layout");
 
@@ -55,9 +58,9 @@ namespace VkRender {
         VkPipelineColorBlendStateCreateInfo colorBlendState =
                 Populate::pipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
 
-        VkPipelineDepthStencilStateCreateInfo depthStencilState =
-                Populate
-                ::pipelineDepthStencilStateCreateInfo(VK_TRUE, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
+        VkPipelineDepthStencilStateCreateInfo depthStencilState = Populate::pipelineDepthStencilStateCreateInfo(createInfo.depthTesting,
+                                                                                                                createInfo.depthTesting,
+                                                                                                                VK_COMPARE_OP_LESS_OR_EQUAL);
 
         VkPipelineViewportStateCreateInfo viewportState =
                 Populate
@@ -75,7 +78,8 @@ namespace VkRender {
                 Populate
                 ::pipelineDynamicStateCreateInfo(dynamicStateEnables);
 
-        VkGraphicsPipelineCreateInfo pipelineCreateInfo = Populate::pipelineCreateInfo(m_pipelineLayout, createInfo.renderPass);
+        VkGraphicsPipelineCreateInfo pipelineCreateInfo = Populate::pipelineCreateInfo(m_pipelineLayout,
+                                                                                       createInfo.renderPass);
 
 
         pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
@@ -100,26 +104,26 @@ namespace VkRender {
     }
 
     VulkanGraphicsPipeline::~VulkanGraphicsPipeline() {
-            VkFence fence;
-            VkFenceCreateInfo fenceCreateInfo {};
-            fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-            vkCreateFence(m_vulkanDevice.m_LogicalDevice, &fenceCreateInfo, nullptr, &fence);
+        VkFence fence;
+        VkFenceCreateInfo fenceCreateInfo{};
+        fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+        vkCreateFence(m_vulkanDevice.m_LogicalDevice, &fenceCreateInfo, nullptr, &fence);
 
-            // Capture all necessary members by value
-            auto pipeline = m_pipeline;
-            auto pipelinCache = m_pipelineCache;
-            auto pipelineLayout = m_pipelineLayout;
-            auto logicalDevice = m_vulkanDevice.m_LogicalDevice;
+        // Capture all necessary members by value
+        auto pipeline = m_pipeline;
+        auto pipelinCache = m_pipelineCache;
+        auto pipelineLayout = m_pipelineLayout;
+        auto logicalDevice = m_vulkanDevice.m_LogicalDevice;
 
 
-            VulkanResourceManager::getInstance().deferDeletion(
-                    [logicalDevice, pipeline, pipelinCache, pipelineLayout]() {
+        VulkanResourceManager::getInstance().deferDeletion(
+                [logicalDevice, pipeline, pipelinCache, pipelineLayout]() {
 
-                        vkDestroyPipeline(logicalDevice, pipeline, nullptr);
-                        vkDestroyPipelineCache(logicalDevice, pipelinCache, nullptr);
-                        vkDestroyPipelineLayout(logicalDevice, pipelineLayout, nullptr);
-                    },
-                    fence);
-        }
+                    vkDestroyPipeline(logicalDevice, pipeline, nullptr);
+                    vkDestroyPipelineCache(logicalDevice, pipelinCache, nullptr);
+                    vkDestroyPipelineLayout(logicalDevice, pipelineLayout, nullptr);
+                },
+                fence);
+    }
 
 }

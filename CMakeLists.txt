@@ -90,6 +90,7 @@ set(SOURCE_FILES
 
         src/Viewer/VkRender/RenderPipelines/DefaultGraphicsPipeline.cpp
         src/Viewer/VkRender/RenderPipelines/CameraModelGraphicsPipeline.cpp
+        src/Viewer/VkRender/RenderPipelines/GraphicsPipeline2D.cpp
 
         src/Viewer/VkRender/Components/OBJModelComponent.cpp
         src/Viewer/VkRender/Components/GaussianModelComponent.cpp

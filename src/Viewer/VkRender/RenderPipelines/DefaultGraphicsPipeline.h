@@ -18,7 +18,7 @@ namespace VkRender {
     class DefaultGraphicsPipeline {
     public:
 
-        DefaultGraphicsPipeline() = default;
+        DefaultGraphicsPipeline() = delete;
 
         /** @brief
         // Delete copy constructors, we dont want to perform shallow copied of vulkan resources leading to double deletion.

@@ -85,6 +85,7 @@ namespace VkRender {
 
         virtual void onMouseMove(const VkRender::MouseButtons& mouse){}
         virtual void onMouseScroll(float change){}
+        virtual void onKeyCallback(const Input& input){}
         virtual void onUpdate() {
         }
         virtual void onSceneLoad() {

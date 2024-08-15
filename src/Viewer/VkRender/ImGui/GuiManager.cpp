@@ -123,12 +123,12 @@ namespace VkRender {
         }
 
         VulkanGraphicsPipelineCreateInfo pipelineCreateInfo(renderPass, m_vulkanDevice);
-        pipelineCreateInfo.rasterizationStateCreateInfo = Populate::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_FRONT_BIT,
-                                                                                                                                                           VK_FRONT_FACE_COUNTER_CLOCKWISE);
+        pipelineCreateInfo.rasterizationStateCreateInfo = Populate::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_FRONT_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE);
         pipelineCreateInfo.msaaSamples = msaaSamples;
         pipelineCreateInfo.shaders = guiResources->shaders;
         pipelineCreateInfo.descriptorSetLayout = guiResources->descriptorSetLayout;
         pipelineCreateInfo.pushConstBlockSize = sizeof(GuiResources::PushConstBlock);
+        pipelineCreateInfo.depthTesting = VK_FALSE;
 
         // Vertex bindings an attributes based on ImGui vertex definition
         std::vector<VkVertexInputBindingDescription> vertexInputBindings = {
@@ -170,6 +170,8 @@ namespace VkRender {
         pipelineCreateInfo.pushConstBlockSize = sizeof(GuiResources::PushConstBlock);
         pipelineCreateInfo.rasterizationStateCreateInfo = Populate::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_FRONT_BIT,
                                                                                                          VK_FRONT_FACE_COUNTER_CLOCKWISE);
+        pipelineCreateInfo.depthTesting = VK_FALSE;
+
         // Vertex bindings an attributes based on ImGui vertex definition
         std::vector<VkVertexInputBindingDescription> vertexInputBindings = {
                 Populate

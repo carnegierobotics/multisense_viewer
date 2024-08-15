@@ -13,6 +13,7 @@
 #include "Viewer/VkRender/RenderPipelines/3DGS/radixsort/RadixSorter.h"
 #include "Viewer/SYCL/RasterizerUtils.h"
 #include "Viewer/VkRender/Core/Camera.h"
+#include "Viewer/VkRender/Core/Texture.h"
 
 #endif
 
@@ -20,7 +21,8 @@ namespace VkRender {
 #ifdef SYCL_ENABLED
     class GaussianModelGraphicsPipeline {
     public:
-        GaussianModelGraphicsPipeline();
+        explicit GaussianModelGraphicsPipeline(VulkanDevice &vulkanDevice);
+
         ~GaussianModelGraphicsPipeline();
 
         template<typename T>
@@ -29,12 +31,17 @@ namespace VkRender {
 
         void draw(CommandBuffer &cmdBuffers);
 
+        std::shared_ptr<TextureVideo> getTextureRenderTarget() {return m_textureVideo;}
+
+        uint8_t *getImage();
+        uint32_t getImageSize();
     private:
 
-
+        VulkanDevice& m_vulkanDevice;
         sycl::queue queue{};
         bool m_boundBuffers = false;
         uint8_t *m_image = nullptr;
+        uint32_t m_imageSize = 0;
 
         glm::vec3 *positionBuffer = nullptr;
         glm::vec3 *scalesBuffer = nullptr;
@@ -63,6 +70,8 @@ namespace VkRender {
                       std::chrono::duration<double, std::milli> t7, std::chrono::duration<double, std::milli> t8,
                       std::chrono::duration<double, std::milli> t9, bool error);
 
+
+        std::shared_ptr<TextureVideo> m_textureVideo;
     };
 #else
     class GaussianModelGraphicsPipeline {

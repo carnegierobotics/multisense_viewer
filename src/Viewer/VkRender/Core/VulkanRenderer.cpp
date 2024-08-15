@@ -713,7 +713,7 @@ namespace VkRender {
             myApp->m_logger->info("Escape key registered");
             myApp->closeApplication();
         }
-        /*
+
         ImGuiIO &io = ImGui::GetIO();
         io.AddKeyEvent(ImGuiKey_ModShift, (mods & GLFW_MOD_SHIFT) != 0);
         io.AddKeyEvent(ImGuiKey_ModAlt, (mods & GLFW_MOD_ALT) != 0);
@@ -723,10 +723,7 @@ namespace VkRender {
         key = ImGui_ImplGlfw_TranslateUntranslatedKey(key, scancode);
         ImGuiKey imgui_key = ImGui_ImplGlfw_KeyToImGuiKey(key);
         io.AddKeyEvent(imgui_key, (action == GLFW_PRESS) || (action == GLFW_REPEAT));
-        myApp->keyPress = key;
-        myApp->keyAction = action;
 
-        */
 
 #ifdef WIN32
         if ((mods & GLFW_MOD_CONTROL) != 0 && key == GLFW_KEY_V) {

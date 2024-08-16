@@ -1,0 +1,16 @@
+//
+// Created by magnus on 8/16/24.
+//
+
+#ifndef MULTISENSE_VIEWER_POINTCLOUDGRAPHICSPIPELINE_H
+#define MULTISENSE_VIEWER_POINTCLOUDGRAPHICSPIPELINE_H
+
+namespace VkRender {
+
+
+class PointCloudGraphicsPipeline {
+
+};
+}
+
+#endif //MULTISENSE_VIEWER_POINTCLOUDGRAPHICSPIPELINE_H

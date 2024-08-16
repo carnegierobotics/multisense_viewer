@@ -14,23 +14,28 @@ namespace VkRender {
     MultiSenseViewer::MultiSenseViewer(Renderer &ctx) {
         m_sceneName = "MultiSense Viewer";
 
-        auto entity = createEntity("FirstEntity");
-        auto &modelComponent = entity.addComponent<VkRender::OBJModelComponent>(
-                Utils::getModelsPath() / "obj" / "s30.obj");
+        {
+            auto entity = createEntity("FirstEntity");
+            auto &modelComponent = entity.addComponent<VkRender::OBJModelComponent>(
+                    Utils::getModelsPath() / "obj" / "s30.obj");
+            auto &transform = entity.getComponent<TransformComponent>();
+            transform.setScale({0.25f, 0.25f, 0.25f});
+        }
 
-        auto e = createEntity("DefaultCamera");
-        auto &c = e.addComponent<CameraComponent>(Camera(1280, 720));
-        c.camera.setType(Camera::flycam);
-        auto &transform = e.getComponent<TransformComponent>();
-        transform.setPosition({0.0f, 0.0f, 4.0f});
-        c.camera.pose.pos = transform.getPosition();
-        auto &gizmo = e.addComponent<CameraModelComponent>();
+        {
+            auto cameraEntity = createEntity("DefaultCamera");
+            auto &cameraComponent = cameraEntity.addComponent<CameraComponent>(Camera(1280, 720));
+            cameraComponent.camera.setType(Camera::flycam);
+            auto &transform = cameraEntity.getComponent<TransformComponent>();
+            transform.setPosition({0.0f, 0.0f, 2.5f});
+            cameraComponent.camera.pose.pos = transform.getPosition();
+            cameraEntity.addComponent<CameraModelComponent>();
+        }
 
 
-        auto gaussianEntity = createEntity("GaussianEntity");
-        auto &gaussianEntityModelComponent = gaussianEntity.addComponent<GaussianModelComponent>(
-                Utils::getModelsPath() / "3dgs" / "3dgs.ply");
-        auto &gaussianEntityModel = gaussianEntity.addComponent<OBJModelComponent>(Utils::getModelsPath() / "obj" / "quad.obj");
+        //auto gaussianEntity = createEntity("GaussianEntity");
+        //auto &gaussianEntityModelComponent = gaussianEntity.addComponent<GaussianModelComponent>(Utils::getModelsPath() / "3dgs" / "3dgs_insect.ply");
+        //auto &gaussianEntityModel = gaussianEntity.addComponent<OBJModelComponent>(Utils::getModelsPath() / "obj" / "quad.obj");
 
     }
 

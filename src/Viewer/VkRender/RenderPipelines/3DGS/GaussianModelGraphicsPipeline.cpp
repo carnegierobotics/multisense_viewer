@@ -246,11 +246,13 @@ namespace VkRender {
                 */
 
                 // Load keys
+                /*
                 sorter->performOneSweep(keysBuffer, valuesBuffer, numRendered);
                 //sorter->verifySort(keysBuffer, numRendered); //, true, keys);
                 queue.wait();
                 sorter->resetMemory();
                 queue.wait();
+                */
 
 
                 std::chrono::duration<double, std::milli> sortingDuration =

@@ -11,6 +11,7 @@
 #include "Viewer/VkRender/ImGui/LayerUtils.h"
 #include "Viewer/VkRender/RenderPipelines/DefaultGraphicsPipeline.h"
 #include "Viewer/VkRender/Components/OBJModelComponent.h"
+#include "Viewer/VkRender/Components/GaussianModelComponent.h"
 
 namespace VkRender {
 
@@ -91,12 +92,23 @@ namespace VkRender {
         /** Handle the file path after selection is complete **/
         void handleSelectedFile(const LayerUtils::LoadFileInfo &loadFileInfo, GuiObjectHandles& handles) {
             if (!loadFileInfo.path.empty()) {
-                // Copy the selected file path to wherever it's needed
-                auto &opts = RendererConfig::getInstance().getUserSetting();
-                opts.lastOpenedImportModelFolderPath = loadFileInfo.path;
+                if (loadFileInfo.path.extension() == ".obj"){
+
                 // Load into the active scene
                 auto entity = handles.m_context->activeScene()->createEntity(loadFileInfo.path.filename().string());
                 entity.addComponent<OBJModelComponent>(loadFileInfo.path);
+
+                } else if (loadFileInfo.path.extension() == ".ply"){
+                    // Load into the active scene
+                    auto entity = handles.m_context->activeScene()->createEntity(loadFileInfo.path.filename().string());
+                    entity.addComponent<GaussianModelComponent>(loadFileInfo.path);
+                    entity.addComponent<OBJModelComponent>(Utils::getModelsPath() / "obj" / "quad.obj");
+                }
+
+
+                // Copy the selected file path to wherever it's needed
+                auto &opts = RendererConfig::getInstance().getUserSetting();
+                opts.lastOpenedImportModelFolderPath = loadFileInfo.path;
                 // Additional processing of the file can be done here
                 Log::Logger::getInstance()->info("File selected: {}",  loadFileInfo.path.filename().string());
             } else {
@@ -126,11 +138,11 @@ namespace VkRender {
                 /*
                 if (ImGui::MenuItem("Load glTF 2.0 (.gltf)")) {
                     openImportFileDialog("glTF 2.0", "gltf");
-                }
+                } */
                 if (ImGui::MenuItem("Load 3D GS file (.ply)")) {
                     openImportFileDialog("Load 3D GS file", "ply");
                 }
-                */
+
                 ImGui::EndPopup();
             }
             ImGui::PopStyleVar();  // Reset the padding to previous value

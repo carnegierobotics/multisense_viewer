@@ -133,6 +133,12 @@ namespace VkRender {
             m_editorCamera.rotate(mouse.dx, mouse.dy);
             m_activeScene->onMouseEvent(mouse);
         }
+
+        if (ui().setActiveCamera && ui().hovered && mouse.left){
+            auto entity = m_activeScene->findEntityByName("DefaultCamera");
+            auto& camera = entity.getComponent<CameraComponent>();
+            camera().rotate(mouse.dx, mouse.dy);
+        }
     }
 
     void Editor3DViewport::onMouseScroll(float change) {
@@ -145,6 +151,7 @@ namespace VkRender {
         */
         if (ui().hovered)
             m_editorCamera.setArcBallPosition((change > 0.0f) ? 0.95f : 1.05f);
+
 
         m_activeScene->onMouseScroll(change);
 

@@ -63,12 +63,6 @@ namespace VkRender {
             glm::quat quaternion;
         };
 
-        RotationType type;
-
-        glm::vec3 translation = {0.0f, 0.0f, 0.0f};
-        glm::vec3 rotation = {0.0f, 0.0f, 0.0f};
-        glm::vec3 scale = {1.0f, 1.0f, 1.0f};
-
         bool m_flipUpAxis = false;
 
         TransformComponent() = default;
@@ -105,6 +99,10 @@ namespace VkRender {
             translation = v;
         }
 
+        void setScale(const glm::vec3& s){
+            scale = s;
+        }
+
         glm::vec3 &getPosition() {
             return translation;
         }
@@ -137,6 +135,14 @@ namespace VkRender {
             }
             return rot;
         }
+    private:
+
+        RotationType type;
+
+        glm::vec3 translation = {0.0f, 0.0f, 0.0f};
+        glm::vec3 rotation = {0.0f, 0.0f, 0.0f};
+        glm::vec3 scale = {1.0f, 1.0f, 1.0f};
+
     };
 
 

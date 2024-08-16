@@ -47,6 +47,24 @@ namespace VkRender {
     }
 
     void VkRender::EditorGaussianViewer::onUpdate() {
+
+        auto cameraModelView = m_activeScene->getRegistry().view<GaussianModelComponent, OBJModelComponent>();
+        for (auto entity: cameraModelView) {
+            if (!m_gaussianRenderPipelines[entity]) { // Check if the pipeline already exists
+                RenderPassInfo renderPassInfo{};
+                renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
+                renderPassInfo.renderPass = m_renderPass->getRenderPass();
+                m_gaussianRenderPipelines[entity] = std::make_unique<GaussianModelGraphicsPipeline>(m_context->vkDevice());
+                m_2DRenderPipeline[entity] = std::make_unique<GraphicsPipeline2D>(*m_context, renderPassInfo);
+
+                m_2DRenderPipeline[entity]->bind(cameraModelView.get<OBJModelComponent>(entity));
+
+                auto &model = cameraModelView.get<GaussianModelComponent>(entity);
+                m_gaussianRenderPipelines[entity]->bind(model, *m_activeCamera);
+                m_2DRenderPipeline[entity]->setTexture(&m_gaussianRenderPipelines[entity]->getTextureRenderTarget()->m_descriptor);
+            }
+        }
+
         uint8_t *image = nullptr;
         uint32_t imageSize = 0;
         if (ui().render3DGSImage) {

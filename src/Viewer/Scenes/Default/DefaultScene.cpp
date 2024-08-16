@@ -76,7 +76,7 @@ namespace VkRender {
         if (entity) {
             if (entity.hasComponent<TransformComponent>()) {
                 auto &transform = entity.getComponent<TransformComponent>();
-                transform.scale = glm::vec3(0.6f, 0.6f, 0.6f);
+                transform.setScale({0.6f, 0.6f, 0.6f});
             }
         }
 

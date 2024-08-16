@@ -56,18 +56,13 @@ namespace VkRender {
                 ImGui::Text("Entity ID: %d", static_cast<int>(entity));
 
                 // Get current position and rotation
-                glm::vec3 position = transform.getPosition();
-                glm::quat rotation = transform.getQuaternion();
-                transform.rotation;
+                glm::vec3& position = transform.getPosition();
+                glm::quat& rotation = transform.getQuaternion();
                 // Input fields for position
                 ImGui::DragFloat3(("Position##" + std::to_string(static_cast<double>(entity))).c_str(), glm::value_ptr(position), 0.1f);
 
                 // Input fields for rotation (quaternion)
                 ImGui::DragFloat4(("Rotation##" + std::to_string(static_cast<double>(entity))).c_str(), glm::value_ptr(rotation), 0.01f);
-
-                // Apply the new position and rotation back to the transform
-                transform.setPosition(position);
-                transform.setQuaternion(rotation);
 
                 // Add some space between each entity
                 ImGui::Separator();

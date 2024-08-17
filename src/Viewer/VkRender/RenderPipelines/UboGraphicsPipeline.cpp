@@ -3,14 +3,13 @@
 //
 
 
-#include "Viewer/VkRender/RenderPipelines/CameraModelGraphicsPipeline.h"
-#include "Viewer/VkRender/Components/CameraModelComponent.h"
+#include "Viewer/VkRender/RenderPipelines/UboGraphicsPipeline.h"
 #include "Viewer/VkRender/Renderer.h"
 
 namespace VkRender {
 
-    CameraModelGraphicsPipeline::CameraModelGraphicsPipeline(Renderer &m_context,
-                                                     const RenderPassInfo &renderPassInfo)
+    UboGraphicsPipeline::UboGraphicsPipeline(Renderer &m_context,
+                                             const RenderPassInfo &renderPassInfo)
             : m_vulkanDevice(m_context.vkDevice()),
               m_renderPassInfo(std::move(renderPassInfo)) {
 
@@ -26,7 +25,7 @@ namespace VkRender {
         setupPipeline();
     }
 
-    CameraModelGraphicsPipeline::~CameraModelGraphicsPipeline() {
+    UboGraphicsPipeline::~UboGraphicsPipeline() {
         auto logicalDevice = m_vulkanDevice.m_LogicalDevice;
         VkFence fence;
         VkFenceCreateInfo fenceInfo = Populate::fenceCreateInfo(0);
@@ -45,47 +44,44 @@ namespace VkRender {
 
     }
 
-    void CameraModelGraphicsPipeline::update(uint32_t currentFrame) {
+    void UboGraphicsPipeline::update(uint32_t currentFrame) {
         memcpy(m_renderData[currentFrame].mvpBuffer.mapped,
                &m_vertexParams, sizeof(VkRender::UBOMatrix));
 
 
 
     }
-    void CameraModelGraphicsPipeline::updateTransform(const TransformComponent &transform) {
+    void UboGraphicsPipeline::updateTransform(const TransformComponent &transform) {
         m_vertexParams.model = transform.GetTransform();
 
     }
-    void CameraModelGraphicsPipeline::updateView(const Camera &camera) {
+    void UboGraphicsPipeline::updateView(const Camera &camera) {
         m_vertexParams.view = camera.matrices.view;
         m_vertexParams.projection = camera.matrices.perspective;
         m_vertexParams.camPos = camera.pose.pos;
     }
 
 
-    void CameraModelGraphicsPipeline::draw(CommandBuffer &cmdBuffers) {
+    void UboGraphicsPipeline::draw(CommandBuffer &cmdBuffers) {
         const uint32_t &cbIndex = *cmdBuffers.frameIndex
                 ;
         vkCmdBindPipeline(cmdBuffers.buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, m_sharedRenderData.graphicsPipeline->getPipeline());
         vkCmdBindDescriptorSets(cmdBuffers.buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS,
                                 m_sharedRenderData.graphicsPipeline->getPipelineLayout(), 0, static_cast<uint32_t>(1),
                                 &m_renderData[cbIndex].descriptorSet, 0, nullptr);
-        vkCmdDraw(cmdBuffers.buffers[cbIndex], vertices.vertexCount, 1, 0, 0);
+        vkCmdDraw(cmdBuffers.buffers[cbIndex], m_vertexCount, 1, 0, 0);
     }
 
-    template<>
-    void CameraModelGraphicsPipeline::bind<CameraModelComponent>(CameraModelComponent &modelComponent) {
-
+    void UboGraphicsPipeline::bind(MeshComponent &modelComponent) {
         for (auto& renderData : m_renderData){
             memcpy(renderData.fragShaderParamsBuffer.mapped,
-                   modelComponent.vertices.positions.data(), sizeof(VkRender::UBOCamera));
+                   modelComponent.getCameraModelMesh().positions.data(), sizeof(VkRender::UBOCamera));
 
         }
-
-        vertices.vertexCount = modelComponent.vertices.positions.size();
+        m_vertexCount = modelComponent.getCameraModelMesh().positions.size();
     }
 
-    void CameraModelGraphicsPipeline::setupUniformBuffers() {
+    void UboGraphicsPipeline::setupUniformBuffers() {
         for (auto &data: m_renderData) {
             m_vulkanDevice.createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                         VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
@@ -99,7 +95,7 @@ namespace VkRender {
             data.fragShaderParamsBuffer.map();
         }
     }
-    void CameraModelGraphicsPipeline::setupDescriptors() {
+    void UboGraphicsPipeline::setupDescriptors() {
         std::vector<VkDescriptorPoolSize> poolSizes = {
                 {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         m_numSwapChainImages * 2},
         };
@@ -155,7 +151,7 @@ namespace VkRender {
         }
     }
 
-    void CameraModelGraphicsPipeline::setupPipeline() {
+    void UboGraphicsPipeline::setupPipeline() {
         VkPipelineVertexInputStateCreateInfo vertexInputStateCI{};
         vertexInputStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
         vertexInputStateCI.vertexBindingDescriptionCount = 0;

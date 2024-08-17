@@ -1239,9 +1239,9 @@ namespace VkRender {
         cmdBufInfo.flags = 0;
         cmdBufInfo.pInheritanceInfo = nullptr;
         std::array<VkClearValue, 3> clearValues{};
-        clearValues[0] = {{{0.1f, 0.1f, 0.1f, 1.0f}}};
+        clearValues[0] = {{{0.15f, 0.15f, 0.15f, 1.0f}}};
         clearValues[1].depthStencil = {1.0f, 0};
-        clearValues[2] = {{{0.1f, 0.1f, 0.1f, 1.0f}}};
+        clearValues[2] = {{{0.15f, 0.15f, 0.15f, 1.0f}}};
         vkBeginCommandBuffer(drawCmdBuffers.buffers[currentFrame], &cmdBufInfo);
         VkRenderPassBeginInfo renderPassBeginInfo = Populate::renderPassBeginInfo();
         renderPassBeginInfo.renderPass = m_mainRenderPass->getRenderPass();

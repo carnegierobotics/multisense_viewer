@@ -7,8 +7,8 @@
 
 
 #include "Viewer/VkRender/Core/CommandBuffer.h"
-#include "Viewer/VkRender/Components/OBJModelComponent.h"
 #include "Viewer/VkRender/Components/GaussianModelComponent.h"
+#include "Viewer/VkRender/RenderPipelines/GraphicsPipeline.h"
 
 #ifdef SYCL_ENABLED
 #include <sycl/sycl.hpp>
@@ -16,6 +16,7 @@
 #include "Viewer/SYCL/RasterizerUtils.h"
 #include "Viewer/VkRender/Core/Camera.h"
 #include "Viewer/VkRender/Core/Texture.h"
+#include "Viewer/VkRender/RenderPipelines/RenderBase.h"
 
 #endif
 
@@ -23,12 +24,10 @@ namespace VkRender {
 #ifdef SYCL_ENABLED
     class GaussianModelGraphicsPipeline {
     public:
-        explicit GaussianModelGraphicsPipeline(VulkanDevice &vulkanDevice);
+        explicit GaussianModelGraphicsPipeline(VulkanDevice &vulkanDevice, RenderPassInfo& renderPassInfo,  uint32_t width, uint32_t height);
 
         ~GaussianModelGraphicsPipeline();
 
-        template<typename T>
-        void bind(T &modelComponent, Camera& camera);
         void generateImage(Camera &camera);
 
         void draw(CommandBuffer &cmdBuffers);
@@ -37,9 +36,19 @@ namespace VkRender {
 
         uint8_t *getImage();
         uint32_t getImageSize();
-    private:
 
-        VulkanDevice& m_vulkanDevice;
+
+        void update(uint32_t currentFrame);
+
+        void updateTransform(const TransformComponent &transform);
+
+        void updateView(const Camera &camera);
+
+        void bind(GaussianModelComponent &modelComponent);
+        void bind(MeshComponent *meshComponent);
+        void setTexture(const VkDescriptorImageInfo *info);
+
+    private:
         sycl::queue queue{};
         bool m_boundBuffers = false;
         uint8_t *m_image = nullptr;
@@ -61,7 +70,7 @@ namespace VkRender {
         uint8_t *imageBuffer = nullptr;
 
         std::unique_ptr<Sorter> sorter;
-        uint32_t width{}, height{};
+        uint32_t m_width{}, m_height{};
 
         uint32_t m_numPoints = 0;
         uint32_t m_shDim = 0;
@@ -74,34 +83,84 @@ namespace VkRender {
 
 
         std::shared_ptr<TextureVideo> m_textureVideo;
+
+
+        //
+        struct Vertices {
+            VkBuffer buffer = VK_NULL_HANDLE;
+            VkDeviceMemory memory = VK_NULL_HANDLE;
+            uint32_t vertexCount = 0;
+        };
+        struct Indices {
+            VkBuffer buffer = VK_NULL_HANDLE;
+            VkDeviceMemory memory = VK_NULL_HANDLE;
+            uint32_t indexCount = 0;
+        };
+
+        VulkanDevice &m_vulkanDevice;
+        RenderPassInfo m_renderPassInfo{};
+        uint32_t m_numSwapChainImages = 0;
+        Texture2D m_emptyTexture;
+        Texture2D m_objTexture;
+
+        Indices indices{};
+        Vertices vertices{};
+
+        std::string m_vertexShader;
+        std::string m_fragmentShader;
+
+        UBOMatrix m_vertexParams; // Non GPU-accessible data, shared across frames
+        FragShaderParams m_fragParams; // Non GPU-accessible data, shared across frames
+        std::vector<DefaultRenderData> m_renderData;
+        SharedRenderData m_sharedRenderData;
+
+        void setupUniformBuffers();
+
+        void setupDescriptors();
+
+        void setupPipeline();
+
+        void cleanUp();
+
     };
 #else
-
-    class GaussianModelGraphicsPipeline {
+    class GaussianModelGraphicsPipeline : public  GraphicsPipeline {
     public:
 
-        explicit GaussianModelGraphicsPipeline(VulkanDevice &vulkanDevice){}
+        explicit GaussianModelGraphicsPipeline(VulkanDevice &vulkanDevice) {}
+        ~GaussianModelGraphicsPipeline() override = default;
+
+        void draw(CommandBuffer&) { /* no-op */ }
+
+        void bind(GaussianModelComponent & model, Camera &camera) { /* no-op */ }
 
 
+        void generateImage(Camera &camera) {}
 
-        void draw(CommandBuffer &) { /* no-op */ }
 
-        void
-        bind(GaussianModelComponent &modelComponent, Camera &camera) {
+        std::shared_ptr<TextureVideo> getTextureRenderTarget() {return nullptr;}
+
+        uint8_t *getImage() {return nullptr;}
+        uint32_t getImageSize() {return 0;}
+
+
+        void updateTransform(const TransformComponent &transform) override {
+
         }
-        /*
-        template<>
 
-        */
-        std::shared_ptr<TextureVideo> getTextureRenderTarget() { return nullptr; }
+        void updateView(const Camera &camera) override {
 
-        void generateImage(Camera &camera) {};
+        }
 
-        uint8_t *getImage() { return nullptr; }
+        void update(uint32_t currentFrameIndex) override {
 
-        uint32_t getImageSize() { return 0; }
+        }
+
+        void bind(MeshComponent &meshComponent) override {
+
+        }
+
     };
-
 #endif
 }
 

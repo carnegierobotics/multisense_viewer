@@ -3,7 +3,7 @@
 //
 
 #include "DefaultGraphicsPipelineComponent2.h"
-#include "Viewer/VkRender/Components/OBJModelComponent.h"
+#include "Viewer/VkRender/Components/MeshComponent.h"
 
 namespace VkRender {
 

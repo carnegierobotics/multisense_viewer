@@ -22,5 +22,5 @@ layout (location = 0) out vec4 outColor;
 
 void main() {
 
-    outColor = vec4(texture(samplerColorMap, vec2(inUV.x, 1-inUV.y)).rgb, 1.0f);
+    outColor = vec4(texture(samplerColorMap, vec2(inUV.x, inUV.y)).rgb, 1.0f);
 }

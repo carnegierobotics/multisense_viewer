@@ -16,6 +16,7 @@
 #include "Viewer/VkRender/Core/UUID.h"
 #include "Viewer/Scenes/ScriptSupport/Base.h"
 #include "Viewer/Scenes/ScriptSupport/ScriptBuilder.h"
+#include "MeshComponent.h"
 
 namespace VkRender {
     DISABLE_WARNING_PUSH
@@ -80,12 +81,14 @@ namespace VkRender {
                    * glm::scale(glm::mat4(1.0f), scale);
         }
 
-        void setEuler(float pitch, float yaw, float roll) {
+        void setEuler(float roll, float pitch, float yaw) {
             euler.pitch = pitch;
             euler.yaw = yaw;
             euler.roll = roll;
             type = RotationType::Euler;
         }
+
+        glm::vec3 getEuler(){ return {euler.roll, euler.pitch, euler.yaw};}
 
         void setQuaternion(const glm::quat &q) {
             quaternion = q;
@@ -208,10 +211,10 @@ namespace VkRender {
         float LineSpacing = 0.0f;
     };
 
-
     template<typename... Component>
     struct ComponentGroup {
     };
+
 
     using AllComponents =
             ComponentGroup<TransformComponent,

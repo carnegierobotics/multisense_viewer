@@ -6,12 +6,13 @@
 #define MULTISENSE_VIEWER_GAUSSIANMODELCOMPONENT_H
 
 #include "Viewer/VkRender/pch.h"
+#include "MeshComponent.h"
 
 namespace VkRender {
     class GaussianModelComponent {
     public:
 
-        GaussianModelComponent() = default;
+        GaussianModelComponent() = delete;
 
         GaussianModelComponent(const GaussianModelComponent &) = delete;
 
@@ -43,8 +44,11 @@ namespace VkRender {
             return m_gaussians;
         }
 
+        MeshComponent* getMeshComponent() {return m_imageComponent.get();}
+
     private:
         GaussianPoints m_gaussians;
+        std::unique_ptr<MeshComponent> m_imageComponent;
 
     private:
         GaussianPoints loadFromFile(std::filesystem::path path, int downSampleRate);

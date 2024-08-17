@@ -5,7 +5,7 @@
 #include "Viewer/VkRender/Entity.h"
 
 #include "Viewer/Scenes/Default/DefaultScene.h"
-#include "Viewer/VkRender/Components/OBJModelComponent.h"
+#include "Viewer/VkRender/Components/MeshComponent.h"
 #include "Viewer/VkRender/RenderPipelines/DefaultGraphicsPipeline.h"
 #include "Viewer/VkRender/Components/GaussianModelComponent.h"
 
@@ -16,7 +16,7 @@ namespace VkRender {
         m_sceneName = "Default Scene";
         Log::Logger::getInstance()->info("DefaultScene Constructor");
         auto entity = createEntity("FirstEntity");
-        auto &modelComponent = entity.addComponent<OBJModelComponent>(
+        auto &modelComponent = entity.addComponent<MeshComponent>(
                 Utils::getModelsPath() / "obj" / "viking_room.obj");
         createNewCamera("DefaultCamera", 1280, 720);
         //auto &res = entity.addComponent<DefaultGraphicsPipelineComponent2>(&m_context->data(),);

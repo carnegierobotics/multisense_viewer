@@ -7,8 +7,7 @@
 #include "Viewer/VkRender/Scene.h"
 #include "Viewer/VkRender/Components/Components.h"
 #include "Viewer/VkRender/RenderPipelines/DefaultGraphicsPipeline.h"
-#include "Viewer/VkRender/Components/OBJModelComponent.h"
-#include "Viewer/VkRender/Components/CameraModelComponent.h"
+#include "Viewer/VkRender/Components/MeshComponent.h"
 #include "Viewer/VkRender/Components/GaussianModelComponent.h"
 
 namespace VkRender {
@@ -27,7 +26,8 @@ namespace VkRender {
     }
 
     Entity Scene::findEntityByName(std::string_view name) {
-        {auto view = m_registry.view<TagComponent>();
+        {
+            auto view = m_registry.view<TagComponent>();
             for (auto entity: view) {
                 const TagComponent &tc = view.get<TagComponent>(entity);
                 if (tc.Tag == name)
@@ -44,8 +44,7 @@ namespace VkRender {
 
     }
 
-    void Scene::destroyEntity(Entity entity)
-    {
+    void Scene::destroyEntity(Entity entity) {
         if (!entity) {
             Log::Logger::getInstance()->warning("Attempted to delete an entity that doesn't exist");
             return;
@@ -64,14 +63,13 @@ namespace VkRender {
         }
     }
 
-    void Scene::createNewCamera(const std::string &name, uint32_t width, uint32_t height) {
-            auto e = createEntity(name);
-            auto &c = e.addComponent<CameraComponent>(Camera(width, height));
-            c.camera.setType(Camera::flycam);
-            auto &transform = e.getComponent<TransformComponent>();
-            c.camera.pose.pos = transform.getPosition();
-            auto &gizmo = e.addComponent<CameraModelComponent>();
-
+    Entity Scene::createNewCamera(const std::string &name, uint32_t width, uint32_t height) {
+        auto e = createEntity(name);
+        auto &c = e.addComponent<CameraComponent>(Camera(width, height));
+        c.camera.setType(Camera::flycam);
+        auto &transform = e.getComponent<TransformComponent>();
+        c.camera.pose.pos = transform.getPosition();
+        return e;
     }
 
     void Scene::onMouseEvent(const MouseButtons &mouse) {
@@ -84,6 +82,7 @@ namespace VkRender {
 
     DISABLE_WARNING_PUSH
     DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER
+
     template<typename T>
     void Scene::onComponentAdded(Entity entity, T &component) {
         static_assert(sizeof(T) == 0);
@@ -118,15 +117,13 @@ namespace VkRender {
     }
 
     template<>
-    void Scene::onComponentAdded<OBJModelComponent>(Entity entity, OBJModelComponent &component) {
+    void Scene::onComponentAdded<MeshComponent>(Entity entity, MeshComponent &component) {
     }
 
     template<>
-    void Scene::onComponentAdded<CameraModelComponent>(Entity entity, CameraModelComponent &component) {
-    }
-    template<>
     void Scene::onComponentAdded<GaussianModelComponent>(Entity entity, GaussianModelComponent &component) {
     }
+
 
     DISABLE_WARNING_POP
 

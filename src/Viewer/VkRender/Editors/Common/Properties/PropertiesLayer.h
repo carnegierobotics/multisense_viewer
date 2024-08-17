@@ -49,21 +49,22 @@ namespace VkRender {
             ImGui::Text("Properties goes here");
             std::shared_ptr<Scene> scene = handles.m_context->activeScene();
 
-            auto view = scene->getRegistry().view<TransformComponent>();
+            auto view = scene->getRegistry().view<TransformComponent, TagComponent>();
             for (auto& entity : view){
                 auto& transform = view.get<TransformComponent>(entity);
                 // Display the entity's ID or some other identifier as a headline
-                ImGui::Text("Entity ID: %d", static_cast<int>(entity));
+                ImGui::Text("Entity: %s", view.get<TagComponent>(entity).Tag.c_str());
 
                 // Get current position and rotation
                 glm::vec3& position = transform.getPosition();
-                glm::quat& rotation = transform.getQuaternion();
+                glm::vec3 euler = transform.getEuler();
                 // Input fields for position
                 ImGui::DragFloat3(("Position##" + std::to_string(static_cast<double>(entity))).c_str(), glm::value_ptr(position), 0.1f);
 
                 // Input fields for rotation (quaternion)
-                ImGui::DragFloat4(("Rotation##" + std::to_string(static_cast<double>(entity))).c_str(), glm::value_ptr(rotation), 0.01f);
+                ImGui::DragFloat3(("Rotation##" + std::to_string(static_cast<double>(entity))).c_str(), glm::value_ptr(euler), 1.0f);
 
+                transform.setEuler(euler.x, euler.y, euler.z);
                 // Add some space between each entity
                 ImGui::Separator();
             }

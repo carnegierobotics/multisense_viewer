@@ -4,13 +4,14 @@
 
 #include "GaussianModelComponent.h"
 #include "tinyply.h"
+#include "Viewer/Tools/Utils.h"
 #include <glm/ext/quaternion_float.hpp>
 
 namespace VkRender {
 
     GaussianModelComponent::GaussianModelComponent(std::filesystem::path filePath) {
         m_gaussians = loadFromFile(filePath, 1);
-
+        m_imageComponent = std::make_unique<MeshComponent>(Utils::getModelsPath() / "obj" / "quad.obj");
     }
 
 

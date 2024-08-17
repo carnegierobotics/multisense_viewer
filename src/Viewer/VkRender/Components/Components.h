@@ -81,12 +81,14 @@ namespace VkRender {
                    * glm::scale(glm::mat4(1.0f), scale);
         }
 
-        void setEuler(float pitch, float yaw, float roll) {
+        void setEuler(float roll, float pitch, float yaw) {
             euler.pitch = pitch;
             euler.yaw = yaw;
             euler.roll = roll;
             type = RotationType::Euler;
         }
+
+        glm::vec3 getEuler(){ return {euler.roll, euler.pitch, euler.yaw};}
 
         void setQuaternion(const glm::quat &q) {
             quaternion = q;

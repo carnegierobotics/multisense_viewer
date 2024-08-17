@@ -23,6 +23,8 @@ namespace VkRender {
     public:
 
 
+        MeshComponent() = delete;
+
         MeshComponent(const MeshComponent &) = delete;
 
         MeshComponent &operator=(const MeshComponent &other) {
@@ -34,7 +36,7 @@ namespace VkRender {
             loadTexture(modelPath);
         }
 
-        MeshComponent() {
+        explicit MeshComponent(uint32_t type) {
             loadCameraModelMesh();
         }
 

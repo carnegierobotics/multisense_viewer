@@ -11,7 +11,7 @@ namespace VkRender {
 
     GaussianModelComponent::GaussianModelComponent(std::filesystem::path filePath) {
         m_gaussians = loadFromFile(filePath, 1);
-        m_imageComponent = MeshComponent(Utils::getModelsPath() / "obj" / "quad.obd");
+        m_imageComponent = std::make_unique<MeshComponent>(Utils::getModelsPath() / "obj" / "quad.obj");
     }
 
 

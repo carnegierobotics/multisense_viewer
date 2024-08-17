@@ -12,7 +12,7 @@ namespace VkRender {
     class GaussianModelComponent {
     public:
 
-        GaussianModelComponent() = default;
+        GaussianModelComponent() = delete;
 
         GaussianModelComponent(const GaussianModelComponent &) = delete;
 
@@ -44,11 +44,11 @@ namespace VkRender {
             return m_gaussians;
         }
 
-        MeshComponent& getMeshComponent() {return m_imageComponent;}
+        MeshComponent* getMeshComponent() {return m_imageComponent.get();}
 
     private:
         GaussianPoints m_gaussians;
-        MeshComponent m_imageComponent;
+        std::unique_ptr<MeshComponent> m_imageComponent;
 
     private:
         GaussianPoints loadFromFile(std::filesystem::path path, int downSampleRate);

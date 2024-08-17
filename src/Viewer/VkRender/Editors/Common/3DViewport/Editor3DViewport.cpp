@@ -82,7 +82,7 @@ namespace VkRender {
                         // Set the active camera to the components transform
                         auto &transform = registry.get<TransformComponent>(entity);
                         cameraComponent().pose.pos = transform.getPosition();
-                        cameraComponent().pose.q = transform.getQuaternion();
+                        cameraComponent().pose.q = glm::quat_cast(transform.getRotMat());
                         cameraComponent().updateViewMatrix();
                         //transform.getPosition() = cameraComponent().pose.pos;
                         //transform.getQuaternion() = cameraComponent().pose.q;

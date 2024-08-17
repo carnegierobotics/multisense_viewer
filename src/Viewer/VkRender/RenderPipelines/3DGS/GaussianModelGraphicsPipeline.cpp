@@ -12,8 +12,14 @@
 namespace VkRender {
 
 
-    GaussianModelGraphicsPipeline::GaussianModelGraphicsPipeline(VulkanDevice &vulkanDevice) : m_vulkanDevice(
-            vulkanDevice) {
+    GaussianModelGraphicsPipeline::GaussianModelGraphicsPipeline(VulkanDevice &vulkanDevice,
+                                                                 RenderPassInfo &renderPassInfo,
+                                                                 uint32_t width,
+                                                                 uint32_t height) :
+            m_vulkanDevice(vulkanDevice),
+            m_renderPassInfo(std::move(renderPassInfo)),
+            m_width(width), m_height(height) {
+
         try {
             // Create a queue using the CPU device selector
             auto gpuSelector = [](const sycl::device &dev) {
@@ -41,13 +47,27 @@ namespace VkRender {
             queue = sycl::queue(sycl::property::queue::in_order());
         }
 
+        m_numSwapChainImages = renderPassInfo.swapchainImageCount;
+        m_renderData.resize(m_numSwapChainImages);
+
+        m_vertexShader = "SYCLRenderer.vert";
+        m_fragmentShader = "SYCLRenderer.frag";
+
+
+        m_textureVideo = std::make_shared<TextureVideo>(width, height, &m_vulkanDevice,
+                                                        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                                        VK_FORMAT_R8G8B8A8_UNORM);
+
+        setupUniformBuffers();
+        setupDescriptors();
+        setupPipeline();
 
         Log::Logger::getInstance()->info("Selected Device {}",
                                          queue.get_device().get_info<sycl::info::device::name>().c_str());
     }
 
 
-    void GaussianModelGraphicsPipeline::bind(GaussianModelComponent &modelComponent, uint32_t width, uint32_t height) {
+    void GaussianModelGraphicsPipeline::bind(GaussianModelComponent &modelComponent) {
 
         auto &gs = modelComponent.getGaussians();
         Log::Logger::getInstance()->info("Loaded {} Gaussians", gs.getSize());
@@ -78,19 +98,14 @@ namespace VkRender {
             keysBuffer = sycl::malloc_device<uint32_t>(sortBufferSize, queue);
             valuesBuffer = sycl::malloc_device<uint32_t>(sortBufferSize, queue);
 
-            m_width = width;
-            m_height = height;
-            m_imageSize = width * height * 4;
-            m_image = reinterpret_cast<uint8_t *>(std::malloc(width * height * 4));
+            m_imageSize = m_width * m_height * 4;
+            m_image = reinterpret_cast<uint8_t *>(std::malloc(m_width * m_height * 4));
             sorter = std::make_unique<Sorter>(queue, sortBufferSize);
 
-            imageBuffer = sycl::malloc_device<uint8_t>(width * height * 4, queue);
-            rangesBuffer = sycl::malloc_device<glm::ivec2>((width / 16) * (height / 16), queue);
+            imageBuffer = sycl::malloc_device<uint8_t>(m_width * m_height * 4, queue);
+            rangesBuffer = sycl::malloc_device<glm::ivec2>((m_width / 16) * (m_height / 16), queue);
             m_boundBuffers = true;
 
-            m_textureVideo = std::make_shared<TextureVideo>(width, height, &m_vulkanDevice,
-                                                            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                                                            VK_FORMAT_R8G8B8A8_UNORM);
 
         } catch (sycl::exception &e) {
             std::cerr << "Caught a SYCL exception: " << e.what() << std::endl;
@@ -242,13 +257,13 @@ namespace VkRender {
                 */
 
                 // Load keys
-                /*
+
                 sorter->performOneSweep(keysBuffer, valuesBuffer, numRendered);
                 //sorter->verifySort(keysBuffer, numRendered); //, true, keys);
                 queue.wait();
                 sorter->resetMemory();
                 queue.wait();
-                */
+
 
 
                 std::chrono::duration<double, std::milli> sortingDuration =
@@ -396,10 +411,10 @@ namespace VkRender {
         VkFenceCreateInfo fenceInfo = Populate::fenceCreateInfo(0);
         vkCreateFence(logicalDevice, &fenceInfo, nullptr, &fence);
 
-        Indices& indices = this->indices;
-        Vertices& vertices = this->vertices;
-        VkDescriptorSetLayout layout =  m_sharedRenderData.descriptorSetLayout;
-        VkDescriptorPool pool =  m_sharedRenderData.descriptorPool;
+        Indices &indices = this->indices;
+        Vertices &vertices = this->vertices;
+        VkDescriptorSetLayout layout = m_sharedRenderData.descriptorSetLayout;
+        VkDescriptorPool pool = m_sharedRenderData.descriptorPool;
 
         VulkanResourceManager::getInstance().deferDeletion(
                 [logicalDevice, indices, vertices, layout, pool]() {
@@ -505,7 +520,7 @@ namespace VkRender {
                 writeDescriptorSets[2].descriptorCount = 1;
                 writeDescriptorSets[2].dstSet = resource.descriptorSet;
                 writeDescriptorSets[2].dstBinding = 2;
-                writeDescriptorSets[2].pImageInfo = &m_emptyTexture.m_descriptor;
+                writeDescriptorSets[2].pImageInfo = &m_textureVideo->m_descriptor;
 
                 vkUpdateDescriptorSets(m_vulkanDevice.m_LogicalDevice,
                                        static_cast<uint32_t>(writeDescriptorSets.size()),
@@ -538,8 +553,9 @@ namespace VkRender {
         shaderStages[1] = Utils::loadShader(m_vulkanDevice.m_LogicalDevice, "spv/" + m_fragmentShader,
                                             VK_SHADER_STAGE_FRAGMENT_BIT, &fragModule);
 
-        VulkanGraphicsPipelineCreateInfo createInfo( m_renderPassInfo.renderPass, m_vulkanDevice);
-        createInfo.rasterizationStateCreateInfo = Populate::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE,
+        VulkanGraphicsPipelineCreateInfo createInfo(m_renderPassInfo.renderPass, m_vulkanDevice);
+        createInfo.rasterizationStateCreateInfo = Populate::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL,
+                                                                                                 VK_CULL_MODE_NONE,
                                                                                                  VK_FRONT_FACE_COUNTER_CLOCKWISE);
         createInfo.msaaSamples = m_renderPassInfo.sampleCount;
         createInfo.shaders = shaderStages;
@@ -561,10 +577,12 @@ namespace VkRender {
                &m_vertexParams, sizeof(VkRender::UBOMatrix));
 
     }
+
     void GaussianModelGraphicsPipeline::updateTransform(const TransformComponent &transform) {
         m_vertexParams.model = transform.GetTransform();
 
     }
+
     void GaussianModelGraphicsPipeline::updateView(const Camera &camera) {
         m_vertexParams.view = camera.matrices.view;
         m_vertexParams.projection = camera.matrices.perspective;
@@ -574,7 +592,8 @@ namespace VkRender {
 
     void GaussianModelGraphicsPipeline::draw(CommandBuffer &cmdBuffers) {
         const uint32_t &cbIndex = *cmdBuffers.frameIndex;
-        vkCmdBindPipeline(cmdBuffers.buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS, m_sharedRenderData.graphicsPipeline->getPipeline());
+        vkCmdBindPipeline(cmdBuffers.buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS,
+                          m_sharedRenderData.graphicsPipeline->getPipeline());
         vkCmdBindDescriptorSets(cmdBuffers.buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS,
                                 m_sharedRenderData.graphicsPipeline->getPipelineLayout(), 0, static_cast<uint32_t>(1),
                                 &m_renderData[cbIndex].descriptorSet, 0, nullptr);
@@ -608,11 +627,11 @@ namespace VkRender {
     }
 
 
-    void GaussianModelGraphicsPipeline::bind(VkRender::MeshComponent &modelComponent) {
+    void GaussianModelGraphicsPipeline::bind(VkRender::MeshComponent *modelComponent) {
         // Bind vertex/index buffers from model
-        indices.indexCount = modelComponent.m_indices.size();
-        size_t vertexBufferSize = modelComponent.m_vertices.size() * sizeof(VkRender::Vertex);
-        size_t indexBufferSize = modelComponent.m_indices.size() * sizeof(uint32_t);
+        indices.indexCount = modelComponent->m_indices.size();
+        size_t vertexBufferSize = modelComponent->m_vertices.size() * sizeof(VkRender::Vertex);
+        size_t indexBufferSize = modelComponent->m_indices.size() * sizeof(uint32_t);
 
         assert(vertexBufferSize > 0);
 
@@ -629,7 +648,7 @@ namespace VkRender {
                 vertexBufferSize,
                 &vertexStaging.buffer,
                 &vertexStaging.memory,
-                modelComponent.m_vertices.data()));
+                modelComponent->m_vertices.data()));
         // Index data
         if (indexBufferSize > 0) {
             CHECK_RESULT(m_vulkanDevice.createBuffer(
@@ -638,7 +657,7 @@ namespace VkRender {
                     indexBufferSize,
                     &indexStaging.buffer,
                     &indexStaging.memory,
-                    modelComponent.m_indices.data()));
+                    modelComponent->m_indices.data()));
         }
 
         // Create m_vulkanDevice local buffers

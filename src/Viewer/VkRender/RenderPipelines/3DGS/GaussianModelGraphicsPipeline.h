@@ -24,7 +24,7 @@ namespace VkRender {
 #ifdef SYCL_ENABLED
     class GaussianModelGraphicsPipeline {
     public:
-        explicit GaussianModelGraphicsPipeline(VulkanDevice &vulkanDevice);
+        explicit GaussianModelGraphicsPipeline(VulkanDevice &vulkanDevice, RenderPassInfo& renderPassInfo,  uint32_t width, uint32_t height);
 
         ~GaussianModelGraphicsPipeline();
 
@@ -44,8 +44,8 @@ namespace VkRender {
 
         void updateView(const Camera &camera);
 
-        void bind(GaussianModelComponent &modelComponent, uint32_t width, uint32_t height);
-        void bind(MeshComponent &meshComponent);
+        void bind(GaussianModelComponent &modelComponent);
+        void bind(MeshComponent *meshComponent);
         void setTexture(const VkDescriptorImageInfo *info);
 
     private:

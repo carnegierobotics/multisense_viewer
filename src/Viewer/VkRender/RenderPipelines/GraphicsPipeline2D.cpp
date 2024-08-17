@@ -7,7 +7,7 @@
 #include "Viewer/VkRender/Renderer.h"
 
 #include "Viewer/Tools/Utils.h"
-#include "Viewer/VkRender/Components/OBJModelComponent.h"
+#include "Viewer/VkRender/Components/MeshComponent.h"
 
 
 namespace VkRender{
@@ -247,8 +247,8 @@ namespace VkRender{
 
     template<>
     void
-    GraphicsPipeline2D::bind<OBJModelComponent>(
-            OBJModelComponent &modelComponent) {
+    GraphicsPipeline2D::bind<MeshComponent>(
+            MeshComponent &modelComponent) {
         // Bind possible textures
 
 

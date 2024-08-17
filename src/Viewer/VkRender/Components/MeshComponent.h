@@ -19,27 +19,39 @@
 #include "Viewer/VkRender/Core/CommandBuffer.h"
 
 namespace VkRender {
-    struct OBJModelComponent {
+    struct MeshComponent {
     public:
-        OBJModelComponent() = default;
 
-        OBJModelComponent(const OBJModelComponent &) = delete;
 
-        OBJModelComponent &operator=(const OBJModelComponent &other) {
+        MeshComponent(const MeshComponent &) = delete;
+
+        MeshComponent &operator=(const MeshComponent &other) {
             return *this;
         }
 
-        explicit OBJModelComponent(const std::filesystem::path &modelPath) {
+        explicit MeshComponent(const std::filesystem::path &modelPath) {
             loadModel(modelPath);
             loadTexture(modelPath);
         }
 
+        MeshComponent() {
+            loadCameraModelMesh();
+        }
+
         Texture2D objTexture; // TODO Possibly make more empty textures to match our triple buffering?
+        UBOCamera &getCameraModelMesh() { return m_cameraModelVertices; }
+        bool usesUBOMesh() {return m_isCameraModelMesh;}
 
     private:
-        void loadModel(const std::filesystem::path& modelPath);
+        void loadModel(const std::filesystem::path &modelPath);
 
-        void loadTexture(const std::filesystem::path& texturePath);
+        void loadTexture(const std::filesystem::path &texturePath);
+
+
+        void loadCameraModelMesh();
+
+
+        UBOCamera m_cameraModelVertices{};
 
     public:
         std::vector<VkRender::Vertex> m_vertices;
@@ -48,6 +60,9 @@ namespace VkRender {
         VkDeviceSize m_texSize = 0;
         uint32_t m_texWidth = 0;
         uint32_t m_texHeight = 0;
+
+
+        bool m_isCameraModelMesh = false;
     };
 };
 

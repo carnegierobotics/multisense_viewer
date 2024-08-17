@@ -16,6 +16,7 @@
 #include "Viewer/VkRender/Core/UUID.h"
 #include "Viewer/Scenes/ScriptSupport/Base.h"
 #include "Viewer/Scenes/ScriptSupport/ScriptBuilder.h"
+#include "MeshComponent.h"
 
 namespace VkRender {
     DISABLE_WARNING_PUSH
@@ -208,10 +209,10 @@ namespace VkRender {
         float LineSpacing = 0.0f;
     };
 
-
     template<typename... Component>
     struct ComponentGroup {
     };
+
 
     using AllComponents =
             ComponentGroup<TransformComponent,

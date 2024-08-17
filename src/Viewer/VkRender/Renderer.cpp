@@ -43,7 +43,7 @@
 
 #include "Viewer/VkRender/Components/Components.h"
 #include "Viewer/VkRender/Editors/EditorDefinitions.h"
-#include "Viewer/VkRender/Components/OBJModelComponent.h"
+#include "Viewer/VkRender/Components/MeshComponent.h"
 #include "Viewer/Scenes/MultiSenseViewer/MultiSenseViewer.h"
 
 namespace VkRender {
@@ -777,7 +777,7 @@ namespace VkRender {
             if (uuid == editor->getUUID()) {
                 return editor;
             }
-        }
+        } // TODO what to return?
     }
 
 

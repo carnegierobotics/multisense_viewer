@@ -56,6 +56,7 @@
 
 namespace VkRender {
     class Renderer;
+    class Entity;
     /** @brief Set of Default colors */
     namespace Colors {
         static const ImVec4 green(0.26f, 0.42f, 0.31f, 1.0f);
@@ -170,6 +171,8 @@ namespace VkRender {
         bool openAddDevicePopup = false;
         std::shared_ptr<MultiSense::MultiSenseRendererBridge> multiSenseRendererBridge{};
         std::shared_ptr<MultiSense::MultiSenseRendererGigEVisionBridge> multiSenseRendererGigEVisionBridge{};
+        std::unordered_map<uint32_t, bool> setActiveCamera;
+
     };
 
     /** @brief Handle which is the MAIN link between ''frontend and backend'' */

@@ -36,7 +36,8 @@ namespace VkRender {
 
             // Set window position and size
             ImVec2 window_pos = ImVec2(5.0f, 55.0f); // Position (x, y)
-            ImVec2 window_size = ImVec2(handles.editorUi->width - 5.0f, handles.editorUi->height - 55.0f); // Size (width, height)
+            ImVec2 window_size = ImVec2(handles.editorUi->width - 5.0f,
+                                        handles.editorUi->height - 55.0f); // Size (width, height)
 
 
             // Set window flags to remove decorations
@@ -50,16 +51,23 @@ namespace VkRender {
             // Create the parent window
             ImGui::Begin("Editor3DLayer", nullptr, window_flags);
 
-            ImGui::PushFont(handles.info->font15);
-            ImGui::Checkbox("Set Active Camera", &handles.editorUi->setActiveCamera);
-            ImGui::PopFont();
+            for (const auto &pair: handles.shared->setActiveCamera) {
+                if (pair.second) {  // If any value is true
+                    ImGui::PushFont(handles.info->font15);
+                    ImGui::Checkbox("Set Active Camera", &handles.editorUi->setActiveCamera);
+                    ImGui::PopFont();
+                    break;
+                }
+            }
+
 
             ImGui::End();
 
         }
 
         /** Called once upon this object destruction **/
-        void onDetach() override {
+        void onDetach()
+        override {
 
         }
     };

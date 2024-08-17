@@ -8,14 +8,16 @@
 
 #include <stb_image.h>
 #include "Viewer/VkRender/Core/RenderDefinitions.h"
-#include "Viewer/VkRender/RenderPipelines//RenderBase.h"
+#include "Viewer/VkRender/RenderPipelines/RenderBase.h"
+#include "Viewer/VkRender/RenderPipelines/GraphicsPipeline.h"
+
+#include "Viewer/VkRender/Components/Components.h"
 #include "Viewer/Tools/Logger.h"
 #include "Viewer/Tools/Utils.h"
-#include "Viewer/VkRender/Components/Components.h"
 
 namespace VkRender {
 
-    class DefaultGraphicsPipeline {
+    class DefaultGraphicsPipeline : public GraphicsPipeline {
     public:
 
         DefaultGraphicsPipeline() = delete;
@@ -37,16 +39,15 @@ namespace VkRender {
 
         void cleanUp();
 
-        void update(uint32_t currentFrame);
+        void update(uint32_t currentFrame) override;
 
-        void updateTransform(const TransformComponent &transform);
+        void updateTransform(const TransformComponent &transform) override;
 
-        void draw(CommandBuffer &cmdBuffers);
+        void draw(CommandBuffer &cmdBuffers) override;
 
-        void updateView(const Camera &camera);
+        void updateView(const Camera &camera) override;
 
-        template<typename T>
-        void bind(T &modelComponent);
+        void bind(MeshComponent &meshComponent) override;
 
     private:
         struct Vertices {

@@ -7,6 +7,7 @@
 
 
 #include "Viewer/VkRender/Core/CommandBuffer.h"
+#include "Viewer/VkRender/Components/GaussianModelComponent.h"
 
 #ifdef SYCL_ENABLED
 #include <sycl/sycl.hpp>
@@ -74,11 +75,42 @@ namespace VkRender {
         std::shared_ptr<TextureVideo> m_textureVideo;
     };
 #else
-    class GaussianModelGraphicsPipeline {
+    class GaussianModelGraphicsPipeline : GraphicsPipeline{
     public:
+
+        explicit GaussianModelGraphicsPipeline(VulkanDevice &vulkanDevice) {}
+        ~GaussianModelGraphicsPipeline() override = default;
+
         void draw(CommandBuffer&) { /* no-op */ }
-        template <typename T>
-        void bind(T&) { /* no-op */ }
+
+        void bind(GaussianModelComponent & model, Camera &camera) { /* no-op */ }
+
+
+        void generateImage(Camera &camera) {}
+
+
+        std::shared_ptr<TextureVideo> getTextureRenderTarget() {return nullptr;}
+
+        uint8_t *getImage() {return nullptr;}
+        uint32_t getImageSize() {return 0;}
+
+
+        void updateTransform(const TransformComponent &transform) override {
+
+        }
+
+        void updateView(const Camera &camera) override {
+
+        }
+
+        void update(uint32_t currentFrameIndex) override {
+
+        }
+
+        void bind(MeshComponent &meshComponent) override {
+
+        }
+
     };
 #endif
 }

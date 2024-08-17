@@ -89,11 +89,11 @@ set(SOURCE_FILES
         src/Viewer/VkRender/Scene.cpp
 
         src/Viewer/VkRender/RenderPipelines/DefaultGraphicsPipeline.cpp
-        src/Viewer/VkRender/RenderPipelines/CameraModelGraphicsPipeline.cpp
+        src/Viewer/VkRender/RenderPipelines/UboGraphicsPipeline.cpp
         src/Viewer/VkRender/RenderPipelines/GraphicsPipeline2D.cpp
         src/Viewer/VkRender/RenderPipelines/PointCloudGraphicsPipeline.cpp
 
-        src/Viewer/VkRender/Components/OBJModelComponent.cpp
+        src/Viewer/VkRender/Components/MeshComponent.cpp
         src/Viewer/VkRender/Components/GaussianModelComponent.cpp
         #src/Viewer/VkRender/Components/SkyboxGraphicsPipelineComponent.cpp
         #src/Viewer/VkRender/Components/DefaultPBRGraphicsPipelineComponent.cpp

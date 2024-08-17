@@ -8,7 +8,7 @@
 #include "Viewer/VkRender/Renderer.h"
 #include "Viewer/VkRender/Entity.h"
 #include "Viewer/VkRender/Components/RenderComponents/DefaultGraphicsPipelineComponent2.h"
-#include "Viewer/VkRender/Components/OBJModelComponent.h"
+#include "Viewer/VkRender/Components/MeshComponent.h"
 
 
 void ImageViewer::setup() {

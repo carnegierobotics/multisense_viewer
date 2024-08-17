@@ -3,8 +3,7 @@
 //
 
 #include "Viewer/VkRender/RenderPipelines/DefaultGraphicsPipeline.h"
-#include "Viewer/VkRender/Components/OBJModelComponent.h"
-#include "Viewer/VkRender/Components/CameraModelComponent.h"
+#include "Viewer/VkRender/Components/MeshComponent.h"
 #include "Viewer/VkRender/Renderer.h"
 #include "Viewer/VkRender/Core/VulkanResourceManager.h"
 
@@ -257,10 +256,8 @@ namespace VkRender {
         cleanUp();
     }
 
-    template<>
-    void
-    DefaultGraphicsPipeline::bind<VkRender::OBJModelComponent>(
-            VkRender::OBJModelComponent &modelComponent) {
+    void DefaultGraphicsPipeline::bind(VkRender::MeshComponent &modelComponent) {
+
         // Bind possible textures
         if (modelComponent.m_pixels) {
             m_objTexture.fromBuffer(modelComponent.m_pixels, modelComponent.m_texSize, VK_FORMAT_R8G8B8A8_SRGB,

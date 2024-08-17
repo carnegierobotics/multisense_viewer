@@ -10,7 +10,7 @@
 #include "Viewer/VkRender/Entity.h"
 #include "Viewer/VkRender/ImGui/LayerUtils.h"
 #include "Viewer/VkRender/RenderPipelines/DefaultGraphicsPipeline.h"
-#include "Viewer/VkRender/Components/OBJModelComponent.h"
+#include "Viewer/VkRender/Components/MeshComponent.h"
 #include "Viewer/VkRender/Components/GaussianModelComponent.h"
 
 namespace VkRender {
@@ -42,39 +42,41 @@ namespace VkRender {
             auto view = registry.view<TagComponent>();
             ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_OpenOnDoubleClick;
 
-            if (ImGui::TreeNodeEx(("Scene: " + handles.m_context->activeScene()->getSceneName()).c_str(), treeNodeFlags)) {
+            if (ImGui::TreeNodeEx(("Scene: " + handles.m_context->activeScene()->getSceneName()).c_str(),
+                                  treeNodeFlags)) {
 
                 // Iterate over entities that have a GLTFModelComponent and a TagComponent
+                bool anyCameraActive = false;
                 for (auto entity: view) {
                     auto &tag = view.get<TagComponent>(entity);
-                    processEntity(handles, entity, tag);
-                }
-                ImGui::TreePop();
-            }
-        }
 
-        void processEntity(GuiObjectHandles &handles, entt::entity entity, TagComponent &tag) {
-            // Your processing logic here
-            // This function is called for both component types
-            if (ImGui::TreeNodeEx(tag.Tag.c_str(), ImGuiTreeNodeFlags_None)) {
-                auto e = Entity(entity, handles.m_context->activeScene().get());
-                if (e.hasComponent<DefaultGraphicsPipeline>()) {
-                    if (ImGui::SmallButton("Reload Shader")) {
-                        //e.getComponent<DefaultGraphicsPipelineComponent>().reloadShaders();
+                    if (ImGui::TreeNodeEx(tag.Tag.c_str(), ImGuiTreeNodeFlags_None)) {
+                        auto e = Entity(entity, handles.m_context->activeScene().get());
+                        if (e.hasComponent<DefaultGraphicsPipeline>()) {
+                            if (ImGui::SmallButton("Reload Shader")) {
+                                //e.getComponent<DefaultGraphicsPipelineComponent>().reloadShaders();
+                            }
+                        }
+                        if (e.hasComponent<TransformComponent>() && !e.hasComponent<CameraComponent>()) {
+                            std::string label = "Flip Up #" + tag.Tag;
+                            auto &transform = e.getComponent<TransformComponent>();
+                            ImGui::Checkbox(label.c_str(), &transform.getFlipUpOption());
+                        }
+                        if (e.hasComponent<CameraComponent>()) {
+                            auto &camera = e.getComponent<CameraComponent>();
+                            std::string label = "Set Active ##" + tag.Tag;
+                            ImGui::Checkbox(label.c_str(), &handles.shared->setActiveCamera[static_cast<uint32_t>(e)]);
+
+                        }
+                        if (ImGui::SmallButton(("Delete ##" + tag.Tag).c_str())) {
+                            handles.m_context->activeScene()->destroyEntity(
+                                    Entity(entity, handles.m_context->activeScene().get()));
+                        }
+                        ImGui::TreePop();
                     }
                 }
-                if (e.hasComponent<TransformComponent>()) {
-                    auto &transform = e.getComponent<TransformComponent>();
-                    ImGui::Checkbox("Flip Up", &transform.getFlipUpOption());
-                }
-                if (ImGui::SmallButton(("Delete ##" + tag.Tag).c_str())) {
-                    handles.m_context->activeScene()->destroyEntity(Entity(entity, handles.m_context->activeScene().get()));
-                }
                 ImGui::TreePop();
             }
-
-            // Check if the other tree is hovered
-
         }
 
         void openImportFileDialog(const std::string &fileDescription, const std::string &type) {
@@ -90,19 +92,19 @@ namespace VkRender {
         }
 
         /** Handle the file path after selection is complete **/
-        void handleSelectedFile(const LayerUtils::LoadFileInfo &loadFileInfo, GuiObjectHandles& handles) {
+        void handleSelectedFile(const LayerUtils::LoadFileInfo &loadFileInfo, GuiObjectHandles &handles) {
             if (!loadFileInfo.path.empty()) {
-                if (loadFileInfo.path.extension() == ".obj"){
+                if (loadFileInfo.path.extension() == ".obj") {
 
-                // Load into the active scene
-                auto entity = handles.m_context->activeScene()->createEntity(loadFileInfo.path.filename().string());
-                entity.addComponent<OBJModelComponent>(loadFileInfo.path);
+                    // Load into the active scene
+                    auto entity = handles.m_context->activeScene()->createEntity(loadFileInfo.path.filename().string());
+                    entity.addComponent<MeshComponent>(loadFileInfo.path);
 
-                } else if (loadFileInfo.path.extension() == ".ply"){
+                } else if (loadFileInfo.path.extension() == ".ply") {
                     // Load into the active scene
                     auto entity = handles.m_context->activeScene()->createEntity(loadFileInfo.path.filename().string());
                     entity.addComponent<GaussianModelComponent>(loadFileInfo.path);
-                    entity.addComponent<OBJModelComponent>(Utils::getModelsPath() / "obj" / "quad.obj");
+                    entity.addComponent<MeshComponent>(Utils::getModelsPath() / "obj" / "quad.obj");
                 }
 
 
@@ -110,15 +112,16 @@ namespace VkRender {
                 auto &opts = RendererConfig::getInstance().getUserSetting();
                 opts.lastOpenedImportModelFolderPath = loadFileInfo.path;
                 // Additional processing of the file can be done here
-                Log::Logger::getInstance()->info("File selected: {}",  loadFileInfo.path.filename().string());
+                Log::Logger::getInstance()->info("File selected: {}", loadFileInfo.path.filename().string());
             } else {
                 Log::Logger::getInstance()->warning("No file selected.");
             }
         }
 
 
-        void checkFileImportCompletion(GuiObjectHandles& handles) {
-            if (loadFileFuture.valid() && loadFileFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+        void checkFileImportCompletion(GuiObjectHandles &handles) {
+            if (loadFileFuture.valid() &&
+                loadFileFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
                 LayerUtils::LoadFileInfo selectedFilePath = loadFileFuture.get(); // Get the result from the future
                 handleSelectedFile(selectedFilePath, handles);
             }

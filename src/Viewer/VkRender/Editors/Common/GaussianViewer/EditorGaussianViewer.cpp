@@ -5,7 +5,7 @@
 #include "EditorGaussianViewer.h"
 
 #include "Viewer/VkRender/Components/GaussianModelComponent.h"
-#include "Viewer/VkRender/Components/OBJModelComponent.h"
+#include "Viewer/VkRender/Components/MeshComponent.h"
 #include "Viewer/VkRender/Renderer.h"
 #include "Viewer/VkRender/Entity.h"
 
@@ -14,6 +14,7 @@ namespace VkRender {
         m_activeScene = m_context->activeScene();
         // We'll find the gaussian objects in the scene and render them
 
+        /*
         auto cameraEntity = m_activeScene->findEntityByName("DefaultCamera");
         if (cameraEntity) {
             auto &transform = cameraEntity.getComponent<TransformComponent>();
@@ -22,18 +23,19 @@ namespace VkRender {
             camera.updateViewMatrix();
             m_activeCamera = &camera;
         }
+        */
 
         RenderPassInfo renderPassInfo{};
         renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
         renderPassInfo.renderPass = m_renderPass->getRenderPass();
 
-        auto cameraModelView = m_activeScene->getRegistry().view<GaussianModelComponent, OBJModelComponent>();
+        auto cameraModelView = m_activeScene->getRegistry().view<GaussianModelComponent, MeshComponent>();
         // Iterate over the entities in the view
         for (entt::entity entity: cameraModelView) {
             m_gaussianRenderPipelines[entity] = std::make_unique<GaussianModelGraphicsPipeline>(m_context->vkDevice());
             m_2DRenderPipeline[entity] = std::make_unique<GraphicsPipeline2D>(*m_context, renderPassInfo);
 
-            m_2DRenderPipeline[entity]->bind(cameraModelView.get<OBJModelComponent>(entity));
+            m_2DRenderPipeline[entity]->bind(cameraModelView.get<MeshComponent>(entity));
 
             auto &model = cameraModelView.get<GaussianModelComponent>(entity);
             m_gaussianRenderPipelines[entity]->bind(model, *m_activeCamera);
@@ -48,7 +50,7 @@ namespace VkRender {
 
     void VkRender::EditorGaussianViewer::onUpdate() {
 
-        auto cameraModelView = m_activeScene->getRegistry().view<GaussianModelComponent, OBJModelComponent>();
+        auto cameraModelView = m_activeScene->getRegistry().view<GaussianModelComponent, MeshComponent>();
         for (auto entity: cameraModelView) {
             if (!m_gaussianRenderPipelines[entity]) { // Check if the pipeline already exists
                 RenderPassInfo renderPassInfo{};
@@ -57,7 +59,7 @@ namespace VkRender {
                 m_gaussianRenderPipelines[entity] = std::make_unique<GaussianModelGraphicsPipeline>(m_context->vkDevice());
                 m_2DRenderPipeline[entity] = std::make_unique<GraphicsPipeline2D>(*m_context, renderPassInfo);
 
-                m_2DRenderPipeline[entity]->bind(cameraModelView.get<OBJModelComponent>(entity));
+                m_2DRenderPipeline[entity]->bind(cameraModelView.get<MeshComponent>(entity));
 
                 auto &model = cameraModelView.get<GaussianModelComponent>(entity);
                 m_gaussianRenderPipelines[entity]->bind(model, *m_activeCamera);

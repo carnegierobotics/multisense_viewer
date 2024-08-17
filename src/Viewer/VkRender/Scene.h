@@ -39,7 +39,7 @@ namespace VkRender {
 
         void destroyEntity(Entity entity);
 
-        void createNewCamera(const std::string &name, uint32_t width, uint32_t height);
+        Entity createNewCamera(const std::string &name, uint32_t width, uint32_t height);
 
         void onMouseEvent(const MouseButtons &mouseButtons);
 

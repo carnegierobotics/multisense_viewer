@@ -44,6 +44,8 @@ namespace VkRender {
             return m_gaussians;
         }
 
+        MeshComponent& getMeshComponent() {return m_imageComponent;}
+
     private:
         GaussianPoints m_gaussians;
         MeshComponent m_imageComponent;

@@ -23,13 +23,13 @@ namespace VkRender {
             camera.updateViewMatrix();
             m_activeCamera = &camera;
         }
-        */
+
 
         RenderPassInfo renderPassInfo{};
         renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
         renderPassInfo.renderPass = m_renderPass->getRenderPass();
 
-        auto cameraModelView = m_activeScene->getRegistry().view<GaussianModelComponent, MeshComponent>();
+        auto cameraModelView = m_activeScene->getRegistry().view<GaussianModelComponent>();
         // Iterate over the entities in the view
         for (entt::entity entity: cameraModelView) {
             m_gaussianRenderPipelines[entity] = std::make_unique<GaussianModelGraphicsPipeline>(m_context->vkDevice());
@@ -44,12 +44,37 @@ namespace VkRender {
             m_2DRenderPipeline[entity]->setTexture(
                     &m_gaussianRenderPipelines[entity]->getTextureRenderTarget()->m_descriptor);
         }
+*/
+        generatePipelines();
+    }
 
+    void EditorGaussianViewer::generatePipelines() {
+        RenderPassInfo renderPassInfo{};
+        renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
+        renderPassInfo.renderPass = m_renderPass->getRenderPass();
 
+        // Generate pipelines
+        auto view = m_activeScene->getRegistry().view<GaussianModelComponent>(); // TODO make one specific component type for renderables in standard pipelines
+        for (auto entity: view) {
+            if (!m_gaussianRenderPipelines[entity]) { // Check if the pipeline already exists
+                auto &model = view.get<GaussianModelComponent>(entity);
+                m_gaussianRenderPipelines[entity] = std::make_unique<GaussianModelGraphicsPipeline>(m_context->vkDevice());
+                m_gaussianRenderPipelines[entity]->bind(model, 1280, 720);
+                m_gaussianRenderPipelines[entity]->bind(model.getMeshComponent());
+                m_gaussianRenderPipelines[entity]->setTexture(&m_gaussianRenderPipelines[entity]->getTextureRenderTarget()->m_descriptor);
+            }
+        }
     }
 
     void VkRender::EditorGaussianViewer::onUpdate() {
+        generatePipelines();
+        if (ui().render3DGSImage) {
+            for (auto &pipeline: m_gaussianRenderPipelines) {
+                pipeline.second->generateImage(*m_activeCamera);
+            }
+        }
 
+        /*
         auto cameraModelView = m_activeScene->getRegistry().view<GaussianModelComponent, MeshComponent>();
         for (auto entity: cameraModelView) {
             if (!m_gaussianRenderPipelines[entity]) { // Check if the pipeline already exists
@@ -69,12 +94,7 @@ namespace VkRender {
 
         uint8_t *image = nullptr;
         uint32_t imageSize = 0;
-        if (ui().render3DGSImage) {
-            for (auto &pipeline: m_gaussianRenderPipelines) {
-                pipeline.second->generateImage(*m_activeCamera);
 
-            }
-        }
 
 
         for (auto &pipeline: m_2DRenderPipeline) {
@@ -94,6 +114,7 @@ namespace VkRender {
         if (ui().hovered)
             m_activeCamera->update(m_context->deltaTime());
 
+         */
     }
 
     void VkRender::EditorGaussianViewer::onRender(CommandBuffer &drawCmdBuffers) {
@@ -102,9 +123,6 @@ namespace VkRender {
             pipeline.second->draw(drawCmdBuffers);
         }
 
-        for (auto &pipeline: m_2DRenderPipeline) {
-            pipeline.second->draw(drawCmdBuffers);
-        }
     }
 
     void VkRender::EditorGaussianViewer::onMouseMove(const VkRender::MouseButtons &mouse) {

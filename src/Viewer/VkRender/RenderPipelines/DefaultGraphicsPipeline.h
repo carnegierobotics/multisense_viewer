@@ -84,7 +84,6 @@ namespace VkRender {
 
         void setupPipeline();
 
-
         void setTexture(const VkDescriptorImageInfo *info);
     };
 

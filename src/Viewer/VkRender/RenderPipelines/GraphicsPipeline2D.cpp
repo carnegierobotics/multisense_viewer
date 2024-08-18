@@ -31,6 +31,7 @@ namespace VkRender{
             m_renderTexture->updateTextureFromBuffer(imageComponent.getTexture(), imageComponent.getTextureSize());
         }
         // TODO It could be feasible to remove vertex binding from bindImage function and have it as standard in the constructor. I dont think it will change
+        // TODO We should since we can rebind a model while not destorying our old buffers
         // Bind vertex/index buffers from model
         m_indices.indexCount = imageComponent.m_indices.size();
         size_t vertexBufferSize = imageComponent.m_vertices.size() * sizeof(ImageVertex);

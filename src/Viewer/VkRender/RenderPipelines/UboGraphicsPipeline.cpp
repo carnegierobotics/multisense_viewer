@@ -51,7 +51,7 @@ namespace VkRender {
 
 
     }
-    void UboGraphicsPipeline::updateTransform(const TransformComponent &transform) {
+    void UboGraphicsPipeline::updateTransform(TransformComponent &transform) {
         m_vertexParams.model = transform.GetTransform();
 
     }

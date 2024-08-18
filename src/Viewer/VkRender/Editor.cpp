@@ -59,6 +59,8 @@ namespace VkRender {
         Log::Logger::getInstance()->info("Resizing Editor. UUID: {} : {}, size: {}x{}, at pos: ({},{})",
                                          m_uuid.operator std::string(), m_createInfo.editorIndex, m_ui.width,
                                          m_ui.height, m_ui.x, m_ui.y);
+
+        onEditorResize();
     }
 
     void Editor::loadScene() {
@@ -531,6 +533,10 @@ namespace VkRender {
                                       EditorBorderState::Top == editor->ui().lastHoveredBorderType ||
                                       EditorBorderState::Bottom == editor->ui().lastHoveredBorderType);
         editor->ui().hovered = editor->ui().lastHoveredBorderType != EditorBorderState::None;
+
+        if (editor->ui().hovered){
+            Log::Logger::getInstance()->trace("Hovering editor: {}. Type: {}", editor->m_createInfo.editorIndex, editorTypeToString(editor->getCreateInfo().editorTypeDescription));
+        }
     }
 
     void Editor::handleClickState(std::unique_ptr<Editor> &editor, const VkRender::MouseButtons &mouse) {
@@ -580,7 +586,7 @@ namespace VkRender {
             //&& (!anyCornerHovered && !anyCornerClicked)) {
             for (auto &otherEditor: editors) {
                 if (editor != otherEditor && otherEditor->ui().lastClickedBorderType == EditorBorderState::None &&
-                    editor->ui().lastClickedBorderType != EditorBorderState::None) {
+                    editor->ui().lastClickedBorderType != EditorBorderState::None && (editor->ui().resizeHovered || otherEditor->ui().resizeHovered)) {
                     checkAndSetIndirectResize(editor, otherEditor, mouse);
                 }
             }

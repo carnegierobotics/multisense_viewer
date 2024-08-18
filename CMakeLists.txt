@@ -95,6 +95,7 @@ set(SOURCE_FILES
 
         src/Viewer/VkRender/Components/MeshComponent.cpp
         src/Viewer/VkRender/Components/GaussianModelComponent.cpp
+        src/Viewer/VkRender/Components/ImageComponent.cpp
         #src/Viewer/VkRender/Components/SkyboxGraphicsPipelineComponent.cpp
         #src/Viewer/VkRender/Components/DefaultPBRGraphicsPipelineComponent.cpp
         #src/Viewer/VkRender/Components/GLTFModelComponent.cpp
@@ -109,11 +110,12 @@ set(SOURCE_FILES
         src/Viewer/VkRender/ImGui/LayerFactory.cpp
         src/Viewer/VkRender/ImGui/GuiResources.cpp
 
+        src/Viewer/VkRender/Editors/Common/3DViewport/Editor3DViewport.cpp
+        src/Viewer/VkRender/Editors/Common/GaussianViewer/EditorGaussianViewer.cpp
+        src/Viewer/VkRender/Editors/Common/ImageEditor/EditorImage.cpp
         src/Viewer/VkRender/Editors/MainContextLayer.h
         src/Viewer/VkRender/Editors/MultiSenseViewer/Layers/LayoutSettingsLayer.h
         src/Viewer/VkRender/Editors/MyEditor/EditorMyProject.cpp
-        src/Viewer/VkRender/Editors/Common/3DViewport/Editor3DViewport.cpp
-        src/Viewer/VkRender/Editors/Common/GaussianViewer/EditorGaussianViewer.cpp
 
         src/Viewer/Tools/StbInclude.cpp
         src/Viewer/Tools/Logger.cpp

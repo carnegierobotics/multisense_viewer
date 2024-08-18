@@ -90,6 +90,8 @@ namespace VkRender {
         }
         virtual void onSceneLoad() {
         }
+        virtual void onFileDrop(const std::filesystem::path& path){}
+        virtual void onEditorResize(){}
         void loadScene();
 
         void update(bool updateGraph, float frametime, Input *input);

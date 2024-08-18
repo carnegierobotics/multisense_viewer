@@ -54,7 +54,7 @@ namespace VkRender {
             Quaternion
         };
 
-        union {
+        struct {
             struct {
                 float pitch;
                 float yaw;
@@ -73,7 +73,7 @@ namespace VkRender {
         TransformComponent &operator=(const TransformComponent &other) = default;
 
 
-        [[nodiscard]] glm::mat4 GetTransform() const {
+        [[nodiscard]] glm::mat4 GetTransform() {
             glm::mat4 rot = getRotMat();
 
             return glm::translate(glm::mat4(1.0f), translation)
@@ -118,11 +118,11 @@ namespace VkRender {
             return m_flipUpAxis;
         }
 
-        glm::mat4 getRotMat() const {
+        glm::mat4 getRotMat() {
             if (type == RotationType::Euler) {
                 glm::vec3 radiansEuler = glm::radians(glm::vec3(euler.pitch, euler.yaw, euler.roll));
-                glm::quat q = glm::quat(radiansEuler);
-                glm::mat4 rot = glm::toMat4(q);
+                quaternion = glm::quat(radiansEuler);
+                glm::mat4 rot = glm::toMat4(quaternion);
                 if (m_flipUpAxis) {
                     glm::mat4 m_flipUpRotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f),
                                                                    glm::vec3(1.0f, 0.0f, 0.0f));
@@ -131,6 +131,11 @@ namespace VkRender {
                 return rot;
             }
             glm::mat4 rot = glm::toMat4(quaternion);
+            glm::vec3 eulerAngles = glm::eulerAngles(quaternion);
+            euler.pitch = eulerAngles.x;
+            euler.yaw = eulerAngles.y;
+            euler.roll = eulerAngles.z;
+
             if (m_flipUpAxis) {
                 glm::mat4 m_flipUpRotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f),
                                                                glm::vec3(1.0f, 0.0f, 0.0f));

@@ -10,47 +10,41 @@
 #include "Viewer/VkRender/Core/VulkanDevice.h"
 #include "Viewer/VkRender/Core/RenderDefinitions.h"
 #include "Viewer/VkRender/Components/Components.h"
+#include "Viewer/VkRender/RenderPipelines/GraphicsPipeline.h"
 
 namespace VkRender {
     class Renderer;
 
-    class GraphicsPipeline2D {
+    // TODO instead of inherting from standard 3D Graphics pipeline, we should inherit from a separate type just for 2D to avoid messy overrides
+    class GraphicsPipeline2D : public GraphicsPipeline {
     public:
         GraphicsPipeline2D(Renderer &context, const RenderPassInfo &renderPassInfo);
 
-        ~GraphicsPipeline2D();
+        ~GraphicsPipeline2D() override;
 
-        void draw(CommandBuffer &cmdBuffers);
+        void updateTransform(TransformComponent &transform) override;
 
-        void setTexture(const VkDescriptorImageInfo *info);
+        void updateView(const Camera &camera) override;
 
-        TextureVideo& getVideoTexture(){return m_textureVideo;}
+        void update(uint32_t currentFrameIndex) override;
+        void updateTexture(void* data, size_t size) override;
 
+        void bindImage(ImageComponent &imageComponent) override;
 
-        void update(uint32_t currentFrame);
-
-        void updateTransform(const TransformComponent &transform);
-
-        void updateView(const Camera &camera);
-
-        template<typename T>
-        void bind(T &modelComponent);
+        void draw(CommandBuffer &commandBuffer) override;
 
     private:
         void setupPipeline();
 
         void setupDescriptors();
 
-        void setupBuffers();
+        void setupUniformBuffers();
 
-        void cleanUp();
 
         VulkanDevice &m_vulkanDevice;
         RenderPassInfo m_renderPassInfo{};
         uint32_t m_numSwapChainImages = 0;
-        Texture2D m_emptyTexture;
-        Texture2D m_objTexture;
-        TextureVideo m_textureVideo;
+        std::unique_ptr<TextureVideo> m_renderTexture;
 
         struct Vertices {
             VkBuffer buffer = VK_NULL_HANDLE;
@@ -63,8 +57,8 @@ namespace VkRender {
             uint32_t indexCount = 0;
         };
 
-        Indices indices{};
-        Vertices vertices{};
+        Indices  m_indices{};
+        Vertices m_vertices{};
 
         std::string m_vertexShader;
         std::string m_fragmentShader;
@@ -74,7 +68,6 @@ namespace VkRender {
         std::vector<DefaultRenderData> m_renderData;
         SharedRenderData m_sharedRenderData;
 
-        void setupUniformBuffers();
     };
 };
 

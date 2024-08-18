@@ -73,7 +73,7 @@ namespace VkRender {
 
         void updateView(const Camera &camera);
 
-        void updateTransform(const TransformComponent &transform);
+        void updateTransform(TransformComponent &transform);
 
         void draw(CommandBuffer *cmdBuffers) override;
 

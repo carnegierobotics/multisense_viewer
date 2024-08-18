@@ -14,9 +14,9 @@
 #include "Viewer/VkRender/Editors/Common/SceneHierarchy/EditorSceneHierarchy.h"
 #include "Viewer/VkRender/Editors/MultiSenseViewer/EditorMultiSenseViewer.h"
 #include "Viewer/VkRender/Editors/Common/Test/EditorTest.h"
-#include "Viewer/VkRender/Editors/MyEditor/EditorMyProject.h"
 #include "Viewer/VkRender/Editors/Common/Properties/EditorProperties.h"
 #include "Viewer/VkRender/Editors/Common/GaussianViewer/EditorGaussianViewer.h"
+#include "Viewer/VkRender/Editors/Common/ImageEditor/EditorImage.h"
 
 namespace VkRender {
 
@@ -35,8 +35,8 @@ namespace VkRender {
             registerEditor(EditorType::Viewport3D, [](EditorCreateInfo &ci, UUID) {
                 return std::make_unique<Editor3DViewport>(ci);
             });
-            registerEditor(EditorType::MyProject, [](EditorCreateInfo &ci, UUID uuid) {
-                return std::make_unique<EditorMyProject>(ci, uuid);
+            registerEditor(EditorType::ImageEditor, [](EditorCreateInfo &ci, UUID uuid) {
+                return std::make_unique<EditorImage>(ci, uuid);
             });
             registerEditor(EditorType::TestWindow, [](EditorCreateInfo &ci, UUID uuid) {
                 return std::make_unique<EditorTest>(ci, uuid);

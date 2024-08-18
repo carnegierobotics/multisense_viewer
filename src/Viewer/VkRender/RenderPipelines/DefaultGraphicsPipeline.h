@@ -41,7 +41,7 @@ namespace VkRender {
 
         void update(uint32_t currentFrame) override;
 
-        void updateTransform(const TransformComponent &transform) override;
+        void updateTransform(TransformComponent &transform) override;
 
         void draw(CommandBuffer &cmdBuffers) override;
 

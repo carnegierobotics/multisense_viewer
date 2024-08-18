@@ -206,7 +206,7 @@ namespace VkRender {
                &m_vertexParams, sizeof(VkRender::UBOMatrix));
 
     }
-    void DefaultGraphicsPipeline::updateTransform(const TransformComponent &transform) {
+    void DefaultGraphicsPipeline::updateTransform(TransformComponent &transform) {
         m_vertexParams.model = transform.GetTransform();
 
     }

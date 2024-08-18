@@ -159,6 +159,9 @@ namespace VkRender {
         /** @brief (Virtual) Called after the mouse cursor moved and before internal events (like camera m_Rotation) is firstUpdate */
         virtual void mouseScroll(float change);
 
+        virtual void onFileDrop(const std::filesystem::path& path){}
+        virtual void onCharInput(unsigned int codepoint){}
+
         /** @brief (Virtual) Called when the window has been resized, can be used by the sample application to recreate resources */
         virtual void windowResized(int32_t i, int32_t i1, double d, double d1);
 
@@ -268,6 +271,10 @@ namespace VkRender {
         bool recreateResourcesNextFrame = false;
         void setMultiSampling(VkSampleCountFlagBits samples);
 
+        static int ImGui_ImplGlfw_TranslateUntranslatedKey(int key, int scancode);
+
+        static ImGuiKey ImGui_ImplGlfw_KeyToImGuiKey(int key);
+
     private:
         float lastFPS{};
 
@@ -286,6 +293,8 @@ namespace VkRender {
         static void charCallback(GLFWwindow *window, unsigned int codepoint);
 
         static void mouseScrollCallback(GLFWwindow *window, double xoffset, double yoffset);
+
+        static void dropCallback(GLFWwindow *window, int count, const char **paths);
 
         void createCommandPool();
 
@@ -308,10 +317,6 @@ namespace VkRender {
 
         [[nodiscard]] VkPhysicalDevice pickPhysicalDevice(std::vector<VkPhysicalDevice> devices) const;
 
-        static int ImGui_ImplGlfw_TranslateUntranslatedKey(int key, int scancode);
-
-        static ImGuiKey ImGui_ImplGlfw_KeyToImGuiKey(int key);
-
 #ifdef WIN32
         void clipboard();
 #endif
@@ -323,6 +328,7 @@ namespace VkRender {
         void createMainRenderPass();
 
         void recordCommands();
+
     };
 }
 #endif //MULTISENSE_VULKANRENDERER_H

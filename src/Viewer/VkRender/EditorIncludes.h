@@ -139,6 +139,7 @@ namespace VkRender {
         bool setActiveCamera = false;
         bool render3DGSImage = false;
         bool contentHovered = false;
+        Camera* editorCamera;
 
         bool active = false;
         bool hovered = false;

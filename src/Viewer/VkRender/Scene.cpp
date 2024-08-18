@@ -9,6 +9,7 @@
 #include "Viewer/VkRender/RenderPipelines/DefaultGraphicsPipeline.h"
 #include "Viewer/VkRender/Components/MeshComponent.h"
 #include "Viewer/VkRender/Components/GaussianModelComponent.h"
+#include "Viewer/VkRender/Components/ImageComponent.h"
 
 namespace VkRender {
     Entity Scene::createEntityWithUUID(UUID uuid, const std::string &name) {
@@ -122,6 +123,9 @@ namespace VkRender {
 
     template<>
     void Scene::onComponentAdded<GaussianModelComponent>(Entity entity, GaussianModelComponent &component) {
+    }
+    template<>
+    void Scene::onComponentAdded<ImageComponent>(Entity entity, ImageComponent &component) {
     }
 
 

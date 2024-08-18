@@ -9,15 +9,13 @@
 #include "Viewer/VkRender/Core/CommandBuffer.h"
 #include "Viewer/VkRender/Components/GaussianModelComponent.h"
 #include "Viewer/VkRender/RenderPipelines/GraphicsPipeline.h"
-
+#include "Viewer/VkRender/RenderPipelines/RenderBase.h"
+#include "Viewer/VkRender/Core/Camera.h"
+#include "Viewer/VkRender/Core/Texture.h"
 #ifdef SYCL_ENABLED
 #include <sycl/sycl.hpp>
 #include "Viewer/VkRender/RenderPipelines/3DGS/radixsort/RadixSorter.h"
 #include "Viewer/SYCL/RasterizerUtils.h"
-#include "Viewer/VkRender/Core/Camera.h"
-#include "Viewer/VkRender/Core/Texture.h"
-#include "Viewer/VkRender/RenderPipelines/RenderBase.h"
-
 #endif
 
 namespace VkRender {
@@ -40,7 +38,7 @@ namespace VkRender {
 
         void update(uint32_t currentFrame);
 
-        void updateTransform(const TransformComponent &transform);
+        void updateTransform(TransformComponent &transform);
 
         void updateView(const Camera &camera);
 
@@ -124,39 +122,49 @@ namespace VkRender {
 
     };
 #else
-    class GaussianModelGraphicsPipeline : public  GraphicsPipeline {
+    class GaussianModelGraphicsPipeline {
     public:
 
-        explicit GaussianModelGraphicsPipeline(VulkanDevice &vulkanDevice) {}
-        ~GaussianModelGraphicsPipeline() override = default;
+        GaussianModelGraphicsPipeline(VulkanDevice &vulkanDevice, RenderPassInfo& renderPassInfo,  uint32_t width, uint32_t height) {}
+        ~GaussianModelGraphicsPipeline() = default;
 
-        void draw(CommandBuffer&) { /* no-op */ }
+        void generateImage(Camera &camera) {
+        }
 
-        void bind(GaussianModelComponent & model, Camera &camera) { /* no-op */ }
 
+        void draw(CommandBuffer &cmdBuffers) {
 
-        void generateImage(Camera &camera) {}
-
+        }
 
         std::shared_ptr<TextureVideo> getTextureRenderTarget() {return nullptr;}
 
-        uint8_t *getImage() {return nullptr;}
-        uint32_t getImageSize() {return 0;}
+        uint8_t *getImage() {
+            return nullptr;
+        }
+        uint32_t getImageSize() {
+            return 0;
+        }
 
 
-        void updateTransform(const TransformComponent &transform) override {
+        void update(uint32_t currentFrame) {
 
         }
 
-        void updateView(const Camera &camera) override {
+        void updateTransform(TransformComponent &transform) {
 
         }
 
-        void update(uint32_t currentFrameIndex) override {
+        void updateView(const Camera &camera) {
 
         }
 
-        void bind(MeshComponent &meshComponent) override {
+        void bind(GaussianModelComponent &modelComponent) {
+
+        }
+        void bind(MeshComponent *meshComponent) {
+
+        }
+        void setTexture(const VkDescriptorImageInfo *info) {
 
         }
 

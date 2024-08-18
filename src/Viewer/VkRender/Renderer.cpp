@@ -98,7 +98,7 @@ namespace VkRender {
             // add a dummy editor to get started
             auto sizeLimits = m_mainEditor->getSizeLimits();
             EditorCreateInfo otherEditorInfo(m_guiResources, this, &m_sharedContextData, m_vulkanDevice, &m_allocator,
-                                                             m_frameBuffers.data());
+                                             m_frameBuffers.data());
             otherEditorInfo.pPassCreateInfo = passCreateInfo;
             otherEditorInfo.borderSize = 5;
             otherEditorInfo.height = static_cast<int32_t>(m_height) - sizeLimits.MENU_BAR_HEIGHT; //- 100;
@@ -723,10 +723,11 @@ namespace VkRender {
         float dy = y - mouse.y;
         mouse.dx += dx;
         mouse.dy += dy;
-        Log::Logger::getInstance()->trace("Cursor velocity: ({},{}), pos: ({},{})", mouse.dx, mouse.dy, mouse.x, mouse.y);
+        Log::Logger::getInstance()->trace("Cursor velocity: ({},{}), pos: ({},{})", mouse.dx, mouse.dy, mouse.x,
+                                          mouse.y);
 
-        for (auto& editor : m_editors){
-                editor->onMouseMove(mouse);
+        for (auto &editor: m_editors) {
+            editor->onMouseMove(mouse);
         }
         // UPdate camera if we have one selected
         if (!m_selectedCameraTag.empty()) {
@@ -761,7 +762,7 @@ namespace VkRender {
     void Renderer::mouseScroll(float change) {
         ImGuiIO &io = ImGui::GetIO();
         io.MouseWheel += 0.5f * static_cast<float>(change);
-        for (auto& editor : m_editors){
+        for (auto &editor: m_editors) {
             editor->onMouseScroll(change);
         }
         /*
@@ -799,16 +800,54 @@ namespace VkRender {
 
     void Renderer::keyboardCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
         for (auto &editor: m_editors) {
+            ImGui::SetCurrentContext(editor->guiContext());
+            ImGuiIO &io = ImGui::GetIO();
+            io.AddKeyEvent(ImGuiKey_ModShift, (mods & GLFW_MOD_SHIFT) != 0);
+            io.AddKeyEvent(ImGuiKey_ModAlt, (mods & GLFW_MOD_ALT) != 0);
+            io.AddKeyEvent(ImGuiKey_ModSuper, (mods & GLFW_MOD_SUPER) != 0);
+            io.AddKeyEvent(ImGuiKey_LeftCtrl, (mods & GLFW_MOD_CONTROL) != 0);
+            key = ImGui_ImplGlfw_TranslateUntranslatedKey(key, scancode);
+            ImGuiKey imgui_key = ImGui_ImplGlfw_KeyToImGuiKey(key);
+            io.AddKeyEvent(imgui_key, (action == GLFW_PRESS) || (action == GLFW_REPEAT));
             editor->onKeyCallback(input);
         }
-        //m_cameras[m_selectedCameraTag].keys.up = input.keys.up;
-        //m_cameras[m_selectedCameraTag].keys.down = input.keys.down;
-        //m_cameras[m_selectedCameraTag].keys.left = input.keys.left;
-        //m_cameras[m_selectedCameraTag].keys.right = input.keys.right;
+        ImGui::SetCurrentContext(m_mainEditor->guiContext());
+        ImGuiIO &io = ImGui::GetIO();
+        io.AddKeyEvent(ImGuiKey_ModShift, (mods & GLFW_MOD_SHIFT) != 0);
+        io.AddKeyEvent(ImGuiKey_ModAlt, (mods & GLFW_MOD_ALT) != 0);
+        io.AddKeyEvent(ImGuiKey_ModSuper, (mods & GLFW_MOD_SUPER) != 0);
+        io.AddKeyEvent(ImGuiKey_LeftCtrl, (mods & GLFW_MOD_CONTROL) != 0);
+        key = ImGui_ImplGlfw_TranslateUntranslatedKey(key, scancode);
+        ImGuiKey imgui_key = ImGui_ImplGlfw_KeyToImGuiKey(key);
+        io.AddKeyEvent(imgui_key, (action == GLFW_PRESS) || (action == GLFW_REPEAT));
     }
 
     std::shared_ptr<Scene> Renderer::activeScene() {
         return m_scene;
+    }
+
+    void Renderer::onFileDrop(const std::filesystem::path &path) {
+        for (auto &editor: m_editors) {
+            Editor::handleHoverState(editor, mouse);
+        }
+
+        for (auto &editor: m_editors) {
+            if (editor->ui().hovered){
+                // Add drop event here
+                editor->onFileDrop(path);
+            }
+        }
+    }
+
+    void Renderer::onCharInput(unsigned int codepoint) {
+        for (auto &editor: m_editors) {
+            ImGui::SetCurrentContext(editor->guiContext());
+            ImGuiIO &io = ImGui::GetIO();
+            io.AddInputCharacter(static_cast<unsigned short>(codepoint));
+        }
+        ImGui::SetCurrentContext(m_mainEditor->guiContext());
+        ImGuiIO &io = ImGui::GetIO();
+        io.AddInputCharacter(static_cast<unsigned short>(codepoint));
     }
 
 };

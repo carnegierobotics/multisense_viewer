@@ -103,6 +103,11 @@ namespace VkRender {
         }
     };
 
+    struct ImageVertex{
+        glm::vec2 pos{};
+        glm::vec2 uv0{};
+    };
+
     /**
      * @brief MouseButtons user input
      */

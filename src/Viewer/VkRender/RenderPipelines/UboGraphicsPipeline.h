@@ -23,7 +23,7 @@ namespace VkRender {
 
         void update(uint32_t currentFrame) override;
 
-        void updateTransform(const TransformComponent &transform) override;
+        void updateTransform(TransformComponent &transform) override;
 
         void draw(CommandBuffer &cmdBuffers) override;
 
@@ -41,14 +41,9 @@ namespace VkRender {
         UBOMatrix m_vertexParams; // Non GPU-accessible data, shared across frames
         std::vector<DefaultRenderData> m_renderData;
         SharedRenderData m_sharedRenderData;
-
         void setupUniformBuffers();
-
         void setupDescriptors();
-
         void setupPipeline();
-
-
     };
 }
 #endif //MULTISENSE_VIEWER_UBOGRAPHICSPIPELINE_H

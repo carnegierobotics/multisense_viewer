@@ -18,6 +18,7 @@
 #include "Viewer/VkRender/Editors/Common/3DViewport/Editor3DLayer.h"
 #include "Viewer/VkRender/Editors/Common/Properties/PropertiesLayer.h"
 #include "Viewer/VkRender/Editors/Common/GaussianViewer/EditorGaussianViewerLayer.h"
+#include "Viewer/VkRender/Editors/Common/ImageEditor/EditorImageLayer.h"
 
 namespace VkRender {
 
@@ -39,6 +40,7 @@ namespace VkRender {
         if (layerName == "Editor3DLayer") return std::make_shared<Editor3DLayer>();
         if (layerName == "PropertiesLayer") return std::make_shared<PropertiesLayer>();
         if (layerName == "EditorGaussianViewerLayer") return std::make_shared<EditorGaussianViewerLayer>();
+        if (layerName == "EditorImageLayer") return std::make_shared<EditorImageLayer>();
 
         throw std::runtime_error("Tried to push layer: " + layerName + " Which doesn't exists");
     }

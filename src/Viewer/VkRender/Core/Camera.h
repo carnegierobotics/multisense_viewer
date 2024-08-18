@@ -154,6 +154,7 @@ namespace VkRender {
             glm::mat4 rotMatrix = glm::mat4_cast(pose.q);
             auto trans = rotMatrix * transMatrix;
             pose.pos = glm::vec3(trans[3]); // update actual position of camera
+            pose.q = glm::quat_cast(trans);
             return trans;
 
         }

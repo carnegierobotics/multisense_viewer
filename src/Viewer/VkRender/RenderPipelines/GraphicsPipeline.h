@@ -6,16 +6,19 @@
 #define MULTISENSE_VIEWER_GRAPHICSPIPELINE_H
 
 #include "Viewer/VkRender/Components/Components.h"
+#include "Viewer/VkRender/Components/ImageComponent.h"
 
 namespace VkRender {
     class GraphicsPipeline {
     public:
         virtual ~GraphicsPipeline() = default;
 
-        virtual void updateTransform(const TransformComponent& transform) = 0;
+        virtual void updateTransform(TransformComponent& transform) = 0;
         virtual void updateView(const Camera& camera) = 0;
         virtual void update(uint32_t currentFrameIndex) = 0;
-        virtual void bind(MeshComponent& meshComponent) = 0;
+        virtual void updateTexture(void* data, size_t size)  {};
+        virtual void bind(MeshComponent& meshComponent){};
+        virtual void bindImage(ImageComponent& imageComponent){};
         virtual void draw(CommandBuffer& commandBuffer) = 0;
 
     protected:

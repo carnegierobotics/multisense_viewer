@@ -98,6 +98,7 @@ namespace VkRender {
         glfwSetCursorPosCallback(window, VulkanRenderer::cursorPositionCallback);
         glfwSetScrollCallback(window, VulkanRenderer::mouseScrollCallback);
         glfwSetCharCallback(window, VulkanRenderer::charCallback);
+        glfwSetDropCallback(window, VulkanRenderer::dropCallback);
         glfwSetWindowSizeLimits(window, m_width / 4, m_height / 4, GLFW_DONT_CARE, GLFW_DONT_CARE);
         m_cursors.resizeVertical = glfwCreateStandardCursor(GLFW_RESIZE_NS_CURSOR);
         m_cursors.resizeHorizontal = glfwCreateStandardCursor(GLFW_RESIZE_EW_CURSOR);
@@ -537,7 +538,7 @@ namespace VkRender {
             auto end = std::chrono::system_clock::now();
             std::chrono::duration<float, std::milli> elapsed_milliseconds = end - rendererStartTime;
             runTime = elapsed_milliseconds.count();
-            Log::Logger::getInstance()->trace("Mouse events are: ({},{})  action: {}", mouse.x, mouse.y, mouse.action);
+            //Log::Logger::getInstance()->trace("Mouse events are: ({},{})  action: {}", mouse.x, mouse.y, mouse.action);
             /** Compute pipeline command recording and submission **/
             //computePipeline(); // TODO Either implement or remove
             updateUniformBuffers();
@@ -564,7 +565,7 @@ namespace VkRender {
             postRenderActions();
             mouse.d = glm::vec2(0.0f);
             mouse.action = -1;
-            Log::Logger::getInstance()->trace("Reset Mouse action to -1");
+            //Log::Logger::getInstance()->trace("Reset Mouse action to -1");
         }
         // Flush m_Device to make sure all resources can be freed before we start cleanup
         if (device != VK_NULL_HANDLE) {
@@ -694,18 +695,20 @@ namespace VkRender {
         }
     }
 
-    DISABLE_WARNING_PUSH
-    DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER
-
     void VulkanRenderer::charCallback(GLFWwindow *window, unsigned int codepoint) {
-        /*
-        ImGuiIO &io = ImGui::GetIO();
-        io.AddInputCharacter(static_cast<unsigned short>(codepoint));
-    */
+        auto *ctx = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
+        ctx->onCharInput(codepoint);
     }
 
-    DISABLE_WARNING_POP
-
+    void VulkanRenderer::dropCallback(GLFWwindow* window, int count, const char** paths) {
+        auto *ctx = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
+        for (int i = 0; i < count; i++)
+        {
+            std::string path = paths[i];
+            Log::Logger::getInstance()->info("File dropped: {}", path);
+            ctx->onFileDrop(path);
+        }
+    }
 
     void VulkanRenderer::keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
         auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
@@ -713,17 +716,6 @@ namespace VkRender {
             myApp->m_logger->info("Escape key registered");
             myApp->closeApplication();
         }
-
-        ImGuiIO &io = ImGui::GetIO();
-        io.AddKeyEvent(ImGuiKey_ModShift, (mods & GLFW_MOD_SHIFT) != 0);
-        io.AddKeyEvent(ImGuiKey_ModAlt, (mods & GLFW_MOD_ALT) != 0);
-        io.AddKeyEvent(ImGuiKey_ModSuper, (mods & GLFW_MOD_SUPER) != 0);
-        io.AddKeyEvent(ImGuiKey_LeftCtrl, (mods & GLFW_MOD_CONTROL) != 0);
-
-        key = ImGui_ImplGlfw_TranslateUntranslatedKey(key, scancode);
-        ImGuiKey imgui_key = ImGui_ImplGlfw_KeyToImGuiKey(key);
-        io.AddKeyEvent(imgui_key, (action == GLFW_PRESS) || (action == GLFW_REPEAT));
-
 
 #ifdef WIN32
         if ((mods & GLFW_MOD_CONTROL) != 0 && key == GLFW_KEY_V) {

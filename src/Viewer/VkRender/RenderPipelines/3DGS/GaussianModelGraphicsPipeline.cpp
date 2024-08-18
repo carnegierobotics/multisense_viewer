@@ -578,7 +578,7 @@ namespace VkRender {
 
     }
 
-    void GaussianModelGraphicsPipeline::updateTransform(const TransformComponent &transform) {
+    void GaussianModelGraphicsPipeline::updateTransform(TransformComponent &transform) {
         m_vertexParams.model = transform.GetTransform();
 
     }

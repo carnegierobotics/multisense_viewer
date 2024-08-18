@@ -128,6 +128,9 @@ namespace VkRender {
 
         void postRenderActions() override;
 
+        void onFileDrop(const std::filesystem::path& path) override;
+        void onCharInput(unsigned int codepoint) override;
+
     private:
         //std::unordered_map<std::string, Camera> m_cameras;
         //std::unique_ptr<VkRender::GuiManager> m_guiManager{};

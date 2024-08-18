@@ -60,6 +60,20 @@ namespace VkRender {
                 }
             }
 
+            if (ImGui::Button("Create camera")){
+                auto scene = handles.m_context->activeScene();
+                auto entity = scene->createNewCamera("NewCamera", 1280, 720);
+                auto& transform = entity.getComponent<TransformComponent>();
+                auto& camera = entity.getComponent<CameraComponent>();
+                entity.addComponent<MeshComponent>(1);
+                transform.setPosition(handles.editorUi->editorCamera->pose.pos);
+                auto quaternion = glm::quat_cast(handles.editorUi->editorCamera->getFlyCameraTransMat());
+                transform.setQuaternion(quaternion);
+                camera().pose.pos = handles.editorUi->editorCamera->pose.pos;
+                camera().pose.q =   quaternion;
+                camera().updateViewMatrix();
+            };
+
 
             ImGui::End();
 

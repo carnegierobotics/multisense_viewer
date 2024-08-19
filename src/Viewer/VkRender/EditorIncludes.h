@@ -141,6 +141,8 @@ namespace VkRender {
         int render3dgsColor = 0;
         bool contentHovered = false;
         Camera* editorCamera;
+        bool saveRenderToFile = false;
+        // TODO end
 
         bool active = false;
         bool hovered = false;

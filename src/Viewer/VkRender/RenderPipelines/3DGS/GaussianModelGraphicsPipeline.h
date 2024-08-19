@@ -129,7 +129,7 @@ namespace VkRender {
         GaussianModelGraphicsPipeline(VulkanDevice &vulkanDevice, RenderPassInfo& renderPassInfo,  uint32_t width, uint32_t height) {}
         ~GaussianModelGraphicsPipeline() = default;
 
-        void generateImage(Camera &camera) {
+        void generateImage(Camera &camera, int i) {
         }
 
 

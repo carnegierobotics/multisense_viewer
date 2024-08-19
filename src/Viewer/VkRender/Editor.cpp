@@ -71,22 +71,6 @@ namespace VkRender {
         const uint32_t &currentFrame = *drawCmdBuffers.frameIndex;
         const uint32_t &imageIndex = *drawCmdBuffers.activeImageIndex;
 
-        /*
-        if (m_createInfo.x + m_createInfo.width > m_sizeLimits.MAX_WIDTH) {
-            Log::Logger::getInstance()->warning("Editor {} : {}'s width + offset is more than application width: {}/{}",
-                                                m_uuid.operator std::string(), m_createInfo.editorIndex,
-                                                m_sizeLimits.MAX_WIDTH, m_createInfo.width + m_createInfo.x);
-            return;
-        }
-
-        if (m_createInfo.y + m_createInfo.height > m_sizeLimits.MAX_HEIGHT) {
-            Log::Logger::getInstance()->warning(
-                    "Editor {} : {}'s height + offset is more than application height: {}/{}",
-                    m_uuid.operator std::string(), m_createInfo.editorIndex, m_sizeLimits.MAX_HEIGHT,
-                    m_createInfo.height + m_createInfo.y);
-            return;
-        }
-        */
         VkViewport viewport{};
         viewport.x = static_cast<float>(m_createInfo.x);
         viewport.y = static_cast<float>(m_createInfo.y);
@@ -121,7 +105,90 @@ namespace VkRender {
         m_guiManager->drawFrame(drawCmdBuffers.buffers[currentFrame], currentFrame, m_createInfo.width,
                                 m_createInfo.height, m_createInfo.x, m_createInfo.y);
         vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
+
+        if (ui().saveRenderToFile){
+
+        /// *** Render to Offscreen Framebuffer *** ///
+        VkRenderPassBeginInfo offscreenRenderPassInfo = renderPassBeginInfo;
+        offscreenRenderPassInfo.framebuffer = offscreenFramebuffer; // Use the offscreen framebuffer
+        vkCmdBeginRenderPass(drawCmdBuffers.buffers[currentFrame], &offscreenRenderPassInfo,
+                             VK_SUBPASS_CONTENTS_INLINE);
+        drawCmdBuffers.renderPassType = RENDER_PASS_UI;
+        vkCmdSetViewport(drawCmdBuffers.buffers[currentFrame], 0, 1, &viewport);
+        vkCmdSetScissor(drawCmdBuffers.buffers[currentFrame], 0, 1, &scissor);
+        onRender(drawCmdBuffers);
+        vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
+
+        /// *** Copy Image Data to CPU Buffer *** ///
+        VkCommandBuffer commandBuffer = beginSingleTimeCommands(device, commandPool);
+
+        VkImageMemoryBarrier barrier = {};
+        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.image = offscreenImage;  // Use the offscreen image
+        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        barrier.subresourceRange.baseMipLevel = 0;
+        barrier.subresourceRange.levelCount = 1;
+        barrier.subresourceRange.baseArrayLayer = 0;
+        barrier.subresourceRange.layerCount = 1;
+
+        vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
+                             0, nullptr, 0, nullptr, 1, &barrier);
+
+
+        // Create a buffer for copying the image data to
+        VkBufferCreateInfo bufferInfo = {};
+        bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        bufferInfo.size = imageSize;
+        bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+        VkBuffer stagingBuffer;
+        vkCreateBuffer(device, &bufferInfo, nullptr, &stagingBuffer);
+
+        VkMemoryRequirements memRequirements;
+        vkGetBufferMemoryRequirements(device, stagingBuffer, &memRequirements);
+
+        VkMemoryAllocateInfo allocInfo = {};
+        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        allocInfo.allocationSize = memRequirements.size;
+        allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+        VkDeviceMemory stagingBufferMemory;
+        vkAllocateMemory(device, &allocInfo, nullptr, &stagingBufferMemory);
+        vkBindBufferMemory(device, stagingBuffer, stagingBufferMemory, 0);
+
+        // Copy the image to the buffer
+        VkBufferImageCopy region = {};
+        region.bufferOffset = 0;
+        region.bufferRowLength = 0;
+        region.bufferImageHeight = 0;
+        region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        region.imageSubresource.mipLevel = 0;
+        region.imageSubresource.baseArrayLayer = 0;
+        region.imageSubresource.layerCount = 1;
+        region.imageOffset = {0, 0, 0};
+        region.imageExtent = {m_createInfo.width, m_createInfo.height, 1};
+
+        vkCmdCopyImageToBuffer(commandBuffer, offscreenImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, stagingBuffer, 1, &region);
+
+        endSingleTimeCommands(device, commandPool, queue, commandBuffer);
+
+        // Map memory and save image to a file
+        void* data;
+        vkMapMemory(device, stagingBufferMemory, 0, imageSize, 0, &data);
+        saveImageToFile("output.png", data, m_createInfo.width, m_createInfo.height);
+        vkUnmapMemory(device, stagingBufferMemory);
+
+        // Cleanup resources after usage
+        vkDestroyBuffer(device, stagingBuffer, nullptr);
+        vkFreeMemory(device, stagingBufferMemory, nullptr);
+        }
     }
+
 
     void Editor::update(bool updateGraph, float frameTime, Input *input) {
         m_guiManager->update(updateGraph, frameTime, m_ui, input);

@@ -1273,10 +1273,8 @@ namespace VkRender {
         imageCI.samples = msaaSamples;
         imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
         imageCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-
         VmaAllocationCreateInfo allocInfo = {};
         allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
-
         VkResult result = vmaCreateImage(m_allocator, &imageCI, &allocInfo, &m_depthStencil.image,
                                          &m_depthStencil.allocation, nullptr);
         if (result != VK_SUCCESS) throw std::runtime_error("Failed to create depth image");
@@ -1284,7 +1282,6 @@ namespace VkRender {
         VALIDATION_DEBUG_NAME(m_vulkanDevice->m_LogicalDevice,
                               reinterpret_cast<uint64_t>(m_depthStencil.image), VK_OBJECT_TYPE_IMAGE,
                               (description + "DepthImage").c_str());
-
         VkImageViewCreateInfo imageViewCI = Populate::imageViewCreateInfo();
         imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
         imageViewCI.image = m_depthStencil.image;
@@ -1300,22 +1297,17 @@ namespace VkRender {
         result = vkCreateImageView(m_vulkanDevice->m_LogicalDevice, &imageViewCI, nullptr,
                                    &m_depthStencil.view);
         if (result != VK_SUCCESS) throw std::runtime_error("Failed to create depth image view");
-
         VALIDATION_DEBUG_NAME(m_vulkanDevice->m_LogicalDevice,
                               reinterpret_cast<uint64_t>(m_depthStencil.view), VK_OBJECT_TYPE_IMAGE_VIEW,
                               (description + "DepthView").c_str());
-
         VkCommandBuffer copyCmd = m_vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-
         VkImageSubresourceRange subresourceRange = {};
         subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
         subresourceRange.levelCount = 1;
         subresourceRange.layerCount = 1;
-
         Utils::setImageLayout(copyCmd, m_depthStencil.image, VK_IMAGE_LAYOUT_UNDEFINED,
                               VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, subresourceRange,
                               VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
-
         m_vulkanDevice->flushCommandBuffer(copyCmd, graphicsQueue, true);
     }
 
@@ -1344,9 +1336,6 @@ namespace VkRender {
         VALIDATION_DEBUG_NAME(m_vulkanDevice->m_LogicalDevice,
                               reinterpret_cast<uint64_t>(m_colorImage.image), VK_OBJECT_TYPE_IMAGE,
                               (description + "ColorImageResource").c_str());
-        // Set user data for debugging
-        //vmaSetAllocationUserData(m_allocator, m_colorImage.allocation, (void*)((description + "ColorResource").c_str()));
-
         VkImageViewCreateInfo imageViewCI = Populate::imageViewCreateInfo();
         imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
         imageViewCI.image = m_colorImage.image;

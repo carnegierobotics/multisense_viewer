@@ -15,8 +15,8 @@ namespace VkRender {
 
         {
             auto entity = createEntity("S30Camera");
-            //auto &modelComponent = entity.addComponent<MeshComponent>(Utils::getModelsPath() / "obj" / "s30.obj");
-            auto &modelComponent = entity.addComponent<MeshComponent>("/home/magnus/phd/SuGaR/output/refined_mesh/0017/3dgs.obj");
+            auto &modelComponent = entity.addComponent<MeshComponent>(Utils::getModelsPath() / "obj" / "s30.obj");
+            //auto &modelComponent = entity.addComponent<MeshComponent>("/home/magnus/phd/SuGaR/output/refined_mesh/0017/3dgs.obj");
             auto &transform = entity.getComponent<TransformComponent>();
             //transform.setScale({0.25f, 0.25f, 0.25f});
         }

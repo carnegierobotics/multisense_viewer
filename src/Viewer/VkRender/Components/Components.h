@@ -54,15 +54,15 @@ namespace VkRender {
             Quaternion
         };
 
-        struct {
-            struct {
+        struct Rotation {
+            struct Angles {
                 float pitch;
                 float yaw;
                 float roll;
             } euler;
 
             glm::quat quaternion;
-        };
+        } rot;
 
         bool m_flipUpAxis = false;
 
@@ -82,20 +82,20 @@ namespace VkRender {
         }
 
         void setEuler(float roll, float pitch, float yaw) {
-            euler.pitch = pitch;
-            euler.yaw = yaw;
-            euler.roll = roll;
+            rot.euler.pitch = pitch;
+            rot.euler.yaw = yaw;
+            rot.euler.roll = roll;
             type = RotationType::Euler;
         }
 
-        glm::vec3 getEuler(){ return {euler.roll, euler.pitch, euler.yaw};}
+        glm::vec3 getEuler(){ return {rot.euler.roll, rot.euler.pitch, rot.euler.yaw};}
 
         void setQuaternion(const glm::quat &q) {
-            quaternion = q;
+            rot.quaternion = q;
             type = RotationType::Quaternion;
         }
         glm::quat &getQuaternion() {
-            return quaternion;
+            return rot.quaternion;
         }
 
         void setPosition(const glm::vec3 &v) {
@@ -120,28 +120,28 @@ namespace VkRender {
 
         glm::mat4 getRotMat() {
             if (type == RotationType::Euler) {
-                glm::vec3 radiansEuler = glm::radians(glm::vec3(euler.pitch, euler.yaw, euler.roll));
-                quaternion = glm::quat(radiansEuler);
-                glm::mat4 rot = glm::toMat4(quaternion);
+                glm::vec3 radiansEuler = glm::radians(glm::vec3(rot.euler.pitch, rot.euler.yaw, rot.euler.roll));
+                rot.quaternion = glm::quat(radiansEuler);
+                glm::mat4 rotMat = glm::toMat4(rot.quaternion);
                 if (m_flipUpAxis) {
                     glm::mat4 m_flipUpRotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f),
                                                                    glm::vec3(1.0f, 0.0f, 0.0f));
-                    rot = m_flipUpRotationMatrix * rot;
+                    rotMat = m_flipUpRotationMatrix * rotMat;
                 }
-                return rot;
+                return rotMat;
             }
-            glm::mat4 rot = glm::toMat4(quaternion);
-            glm::vec3 eulerAngles = glm::eulerAngles(quaternion);
-            euler.pitch = eulerAngles.x;
-            euler.yaw = eulerAngles.y;
-            euler.roll = eulerAngles.z;
+            glm::mat4 rotMat = glm::toMat4(rot.quaternion);
+            glm::vec3 eulerAngles = glm::eulerAngles(rot.quaternion);
+            rot.euler.pitch = eulerAngles.x;
+            rot.euler.yaw = eulerAngles.y;
+            rot.euler.roll = eulerAngles.z;
 
             if (m_flipUpAxis) {
                 glm::mat4 m_flipUpRotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f),
                                                                glm::vec3(1.0f, 0.0f, 0.0f));
-                rot = m_flipUpRotationMatrix * rot;
+                rotMat = m_flipUpRotationMatrix * rotMat;
             }
-            return rot;
+            return rotMat;
         }
     private:
 

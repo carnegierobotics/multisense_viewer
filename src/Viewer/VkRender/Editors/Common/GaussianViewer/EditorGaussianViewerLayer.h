@@ -57,6 +57,10 @@ namespace VkRender {
 
             static bool toggle = false;
 
+            ImGui::RadioButton("3DGS image", &handles.editorUi->render3dgsColor, 0);
+            ImGui::RadioButton("Normals", &handles.editorUi->render3dgsColor, 1);
+            ImGui::RadioButton("Depth", &handles.editorUi->render3dgsColor, 2);
+
             ImGui::Checkbox("Toggle rendering", &toggle);
             if (toggle){
                 handles.editorUi->render3DGSImage = true;

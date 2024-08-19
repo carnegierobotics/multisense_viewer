@@ -30,9 +30,12 @@ namespace VkRender {
         tinyply::PlyFile file;
         file.parse_header(ss);
 
-        std::shared_ptr<tinyply::PlyData> vertices, scales, quats, opacities, colors, harmonics;
+        std::shared_ptr<tinyply::PlyData> vertices, normals, scales, quats, opacities, colors, harmonics;
 
         try { vertices = file.request_properties_from_element("vertex", {"x", "y", "z"}); }
+        catch (const std::exception &e) { std::cerr << "tinyply exception: " << e.what() << std::endl; }
+
+        try { normals = file.request_properties_from_element("vertex", {"nx", "ny", "nz"}); }
         catch (const std::exception &e) { std::cerr << "tinyply exception: " << e.what() << std::endl; }
 
         try { scales = file.request_properties_from_element("vertex", {"scale_0", "scale_1", "scale_2"}); }
@@ -66,6 +69,15 @@ namespace VkRender {
 
             for (size_t i = 0; i < numVertices; i += downSampleRate) {
                 data.positions.emplace_back(vertexBuffer[i * 3], vertexBuffer[i * 3 + 1], vertexBuffer[i * 3 + 2]);
+            }
+        }        // Process vertices
+        if (normals) {
+            const size_t numVerticesBytes = normals->buffer.size_bytes();
+            std::vector<float> vertexBuffer(numVertices * 3);
+            std::memcpy(vertexBuffer.data(), normals->buffer.get(), numVerticesBytes);
+
+            for (size_t i = 0; i < numVertices; i += downSampleRate) {
+                data.normals.emplace_back(vertexBuffer[i * 3], vertexBuffer[i * 3 + 1], vertexBuffer[i * 3 + 2]);
             }
         }
 

@@ -26,7 +26,7 @@ namespace VkRender {
 
         ~GaussianModelGraphicsPipeline();
 
-        void generateImage(Camera &camera);
+        void generateImage(Camera &camera, int b);
 
         void draw(CommandBuffer &cmdBuffers);
 
@@ -53,6 +53,7 @@ namespace VkRender {
         uint32_t m_imageSize = 0;
 
         glm::vec3 *positionBuffer = nullptr;
+        glm::vec3 *normalsBuffer = nullptr;
         glm::vec3 *scalesBuffer = nullptr;
         glm::quat *quaternionBuffer = nullptr;
         float *opacityBuffer = nullptr;

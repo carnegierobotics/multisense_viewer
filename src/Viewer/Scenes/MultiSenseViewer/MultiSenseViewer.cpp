@@ -15,7 +15,8 @@ namespace VkRender {
 
         {
             auto entity = createEntity("S30Camera");
-            auto &modelComponent = entity.addComponent<MeshComponent>(Utils::getModelsPath() / "obj" / "viking_room.obj");
+            //auto &modelComponent = entity.addComponent<MeshComponent>(Utils::getModelsPath() / "obj" / "s30.obj");
+            auto &modelComponent = entity.addComponent<MeshComponent>("/home/magnus/phd/SuGaR/output/refined_mesh/0017/3dgs.obj");
             auto &transform = entity.getComponent<TransformComponent>();
             //transform.setScale({0.25f, 0.25f, 0.25f});
         }
@@ -43,7 +44,7 @@ namespace VkRender {
 
 #ifdef SYCL_ENABLED
         {auto gaussianEntity = createEntity("GaussianEntity");
-                   auto &gaussianEntityModelComponent = gaussianEntity.addComponent<GaussianModelComponent>(Utils::getModelsPath() / "3dgs" / "coordinates.ply");
+                   auto &gaussianEntityModelComponent = gaussianEntity.addComponent<GaussianModelComponent>(Utils::getModelsPath() / "3dgs" / "3dgs_insect.ply");
                    int debug = 1;
                }
 #endif

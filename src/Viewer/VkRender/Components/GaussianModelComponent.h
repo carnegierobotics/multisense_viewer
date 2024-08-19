@@ -25,6 +25,7 @@ namespace VkRender {
 
         struct GaussianPoints {
             std::vector<glm::vec3> positions;
+            std::vector<glm::vec3> normals;
             std::vector<glm::quat> quats;
             std::vector<glm::vec3> scales;
             std::vector<float> opacities;

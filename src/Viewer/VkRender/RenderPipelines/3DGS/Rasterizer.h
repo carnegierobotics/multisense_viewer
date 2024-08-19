@@ -14,9 +14,10 @@ namespace Rasterizer {
 
     class Preprocess {
     public:
-        Preprocess(glm::vec3 *positions, glm::vec3 *scales, glm::quat *quats, float *opacities, float *shs,
+        Preprocess(glm::vec3 *positions, glm::vec3 *normals, glm::vec3 *scales, glm::quat *quats, float *opacities,
+                   float *shs,
                    uint32_t *tilesTouched, GaussianPoint *pointsBuffer, const PreprocessInfo *info) : m_positions(
-                positions), m_scales(scales),
+                positions), m_normals(normals), m_scales(scales),
                                                                                                       m_quaternions(
                                                                                                               quats),
                                                                                                       m_opacities(
@@ -83,8 +84,19 @@ namespace Rasterizer {
                 if ((rect_max.x - rect_min.x) * (rect_max.y - rect_min.y) == 0)
                     return;
 
-                glm::vec3 color = computeColorFromSH(idx, position, m_scene.camPos, m_scene.shDegree, m_scene.shDim,
-                                                     m_sphericalHarmonics);
+                glm::vec3 color;
+                if (m_scene.colorMethod == 1) {
+                    glm::mat3 R = glm::mat3_cast(q);
+                    glm::vec4 n_view   = glm::vec4{R[0][2], R[1][2], R[2][2], 1.0f} * m_scene.viewMatrix;
+
+                    color = (glm::normalize(glm::vec3(n_view))  + glm::vec3(1.0f)) * 0.5f;
+                } else if (m_scene.colorMethod == 0){
+                    color = computeColorFromSH(idx, position, m_scene.camPos, m_scene.shDegree, m_scene.shDim, m_sphericalHarmonics);
+                } else if (m_scene.colorMethod == 2){
+
+                    color = 1.0f - glm::vec3(posNDC.z);
+                }
+
 
                 /*
                 float SH_C0 = 0.28209479177387814f;
@@ -110,7 +122,7 @@ namespace Rasterizer {
                 // How many tiles we access
                 // rect_min/max are in tile space
                 auto numTilesTouched = static_cast<uint32_t>((rect_max.y - rect_min.y) *
-                                                                 (rect_max.x - rect_min.x));
+                                                             (rect_max.x - rect_min.x));
                 m_numTilesTouched[i] = numTilesTouched;
 
                 /*
@@ -123,6 +135,7 @@ namespace Rasterizer {
 
     private:
         glm::vec3 *m_positions;
+        glm::vec3 *m_normals;
         glm::vec3 *m_scales = nullptr;
         glm::quat *m_quaternions = nullptr;
         float *m_opacities = nullptr;
@@ -130,6 +143,7 @@ namespace Rasterizer {
         uint32_t *m_numTilesTouched{0};
         GaussianPoint *m_points{0};
         PreprocessInfo m_scene;
+        uint32_t maxDepth = 0;
     };
 
 
@@ -179,12 +193,14 @@ namespace Rasterizer {
                            uint32_t *pointsOffsets,
                            uint32_t *keys,
                            uint32_t *values,
+                           float* depthValues,
                            uint32_t numRendered,
                            glm::vec3 tileGrid)
                 : m_gaussianPoints(gaussianPoints),
                   m_pointsOffsets(pointsOffsets),
                   m_keys(keys),
                   m_values(values),
+                  m_depthValues(depthValues),
                   m_numRendered(numRendered),
                   m_tileGrid(tileGrid) {}
 
@@ -195,6 +211,7 @@ namespace Rasterizer {
         uint32_t *m_values;
         uint32_t m_numRendered = 0;
         glm::vec3 m_tileGrid;
+        float* m_depthValues;
 
     public:
         void operator()(sycl::id<1> idx) const {
@@ -219,6 +236,7 @@ namespace Rasterizer {
                         key |= depth;
                         m_keys[off] = key;
                         m_values[off] = i;
+                        m_depthValues[i] = gaussian.depth;
                         ++off;
                     }
                 }
@@ -270,11 +288,11 @@ namespace Rasterizer {
     public:
         RasterizeGaussians(glm::ivec2 *ranges, uint32_t *keys, uint32_t *values, GaussianPoint *gaussianPoints,
                            uint8_t *imageBuffer, size_t size, uint32_t m_imageWidth, uint32_t imageHeight,
-                           uint32_t horizontalBlocks, uint32_t numTiles)
+                           uint32_t horizontalBlocks, uint32_t numTiles, float maxDepthValue = -1, float minDepthValue = -1)
                 : m_ranges(ranges), m_keys(keys), m_values(values), m_gaussianPoints(gaussianPoints),
                   m_imageBuffer(imageBuffer), m_size(size),
                   m_imageWidth(m_imageWidth), m_imageHeight(imageHeight), m_horizontalBlocks(horizontalBlocks),
-                  m_numTiles(numTiles) {}
+                  m_numTiles(numTiles), m_maxDepthValue(maxDepthValue) , m_minDepthValue(minDepthValue) {}
 
     private:
         uint32_t *m_keys;
@@ -288,6 +306,8 @@ namespace Rasterizer {
         uint32_t m_imageHeight;
         uint32_t m_horizontalBlocks;
         uint32_t m_numTiles;
+        float m_maxDepthValue = -1;
+        float m_minDepthValue = -1;
     public:
         void operator()(sycl::nd_item<2> item) const {
             uint32_t gridDim = item.get_group_range(0);
@@ -363,7 +383,13 @@ namespace Rasterizer {
                             }
                             // Eq. (3) from 3D Gaussian splatting paper.
                             for (int ch = 0; ch < 3; ch++) {
-                                C[ch] += point.color[ch] * alpha * T;
+                                if (m_maxDepthValue != -1){
+                                    float col  = (point.color[ch] - m_minDepthValue) / (m_maxDepthValue - m_minDepthValue);
+                                    //col = std::min(col, 1.0f);
+                                    C[ch] += col * alpha * T;
+                                } else {
+                                    C[ch] += point.color[ch] * alpha * T;
+                                }
                             }
                             T = test_T;
                         }

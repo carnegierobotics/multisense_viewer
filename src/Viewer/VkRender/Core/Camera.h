@@ -214,7 +214,7 @@ namespace VkRender {
         }
 
 
-        void setPerspective(float fov, float aspect, float zNear = 0.1f, float zFar = 40.0f) {
+        void setPerspective(float fov, float aspect, float zNear = 0.1f, float zFar = 100.0f) {
             // Guide: https://vincent-p.github.io/posts/vulkan_perspective_matrix/
 
             m_Fov = fov;

@@ -39,6 +39,7 @@ namespace Rasterizer {
         glm::vec3 camPos{};
         uint32_t shDim = 0;
         uint32_t shDegree = 1;
+        int colorMethod = 0;
     };
 
 

@@ -27,7 +27,12 @@ namespace VkRender {
 
         void onUpdate() override;
 
-        ~EditorGaussianViewer() override = default;
+        ~EditorGaussianViewer() override {
+            if (m_activeScene) {
+                m_activeScene->removeDestroyFunction(this); // Unregister the callback since we're destroying the class anyway
+                m_activeScene.reset();
+            }
+        }
 
         void onMouseMove(const MouseButtons &mouse) override;
 
@@ -44,6 +49,8 @@ namespace VkRender {
         std::unordered_map<entt::entity, std::unique_ptr<GraphicsPipeline2D>> m_2DRenderPipeline;
 
         void generatePipelines();
+
+        void onEntityDestroyed(entt::entity entity);
     };
 }
 

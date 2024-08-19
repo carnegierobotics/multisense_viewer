@@ -77,12 +77,14 @@ namespace VkRender {
             m_shDim = gs.getShDim();
 
             positionBuffer = sycl::malloc_device<glm::vec3>(numPoints, queue);
+            normalsBuffer = sycl::malloc_device<glm::vec3>(numPoints, queue);
             scalesBuffer = sycl::malloc_device<glm::vec3>(numPoints, queue);
             quaternionBuffer = sycl::malloc_device<glm::quat>(numPoints, queue);
             opacityBuffer = sycl::malloc_device<float>(numPoints, queue);
             sphericalHarmonicsBuffer = sycl::malloc_device<float>(gs.sphericalHarmonics.size(), queue);
 
             queue.memcpy(positionBuffer, gs.positions.data(), numPoints * sizeof(glm::vec3));
+            queue.memcpy(normalsBuffer, gs.normals.data(), numPoints * sizeof(glm::vec3));
             queue.memcpy(scalesBuffer, gs.scales.data(), numPoints * sizeof(glm::vec3));
             queue.memcpy(quaternionBuffer, gs.quats.data(), numPoints * sizeof(glm::quat));
             queue.memcpy(opacityBuffer, gs.opacities.data(), numPoints * sizeof(float));
@@ -127,6 +129,7 @@ namespace VkRender {
     GaussianModelGraphicsPipeline::~GaussianModelGraphicsPipeline() {
         if (m_boundBuffers) {
             sycl::free(positionBuffer, queue);
+            sycl::free(normalsBuffer, queue);
             sycl::free(scalesBuffer, queue);
             sycl::free(quaternionBuffer, queue);
             sycl::free(opacityBuffer, queue);
@@ -153,7 +156,7 @@ namespace VkRender {
     }
 
 
-    void GaussianModelGraphicsPipeline::generateImage(Camera &camera) {
+    void GaussianModelGraphicsPipeline::generateImage(Camera &camera, int colorType) {
         auto params = Rasterizer::getHtanfovxyFocal(camera.m_Fov, camera.m_height, camera.m_width);
         glm::mat4 viewMatrix = camera.matrices.view;
         glm::mat4 projectionMatrix = camera.matrices.perspective;
@@ -191,17 +194,19 @@ namespace VkRender {
             scene.width = m_width;
             scene.shDim = m_shDim;
             scene.shDegree = 1.0;
+            scene.colorMethod = colorType;
 
             auto startPreprocess = std::chrono::high_resolution_clock::now();
             queue.fill(numTilesTouchedBuffer, 0x00, numPoints).wait();
 
             queue.submit([&](sycl::handler &h) {
 
-                h.parallel_for(sycl::range<1>(numPoints), Rasterizer::Preprocess(positionBuffer, scalesBuffer,
-                                                                                 quaternionBuffer, opacityBuffer,
-                                                                                 sphericalHarmonicsBuffer,
-                                                                                 numTilesTouchedBuffer,
-                                                                                 pointsBuffer, &scene));
+                h.parallel_for(sycl::range<1>(numPoints),
+                               Rasterizer::Preprocess(positionBuffer, normalsBuffer, scalesBuffer,
+                                                      quaternionBuffer, opacityBuffer,
+                                                      sphericalHarmonicsBuffer,
+                                                      numTilesTouchedBuffer,
+                                                      pointsBuffer, &scene));
             }).wait();
 
             auto endPreprocess = std::chrono::high_resolution_clock::now();
@@ -228,18 +233,40 @@ namespace VkRender {
                         std::chrono::high_resolution_clock::now() - startInclusiveSum;
 
                 auto startDuplicateGaussians = std::chrono::high_resolution_clock::now();
+                float *depthValues = sycl::malloc_device<float>(numPoints, queue);
 
                 queue.submit([&](sycl::handler &h) {
                     h.parallel_for<class duplicates>(sycl::range<1>(numPoints),
                                                      Rasterizer::DuplicateGaussians(pointsBuffer, pointOffsets,
                                                                                     keysBuffer,
                                                                                     valuesBuffer,
+                                                                                    depthValues,
                                                                                     numRendered, tileGrid));
                 }).wait();
 
                 std::chrono::duration<double, std::milli> duplicateGaussiansDuration =
                         std::chrono::high_resolution_clock::now() - startDuplicateGaussians;
                 auto startSorting = std::chrono::high_resolution_clock::now();
+
+                float maxDepthValue = -1;
+                float minDepthValue = -1;
+                if (colorType == 2) {
+                    std::vector<float> depthValuesHost(numPoints);
+                    queue.memcpy(depthValuesHost.data(), depthValues, sizeof(float) * numPoints).wait();
+                    std::sort(depthValuesHost.begin(), depthValuesHost.end());
+                    maxDepthValue = depthValuesHost.back();
+                    // Find the minimum non-zero value
+                    minDepthValue = 0.0f; // Initialize to 0 or another appropriate default value
+                    for (const auto &value: depthValuesHost) {
+                        if (value > 0.0f) {
+                            minDepthValue = value;
+                            break; // Stop as soon as we find the first non-zero value
+                        }
+                    }
+                }
+
+
+                sycl::free(depthValues, queue);
 
                 /*
                 uint32_t numKeys = 1 << 13;
@@ -263,7 +290,6 @@ namespace VkRender {
                 queue.wait();
                 sorter->resetMemory();
                 queue.wait();
-
 
 
                 std::chrono::duration<double, std::milli> sortingDuration =
@@ -296,7 +322,8 @@ namespace VkRender {
                                                                                          valuesBuffer, pointsBuffer,
                                                                                          imageBuffer, numRendered,
                                                                                          imageWidth, imageHeight,
-                                                                                         horizontal_blocks, numTiles));
+                                                                                         horizontal_blocks, numTiles,
+                                                                                         maxDepthValue, minDepthValue));
                 }).wait();
 
 

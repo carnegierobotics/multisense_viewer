@@ -102,9 +102,14 @@ namespace VkRender {
 
                 } else if (loadFileInfo.path.extension() == ".ply") {
                     // Load into the active scene
+                    auto& registry = handles.m_context->activeScene()->getRegistry();
+                    auto view = registry.view<GaussianModelComponent>();
+                    for (auto& entity: view){
+                        handles.m_context->activeScene()->destroyEntity(Entity(entity, handles.m_context->activeScene().get()));
+                    }
                     auto entity = handles.m_context->activeScene()->createEntity(loadFileInfo.path.filename().string());
                     entity.addComponent<GaussianModelComponent>(loadFileInfo.path);
-                    entity.addComponent<MeshComponent>(Utils::getModelsPath() / "obj" / "quad.obj");
+
                 }
 
 

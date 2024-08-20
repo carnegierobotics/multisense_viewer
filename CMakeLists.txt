@@ -125,6 +125,10 @@ set(SOURCE_FILES
         src/Viewer/Scenes/MultiSenseViewer/Modules/LibMultiSense/CommonHeader.h
         src/Viewer/Scenes/MultiSenseViewer/Modules/LibMultiSense/LibMultiSenseConnector.cpp
         src/Viewer/Scenes/MultiSenseViewer/Modules/LibMultiSense/MultiSenseTaskManager.cpp
+        src/Viewer/VkRender/Core/VulkanImage.cpp
+        src/Viewer/VkRender/Core/VulkanImage.h
+        src/Viewer/VkRender/Core/VulkanImage.cpp
+        src/Viewer/VkRender/Core/VulkanImage.h
 )
 
 set(SCRIPT_FILES

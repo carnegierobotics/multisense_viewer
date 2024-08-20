@@ -39,6 +39,7 @@
 #include "Viewer/Tools/Logger.h"
 #include "Viewer/Tools/Populate.h"
 #include "Viewer/Tools/Macros.h"
+#include "CommandBuffer.h"
 
 //some vulken version compatibility stuff
 #ifndef VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
@@ -522,6 +523,25 @@ VkCommandBuffer VulkanDevice::createCommandBuffer(VkCommandBufferLevel level, Vk
 
 VkCommandBuffer VulkanDevice::createCommandBuffer(VkCommandBufferLevel level, bool begin) {
     return createCommandBuffer(level, m_CommandPool, begin);
+}
+
+CommandBuffer VulkanDevice::createVulkanCommandBuffer(VkCommandBufferLevel level, bool begin) {
+    CommandBuffer cmdBuffer;
+    cmdBuffer.buffers.resize(1);
+
+    VkCommandBufferAllocateInfo cmdBufAllocateInfo = Populate::commandBufferAllocateInfo(m_CommandPool, level, 1);
+    if (vkAllocateCommandBuffers(m_LogicalDevice, &cmdBufAllocateInfo, &cmdBuffer.buffers[0]) != VK_SUCCESS)
+        throw std::runtime_error("Failed to allocate command buffers");
+    // If requested, also start recording for the new command buffer
+    if (begin) {
+        VkCommandBufferBeginInfo cmdBufInfo = Populate::commandBufferBeginInfo();
+        if (vkBeginCommandBuffer(cmdBuffer.buffers[0], &cmdBufInfo) != VK_SUCCESS)
+            throw std::runtime_error("Failed to begin command buffer");
+    }
+
+
+
+    return cmdBuffer;
 }
 
 /**

@@ -51,6 +51,14 @@ namespace VkRender {
             // Create the parent window
             ImGui::Begin("Editor3DLayer", nullptr, window_flags);
 
+            handles.editorUi->saveRenderToFile = ImGui::Button("Save image");
+
+            static bool toggle = false;
+            ImGui::Checkbox("Save image toggle", &toggle);
+            if (toggle){
+                handles.editorUi->saveRenderToFile = true;
+            }
+
             for (const auto &pair: handles.shared->setActiveCamera) {
                 if (pair.second) {  // If any value is true
                     ImGui::PushFont(handles.info->font15);

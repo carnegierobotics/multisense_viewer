@@ -65,6 +65,7 @@ DISABLE_WARNING_POP
 #include "Viewer/VkRender/Core/Camera.h"
 #include "Viewer/VkRender/Core/CommandBuffer.h"
 #include "VulkanRenderPass.h"
+#include "VulkanImage.h"
 
 
 namespace VkRender {
@@ -110,21 +111,8 @@ namespace VkRender {
         /** @brief Encapsulated physical and logical vulkan m_Device */
         VulkanDevice* m_vulkanDevice{};
 
-        struct {
-            VkImage image;
-            VkDeviceMemory mem;
-            VkImageView view;
-            VmaAllocation allocation;
-        } m_depthStencil{};
-
-
-        struct {
-            VkImage image;
-            VkDeviceMemory mem;
-            VkImageView view;
-            VmaAllocation allocation;
-        } m_colorImage{};
-
+        std::unique_ptr<VulkanImage> m_colorImage;
+        std::unique_ptr<VulkanImage> m_depthStencil;
 
         /** @brief Last frame time measured using a high performance timer (if available) */
         float frameTimer = 1.0f;

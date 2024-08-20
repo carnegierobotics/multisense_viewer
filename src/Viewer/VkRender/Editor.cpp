@@ -3,6 +3,8 @@
 //
 
 
+#include "stb_image_write.h"
+
 #include "Viewer/VkRender/Editor.h"
 #include "Viewer/Tools/Utils.h"
 
@@ -26,6 +28,10 @@ namespace VkRender {
 
         m_renderPass = std::make_unique<VulkanRenderPass>(&m_createInfo.pPassCreateInfo);
 
+        VulkanRenderPassCreateInfo offscreenRenderPassCreateInfo = m_createInfo.pPassCreateInfo;
+        offscreenRenderPassCreateInfo.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        m_offscreenRenderPass = std::make_unique<VulkanRenderPass>(&offscreenRenderPassCreateInfo);
+
         m_guiManager = std::make_unique<GuiManager>(m_context->vkDevice(),
                                                     m_renderPass->getRenderPass(), // TODO verify if this is ok?
                                                     &m_ui,
@@ -39,12 +45,13 @@ namespace VkRender {
         Log::Logger::getInstance()->info("Creating new Editor. UUID: {}, size: {}x{}, at pos: ({},{})",
                                          m_uuid.operator std::string(), m_ui.width, m_ui.height, m_ui.x, m_ui.y);
 
+        createOffscreenFramebuffer();
     }
 
 
     void Editor::resize(EditorCreateInfo &createInfo) {
         m_createInfo = createInfo;
-        m_sizeLimits = EditorSizeLimits( createInfo.pPassCreateInfo.width,  createInfo.pPassCreateInfo.height);
+        m_sizeLimits = EditorSizeLimits(createInfo.pPassCreateInfo.width, createInfo.pPassCreateInfo.height);
         m_ui.height = m_createInfo.height;
         m_ui.width = m_createInfo.width;
         m_ui.x = m_createInfo.x;
@@ -106,87 +113,131 @@ namespace VkRender {
                                 m_createInfo.height, m_createInfo.x, m_createInfo.y);
         vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
 
-        if (ui().saveRenderToFile){
 
-        /// *** Render to Offscreen Framebuffer *** ///
-        VkRenderPassBeginInfo offscreenRenderPassInfo = renderPassBeginInfo;
-        offscreenRenderPassInfo.framebuffer = offscreenFramebuffer; // Use the offscreen framebuffer
-        vkCmdBeginRenderPass(drawCmdBuffers.buffers[currentFrame], &offscreenRenderPassInfo,
-                             VK_SUBPASS_CONTENTS_INLINE);
-        drawCmdBuffers.renderPassType = RENDER_PASS_UI;
-        vkCmdSetViewport(drawCmdBuffers.buffers[currentFrame], 0, 1, &viewport);
-        vkCmdSetScissor(drawCmdBuffers.buffers[currentFrame], 0, 1, &scissor);
-        onRender(drawCmdBuffers);
-        vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
+        if (ui().saveRenderToFile) {
+            CommandBuffer copyCmd = m_context->vkDevice().createVulkanCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+                                                                                    true);
+            uint32_t frameIndexValue = 0;
+            uint32_t activeImageIndexValue = 0;
+            copyCmd.frameIndex = &frameIndexValue;
+            copyCmd.activeImageIndex = &activeImageIndexValue;
+            /// *** Render to Offscreen Framebuffer *** ///
+            VkRenderPassBeginInfo offscreenRenderPassInfo = Populate::renderPassBeginInfo();
+            offscreenRenderPassInfo.framebuffer = m_offscreenFramebuffer.frameBuffer; // Use the offscreen framebuffer
+            offscreenRenderPassInfo.renderArea.offset.x = 0;
+            offscreenRenderPassInfo.renderArea.offset.y = 0;
+            offscreenRenderPassInfo.renderArea.extent.width = m_createInfo.width;
+            offscreenRenderPassInfo.renderArea.extent.height = m_createInfo.height;
+            offscreenRenderPassInfo.renderPass = m_offscreenRenderPass->getRenderPass(); // Increase reference count by 1 here?
 
-        /// *** Copy Image Data to CPU Buffer *** ///
-        VkCommandBuffer commandBuffer = beginSingleTimeCommands(device, commandPool);
+            VkClearValue clearValues[3];
+            clearValues[0].color = {{0.33f, 0.33f, 0.5f, 1.0f}}; // Clear color to black (or any other color)
+            clearValues[1].depthStencil = {1.0f, 0};           // Clear depth to 1.0 and stencil to 0
+            clearValues[2].color = {{0.33f, 0.33f, 0.5f, 1.0f}};       // Clear depth to 1.0 and stencil to 0
 
-        VkImageMemoryBarrier barrier = {};
-        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        barrier.image = offscreenImage;  // Use the offscreen image
-        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        barrier.subresourceRange.baseMipLevel = 0;
-        barrier.subresourceRange.levelCount = 1;
-        barrier.subresourceRange.baseArrayLayer = 0;
-        barrier.subresourceRange.layerCount = 1;
+            offscreenRenderPassInfo.clearValueCount = 3;
+            offscreenRenderPassInfo.pClearValues = clearValues;
 
-        vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
-                             0, nullptr, 0, nullptr, 1, &barrier);
+            scissor.offset = {0, 0};
+            viewport.x = static_cast<float>(0);
+            viewport.y = static_cast<float>(0);
+            vkCmdBeginRenderPass(copyCmd.buffers.front(), &offscreenRenderPassInfo,
+                                 VK_SUBPASS_CONTENTS_INLINE);
+            vkCmdSetViewport(copyCmd.buffers.front(), 0, 1, &viewport);
+            vkCmdSetScissor(copyCmd.buffers.front(), 0, 1, &scissor);
+            onRender(copyCmd);
+            vkCmdEndRenderPass(copyCmd.buffers.front());
 
 
-        // Create a buffer for copying the image data to
-        VkBufferCreateInfo bufferInfo = {};
-        bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-        bufferInfo.size = imageSize;
-        bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+            /// *** Copy Image Data to CPU Buffer *** ///
+            VkImageMemoryBarrier barrier = {};
+            barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+            barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barrier.image = m_offscreenFramebuffer.resolvedImage->image();  // Use the offscreen image
+            barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            barrier.subresourceRange.baseMipLevel = 0;
+            barrier.subresourceRange.levelCount = 1;
+            barrier.subresourceRange.baseArrayLayer = 0;
+            barrier.subresourceRange.layerCount = 1;
 
-        VkBuffer stagingBuffer;
-        vkCreateBuffer(device, &bufferInfo, nullptr, &stagingBuffer);
+            vkCmdPipelineBarrier(copyCmd.buffers.front(), VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                 VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
+                                 0, nullptr, 0, nullptr, 1, &barrier);
 
-        VkMemoryRequirements memRequirements;
-        vkGetBufferMemoryRequirements(device, stagingBuffer, &memRequirements);
 
-        VkMemoryAllocateInfo allocInfo = {};
-        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-        allocInfo.allocationSize = memRequirements.size;
-        allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+            struct StagingBuffer {
+                VkBuffer buffer;
+                VkDeviceMemory memory;
+            } stagingBuffer{};
 
-        VkDeviceMemory stagingBufferMemory;
-        vkAllocateMemory(device, &allocInfo, nullptr, &stagingBufferMemory);
-        vkBindBufferMemory(device, stagingBuffer, stagingBufferMemory, 0);
 
-        // Copy the image to the buffer
-        VkBufferImageCopy region = {};
-        region.bufferOffset = 0;
-        region.bufferRowLength = 0;
-        region.bufferImageHeight = 0;
-        region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        region.imageSubresource.mipLevel = 0;
-        region.imageSubresource.baseArrayLayer = 0;
-        region.imageSubresource.layerCount = 1;
-        region.imageOffset = {0, 0, 0};
-        region.imageExtent = {m_createInfo.width, m_createInfo.height, 1};
+            CHECK_RESULT(m_context->vkDevice().createBuffer(
+                    VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                    m_offscreenFramebuffer.resolvedImage->getImageSizeRBGA(),
+                    &stagingBuffer.buffer,
+                    &stagingBuffer.memory));
 
-        vkCmdCopyImageToBuffer(commandBuffer, offscreenImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, stagingBuffer, 1, &region);
+            // Copy the image to the buffer
+            VkBufferImageCopy region = {};
+            region.bufferOffset = 0;
+            region.bufferRowLength = 0;
+            region.bufferImageHeight = 0;
+            region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            region.imageSubresource.mipLevel = 0;
+            region.imageSubresource.baseArrayLayer = 0;
+            region.imageSubresource.layerCount = 1;
+            region.imageOffset = {0, 0, 0};
+            region.imageExtent = {static_cast<uint32_t>(m_createInfo.width), static_cast<uint32_t>(m_createInfo.height),
+                                  1};
 
-        endSingleTimeCommands(device, commandPool, queue, commandBuffer);
+            vkCmdCopyImageToBuffer(copyCmd.buffers.front(), m_offscreenFramebuffer.resolvedImage->image(),
+                                   VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, stagingBuffer.buffer, 1, &region);
 
-        // Map memory and save image to a file
-        void* data;
-        vkMapMemory(device, stagingBufferMemory, 0, imageSize, 0, &data);
-        saveImageToFile("output.png", data, m_createInfo.width, m_createInfo.height);
-        vkUnmapMemory(device, stagingBufferMemory);
+            Utils::setImageLayout(
+                    copyCmd.buffers.front(),
+                    m_offscreenFramebuffer.resolvedImage->image(),
+                    VK_IMAGE_ASPECT_COLOR_BIT,
+                    VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+            m_context->vkDevice().flushCommandBuffer(copyCmd.buffers.front(), m_context->vkDevice().m_TransferQueue,
+                                                     true);
 
-        // Cleanup resources after usage
-        vkDestroyBuffer(device, stagingBuffer, nullptr);
-        vkFreeMemory(device, stagingBufferMemory, nullptr);
+
+
+            // Map memory and save image to a file
+            void *data;
+            vkMapMemory(m_context->vkDevice().m_LogicalDevice, stagingBuffer.memory, 0, m_offscreenFramebuffer.resolvedImage->getImageSizeRBGA(), 0, &data);
+            // Assuming the image is in RGBA format (4 channels) and that data is a pointer to the pixel data
+            int width = m_createInfo.width;
+            int height = m_createInfo.height;
+            int channels = 3; // Assuming RGBA format
+
+            uint8_t* pixelData = static_cast<uint8_t*>(data);
+            uint8_t* rgbData = new uint8_t[width * height * channels];
+
+            for (int i = 0; i < width * height; i++) {
+                rgbData[i * 3 + 0] = pixelData[i * 4 + 2]; // R
+                rgbData[i * 3 + 1] = pixelData[i * 4 + 1]; // G
+                rgbData[i * 3 + 2] = pixelData[i * 4 + 0]; // B
+                // Alpha is ignored, and we don't need to set it because we're only saving RGB
+            }
+            // Save the image
+            stbi_write_png("output.png", width, height, channels, rgbData, width * channels);
+
+            // Clean up
+            delete[] rgbData;
+            vkUnmapMemory(m_context->vkDevice().m_LogicalDevice, stagingBuffer.memory);
+
+
+
         }
+
     }
 
 
@@ -601,8 +652,9 @@ namespace VkRender {
                                       EditorBorderState::Bottom == editor->ui().lastHoveredBorderType);
         editor->ui().hovered = editor->ui().lastHoveredBorderType != EditorBorderState::None;
 
-        if (editor->ui().hovered){
-            Log::Logger::getInstance()->trace("Hovering editor: {}. Type: {}", editor->m_createInfo.editorIndex, editorTypeToString(editor->getCreateInfo().editorTypeDescription));
+        if (editor->ui().hovered) {
+            Log::Logger::getInstance()->trace("Hovering editor: {}. Type: {}", editor->m_createInfo.editorIndex,
+                                              editorTypeToString(editor->getCreateInfo().editorTypeDescription));
         }
     }
 
@@ -653,7 +705,8 @@ namespace VkRender {
             //&& (!anyCornerHovered && !anyCornerClicked)) {
             for (auto &otherEditor: editors) {
                 if (editor != otherEditor && otherEditor->ui().lastClickedBorderType == EditorBorderState::None &&
-                    editor->ui().lastClickedBorderType != EditorBorderState::None && (editor->ui().resizeHovered || otherEditor->ui().resizeHovered)) {
+                    editor->ui().lastClickedBorderType != EditorBorderState::None &&
+                    (editor->ui().resizeHovered || otherEditor->ui().resizeHovered)) {
                     checkAndSetIndirectResize(editor, otherEditor, mouse);
                 }
             }
@@ -754,10 +807,117 @@ namespace VkRender {
         }
     }
 
-
     bool Editor::isValidResize(EditorCreateInfo &newEditorCI, std::unique_ptr<Editor> &editor) {
         return editor->validateEditorSize(newEditorCI);
     }
 
+    void Editor::createOffscreenFramebuffer() {
+        {
+            VkImageCreateInfo imageCI = Populate::imageCreateInfo();
+            imageCI.imageType = VK_IMAGE_TYPE_2D;
+            imageCI.format = m_createInfo.pPassCreateInfo.depthFormat;
+            imageCI.extent = {static_cast<uint32_t>(m_createInfo.width), static_cast<uint32_t>(m_createInfo.height), 1};
+            imageCI.mipLevels = 1;
+            imageCI.arrayLayers = 1;
+            imageCI.samples = m_createInfo.pPassCreateInfo.msaaSamples;
+            imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
+            imageCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+            VkImageViewCreateInfo imageViewCI = Populate::imageViewCreateInfo();
+            imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
+            imageViewCI.format = m_createInfo.pPassCreateInfo.depthFormat;
+            imageViewCI.subresourceRange.baseMipLevel = 0;
+            imageViewCI.subresourceRange.levelCount = 1;
+            imageViewCI.subresourceRange.baseArrayLayer = 0;
+            imageViewCI.subresourceRange.layerCount = 1;
+            imageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+            if (m_createInfo.pPassCreateInfo.depthFormat >= VK_FORMAT_D16_UNORM_S8_UINT) {
+                imageViewCI.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+            }
+            VulkanImageCreateInfo createInfo(m_context->vkDevice(), m_context->allocator(), imageCI, imageViewCI);
+            createInfo.debugInfo =
+                    "OffScreenFrameBufferDepthImage: " + editorTypeToString(m_createInfo.editorTypeDescription);
+            createInfo.setLayout = true;
+            createInfo.srcLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            createInfo.dstLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+            createInfo.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+            m_offscreenFramebuffer.depthStencil = std::make_unique<VulkanImage>(createInfo);
+        }
+
+
+        {
+            VkImageCreateInfo imageCI = Populate::imageCreateInfo();
+            imageCI.imageType = VK_IMAGE_TYPE_2D;
+            imageCI.format = m_createInfo.pPassCreateInfo.swapchainColorFormat;
+            imageCI.extent = {static_cast<uint32_t>(m_createInfo.width), static_cast<uint32_t>(m_createInfo.height), 1};
+            imageCI.mipLevels = 1;
+            imageCI.arrayLayers = 1;
+            imageCI.samples = m_createInfo.pPassCreateInfo.msaaSamples;
+            imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
+            imageCI.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+            imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+            imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            VkImageViewCreateInfo imageViewCI = Populate::imageViewCreateInfo();
+            imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
+            imageViewCI.format = m_createInfo.pPassCreateInfo.swapchainColorFormat;
+            imageViewCI.subresourceRange.baseMipLevel = 0;
+            imageViewCI.subresourceRange.levelCount = 1;
+            imageViewCI.subresourceRange.baseArrayLayer = 0;
+            imageViewCI.subresourceRange.layerCount = 1;
+            imageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            VulkanImageCreateInfo createInfo(m_context->vkDevice(), m_context->allocator(), imageCI, imageViewCI);
+            createInfo.debugInfo =
+                    "OffScreenFrameBufferColorImage: " + editorTypeToString(m_createInfo.editorTypeDescription);
+            createInfo.setLayout = true;
+            createInfo.srcLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            createInfo.dstLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            createInfo.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            m_offscreenFramebuffer.colorImage = std::make_unique<VulkanImage>(createInfo);
+
+        }
+        {
+            VkImageCreateInfo imageCI = Populate::imageCreateInfo();
+            imageCI.imageType = VK_IMAGE_TYPE_2D;
+            imageCI.format = m_createInfo.pPassCreateInfo.swapchainColorFormat;
+            imageCI.extent = {static_cast<uint32_t>(m_createInfo.width), static_cast<uint32_t>(m_createInfo.height), 1};
+            imageCI.mipLevels = 1;
+            imageCI.arrayLayers = 1;
+            imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
+            imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
+            imageCI.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+            imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+            imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            VkImageViewCreateInfo imageViewCI = Populate::imageViewCreateInfo();
+            imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
+            imageViewCI.format = m_createInfo.pPassCreateInfo.swapchainColorFormat;
+            imageViewCI.subresourceRange.baseMipLevel = 0;
+            imageViewCI.subresourceRange.levelCount = 1;
+            imageViewCI.subresourceRange.baseArrayLayer = 0;
+            imageViewCI.subresourceRange.layerCount = 1;
+            imageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            VulkanImageCreateInfo createInfo(m_context->vkDevice(), m_context->allocator(), imageCI, imageViewCI);
+            createInfo.debugInfo =
+                    "OffScreenFrameBufferResolvedColorImage: " + editorTypeToString(m_createInfo.editorTypeDescription);
+            createInfo.setLayout = true;
+            createInfo.srcLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            createInfo.dstLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            createInfo.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            m_offscreenFramebuffer.resolvedImage = std::make_unique<VulkanImage>(createInfo);
+        }
+        std::array<VkImageView, 3> frameBufferAttachments{};
+        frameBufferAttachments[0] = m_offscreenFramebuffer.colorImage->view();
+        frameBufferAttachments[1] = m_offscreenFramebuffer.depthStencil->view();
+        frameBufferAttachments[2] = m_offscreenFramebuffer.resolvedImage->view(); // TODO we may run into trouble, maybe we should crate swapchainimages count offscreen framebuffers to be save we get a avalid image?
+        VkFramebufferCreateInfo frameBufferCreateInfo = Populate::framebufferCreateInfo(
+                static_cast<uint32_t>(m_createInfo.width), static_cast<uint32_t>(m_createInfo.height),
+                frameBufferAttachments.data(),
+                frameBufferAttachments.size(),
+                m_renderPass->getRenderPass());
+        VkResult result = vkCreateFramebuffer(m_context->vkDevice().m_LogicalDevice, &frameBufferCreateInfo,
+                                              nullptr, &m_offscreenFramebuffer.frameBuffer);
+        if (result != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create framebuffer");
+
+        }
+    }
 
 }

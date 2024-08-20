@@ -15,6 +15,7 @@
 #include "Viewer/VkRender/Core/VulkanRenderPass.h"
 #include "Viewer/VkRender/ImGui/GuiManager.h"
 #include "Viewer/VkRender/Core/UUID.h"
+#include "Viewer/VkRender/Core/VulkanImage.h"
 
 namespace VkRender {
     class Renderer;
@@ -119,9 +120,19 @@ namespace VkRender {
         std::unique_ptr<GuiManager> m_guiManager;
         EditorUI m_ui;
 
+        struct {
+            std::unique_ptr<VulkanImage> colorImage;
+            std::unique_ptr<VulkanImage> resolvedImage;
+            std::unique_ptr<VulkanImage> depthStencil;
+            VkFramebuffer frameBuffer;
+        }m_offscreenFramebuffer;
+    private:
+        void createOffscreenFramebuffer();
+
     protected:
         Renderer *m_context;
         std::unique_ptr<VulkanRenderPass> m_renderPass;
+        std::unique_ptr<VulkanRenderPass> m_offscreenRenderPass;
         EditorCreateInfo m_createInfo;
     };
 }

@@ -284,16 +284,13 @@ namespace VkRender {
 
     VulkanRenderer::~VulkanRenderer() {
 
-        vkDestroyImageView(device, m_depthStencil.view, nullptr);
-        vmaDestroyImage(m_allocator, m_depthStencil.image, m_depthStencil.allocation);
-
-        vkDestroyImageView(device, m_colorImage.view, nullptr);
-        vmaDestroyImage(m_allocator, m_colorImage.image, m_colorImage.allocation);
 
         for (auto &fb: m_frameBuffers) {
             vkDestroyFramebuffer(device, fb, nullptr);
         }
 
+        m_colorImage.reset();
+        m_depthStencil.reset();
         m_mainRenderPass.reset();
         // CleanUP all vulkan resources
         swapchain->cleanup();
@@ -506,12 +503,6 @@ namespace VkRender {
         for (auto &fb: m_frameBuffers) {
             vkDestroyFramebuffer(device, fb, nullptr);
         }
-
-        vkDestroyImageView(device, m_depthStencil.view, nullptr);
-        vmaDestroyImage(m_allocator, m_depthStencil.image, m_depthStencil.allocation);
-
-        vkDestroyImageView(device, m_colorImage.view, nullptr);
-        vmaDestroyImage(m_allocator, m_colorImage.image, m_colorImage.allocation);
 
         createColorResources();
         createDepthStencil();
@@ -1125,53 +1116,6 @@ namespace VkRender {
         }
     }
 
-    /*
-    void VulkanRenderer::createColorResources() {
-        VkImageCreateInfo imageCI = Populate::imageCreateInfo();
-        imageCI.imageType = VK_IMAGE_TYPE_2D;
-        imageCI.format = swapchain->colorFormat;
-        imageCI.extent = {m_width, m_height, 1};
-        imageCI.mipLevels = 1;
-        imageCI.arrayLayers = 1;
-        imageCI.samples = msaaSamples;
-        imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
-        imageCI.usage = VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-        imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-        VkResult result = vkCreateImage(device, &imageCI, nullptr, &m_colorImage.image);
-        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create depth m_Image");
-
-        VkMemoryRequirements memReqs{};
-        vkGetImageMemoryRequirements(device, m_colorImage.image, &memReqs);
-
-        VkMemoryAllocateInfo memAllloc = Populate::memoryAllocateInfo();
-        memAllloc.allocationSize = memReqs.size;
-        memAllloc.memoryTypeIndex = m_vulkanDevice->getMemoryType(memReqs.memoryTypeBits,
-                                                                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-        result = vkAllocateMemory(device, &memAllloc, nullptr, &m_colorImage.mem);
-        if (result != VK_SUCCESS) throw std::runtime_error("Failed to allocate depth m_Image memory");
-        result = vkBindImageMemory(device, m_colorImage.image, m_colorImage.mem, 0);
-        if (result != VK_SUCCESS) throw std::runtime_error("Failed to bind depth m_Image memory");
-
-        VkImageViewCreateInfo imageViewCI = Populate::imageViewCreateInfo();
-        imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        imageViewCI.image = m_colorImage.image;
-        imageViewCI.format = swapchain->colorFormat;
-        imageViewCI.subresourceRange.baseMipLevel = 0;
-        imageViewCI.subresourceRange.levelCount = 1;
-        imageViewCI.subresourceRange.baseArrayLayer = 0;
-        imageViewCI.subresourceRange.layerCount = 1;
-        imageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        // Stencil aspect should only be set on depth + stencil formats (VK_FORMAT_D16_UNORM_S8_UINT..VK_FORMAT_D32_SFLOAT_S8_UINT
-        if (depthFormat >= VK_FORMAT_D16_UNORM_S8_UINT) {
-            imageViewCI.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
-        }
-        result = vkCreateImageView(device, &imageViewCI, nullptr, &m_colorImage.view);
-        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create depth m_Image m_View");
-    }
-
-     */
-
 #ifdef WIN32
 
     void VulkanRenderer::clipboard() {
@@ -1263,7 +1207,6 @@ namespace VkRender {
     }
 
     void VulkanRenderer::createDepthStencil() {
-        std::string description = "VulkanRenderer:";
         VkImageCreateInfo imageCI = Populate::imageCreateInfo();
         imageCI.imageType = VK_IMAGE_TYPE_2D;
         imageCI.format = depthFormat;
@@ -1273,18 +1216,8 @@ namespace VkRender {
         imageCI.samples = msaaSamples;
         imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
         imageCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-        VmaAllocationCreateInfo allocInfo = {};
-        allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
-        VkResult result = vmaCreateImage(m_allocator, &imageCI, &allocInfo, &m_depthStencil.image,
-                                         &m_depthStencil.allocation, nullptr);
-        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create depth image");
-        vmaSetAllocationName(m_allocator, m_depthStencil.allocation, (description + "DepthStencil").c_str());
-        VALIDATION_DEBUG_NAME(m_vulkanDevice->m_LogicalDevice,
-                              reinterpret_cast<uint64_t>(m_depthStencil.image), VK_OBJECT_TYPE_IMAGE,
-                              (description + "DepthImage").c_str());
         VkImageViewCreateInfo imageViewCI = Populate::imageViewCreateInfo();
         imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        imageViewCI.image = m_depthStencil.image;
         imageViewCI.format = depthFormat;
         imageViewCI.subresourceRange.baseMipLevel = 0;
         imageViewCI.subresourceRange.levelCount = 1;
@@ -1294,27 +1227,17 @@ namespace VkRender {
         if (depthFormat >= VK_FORMAT_D16_UNORM_S8_UINT) {
             imageViewCI.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
         }
-        result = vkCreateImageView(m_vulkanDevice->m_LogicalDevice, &imageViewCI, nullptr,
-                                   &m_depthStencil.view);
-        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create depth image view");
-        VALIDATION_DEBUG_NAME(m_vulkanDevice->m_LogicalDevice,
-                              reinterpret_cast<uint64_t>(m_depthStencil.view), VK_OBJECT_TYPE_IMAGE_VIEW,
-                              (description + "DepthView").c_str());
-        VkCommandBuffer copyCmd = m_vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-        VkImageSubresourceRange subresourceRange = {};
-        subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-        subresourceRange.levelCount = 1;
-        subresourceRange.layerCount = 1;
-        Utils::setImageLayout(copyCmd, m_depthStencil.image, VK_IMAGE_LAYOUT_UNDEFINED,
-                              VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, subresourceRange,
-                              VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
-        m_vulkanDevice->flushCommandBuffer(copyCmd, graphicsQueue, true);
+        VulkanImageCreateInfo createInfo(*m_vulkanDevice, m_allocator, imageCI, imageViewCI);
+        createInfo.debugInfo = "MainFrameBufferDepthImage";
+        createInfo.setLayout = true;
+        createInfo.srcLayout =VK_IMAGE_LAYOUT_UNDEFINED;
+        createInfo.dstLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        createInfo.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+        m_depthStencil = std::make_unique<VulkanImage>(createInfo);
     }
 
 
     void VulkanRenderer::createColorResources() {
-        std::string description = "VulkanRenderer:";
-
         VkImageCreateInfo imageCI = Populate::imageCreateInfo();
         imageCI.imageType = VK_IMAGE_TYPE_2D;
         imageCI.format = swapchain->colorFormat;
@@ -1326,31 +1249,17 @@ namespace VkRender {
         imageCI.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
         imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-
-        VmaAllocationCreateInfo allocInfo = {};
-        allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
-
-        VkResult result = vmaCreateImage(m_allocator, &imageCI, &allocInfo, &m_colorImage.image,
-                                         &m_colorImage.allocation, nullptr);
-        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create color image");
-        VALIDATION_DEBUG_NAME(m_vulkanDevice->m_LogicalDevice,
-                              reinterpret_cast<uint64_t>(m_colorImage.image), VK_OBJECT_TYPE_IMAGE,
-                              (description + "ColorImageResource").c_str());
         VkImageViewCreateInfo imageViewCI = Populate::imageViewCreateInfo();
         imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        imageViewCI.image = m_colorImage.image;
         imageViewCI.format = swapchain->colorFormat;
         imageViewCI.subresourceRange.baseMipLevel = 0;
         imageViewCI.subresourceRange.levelCount = 1;
         imageViewCI.subresourceRange.baseArrayLayer = 0;
         imageViewCI.subresourceRange.layerCount = 1;
         imageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        result = vkCreateImageView(m_vulkanDevice->m_LogicalDevice, &imageViewCI, nullptr,
-                                   &m_colorImage.view);
-        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create color image view");
-        VALIDATION_DEBUG_NAME(m_vulkanDevice->m_LogicalDevice,
-                              reinterpret_cast<uint64_t>(m_colorImage.view), VK_OBJECT_TYPE_IMAGE_VIEW,
-                              (description + "ColorViewResource").c_str());
+        VulkanImageCreateInfo createInfo(*m_vulkanDevice, m_allocator, imageCI, imageViewCI);
+        createInfo.debugInfo = "MainFrameBufferImage";
+        m_colorImage = std::make_unique<VulkanImage>(createInfo);
     }
 
     void VulkanRenderer::createMainRenderPass() {
@@ -1370,8 +1279,8 @@ namespace VkRender {
         m_mainRenderPass = std::make_shared<VulkanRenderPass>(&renderPassCreateInfo);
 
         std::array<VkImageView, 3> frameBufferAttachments{};
-        frameBufferAttachments[0] = m_colorImage.view;
-        frameBufferAttachments[1] = m_depthStencil.view;
+        frameBufferAttachments[0] = m_colorImage->view();
+        frameBufferAttachments[1] = m_depthStencil->view();
         VkFramebufferCreateInfo frameBufferCreateInfo = Populate::framebufferCreateInfo(m_width,
                                                                                         m_height,
                                                                                         frameBufferAttachments.data(),

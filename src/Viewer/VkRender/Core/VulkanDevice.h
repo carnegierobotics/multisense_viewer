@@ -41,6 +41,7 @@
 
 #include "Viewer/Tools/Populate.h"
 #include "Viewer/VkRender/Core/Buffer.h"
+#include "CommandBuffer.h"
 
 struct VulkanDevice {
 
@@ -108,6 +109,7 @@ struct VulkanDevice {
     VkCommandBuffer createCommandBuffer(VkCommandBufferLevel level, VkCommandPool pool, bool begin = false);
 
     VkCommandBuffer createCommandBuffer(VkCommandBufferLevel level, bool begin = false);
+    CommandBuffer createVulkanCommandBuffer(VkCommandBufferLevel level, bool begin);
 
     void beginCommandBuffer(VkCommandBuffer commandBuffer);
 
@@ -116,6 +118,7 @@ struct VulkanDevice {
     void flushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, bool free = true);
 
     void flushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, VkCommandPool pool, bool free, VkFence &fence);
+
 };
 
 

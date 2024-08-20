@@ -29,8 +29,10 @@ namespace VkRender {
         void onUIRender(VkRender::GuiObjectHandles &handles) override {
 
             // Set window position and size
-            ImVec2 window_pos = ImVec2(0.0f, 0.0f); // Position (x, y)
-            ImVec2 window_size = ImVec2(handles.info->applicationWidth, handles.info->applicationHeight); // Size (width, height)
+            // Set window position and size
+            ImVec2 window_pos = ImVec2(5.0f, 55.0f); // Position (x, y)
+            ImVec2 window_size = ImVec2(handles.editorUi->width - 5.0f,
+                                        handles.editorUi->height - 55.0f); // Size (width, height)
 
             // Set window flags to remove decorations
             ImGuiWindowFlags window_flags =
@@ -42,6 +44,7 @@ namespace VkRender {
             ImGui::SetNextWindowSize(window_size, ImGuiCond_Always);
             // Create the parent window
             ImGui::Begin("EditorImageLayer", nullptr, window_flags);
+            handles.editorUi->saveRenderToFile = ImGui::Button("Save image");
 
             ImGui::End();
 

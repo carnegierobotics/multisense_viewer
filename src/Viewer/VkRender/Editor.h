@@ -16,6 +16,7 @@
 #include "Viewer/VkRender/ImGui/GuiManager.h"
 #include "Viewer/VkRender/Core/UUID.h"
 #include "Viewer/VkRender/Core/VulkanImage.h"
+#include "Viewer/VkRender/Core/VulkanFramebuffer.h"
 
 namespace VkRender {
     class Renderer;
@@ -124,7 +125,7 @@ namespace VkRender {
             std::unique_ptr<VulkanImage> colorImage;
             std::unique_ptr<VulkanImage> resolvedImage;
             std::unique_ptr<VulkanImage> depthStencil;
-            VkFramebuffer frameBuffer;
+            std::unique_ptr<VulkanFramebuffer> framebuffer;
         }m_offscreenFramebuffer;
     private:
         void createOffscreenFramebuffer();

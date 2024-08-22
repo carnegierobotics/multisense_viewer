@@ -27,10 +27,14 @@ DISABLE_WARNING_POP
 #include "Viewer/VkRender/ImGui/Widgets.h"
 
 namespace VkRender::LayerUtils {
-
+    typedef enum FileTypeLoadFlow {
+        OBJ_FILE,
+        PLY_3DGS,
+        PLY_MESH,
+    };
     struct LoadFileInfo {
         std::filesystem::path path;
-        std::string fileType;
+        FileTypeLoadFlow filetype = OBJ_FILE;
     };
 
 #ifdef WIN32
@@ -137,8 +141,8 @@ namespace VkRender::LayerUtils {
     DISABLE_WARNING_PUSH
     DISABLE_WARNING_ALL
 
-    static inline LoadFileInfo selectFile(const std::string& dialogName, const std::string& fileType, const std::string& setCurrentFolder) {
-        std::string filename;
+    static inline LoadFileInfo selectFile(const std::string& dialogName, const std::vector<std::string>& filetypes, const std::string& setCurrentFolder, LayerUtils::FileTypeLoadFlow flow) {
+        std::filesystem::path filename;
 
         gtk_init(0, nullptr);
 
@@ -152,8 +156,11 @@ namespace VkRender::LayerUtils {
         );
 
         GtkFileFilter *filter = gtk_file_filter_new();
-        gtk_file_filter_set_name(filter, (fileType + " Files").c_str()); // Set filter name dynamically based on fileType
-        gtk_file_filter_add_pattern(filter, ("*." + fileType).c_str()); // Set filter pattern dynamically
+        gtk_file_filter_set_name(filter, "Select files"); // Set filter name dynamically based on fileType
+
+        for (const auto& filetype : filetypes)
+            gtk_file_filter_add_pattern(filter, ("*." + filetype).c_str()); // Set filter pattern dynamically
+
         gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
         gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), setCurrentFolder.c_str());
 
@@ -168,7 +175,7 @@ namespace VkRender::LayerUtils {
             gtk_main_iteration();
         }
 
-        return {filename, fileType};
+        return {filename, flow};
     }
 
 

@@ -79,7 +79,7 @@ namespace VkRender {
             }
         }
 
-        void openImportFileDialog(const std::string &fileDescription, const std::string &type) {
+        void openImportFileDialog(const std::string &fileDescription, const std::vector<std::string> &type, LayerUtils::FileTypeLoadFlow flow) {
             if (!loadFileFuture.valid()) {
                 auto &opts = RendererConfig::getInstance().getUserSetting();
                 std::string openLoc = Utils::getSystemHomePath().string();
@@ -87,20 +87,20 @@ namespace VkRender {
                     openLoc = opts.lastOpenedImportModelFolderPath.remove_filename().string();
                 }
                 loadFileFuture = std::async(VkRender::LayerUtils::selectFile, "Select " + fileDescription + " file",
-                                            type, openLoc);
+                                            type, openLoc, flow);
             }
         }
 
         /** Handle the file path after selection is complete **/
         void handleSelectedFile(const LayerUtils::LoadFileInfo &loadFileInfo, GuiObjectHandles &handles) {
             if (!loadFileInfo.path.empty()) {
-                if (loadFileInfo.path.extension() == ".obj") {
+                if (loadFileInfo.filetype == LayerUtils::OBJ_FILE) {
 
                     // Load into the active scene
                     auto entity = handles.m_context->activeScene()->createEntity(loadFileInfo.path.filename().string());
                     entity.addComponent<MeshComponent>(loadFileInfo.path);
 
-                } else if (loadFileInfo.path.extension() == ".ply") {
+                } else if (loadFileInfo.filetype == LayerUtils::PLY_3DGS) {
                     // Load into the active scene
                     auto& registry = handles.m_context->activeScene()->getRegistry();
                     auto view = registry.view<GaussianModelComponent>();
@@ -109,6 +109,11 @@ namespace VkRender {
                     }
                     auto entity = handles.m_context->activeScene()->createEntity(loadFileInfo.path.filename().string());
                     entity.addComponent<GaussianModelComponent>(loadFileInfo.path);
+
+                }else if (loadFileInfo.filetype == LayerUtils::PLY_MESH) {
+                    // Load into the active scene
+                    auto entity = handles.m_context->activeScene()->createEntity(loadFileInfo.path.filename().string());
+                    entity.addComponent<MeshComponent>(loadFileInfo.path);
 
                 }
 
@@ -127,8 +132,8 @@ namespace VkRender {
         void checkFileImportCompletion(GuiObjectHandles &handles) {
             if (loadFileFuture.valid() &&
                 loadFileFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
-                LayerUtils::LoadFileInfo selectedFilePath = loadFileFuture.get(); // Get the result from the future
-                handleSelectedFile(selectedFilePath, handles);
+                LayerUtils::LoadFileInfo loadFileInfo = loadFileFuture.get(); // Get the result from the future
+                handleSelectedFile(loadFileInfo, handles);
             }
         }
 
@@ -141,14 +146,18 @@ namespace VkRender {
 
                 // Menu options for loading files
                 if (ImGui::MenuItem("Load Wavefront (.obj)")) {
-                    openImportFileDialog("Wavefront", "obj");
+                    std::vector<std::string> types{".obj"};
+
+                    openImportFileDialog("Wavefront", types, LayerUtils::OBJ_FILE);
                 }
-                /*
-                if (ImGui::MenuItem("Load glTF 2.0 (.gltf)")) {
-                    openImportFileDialog("glTF 2.0", "gltf");
-                } */
+
+                if (ImGui::MenuItem("Load Mesh ply file")) {
+                    std::vector<std::string> types{".ply"};
+                    openImportFileDialog("Load mesh file", types, LayerUtils::PLY_MESH);
+                }
                 if (ImGui::MenuItem("Load 3D GS file (.ply)")) {
-                    openImportFileDialog("Load 3D GS file", "ply");
+                    std::vector<std::string> types{".ply"};
+                    openImportFileDialog("Load 3D GS file", types, LayerUtils::PLY_3DGS);
                 }
 
                 ImGui::EndPopup();

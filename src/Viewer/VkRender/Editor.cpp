@@ -11,6 +11,7 @@
 #include "Viewer/VkRender/Renderer.h"
 
 #include "Viewer/VkRender/Core/VulkanRenderPass.h"
+#include "Viewer/VkRender/Core/VulkanFramebuffer.h"
 
 namespace VkRender {
 
@@ -67,7 +68,10 @@ namespace VkRender {
                                          m_uuid.operator std::string(), m_createInfo.editorIndex, m_ui.width,
                                          m_ui.height, m_ui.x, m_ui.y);
 
+        createOffscreenFramebuffer();
+
         onEditorResize();
+
     }
 
     void Editor::loadScene() {
@@ -123,7 +127,7 @@ namespace VkRender {
             copyCmd.activeImageIndex = &activeImageIndexValue;
             /// *** Render to Offscreen Framebuffer *** ///
             VkRenderPassBeginInfo offscreenRenderPassInfo = Populate::renderPassBeginInfo();
-            offscreenRenderPassInfo.framebuffer = m_offscreenFramebuffer.frameBuffer; // Use the offscreen framebuffer
+            offscreenRenderPassInfo.framebuffer = m_offscreenFramebuffer.framebuffer->framebuffer(); // Use the offscreen framebuffer
             offscreenRenderPassInfo.renderArea.offset.x = 0;
             offscreenRenderPassInfo.renderArea.offset.y = 0;
             offscreenRenderPassInfo.renderArea.extent.width = m_createInfo.width;
@@ -903,21 +907,18 @@ namespace VkRender {
             createInfo.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
             m_offscreenFramebuffer.resolvedImage = std::make_unique<VulkanImage>(createInfo);
         }
-        std::array<VkImageView, 3> frameBufferAttachments{};
-        frameBufferAttachments[0] = m_offscreenFramebuffer.colorImage->view();
-        frameBufferAttachments[1] = m_offscreenFramebuffer.depthStencil->view();
-        frameBufferAttachments[2] = m_offscreenFramebuffer.resolvedImage->view(); // TODO we may run into trouble, maybe we should crate swapchainimages count offscreen framebuffers to be save we get a avalid image?
-        VkFramebufferCreateInfo frameBufferCreateInfo = Populate::framebufferCreateInfo(
-                static_cast<uint32_t>(m_createInfo.width), static_cast<uint32_t>(m_createInfo.height),
-                frameBufferAttachments.data(),
-                frameBufferAttachments.size(),
-                m_renderPass->getRenderPass());
-        VkResult result = vkCreateFramebuffer(m_context->vkDevice().m_LogicalDevice, &frameBufferCreateInfo,
-                                              nullptr, &m_offscreenFramebuffer.frameBuffer);
-        if (result != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create framebuffer");
 
-        }
+        VulkanFramebufferCreateInfo fbCreateInfo(m_context->vkDevice());
+        fbCreateInfo.width = m_createInfo.width;
+        fbCreateInfo.height = m_createInfo.height;
+        fbCreateInfo.renderPass = m_renderPass->getRenderPass();
+        std::vector<VkImageView> attachments(3);
+        attachments[0] = m_offscreenFramebuffer.colorImage->view();
+        attachments[1] = m_offscreenFramebuffer.depthStencil->view();
+        attachments[2] = m_offscreenFramebuffer.resolvedImage->view();
+        fbCreateInfo.frameBufferAttachments = attachments;
+        m_offscreenFramebuffer.framebuffer = std::make_unique<VulkanFramebuffer>(fbCreateInfo);
+
     }
 
 }

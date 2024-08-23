@@ -16,7 +16,7 @@ namespace VkRender {
 
         void onUpdate() override;
 
-        void onSceneLoad() override;
+        void onSceneLoad(std::shared_ptr<Scene> scene) override;
     };
 }
 

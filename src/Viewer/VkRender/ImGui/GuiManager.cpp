@@ -66,7 +66,8 @@ namespace VkRender {
                            VkSampleCountFlagBits msaaSamples, uint32_t imageCount, Renderer *ctx,
                            ImGuiContext *imguiCtx,
                            const GuiResources *guiResources, SharedContextData* sharedData) : handles(sharedData),
-            m_guiResources(guiResources), m_vulkanDevice(vulkanDevice) {
+            m_guiResources(guiResources), m_vulkanDevice(vulkanDevice), m_context(ctx) {
+
         vertexBuffer.resize(imageCount);
         indexBuffer.resize(imageCount);
         indexCount.resize(imageCount);

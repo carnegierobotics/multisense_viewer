@@ -7,9 +7,10 @@
 
 
 #include "Viewer/Tools/Macros.h"
-#include "Viewer/VkRender/ImGui/Layer.h"
 
 namespace VkRender {
+    class Renderer;
+    class GuiObjectHandles;
     /**
      * @brief Base class for scripts that can be attached to renderer. See @refitem Example for how to implement a script.
      */

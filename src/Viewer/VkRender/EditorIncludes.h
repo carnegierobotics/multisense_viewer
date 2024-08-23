@@ -5,15 +5,31 @@
 #ifndef MULTISENSE_VIEWER_EDITORINCLUDES_H
 #define MULTISENSE_VIEWER_EDITORINCLUDES_H
 
-#include <imgui.h>
-
 #include <fmt/core.h>
 #include <fmt/ostream.h>
 
+#define IMGUI_DEFINE_MATH_OPERATORS
+#include <imgui.h>
+
 #include "Viewer/VkRender/pch.h"
 #include "Viewer/VkRender/Editors/EditorDefinitions.h"
+#include "Viewer/VkRender/Entity.h"
+
+#include "Viewer/Scenes/MultiSenseViewer/Modules/LibMultiSense/MultiSenseRendererBridge.h"
+#include "Viewer/Scenes/MultiSenseViewer/Modules/GigE-Vision//MultiSenseRendererGigEVisionBridge.h"
 
 namespace VkRender {
+
+    struct SharedContextData {
+        bool openAddDevicePopup = false;
+        std::unordered_map<uint32_t, bool> setActiveCamera;
+        Entity m_selectedEntity;
+
+        std::shared_ptr<MultiSense::MultiSenseRendererBridge> multiSenseRendererBridge{};
+        std::shared_ptr<MultiSense::MultiSenseRendererGigEVisionBridge> multiSenseRendererGigEVisionBridge{};
+
+    };
+
     typedef enum EditorBorderState {
         None = 0,        // Cursor is not on any border
         Left = 1 << 0,   // Cursor is on the left border (1)

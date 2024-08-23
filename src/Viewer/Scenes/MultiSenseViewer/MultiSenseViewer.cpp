@@ -22,7 +22,7 @@ namespace VkRender {
         }
 
         {
-            auto cameraEntity = createNewCamera("DefaultCamera", 1280, 720);
+            auto cameraEntity = createNewCamera("DefaultCamera", 400, 400);
             auto &cameraComponent = cameraEntity.getComponent<CameraComponent>();
             cameraComponent.camera.setType(Camera::flycam);
             auto &transform = cameraEntity.getComponent<TransformComponent>();

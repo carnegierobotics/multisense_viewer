@@ -23,7 +23,7 @@ namespace VkRender {
 
     }
 
-    void EditorMyProject::onSceneLoad() {
+    void EditorMyProject::onSceneLoad(std::shared_ptr<Scene> scene) {
 
         /*
         DefaultGraphicsPipelineComponent::RenderPassInfo renderPassInfo{};

@@ -65,6 +65,10 @@ namespace VkRender {
             if (toggle){
                 handles.editorUi->render3DGSImage = true;
             }
+
+            handles.editorUi->saveRenderToFile = ImGui::Button("Save image");
+
+
             ImGui::PopFont();
 
             ImGui::End();

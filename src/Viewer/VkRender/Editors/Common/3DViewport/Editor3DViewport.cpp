@@ -10,7 +10,6 @@
 #include "Viewer/VkRender/Entity.h"
 #include "Viewer/VkRender/Components/MeshComponent.h"
 #include "Viewer/VkRender/RenderPipelines/UboGraphicsPipeline.h"
-#include "Viewer/VkRender/Components/GaussianModelComponent.h"
 
 namespace VkRender {
     Editor3DViewport::Editor3DViewport(EditorCreateInfo &createInfo) : Editor(createInfo) {
@@ -20,12 +19,12 @@ namespace VkRender {
         // Grid and objects
     }
 
-    void Editor3DViewport::onSceneLoad() {
+    void Editor3DViewport::onSceneLoad(std::shared_ptr<Scene> scene) {
         // Once we load a scene we need to create pipelines according to the objects specified in the scene.
         // For OBJModels we are alright with a default rendering pipeline (Phong lightining and stuff)
         // The pipelines also define memory handles between CPU and GPU. It makes more logical scenes if these attributes belong to the OBJModelComponent
         // But we need it accessed in the pipeline
-        m_editorCamera = Camera(1280, 720);
+        m_editorCamera = Camera(m_createInfo.width, m_createInfo.height);
         ui().editorCamera = &m_editorCamera;
         m_activeCamera = m_editorCamera;
         m_activeScene = m_context->activeScene();
@@ -44,8 +43,10 @@ namespace VkRender {
         // Generate pipelines
         auto view = m_activeScene->getRegistry().view<TransformComponent, MeshComponent>(); // TODO make one specific component type for renderables in standard pipelines
         for (auto entity: view) {
-            if (!m_renderPipelines[entity]) { // Check if the pipeline already exists
+            if (!m_renderPipelines.contains(entity)) { // Check if the pipeline already exists
                 auto &model = view.get<MeshComponent>(entity);
+                if (!model.hasMesh())
+                    continue;
                 // Decide which pipeline to use
                 if (model.usesUBOMesh()) {
                     m_renderPipelines[entity] = std::make_unique<UboGraphicsPipeline>(*m_context, renderPassInfo);
@@ -89,6 +90,8 @@ namespace VkRender {
         auto view = m_activeScene->getRegistry().view<TransformComponent, MeshComponent>(); // TODO make one specific component type for renderables in standard pipelines
         for (auto entity: view) {
             if (m_renderPipelines.contains(entity)) {
+                if (!view.get<MeshComponent>(entity).hasMesh())
+                    continue;
                 auto transform = view.get<TransformComponent>(entity);
                 m_renderPipelines[entity]->updateTransform(transform);
                 m_renderPipelines[entity]->updateView(m_activeCamera);

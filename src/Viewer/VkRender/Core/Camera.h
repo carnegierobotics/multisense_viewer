@@ -89,16 +89,11 @@ namespace VkRender {
         Camera() = default;
 
         Camera(uint32_t width, uint32_t height) {
-            m_width = width;
-            m_height = height;
+            setSize(width, height);
             m_type = VkRender::Camera::arcball;
-            setPerspective(60.0f, static_cast<float>(width) / static_cast<float>(height));
             resetPosition();
-            // Initialize quaternion to have a forward looking x-axis
-            //rotateQuaternion(-90.0f, glm::vec3(0.0f, 1.0f, 0.0f));
-            if (m_height == 0 || m_width == 0){
-                Log::Logger::getInstance()->warning("Initializing a camera with 0 on one dimension {}x{}", m_width, m_height);
-            }
+
+
         }
 
         void updateViewMatrix() {
@@ -216,7 +211,6 @@ namespace VkRender {
 
         void setPerspective(float fov, float aspect, float zNear = 0.1f, float zFar = 100.0f) {
             // Guide: https://vincent-p.github.io/posts/vulkan_perspective_matrix/
-
             m_Fov = fov;
             m_Znear = zNear;
             m_Zfar = zFar;
@@ -231,22 +225,6 @@ namespace VkRender {
                     0.0f, 0.0f, A, -1.0f,
                     0.0f, 0.0f, B, 0.0f
             );
-            /*
-            float right = 1;
-            float left = -1;
-            float rightMinusLeft = right - left;
-            float top = -1;
-            float bottom = 1;
-            float bottomMinusTop = bottom - top;
-            float twoNear = 2 * m_Znear;
-            glm::mat4 m = {
-                    twoNear / rightMinusLeft, 0.0f, 0.0f, 0.0f,
-                    0.0f, -twoNear / bottomMinusTop, 0.0f, 0.0f,
-                    0.0f, 0.0f, A, -1.0f,
-                    0.0f, 0.0f, B, 0.0f
-            };
-            matrices.perspective = m;
-             */
         };
 
         void updateAspectRatio(float aspect) {
@@ -321,6 +299,15 @@ namespace VkRender {
                 }
             }
         };
+
+        void setSize(uint32_t width, uint32_t height) {
+            m_width = width;
+            m_height = height;
+            if (m_height == 0 || m_width == 0){
+                Log::Logger::getInstance()->warning("Initializing a camera with 0 on one dimension {}x{}", m_width, m_height);
+            }
+            setPerspective(60.0f, static_cast<float>(width) / static_cast<float>(height));
+        }
     };
 }
 

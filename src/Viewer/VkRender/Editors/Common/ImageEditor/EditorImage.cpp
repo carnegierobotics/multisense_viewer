@@ -55,7 +55,7 @@ namespace VkRender {
 
     }
 
-    void EditorImage::onSceneLoad() {
+    void EditorImage::onSceneLoad(std::shared_ptr<Scene> scene) {
         // Once we load a scene we need to create pipelines according to the objects specified in the scene.
         // For OBJModels we are alright with a default rendering pipeline (Phong lightining and stuff)
         // The pipelines also define memory handles between CPU and GPU. It makes more logical scenes if these attributes belong to the OBJModelComponent

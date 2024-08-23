@@ -9,9 +9,6 @@
 #include <entt/entt.hpp>
 
 #include "Viewer/Tools/Macros.h"
-#include "Viewer/VkRender/Renderer.h"
-#include "Viewer/VkRender/Components/Components.h"
-
 #include "Viewer/VkRender/Scene.h"
 
 namespace VkRender {
@@ -55,7 +52,7 @@ namespace VkRender {
         template<typename T>
         void removeComponent()
         {
-            HZ_CORE_ASSERT(hasComponent<T>(), "Entity does not have component!");
+            VK_ASSERT(hasComponent<T>(), "Entity does not have component!");
             m_scene->m_registry.remove<T>(m_entityHandle);
         }
 

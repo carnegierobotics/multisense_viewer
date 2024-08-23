@@ -23,7 +23,7 @@ namespace VkRender {
     public:
 
 
-        MeshComponent() = delete;
+        MeshComponent() = default;
 
         MeshComponent(const MeshComponent &) = delete;
 
@@ -34,16 +34,23 @@ namespace VkRender {
         explicit MeshComponent(const std::filesystem::path &modelPath) {
             loadModel(modelPath);
             loadTexture(modelPath);
+            m_modelPath = modelPath;
+            m_initialized = true;
         }
 
         explicit MeshComponent(uint32_t type) {
             loadCameraModelMesh();
+            m_modelPath = "Generated";
+            m_initialized = true;
         }
 
         Texture2D objTexture; // TODO Possibly make more empty textures to match our triple buffering?
         UBOCamera &getCameraModelMesh() { return m_cameraModelVertices; }
         bool usesUBOMesh() {return m_isCameraModelMesh;}
+        bool hasMesh() {return m_initialized;}
+        void loadOBJ(std::filesystem::path modelPath);
 
+        std::filesystem::path getModelPath() {return m_modelPath;}
     private:
         void loadModel(const std::filesystem::path &modelPath);
 
@@ -62,9 +69,11 @@ namespace VkRender {
         VkDeviceSize m_texSize = 0;
         uint32_t m_texWidth = 0;
         uint32_t m_texHeight = 0;
-
+        std::filesystem::path m_modelPath;
 
         bool m_isCameraModelMesh = false;
+        bool m_initialized = false;
+
     };
 };
 

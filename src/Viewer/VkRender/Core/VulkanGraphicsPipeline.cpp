@@ -2,7 +2,6 @@
 // Created by magnus on 7/30/24.
 //
 
-#include <imgui.h>
 #include "Viewer/VkRender/Core/VulkanGraphicsPipeline.h"
 #include "VulkanResourceManager.h"
 

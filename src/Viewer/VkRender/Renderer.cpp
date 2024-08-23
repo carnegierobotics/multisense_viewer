@@ -35,13 +35,10 @@
  **/
 
 #include "Viewer/VkRender/Renderer.h"
-#include "Viewer/VkRender/Entity.h"
 #include "Viewer/VkRender/Core/UUID.h"
-
 #include "Viewer/Tools/Utils.h"
 #include "Viewer/Tools/Populate.h"
 
-#include "Viewer/VkRender/Components/Components.h"
 #include "Viewer/VkRender/Editors/EditorDefinitions.h"
 #include "Viewer/VkRender/Components/MeshComponent.h"
 #include "Viewer/Scenes/MultiSenseViewer/MultiSenseViewer.h"
@@ -118,7 +115,7 @@ namespace VkRender {
         // Load the default scene
         m_scene = std::make_shared<MultiSenseViewer>(*this);
         for (auto &editor: m_editors) {
-            editor->loadScene();
+            editor->loadScene(m_scene);
         }
     }
 
@@ -205,7 +202,7 @@ namespace VkRender {
             m_scene = (std::make_shared<MultiSenseViewer>(*this));
         }
         for (auto &editor: m_editors) {
-            editor->loadScene();
+            editor->loadScene(std::shared_ptr<Scene>());
         }
     }
 
@@ -383,7 +380,7 @@ namespace VkRender {
     void Renderer::recreateEditor(std::unique_ptr<Editor> &editor, EditorCreateInfo &createInfo) {
         auto newEditor = createEditor(createInfo);
         newEditor->ui() = editor->ui();
-        newEditor->onSceneLoad();
+        newEditor->onSceneLoad(std::shared_ptr<Scene>());
         editor = std::move(newEditor);
     }
 
@@ -635,7 +632,7 @@ namespace VkRender {
             newEditor->ui().lastClickedBorderType = EditorBorderState::Top;
         }
 
-        newEditor->onSceneLoad();
+        newEditor->onSceneLoad(std::shared_ptr<Scene>());
         m_editors.push_back(std::move(newEditor));
     }
 

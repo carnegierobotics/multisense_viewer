@@ -119,6 +119,8 @@ set(SOURCE_FILES
         src/Viewer/VkRender/Editors/MultiSenseViewer/Layers/LayoutSettingsLayer.h
         src/Viewer/VkRender/Editors/MyEditor/EditorMyProject.cpp
 
+        src/Viewer/VkRender/Editors/Common/SceneHierarchy/SceneHierarchyLayer.cpp
+
         src/Viewer/Tools/StbInclude.cpp
         src/Viewer/Tools/Logger.cpp
         src/Viewer/Tools/ThreadPool.h
@@ -127,6 +129,7 @@ set(SOURCE_FILES
         src/Viewer/Scenes/MultiSenseViewer/Modules/LibMultiSense/CommonHeader.h
         src/Viewer/Scenes/MultiSenseViewer/Modules/LibMultiSense/LibMultiSenseConnector.cpp
         src/Viewer/Scenes/MultiSenseViewer/Modules/LibMultiSense/MultiSenseTaskManager.cpp
+        src/Viewer/VkRender/Editors/Common/Properties/PropertiesLayer.cpp
 
 )
 

@@ -90,11 +90,11 @@ namespace VkRender {
         virtual void onKeyCallback(const Input& input){}
         virtual void onUpdate() {
         }
-        virtual void onSceneLoad() {
+        virtual void onSceneLoad(std::shared_ptr<Scene> scene) {
         }
         virtual void onFileDrop(const std::filesystem::path& path){}
         virtual void onEditorResize(){}
-        void loadScene();
+        void loadScene(std::shared_ptr<Scene> ptr);
 
         void update(bool updateGraph, float frametime, Input *input);
 

@@ -50,7 +50,6 @@ DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER
 class LayerExample : public VkRender::Layer {
 public:
 
-
     /** Called once upon this object creation**/
     void onAttach() override {
 

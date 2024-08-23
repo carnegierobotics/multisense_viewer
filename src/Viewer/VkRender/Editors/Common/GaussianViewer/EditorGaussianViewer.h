@@ -38,7 +38,7 @@ namespace VkRender {
 
         void onMouseScroll(float change) override;
 
-        void onSceneLoad() override;
+        void onSceneLoad(std::shared_ptr<Scene> scene) override;
 
         void onKeyCallback(const Input& input) override;
 

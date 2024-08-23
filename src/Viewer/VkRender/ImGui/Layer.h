@@ -40,8 +40,6 @@
 #define IMGUI_INCLUDE_IMGUI_USER_H
 #define IMGUI_DISABLE_OBSOLETE_FUNCTIONS
 #define IMGUI_DEFINE_MATH_OPERATORS
-
-
 #include <imgui.h>
 
 #include "Viewer/VkRender/pch.h"
@@ -50,13 +48,15 @@
 #include "Viewer/VkRender/Core/RenderDefinitions.h"
 #include "Viewer/VkRender/Core/KeyInput.h"
 #include "Viewer/Scenes/MultiSenseViewer/Modules/LibMultiSense/MultiSenseRendererBridge.h"
-#include "Viewer/Tools/ThreadPool.h"
 #include "Viewer/Scenes/MultiSenseViewer/Modules/GigE-Vision/MultiSenseRendererGigEVisionBridge.h"
+
+#include "Viewer/Tools/ThreadPool.h"
 #include "Viewer/VkRender/EditorIncludes.h"
 
 namespace VkRender {
     class Renderer;
     class Entity;
+    class Scene;
     /** @brief Set of Default colors */
     namespace Colors {
         static const ImVec4 green(0.26f, 0.42f, 0.31f, 1.0f);
@@ -167,14 +167,6 @@ namespace VkRender {
         bool updateGLTFPath = false;
     };
 
-    struct SharedContextData {
-        bool openAddDevicePopup = false;
-        std::shared_ptr<MultiSense::MultiSenseRendererBridge> multiSenseRendererBridge{};
-        std::shared_ptr<MultiSense::MultiSenseRendererGigEVisionBridge> multiSenseRendererGigEVisionBridge{};
-        std::unordered_map<uint32_t, bool> setActiveCamera;
-
-    };
-
     /** @brief Handle which is the MAIN link between ''frontend and backend'' */
     struct GuiObjectHandles {
         /** @brief Handle for current devices located in sidebar */
@@ -240,6 +232,12 @@ namespace VkRender {
          * Can be used to prepare for next frame for instance
          */
         virtual void onFinishedRender() = 0;
+
+        virtual void setContext(std::shared_ptr<Scene> scene){
+            m_scene = scene;
+        }
+
+        std::shared_ptr<Scene> m_scene;
     };
 }
 

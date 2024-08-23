@@ -22,6 +22,7 @@ DISABLE_WARNING_OLD_STYLE_CAST
 DISABLE_WARNING_POP
 #endif
 
+#define IMGUI_DEFINE_MATH_OPERATORS
 #include <imgui.h>
 
 #include "Viewer/VkRender/ImGui/Widgets.h"
@@ -31,7 +32,7 @@ namespace VkRender::LayerUtils {
         OBJ_FILE,
         PLY_3DGS,
         PLY_MESH,
-    };
+    } FileTypeLoadFlow;
     struct LoadFileInfo {
         std::filesystem::path path;
         FileTypeLoadFlow filetype = OBJ_FILE;
@@ -159,7 +160,7 @@ namespace VkRender::LayerUtils {
         gtk_file_filter_set_name(filter, "Select files"); // Set filter name dynamically based on fileType
 
         for (const auto& filetype : filetypes)
-            gtk_file_filter_add_pattern(filter, ("*." + filetype).c_str()); // Set filter pattern dynamically
+            gtk_file_filter_add_pattern(filter, ("*" + filetype).c_str()); // Set filter pattern dynamically
 
         gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
         gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), setCurrentFolder.c_str());

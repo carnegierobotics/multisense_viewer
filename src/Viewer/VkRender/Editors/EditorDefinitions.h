@@ -8,6 +8,7 @@
 #include "Viewer/VkRender/pch.h"
 
 namespace VkRender {
+
     // Define the EditorType enum
     enum class EditorType {
         None,

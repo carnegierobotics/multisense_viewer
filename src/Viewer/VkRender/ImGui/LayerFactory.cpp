@@ -9,12 +9,14 @@
 #include "Viewer/VkRender/Editors/EditorUILayer.h"
 #include "Viewer/VkRender/Editors/Common/SceneHierarchy//SceneHierarchyLayer.h"
 #include "Viewer/VkRender/Editors/Common/Test/EditorTestLayer.h"
-#include "Viewer/VkRender/Editors/MultiSenseViewer/Layers/SideBarLayer.h"
 #include "Viewer/VkRender/Editors/MenuLayer.h"
 #include "Viewer/VkRender/Editors/MainContextLayer.h"
+
 #include "Viewer/VkRender/Editors/MultiSenseViewer/Layers/MultiSenseViewerLayer.h"
 #include "Viewer/VkRender/Editors/MultiSenseViewer/Layers/ConfigurationLayer.h"
 #include "Viewer/VkRender/Editors/MultiSenseViewer/Layers/LayoutSettingsLayer.h"
+#include "Viewer/VkRender/Editors/MultiSenseViewer/Layers/SideBarLayer.h"
+
 #include "Viewer/VkRender/Editors/Common/3DViewport/Editor3DLayer.h"
 #include "Viewer/VkRender/Editors/Common/Properties/PropertiesLayer.h"
 #include "Viewer/VkRender/Editors/Common/GaussianViewer/EditorGaussianViewerLayer.h"
@@ -23,7 +25,7 @@
 namespace VkRender {
 
 
-    std::shared_ptr<Layer> LayerFactory::createLayer(const std::string &layerName) {
+    std::shared_ptr<VkRender::Layer> LayerFactory::createLayer(const std::string &layerName) {
 
         if (layerName == "LayerExample") return std::make_shared<LayerExample>();
         if (layerName == "DebugWindow") return std::make_shared<DebugWindow>();

@@ -68,6 +68,12 @@ namespace VkRender {
 
         entt::registry &getRegistry() { return m_registry; };
 
+        const entt::registry& getRegistry() const {
+            return m_registry;
+        }
+
+        //entt::view get(){return m_registry.view<>();}
+
         const std::string &getSceneName() { return m_sceneName; }
 
         void addDestroyFunction(void* owner, DestroyCallback callback) {

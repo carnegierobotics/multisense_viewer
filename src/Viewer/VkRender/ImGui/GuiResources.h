@@ -5,6 +5,7 @@
 #ifndef MULTISENSE_VIEWER_GUIRESOURCES_H
 #define MULTISENSE_VIEWER_GUIRESOURCES_H
 
+#define IMGUI_DEFINE_MATH_OPERATORS
 #include <imgui.h>
 #include "Viewer/VkRender/pch.h"
 #include "Viewer/VkRender/Core/Texture.h"

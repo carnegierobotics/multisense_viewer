@@ -44,6 +44,7 @@
 #include <glm/vec2.hpp>
 
 
+#define IMGUI_DEFINE_MATH_OPERATORS
 #include <imgui_internal.h>
 
 #include "Viewer/Tools/Utils.h"
@@ -83,6 +84,7 @@ namespace VkRender {
 
         void resize(uint32_t width, uint32_t height, VkRenderPass const &renderPass, VkSampleCountFlagBits msaaSamples, std::shared_ptr<GuiResources> guiResources);
 
+
         /**@brief Update function called from renderer. Function calls each layer in order to generate buffers for draw commands*/
         void update(bool updateFrameGraph, float frameTimer, EditorUI &editorUI, const Input *pInput);
 
@@ -109,6 +111,11 @@ namespace VkRender {
             }
         }
 
+        void setSceneContext(std::shared_ptr<Scene> scene){
+            for (auto& layer : m_LayerStack){
+                layer->setContext(scene);
+            }
+        }
         ImGuiContext *m_imguiContext = nullptr;
 
     private:
@@ -129,6 +136,7 @@ namespace VkRender {
 
         std::unique_ptr<VulkanGraphicsPipeline> m_pipeline;
         VulkanDevice &m_vulkanDevice;
+        Renderer* m_context;
         std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> saveSettingsTimer;
 
 

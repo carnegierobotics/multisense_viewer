@@ -10,7 +10,7 @@
 #include "Viewer/VkRender/Entity.h"
 
 namespace VkRender {
-    void VkRender::EditorGaussianViewer::onSceneLoad() {
+    void VkRender::EditorGaussianViewer::onSceneLoad(std::shared_ptr<Scene> scene) {
         m_activeScene = m_context->activeScene();
         auto cameraEntity = m_activeScene->findEntityByName("DefaultCamera");
         if (cameraEntity) {

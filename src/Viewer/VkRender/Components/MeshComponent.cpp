@@ -168,5 +168,12 @@ namespace VkRender {
         m_isCameraModelMesh = true;
     }
 
+    void MeshComponent::loadOBJ(std::filesystem::path modelPath) {
+        loadModel(modelPath);
+        loadTexture(modelPath);
+        m_modelPath = modelPath;
+        m_initialized = true;
+    }
+
 
 };

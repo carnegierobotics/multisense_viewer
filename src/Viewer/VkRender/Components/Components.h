@@ -109,6 +109,9 @@ namespace VkRender {
         glm::vec3 &getPosition() {
             return translation;
         }
+        glm::vec3 &getScale() {
+            return scale;
+        }
 
         void setFlipUpOption(const bool flipUp) {
             m_flipUpAxis = flipUp;
@@ -157,6 +160,8 @@ namespace VkRender {
     struct CameraComponent {
         Camera camera;
         bool drawGizmo = true;
+
+        CameraComponent() = default;
 
         explicit CameraComponent(const Camera &cam) : camera(cam) {
         }

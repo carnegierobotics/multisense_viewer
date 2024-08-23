@@ -18,16 +18,6 @@ namespace VkRender {
 
     }
 
-    void SceneHierarchyLayer::drawCameraPanel(GuiObjectHandles &handles, Entity &entity) {
-        auto &tag = entity.getComponent<TagComponent>();
-
-        auto &camera = entity.getComponent<CameraComponent>();
-        std::string label = "Set Active ##" + tag.Tag;
-        ImGui::Checkbox(label.c_str(), &handles.shared->setActiveCamera[static_cast<uint32_t>(entity)]);
-        if (ImGui::Button("size"))
-            camera.camera.setSize(600, 600);
-    }
-
 
     void SceneHierarchyLayer::drawEntityNode(GuiObjectHandles &handles, Entity entity)
     {

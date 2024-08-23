@@ -42,11 +42,13 @@ namespace VkRender {
         Camera m_editorCamera;
         std::reference_wrapper<Camera> m_activeCamera = m_editorCamera;
         std::shared_ptr<Scene> m_activeScene;
-        std::unordered_map<entt::entity, std::unique_ptr<GraphicsPipeline>> m_renderPipelines;
+        std::unordered_map<UUID, std::unique_ptr<GraphicsPipeline>> m_renderPipelines;
 
         void onEntityDestroyed(entt::entity entity);
 
         void generatePipelines();
+
+        void cleanUpUnusedPipelines();
     };
 }
 

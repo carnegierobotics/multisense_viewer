@@ -17,13 +17,23 @@
 #include "Viewer/VkRender/Core/Texture.h"
 #include "Viewer/VkRender/Core/RenderDefinitions.h"
 #include "Viewer/VkRender/Core/CommandBuffer.h"
+#include "Viewer/VkRender/Core/UUID.h"
+#include "Viewer/Tools/Utils.h"
 
 namespace VkRender {
     struct MeshComponent {
     public:
 
+        typedef enum ModelComponentState {
+            Uninitialized, // Nothing has happend
+            loaded, // Need graphics pipeline
+            ready, // ready to render
+        } ModelComponentState;
 
-        MeshComponent() = default;
+        MeshComponent() {
+            loadModel(Utils::getModelsPath() / "obj" / "quad.obj");
+            m_modelPath = "Default mesh";
+        }
 
         MeshComponent(const MeshComponent &) = delete;
 
@@ -35,22 +45,25 @@ namespace VkRender {
             loadModel(modelPath);
             loadTexture(modelPath);
             m_modelPath = modelPath;
-            m_initialized = true;
         }
 
         explicit MeshComponent(uint32_t type) {
             loadCameraModelMesh();
             m_modelPath = "Generated";
-            m_initialized = true;
         }
 
         Texture2D objTexture; // TODO Possibly make more empty textures to match our triple buffering?
         UBOCamera &getCameraModelMesh() { return m_cameraModelVertices; }
-        bool usesUBOMesh() {return m_isCameraModelMesh;}
-        bool hasMesh() {return m_initialized;}
+
+        bool usesUBOMesh() { return m_isCameraModelMesh; }
+
+
+        const UUID &getUUID() const { return m_meshUUID; }
+
         void loadOBJ(std::filesystem::path modelPath);
 
-        std::filesystem::path getModelPath() {return m_modelPath;}
+        std::filesystem::path getModelPath() { return m_modelPath; }
+
     private:
         void loadModel(const std::filesystem::path &modelPath);
 
@@ -72,7 +85,7 @@ namespace VkRender {
         std::filesystem::path m_modelPath;
 
         bool m_isCameraModelMesh = false;
-        bool m_initialized = false;
+        UUID m_meshUUID;
 
     };
 };

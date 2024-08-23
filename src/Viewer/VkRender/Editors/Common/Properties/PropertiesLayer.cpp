@@ -22,9 +22,9 @@ namespace VkRender {
 
     }
 
-    void PropertiesLayer::drawVec3Control(const std::string& label, glm::vec3& values, float resetValue = 0.0f, float columnWidth = 100.0f)
-    {
-        ImGuiIO& io = ImGui::GetIO();
+    void PropertiesLayer::drawVec3Control(const std::string &label, glm::vec3 &values, float resetValue = 0.0f,
+                                          float columnWidth = 100.0f) {
+        ImGuiIO &io = ImGui::GetIO();
         auto boldFont = io.Fonts->Fonts[0];
 
         ImGui::PushID(label.c_str());
@@ -35,14 +35,14 @@ namespace VkRender {
         ImGui::NextColumn();
 
         ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{ 0, 0 });
+        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{0, 0});
 
         float lineHeight = GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f;
-        ImVec2 buttonSize = { lineHeight + 3.0f, lineHeight };
+        ImVec2 buttonSize = {lineHeight + 3.0f, lineHeight};
 
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.8f, 0.1f, 0.15f, 1.0f });
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.9f, 0.2f, 0.2f, 1.0f });
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.8f, 0.1f, 0.15f, 1.0f });
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.8f, 0.1f, 0.15f, 1.0f});
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{0.9f, 0.2f, 0.2f, 1.0f});
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{0.8f, 0.1f, 0.15f, 1.0f});
         ImGui::PushFont(boldFont);
         if (ImGui::Button("X", buttonSize))
             values.x = resetValue;
@@ -54,9 +54,9 @@ namespace VkRender {
         ImGui::PopItemWidth();
         ImGui::SameLine();
 
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.2f, 0.7f, 0.2f, 1.0f });
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.3f, 0.8f, 0.3f, 1.0f });
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.2f, 0.7f, 0.2f, 1.0f });
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.2f, 0.7f, 0.2f, 1.0f});
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{0.3f, 0.8f, 0.3f, 1.0f});
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{0.2f, 0.7f, 0.2f, 1.0f});
         ImGui::PushFont(boldFont);
         if (ImGui::Button("Y", buttonSize))
             values.y = resetValue;
@@ -68,9 +68,9 @@ namespace VkRender {
         ImGui::PopItemWidth();
         ImGui::SameLine();
 
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.1f, 0.25f, 0.8f, 1.0f });
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.2f, 0.35f, 0.9f, 1.0f });
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.1f, 0.25f, 0.8f, 1.0f });
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.1f, 0.25f, 0.8f, 1.0f});
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{0.2f, 0.35f, 0.9f, 1.0f});
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{0.1f, 0.25f, 0.8f, 1.0f});
         ImGui::PushFont(boldFont);
         if (ImGui::Button("Z", buttonSize))
             values.z = resetValue;
@@ -89,37 +89,34 @@ namespace VkRender {
     }
 
     template<typename T, typename UIFunction>
-    void PropertiesLayer::drawComponent(const std::string& name, Entity entity, UIFunction uiFunction)
-    {
-        const ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowOverlap;
-        if (entity.hasComponent<T>())
-        {
-            auto& component = entity.getComponent<T>();
+    void PropertiesLayer::drawComponent(const std::string &name, Entity entity, UIFunction uiFunction) {
+        const ImGuiTreeNodeFlags treeNodeFlags =
+                ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth |
+                ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowOverlap;
+        if (entity.hasComponent<T>()) {
+            auto &component = entity.getComponent<T>();
             ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
 
-            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{ 4, 4 });
+            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{4, 4});
             float lineHeight = GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f;
             ImGui::Separator();
-            bool open = ImGui::TreeNodeEx((void*)typeid(T).hash_code(), treeNodeFlags, "%s", name.c_str());
+            bool open = ImGui::TreeNodeEx((void *) typeid(T).hash_code(), treeNodeFlags, "%s", name.c_str());
             ImGui::PopStyleVar();
             ImGui::SameLine(contentRegionAvailable.x - lineHeight * 0.5f);
 
-            if (ImGui::Button("+", ImVec2{ lineHeight, lineHeight }))
-            {
+            if (ImGui::Button("+", ImVec2{lineHeight, lineHeight})) {
                 ImGui::OpenPopup("ComponentSettings");
             }
 
             bool removeComponent = false;
-            if (ImGui::BeginPopup("ComponentSettings"))
-            {
+            if (ImGui::BeginPopup("ComponentSettings")) {
                 if (ImGui::MenuItem("Remove component"))
                     removeComponent = true;
 
                 ImGui::EndPopup();
             }
 
-            if (open)
-            {
+            if (open) {
                 uiFunction(component);
                 ImGui::TreePop();
             }
@@ -129,14 +126,12 @@ namespace VkRender {
         }
     }
 
-    void PropertiesLayer::drawComponents(Entity entity)
-    {
+    void PropertiesLayer::drawComponents(VkRender::GuiObjectHandles &handles, Entity entity) {
 
         if (ImGui::Button("Add Component"))
             ImGui::OpenPopup("AddComponent");
 
-        if (ImGui::BeginPopup("AddComponent"))
-        {
+        if (ImGui::BeginPopup("AddComponent")) {
             displayAddComponentEntry<CameraComponent>("Camera");
             displayAddComponentEntry<ScriptComponent>("Script");
             displayAddComponentEntry<TextComponent>("Text Component");
@@ -147,26 +142,22 @@ namespace VkRender {
             ImGui::EndPopup();
         }
 
-        drawComponent<TransformComponent>("Transform", entity, [](auto& component)
-        {
+        drawComponent<TransformComponent>("Transform", entity, [](auto &component) {
             drawVec3Control("Translation", component.getPosition());
             drawVec3Control("Scale", component.getScale(), 1.0f);
         });
-        drawComponent<CameraComponent>("Camera", entity, [](auto& component)
-        {
-            //DrawVec3Control("Translation", component.Translation);
-            //glm::vec3 rotation = glm::degrees(component.Rotation);
-            //DrawVec3Control("Rotation", rotation);
-            //component.Rotation = glm::radians(rotation);
-            //DrawVec3Control("Scale", component.Scale, 1.0f);
+        drawComponent<CameraComponent>("Camera", entity, [&handles, &entity](auto &component) {
+
+            std::string label = "Set Active ##" + entity.getComponent<TagComponent>().Tag;
+            ImGui::Checkbox(label.c_str(), &handles.shared->setActiveCamera[entity.getUUID()]);
+
         });
 
-        drawComponent<MeshComponent>("Mesh", entity, [this](auto& component)
-        {
+        drawComponent<MeshComponent>("Mesh", entity, [this](auto &component) {
             ImGui::Text("MeshFile:");
             ImGui::Text("%s", component.getModelPath().string().c_str());
             // Load mesh from file here:
-            if (ImGui::Button("Load .obj file")){
+            if (ImGui::Button("Load .obj file")) {
                 std::vector<std::string> types{".obj"};
                 openImportFileDialog("Wavefront", types, LayerUtils::OBJ_FILE);
             }
@@ -176,8 +167,7 @@ namespace VkRender {
 
     }
 
-    void PropertiesLayer::setSelectedEntity(Entity entity)
-    {
+    void PropertiesLayer::setSelectedEntity(Entity entity) {
         m_selectionContext = entity;
     }
 
@@ -204,9 +194,8 @@ namespace VkRender {
         std::shared_ptr<Scene> scene = handles.m_context->activeScene();
 
 
-        if (m_selectionContext)
-        {
-            drawComponents(m_selectionContext);
+        if (m_selectionContext) {
+            drawComponents(handles, m_selectionContext);
         }
 
         checkFileImportCompletion(handles);
@@ -243,11 +232,9 @@ namespace VkRender {
     }
 
     template<typename T>
-    void PropertiesLayer::displayAddComponentEntry(const std::string& entryName) {
-        if (!m_selectionContext.hasComponent<T>())
-        {
-            if (ImGui::MenuItem(entryName.c_str()))
-            {
+    void PropertiesLayer::displayAddComponentEntry(const std::string &entryName) {
+        if (!m_selectionContext.hasComponent<T>()) {
+            if (ImGui::MenuItem(entryName.c_str())) {
                 m_selectionContext.addComponent<T>();
                 ImGui::CloseCurrentPopup();
             }
@@ -259,7 +246,7 @@ namespace VkRender {
         if (!loadFileInfo.path.empty()) {
             if (loadFileInfo.filetype == LayerUtils::OBJ_FILE) {
                 // Load into the active scene
-                auto& meshComponent = m_selectionContext.getComponent<MeshComponent>();
+                auto &meshComponent = m_selectionContext.getComponent<MeshComponent>();
                 meshComponent.loadOBJ(loadFileInfo.path);
 
             } else if (loadFileInfo.filetype == LayerUtils::PLY_3DGS) {
@@ -272,15 +259,11 @@ namespace VkRender {
                 }
                 auto entity = handles.m_context->activeScene()->createEntity(loadFileInfo.path.filename().string());
                 entity.addComponent<GaussianModelComponent>(loadFileInfo.path);
-
             } else if (loadFileInfo.filetype == LayerUtils::PLY_MESH) {
                 // Load into the active scene
                 auto entity = handles.m_context->activeScene()->createEntity(loadFileInfo.path.filename().string());
                 entity.addComponent<MeshComponent>(loadFileInfo.path);
-
             }
-
-
             // Copy the selected file path to wherever it's needed
             auto &opts = RendererConfig::getInstance().getUserSetting();
             opts.lastOpenedImportModelFolderPath = loadFileInfo.path;
@@ -291,7 +274,6 @@ namespace VkRender {
         }
     }
 
-
     void PropertiesLayer::checkFileImportCompletion(GuiObjectHandles &handles) {
         if (loadFileFuture.valid() &&
             loadFileFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
@@ -300,9 +282,9 @@ namespace VkRender {
         }
     }
 
-    void
-    PropertiesLayer::openImportFileDialog(const std::string &fileDescription, const std::vector<std::string> &type,
-                                              LayerUtils::FileTypeLoadFlow flow) {
+    void PropertiesLayer::openImportFileDialog(const std::string &fileDescription,
+                                               const std::vector<std::string> &type,
+                                               LayerUtils::FileTypeLoadFlow flow) {
         if (!loadFileFuture.valid()) {
             auto &opts = RendererConfig::getInstance().getUserSetting();
             std::string openLoc = Utils::getSystemHomePath().string();

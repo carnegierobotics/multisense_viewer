@@ -29,7 +29,7 @@ namespace VkRender {
         template<typename T, typename UIFunction>
         void drawComponent(const std::string &name, Entity entity, UIFunction uiFunction);
 
-        void drawComponents(Entity entity);
+        void drawComponents(VkRender::GuiObjectHandles &handles, Entity entity);
 
         Entity m_selectionContext;
         std::future<LayerUtils::LoadFileInfo> loadFileFuture;

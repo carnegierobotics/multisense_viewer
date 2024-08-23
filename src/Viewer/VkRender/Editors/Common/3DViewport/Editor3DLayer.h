@@ -51,6 +51,8 @@ namespace VkRender {
             // Create the parent window
             ImGui::Begin("Editor3DLayer", nullptr, window_flags);
 
+            ImGui::Checkbox("Render depth", &handles.editorUi->renderDepth);
+
             handles.editorUi->saveRenderToFile = ImGui::Button("Save image");
 
             static bool toggle = false;

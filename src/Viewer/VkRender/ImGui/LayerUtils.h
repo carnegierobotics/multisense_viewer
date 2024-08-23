@@ -79,10 +79,7 @@ namespace VkRender::LayerUtils {
         return std::string();
     }
 
-    static inline LoadFileInfo selectFile(const std::string& dialogName, const std::string& fileType, const std::string& setCurrentFolder) {
-        std::string fileWithDot = "*." + fileType;
-        std::wstring wFileType = std::wstring(fileType.begin(), fileType.end());
-        std::wstring fileTypeFilter = std::wstring(fileWithDot.begin(), fileWithDot.end());
+    static inline LoadFileInfo selectFile(const std::string& dialogName, const std::vector<std::string>& filetypes, const std::string& setCurrentFolder, LayerUtils::FileTypeLoadFlow flow) {
         PWSTR path = nullptr;
         std::string filePath;
         HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
@@ -92,13 +89,16 @@ namespace VkRender::LayerUtils {
                                   reinterpret_cast<void **>(&pfd));
             if (SUCCEEDED(hr)) {
                 // Set the file types to display only. Notice the double null termination.
-
-                COMDLG_FILTERSPEC rgSpec[] = {
-                        {wFileType.c_str(), fileTypeFilter.c_str()},
-                        {L"All Files", L"*.*"},
-                };
-                pfd->SetFileTypes(ARRAYSIZE(rgSpec), rgSpec);
-
+                for (auto& filetype : filetypes){
+                    std::string fileWithDot = "*" + filetype;
+                    std::wstring wFileType = std::wstring(filetype.begin(), filetype.end());
+                    std::wstring fileTypeFilter = std::wstring(fileWithDot.begin(), fileWithDot.end());
+                    COMDLG_FILTERSPEC rgSpec[] = {
+                            {wFileType.c_str(), fileTypeFilter.c_str()},
+                            {L"All Files", L"*.*"},
+                    };
+                    pfd->SetFileTypes(ARRAYSIZE(rgSpec), rgSpec);
+                }
                 // Set the default folder
                 if (!setCurrentFolder.empty()) {
                     IShellItem *psiFolder;
@@ -109,7 +109,6 @@ namespace VkRender::LayerUtils {
                         psiFolder->Release();
                     }
                 }
-
                 // Show the dialog
                 hr = pfd->Show(nullptr);
                 if (SUCCEEDED(hr)) {
@@ -130,12 +129,10 @@ namespace VkRender::LayerUtils {
             }
             CoUninitialize();
         }
-
         if (path) {
             CoTaskMemFree(path);
         }
-
-        return {filePath, fileType};
+        return {filePath, flow};
     }
 
 #else

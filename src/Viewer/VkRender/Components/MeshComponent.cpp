@@ -169,10 +169,13 @@ namespace VkRender {
     }
 
     void MeshComponent::loadOBJ(std::filesystem::path modelPath) {
+        m_vertices.clear();
+        m_indices.clear();
+
         loadModel(modelPath);
         loadTexture(modelPath);
         m_modelPath = modelPath;
-        m_initialized = true;
+        m_meshUUID = UUID(); // Generate new UUID
     }
 
 

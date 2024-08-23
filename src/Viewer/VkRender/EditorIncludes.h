@@ -22,7 +22,7 @@ namespace VkRender {
 
     struct SharedContextData {
         bool openAddDevicePopup = false;
-        std::unordered_map<uint32_t, bool> setActiveCamera;
+        std::unordered_map<UUID, bool> setActiveCamera;
         Entity m_selectedEntity;
 
         std::shared_ptr<MultiSense::MultiSenseRendererBridge> multiSenseRendererBridge{};
@@ -158,6 +158,7 @@ namespace VkRender {
         bool contentHovered = false;
         Camera* editorCamera;
         bool saveRenderToFile = false;
+        bool renderDepth = false;
         // TODO end
 
         bool active = false;

@@ -43,17 +43,46 @@ namespace VkRender {
         // Generate pipelines
         auto view = m_activeScene->getRegistry().view<TransformComponent, MeshComponent>(); // TODO make one specific component type for renderables in standard pipelines
         for (auto entity: view) {
-            if (!m_renderPipelines.contains(entity)) { // Check if the pipeline already exists
-                auto &model = view.get<MeshComponent>(entity);
-                if (!model.hasMesh())
-                    continue;
+            auto &model = view.get<MeshComponent>(entity);
+            const UUID &meshUUID = model.getUUID();
+
+            if (!m_renderPipelines.contains(meshUUID)) {
                 // Decide which pipeline to use
                 if (model.usesUBOMesh()) {
-                    m_renderPipelines[entity] = std::make_unique<UboGraphicsPipeline>(*m_context, renderPassInfo);
+                    m_renderPipelines[meshUUID] = std::make_unique<UboGraphicsPipeline>(*m_context, renderPassInfo);
                 } else {
-                    m_renderPipelines[entity] = std::make_unique<DefaultGraphicsPipeline>(*m_context, renderPassInfo);
+                    m_renderPipelines[meshUUID] = std::make_unique<DefaultGraphicsPipeline>(*m_context, renderPassInfo);
                 }
-                m_renderPipelines[entity]->bind(model);
+                m_renderPipelines[meshUUID]->bind(model);
+
+                cleanUpUnusedPipelines();
+            }
+        }
+    }
+
+    void Editor3DViewport::cleanUpUnusedPipelines(){
+        // Delete pipelines if the UUID no longer exists
+        {
+            // Step 1: Collect all active UUIDs
+            std::unordered_set<UUID> activeUUIDs;
+            auto view = m_activeScene->getRegistry().view<MeshComponent>();
+            for (auto entity : view) {
+                const UUID& meshUUID = m_activeScene->getRegistry().get<MeshComponent>(entity).getUUID();
+                activeUUIDs.insert(meshUUID);
+            }
+
+            // Step 2: Iterate over existing pipelines and find unused UUIDs
+            std::vector<UUID> unusedUUIDs;
+            for (const auto& [uuid, pipeline] : m_renderPipelines) {
+                if (activeUUIDs.find(uuid) == activeUUIDs.end()) {
+                    // UUID not found in active UUIDs, mark it for deletion
+                    unusedUUIDs.push_back(uuid);
+                }
+            }
+
+            // Step 3: Remove the unused pipelines
+            for (const UUID& uuid : unusedUUIDs) {
+                m_renderPipelines.erase(uuid);
             }
         }
     }
@@ -61,41 +90,44 @@ namespace VkRender {
     void Editor3DViewport::onUpdate() {
         if (!m_activeScene)
             return;
+
         {
             auto view = m_activeScene->getRegistry().view<CameraComponent>();
-                m_activeCamera = m_editorCamera;
-                for (auto entity: view) {
-                    if (m_createInfo.sharedUIContextData->setActiveCamera.contains(static_cast<uint32_t>(entity))){
-                        // Assuming you have an entt::registry instance
-                        if (!m_createInfo.sharedUIContextData->setActiveCamera[static_cast<uint32_t>(entity)] || !ui().setActiveCamera)
-                            continue;
+            m_activeCamera = m_editorCamera;
+            for (auto entity: view) {
+                auto e = Entity(entity, m_activeScene.get());
+                if (m_createInfo.sharedUIContextData->setActiveCamera.contains(e.getUUID())) {
+                    // Assuming you have an entt::registry instance
+                    if (!m_createInfo.sharedUIContextData->setActiveCamera[e.getUUID()] ||
+                        !ui().setActiveCamera)
+                        continue;
 
-                        auto &registry = m_activeScene->getRegistry();
-                        // Now you can check if the entity is valid and retrieve components
-                        auto &cameraComponent = registry.get<CameraComponent>(entity);
-                        // Set the active camera to the components transform
-                        auto &transform = registry.get<TransformComponent>(entity);
-                        cameraComponent().pose.pos = transform.getPosition();
-                        cameraComponent().pose.q = glm::quat_cast(transform.getRotMat());
-                        cameraComponent().updateViewMatrix();
-                        //transform.getPosition() = cameraComponent().pose.pos;
-                        //transform.getQuaternion() = cameraComponent().pose.q;
-                        m_activeCamera = cameraComponent();
-                    }
+                    auto &registry = m_activeScene->getRegistry();
+                    // Now you can check if the entity is valid and retrieve components
+                    auto &cameraComponent = registry.get<CameraComponent>(entity);
+                    // Set the active camera to the components transform
+                    auto &transform = registry.get<TransformComponent>(entity);
+                    cameraComponent().pose.pos = transform.getPosition();
+                    cameraComponent().pose.q = glm::quat_cast(transform.getRotMat());
+                    cameraComponent().updateViewMatrix();
+                    //transform.getPosition() = cameraComponent().pose.pos;
+                    //transform.getQuaternion() = cameraComponent().pose.q;
+                    m_activeCamera = cameraComponent();
                 }
+            }
         }
 
         generatePipelines();
         // Update model transforms:
         auto view = m_activeScene->getRegistry().view<TransformComponent, MeshComponent>(); // TODO make one specific component type for renderables in standard pipelines
         for (auto entity: view) {
-            if (m_renderPipelines.contains(entity)) {
-                if (!view.get<MeshComponent>(entity).hasMesh())
-                    continue;
+            auto &model = view.get<MeshComponent>(entity);
+            const UUID &meshUUID = model.getUUID();
+            if (m_renderPipelines.contains(meshUUID)) {
                 auto transform = view.get<TransformComponent>(entity);
-                m_renderPipelines[entity]->updateTransform(transform);
-                m_renderPipelines[entity]->updateView(m_activeCamera);
-                m_renderPipelines[entity]->update(m_context->currentFrameIndex());
+                m_renderPipelines[meshUUID]->updateTransform(transform);
+                m_renderPipelines[meshUUID]->updateView(m_activeCamera);
+                m_renderPipelines[meshUUID]->update(m_context->currentFrameIndex());
             }
         }
         m_activeScene->update(m_context->currentFrameIndex());
@@ -110,11 +142,15 @@ namespace VkRender {
     }
 
     void Editor3DViewport::onEntityDestroyed(entt::entity entity) {
-        m_renderPipelines.erase(entity);
+        Entity e(entity, m_activeScene.get());
+        if (e.hasComponent<MeshComponent>()) {
+            if (m_renderPipelines.contains(e.getComponent<MeshComponent>().getUUID()))
+                m_renderPipelines.erase(e.getComponent<MeshComponent>().getUUID());
+        }
     }
 
     void Editor3DViewport::onMouseMove(const MouseButtons &mouse) {
-        if (ui().hovered && mouse.left) {
+        if (ui().hovered && mouse.left && !ui().resizeActive) {
             m_editorCamera.rotate(mouse.dx, mouse.dy);
         }
         m_activeScene->onMouseEvent(mouse);

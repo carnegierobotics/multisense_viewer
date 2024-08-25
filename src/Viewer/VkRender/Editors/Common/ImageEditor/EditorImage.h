@@ -27,6 +27,7 @@ namespace VkRender {
         ~EditorImage() override = default;
 
         void onMouseMove(const MouseButtons &mouse) override;
+        void onPipelineReload() override;
 
         void onFileDrop(const std::filesystem::path &path) override;
 
@@ -41,6 +42,8 @@ namespace VkRender {
         std::unique_ptr<ImageComponent> depthImageComponent;
         std::unique_ptr<GraphicsPipeline> m_renderPipelines;
         std::unique_ptr<GraphicsPipeline> m_depthImagePipeline;
+        std::shared_ptr<Scene> m_activeScene;
+        std::shared_ptr<Camera> m_activeCamera;
 
         std::shared_ptr<VulkanTexture2D> m_texture;
 

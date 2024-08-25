@@ -45,6 +45,7 @@ namespace VkRender {
             // Create the parent window
             ImGui::Begin("EditorImageLayer", nullptr, window_flags);
             handles.editorUi->saveRenderToFile = ImGui::Button("Save image");
+            handles.editorUi->reloadPipeline = ImGui::Button("Reload pipeline");
 
             ImGui::End();
 

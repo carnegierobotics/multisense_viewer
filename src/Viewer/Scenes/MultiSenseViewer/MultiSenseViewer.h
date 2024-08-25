@@ -8,6 +8,11 @@
 #include "Viewer/VkRender/Scene.h"
 
 namespace VkRender {
+    struct ColmapCameraPose {
+        glm::quat rotation;
+        glm::vec3 translation;
+        std::string imageName;
+    };
     class MultiSenseViewer : public Scene {
 
     public:
@@ -17,6 +22,9 @@ namespace VkRender {
 
         ~MultiSenseViewer() override{
         }
+
+        std::vector<ColmapCameraPose> loadColmapCameras(const std::string &filePath);
+        void applyColmapCameraPoses(const std::vector<ColmapCameraPose> &cameraPoses);
     };
 }
 

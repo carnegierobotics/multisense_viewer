@@ -59,11 +59,20 @@ namespace VkRender {
     }
 
     void EditorImage::onSceneLoad(std::shared_ptr<Scene> scene) {
-
-
-
+        m_activeScene = m_context->activeScene();
     }
 
+
+    void EditorImage::onPipelineReload() {
+        RenderPassInfo renderPassInfo{};
+        renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
+        renderPassInfo.renderPass = m_renderPass->getRenderPass();
+        VulkanTexture2DCreateInfo textureCreateInfo(m_context->vkDevice());
+        textureCreateInfo.image = m_context->sharedEditorData().depthFrameBuffer[m_context->sharedEditorData().selectedUUIDContext.operator*()].depthImage; // TODO get this from the Editor3D Viewport then I think it is solved
+        m_texture = std::make_shared<VulkanTexture2D>(textureCreateInfo);
+        m_depthImagePipeline = std::make_unique<GraphicsPipeline2D>(*m_context, renderPassInfo);
+        m_depthImagePipeline->bindTexture(m_texture);
+    }
 
     void EditorImage::onUpdate() {
 
@@ -74,12 +83,29 @@ namespace VkRender {
             VulkanTexture2DCreateInfo textureCreateInfo(m_context->vkDevice());
             textureCreateInfo.image = m_context->sharedEditorData().depthFrameBuffer[m_context->sharedEditorData().selectedUUIDContext.operator*()].depthImage; // TODO get this from the Editor3D Viewport then I think it is solved
             m_texture = std::make_shared<VulkanTexture2D>(textureCreateInfo);
-
             m_depthImagePipeline = std::make_unique<GraphicsPipeline2D>(*m_context, renderPassInfo);
             m_depthImagePipeline->bindTexture(m_texture);
-
+        }
+        {
+            auto view = m_activeScene->getRegistry().view<CameraComponent>();
+            for (auto entity: view) {
+                auto e = Entity(entity, m_activeScene.get());
+                if (m_createInfo.sharedUIContextData->setActiveCamera.contains(e.getUUID())) {
+                    // Assuming you have an entt::registry instance
+                    auto &registry = m_activeScene->getRegistry();
+                    auto &cameraComponent = registry.get<CameraComponent>(entity);
+                    m_activeCamera = std::make_shared<Camera>(cameraComponent());
+                }
+            }
         }
 
+
+        if (m_depthImagePipeline && m_activeCamera) {
+
+            m_depthImagePipeline->updateView(m_activeCamera.operator*());
+            m_depthImagePipeline->update(m_context->currentFrameIndex());
+        }
+        m_activeScene->update(m_context->currentFrameIndex());
         // update Image when needed
 
         // Check if any 3D viewport is rendering depth

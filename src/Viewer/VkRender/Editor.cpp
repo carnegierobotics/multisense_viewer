@@ -309,6 +309,9 @@ namespace VkRender {
     }
 
     void Editor::update(bool updateGraph, float frameTime, Input *input) {
+        if (m_ui.reloadPipeline)
+            onPipelineReload();
+
         m_guiManager->update(updateGraph, frameTime, m_ui, input);
         onUpdate();
     }

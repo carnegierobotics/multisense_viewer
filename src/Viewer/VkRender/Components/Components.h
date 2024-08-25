@@ -55,11 +55,8 @@ namespace VkRender {
         };
 
         struct Rotation {
-            struct Angles {
-                float pitch;
-                float yaw;
-                float roll;
-            } euler;
+
+            glm::vec3 rotation;
 
             glm::quat quaternion;
         } rot;
@@ -81,14 +78,7 @@ namespace VkRender {
                    * glm::scale(glm::mat4(1.0f), scale);
         }
 
-        void setEuler(float roll, float pitch, float yaw) {
-            rot.euler.pitch = pitch;
-            rot.euler.yaw = yaw;
-            rot.euler.roll = roll;
-            type = RotationType::Euler;
-        }
 
-        glm::vec3 getEuler(){ return {rot.euler.roll, rot.euler.pitch, rot.euler.yaw};}
 
         void setQuaternion(const glm::quat &q) {
             rot.quaternion = q;
@@ -96,6 +86,9 @@ namespace VkRender {
         }
         glm::quat &getQuaternion() {
             return rot.quaternion;
+        }
+        glm::vec3 &getRotation() {
+            return rot.rotation;
         }
 
         void setPosition(const glm::vec3 &v) {
@@ -123,7 +116,7 @@ namespace VkRender {
 
         glm::mat4 getRotMat() {
             if (type == RotationType::Euler) {
-                glm::vec3 radiansEuler = glm::radians(glm::vec3(rot.euler.pitch, rot.euler.yaw, rot.euler.roll));
+                glm::vec3 radiansEuler = glm::radians(rot.rotation);
                 rot.quaternion = glm::quat(radiansEuler);
                 glm::mat4 rotMat = glm::toMat4(rot.quaternion);
                 if (m_flipUpAxis) {
@@ -134,10 +127,7 @@ namespace VkRender {
                 return rotMat;
             }
             glm::mat4 rotMat = glm::toMat4(rot.quaternion);
-            glm::vec3 eulerAngles = glm::eulerAngles(rot.quaternion);
-            rot.euler.pitch = eulerAngles.x;
-            rot.euler.yaw = eulerAngles.y;
-            rot.euler.roll = eulerAngles.z;
+            rot.rotation = glm::eulerAngles(rot.quaternion);
 
             if (m_flipUpAxis) {
                 glm::mat4 m_flipUpRotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f),

@@ -1,57 +1,70 @@
 {
-    "editors": [
-        {
-            "borderSize": 5,
-            "editorIndex": 0,
-            "editorTypeDescription": "MultiSense Viewer",
-            "resizeable": false,
-            "uiLayers": ["SideBarLayer"],
-            "width": 10,
-            "height": 100,
-            "x": 0,
-            "y": 0
-        },{
-            "borderSize": 5,
-            "editorIndex": 1,
-            "editorTypeDescription": "MultiSense Viewer",
-            "resizeable": false,
-            "uiLayers": ["ConfigurationLayer"],
-            "width": 25,
-            "height": 100,
-            "x": 10,
-            "y": 0
-        },{
-            "borderSize": 5,
-            "editorIndex": 2,
-            "editorTypeDescription": "MultiSense Viewer",
-            "resizeable": false,
-            "uiLayers": ["LayoutSettingsLayer"],
-            "width": 65,
-            "height": 10,
-            "x": 35,
-            "y": 0
-        },{
-            "borderSize": 5,
-            "editorIndex": 3,
-            "editorTypeDescription": "3D Viewport",
-            "resizeable": true,
-            "uiLayers": [],
-            "width": 65,
-            "height": 90,
-            "x": 35,
-            "y": 10
-        }
-    ],
-    "generalSettings": {
-        "applicationHeight": 720,
-        "applicationWidth": 1280,
-        "askForUsageLoggingPermissions": true,
-        "enableSecondaryView": false,
-        "fixAspectRatio": false,
-        "lastOpenedFolderPath": "",
-        "lastOpenedImportModelFolderPath": "",
-        "logLevel": 2,
-        "sendUsageLogOnExit": true,
-        "userConsentToSendLogs": true
+  "editors": [
+    {
+      "borderSize": 5,
+      "editorIndex": 0,
+      "editorTypeDescription": "MultiSense Viewer",
+      "resizeable": false,
+      "sizeType": "pixels",
+      "uiLayers": [
+        "SideBarLayer"
+      ],
+      "width": 10,
+      "height": 100,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "borderSize": 5,
+      "editorIndex": 1,
+      "editorTypeDescription": "MultiSense Viewer",
+      "resizeable": false,
+      "sizeType": "pixels",
+      "uiLayers": [
+        "ConfigurationLayer"
+      ],
+      "width": 25,
+      "height": 100,
+      "x": 10,
+      "y": 0
+    },
+    {
+      "borderSize": 5,
+      "editorIndex": 2,
+      "editorTypeDescription": "MultiSense Viewer",
+      "resizeable": false,
+      "sizeType": "pixels",
+      "uiLayers": [
+        "LayoutSettingsLayer"
+      ],
+      "width": 65,
+      "height": 10,
+      "x": 35,
+      "y": 0
+    },
+    {
+      "borderSize": 5,
+      "editorIndex": 3,
+      "editorTypeDescription": "3D Viewport",
+      "resizeable": true,
+      "sizeType": "pixels",
+      "uiLayers": [],
+      "width": 65,
+      "height": 90,
+      "x": 35,
+      "y": 10
     }
+  ],
+  "generalSettings": {
+    "applicationHeight": 720,
+    "applicationWidth": 1280,
+    "askForUsageLoggingPermissions": true,
+    "enableSecondaryView": false,
+    "fixAspectRatio": false,
+    "lastOpenedFolderPath": "",
+    "lastOpenedImportModelFolderPath": "",
+    "logLevel": 2,
+    "sendUsageLogOnExit": true,
+    "userConsentToSendLogs": true
+  }
 }

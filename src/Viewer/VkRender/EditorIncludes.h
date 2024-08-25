@@ -165,6 +165,7 @@ namespace VkRender {
         bool contentHovered = false;
         Camera* editorCamera;
         bool saveRenderToFile = false;
+        bool reloadPipeline = false;
         bool renderDepth = false;
         // TODO end
 

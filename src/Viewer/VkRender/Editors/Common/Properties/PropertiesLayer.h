@@ -35,15 +35,17 @@ namespace VkRender {
         std::future<LayerUtils::LoadFileInfo> loadFileFuture;
 
         template<typename T>
-        void displayAddComponentEntry(const std::string& entryName);
+        void displayAddComponentEntry(const std::string &entryName);
 
-        static void drawVec3Control(const std::string &label, glm::vec3 &values, float resetValue, float columnWidth); // TODO could be IMgui helper function
         void checkFileImportCompletion(GuiObjectHandles &handles);
 
         void handleSelectedFile(const LayerUtils::LoadFileInfo &loadFileInfo, GuiObjectHandles &handles);
 
         void openImportFileDialog(const std::string &fileDescription, const std::vector<std::string> &type,
                                   LayerUtils::FileTypeLoadFlow flow);
+
+        static void
+        drawVec3Control(const std::string &label, glm::vec3 &values, float resetValue, float columnWidth, float speed);
     };
 }
 

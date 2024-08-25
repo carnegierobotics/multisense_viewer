@@ -101,6 +101,9 @@ namespace VkRender {
         virtual void onUpdate() {
         }
 
+        virtual void onPipelineReload() {
+        }
+
         virtual void onSceneLoad(std::shared_ptr<Scene> scene) {
         }
 

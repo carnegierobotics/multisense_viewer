@@ -23,7 +23,7 @@ namespace VkRender {
     }
 
     void PropertiesLayer::drawVec3Control(const std::string &label, glm::vec3 &values, float resetValue = 0.0f,
-                                          float columnWidth = 100.0f) {
+                                          float speed = 1.0f, float columnWidth = 100.0f) {
         ImGuiIO &io = ImGui::GetIO();
         auto boldFont = io.Fonts->Fonts[0];
 
@@ -50,7 +50,7 @@ namespace VkRender {
         ImGui::PopStyleColor(3);
 
         ImGui::SameLine();
-        ImGui::DragFloat("##X", &values.x, 0.1f, 0.0f, 0.0f, "%.2f");
+        ImGui::DragFloat("##X", &values.x, 0.1f * speed, 0.0f, 0.0f, "%.2f");
         ImGui::PopItemWidth();
         ImGui::SameLine();
 
@@ -64,7 +64,7 @@ namespace VkRender {
         ImGui::PopStyleColor(3);
 
         ImGui::SameLine();
-        ImGui::DragFloat("##Y", &values.y, 0.1f, 0.0f, 0.0f, "%.2f");
+        ImGui::DragFloat("##Y", &values.y, 0.1f * speed, 0.0f, 0.0f, "%.2f");
         ImGui::PopItemWidth();
         ImGui::SameLine();
 
@@ -78,7 +78,7 @@ namespace VkRender {
         ImGui::PopStyleColor(3);
 
         ImGui::SameLine();
-        ImGui::DragFloat("##Z", &values.z, 0.1f, 0.0f, 0.0f, "%.2f");
+        ImGui::DragFloat("##Z", &values.z, 0.1f * speed, 0.0f, 0.0f, "%.2f");
         ImGui::PopItemWidth();
 
         ImGui::PopStyleVar();
@@ -144,6 +144,7 @@ namespace VkRender {
 
         drawComponent<TransformComponent>("Transform", entity, [](auto &component) {
             drawVec3Control("Translation", component.getPosition());
+            drawVec3Control("Rotation",  component.getRotation(), 0.0f, 2.0f);
             drawVec3Control("Scale", component.getScale(), 1.0f);
         });
         drawComponent<CameraComponent>("Camera", entity, [&handles, &entity](auto &component) {

@@ -38,7 +38,7 @@ void main() {
     float maxDisparity = 700.0;
     float baseline = 0.30;
 
-    float disparity = (-baseline * 1000) / worldDepth;
+    float disparity = (baseline * 1000) / worldDepth;
     //float disparity = maxDisparity / (worldDepth + baseline);
     // Normalize disparity
     float normalizedDisparity = disparity / maxDisparity;

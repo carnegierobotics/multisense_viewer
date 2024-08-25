@@ -43,7 +43,7 @@ namespace VkRender {
         void onKeyCallback(const Input& input) override;
 
     private:
-        Camera* m_activeCamera;
+        std::shared_ptr<Camera> m_activeCamera;
         std::shared_ptr<Scene> m_activeScene;
         std::unordered_map<entt::entity, std::unique_ptr<GaussianModelGraphicsPipeline>> m_gaussianRenderPipelines;
         std::unordered_map<entt::entity, std::unique_ptr<GraphicsPipeline2D>> m_2DRenderPipeline;

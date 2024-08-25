@@ -65,7 +65,7 @@ namespace VkRender {
     class Camera {
     public:
         enum CameraType {
-            arcball, flycam
+            arcball, flycam, custom
         };
         CameraType m_type = CameraType::arcball;
 
@@ -110,6 +110,13 @@ namespace VkRender {
         }
 
 
+        float& fov(){
+            return m_Fov;
+        }
+
+        void updateProjectionMatrix(){
+            setPerspective(m_width / m_height);
+        }
         struct Pose {
             //glm::quat q = glm::quat(0.5f, 0.5f, -0.5f, -0.5f); // We start by having a orientation facing positive x
             glm::quat q = DEFAULT_ORIENTATION; // We start by having a orientation facing positive x
@@ -209,9 +216,8 @@ namespace VkRender {
         }
 
 
-        void setPerspective(float fov, float aspect, float zNear = 0.1f, float zFar = 100.0f) {
+        void setPerspective(float aspect, float zNear = 0.1f, float zFar = 100.0f) {
             // Guide: https://vincent-p.github.io/posts/vulkan_perspective_matrix/
-            m_Fov = fov;
             m_Znear = zNear;
             m_Zfar = zFar;
             float focalLength = 1.0f / tanf(glm::radians(m_Fov) * 0.5f);
@@ -306,7 +312,7 @@ namespace VkRender {
             if (m_height == 0 || m_width == 0){
                 Log::Logger::getInstance()->warning("Initializing a camera with 0 on one dimension {}x{}", m_width, m_height);
             }
-            setPerspective(60.0f, static_cast<float>(width) / static_cast<float>(height));
+            setPerspective(static_cast<float>(width) / static_cast<float>(height));
         }
     };
 }

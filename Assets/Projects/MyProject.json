@@ -7,8 +7,8 @@
       "resizeable": true,
       "uiLayers": [],
       "sizeType": "pixels",
-      "width": 640,
-      "height": 480,
+      "width": 1160,
+      "height": 522,
       "x": 400,
       "y": 25
     },{
@@ -18,9 +18,9 @@
       "resizeable": true,
       "uiLayers": [],
       "sizeType": "pixels",
-      "width": 640,
-      "height": 480,
-      "x": 1040,
+      "width": 1160,
+      "height": 522,
+      "x": 1560,
       "y": 25
     },{
       "borderSize": 5,
@@ -29,10 +29,10 @@
       "resizeable": true,
       "uiLayers": [],
       "sizeType": "pixels",
-      "width": 640,
-      "height": 480,
+      "width": 1160,
+      "height": 522,
       "x": 400,
-      "y": 505
+      "y": 547
     },{
       "borderSize": 5,
       "editorIndex": 2,
@@ -40,10 +40,10 @@
       "resizeable": true,
       "uiLayers": [],
       "sizeType": "pixels",
-      "width": 640,
-      "height": 480,
-      "x": 1040,
-      "y": 505
+      "width": 1160,
+      "height": 522,
+      "x": 1560,
+      "y": 547
     },{
       "borderSize": 5,
       "editorIndex": 3,

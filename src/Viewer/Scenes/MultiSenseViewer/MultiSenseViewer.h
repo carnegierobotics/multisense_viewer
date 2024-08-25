@@ -13,6 +13,18 @@ namespace VkRender {
         glm::vec3 translation;
         std::string imageName;
     };
+
+    struct ColmapCamera {
+        int cameraId;
+        std::string modelName;
+        int width;
+        int height;
+        double focalLength;
+        double cx, cy;
+        double k1, k2;  // Radial distortion coefficients
+    };
+
+
     class MultiSenseViewer : public Scene {
 
     public:
@@ -24,7 +36,11 @@ namespace VkRender {
         }
 
         std::vector<ColmapCameraPose> loadColmapCameras(const std::string &filePath);
-        void applyColmapCameraPoses(const std::vector<ColmapCameraPose> &cameraPoses);
+        void applyColmapCameraPoses(const std::vector<ColmapCameraPose> &cameraPoses, double d);
+
+        ColmapCamera loadColmapCamera(const std::string &filePath, int targetCameraId);
+
+        double computeFOV(double focalLength, double sensorSize);
     };
 }
 

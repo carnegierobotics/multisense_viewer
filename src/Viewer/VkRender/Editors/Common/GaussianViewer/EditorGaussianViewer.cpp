@@ -12,11 +12,6 @@
 namespace VkRender {
     void VkRender::EditorGaussianViewer::onSceneLoad(std::shared_ptr<Scene> scene) {
         m_activeScene = m_context->activeScene();
-        auto cameraEntity = m_activeScene->findEntityByName("DefaultCamera");
-        if (cameraEntity) {
-            auto &camera = cameraEntity.getComponent<CameraComponent>()();
-            m_activeCamera = &camera;
-        }
 
         m_activeScene->addDestroyFunction(this, [this](entt::entity entity) {
             onEntityDestroyed(entity);
@@ -35,7 +30,8 @@ namespace VkRender {
         for (auto entity: view) {
             if (!m_gaussianRenderPipelines[entity]) { // Check if the pipeline already exists
                 auto &model = view.get<GaussianModelComponent>(entity);
-                m_gaussianRenderPipelines[entity] = std::make_unique<GaussianModelGraphicsPipeline>(m_context->vkDevice(), renderPassInfo, 1280, 720);
+                m_gaussianRenderPipelines[entity] = std::make_unique<GaussianModelGraphicsPipeline>(
+                        m_context->vkDevice(), renderPassInfo, 1280, 720);
                 m_gaussianRenderPipelines[entity]->bind(model);
                 m_gaussianRenderPipelines[entity]->bind(model.getMeshComponent());
             }
@@ -48,6 +44,21 @@ namespace VkRender {
     }
 
     void VkRender::EditorGaussianViewer::onUpdate() {
+        {
+            auto view = m_activeScene->getRegistry().view<CameraComponent>();
+            for (auto entity: view) {
+                auto e = Entity(entity, m_activeScene.get());
+                if (m_createInfo.sharedUIContextData->setActiveCamera.contains(e.getUUID())) {
+                    // Assuming you have an entt::registry instance
+                    auto &registry = m_activeScene->getRegistry();
+                    auto &cameraComponent = registry.get<CameraComponent>(entity);
+                    m_activeCamera = std::make_shared<Camera>(cameraComponent());
+                }
+            }
+        }
+        if (!m_activeCamera)
+            return;
+
         generatePipelines();
         if (ui().render3DGSImage) {
             for (auto &pipeline: m_gaussianRenderPipelines) {
@@ -77,7 +88,7 @@ namespace VkRender {
         if (ui().hovered && mouse.left) {
             //m_activeCamera->rotate(mouse.dx, mouse.dy);
         }
-        if (ui().hovered && mouse.right){
+        if (ui().hovered && mouse.right) {
             //m_activeCamera->translate(mouse.dx, mouse.dy);
         }
     }

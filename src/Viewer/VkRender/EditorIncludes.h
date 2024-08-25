@@ -17,8 +17,15 @@
 
 #include "Viewer/Scenes/MultiSenseViewer/Modules/LibMultiSense/MultiSenseRendererBridge.h"
 #include "Viewer/Scenes/MultiSenseViewer/Modules/GigE-Vision//MultiSenseRendererGigEVisionBridge.h"
+#include "Viewer/VkRender/Core/VulkanFramebuffer.h"
+#include "Viewer/VkRender/Core/VulkanImage.h"
 
 namespace VkRender {
+
+    struct DepthFramebuffer {
+        std::shared_ptr<VulkanImage> depthImage;
+        std::vector<std::shared_ptr<VulkanFramebuffer>> depthOnlyFramebuffer;
+    } ;
 
     struct SharedContextData {
         bool openAddDevicePopup = false;

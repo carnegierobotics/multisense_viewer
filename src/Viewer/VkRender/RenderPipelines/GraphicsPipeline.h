@@ -7,6 +7,7 @@
 
 #include "Viewer/VkRender/Components/Components.h"
 #include "Viewer/VkRender/Components/ImageComponent.h"
+#include "Viewer/VkRender/Core/VulkanTexture.h"
 
 namespace VkRender {
     class GraphicsPipeline {
@@ -19,6 +20,8 @@ namespace VkRender {
         virtual void updateTexture(void* data, size_t size)  {};
         virtual void bind(MeshComponent& meshComponent){};
         virtual void bindImage(ImageComponent& imageComponent){};
+        virtual void bindTexture(std::shared_ptr<VulkanTexture> texture){};
+
         virtual void draw(CommandBuffer& commandBuffer) = 0;
 
     protected:

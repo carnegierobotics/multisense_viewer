@@ -11,6 +11,7 @@
 #include "Viewer/VkRender/Core/RenderDefinitions.h"
 #include "Viewer/VkRender/Components/Components.h"
 #include "Viewer/VkRender/RenderPipelines/GraphicsPipeline.h"
+#include "Viewer/VkRender/Core/VulkanTexture.h"
 
 namespace VkRender {
     class Renderer;
@@ -29,14 +30,16 @@ namespace VkRender {
         void update(uint32_t currentFrameIndex) override;
         void updateTexture(void* data, size_t size) override;
 
-        void bindImage(ImageComponent &imageComponent) override;
+        void bindTexture(std::shared_ptr<VulkanTexture> texture) override;
 
         void draw(CommandBuffer &commandBuffer) override;
+
+        void setTexture(const VkDescriptorImageInfo *info);
 
     private:
         void setupPipeline();
 
-        void setupDescriptors();
+        void setupDescriptors(const std::shared_ptr<VulkanTexture>& ptr);
 
         void setupUniformBuffers();
 
@@ -57,8 +60,8 @@ namespace VkRender {
             uint32_t indexCount = 0;
         };
 
-        Indices  m_indices{};
-        Vertices m_vertices{};
+        Vertices m_vertices;
+        Indices m_indices;
 
         std::string m_vertexShader;
         std::string m_fragmentShader;

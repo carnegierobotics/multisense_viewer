@@ -1277,7 +1277,7 @@ namespace VkRender {
         // Start timingm_mainRenderPasses UI render pass setup
         auto startUIRenderPassSetup = std::chrono::high_resolution_clock::now();
         m_mainRenderPass = std::make_shared<VulkanRenderPass>(&renderPassCreateInfo);
-
+        // TODO replace with VulkanFramebuffer class
         std::array<VkImageView, 3> frameBufferAttachments{};
         frameBufferAttachments[0] = m_colorImage->view();
         frameBufferAttachments[1] = m_depthStencil->view();

@@ -36,17 +36,15 @@ namespace VkRender {
     }
 
     void Editor3DViewport::generatePipelines() {
-        RenderPassInfo renderPassInfo{};
-        renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
-        renderPassInfo.renderPass = m_renderPass->getRenderPass();
-
         // Generate pipelines
         auto view = m_activeScene->getRegistry().view<TransformComponent, MeshComponent>(); // TODO make one specific component type for renderables in standard pipelines
         for (auto entity: view) {
             auto &model = view.get<MeshComponent>(entity);
             const UUID &meshUUID = model.getUUID();
-
             if (!m_renderPipelines.contains(meshUUID)) {
+                RenderPassInfo renderPassInfo{};
+                renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
+                renderPassInfo.renderPass = m_renderPass->getRenderPass();
                 // Decide which pipeline to use
                 if (model.usesUBOMesh()) {
                     m_renderPipelines[meshUUID] = std::make_unique<UboGraphicsPipeline>(*m_context, renderPassInfo);
@@ -54,35 +52,70 @@ namespace VkRender {
                     m_renderPipelines[meshUUID] = std::make_unique<DefaultGraphicsPipeline>(*m_context, renderPassInfo);
                 }
                 m_renderPipelines[meshUUID]->bind(model);
+                cleanUpUnusedPipelines();
+            }
 
+            if (!m_depthOnlyRenderPipelines.contains(meshUUID)) {
+                RenderPassInfo renderPassInfo{};
+                renderPassInfo.sampleCount = VK_SAMPLE_COUNT_1_BIT; // TODO we could infer this from render pass creation
+                renderPassInfo.renderPass = m_depthRenderPass->getRenderPass();
+                // Decide which pipeline to use
+                if (model.usesUBOMesh()) {
+                    m_depthOnlyRenderPipelines[meshUUID] = std::make_unique<UboGraphicsPipeline>(*m_context,
+                                                                                                 renderPassInfo);
+                } else {
+                    m_depthOnlyRenderPipelines[meshUUID] = std::make_unique<DefaultGraphicsPipeline>(*m_context,
+                                                                                                     renderPassInfo);
+                }
+                m_depthOnlyRenderPipelines[meshUUID]->bind(model);
                 cleanUpUnusedPipelines();
             }
         }
     }
 
-    void Editor3DViewport::cleanUpUnusedPipelines(){
+    void Editor3DViewport::cleanUpUnusedPipelines() {
         // Delete pipelines if the UUID no longer exists
+        // CLEAN UP DEFAULT PIPELINES
         {
             // Step 1: Collect all active UUIDs
             std::unordered_set<UUID> activeUUIDs;
             auto view = m_activeScene->getRegistry().view<MeshComponent>();
-            for (auto entity : view) {
-                const UUID& meshUUID = m_activeScene->getRegistry().get<MeshComponent>(entity).getUUID();
+            for (auto entity: view) {
+                const UUID &meshUUID = m_activeScene->getRegistry().get<MeshComponent>(entity).getUUID();
                 activeUUIDs.insert(meshUUID);
             }
-
             // Step 2: Iterate over existing pipelines and find unused UUIDs
             std::vector<UUID> unusedUUIDs;
-            for (const auto& [uuid, pipeline] : m_renderPipelines) {
+            for (const auto &[uuid, pipeline]: m_renderPipelines) {
                 if (activeUUIDs.find(uuid) == activeUUIDs.end()) {
                     // UUID not found in active UUIDs, mark it for deletion
                     unusedUUIDs.push_back(uuid);
                 }
             }
-
             // Step 3: Remove the unused pipelines
-            for (const UUID& uuid : unusedUUIDs) {
+            for (const UUID &uuid: unusedUUIDs) {
                 m_renderPipelines.erase(uuid);
+            }
+        }
+        // CLEAN UP DEPTH PIPELINES
+        {  // Step 1: Collect all active UUIDs
+            std::unordered_set<UUID> activeUUIDs;
+            auto view = m_activeScene->getRegistry().view<MeshComponent>();
+            for (auto entity: view) {
+                const UUID &meshUUID = m_activeScene->getRegistry().get<MeshComponent>(entity).getUUID();
+                activeUUIDs.insert(meshUUID);
+            }
+            // Step 2: Iterate over existing pipelines and find unused UUIDs
+            std::vector<UUID> unusedUUIDs;
+            for (const auto &[uuid, pipeline]: m_depthOnlyRenderPipelines) {
+                if (activeUUIDs.find(uuid) == activeUUIDs.end()) {
+                    // UUID not found in active UUIDs, mark it for deletion
+                    unusedUUIDs.push_back(uuid);
+                }
+            }
+            // Step 3: Remove the unused pipelines
+            for (const UUID &uuid: unusedUUIDs) {
+                m_depthOnlyRenderPipelines.erase(uuid);
             }
         }
     }
@@ -90,7 +123,6 @@ namespace VkRender {
     void Editor3DViewport::onUpdate() {
         if (!m_activeScene)
             return;
-
         {
             auto view = m_activeScene->getRegistry().view<CameraComponent>();
             m_activeCamera = m_editorCamera;
@@ -116,7 +148,6 @@ namespace VkRender {
                 }
             }
         }
-
         generatePipelines();
         // Update model transforms:
         auto view = m_activeScene->getRegistry().view<TransformComponent, MeshComponent>(); // TODO make one specific component type for renderables in standard pipelines
@@ -129,14 +160,24 @@ namespace VkRender {
                 m_renderPipelines[meshUUID]->updateView(m_activeCamera);
                 m_renderPipelines[meshUUID]->update(m_context->currentFrameIndex());
             }
+            if (m_depthOnlyRenderPipelines.contains(meshUUID)) {
+                auto transform = view.get<TransformComponent>(entity);
+                m_depthOnlyRenderPipelines[meshUUID]->updateTransform(transform);
+                m_depthOnlyRenderPipelines[meshUUID]->updateView(m_activeCamera);
+                m_depthOnlyRenderPipelines[meshUUID]->update(m_context->currentFrameIndex());
+            }
         }
         m_activeScene->update(m_context->currentFrameIndex());
     }
 
     void Editor3DViewport::onRender(CommandBuffer &drawCmdBuffers) {
-        if (!m_activeScene)
-            return;
         for (auto &pipeline: m_renderPipelines) {
+            pipeline.second->draw(drawCmdBuffers);
+        }
+    }
+
+    void Editor3DViewport::onRenderDepthOnly(CommandBuffer &drawCmdBuffers) {
+        for (auto &pipeline: m_depthOnlyRenderPipelines) {
             pipeline.second->draw(drawCmdBuffers);
         }
     }

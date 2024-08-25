@@ -56,6 +56,10 @@
 namespace VkRender {
     class Entity;
 
+    struct SharedEditorData {
+        std::unordered_map<UUID, DepthFramebuffer> depthFrameBuffer;
+        UUID selectedUUIDContext;
+    };
 
     class Renderer : VulkanRenderer {
 
@@ -94,6 +98,8 @@ namespace VkRender {
         VmaAllocator &allocator() { return m_allocator; }
 
         VulkanDevice &vkDevice() { return *m_vulkanDevice; }
+
+        SharedEditorData &sharedEditorData() { return m_sharedEditorData; }
 
         // TODO we should collect per frame info like this somewhere
         float deltaTime() { return frameTimer; }
@@ -143,7 +149,7 @@ namespace VkRender {
 
         std::shared_ptr<GuiResources> m_guiResources;
         SharedContextData m_sharedContextData;
-
+        SharedEditorData m_sharedEditorData;
         friend class RendererConfig;
 
         void updateEditors();

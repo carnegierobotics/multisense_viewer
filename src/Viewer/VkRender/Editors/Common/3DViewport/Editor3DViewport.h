@@ -21,6 +21,7 @@ namespace VkRender {
         void onUpdate() override;
 
         void onRender(CommandBuffer &drawCmdBuffers) override;
+        void onRenderDepthOnly(CommandBuffer &drawCmdBuffers) override;
 
         void onSceneLoad(std::shared_ptr<Scene> scene) override;
 
@@ -43,6 +44,7 @@ namespace VkRender {
         std::reference_wrapper<Camera> m_activeCamera = m_editorCamera;
         std::shared_ptr<Scene> m_activeScene;
         std::unordered_map<UUID, std::unique_ptr<GraphicsPipeline>> m_renderPipelines;
+        std::unordered_map<UUID, std::unique_ptr<GraphicsPipeline>> m_depthOnlyRenderPipelines;
 
         void onEntityDestroyed(entt::entity entity);
 

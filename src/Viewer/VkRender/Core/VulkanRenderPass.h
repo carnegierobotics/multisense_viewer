@@ -17,11 +17,17 @@
 namespace VkRender {
     class Renderer;
 
-
+    typedef enum VulkanRenderPassType{
+        DEFAULT,
+        DEPTH_ONLY,
+    }VulkanRenderPassType;
     /**@brief Very early iteration of a editor create info which also includes renderpass create info. TODO They should be separated into EditorCreateInfo and RenderPass even though they share a lot of information*/
     struct VulkanRenderPassCreateInfo {
         VulkanDevice *vulkanDevice = nullptr;
         VmaAllocator *allocator = nullptr;
+
+        VulkanRenderPassType type = VulkanRenderPassType::DEFAULT;
+        std::string debugInfo = "Unnamed";
 
         int32_t width = 10;
         int32_t height = 10;
@@ -119,23 +125,15 @@ namespace VkRender {
         explicit VulkanRenderPass(const VulkanRenderPassCreateInfo *createInfo);
 
         // Implement move constructor
-        VulkanRenderPass(VulkanRenderPass &&other) noexcept: m_logicalDevice(other.m_logicalDevice),
-                                                             m_allocator(other.m_allocator) {
-            std::swap(this->m_colorImage, other.m_colorImage);
-            std::swap(this->m_depthStencil, other.m_depthStencil);
+        VulkanRenderPass(VulkanRenderPass &&other) noexcept: m_logicalDevice(other.m_logicalDevice) {
             std::swap(this->m_renderPass, other.m_renderPass);
-            std::swap(this->m_initialized, other.m_initialized);
         }
 
         // and move assignment operator
         VulkanRenderPass &operator=(VulkanRenderPass &&other) noexcept {
             if (this != &other) { // Check for self-assignment
                 std::swap(this->m_logicalDevice, other.m_logicalDevice);
-                std::swap(this->m_allocator, other.m_allocator);
-                std::swap(this->m_colorImage, other.m_colorImage);
-                std::swap(this->m_depthStencil, other.m_depthStencil);
                 std::swap(this->m_renderPass, other.m_renderPass);
-                std::swap(this->m_initialized, other.m_initialized);
             }
             return *this;
         }
@@ -153,30 +151,11 @@ namespace VkRender {
 
     private:
         VkRenderPass m_renderPass = VK_NULL_HANDLE;
-        struct {
-            VkImage image = VK_NULL_HANDLE;
-            VkDeviceMemory mem = VK_NULL_HANDLE;
-            VkImageView view = VK_NULL_HANDLE;
-            VkSampler sampler = VK_NULL_HANDLE;
-            VmaAllocation allocation{};
-        } m_depthStencil{};
-        struct {
-            VkImage image = VK_NULL_HANDLE;
-            VkImage resolvedImage = VK_NULL_HANDLE;
-            VkDeviceMemory mem = VK_NULL_HANDLE;
-            VkDeviceMemory resolvedMem = VK_NULL_HANDLE;
-            VkImageView view = VK_NULL_HANDLE;
-            VkImageView resolvedView = VK_NULL_HANDLE;
-            VkSampler sampler = VK_NULL_HANDLE;
-            VmaAllocation colorImageAllocation{};
-            VmaAllocation resolvedImageAllocation{};
-        } m_colorImage{};
 
         VkDevice &m_logicalDevice;
-        VmaAllocator &m_allocator;
-        bool m_initialized = false;
 
-        void cleanUp();
+        void setupDepthOnlyRenderPass(const VulkanRenderPassCreateInfo *createInfo);
+        void setupDefaultRenderPass(const VulkanRenderPassCreateInfo *createInfo);
     };
 }
 

@@ -27,11 +27,17 @@ namespace VkRender {
         m_ui.x = m_createInfo.x;
         m_ui.y = m_createInfo.y;
 
+        m_createInfo.pPassCreateInfo.debugInfo = editorTypeToString(m_createInfo.editorTypeDescription);
         m_renderPass = std::make_unique<VulkanRenderPass>(&m_createInfo.pPassCreateInfo);
-
         VulkanRenderPassCreateInfo offscreenRenderPassCreateInfo = m_createInfo.pPassCreateInfo;
         offscreenRenderPassCreateInfo.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         m_offscreenRenderPass = std::make_unique<VulkanRenderPass>(&offscreenRenderPassCreateInfo);
+
+        VulkanRenderPassCreateInfo depthRenderPassCreateInfo = m_createInfo.pPassCreateInfo;
+        depthRenderPassCreateInfo.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        depthRenderPassCreateInfo.type = VulkanRenderPassType::DEPTH_ONLY;
+        depthRenderPassCreateInfo.msaaSamples = VK_SAMPLE_COUNT_1_BIT;
+        m_depthRenderPass = std::make_unique<VulkanRenderPass>(&depthRenderPassCreateInfo);
 
         m_guiManager = std::make_unique<GuiManager>(m_context->vkDevice(),
                                                     m_renderPass->getRenderPass(), // TODO verify if this is ok?
@@ -82,6 +88,10 @@ namespace VkRender {
     void Editor::render(CommandBuffer &drawCmdBuffers) {
         const uint32_t &currentFrame = *drawCmdBuffers.frameIndex;
         const uint32_t &imageIndex = *drawCmdBuffers.activeImageIndex;
+
+        /// Depth render pass
+        if (m_ui.renderDepth)
+            renderDepthPass(drawCmdBuffers);
 
         VkViewport viewport{};
         viewport.x = static_cast<float>(m_createInfo.x);
@@ -217,14 +227,15 @@ namespace VkRender {
 
             // Map memory and save image to a file
             void *data;
-            vkMapMemory(m_context->vkDevice().m_LogicalDevice, stagingBuffer.memory, 0, m_offscreenFramebuffer.resolvedImage->getImageSizeRBGA(), 0, &data);
+            vkMapMemory(m_context->vkDevice().m_LogicalDevice, stagingBuffer.memory, 0,
+                        m_offscreenFramebuffer.resolvedImage->getImageSizeRBGA(), 0, &data);
             // Assuming the image is in RGBA format (4 channels) and that data is a pointer to the pixel data
             int width = m_createInfo.width;
             int height = m_createInfo.height;
             int channels = 3; // Assuming RGBA format
 
-            uint8_t* pixelData = static_cast<uint8_t*>(data);
-            uint8_t* rgbData = new uint8_t[width * height * channels];
+            uint8_t *pixelData = static_cast<uint8_t *>(data);
+            uint8_t *rgbData = new uint8_t[width * height * channels];
 
             for (int i = 0; i < width * height; i++) {
                 rgbData[i * 3 + 0] = pixelData[i * 4 + 2]; // R
@@ -240,11 +251,62 @@ namespace VkRender {
             vkUnmapMemory(m_context->vkDevice().m_LogicalDevice, stagingBuffer.memory);
 
 
-
         }
 
     }
 
+
+    void Editor::renderDepthPass(CommandBuffer &drawCmdBuffers) {
+
+        const uint32_t &currentFrame = *drawCmdBuffers.frameIndex;
+        const uint32_t &imageIndex = *drawCmdBuffers.activeImageIndex;
+
+        VkViewport viewport{};
+        viewport.x = static_cast<float>(0);
+        viewport.y = static_cast<float>(0);
+        viewport.width = static_cast<float>(m_createInfo.width);
+        viewport.height = static_cast<float>(m_createInfo.height);
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+
+        VkRect2D scissor{};
+        scissor.offset = {0, 0};
+        scissor.extent = {static_cast<uint32_t>(m_createInfo.width), static_cast<uint32_t>(m_createInfo.height)};
+        /// *** Color render pass *** ///
+        VkRenderPassBeginInfo renderPassBeginInfo = Populate::renderPassBeginInfo();
+        renderPassBeginInfo.renderPass = m_depthRenderPass->getRenderPass(); // Increase reference count by 1 here?
+        renderPassBeginInfo.renderArea.offset.x = 0;
+        renderPassBeginInfo.renderArea.offset.y = 0;
+        renderPassBeginInfo.renderArea.extent.width = m_createInfo.width;
+        renderPassBeginInfo.renderArea.extent.height = m_createInfo.height;
+
+        VkClearValue clearValues[1];
+        clearValues[0].depthStencil = {1.0f, 0};           // Clear depth to 1.0 and stencil to 0
+
+        renderPassBeginInfo.clearValueCount = 1;
+        renderPassBeginInfo.pClearValues = clearValues;
+
+        renderPassBeginInfo.framebuffer = m_depthOnlyFramebuffer.depthOnlyFramebuffer[imageIndex]->framebuffer();
+        vkCmdBeginRenderPass(drawCmdBuffers.buffers[currentFrame], &renderPassBeginInfo,
+                             VK_SUBPASS_CONTENTS_INLINE);
+        drawCmdBuffers.renderPassType = RENDER_PASS_UI;
+        vkCmdSetViewport(drawCmdBuffers.buffers[currentFrame], 0, 1, &viewport);
+        vkCmdSetScissor(drawCmdBuffers.buffers[currentFrame], 0, 1, &scissor);
+
+        onRenderDepthOnly(drawCmdBuffers);
+        vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
+
+        Utils::setImageLayout(
+                drawCmdBuffers.buffers[currentFrame],
+                m_depthOnlyFramebuffer.depthImage->image(),
+                VK_IMAGE_ASPECT_DEPTH_BIT,
+                VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+                VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
+        );
+
+    }
 
     void Editor::update(bool updateGraph, float frameTime, Input *input) {
         m_guiManager->update(updateGraph, frameTime, m_ui, input);
@@ -826,7 +888,8 @@ namespace VkRender {
             imageCI.arrayLayers = 1;
             imageCI.samples = m_createInfo.pPassCreateInfo.msaaSamples;
             imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
-            imageCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+            imageCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+                            VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
             VkImageViewCreateInfo imageViewCI = Populate::imageViewCreateInfo();
             imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
             imageViewCI.format = m_createInfo.pPassCreateInfo.depthFormat;
@@ -845,7 +908,7 @@ namespace VkRender {
             createInfo.srcLayout = VK_IMAGE_LAYOUT_UNDEFINED;
             createInfo.dstLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
             createInfo.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-            m_offscreenFramebuffer.depthStencil = std::make_unique<VulkanImage>(createInfo);
+            m_offscreenFramebuffer.depthStencil = std::make_shared<VulkanImage>(createInfo);
         }
 
 
@@ -909,16 +972,74 @@ namespace VkRender {
             m_offscreenFramebuffer.resolvedImage = std::make_unique<VulkanImage>(createInfo);
         }
 
-        VulkanFramebufferCreateInfo fbCreateInfo(m_context->vkDevice());
-        fbCreateInfo.width = m_createInfo.width;
-        fbCreateInfo.height = m_createInfo.height;
-        fbCreateInfo.renderPass = m_renderPass->getRenderPass();
-        std::vector<VkImageView> attachments(3);
-        attachments[0] = m_offscreenFramebuffer.colorImage->view();
-        attachments[1] = m_offscreenFramebuffer.depthStencil->view();
-        attachments[2] = m_offscreenFramebuffer.resolvedImage->view();
-        fbCreateInfo.frameBufferAttachments = attachments;
-        m_offscreenFramebuffer.framebuffer = std::make_unique<VulkanFramebuffer>(fbCreateInfo);
+        {
+            VulkanFramebufferCreateInfo fbCreateInfo(m_context->vkDevice());
+            fbCreateInfo.width = m_createInfo.width;
+            fbCreateInfo.height = m_createInfo.height;
+            fbCreateInfo.renderPass = m_renderPass->getRenderPass();
+            std::vector<VkImageView> attachments(3);
+            attachments[0] = m_offscreenFramebuffer.colorImage->view();
+            attachments[1] = m_offscreenFramebuffer.depthStencil->view();
+            attachments[2] = m_offscreenFramebuffer.resolvedImage->view();
+            fbCreateInfo.frameBufferAttachments = attachments;
+            m_offscreenFramebuffer.framebuffer = std::make_unique<VulkanFramebuffer>(fbCreateInfo);
+        }
+
+        //////////// DEPTH ONLY FRAMEBUFFER
+
+        {
+            VkImageCreateInfo imageCI = Populate::imageCreateInfo();
+            imageCI.imageType = VK_IMAGE_TYPE_2D;
+            imageCI.format = m_createInfo.pPassCreateInfo.depthFormat;
+            imageCI.extent = {static_cast<uint32_t>(m_createInfo.width), static_cast<uint32_t>(m_createInfo.height), 1};
+            imageCI.mipLevels = 1;
+            imageCI.arrayLayers = 1;
+            imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
+            imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
+            imageCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+                            VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+            imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+            imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            VkImageViewCreateInfo imageViewCI = Populate::imageViewCreateInfo();
+            imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
+            imageViewCI.format = m_createInfo.pPassCreateInfo.depthFormat;
+            imageViewCI.subresourceRange.baseMipLevel = 0;
+            imageViewCI.subresourceRange.levelCount = 1;
+            imageViewCI.subresourceRange.baseArrayLayer = 0;
+            imageViewCI.subresourceRange.layerCount = 1;
+            imageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+            VulkanImageCreateInfo createInfo(m_context->vkDevice(), m_context->allocator(), imageCI, imageViewCI);
+            createInfo.debugInfo =
+                    "DepthOnlyFramebufferDepthImage: " + editorTypeToString(m_createInfo.editorTypeDescription);
+            createInfo.setLayout = true;
+            createInfo.srcLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            createInfo.dstLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+            createInfo.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+            m_depthOnlyFramebuffer.depthImage = std::make_unique<VulkanImage>(createInfo);
+
+        }
+
+        {   // Create a framebuffer specifically for the depth-only render pass
+
+
+            VulkanFramebufferCreateInfo fbCreateInfo(m_context->vkDevice());
+            fbCreateInfo.width = m_createInfo.width;
+            fbCreateInfo.height = m_createInfo.height;
+            fbCreateInfo.renderPass = m_depthRenderPass->getRenderPass(); // Use the depth-only render pass
+
+            // Only include the depth image in the attachments
+            std::vector<VkImageView> attachments(1);
+            attachments[0] = m_depthOnlyFramebuffer.depthImage->view(); // Depth image view
+
+            fbCreateInfo.frameBufferAttachments = attachments;
+
+            // Create the framebuffer for the depth-only pass
+            m_depthOnlyFramebuffer.depthOnlyFramebuffer.resize(m_createInfo.pPassCreateInfo.swapchainImageCount);
+            for (auto &fb: m_depthOnlyFramebuffer.depthOnlyFramebuffer)
+                fb = std::make_shared<VulkanFramebuffer>(fbCreateInfo);
+
+            m_context->sharedEditorData().depthFrameBuffer[m_uuid] = m_depthOnlyFramebuffer;
+        }
 
     }
 

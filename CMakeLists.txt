@@ -130,6 +130,8 @@ set(SOURCE_FILES
         src/Viewer/Scenes/MultiSenseViewer/Modules/LibMultiSense/LibMultiSenseConnector.cpp
         src/Viewer/Scenes/MultiSenseViewer/Modules/LibMultiSense/MultiSenseTaskManager.cpp
         src/Viewer/VkRender/Editors/Common/Properties/PropertiesLayer.cpp
+        src/Viewer/VkRender/Core/VulkanTexture.cpp
+        src/Viewer/VkRender/Core/VulkanTexture.h
 
 )
 

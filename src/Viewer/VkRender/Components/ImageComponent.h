@@ -43,6 +43,29 @@ namespace VkRender {
             m_texPath = imagePath;
             loadTexture();
         }
+        ImageComponent(uint32_t width, uint32_t height) {
+            m_vertices = {
+                    // Bottom-left corner
+                    {glm::vec2{-1.0f, -1.0f}, glm::vec2{0.0f, 0.0f}},
+                    // Bottom-right corner
+                    {glm::vec2{1.0f, -1.0f},  glm::vec2{1.0f, 0.0f}},
+                    // Top-right corner
+                    {glm::vec2{1.0f, 1.0f},   glm::vec2{1.0f, 1.0f}},
+                    // Top-left corner
+                    {glm::vec2{-1.0f, 1.0f},  glm::vec2{0.0f, 1.0f}}
+            };
+            // Define the indices for two triangles that make up the quad
+            m_indices = {
+                    0, 1, 2, // First triangle (bottom-left to top-right)
+                    2, 3, 0  // Second triangle (top-right to bottom-left)
+            };
+
+
+            m_texSize = STBI_rgb_alpha * height * width;
+            m_texHeight = height;
+            m_texWidth = width;
+
+        }
 
         ~ImageComponent() {
             if (m_pixels) {
@@ -73,7 +96,7 @@ namespace VkRender {
         std::vector<uint32_t> m_indices;
         // The texture
         std::filesystem::path m_texPath;
-        stbi_uc *m_pixels{};
+        stbi_uc *m_pixels = nullptr;
         uint32_t m_texWidth = 0;
         uint32_t m_texHeight = 0;
         VkDeviceSize m_texSize = 0;

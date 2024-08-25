@@ -17,25 +17,28 @@ namespace VkRender{
         m_numSwapChainImages = m_context.swapChainBuffers().size();
         m_vulkanDevice = m_context.vkDevice();
         m_vertexShader = "default2D.vert";
-        m_fragmentShader = "default2D.frag";
+        m_fragmentShader = "depth2D.frag";
         m_renderData.resize(m_numSwapChainImages);
-    }
 
-    void GraphicsPipeline2D::bindImage(ImageComponent &imageComponent) {
+        std::vector<VkRender::ImageVertex> vertices = {
+                // Bottom-left corner
+                {glm::vec2{-1.0f, -1.0f}, glm::vec2{0.0f, 0.0f}},
+                // Bottom-right corner
+                {glm::vec2{1.0f, -1.0f},  glm::vec2{1.0f, 0.0f}},
+                // Top-right corner
+                {glm::vec2{1.0f, 1.0f},   glm::vec2{1.0f, 1.0f}},
+                // Top-left corner
+                {glm::vec2{-1.0f, 1.0f},  glm::vec2{0.0f, 1.0f}}
+        };
+        // Define the indices for two triangles that make up the quad
+        std::vector<uint32_t> indices = {
+                0, 1, 2, // First triangle (bottom-left to top-right)
+                2, 3, 0  // Second triangle (top-right to bottom-left)
+        };
 
-        m_renderTexture = std::make_unique<TextureVideo>(imageComponent.m_texWidth, imageComponent.m_texHeight, &m_vulkanDevice,
-                                                         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                                                         VK_FORMAT_R8G8B8A8_UNORM);
-        // Copy texture to image
-        if (imageComponent.getTexture()){
-            m_renderTexture->updateTextureFromBuffer(imageComponent.getTexture(), imageComponent.getTextureSize());
-        }
-        // TODO It could be feasible to remove vertex binding from bindImage function and have it as standard in the constructor. I dont think it will change
-        // TODO We should since we can rebind a model while not destorying our old buffers
-        // Bind vertex/index buffers from model
-        m_indices.indexCount = imageComponent.m_indices.size();
-        size_t vertexBufferSize = imageComponent.m_vertices.size() * sizeof(ImageVertex);
-        size_t indexBufferSize = imageComponent.m_indices.size() * sizeof(uint32_t);
+        m_indices.indexCount = indices.size();
+        size_t vertexBufferSize = vertices.size() * sizeof(ImageVertex);
+        size_t indexBufferSize = indices.size() * sizeof(uint32_t);
 
         assert(vertexBufferSize > 0);
 
@@ -52,7 +55,7 @@ namespace VkRender{
                 vertexBufferSize,
                 &vertexStaging.buffer,
                 &vertexStaging.memory,
-                imageComponent.m_vertices.data()));
+                vertices.data()));
         // Index data
         if (indexBufferSize > 0) {
             CHECK_RESULT(m_vulkanDevice.createBuffer(
@@ -61,7 +64,7 @@ namespace VkRender{
                     indexBufferSize,
                     &indexStaging.buffer,
                     &indexStaging.memory,
-                    imageComponent.m_indices.data()));
+                    indices.data()));
         }
 
         // Create m_vulkanDevice local buffers
@@ -103,8 +106,10 @@ namespace VkRender{
             vkDestroyBuffer(m_vulkanDevice.m_LogicalDevice, indexStaging.buffer, nullptr);
             vkFreeMemory(m_vulkanDevice.m_LogicalDevice, indexStaging.memory, nullptr);
         }
+    }
 
-        setupDescriptors();
+    void GraphicsPipeline2D::bindTexture(std::shared_ptr<VulkanTexture> texture) {
+        setupDescriptors(texture);
         setupPipeline();
     }
 
@@ -140,20 +145,14 @@ namespace VkRender{
                 fence);
     }
 
+    void GraphicsPipeline2D::updateTransform(TransformComponent &transform) {    }
+    void GraphicsPipeline2D::updateView(const Camera &camera) {    }
+    void GraphicsPipeline2D::update(uint32_t currentFrame) {}
 
-    void GraphicsPipeline2D::update(uint32_t currentFrame) {
-
-    }
     void GraphicsPipeline2D::updateTexture(void* data, size_t size) {
         if (data){
             m_renderTexture->updateTextureFromBuffer(data, size);
         }
-    }
-    void GraphicsPipeline2D::updateTransform(TransformComponent &transform) {
-
-    }
-    void GraphicsPipeline2D::updateView(const Camera &camera) {
-
     }
 
 
@@ -174,20 +173,18 @@ namespace VkRender{
 
     }
 
-    void GraphicsPipeline2D::setupUniformBuffers() {
-        /*
-        for (auto &data: m_renderData) {
-            m_vulkanDevice.createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-                                        &data.fragShaderParamsBuffer, sizeof(ShaderValuesParams));
-            m_vulkanDevice.createBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-                                        &data.mvpBuffer, sizeof(UBOMatrix));
+    void GraphicsPipeline2D::setTexture(const VkDescriptorImageInfo *info) {
+        VkWriteDescriptorSet writeDescriptorSets{};
+        for (const auto &data: m_renderData) {
+            writeDescriptorSets.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            writeDescriptorSets.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            writeDescriptorSets.descriptorCount = 1;
+            writeDescriptorSets.dstSet = data.descriptorSet;
+            writeDescriptorSets.dstBinding = 0;
+            writeDescriptorSets.pImageInfo = info;
+            vkUpdateDescriptorSets(m_vulkanDevice.m_LogicalDevice, 1, &writeDescriptorSets, 0, nullptr);
 
-            data.mvpBuffer.map();
-            data.fragShaderParamsBuffer.map();
         }
-        */
     }
 
     void GraphicsPipeline2D::setupPipeline() {
@@ -227,7 +224,7 @@ namespace VkRender{
 
     }
 
-    void GraphicsPipeline2D::setupDescriptors() {
+    void GraphicsPipeline2D::setupDescriptors(const std::shared_ptr<VulkanTexture>& texture) {
         std::vector<VkDescriptorPoolSize> poolSizes = {
                 {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, m_numSwapChainImages * 2},
         };
@@ -273,7 +270,7 @@ namespace VkRender{
                 writeDescriptorSets[0].descriptorCount = 1;
                 writeDescriptorSets[0].dstSet = resource.descriptorSet;
                 writeDescriptorSets[0].dstBinding = 0;
-                writeDescriptorSets[0].pImageInfo = &m_renderTexture->m_descriptor;
+                writeDescriptorSets[0].pImageInfo = &texture->getDescriptorInfo();
 
                 vkUpdateDescriptorSets(m_vulkanDevice.m_LogicalDevice,
                                        static_cast<uint32_t>(writeDescriptorSets.size()),

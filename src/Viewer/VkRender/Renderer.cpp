@@ -396,6 +396,14 @@ namespace VkRender {
             }
         }
         handleEditorResize();
+
+        // Update which shared data and such
+
+        for (auto &editor: m_editors) {
+            if(editor->ui().renderDepth){
+                m_sharedEditorData.selectedUUIDContext = editor->getUUID();
+            }
+        }
     }
 
     void Renderer::onRender() {

@@ -161,6 +161,9 @@ namespace VkRender {
                 m_renderPipelines[meshUUID]->update(m_context->currentFrameIndex());
             }
             if (m_depthOnlyRenderPipelines.contains(meshUUID)) {
+                Entity e(entity, m_activeScene.get());
+                if (e.hasComponent<CameraComponent>())
+                    continue;
                 auto transform = view.get<TransformComponent>(entity);
                 m_depthOnlyRenderPipelines[meshUUID]->updateTransform(transform);
                 m_depthOnlyRenderPipelines[meshUUID]->updateView(m_activeCamera);

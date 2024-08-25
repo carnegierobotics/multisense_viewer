@@ -139,58 +139,101 @@ namespace VkRender {
                 EditorCreateInfo createInfo(m_guiResources, this, &m_sharedContextData, m_vulkanDevice, &m_allocator,
                                             m_frameBuffers.data());
 
-                int32_t mainMenuBarOffset = 0;
-                int32_t width = std::round(jsonEditor.value("width", 0.0) / 100 * m_width);
-                int32_t height = std::round(jsonEditor.value("height", 0.0) / 100 * m_height);
-                int32_t offsetX = std::round(jsonEditor.value("x", 0.0) / 100 * m_width);
-                int32_t offsetY = std::round(jsonEditor.value("y", 0.0) / 100 * m_height);
+                std::string sizeType = jsonEditor.value("sizeType", "percentage");
+                if (sizeType == "percentage") {
+                    int32_t mainMenuBarOffset = 0;
+                    int32_t width = std::round(jsonEditor.value("width", 0.0) / 100 * m_width);
+                    int32_t height = std::round(jsonEditor.value("height", 0.0) / 100 * m_height);
+                    int32_t offsetX = std::round(jsonEditor.value("x", 0.0) / 100 * m_width);
+                    int32_t offsetY = std::round(jsonEditor.value("y", 0.0) / 100 * m_height);
+                    mainMenuBarOffset = offsetY == 0 ? 25 : 0;
+                    createInfo.x = offsetX;
+                    createInfo.y = offsetY;
+                    createInfo.y += mainMenuBarOffset;
+                    createInfo.width = width;
+                    createInfo.height = height - mainMenuBarOffset;
+                    if (createInfo.width + createInfo.x > m_width) {
+                        createInfo.width = m_width - createInfo.x;
+                    }
+                    if (createInfo.height + createInfo.y > m_height) {
+                        createInfo.height = m_height - createInfo.y;
+                    }
+                    createInfo.borderSize = jsonEditor.value("borderSize", 5);
+                    createInfo.editorTypeDescription = stringToEditorType(
+                            jsonEditor.value("editorTypeDescription", ""));
+                    createInfo.resizeable = jsonEditor.value("resizeable", true);
+                    createInfo.editorIndex = jsonEditor.value("editorIndex", 0);
+                    createInfo.uiContext = getMainUIContext();
+                    VulkanRenderPassCreateInfo passCreateInfo(m_vulkanDevice, &m_allocator);
+                    passCreateInfo.msaaSamples = msaaSamples;
+                    passCreateInfo.swapchainImageCount = swapchain->imageCount;
+                    passCreateInfo.swapchainColorFormat = swapchain->colorFormat;
+                    passCreateInfo.depthFormat = depthFormat;
+                    passCreateInfo.height = static_cast<int32_t>(m_height);
+                    passCreateInfo.width = static_cast<int32_t>(m_width);
+                    createInfo.pPassCreateInfo = passCreateInfo;
+                    if (jsonEditor.contains("uiLayers") && jsonEditor["uiLayers"].is_array()) {
+                        createInfo.uiLayers = jsonEditor["uiLayers"].get<std::vector<std::string> >();
+                    } else {
+                        createInfo.uiLayers.clear();
+                    }
+                    // Create an Editor object with the createInfo
+                    m_editors.push_back(std::move(createEditor(createInfo)));
 
-                mainMenuBarOffset = offsetY == 0 ? 25 : 0;
+                    Log::Logger::getInstance()->info(
+                            "Loaded editor {}: type = {}, x = {}, y = {}, width = {}, height = {}",
+                            createInfo.editorIndex,
+                            editorTypeToString(createInfo.editorTypeDescription), createInfo.x,
+                            createInfo.y, createInfo.width, createInfo.height);
 
-                createInfo.x = offsetX;
-                createInfo.y = offsetY;
-                createInfo.y += mainMenuBarOffset;
+                } else if (sizeType == "pixels") {
+                    int32_t mainMenuBarOffset = 0;
+                    int32_t width = std::round(jsonEditor.value("width", 0.0));
+                    int32_t height = std::round(jsonEditor.value("height", 0.0));
+                    int32_t offsetX = std::round(jsonEditor.value("x", 0.0));
+                    int32_t offsetY = std::round(jsonEditor.value("y", 0.0));
+                    mainMenuBarOffset = offsetY == 0 ? 25 : 0;
+                    createInfo.x = offsetX;
+                    createInfo.y = offsetY;
+                    createInfo.y += mainMenuBarOffset;
+                    createInfo.width = width;
+                    createInfo.height = height - mainMenuBarOffset;
+                    if (createInfo.width + createInfo.x > m_width) {
+                        createInfo.width = m_width - createInfo.x;
+                    }
+                    if (createInfo.height + createInfo.y > m_height) {
+                        createInfo.height = m_height - createInfo.y;
+                    }
+                    createInfo.borderSize = jsonEditor.value("borderSize", 5);
+                    createInfo.editorTypeDescription = stringToEditorType(
+                            jsonEditor.value("editorTypeDescription", ""));
+                    createInfo.resizeable = jsonEditor.value("resizeable", true);
+                    createInfo.editorIndex = jsonEditor.value("editorIndex", 0);
+                    createInfo.uiContext = getMainUIContext();
+                    VulkanRenderPassCreateInfo passCreateInfo(m_vulkanDevice, &m_allocator);
+                    passCreateInfo.msaaSamples = msaaSamples;
+                    passCreateInfo.swapchainImageCount = swapchain->imageCount;
+                    passCreateInfo.swapchainColorFormat = swapchain->colorFormat;
+                    passCreateInfo.depthFormat = depthFormat;
+                    passCreateInfo.height = static_cast<int32_t>(m_height);
+                    passCreateInfo.width = static_cast<int32_t>(m_width);
+                    createInfo.pPassCreateInfo = passCreateInfo;
+                    if (jsonEditor.contains("uiLayers") && jsonEditor["uiLayers"].is_array()) {
+                        createInfo.uiLayers = jsonEditor["uiLayers"].get<std::vector<std::string> >();
+                    } else {
+                        createInfo.uiLayers.clear();
+                    }
+                    // Create an Editor object with the createInfo
+                    m_editors.push_back(std::move(createEditor(createInfo)));
 
-                createInfo.width = width;
-                createInfo.height = height - mainMenuBarOffset;
-
-                if (createInfo.width + createInfo.x > m_width) {
-                    createInfo.width = m_width - createInfo.x;
+                    Log::Logger::getInstance()->info(
+                            "Loaded editor {}: type = {}, x = {}, y = {}, width = {}, height = {}",
+                            createInfo.editorIndex,
+                            editorTypeToString(createInfo.editorTypeDescription), createInfo.x,
+                            createInfo.y, createInfo.width, createInfo.height);
                 }
-
-                if (createInfo.height + createInfo.y > m_height) {
-                    createInfo.height = m_height - createInfo.y;
-                }
-
-                createInfo.borderSize = jsonEditor.value("borderSize", 5);
-                createInfo.editorTypeDescription = stringToEditorType(jsonEditor.value("editorTypeDescription", ""));
-                createInfo.resizeable = jsonEditor.value("resizeable", true);
-                createInfo.editorIndex = jsonEditor.value("editorIndex", 0);
-                createInfo.uiContext = getMainUIContext();
-
-                VulkanRenderPassCreateInfo passCreateInfo(m_vulkanDevice, &m_allocator);
-                passCreateInfo.msaaSamples = msaaSamples;
-                passCreateInfo.swapchainImageCount = swapchain->imageCount;
-                passCreateInfo.swapchainColorFormat = swapchain->colorFormat;
-                passCreateInfo.depthFormat = depthFormat;
-                passCreateInfo.height = static_cast<int32_t>(m_height);
-                passCreateInfo.width = static_cast<int32_t>(m_width);
-                createInfo.pPassCreateInfo = passCreateInfo;
-                if (jsonEditor.contains("uiLayers") && jsonEditor["uiLayers"].is_array()) {
-                    createInfo.uiLayers = jsonEditor["uiLayers"].get<std::vector<std::string> >();
-                } else {
-                    createInfo.uiLayers.clear();
-                }
-                // Create an Editor object with the createInfo
-                m_editors.push_back(std::move(createEditor(createInfo)));
-
-                Log::Logger::getInstance()->info("Loaded editor {}: type = {}, x = {}, y = {}, width = {}, height = {}",
-                                                 createInfo.editorIndex,
-                                                 editorTypeToString(createInfo.editorTypeDescription), createInfo.x,
-                                                 createInfo.y, createInfo.width, createInfo.height);
             }
         }
-
     }
 
 
@@ -400,8 +443,8 @@ namespace VkRender {
         // Update which shared data and such
 
         for (auto &editor: m_editors) {
-            if(editor->ui().renderDepth){
-                m_sharedEditorData.selectedUUIDContext = editor->getUUID();
+            if (editor->ui().renderDepth) {
+                m_sharedEditorData.selectedUUIDContext = std::make_shared<UUID>(editor->getUUID());
             }
         }
     }
@@ -837,7 +880,7 @@ namespace VkRender {
         }
 
         for (auto &editor: m_editors) {
-            if (editor->ui().hovered){
+            if (editor->ui().hovered) {
                 // Add drop event here
                 editor->onFileDrop(path);
             }

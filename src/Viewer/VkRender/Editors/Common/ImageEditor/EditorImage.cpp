@@ -28,17 +28,7 @@ namespace VkRender {
         VulkanImageCreateInfo vulkanImageCreateInfo(m_context->vkDevice(), m_context->allocator(), imageCreateInfo, imageViewCreateInfo);
         std::shared_ptr<VulkanImage> image = std::make_shared<VulkanImage>(vulkanImageCreateInfo);
         */
-        RenderPassInfo renderPassInfo{};
-        renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
-        renderPassInfo.renderPass = m_renderPass->getRenderPass();
 
-        VulkanTexture2DCreateInfo textureCreateInfo(m_context->vkDevice());
-        textureCreateInfo.image = m_context->sharedEditorData().depthFrameBuffer[m_context->sharedEditorData().selectedUUIDContext].depthImage; // TODO get this from the Editor3D Viewport then I think it is solved
-        m_texture = std::make_shared<VulkanTexture2D>(textureCreateInfo);
-
-        m_depthImagePipeline = std::make_unique<GraphicsPipeline2D>(*m_context, renderPassInfo);
-        m_depthImagePipeline->bindTexture(m_texture);
-        int debug = 1;
     }
 
     void EditorImage::onEditorResize() {
@@ -70,10 +60,26 @@ namespace VkRender {
 
     void EditorImage::onSceneLoad(std::shared_ptr<Scene> scene) {
 
+
+
     }
 
 
     void EditorImage::onUpdate() {
+
+        if (m_context->sharedEditorData().selectedUUIDContext && !m_depthImagePipeline){
+            RenderPassInfo renderPassInfo{};
+            renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
+            renderPassInfo.renderPass = m_renderPass->getRenderPass();
+            VulkanTexture2DCreateInfo textureCreateInfo(m_context->vkDevice());
+            textureCreateInfo.image = m_context->sharedEditorData().depthFrameBuffer[m_context->sharedEditorData().selectedUUIDContext.operator*()].depthImage; // TODO get this from the Editor3D Viewport then I think it is solved
+            m_texture = std::make_shared<VulkanTexture2D>(textureCreateInfo);
+
+            m_depthImagePipeline = std::make_unique<GraphicsPipeline2D>(*m_context, renderPassInfo);
+            m_depthImagePipeline->bindTexture(m_texture);
+
+        }
+
         // update Image when needed
 
         // Check if any 3D viewport is rendering depth
@@ -86,7 +92,8 @@ namespace VkRender {
     void EditorImage::onRender(CommandBuffer &drawCmdBuffers) {
 
 
-        m_depthImagePipeline->draw(drawCmdBuffers);
+        if (m_depthImagePipeline)
+            m_depthImagePipeline->draw(drawCmdBuffers);
     }
 
     void EditorImage::onMouseMove(const MouseButtons &mouse) {

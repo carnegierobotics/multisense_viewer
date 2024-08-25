@@ -58,7 +58,7 @@ namespace VkRender {
 
     struct SharedEditorData {
         std::unordered_map<UUID, DepthFramebuffer> depthFrameBuffer;
-        UUID selectedUUIDContext;
+        std::shared_ptr<UUID> selectedUUIDContext;
     };
 
     class Renderer : VulkanRenderer {

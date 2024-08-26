@@ -57,6 +57,10 @@ namespace VkRender {
                     // Handle New action
                     handles.m_context->loadScene("MultiSense Viewer");
                 }
+                if (ImGui::MenuItem("Start 3DGS record")) {
+                    // Handle New action
+                    handles.shared->startRecording = true;
+                }
                 if (ImGui::MenuItem("Quit")) {
                     // Handle New action
                     handles.m_context->closeApplication();

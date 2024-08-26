@@ -156,7 +156,6 @@ namespace VkRender {
     private:
         EditorSizeLimits m_sizeLimits;
         std::unique_ptr<GuiManager> m_guiManager;
-        EditorUI m_ui;
 
     private:
         void createOffscreenFramebuffer();
@@ -179,6 +178,7 @@ namespace VkRender {
 
         DepthFramebuffer m_depthOnlyFramebuffer;
         UUID m_uuid;
+        EditorUI m_ui;
     };
 }
 

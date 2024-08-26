@@ -19,32 +19,30 @@ namespace VkRender {
     }
 
 
-    void SceneHierarchyLayer::drawEntityNode(GuiObjectHandles &handles, Entity entity)
-    {
-        auto& tag = entity.getComponent<TagComponent>().Tag;
-        handles.shared->m_selectedEntity = m_selectionContext;
+    void SceneHierarchyLayer::drawEntityNode(GuiObjectHandles &handles, Entity entity) {
+        auto &tag = entity.getComponent<TagComponent>().Tag;
+        //handles.shared->m_selectedEntity = handles.shared->m_selectedEntity;
 
-        ImGuiTreeNodeFlags flags = ((m_selectionContext == entity) ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_OpenOnArrow;
+        ImGuiTreeNodeFlags flags = ((handles.shared->m_selectedEntity == entity) ? ImGuiTreeNodeFlags_Selected : 0) |
+                                   ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_OpenOnArrow;
         flags |= ImGuiTreeNodeFlags_SpanAvailWidth;
-        bool opened = ImGui::TreeNodeEx((void*)(uint64_t)(uint32_t)entity, flags, "%s", tag.c_str());
-        if (ImGui::IsItemClicked())
-        {
-            m_selectionContext = entity;
+        bool opened = ImGui::TreeNodeEx((void *) (uint64_t) (uint32_t) entity, flags, "%s", tag.c_str());
+        if (ImGui::IsItemClicked()) {
+            handles.shared->m_selectedEntity = entity;
         }
 
         bool entityDeleted = false;
-        if (ImGui::BeginPopupContextItem())
-        {
+        if (ImGui::BeginPopupContextItem()) {
             if (ImGui::MenuItem("Delete Entity"))
                 entityDeleted = true;
 
             ImGui::EndPopup();
         }
 
-        if (opened)
-        {
-            ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_Leaf;
-            bool opened = ImGui::TreeNodeEx((void*)9817239, flags, "%s", tag.c_str());
+        if (opened) {
+            ImGuiTreeNodeFlags flags =
+                    ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_Leaf;
+            bool opened = ImGui::TreeNodeEx((void *) 9817239, flags, "%s", tag.c_str());
             if (ImGui::Button("Delete"))
                 entityDeleted = true;
             if (opened)
@@ -52,14 +50,13 @@ namespace VkRender {
             ImGui::TreePop();
         }
 
-        if (entityDeleted)
-        {
+        if (entityDeleted) {
             m_scene->destroyEntity(entity);
-            if (m_selectionContext == entity) {
-                m_selectionContext = {};
+            if (handles.shared->m_selectedEntity == entity) {
+                handles.shared->m_selectedEntity = {};
             }
         }
-        handles.shared->m_selectedEntity = m_selectionContext;
+        //handles.shared->m_selectedEntity = handles.shared->m_selectedEntity;
 
     }
 
@@ -107,22 +104,48 @@ namespace VkRender {
         }
 
  */
-        if (m_scene)
-        {
+        std::vector<Entity> entities;
+        m_scene->getRegistry().view<entt::entity>().each([&](auto entityID) {
+            Entity entity{entityID, m_scene.get()};
+            std::string name = entity.getComponent<TagComponent>().Tag;
+            if (name.find(".jpg") != std::string::npos && name.find("stereo") == std::string::npos) {
+                entities.emplace_back(entity);
+            }
+        });
+        static auto lastTime = std::chrono::steady_clock::now();
+
+        handles.shared->newFrame = false;
+        static int selection = 0;
+        if (handles.shared->startRecording) {
+            // Increment the selected cameras.
+            auto currentTime = std::chrono::steady_clock::now();
+            auto elapsedTime = std::chrono::duration_cast<std::chrono::seconds>(currentTime - lastTime).count();
+            // Check if 5 seconds have passed
+            if (elapsedTime >= 5) {
+                // Increment the selection index
+                selection++;
+                if (selection >= entities.size()) {
+                    selection = 0; // Wrap around if it exceeds the number of entities
+                }
+                // Update the selected entity
+                handles.shared->m_selectedEntity = entities[selection];
+                // Update the last time
+                lastTime = currentTime;
+                handles.shared->newFrame = true;
+                handles.shared;
+            }
+        }
+        if (m_scene) {
             m_scene->getRegistry().view<entt::entity>().each([&](auto entityID) {
-                Entity entity{ entityID, m_scene.get() };
+                Entity entity{entityID, m_scene.get()};
                 // Perform your operations with the entity
                 drawEntityNode(handles, entity);
             });
-
-
-
             //if (ImGui::IsMouseDown(0) && ImGui::IsWindowHovered())
-            //    m_selectionContext = {};
+            //    handles.shared->m_selectedEntity = {};
 
             // Right-click on blank space
-            if (ImGui::BeginPopupContextWindow(0, 1))
-            {
+            if (ImGui::BeginPopupContextWindow(0, 1)) {
                 if (ImGui::MenuItem("Create Empty Entity"))
                     m_scene->createEntity("Empty Entity");
 

@@ -56,10 +56,12 @@ namespace VkRender {
     }
 
 
-    std::vector<ColmapCameraPose> MultiSenseViewer::loadColmapCameras(const std::string &filePath) {
-        std::ifstream file(filePath);
+    std::vector<ColmapCameraPose> MultiSenseViewer::loadColmapImages(const std::string &filePath) {
+        float baseline = 0.5;
         std::vector<ColmapCameraPose> cameraPoses;
+        std::ifstream file(filePath);
         std::string line;
+
 
         while (std::getline(file, line)) {
             // Skip comment lines
@@ -74,26 +76,31 @@ namespace VkRender {
             std::istringstream iss(line);
             iss >> imageId >> qw >> qx >> qy >> qz >> tx >> ty >> tz >> cameraId >> pose.imageName;
 
+
             // Convert quaternion from COLMAP (qw, qx, qy, qz) to glm::quat
             pose.rotation = glm::quat(qw, qx, qy, qz);
-
             // Translation vector (tx, ty, tz)
-            pose.translation = glm::vec3(tx, ty, tz);
-
-            cameraPoses.push_back(pose);
-
+            for (int i = 0; i < 2; ++i) {
+                pose.translation = glm::vec3(tx + (i * baseline), ty, tz);
+                if (i == 1){
+                    (pose.imageName += ":stereo-right");
+                }
+                cameraPoses.push_back(pose);
+            }
             // Skip the second line of the image entry (the 2D-3D correspondences)
             std::getline(file, line);
         }
 
+
         return cameraPoses;
     }
+
     void MultiSenseViewer::applyColmapCameraPoses(const std::vector<ColmapCameraPose> &cameraPoses, double d) {
-        for (const auto &pose : cameraPoses) {
+        for (const auto &pose: cameraPoses) {
             // Create or find your camera entity
             auto cameraEntity = createNewCamera(pose.imageName, 1160, 522);
             auto &cameraComponent = cameraEntity.getComponent<CameraComponent>();
-            auto& fov = cameraComponent().fov();
+            auto &fov = cameraComponent().fov();
             fov = d;
             // Set the camera's transform based on the COLMAP pose
             auto &transform = cameraEntity.getComponent<TransformComponent>();
@@ -106,7 +113,8 @@ namespace VkRender {
 
             // Extract camera coordinate system vectors
             glm::vec3 colmapRight = glm::vec3(rotMatrix[0][0], rotMatrix[1][0], rotMatrix[2][0]);
-            glm::vec3 colmapUp = -glm::vec3(rotMatrix[0][1], rotMatrix[1][1], rotMatrix[2][1]); // Negating for COLMAP's Y-axis downward
+            glm::vec3 colmapUp = -glm::vec3(rotMatrix[0][1], rotMatrix[1][1],
+                                            rotMatrix[2][1]); // Negating for COLMAP's Y-axis downward
             glm::vec3 colmapFront = glm::vec3(rotMatrix[0][2], rotMatrix[1][2], rotMatrix[2][2]);
             // Adjust for Vulkan view space
             glm::vec3 vulkanRight = glm::normalize(colmapRight);     // Same as COLMAP
@@ -145,7 +153,7 @@ namespace VkRender {
             cameraComponent.camera.pose.q = transform.getQuaternion();
             cameraComponent.camera.matrices.view = viewMatrix;
             cameraComponent().setType(Camera::custom);
-
+            cameraComponent().updateProjectionMatrix();
             // Optionally add other components or handle specific camera configurations here
             cameraEntity.addComponent<MeshComponent>(1);
         }
@@ -197,16 +205,18 @@ namespace VkRender {
         double fovY = computeFOV(camera.focalLength, sensorHeight);
         double fov = std::min(fovX, fovY);
         std::string colmapFilePath = "/home/magnus/Downloads/raw_data_v1_part1/0000/poses/colmap_text/images.txt";
-        auto cameraPoses = loadColmapCameras(colmapFilePath);
+        auto cameraPoses = loadColmapImages(colmapFilePath);
 
         // Apply the camera poses to your scene
         applyColmapCameraPoses(cameraPoses, fov);
 
 #ifdef SYCL_ENABLED
-        {auto gaussianEntity = createEntity("GaussianEntity");
-                   auto &gaussianEntityModelComponent = gaussianEntity.addComponent<GaussianModelComponent>(Utils::getModelsPath() / "3dgs" / "3dgs.ply");
-                   int debug = 1;
-               }
+        {
+            auto gaussianEntity = createEntity("GaussianEntity");
+            auto &gaussianEntityModelComponent = gaussianEntity.addComponent<GaussianModelComponent>(
+                    Utils::getModelsPath() / "3dgs" / "3dgs.ply");
+            int debug = 1;
+        }
 #endif
 
     }

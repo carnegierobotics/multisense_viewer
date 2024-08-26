@@ -67,6 +67,7 @@ namespace VkRender {
             }
 
             handles.editorUi->saveRenderToFile = ImGui::Button("Save image");
+            ImGui::Checkbox("Right view", &handles.editorUi->gsRightView);
 
 
             ImGui::PopFont();

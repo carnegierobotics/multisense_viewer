@@ -29,12 +29,12 @@ namespace VkRender {
 
     struct SharedContextData {
         bool openAddDevicePopup = false;
-        std::unordered_map<UUID, bool> setActiveCamera;
         Entity m_selectedEntity;
-
         std::shared_ptr<MultiSense::MultiSenseRendererBridge> multiSenseRendererBridge{};
         std::shared_ptr<MultiSense::MultiSenseRendererGigEVisionBridge> multiSenseRendererGigEVisionBridge{};
 
+        bool startRecording = false;
+        bool newFrame = false;
     };
 
     typedef enum EditorBorderState {
@@ -159,14 +159,17 @@ namespace VkRender {
         ImVec4 backgroundColorActive{};
 
         // TODO fix this. UI Elements may not be needed for all editor tyypes, should probably be editor type specific
-        bool setActiveCamera = false;
+        bool setActiveCamera = true;
         bool render3DGSImage = false;
         int render3dgsColor = 0;
+        bool gsRightView = false;
         bool contentHovered = false;
         Camera* editorCamera;
+        Camera* activeCamera;
         bool saveRenderToFile = false;
+        std::filesystem::path renderToFileName = "output.png";
         bool reloadPipeline = false;
-        bool renderDepth = false;
+        bool renderDepth = true;
         // TODO end
 
         bool active = false;

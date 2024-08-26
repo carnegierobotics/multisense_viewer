@@ -44,23 +44,45 @@ namespace VkRender {
     }
 
     void VkRender::EditorGaussianViewer::onUpdate() {
-        {
-            auto view = m_activeScene->getRegistry().view<CameraComponent>();
-            for (auto entity: view) {
-                auto e = Entity(entity, m_activeScene.get());
-                if (m_createInfo.sharedUIContextData->setActiveCamera.contains(e.getUUID())) {
-                    // Assuming you have an entt::registry instance
-                    auto &registry = m_activeScene->getRegistry();
-                    auto &cameraComponent = registry.get<CameraComponent>(entity);
+        auto cameraView = m_activeScene->getRegistry().view<CameraComponent, TagComponent>();
+        for (auto entity: cameraView) {
+            auto e = Entity(entity, m_activeScene.get());
+            if (e == m_createInfo.sharedUIContextData->m_selectedEntity) {
+                if (ui().gsRightView){
+                    // Find the right view corresponding
+                    auto& selectedTagComponent = cameraView.get<TagComponent>(entity);
+                    std::string rightCameraName = selectedTagComponent.Tag + ":stereo-right";
+                    // Iterate over all camera components to find the one with the right name
+                    cameraView.each([&](auto otherEntity, CameraComponent& otherCameraComponent, TagComponent& otherTagComponent) {
+                        if (otherTagComponent.Tag == rightCameraName) {
+                            // If found, set the right camera as the active camera
+                            m_activeCamera = std::make_shared<Camera>(otherCameraComponent());
+                        }
+                    });
+                    }
+                 else {
+                    auto &cameraComponent = cameraView.get<CameraComponent>(entity);
                     m_activeCamera = std::make_shared<Camera>(cameraComponent());
                 }
             }
         }
+
         if (!m_activeCamera)
             return;
 
+        ui().saveRenderToFile = m_createInfo.sharedUIContextData->newFrame;
+
+        if (m_createInfo.sharedUIContextData->m_selectedEntity){
+            if (ui().gsRightView){
+                ui().renderToFileName = "scene_0000/right/" +  m_createInfo.sharedUIContextData->m_selectedEntity.getComponent<TagComponent>().Tag;
+            } else {
+                ui().renderToFileName = "scene_0000/left/" +  m_createInfo.sharedUIContextData->m_selectedEntity.getComponent<TagComponent>().Tag;
+            }
+            ui().renderToFileName.replace_extension(".png");
+        }
+
         generatePipelines();
-        if (ui().render3DGSImage) {
+        if (ui().render3DGSImage || m_createInfo.sharedUIContextData->newFrame) {
             for (auto &pipeline: m_gaussianRenderPipelines) {
                 pipeline.second->generateImage(*m_activeCamera, ui().render3dgsColor);
             }
@@ -97,6 +119,8 @@ namespace VkRender {
     }
 
     void EditorGaussianViewer::onKeyCallback(const Input &input) {
+        if (!m_activeCamera)
+            return;
         m_activeCamera->keys.up = input.keys.up;
         m_activeCamera->keys.down = input.keys.down;
         m_activeCamera->keys.left = input.keys.left;

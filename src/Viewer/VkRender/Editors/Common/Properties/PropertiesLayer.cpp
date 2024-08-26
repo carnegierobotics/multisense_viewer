@@ -31,7 +31,7 @@ namespace VkRender {
 
         ImGui::Columns(2);
         ImGui::SetColumnWidth(0, columnWidth);
-        ImGui::Text(label.c_str());
+        ImGui::Text("%s", label.c_str());
         ImGui::NextColumn();
 
         ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
@@ -96,7 +96,7 @@ namespace VkRender {
 
         ImGui::Columns(2);
         ImGui::SetColumnWidth(0, columnWidth);
-        ImGui::Text(label.c_str());
+        ImGui::Text("%s", label.c_str());
         ImGui::NextColumn();
 
         ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
@@ -186,9 +186,7 @@ namespace VkRender {
         });
         drawComponent<CameraComponent>("Camera", entity, [&handles, &entity](auto &component) {
 
-            std::string label = "Set Active ##" + entity.getComponent<TagComponent>().Tag;
-            ImGui::Checkbox(label.c_str(), &handles.shared->setActiveCamera[entity.getUUID()]);
-            drawFloatControl("Scale", component().fov(), 1.0f);
+            drawFloatControl("Field of View", component().fov(), 1.0f);
             component().updateProjectionMatrix();
 
         });

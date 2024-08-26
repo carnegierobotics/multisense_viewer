@@ -35,7 +35,7 @@ namespace VkRender {
         ~MultiSenseViewer() override{
         }
 
-        std::vector<ColmapCameraPose> loadColmapCameras(const std::string &filePath);
+        std::vector<ColmapCameraPose> loadColmapImages(const std::string &filePath);
         void applyColmapCameraPoses(const std::vector<ColmapCameraPose> &cameraPoses, double d);
 
         ColmapCamera loadColmapCamera(const std::string &filePath, int targetCameraId);

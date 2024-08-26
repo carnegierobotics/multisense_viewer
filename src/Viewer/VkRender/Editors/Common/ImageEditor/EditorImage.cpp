@@ -76,7 +76,7 @@ namespace VkRender {
 
     void EditorImage::onUpdate() {
 
-        if (m_context->sharedEditorData().selectedUUIDContext && !m_depthImagePipeline){
+        if (m_context->sharedEditorData().selectedUUIDContext && !m_depthImagePipeline) {
             RenderPassInfo renderPassInfo{};
             renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
             renderPassInfo.renderPass = m_renderPass->getRenderPass();
@@ -86,16 +86,19 @@ namespace VkRender {
             m_depthImagePipeline = std::make_unique<GraphicsPipeline2D>(*m_context, renderPassInfo);
             m_depthImagePipeline->bindTexture(m_texture);
         }
-        {
-            auto view = m_activeScene->getRegistry().view<CameraComponent>();
-            for (auto entity: view) {
-                auto e = Entity(entity, m_activeScene.get());
-                if (m_createInfo.sharedUIContextData->setActiveCamera.contains(e.getUUID())) {
-                    // Assuming you have an entt::registry instance
-                    auto &registry = m_activeScene->getRegistry();
-                    auto &cameraComponent = registry.get<CameraComponent>(entity);
-                    m_activeCamera = std::make_shared<Camera>(cameraComponent());
-                }
+
+        //ui().saveRenderToFile = m_createInfo.sharedUIContextData->newFrame;
+        if (m_createInfo.sharedUIContextData->m_selectedEntity){
+            ui().renderToFileName = "scene_0000/disparity/" +  m_createInfo.sharedUIContextData->m_selectedEntity.getComponent<TagComponent>().Tag;
+            ui().renderToFileName.replace_extension(".png");
+        }
+
+        auto view = m_activeScene->getRegistry().view<CameraComponent>();
+        for (auto entity: view) {
+            auto e = Entity(entity, m_activeScene.get());
+            if (e == m_createInfo.sharedUIContextData->m_selectedEntity) {
+                auto &cameraComponent = view.get<CameraComponent>(entity);
+                m_activeCamera = std::make_shared<Camera>(cameraComponent());
             }
         }
 

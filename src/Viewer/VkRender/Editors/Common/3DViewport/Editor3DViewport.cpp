@@ -128,16 +128,9 @@ namespace VkRender {
             m_activeCamera = m_editorCamera;
             for (auto entity: view) {
                 auto e = Entity(entity, m_activeScene.get());
-                if (m_createInfo.sharedUIContextData->setActiveCamera.contains(e.getUUID())) {
-                    // Assuming you have an entt::registry instance
-                    if (!m_createInfo.sharedUIContextData->setActiveCamera[e.getUUID()] ||
-                        !ui().setActiveCamera)
-                        continue;
-
+                if (ui().setActiveCamera && e == m_createInfo.sharedUIContextData->m_selectedEntity) {
                     auto &registry = m_activeScene->getRegistry();
-                    // Now you can check if the entity is valid and retrieve components
                     auto &cameraComponent = registry.get<CameraComponent>(entity);
-                    // Set the active camera to the components transform
                     auto &transform = registry.get<TransformComponent>(entity);
                     cameraComponent().pose.pos = transform.getPosition();
                     cameraComponent().pose.q = glm::quat_cast(transform.getRotMat());
@@ -145,8 +138,14 @@ namespace VkRender {
                     //transform.getPosition() = cameraComponent().pose.pos;
                     //transform.getQuaternion() = cameraComponent().pose.q;
                     m_activeCamera = cameraComponent();
+                    m_ui.activeCamera = &m_activeCamera.get();
                 }
             }
+        }
+        ui().saveRenderToFile = m_createInfo.sharedUIContextData->newFrame;
+        if (m_createInfo.sharedUIContextData->m_selectedEntity){
+            ui().renderToFileName = "scene_0000/viewport/" +  m_createInfo.sharedUIContextData->m_selectedEntity.getComponent<TagComponent>().Tag;
+            ui().renderToFileName.replace_extension(".png");
         }
         generatePipelines();
         // Update model transforms:

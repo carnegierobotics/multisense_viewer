@@ -42,7 +42,7 @@ namespace VkRender {
 
         void rightClickPopup();
 
-        Entity m_selectionContext;
+        //Entity m_selectionContext;
 
         void drawEntityNode(Entity entity);
 

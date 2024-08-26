@@ -51,36 +51,56 @@ namespace VkRender {
             // Create the parent window
             ImGui::Begin("Editor3DLayer", nullptr, window_flags);
 
-            ImGui::Checkbox("Render depth", &handles.editorUi->renderDepth);
 
-            handles.editorUi->saveRenderToFile = ImGui::Button("Save image");
 
+            /*
             static bool toggle = false;
             ImGui::Checkbox("Save image toggle", &toggle);
-            if (toggle){
+            if (toggle) {
                 handles.editorUi->saveRenderToFile = true;
             }
+            */
 
-            for (const auto &pair: handles.shared->setActiveCamera) {
-                if (pair.second) {  // If any value is true
-                    ImGui::PushFont(handles.info->font15);
-                    ImGui::Checkbox("Set Active Camera", &handles.editorUi->setActiveCamera);
-                    ImGui::PopFont();
-                    break;
+            auto view = m_scene->getRegistry().view<CameraComponent, TagComponent>();
+            static int selectedCameraIndex = 0;
+            static std::string currentCameraName = "Select camera";
+
+            ImGui::SetNextItemWidth(200.0f);
+            if (ImGui::BeginCombo("combo 1", currentCameraName.c_str(), 0)) {
+                int index = 0;
+                for (auto entity : view) {
+                    auto& tag = view.get<TagComponent>(entity);
+                    std::string cameraName = tag.Tag; // Assuming the CameraComponent has a 'name' field.
+                    bool is_selected = (selectedCameraIndex == index);
+                    if (ImGui::Selectable(cameraName.c_str(), is_selected)) {
+                        selectedCameraIndex = index;
+                        currentCameraName = cameraName;
+                        handles.shared->m_selectedEntity = Entity(entity, m_scene.get());
+                    }
+                    if (is_selected) {
+                        ImGui::SetItemDefaultFocus(); // Set the initial focus when opening the combo (scrolling + for keyboard navigation support in the upcoming navigation branch)
+                    }
+
+                    ++index;
                 }
+                ImGui::EndCombo();
             }
+            ImGui::Checkbox("Preview selected camera entity", &handles.editorUi->setActiveCamera);
 
-            if (ImGui::Button("Create camera")){
+            ImGui::Checkbox("Render depth", &handles.editorUi->renderDepth);
+            handles.editorUi->saveRenderToFile = ImGui::Button("Save image");
+
+            if (ImGui::Button("Create camera")) {
                 auto scene = handles.m_context->activeScene();
                 auto entity = scene->createNewCamera("NewCamera", 1280, 720);
-                auto& transform = entity.getComponent<TransformComponent>();
-                auto& camera = entity.getComponent<CameraComponent>();
+                auto &transform = entity.getComponent<TransformComponent>();
+                auto &camera = entity.getComponent<CameraComponent>();
                 entity.addComponent<MeshComponent>(1);
                 transform.setPosition(handles.editorUi->editorCamera->pose.pos);
                 auto quaternion = glm::quat_cast(handles.editorUi->editorCamera->getFlyCameraTransMat());
                 transform.setQuaternion(quaternion);
                 camera().pose.pos = handles.editorUi->editorCamera->pose.pos;
-                camera().pose.q =   quaternion;
+                camera().pose.q = quaternion;
                 camera().updateViewMatrix();
             };
 

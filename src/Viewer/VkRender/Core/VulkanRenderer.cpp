@@ -61,20 +61,20 @@ namespace VkRender {
         // boilerplate stuff (ie. basic window setup)
         glfwInit();
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        //glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-        //glfwWindowHint(GLFW_DECORATED, GLFW_TRUE);
-        //glfwWindowHint(GLFW_VISIBLE , GLFW_TRUE);
-        //glfwWindowHint(GLFW_MAXIMIZED  , GLFW_TRUE);
+        glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+        glfwWindowHint(GLFW_DECORATED, GLFW_TRUE);
+        glfwWindowHint(GLFW_VISIBLE , GLFW_TRUE);
+        glfwWindowHint(GLFW_MAXIMIZED  , GLFW_TRUE);
 
-        //const auto& monitor = glfwGetPrimaryMonitor();
-        //const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+        const auto& monitor = glfwGetPrimaryMonitor();
+        const GLFWvidmode* mode = glfwGetVideoMode(monitor);
 
-        //glfwWindowHint(GLFW_RED_BITS, mode->redBits);
-        //glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
-        //glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);
-        //glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate);
-        m_width = 3000;
-        m_height = 1440;
+        glfwWindowHint(GLFW_RED_BITS, mode->redBits);
+        glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
+        glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);
+        glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate);
+        m_width = mode->width;
+        m_height = mode->height;
 
         RendererConfig::getInstance().getUserSetting().applicationHeight = m_height;
         RendererConfig::getInstance().getUserSetting().applicationWidth = m_width;

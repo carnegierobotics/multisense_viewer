@@ -1,71 +1,55 @@
 {
   "editors": [
-{
+    {
+      "borderSize": 5,
+      "editorIndex": 0,
+      "editorTypeDescription": "Properties",
+      "resizeable": true,
+      "uiLayers": [],
+      "width": 20,
+      "height": 80,
+      "x": 80,
+      "y": 20
+    },{
       "borderSize": 5,
       "editorIndex": 1,
       "editorTypeDescription": "3D Viewport",
       "resizeable": true,
       "uiLayers": [],
-      "sizeType": "pixels",
-      "width": 1160,
-      "height": 522,
-      "x": 150,
-      "y": 25
+      "width": 80,
+      "height": 50,
+      "x": 0,
+      "y": 0
     },{
       "borderSize": 5,
-      "editorIndex": 1,
-      "editorTypeDescription": "Image Editor",
+      "editorIndex": 2,
+      "editorTypeDescription": "3D Viewport",
       "resizeable": true,
       "uiLayers": [],
-      "sizeType": "pixels",
-      "width": 1160,
-      "height": 522,
-      "x": 1310,
-      "y": 25
+      "width": 40,
+      "height": 50,
+      "x": 40,
+      "y": 50
     },{
       "borderSize": 5,
       "editorIndex": 2,
       "editorTypeDescription": "Gaussian Viewer",
       "resizeable": true,
       "uiLayers": [],
-      "sizeType": "pixels",
-      "width": 1160,
-      "height": 522,
-      "x": 150,
-      "y": 547
-    },{
-      "borderSize": 5,
-      "editorIndex": 2,
-      "editorTypeDescription": "Gaussian Viewer",
-      "resizeable": true,
-      "uiLayers": [],
-      "sizeType": "pixels",
-      "width": 1160,
-      "height": 522,
-      "x": 1310,
-      "y": 547
+      "width": 40,
+      "height": 50,
+      "x": 0,
+      "y": 50
     },{
       "borderSize": 5,
       "editorIndex": 3,
       "editorTypeDescription": "Scene Hierarchy",
       "resizeable": true,
       "uiLayers": [],
-      "sizeType": "pixels",
-      "width": 150,
-      "height": 480,
-      "x": 0,
-      "y": 25
-    },{
-      "borderSize": 5,
-      "editorIndex": 3,
-      "editorTypeDescription": "Properties",
-      "resizeable": true,
-      "uiLayers": [],
-      "sizeType": "pixels",
-      "width": 150,
-      "height": 480,
-      "x": 0,
-      "y": 505
+      "width": 20,
+      "height": 20,
+      "x": 80,
+      "y": 0
     }
   ],
   "generalSettings": {

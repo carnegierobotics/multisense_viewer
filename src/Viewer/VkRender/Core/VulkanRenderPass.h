@@ -105,6 +105,7 @@ namespace VkRender {
             dst->frameBuffers = src->frameBuffers;
             dst->width = src->width;
             dst->height = src->height;
+            dst->sharedUIContextData = src->sharedUIContextData;
 
             dst->x = src->x;
             dst->y = src->y;

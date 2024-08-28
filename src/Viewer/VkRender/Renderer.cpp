@@ -389,6 +389,7 @@ namespace VkRender {
         resizeEditors(anyCornerClicked);
         for (auto &editor: m_editors) {
             editor->update((frameCounter == 0), frameTimer, &input);
+
             if (!mouse.left) {
                 if (editor->ui().indirectlyActivated) {
                     Editor::handleHoverState(editor, mouse);

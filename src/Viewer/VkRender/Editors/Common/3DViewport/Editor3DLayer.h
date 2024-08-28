@@ -61,6 +61,7 @@ namespace VkRender {
             }
             */
 
+            /*
             auto view = m_scene->getRegistry().view<CameraComponent, TagComponent>();
             static int selectedCameraIndex = 0;
             static std::string currentCameraName = "Select camera";
@@ -85,6 +86,7 @@ namespace VkRender {
                 }
                 ImGui::EndCombo();
             }
+            */
             ImGui::Checkbox("Preview selected camera entity", &handles.editorUi->setActiveCamera);
 
             ImGui::Checkbox("Render depth", &handles.editorUi->renderDepth);

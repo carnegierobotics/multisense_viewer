@@ -247,8 +247,8 @@ namespace VkRender {
 
                 }
             }
-            stbi_write_png(ui().renderToFileName.c_str(), width, height, channels, rgbData, width * channels);
-            Log::Logger::getInstance()->info("Writing png image to: {}", ui().renderToFileName.c_str());
+            stbi_write_png(ui().renderToFileName.string().c_str(), width, height, channels, rgbData, width * channels);
+            Log::Logger::getInstance()->info("Writing png image to: {}", ui().renderToFileName.string().c_str());
 
             // Clean up
             delete[] rgbData;
@@ -416,9 +416,9 @@ namespace VkRender {
                 } catch (std::exception &e) {
                 }
             }
-            TIFF* out = TIFFOpen(filePath.c_str(), "w");
+            TIFF* out = TIFFOpen(filePath.string().c_str(), "w");
             if (!out) {
-                Log::Logger::getInstance()->error("Could not open TIFF file for writing: {}", filePath.c_str());
+                Log::Logger::getInstance()->error("Could not open TIFF file for writing: {}", filePath.string().c_str());
                 return;
             }
             auto* camera = ui().activeCamera;
@@ -469,7 +469,7 @@ namespace VkRender {
             }
 
             TIFFClose(out);
-            Log::Logger::getInstance()->info("Depth image saved as TIFF to: {}", filePath.c_str());
+            Log::Logger::getInstance()->info("Depth image saved as TIFF to: {}", filePath.string().c_str());
 
             vkUnmapMemory(m_context->vkDevice().m_LogicalDevice, stagingBuffer.memory);
         }

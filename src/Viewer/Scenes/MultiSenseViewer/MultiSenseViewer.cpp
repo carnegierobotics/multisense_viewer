@@ -10,9 +10,7 @@
 
 namespace VkRender {
 
-    MultiSenseViewer::MultiSenseViewer(Renderer &ctx) {
-        m_sceneName = "MultiSense Viewer";
-
+    MultiSenseViewer::MultiSenseViewer(Renderer &ctx, const std::string& name) : Scene(name) {
         {
             auto entity = createEntity("S30Camera");
             auto &modelComponent = entity.addComponent<MeshComponent>(Utils::getModelsPath() / "obj" / "s30.obj");
@@ -20,7 +18,6 @@ namespace VkRender {
             auto &transform = entity.getComponent<TransformComponent>();
             //transform.setScale({0.25f, 0.25f, 0.25f});
         }
-
         {
             auto cameraEntity = createNewCamera("DefaultCamera", 400, 400);
             auto &cameraComponent = cameraEntity.getComponent<CameraComponent>();

@@ -16,7 +16,9 @@ namespace VkRender {
         using DestroyCallback = std::function<void(entt::entity)>;
 
     public:
-        Scene() = default;
+        explicit Scene(const std::string& name){
+            m_sceneName = name;
+        };
 
         virtual void update(uint32_t i) {};
 
@@ -45,26 +47,6 @@ namespace VkRender {
 
         void onMouseScroll(float change);
 
-        /*
-        Camera &Renderer::getCamera() {
-            if (!m_selectedCameraTag.empty()) {
-                auto it = m_cameras.find(m_selectedCameraTag);
-                if (it != m_cameras.end()) {
-                    return m_cameras[m_selectedCameraTag];
-                }
-            } // TODO create a new camera with tag if it doesn't exist
-        }
-
-        Camera &Renderer::getCamera(std::string tag) {
-            if (!m_selectedCameraTag.empty()) {
-                auto it = m_cameras.find(tag);
-                if (it != m_cameras.end()) {
-                    return m_cameras[tag];
-                }
-            }
-            // TODO create a new camera with tag if it doesn't exist
-        }
-        */
 
         entt::registry &getRegistry() { return m_registry; };
 
@@ -72,7 +54,6 @@ namespace VkRender {
             return m_registry;
         }
 
-        //entt::view get(){return m_registry.view<>();}
 
         const std::string &getSceneName() { return m_sceneName; }
 
@@ -87,7 +68,6 @@ namespace VkRender {
 
     protected:
         entt::registry m_registry;
-        std::string m_sceneName = "Unnamed Scene";
         std::unordered_map<void*, std::deque<DestroyCallback>> m_destroyCallbacks;
 
         friend class Entity;
@@ -103,6 +83,7 @@ namespace VkRender {
                 }
             }
         }
+        std::string m_sceneName = "Unnamed Scene";
 
     };
 

@@ -12,7 +12,7 @@
 namespace VkRender {
     struct VulkanTexture2DCreateInfo {
 
-        VulkanTexture2DCreateInfo(VulkanDevice& device) : vulkanDevice(device){
+        explicit VulkanTexture2DCreateInfo(VulkanDevice& device) : vulkanDevice(device){
 
         }
         VulkanDevice &vulkanDevice;

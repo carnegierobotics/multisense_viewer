@@ -1,0 +1,47 @@
+{
+  "editors": [
+    {
+      "borderSize": 5,
+      "editorIndex": 0,
+      "editorTypeDescription": "3D Viewport",
+      "resizeable": true,
+      "uiLayers": [],
+      "width": 80,
+      "height": 100,
+      "x": 0,
+      "y": 0
+    },
+    {
+      "borderSize": 5,
+      "editorIndex": 1,
+      "editorTypeDescription": "Properties",
+      "resizeable": true,
+      "uiLayers": [],
+      "width": 20,
+      "height": 80,
+      "x": 80,
+      "y": 20
+    },
+    {
+      "borderSize": 5,
+      "editorIndex": 2,
+      "editorTypeDescription": "Scene Hierarchy",
+      "resizeable": true,
+      "uiLayers": [],
+      "width": 20,
+      "height": 20,
+      "x": 80,
+      "y": 0
+    }
+  ],
+  "generalSettings": {
+    "sceneName": "Default Scene",
+    "projectName": "Default Project",
+    "lastOpenedFolderPath": "",
+    "lastOpenedImportModelFolderPath": "",
+    "logLevel": 2,
+    "sendUsageLogOnExit": true,
+    "userConsentToSendLogs": true,
+    "askForUsageLoggingPermissions": true
+  }
+}

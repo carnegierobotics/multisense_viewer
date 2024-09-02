@@ -79,9 +79,6 @@ namespace VkRender {
         handles.info->deviceName = m_vulkanDevice.m_Properties.deviceName;
         handles.info->title = "MultiSense Viewer";
         // Load UI info from file:
-        auto &userSetting = RendererConfig::getInstance().getUserSetting();
-
-        handles.fixAspectRatio = userSetting.editorUiState.fixAspectRatio;
         handles.usageMonitor = ctx->m_usageMonitor;
         handles.editorUi = editorUi;
 

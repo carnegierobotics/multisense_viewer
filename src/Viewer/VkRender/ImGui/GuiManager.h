@@ -75,10 +75,6 @@ namespace VkRender {
             for (const auto &layerStack: m_LayerStack)
                 layerStack->onDetach();
 
-
-            auto &userSetting = RendererConfig::getInstance().getUserSetting();
-            userSetting.editorUiState.fixAspectRatio = handles.fixAspectRatio;
-
             ImGui::DestroyContext(m_imguiContext);
         };
 

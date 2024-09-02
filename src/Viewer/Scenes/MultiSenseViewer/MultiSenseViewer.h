@@ -28,7 +28,7 @@ namespace VkRender {
     class MultiSenseViewer : public Scene {
 
     public:
-        explicit MultiSenseViewer(Renderer& ctx);
+        explicit MultiSenseViewer(Renderer& ctx, const std::string& name);
 
         void update(uint32_t i) override;
 

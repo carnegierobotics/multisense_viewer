@@ -9,6 +9,8 @@
 #include "Viewer/VkRender/ImGui/IconsFontAwesome6.h"
 #include "EditorDefinitions.h"
 
+#include "Viewer/VkRender/Renderer.h"
+
 /** Is attached to the renderer through the GuiManager and instantiated in the GuiManager Constructor through
  *         pushLayer<[LayerName]>();
  *
@@ -33,7 +35,7 @@ namespace VkRender {
         void togglePopup(VkRender::GuiObjectHandles &handles) {
             static bool toggles[] = {true, false, false, false, false};
             // Options for the combo box
-            auto items = getEditorTypes();
+            auto items = m_context->getProjectConfig().editorTypes;
             static int item_current_idx = 0; // Here we store our current item index
             handles.editorUi->changed = false;
 

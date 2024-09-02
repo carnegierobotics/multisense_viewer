@@ -61,6 +61,11 @@ namespace VkRender {
         std::shared_ptr<UUID> selectedUUIDContext; // Ref to active uuid. 
     };
 
+    struct ProjectConfig {
+        std::string name;
+        std::vector<EditorType> editorTypes;
+    };
+
     class Renderer : VulkanRenderer {
 
     public:
@@ -101,17 +106,23 @@ namespace VkRender {
 
         SharedEditorData &sharedEditorData() { return m_sharedEditorData; }
 
+        const ProjectConfig &getProjectConfig() { return m_projectConfig; }
+
         // TODO we should collect per frame info like this somewhere
         float deltaTime() { return frameTimer; }
 
         ImGuiContext *getMainUIContext() { return m_mainEditor->guiContext(); }
-        uint32_t currentFrameIndex(){return currentFrame;}
+
+        uint32_t currentFrameIndex() { return currentFrame; }
 
         std::shared_ptr<UsageMonitor> m_usageMonitor; // TODO make private, used widely in imgui code to record user actions
 
-        void loadScene(const std::filesystem::path & string);
-        void loadProject(const std::filesystem::path & string);
+        void loadScene(const std::filesystem::path &string);
+
+        void loadProject(const std::filesystem::path &string);
+
         bool isCurrentProject(std::string projectName);
+
         bool isCurrentScene(std::string sceneName);
 
         std::shared_ptr<Scene> activeScene();
@@ -137,13 +148,17 @@ namespace VkRender {
 
         void postRenderActions() override;
 
-        void onFileDrop(const std::filesystem::path& path) override;
+        void onFileDrop(const std::filesystem::path &path) override;
+
         void onCharInput(unsigned int codepoint) override;
 
     private:
         //std::unordered_map<std::string, Camera> m_cameras;
         //std::unique_ptr<VkRender::GuiManager> m_guiManager{};
+
         std::vector<std::unique_ptr<Editor>> m_editors;
+        ProjectConfig m_projectConfig;
+
         std::shared_ptr<Scene> m_scene;
         std::string m_selectedCameraTag = "Default Camera";
         std::unique_ptr<EditorFactory> m_editorFactory;
@@ -153,11 +168,12 @@ namespace VkRender {
         std::shared_ptr<GuiResources> m_guiResources;
         SharedContextData m_sharedContextData;
         SharedEditorData m_sharedEditorData;
+
         friend class RendererConfig;
 
         void updateEditors();
 
-        EditorCreateInfo getNewEditorCreateInfo( std::unique_ptr<Editor> &editor);
+        EditorCreateInfo getNewEditorCreateInfo(std::unique_ptr<Editor> &editor);
 
         void resizeEditors(bool anyCornerClicked);
 
@@ -169,7 +185,7 @@ namespace VkRender {
 
         void mergeEditors(const std::array<UUID, 2> &mergeEditorIndices);
 
-        std::unique_ptr<Editor>& findEditorByUUID(const UUID &uuid);
+        std::unique_ptr<Editor> &findEditorByUUID(const UUID &uuid);
 
     };
 }

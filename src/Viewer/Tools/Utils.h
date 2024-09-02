@@ -83,11 +83,17 @@ namespace Utils {
     static std::filesystem::path getModelsPath() {
         return {"./Assets/Models"};
     }
-    static std::filesystem::path getMultiSenseViewerProjectConfig() {
-        return {"./Assets/Projects/MultiSenseViewer.json"};
-    }
-    static std::filesystem::path getMyEditorProjectConfig() {
-        return {"./Assets/Projects/MyProject.json"};
+
+    static std::filesystem::path getProjectFileFromName(const std::string& projectName) {
+        if (projectName == "MultiSense Project"){
+            return {"./Assets/Projects/MultiSenseProject.json"};
+        }
+        if (projectName == "Default Project"){
+            return {"./Assets/Projects/DefaultProject.json"};
+        }
+        Log::Logger::getInstance()->warning("Project '{}' not found. Loading default..", projectName);
+        // Return default project if not found
+        return {"./Assets/Projects/DefaultProject.json"};
     }
 
     static std::filesystem::path getScriptsPath() {

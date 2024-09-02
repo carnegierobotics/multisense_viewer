@@ -17,7 +17,7 @@ class DefaultScene : public Scene {
 
     public:
 
-        explicit DefaultScene(Renderer& ctx);
+        explicit DefaultScene(Renderer& ctx, const std::string& name);
 
         void loadScripts();
 

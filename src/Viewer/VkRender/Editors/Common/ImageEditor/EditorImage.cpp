@@ -12,22 +12,6 @@ namespace VkRender {
         addUI("DebugWindow");
         addUI("EditorImageLayer");
 
-        /*
-        imageComponent = std::make_unique<ImageComponent>(Utils::getTexturePath() / "icon_preview.png");
-
-        // Decide which pipeline to use
-        m_renderPipelines = std::make_unique<GraphicsPipeline2D>(*m_context, renderPassInfo);
-        m_renderPipelines->bindImage(*imageComponent);
-        */
-
-        /*
-        // Create Texture for our image view
-        VkImageCreateInfo imageCreateInfo;
-        VkImageViewCreateInfo imageViewCreateInfo;
-
-        VulkanImageCreateInfo vulkanImageCreateInfo(m_context->vkDevice(), m_context->allocator(), imageCreateInfo, imageViewCreateInfo);
-        std::shared_ptr<VulkanImage> image = std::make_shared<VulkanImage>(vulkanImageCreateInfo);
-        */
 
     }
 
@@ -36,26 +20,24 @@ namespace VkRender {
     }
 
     void EditorImage::onFileDrop(const std::filesystem::path &path) {
-        /*
-        if (m_recreateOnNextImageChange){
-            std::filesystem::path filePath = imageComponent->getTextureFilePath();
-            imageComponent = std::make_unique<ImageComponent>(filePath);
-            RenderPassInfo renderPassInfo{};
-            renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
-            renderPassInfo.renderPass = m_renderPass->getRenderPass();
-            // Decide which pipeline to use
-            m_renderPipelines = std::make_unique<GraphicsPipeline2D>(*m_context, renderPassInfo);
-            m_renderPipelines->bindImage(*imageComponent);
-            m_recreateOnNextImageChange = false;
-        }
+
 
         std::string extension = path.extension().string();
         std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
         if (extension == ".png" || extension == ".jpg") {
-            imageComponent = std::make_unique<ImageComponent>(path);
-            m_renderPipelines->bindImage(*imageComponent);
+            RenderPassInfo renderPassInfo{};
+            renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
+            renderPassInfo.renderPass = m_renderPass->getRenderPass();
+            VulkanImageCreateInfo vulkanImageCreateInfo(m_context->vkDevice(), m_context->allocator());
+
+            VulkanTexture2DCreateInfo textureCreateInfo(m_context->vkDevice());
+            textureCreateInfo.image;
+
+            m_colorTexture = std::make_shared<VulkanTexture2D>(textureCreateInfo);
+            m_renderPipelines = std::make_unique<GraphicsPipeline2D>(*m_context, renderPassInfo);
+            m_renderPipelines->bindTexture(m_colorTexture);
         }
-        */
+
     }
 
     void EditorImage::onSceneLoad(std::shared_ptr<Scene> scene) {
@@ -123,6 +105,9 @@ namespace VkRender {
 
         if (m_depthImagePipeline)
             m_depthImagePipeline->draw(drawCmdBuffers);
+
+        if (m_renderPipelines)
+            m_renderPipelines->draw(drawCmdBuffers);
     }
 
     void EditorImage::onMouseMove(const MouseButtons &mouse) {

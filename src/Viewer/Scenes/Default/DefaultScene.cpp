@@ -12,12 +12,10 @@
 namespace VkRender {
 
 
-    DefaultScene::DefaultScene(Renderer &ctx) {
-        m_sceneName = "Default Scene";
+    DefaultScene::DefaultScene(Renderer &ctx, const std::string& name) : Scene(name) {
         Log::Logger::getInstance()->info("DefaultScene Constructor");
         auto entity = createEntity("FirstEntity");
-        auto &modelComponent = entity.addComponent<MeshComponent>(
-                Utils::getModelsPath() / "obj" / "viking_room.obj");
+        auto &modelComponent = entity.addComponent<MeshComponent>(Utils::getModelsPath() / "obj" / "viking_room.obj");
         createNewCamera("DefaultCamera", 1280, 720);
         //auto &res = entity.addComponent<DefaultGraphicsPipelineComponent2>(&m_context->data(),);
 
@@ -34,22 +32,7 @@ namespace VkRender {
 
 
     void DefaultScene::loadScripts() {
-        //std::vector<std::string> availableScriptNames{"MultiSense", "ImageViewer"};
-        /*
-        std::vector<std::string> availableScriptNames{"MultiSense"};
 
-        for (const auto &scriptName: availableScriptNames) {
-            auto e = m_context.createEntity(scriptName);
-            e.addComponent<ScriptComponent>(e.getName(),& m_context);
-        }
-
-
-        auto view = m_context.registry().view<ScriptComponent>();
-        for (auto entity: view) {
-            auto &script = view.get<ScriptComponent>(entity);
-            script.script->setup();
-        }
-           */
     }
 
     void DefaultScene::loadSkybox() {
@@ -64,33 +47,15 @@ namespace VkRender {
     }
 
     void DefaultScene::update(uint32_t frameIndex) {
-        auto cameraEntity = findEntityByName("DefaultCamera");
-        if (cameraEntity){
-            auto& camera = cameraEntity.getComponent<CameraComponent>().camera;
-            glm::mat4 invView = glm::inverse(camera.matrices.view);
-            glm::vec4 cameraPos4 = invView * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-            auto cameraWorldPosition = glm::vec3(cameraPos4);
-        }
-
-        auto entity = findEntityByName("FirstEntity");
-        if (entity) {
-            if (entity.hasComponent<TransformComponent>()) {
-                auto &transform = entity.getComponent<TransformComponent>();
-                transform.setScale({0.6f, 0.6f, 0.6f});
-            }
-        }
-
         auto view = m_registry.view<ScriptComponent>();
         for (auto entity: view) {
             auto &script = view.get<ScriptComponent>(entity);
             script.script->update();
         }
-
     }
 
     void DefaultScene::cleanUp() {
         // Delete everything
-
     }
 
 

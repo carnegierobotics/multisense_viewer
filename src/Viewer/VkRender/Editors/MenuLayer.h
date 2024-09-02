@@ -56,12 +56,14 @@ namespace VkRender {
 
                     if (ImGui::MenuItem("Default Project", nullptr, isDefaultProject)) {
                         if (!isDefaultProject) {
-                            m_context->loadProject(Utils::getMyEditorProjectConfig());
+                            m_context->loadProject(Utils::getProjectFileFromName("Default Project"));
+                            ImGui::SetCurrentContext(m_context->getMainUIContext());
                         }
                     }
                     if (ImGui::MenuItem("MultiSense Viewer Project", nullptr, isMultiSenseProject)) {
                         if (!isMultiSenseProject) {
-                            m_context->loadProject(Utils::getMultiSenseViewerProjectConfig());
+                            m_context->loadProject(Utils::getProjectFileFromName("MultiSense Project"));
+                            ImGui::SetCurrentContext(m_context->getMainUIContext());
                         }
                     }
                     ImGui::EndMenu();  // End the Projects submenu
@@ -77,9 +79,9 @@ namespace VkRender {
                             m_context->loadScene("Default Scene");
                         }
                     }
-                    if (ImGui::MenuItem("MultiSense Viewer Scene", nullptr, isMultiSenseScene)) {
+                    if (ImGui::MenuItem("MultiSense Scene", nullptr, isMultiSenseScene)) {
                         if (!isMultiSenseScene) {
-                            m_context->loadScene("MultiSense Viewer Scene");
+                            m_context->loadScene("MultiSense Scene");
                         }
                     }
                     ImGui::EndMenu();  // End the Scenes submenu

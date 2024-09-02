@@ -21,7 +21,7 @@ namespace VkRender {
         TestWindow,
         };
 
-    static std::vector<EditorType> getEditorTypes() {
+    static std::vector<EditorType> getAllEditorTypes() {
         return {EditorType::Viewport3D,
                 EditorType::ImageEditor,
                 EditorType::Properties,

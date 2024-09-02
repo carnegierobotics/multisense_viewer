@@ -87,7 +87,8 @@ namespace VkRender {
 
         m_editorFactory = std::make_unique<EditorFactory>();
 
-        loadProject(Utils::getMyEditorProjectConfig());
+        std::string lastActiveProject = RendererConfig::getInstance().getUserSetting().projectName;
+        loadProject(Utils::getProjectFileFromName(lastActiveProject));
 
         if (m_editors.empty()) {
             // add a dummy editor to get started
@@ -108,20 +109,15 @@ namespace VkRender {
         }
 
 
-        // Load scenes
+        std::string lastActiveScene = RendererConfig::getInstance().getUserSetting().sceneName;
+        loadScene(lastActiveScene);
 
-        // Load the default scene
-        m_scene = std::make_shared<MultiSenseViewer>(*this);
-        for (auto &editor: m_editors) {
-            editor->loadScene(m_scene);
-        }
     }
 
-    // TODO This should actually be handled by RendererConfig. This class handles everything saving and loading config files
     void Renderer::loadProject(const std::filesystem::path &filePath) {
         // Remove project if already loaded
         m_editors.clear();
-
+        m_projectConfig = {};
         // Then load from file
         std::ifstream inFile(filePath);
         if (!inFile.is_open()) {
@@ -134,7 +130,28 @@ namespace VkRender {
         inFile.close();
 
         Log::Logger::getInstance()->info("Successfully read editor settings from: {}", filePath.string());
+        if (jsonContent.contains("generalSettings")) {
+            const auto &jsonGeneralSettings = jsonContent["generalSettings"];
 
+            m_projectConfig.name = jsonGeneralSettings.value("projectName", "Default Project");
+            // Use .value() to get the array, or a default value
+            auto editorLayers = jsonGeneralSettings.value("editorTypes", nlohmann::json::array());
+            // Check if editorLayers is an array and then iterate over it
+            if (editorLayers.is_array() && !editorLayers.empty()) {
+                for (const auto& layer : editorLayers) {
+                    // Assuming the elements are strings
+                    std::string editorType = layer.get<std::string>();
+                    m_projectConfig.editorTypes.emplace_back(stringToEditorType(editorType));
+                    Log::Logger::getInstance()->info("Adding editor type: {} to available types", editorType);
+
+                }
+            } else {
+                Log::Logger::getInstance()->warning("editorLayers is not an array, is empty, or does not exist.");
+                m_projectConfig.editorTypes = getAllEditorTypes();
+            }
+
+
+        }
 
         if (jsonContent.contains("editors")) {
             for (const auto &jsonEditor: jsonContent["editors"]) {
@@ -186,15 +203,21 @@ namespace VkRender {
                         createInfo.y, createInfo.width, createInfo.height);
             }
         }
+
+        // Then load scenes after editors has been loaded
+        if (jsonContent.contains("generalSettings")) {
+            const auto &jsonGeneralSettings = jsonContent["generalSettings"];
+            std::string projectScene = jsonGeneralSettings.value("sceneName", "Default Scene");
+            loadScene(projectScene);
+        }
     }
 
-
-    void Renderer::loadScene(const std::filesystem::path& scenePath) {
-
-        if (scenePath == "Default Scene")
-            m_scene = (std::make_shared<DefaultScene>(*this));
+    // TODO make scene objects serializeable and loadable.
+    void Renderer::loadScene(const std::filesystem::path &scenePath) {
+        if (scenePath == "MultiSense Scene")
+            m_scene = std::make_shared<MultiSenseViewer>(*this, "MultiSense Scene");
         else {
-            m_scene = (std::make_shared<MultiSenseViewer>(*this));
+            m_scene = std::make_shared<DefaultScene>(*this, "Default Scene");
         }
         for (auto &editor: m_editors) {
             editor->loadScene(std::shared_ptr<Scene>());
@@ -325,11 +348,12 @@ namespace VkRender {
         }
 
         auto startTime = std::chrono::steady_clock::now();
+        auto &userSetting = RendererConfig::getInstance().getUserSetting();
+        userSetting.projectName = m_projectConfig.name;
+        if (m_scene)
+            userSetting.sceneName = m_scene->getSceneName();
 
         m_usageMonitor->userEndSession();
-        RendererConfig::getInstance().getUserSetting().applicationWidth = m_width;
-        RendererConfig::getInstance().getUserSetting().applicationHeight = m_height;
-
         if (m_usageMonitor->hasUserLogCollectionConsent() &&
             RendererConfig::getInstance().getUserSetting().sendUsageLogOnExit)
             m_usageMonitor->sendUsageLog();
@@ -735,6 +759,8 @@ namespace VkRender {
     }
 
     bool Renderer::isCurrentProject(std::string projectName) {
+
+
         return false;
     }
 

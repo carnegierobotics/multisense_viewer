@@ -76,9 +76,6 @@ namespace VkRender {
         m_width = mode->width;
         m_height = mode->height;
 
-        RendererConfig::getInstance().getUserSetting().applicationHeight = m_height;
-        RendererConfig::getInstance().getUserSetting().applicationWidth = m_width;
-
         Log::Logger::getInstance()->trace("Creating surface with size: ({},{})", m_width, m_height);
 
         window = glfwCreateWindow(static_cast<int>(m_width), static_cast<int>(m_height), title.c_str(), nullptr, nullptr);

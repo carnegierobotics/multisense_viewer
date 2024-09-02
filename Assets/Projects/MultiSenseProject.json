@@ -5,7 +5,7 @@
       "editorIndex": 0,
       "editorTypeDescription": "MultiSense Viewer",
       "resizeable": false,
-      "sizeType": "pixels",
+      "sizeType": "percentage",
       "uiLayers": [
         "SideBarLayer"
       ],
@@ -19,7 +19,7 @@
       "editorIndex": 1,
       "editorTypeDescription": "MultiSense Viewer",
       "resizeable": false,
-      "sizeType": "pixels",
+      "sizeType": "percentage",
       "uiLayers": [
         "ConfigurationLayer"
       ],
@@ -30,41 +30,30 @@
     },
     {
       "borderSize": 5,
-      "editorIndex": 2,
-      "editorTypeDescription": "MultiSense Viewer",
-      "resizeable": false,
-      "sizeType": "pixels",
-      "uiLayers": [
-        "LayoutSettingsLayer"
-      ],
-      "width": 65,
-      "height": 10,
-      "x": 35,
-      "y": 0
-    },
-    {
-      "borderSize": 5,
       "editorIndex": 3,
-      "editorTypeDescription": "3D Viewport",
+      "editorTypeDescription": "Image Editor",
       "resizeable": true,
-      "sizeType": "pixels",
+      "sizeType": "percentage",
       "uiLayers": [],
       "width": 65,
-      "height": 90,
+      "height": 100,
       "x": 35,
-      "y": 10
+      "y": 0
     }
   ],
   "generalSettings": {
-    "applicationHeight": 720,
-    "applicationWidth": 1280,
-    "askForUsageLoggingPermissions": true,
-    "enableSecondaryView": false,
-    "fixAspectRatio": false,
+    "sceneName": "MultiSense Scene",
+    "projectName": "MultiSense Project",
     "lastOpenedFolderPath": "",
     "lastOpenedImportModelFolderPath": "",
     "logLevel": 2,
     "sendUsageLogOnExit": true,
-    "userConsentToSendLogs": true
+    "userConsentToSendLogs": true,
+    "askForUsageLoggingPermissions": true,
+    "editorTypes": [
+      "3D Viewport",
+      "Image Editor",
+      "Test Window"
+    ]
   }
 }

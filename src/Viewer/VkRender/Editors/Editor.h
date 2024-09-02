@@ -11,7 +11,7 @@
 #include <string>
 
 #include "Viewer/VkRender/Core/RenderDefinitions.h"
-#include "Viewer/VkRender/EditorIncludes.h"
+#include "Viewer/VkRender/Editors/EditorIncludes.h"
 #include "Viewer/VkRender/Core/VulkanRenderPass.h"
 #include "Viewer/VkRender/ImGui/GuiManager.h"
 #include "Viewer/VkRender/Core/UUID.h"
@@ -161,7 +161,7 @@ namespace VkRender {
         void createOffscreenFramebuffer();
 
     protected:
-        Renderer *m_context;
+        Renderer* m_context;
         std::unique_ptr<VulkanRenderPass> m_renderPass;
         std::unique_ptr<VulkanRenderPass> m_depthRenderPass;
         std::unique_ptr<VulkanRenderPass> m_offscreenRenderPass;

@@ -81,7 +81,7 @@ namespace VkRender {
         int32_t width = 10;
         int32_t height = 10;
 
-        EditorType editorTypeDescription;
+        EditorType editorTypeDescription = EditorType::TestWindow;
         bool resizeable = true;
         size_t editorIndex = 0;
         std::vector<std::string> uiLayers;
@@ -90,7 +90,7 @@ namespace VkRender {
         std::shared_ptr<GuiResources> guiResources;
         SharedContextData *sharedUIContextData;
 
-        EditorCreateInfo(std::shared_ptr<GuiResources> guiRes, Renderer *ctx,
+        EditorCreateInfo(std::shared_ptr<GuiResources> guiRes, Renderer* ctx,
                          SharedContextData *sharedData,
                          VulkanDevice *dev, VmaAllocator *alloc, VkFramebuffer* fbs)
                 : vulkanDevice(dev), allocator(alloc), guiResources(std::move(guiRes)),

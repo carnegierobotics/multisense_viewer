@@ -49,21 +49,45 @@ namespace VkRender {
             ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, handles.info->menuBarHeight));
             ImGui::BeginMainMenuBar();
             if (ImGui::BeginMenu("File")) {
-                if (ImGui::MenuItem("Load Default Scene")) {
-                    // Handle New action
-                    handles.m_context->loadScene("Default Scene");
+                // Projects Menu
+                if (ImGui::BeginMenu("Projects")) {
+                    bool isDefaultProject = m_context->isCurrentProject("Default Project");
+                    bool isMultiSenseProject = m_context->isCurrentProject("MultiSense Viewer Project");
+
+                    if (ImGui::MenuItem("Default Project", nullptr, isDefaultProject)) {
+                        if (!isDefaultProject) {
+                            m_context->loadProject(Utils::getMyEditorProjectConfig());
+                        }
+                    }
+                    if (ImGui::MenuItem("MultiSense Viewer Project", nullptr, isMultiSenseProject)) {
+                        if (!isMultiSenseProject) {
+                            m_context->loadProject(Utils::getMultiSenseViewerProjectConfig());
+                        }
+                    }
+                    ImGui::EndMenu();  // End the Projects submenu
                 }
-                if (ImGui::MenuItem("Load MultiSense Viewer Scene")) {
-                    // Handle New action
-                    handles.m_context->loadScene("MultiSense Viewer");
+
+                // Scenes Menu
+                if (ImGui::BeginMenu("Scenes")) {
+                    bool isDefaultScene = m_context->isCurrentScene("Default Scene");
+                    bool isMultiSenseScene = m_context->isCurrentScene("MultiSense Viewer Scene");
+
+                    if (ImGui::MenuItem("Default Scene", nullptr, isDefaultScene)) {
+                        if (!isDefaultScene) {
+                            m_context->loadScene("Default Scene");
+                        }
+                    }
+                    if (ImGui::MenuItem("MultiSense Viewer Scene", nullptr, isMultiSenseScene)) {
+                        if (!isMultiSenseScene) {
+                            m_context->loadScene("MultiSense Viewer Scene");
+                        }
+                    }
+                    ImGui::EndMenu();  // End the Scenes submenu
                 }
-                if (ImGui::MenuItem("Start 3DGS record")) {
-                    // Handle New action
-                    handles.shared->startRecording = true;
-                }
+
                 if (ImGui::MenuItem("Quit")) {
-                    // Handle New action
-                    handles.m_context->closeApplication();
+                    // Handle quitting the application
+                    m_context->closeApplication();
                 }
                 ImGui::EndMenu();
             }

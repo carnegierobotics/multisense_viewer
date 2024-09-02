@@ -9,7 +9,7 @@
 
 #include "Viewer/VkRender/pch.h"
 
-#include "Viewer/VkRender/Editor.h"
+#include "Viewer/VkRender/Editors/Editor.h"
 #include "Viewer/VkRender/Editors/Common/3DViewport/Editor3DViewport.h"
 #include "Viewer/VkRender/Editors/Common/SceneHierarchy/EditorSceneHierarchy.h"
 #include "Viewer/VkRender/Editors/MultiSenseViewer/EditorMultiSenseViewer.h"

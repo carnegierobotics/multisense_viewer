@@ -54,7 +54,7 @@
 #include "Viewer/VkRender/ImGui/Layer.h"
 #include "Viewer/VkRender/ImGui/Widgets.h"
 #include "Viewer/VkRender/ImGui/LayerFactory.h"
-#include "Viewer/VkRender/EditorIncludes.h"
+#include "Viewer/VkRender/Editors/EditorIncludes.h"
 #include "GuiResources.h"
 #include "Viewer/VkRender/Core/VulkanGraphicsPipeline.h"
 
@@ -102,18 +102,11 @@ namespace VkRender {
             m_LayerStack.emplace_back(std::make_shared<T>())->onAttach();
         }
 
-        void pushLayer(const std::string &layerName) {
-            auto layer = LayerFactory::createLayer(layerName);
-            if (layer) {
-                m_LayerStack.emplace_back(layer)->onAttach();
-            } else {
-                // Handle unknown layer case, e.g., throw an exception or log an error
-            }
-        }
+        void pushLayer(const std::string &layerName);
 
         void setSceneContext(std::shared_ptr<Scene> scene){
             for (auto& layer : m_LayerStack){
-                layer->setContext(scene);
+                layer->setScene(scene);
             }
         }
         ImGuiContext *m_imguiContext = nullptr;

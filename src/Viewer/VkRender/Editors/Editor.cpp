@@ -6,7 +6,7 @@
 #include "stb_image_write.h"
 #include <tiffio.h>
 
-#include "Viewer/VkRender/Editor.h"
+#include "Viewer/VkRender/Editors/Editor.h"
 #include "Viewer/Tools/Utils.h"
 
 #include "Viewer/VkRender/Renderer.h"

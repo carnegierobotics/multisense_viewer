@@ -63,7 +63,7 @@ namespace VkRender {
 
 
     GuiManager::GuiManager(VulkanDevice &vulkanDevice, VkRenderPass const &renderPass, EditorUI *editorUi,
-                           VkSampleCountFlagBits msaaSamples, uint32_t imageCount, Renderer *ctx,
+                           VkSampleCountFlagBits msaaSamples, uint32_t imageCount, Renderer* ctx,
                            ImGuiContext *imguiCtx,
                            const GuiResources *guiResources, SharedContextData* sharedData) : handles(sharedData),
             m_guiResources(guiResources), m_vulkanDevice(vulkanDevice), m_context(ctx) {
@@ -80,8 +80,8 @@ namespace VkRender {
         handles.info->title = "MultiSense Viewer";
         // Load UI info from file:
         auto &userSetting = RendererConfig::getInstance().getUserSetting();
+
         handles.fixAspectRatio = userSetting.editorUiState.fixAspectRatio;
-        handles.m_context = ctx;
         handles.usageMonitor = ctx->m_usageMonitor;
         handles.editorUi = editorUi;
 
@@ -377,7 +377,17 @@ namespace VkRender {
         }
     }
 
+    void GuiManager::pushLayer(const std::string &layerName) {
+            auto layer = LayerFactory::createLayer(layerName);
+            layer->setContext(m_context);
+            layer->setScene(m_context->activeScene());
+            if (layer) {
+                m_LayerStack.emplace_back(layer)->onAttach();
+            } else {
+                // Handle unknown layer case, e.g., throw an exception or log an error
+            }
 
+    }
 
 
 }

@@ -42,6 +42,8 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include <imgui.h>
 
+#include <utility>
+
 #include "Viewer/VkRender/pch.h"
 
 #include "Viewer/VkRender/UsageMonitor.h"
@@ -51,7 +53,7 @@
 #include "Viewer/Scenes/MultiSenseViewer/Modules/GigE-Vision/MultiSenseRendererGigEVisionBridge.h"
 
 #include "Viewer/Tools/ThreadPool.h"
-#include "Viewer/VkRender/EditorIncludes.h"
+#include "Viewer/VkRender/Editors/EditorIncludes.h"
 
 namespace VkRender {
     class Renderer;
@@ -191,7 +193,6 @@ namespace VkRender {
         /** @brief Reference to threadpool held by GuiManager */
         std::shared_ptr<ThreadPool> pool{};
         CameraSelection m_cameraSelection{};
-        Renderer *m_context{};
         Paths m_paths;
         bool revertWindowLayout = false;
         bool fixAspectRatio = false;
@@ -233,11 +234,15 @@ namespace VkRender {
          */
         virtual void onFinishedRender() = 0;
 
-        virtual void setContext(std::shared_ptr<Scene> scene){
-            m_scene = scene;
+        virtual void setScene(std::shared_ptr<Scene> scene){
+            m_scene = std::move(scene);
+        }
+        virtual void setContext(Renderer* ctx){
+            m_context = ctx;
         }
 
         std::shared_ptr<Scene> m_scene;
+        Renderer* m_context;
     };
 }
 

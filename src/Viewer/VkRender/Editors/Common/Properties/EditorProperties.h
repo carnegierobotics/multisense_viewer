@@ -5,7 +5,7 @@
 #ifndef MULTISENSE_VIEWER_EDITORPROPERTIES
 #define MULTISENSE_VIEWER_EDITORPROPERTIES
 
-#include "Viewer/VkRender/Editor.h"
+#include "Viewer/VkRender/Editors/Editor.h"
 
 namespace VkRender {
 

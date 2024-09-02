@@ -93,7 +93,7 @@ namespace VkRender {
             handles.editorUi->saveRenderToFile = ImGui::Button("Save image");
 
             if (ImGui::Button("Create camera")) {
-                auto scene = handles.m_context->activeScene();
+                auto scene = m_context->activeScene();
                 auto entity = scene->createNewCamera("NewCamera", 1280, 720);
                 auto &transform = entity.getComponent<TransformComponent>();
                 auto &camera = entity.getComponent<CameraComponent>();

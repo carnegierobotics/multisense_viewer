@@ -5,7 +5,7 @@
 #ifndef MULTISENSE_VIEWER_EditorMyProject
 #define MULTISENSE_VIEWER_EditorMyProject
 
-#include "Viewer/VkRender/Editor.h"
+#include "Viewer/VkRender/Editors/Editor.h"
 
 namespace VkRender {
     class EditorMyProject : public Editor {

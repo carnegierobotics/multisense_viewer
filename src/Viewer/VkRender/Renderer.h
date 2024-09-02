@@ -50,7 +50,7 @@
 #include "Viewer/VkRender/Core/RendererConfig.h"
 #include "Viewer/VkRender/Core/Camera.h"
 #include "Viewer/VkRender/Core/UUID.h"
-#include "Viewer/VkRender/Editor.h"
+#include "Viewer/VkRender/Editors/Editor.h"
 #include "Viewer/VkRender/Editors/EditorFactory.h"
 
 namespace VkRender {
@@ -58,7 +58,7 @@ namespace VkRender {
 
     struct SharedEditorData {
         std::unordered_map<UUID, DepthFramebuffer> depthFrameBuffer;
-        std::shared_ptr<UUID> selectedUUIDContext;
+        std::shared_ptr<UUID> selectedUUIDContext; // Ref to active uuid. 
     };
 
     class Renderer : VulkanRenderer {
@@ -109,7 +109,10 @@ namespace VkRender {
 
         std::shared_ptr<UsageMonitor> m_usageMonitor; // TODO make private, used widely in imgui code to record user actions
 
-        void loadScene(std::filesystem::path string);
+        void loadScene(const std::filesystem::path & string);
+        void loadProject(const std::filesystem::path & string);
+        bool isCurrentProject(std::string projectName);
+        bool isCurrentScene(std::string sceneName);
 
         std::shared_ptr<Scene> activeScene();
 
@@ -164,8 +167,6 @@ namespace VkRender {
 
         void recreateEditor(std::unique_ptr<Editor> &editor, EditorCreateInfo &createInfo);
 
-        void loadEditorSettings(const std::filesystem::path &filePath);
-
         void mergeEditors(const std::array<UUID, 2> &mergeEditorIndices);
 
         std::unique_ptr<Editor>& findEditorByUUID(const UUID &uuid);
@@ -174,4 +175,4 @@ namespace VkRender {
 }
 
 
-#endif // MultiSense_Viewer_RENDERER_H
+#endif // MultiS

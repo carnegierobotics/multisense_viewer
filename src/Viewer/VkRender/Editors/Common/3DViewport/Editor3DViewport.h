@@ -5,7 +5,7 @@
 #ifndef MULTISENSE_VIEWER_EDITOR3DVIEWPORT_H
 #define MULTISENSE_VIEWER_EDITOR3DVIEWPORT_H
 
-#include "Viewer/VkRender/Editor.h"
+#include "Viewer/VkRender/Editors/Editor.h"
 #include "Viewer/Scenes/Default/DefaultScene.h"
 #include "Viewer/VkRender/RenderPipelines/DefaultGraphicsPipeline.h"
 #include "Viewer/VkRender/RenderPipelines/UboGraphicsPipeline.h"

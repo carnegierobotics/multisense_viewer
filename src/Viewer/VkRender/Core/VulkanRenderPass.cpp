@@ -6,7 +6,7 @@
 #include "VulkanRenderPass.h"
 
 #include "Viewer/Tools/Populate.h"
-#include "Viewer/VkRender/Editor.h"
+#include "Viewer/VkRender/Editors/Editor.h"
 #include "Viewer/VkRender/Renderer.h"
 #include "VulkanResourceManager.h"
 

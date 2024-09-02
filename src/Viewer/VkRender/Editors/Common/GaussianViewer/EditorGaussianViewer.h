@@ -5,7 +5,7 @@
 #ifndef MULTISENSE_VIEWER_EDITORGAUSSIANVIEWER_H
 #define MULTISENSE_VIEWER_EDITORGAUSSIANVIEWER_H
 
-#include "Viewer/VkRender/Editor.h"
+#include "Viewer/VkRender/Editors/Editor.h"
 #include "Viewer/VkRender/Core/Camera.h"
 #include "Viewer/VkRender/Scene.h"
 #include "Viewer/VkRender/RenderPipelines/3DGS/GaussianModelGraphicsPipeline.h"

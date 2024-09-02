@@ -64,46 +64,6 @@ namespace VkRender {
         if (!m_scene)
             return;
 
-        /*
-        auto view = registry.view<TagComponent>();
-        ImGuiTreeNodeFlags treeNodeFlags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_OpenOnDoubleClick |
-                                           ImGuiTreeNodeFlags_SpanFullWidth;
-
-        if (ImGui::TreeNodeEx(("Scene: " + handles.m_context->activeScene()->getSceneName()).c_str(),
-                              treeNodeFlags)) {
-
-            // Iterate over entities that have a GLTFModelComponent and a TagComponent
-            bool anyCameraActive = false;
-            for (auto entity: view) {
-                auto &tag = view.get<TagComponent>(entity);
-
-                if (ImGui::TreeNodeEx(tag.Tag.c_str(),
-                                      ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_OpenOnDoubleClick)) {
-                    auto e = Entity(entity, handles.m_context->activeScene().get());
-                    if (e.hasComponent<DefaultGraphicsPipeline>()) {
-                        if (ImGui::SmallButton("Reload Shader")) {
-                            //e.getComponent<DefaultGraphicsPipelineComponent>().reloadShaders();
-                        }
-                    }
-                    if (e.hasComponent<TransformComponent>() && !e.hasComponent<CameraComponent>()) {
-                        std::string label = "Flip Up #" + tag.Tag;
-                        auto &transform = e.getComponent<TransformComponent>();
-                        ImGui::Checkbox(label.c_str(), &transform.getFlipUpOption());
-                    }
-                    if (e.hasComponent<CameraComponent>()) {
-                        drawCameraPanel(handles, e);
-                    }
-                    if (ImGui::SmallButton(("Delete ##" + tag.Tag).c_str())) {
-                        handles.m_context->activeScene()->destroyEntity(
-                                Entity(entity, handles.m_context->activeScene().get()));
-                    }
-                    ImGui::TreePop();
-                }
-            }
-            ImGui::TreePop();
-        }
-
- */
         std::vector<Entity> entities;
         m_scene->getRegistry().view<entt::entity>().each([&](auto entityID) {
             Entity entity{entityID, m_scene.get()};
@@ -132,7 +92,6 @@ namespace VkRender {
                 // Update the last time
                 lastTime = currentTime;
                 handles.shared->newFrame = true;
-                handles.shared;
             }
         }
         if (m_scene) {
@@ -177,28 +136,26 @@ namespace VkRender {
             if (loadFileInfo.filetype == LayerUtils::OBJ_FILE) {
 
                 // Load into the active scene
-                auto entity = handles.m_context->activeScene()->createEntity(loadFileInfo.path.filename().string());
+                auto entity = m_context->activeScene()->createEntity(loadFileInfo.path.filename().string());
                 entity.addComponent<MeshComponent>(loadFileInfo.path);
 
             } else if (loadFileInfo.filetype == LayerUtils::PLY_3DGS) {
                 // Load into the active scene
-                auto &registry = handles.m_context->activeScene()->getRegistry();
+                auto &registry = m_context->activeScene()->getRegistry();
                 auto view = registry.view<GaussianModelComponent>();
                 for (auto &entity: view) {
-                    handles.m_context->activeScene()->destroyEntity(
-                            Entity(entity, handles.m_context->activeScene().get()));
+                    m_context->activeScene()->destroyEntity(
+                            Entity(entity, m_context->activeScene().get()));
                 }
-                auto entity = handles.m_context->activeScene()->createEntity(loadFileInfo.path.filename().string());
+                auto entity = m_context->activeScene()->createEntity(loadFileInfo.path.filename().string());
                 entity.addComponent<GaussianModelComponent>(loadFileInfo.path);
 
             } else if (loadFileInfo.filetype == LayerUtils::PLY_MESH) {
                 // Load into the active scene
-                auto entity = handles.m_context->activeScene()->createEntity(loadFileInfo.path.filename().string());
+                auto entity = m_context->activeScene()->createEntity(loadFileInfo.path.filename().string());
                 entity.addComponent<MeshComponent>(loadFileInfo.path);
 
             }
-
-
             // Copy the selected file path to wherever it's needed
             auto &opts = RendererConfig::getInstance().getUserSetting();
             opts.lastOpenedImportModelFolderPath = loadFileInfo.path;
@@ -220,8 +177,7 @@ namespace VkRender {
 
     void SceneHierarchyLayer::rightClickPopup() {
         ImGui::SetNextWindowSize(ImVec2(250.0f, 0));
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(30.0f,
-                                                                15.0f)); // 20 pixels padding on the left and right, 10 pixels top and bottom
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(30.0f, 15.0f)); // 20 pixels padding on the left and right, 10 pixels top and bottom
 
         if (ImGui::BeginPopupContextWindow("right click menu", ImGuiPopupFlags_MouseButtonRight)) {
 
@@ -250,45 +206,32 @@ namespace VkRender {
 
 /** Called once per frame **/
     void SceneHierarchyLayer::onUIRender(VkRender::GuiObjectHandles &handles) {
-
-
-// Set window position and size
+        // Set window position and size
         ImVec2 window_pos = ImVec2(0.0f, handles.info->menuBarHeight); // Position (x, y)
         ImVec2 window_size = ImVec2(handles.editorUi->width, handles.editorUi->height); // Size (width, height)
-
-// Set window flags to remove decorations
+        // Set window flags to remove decorations
         ImGuiWindowFlags window_flags =
                 ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
                 ImGuiWindowFlags_NoBringToFrontOnFocus;
-
-// Set next window position and size
+        // Set next window position and size
         ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always);
         ImGui::SetNextWindowSize(window_size, ImGuiCond_Always);
-
-// Create the parent window
+        // Create the parent window
         ImGui::Begin("SceneHierarchyParent", NULL, window_flags);
-
         ImGui::Text("Scene hierarchy");
-// Calculate 90% of the available width
+        // Calculate 90% of the available width
         float width = ImGui::GetContentRegionAvail().x * 0.9f;
-// Set a dynamic height based on content, starting with a minimum of 150px
-        float height = 150.0f; // Start with your minimum height
-        float maxHeight = 600.0f;
+        float height = ImGui::GetContentRegionAvail().y * 0.95f - handles.info->menuBarHeight;
         ImGui::PushStyleColor(ImGuiCol_ChildBg, Colors::CRLGray424Main); // Example: Dark grey
-// Create the child window with calculated dimensions and scrolling enabled beyond maxHeight
+        // Create the child window with calculated dimensions and scrolling enabled beyond maxHeight
         ImGui::SetCursorPosX((window_size.x - width) / 2);
-        ImGui::BeginChild("SceneHierarchyChild", ImVec2(width, (height > maxHeight) ? maxHeight : height), true);
-
+        ImGui::BeginChild("SceneHierarchyChild", ImVec2(width, height), true);
         rightClickPopup();
-
         processEntities(handles);
-
         ImGui::EndChild();
         ImGui::PopStyleColor();
-// End the parent window
-
+        // End the parent window
         ImGui::End();
-
         checkFileImportCompletion(handles);
     }
 

@@ -84,11 +84,10 @@ set(SOURCE_FILES
 
         src/Viewer/VkRender/pch.cpp
         src/Viewer/VkRender/Renderer.cpp
-        src/Viewer/VkRender/Editor.cpp
-        src/Viewer/VkRender/Entity.cpp
         src/Viewer/VkRender/UsageMonitor.cpp
         src/Viewer/VkRender/ApplicationUserSetting.h
         src/Viewer/VkRender/Scene.cpp
+        src/Viewer/VkRender/Entity.cpp
 
         src/Viewer/VkRender/RenderPipelines/DefaultGraphicsPipeline.cpp
         src/Viewer/VkRender/RenderPipelines/UboGraphicsPipeline.cpp
@@ -112,6 +111,7 @@ set(SOURCE_FILES
         src/Viewer/VkRender/ImGui/LayerFactory.cpp
         src/Viewer/VkRender/ImGui/GuiResources.cpp
 
+        src/Viewer/VkRender/Editors/Editor.cpp
         src/Viewer/VkRender/Editors/Common/3DViewport/Editor3DViewport.cpp
         src/Viewer/VkRender/Editors/Common/GaussianViewer/EditorGaussianViewer.cpp
         src/Viewer/VkRender/Editors/Common/ImageEditor/EditorImage.cpp

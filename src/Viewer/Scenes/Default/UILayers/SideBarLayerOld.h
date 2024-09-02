@@ -41,7 +41,7 @@ namespace VkRender {
 
 
         void processEntities(GuiObjectHandles &handles) {
-            auto view = handles.m_context->registry().view<TagComponent>(
+            auto view = m_context->registry().view<TagComponent>(
                     entt::exclude<VkRender::SkyboxGraphicsPipelineComponent, VkRender::ScriptComponent>);
 
             // Iterate over entities that have a GLTFModelComponent and a TagComponent
@@ -56,7 +56,7 @@ namespace VkRender {
             // Your processing logic here
             // This function is called for both component types
             if (ImGui::TreeNodeEx(tag.Tag.c_str(), ImGuiTreeNodeFlags_None)) {
-                auto e = Entity(entity, handles.m_context);
+                auto e = Entity(entity, m_context);
                 if (e.hasComponent<DefaultGraphicsPipelineComponent2>()) {
                     if (ImGui::SmallButton("Reload Shader")) {
                         e.getComponent<DefaultGraphicsPipelineComponent2>().reloadShaders();
@@ -69,7 +69,7 @@ namespace VkRender {
                 }
 
                 if (ImGui::SmallButton(("Delete ##" + tag.Tag).c_str())) {
-                    handles.m_context->markEntityForDestruction(Entity(entity, handles.m_context));
+                    m_context->markEntityForDestruction(Entity(entity, m_context));
                 }
                 ImGui::TreePop();
             }
@@ -158,14 +158,14 @@ namespace VkRender {
             handles.m_cameraSelection.info[cameraTag].reset = false;
             if (ImGui::RadioButton("Arcball", &handles.m_cameraSelection.info[cameraTag].type, 0)) {
                 handles.usageMonitor->userClickAction("Arcball", "RadioButton", ImGui::GetCurrentWindow()->Name);
-                auto& camera = handles.m_context->getCamera(cameraTag);
+                auto& camera = m_context->getCamera(cameraTag);
                 camera.setType(Camera::arcball);
                 camera.resetPosition();
             }
             ImGui::SameLine();
             if (ImGui::RadioButton("Flycam", &handles.m_cameraSelection.info[cameraTag].type, 1)) {
                 handles.usageMonitor->userClickAction("Flycam", "RadioButton", ImGui::GetCurrentWindow()->Name);
-                auto& camera = handles.m_context->getCamera(cameraTag);
+                auto& camera = m_context->getCamera(cameraTag);
                 camera.setType(Camera::flycam);
                 camera.resetPosition();
             }
@@ -183,7 +183,7 @@ namespace VkRender {
             }
 
             std::vector<std::string> cameras;
-            for (auto [entity, camera, tag]: handles.m_context->registry().view<VkRender::CameraComponent, VkRender::TagComponent>().each()) {
+            for (auto [entity, camera, tag]: m_context->registry().view<VkRender::CameraComponent, VkRender::TagComponent>().each()) {
                 if (!Utils::isInVector(cameras, tag.Tag))
                     cameras.emplace_back(tag.Tag);
             }
@@ -207,21 +207,21 @@ namespace VkRender {
             if (ImGui::Button("Add Camera", ImVec2(150.0f, 25.0f))) {
                 std::string tag = "Camera #" + std::to_string(cameras.size());
 
-                auto camera = handles.m_context->createNewCamera(tag, handles.info->applicationWidth, handles.info->applicationHeight);
-                //e.addComponent<CameraGraphicsPipelineComponent>(&handles.m_context->data());
+                auto camera = m_context->createNewCamera(tag, handles.info->applicationWidth, handles.info->applicationHeight);
+                //e.addComponent<CameraGraphicsPipelineComponent>(&m_context->data());
                 handles.m_cameraSelection.tag = tag;
             }
 
 
             if (ImGui::Button("Remove Camera", ImVec2(150.0f, 25.0f))) {
                 std::string tag = handles.m_cameraSelection.tag;
-                VkRender::Entity entity = handles.m_context->findEntityByName(tag);
+                VkRender::Entity entity = m_context->findEntityByName(tag);
 
                 if (entity) {
-                    handles.m_context->markEntityForDestruction(entity);
+                    m_context->markEntityForDestruction(entity);
                     // Update the cameras list immediately after deletion
                     cameras.clear();
-                    for (auto [ent, camera, tagComponent]: handles.m_context->registry().view<VkRender::CameraComponent, VkRender::TagComponent>().each()) {
+                    for (auto [ent, camera, tagComponent]: m_context->registry().view<VkRender::CameraComponent, VkRender::TagComponent>().each()) {
                         if (!Utils::isInVector(cameras, tagComponent.Tag))
                             cameras.emplace_back(tagComponent.Tag);
                     }
@@ -257,7 +257,7 @@ namespace VkRender {
             ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
             const std::string &tag = handles.m_cameraSelection.tag;
             if (!tag.empty()) {
-                auto& camera = handles.m_context->getCamera(tag);
+                auto& camera = m_context->getCamera(tag);
                     ImGui::Text("Camera: %s", tag.c_str());
                     ImGui::Text("Position: (%.3f, %.3f, %.3f)",
                                 static_cast<double>(camera.pose.pos.x),

@@ -53,13 +53,11 @@ namespace VkRender {
         VulkanRenderer::prepare();
         m_guiResources = std::make_shared<GuiResources>(m_vulkanDevice);
         m_logger->info("Initialized Backend");
-
         config.setGpuDevice(physicalDevice);
         m_usageMonitor = std::make_shared<UsageMonitor>();
         m_usageMonitor->loadSettingsFromFile();
         m_usageMonitor->userStartSession(rendererStartTime);
         // Initialize shared data across editors:
-
         m_sharedContextData.multiSenseRendererBridge = std::make_shared<MultiSense::MultiSenseRendererBridge>();
         m_sharedContextData.multiSenseRendererGigEVisionBridge = std::make_shared<
                 MultiSense::MultiSenseRendererGigEVisionBridge>();
@@ -89,7 +87,7 @@ namespace VkRender {
 
         m_editorFactory = std::make_unique<EditorFactory>();
 
-        loadEditorSettings(Utils::getMyEditorProjectConfig());
+        loadProject(Utils::getMyEditorProjectConfig());
 
         if (m_editors.empty()) {
             // add a dummy editor to get started
@@ -120,7 +118,11 @@ namespace VkRender {
     }
 
     // TODO This should actually be handled by RendererConfig. This class handles everything saving and loading config files
-    void Renderer::loadEditorSettings(const std::filesystem::path &filePath) {
+    void Renderer::loadProject(const std::filesystem::path &filePath) {
+        // Remove project if already loaded
+        m_editors.clear();
+
+        // Then load from file
         std::ifstream inFile(filePath);
         if (!inFile.is_open()) {
             Log::Logger::getInstance()->error("Failed to open file for reading: {}", filePath.string());
@@ -187,7 +189,7 @@ namespace VkRender {
     }
 
 
-    void Renderer::loadScene(std::filesystem::path scenePath) {
+    void Renderer::loadScene(const std::filesystem::path& scenePath) {
 
         if (scenePath == "Default Scene")
             m_scene = (std::make_shared<DefaultScene>(*this));
@@ -527,24 +529,17 @@ namespace VkRender {
     void Renderer::mergeEditors(const std::array<UUID, 2> &mergeEditorIndices) {
         UUID id1 = mergeEditorIndices[0];
         UUID id2 = mergeEditorIndices[1];
-
         auto &editor1 = findEditorByUUID(id1);
         auto &editor2 = findEditorByUUID(id2);
-
         if (!editor1 || !editor2) {
             Log::Logger::getInstance()->info("Wanted to merge editors: {} and {} but they were not found",
                                              id1.operator std::string(), id2.operator std::string());
             return;
         }
-        // Implement your merging logic here
-        // For example, combine editor2's properties into editor1
-        // editor1.someProperty += editor2.someProperty;
         editor1->ui().shouldMerge = false;
         editor2->ui().shouldMerge = false;
-
         auto &ci1 = editor1->getCreateInfo();
         auto &ci2 = editor2->getCreateInfo();
-
         int32_t newX = std::min(ci1.x, ci2.x);
         int32_t newY = std::min(ci1.y, ci2.y);
         int32_t newWidth = ci1.width + ci2.width;
@@ -560,7 +555,6 @@ namespace VkRender {
 
         Log::Logger::getInstance()->info("Merging editor {} into editor {}.", editor2->getCreateInfo().editorIndex,
                                          editor1->getCreateInfo().editorIndex);
-
         auto editor2UUID = editor2->getUUID();
         // Remove editor2 safely based on UUID
         m_editors.erase(
@@ -711,6 +705,7 @@ namespace VkRender {
         return m_scene;
     }
 
+
     void Renderer::onFileDrop(const std::filesystem::path &path) {
         for (auto &editor: m_editors) {
             Editor::handleHoverState(editor, mouse);
@@ -733,6 +728,14 @@ namespace VkRender {
         ImGui::SetCurrentContext(m_mainEditor->guiContext());
         ImGuiIO &io = ImGui::GetIO();
         io.AddInputCharacter(static_cast<unsigned short>(codepoint));
+    }
+
+    bool Renderer::isCurrentScene(std::string sceneName) {
+        return activeScene()->getSceneName() == sceneName;
+    }
+
+    bool Renderer::isCurrentProject(std::string projectName) {
+        return false;
     }
 
 };

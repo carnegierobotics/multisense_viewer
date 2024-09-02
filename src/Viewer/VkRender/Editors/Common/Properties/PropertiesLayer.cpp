@@ -229,7 +229,7 @@ namespace VkRender {
         ImGui::Begin("PropertiesLayer", NULL, window_flags);
 
         ImGui::Text("Properties goes here");
-        std::shared_ptr<Scene> scene = handles.m_context->activeScene();
+        std::shared_ptr<Scene> scene = m_context->activeScene();
 
 
         if (m_selectionContext) {
@@ -289,17 +289,17 @@ namespace VkRender {
 
             } else if (loadFileInfo.filetype == LayerUtils::PLY_3DGS) {
                 // Load into the active scene
-                auto &registry = handles.m_context->activeScene()->getRegistry();
+                auto &registry = m_context->activeScene()->getRegistry();
                 auto view = registry.view<GaussianModelComponent>();
                 for (auto &entity: view) {
-                    handles.m_context->activeScene()->destroyEntity(
-                            Entity(entity, handles.m_context->activeScene().get()));
+                    m_context->activeScene()->destroyEntity(
+                            Entity(entity, m_context->activeScene().get()));
                 }
-                auto entity = handles.m_context->activeScene()->createEntity(loadFileInfo.path.filename().string());
+                auto entity = m_context->activeScene()->createEntity(loadFileInfo.path.filename().string());
                 entity.addComponent<GaussianModelComponent>(loadFileInfo.path);
             } else if (loadFileInfo.filetype == LayerUtils::PLY_MESH) {
                 // Load into the active scene
-                auto entity = handles.m_context->activeScene()->createEntity(loadFileInfo.path.filename().string());
+                auto entity = m_context->activeScene()->createEntity(loadFileInfo.path.filename().string());
                 entity.addComponent<MeshComponent>(loadFileInfo.path);
             }
             // Copy the selected file path to wherever it's needed

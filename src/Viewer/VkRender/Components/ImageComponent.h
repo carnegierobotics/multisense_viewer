@@ -12,7 +12,7 @@
 #include "Viewer/Tools/Logger.h"
 
 namespace VkRender {
-    struct ImageComponent {
+    struct   ImageComponent {
     public:
 
 

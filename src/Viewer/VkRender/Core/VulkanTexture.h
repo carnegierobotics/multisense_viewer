@@ -27,7 +27,7 @@ namespace VkRender {
         ~VulkanTexture();
         VkDescriptorImageInfo &getDescriptorInfo() { return m_imageInfo; }
 
-    private:
+    protected:
         VulkanDevice &m_vulkanDevice;
         VkSampler m_sampler;
         std::shared_ptr<VulkanImage> m_image;
@@ -41,6 +41,7 @@ namespace VkRender {
 
         }
 
+        void loadImage(void *data, uint32_t size);
     };
 }
 

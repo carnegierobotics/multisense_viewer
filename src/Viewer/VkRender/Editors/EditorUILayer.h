@@ -79,7 +79,7 @@ namespace VkRender {
 
 
             // End the parent window
-            float borderSize = 5.0f;
+            float borderSize = 3.0f;
 
             ImVec4 color;
             if (handles.editorUi->active)
@@ -90,6 +90,7 @@ namespace VkRender {
                 color = handles.editorUi->backgroundColor;
 
             color.w = 1.0f;
+            color = ImVec4(0.2f, 0.2f, 0.2f, 1.0f);
             ImU32 border_color = ImGui::ColorConvertFloat4ToU32(color); // White color
 
             ImDrawList *draw_list = ImGui::GetWindowDrawList();

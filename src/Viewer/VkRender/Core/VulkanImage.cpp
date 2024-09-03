@@ -15,7 +15,7 @@ namespace VkRender {
         allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
         VkResult result = vmaCreateImage(m_allocator, &createInfo.imageCreateInfo, &allocInfo, &m_image,
                                          &m_allocation, nullptr);
-        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create depth image");
+        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create image");
         vmaSetAllocationName(m_allocator, m_allocation, (description + "Image").c_str());
         VALIDATION_DEBUG_NAME(m_vulkanDevice.m_LogicalDevice,
                               reinterpret_cast<uint64_t>(m_image), VK_OBJECT_TYPE_IMAGE,
@@ -23,7 +23,7 @@ namespace VkRender {
         createInfo.imageViewCreateInfo.image = m_image;
         result = vkCreateImageView(m_vulkanDevice.m_LogicalDevice, &createInfo.imageViewCreateInfo, nullptr,
                                    &m_view);
-        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create depth image view");
+        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create image view");
         VALIDATION_DEBUG_NAME(m_vulkanDevice.m_LogicalDevice,
                               reinterpret_cast<uint64_t>(m_view), VK_OBJECT_TYPE_IMAGE_VIEW,
                               (description + "View").c_str());
@@ -42,7 +42,10 @@ namespace VkRender {
 
         // Image Size:
         m_imageSize = createInfo.imageCreateInfo.extent.width * createInfo.imageCreateInfo.extent.height * 4;
-        Log::Logger::getInstance()->info("Create Image {}", createInfo.debugInfo);
+        m_width = createInfo.imageCreateInfo.extent.width;
+        m_height = createInfo.imageCreateInfo.extent.height;
+
+        Log::Logger::getInstance()->info("Created Image {}", createInfo.debugInfo);
     }
 
     VulkanImage::~VulkanImage() {

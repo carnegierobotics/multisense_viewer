@@ -69,6 +69,8 @@ namespace VkRender {
 
         VkImageView& view(){return m_view;}
         VkImage& image(){return m_image;}
+        uint32_t width(){return m_width;}
+        uint32_t height(){return m_height;}
         uint32_t getImageSizeRBGA(){return m_imageSize;}
 
     private:
@@ -80,6 +82,9 @@ namespace VkRender {
         VkImageView m_view{};
         VmaAllocation m_allocation{};
         uint32_t m_imageSize;
+        uint32_t m_width = 0;
+        uint32_t m_height = 0;
+
     };
 };
 

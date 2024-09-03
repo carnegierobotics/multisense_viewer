@@ -25,15 +25,52 @@ namespace VkRender {
         std::string extension = path.extension().string();
         std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
         if (extension == ".png" || extension == ".jpg") {
+
+            int texWidth, texHeight, texChannels;
+            stbi_uc *pixels = stbi_load(path.string().c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+            VkDeviceSize imageSize = texWidth * texHeight * 4;  // Assuming STBI_rgb_alpha gives us 4 channels per pixel
+
+            if (!pixels) {
+                throw std::runtime_error("Failed to load texture image!");
+            }
+
             RenderPassInfo renderPassInfo{};
             renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
             renderPassInfo.renderPass = m_renderPass->getRenderPass();
-            VulkanImageCreateInfo vulkanImageCreateInfo(m_context->vkDevice(), m_context->allocator());
+
+            VkImageCreateInfo imageCI = Populate::imageCreateInfo();
+            imageCI.imageType = VK_IMAGE_TYPE_2D;
+            imageCI.format = VK_FORMAT_R8G8B8A8_UNORM;
+            imageCI.extent = {static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight), 1};
+            imageCI.mipLevels = 1;
+            imageCI.arrayLayers = 1;
+            imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
+            imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
+            imageCI.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+            imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+            imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            VkImageViewCreateInfo imageViewCI = Populate::imageViewCreateInfo();
+            imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
+            imageViewCI.format = VK_FORMAT_R8G8B8A8_UNORM;
+            imageViewCI.subresourceRange.baseMipLevel = 0;
+            imageViewCI.subresourceRange.levelCount = 1;
+            imageViewCI.subresourceRange.baseArrayLayer = 0;
+            imageViewCI.subresourceRange.layerCount = 1;
+            imageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+
+            VulkanImageCreateInfo vulkanImageCreateInfo(m_context->vkDevice(), m_context->allocator(), imageCI, imageViewCI);
+            vulkanImageCreateInfo.debugInfo = "Color texture: Image Editor";
+            m_colorImage = std::make_shared<VulkanImage>(vulkanImageCreateInfo);
 
             VulkanTexture2DCreateInfo textureCreateInfo(m_context->vkDevice());
-            textureCreateInfo.image;
-
+            textureCreateInfo.image = m_colorImage;
             m_colorTexture = std::make_shared<VulkanTexture2D>(textureCreateInfo);
+
+            // Copy data to texturere
+            m_colorTexture->loadImage(pixels, imageSize);
+            // Free the image data
+            stbi_image_free(pixels);
+
             m_renderPipelines = std::make_unique<GraphicsPipeline2D>(*m_context, renderPassInfo);
             m_renderPipelines->bindTexture(m_colorTexture);
         }
@@ -90,6 +127,11 @@ namespace VkRender {
             m_depthImagePipeline->updateView(m_activeCamera.operator*());
             m_depthImagePipeline->update(m_context->currentFrameIndex());
         }
+
+        if (m_renderPipelines && m_activeCamera) {
+            m_renderPipelines->updateView(m_activeCamera.operator*());
+            m_renderPipelines->update(m_context->currentFrameIndex());
+        }
         m_activeScene->update(m_context->currentFrameIndex());
         // update Image when needed
 
@@ -103,11 +145,13 @@ namespace VkRender {
     void EditorImage::onRender(CommandBuffer &drawCmdBuffers) {
 
 
-        if (m_depthImagePipeline)
-            m_depthImagePipeline->draw(drawCmdBuffers);
+        //if (m_depthImagePipeline)
+        //    m_depthImagePipeline->draw(drawCmdBuffers);
 
-        if (m_renderPipelines)
+        if (m_renderPipelines) {
+
             m_renderPipelines->draw(drawCmdBuffers);
+        }
     }
 
     void EditorImage::onMouseMove(const MouseButtons &mouse) {

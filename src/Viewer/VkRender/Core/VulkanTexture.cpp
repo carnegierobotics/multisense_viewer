@@ -2,12 +2,14 @@
 // Created by mgjer on 24/08/2024.
 //
 
+#include <stb_image.h>
 #include "VulkanTexture.h"
+#include "Viewer/Tools/Utils.h"
 
 namespace VkRender {
 
 
-    VulkanTexture::VulkanTexture(VulkanTexture2DCreateInfo &createInfo) : m_vulkanDevice(createInfo.vulkanDevice){
+    VulkanTexture::VulkanTexture(VulkanTexture2DCreateInfo &createInfo) : m_vulkanDevice(createInfo.vulkanDevice) {
         m_image = createInfo.image;
         // Create m_Sampler
         VkSamplerCreateInfo samplerCreateInfo = {};
@@ -48,4 +50,68 @@ namespace VkRender {
     }
 
 
+    void VulkanTexture2D::loadImage(void* data, uint32_t size) {
+        // Create a staging buffer
+        VkBuffer stagingBuffer;
+        VkDeviceMemory stagingBufferMemory;
+        // Create staging buffers
+        // Vertex data
+        CHECK_RESULT(m_vulkanDevice.createBuffer(
+                VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                size,
+                &stagingBuffer,
+                &stagingBufferMemory,
+                data));
+
+
+
+        VkCommandBuffer copyCmd = m_vulkanDevice.createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+        // Transition the image layout to TRANSFER_DST_OPTIMAL
+        Utils::setImageLayout(
+                copyCmd,
+                m_image->image(),
+                VK_IMAGE_ASPECT_COLOR_BIT,
+                VK_IMAGE_LAYOUT_UNDEFINED,
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                VK_PIPELINE_STAGE_TRANSFER_BIT);
+
+        // Copy the staging buffer data to the Vulkan image
+        VkBufferImageCopy bufferCopyRegion = {};
+        bufferCopyRegion.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        bufferCopyRegion.imageSubresource.mipLevel = 0;
+        bufferCopyRegion.imageSubresource.baseArrayLayer = 0;
+        bufferCopyRegion.imageSubresource.layerCount = 1;
+        bufferCopyRegion.imageExtent.width = m_image->width();
+        bufferCopyRegion.imageExtent.height =  m_image->height();
+        bufferCopyRegion.imageExtent.depth = 1;
+        bufferCopyRegion.bufferOffset = 0;
+
+        vkCmdCopyBufferToImage(
+                copyCmd,
+                stagingBuffer,
+                m_image->image(),
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                1,
+                &bufferCopyRegion
+        );
+
+        Utils::setImageLayout(
+                copyCmd,
+                m_image->image(),
+                VK_IMAGE_ASPECT_COLOR_BIT,
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                VK_PIPELINE_STAGE_TRANSFER_BIT,
+                VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+
+
+        m_vulkanDevice.flushCommandBuffer(copyCmd, m_vulkanDevice.m_TransferQueue);
+        // Clean up the staging buffer
+        vkDestroyBuffer(m_vulkanDevice.m_LogicalDevice, stagingBuffer, nullptr);
+        vkFreeMemory(m_vulkanDevice.m_LogicalDevice, stagingBufferMemory, nullptr);
+
+
+    }
 }

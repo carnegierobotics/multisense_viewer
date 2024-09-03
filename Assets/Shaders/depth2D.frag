@@ -47,5 +47,6 @@ void main() {
     vec3 color = jetColorMap(normalizedDisparity);
 
     // Output the color
-    outColor = vec4(vec3(normalizedDisparity), 1.0);
+    //outColor = vec4(vec3(normalizedDisparity), 1.0);
+    outColor = vec4(texture(depthColorMap, inUV).rgb, 1.0);
 }

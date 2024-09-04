@@ -49,8 +49,8 @@
 #include "Viewer/VkRender/UsageMonitor.h"
 #include "Viewer/VkRender/Core/RenderDefinitions.h"
 #include "Viewer/VkRender/Core/KeyInput.h"
-#include "Viewer/Scenes/MultiSenseViewer/Modules/LibMultiSense/MultiSenseRendererBridge.h"
-#include "Viewer/Scenes/MultiSenseViewer/Modules/GigE-Vision/MultiSenseRendererGigEVisionBridge.h"
+#include "Viewer/VkRender/Editors/MultiSenseViewer/Modules/LibMultiSense/MultiSenseRendererBridge.h"
+#include "Viewer/VkRender/Editors/MultiSenseViewer/Modules/GigE-Vision/MultiSenseRendererGigEVisionBridge.h"
 
 #include "Viewer/Tools/ThreadPool.h"
 #include "Viewer/VkRender/Editors/EditorIncludes.h"

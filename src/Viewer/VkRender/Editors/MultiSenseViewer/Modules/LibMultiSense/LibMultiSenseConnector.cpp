@@ -44,7 +44,7 @@
 
 #include <cmath>
 
-#include "Viewer/Scenes/MultiSenseViewer/Modules/LibMultiSense/LibMultiSenseConnector.h"
+#include "LibMultiSenseConnector.h"
 #include "Viewer/VkRender/Core/RenderDefinitions.h"
 #include "Viewer/Tools/Utils.h"
 

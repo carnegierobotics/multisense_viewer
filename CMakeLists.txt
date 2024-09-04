@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 3.25)
 
 option(WARNINGS_AS_ERRORS "Treat compiler warnings as errors" FALSE)
 option(ENABLE_SYCL "Compile with SYCL support. Provided that llvm-sycl clang++ is in path" FALSE)
+option(BUILD_DOC "Build documentation" ON)
+option(PROPRIETARY_GIGEVISION_MODULE "Include the proprietary GigE-Vision module" OFF)
+set(GIGEVISION_LIB_PATH "" CACHE PATH "Path to the proprietary GigE-Vision module library")
+set(GIGEVISION_HEADERS_PATH "" CACHE PATH "Path to the proprietary GigE-Vision module headers")
 
 if (ENABLE_SYCL)
     #set(CMAKE_CXX_COMPILER "icpx")
@@ -31,10 +35,6 @@ set(VERSION_MINOR "2")
 set(VERSION_PATCH "0")
 set(ARCHITECTURE "amd64")
 set(INSTALL_DIRECTORY ${CMAKE_BINARY_DIR}/multisense_${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}_${ARCHITECTURE}/)
-
-option(BUILD_DOC "Build documentation" ON)
-option(PROPRIETARY_GIGEVISION_MODULE "Include the proprietary GigE-Vision module" OFF)
-set(GIGEVISION_MODULE_PATH "" CACHE PATH "Path to the proprietary GigE-Vision module")
 
 # Set default build type
 if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -125,10 +125,10 @@ set(SOURCE_FILES
         src/Viewer/Tools/Logger.cpp
         src/Viewer/Tools/ThreadPool.h
 
-        src/Viewer/Scenes/MultiSenseViewer/Modules/LibMultiSense/MultiSenseRendererBridge.cpp
-        src/Viewer/Scenes/MultiSenseViewer/Modules/LibMultiSense/CommonHeader.h
-        src/Viewer/Scenes/MultiSenseViewer/Modules/LibMultiSense/LibMultiSenseConnector.cpp
-        src/Viewer/Scenes/MultiSenseViewer/Modules/LibMultiSense/MultiSenseTaskManager.cpp
+        src/Viewer/VkRender/Editors/MultiSenseViewer/Modules/LibMultiSense/MultiSenseRendererBridge.cpp
+        src/Viewer/VkRender/Editors/MultiSenseViewer/Modules/LibMultiSense/CommonHeader.h
+        src/Viewer/VkRender/Editors/MultiSenseViewer/Modules/LibMultiSense/LibMultiSenseConnector.cpp
+        src/Viewer/VkRender/Editors/MultiSenseViewer/Modules/LibMultiSense/MultiSenseTaskManager.cpp
         src/Viewer/VkRender/Editors/Common/Properties/PropertiesLayer.cpp
         src/Viewer/VkRender/Core/VulkanTexture.cpp
         src/Viewer/VkRender/Core/VulkanTexture.h
@@ -160,12 +160,16 @@ set(LIBRARIES
 )
 
 if (ENABLE_SYCL)
-    #list(APPEND SOURCE_FILES src/Viewer/SYCL/GaussianRenderer.cpp)
     list(APPEND SCRIPT_FILES src/Viewer/VkRender/RenderPipelines/3DGS/GaussianModelGraphicsPipeline.cpp)
     message(STATUS "[VkRenderINFO]: SYCL: Adding Gaussian Renderer to source")
     target_compile_options(ktx PRIVATE -msse4.1 -mssse3)
     list(APPEND LIBRARIES sycl)
+endif ()
 
+if (PROPRIETARY_GIGEVISION_MODULE)
+    list(APPEND SCRIPT_FILES src/Viewer/VkRender/Editors/MultiSenseViewer/Modules/GigE-Vision/MultiSenseRendererGigEVisionBridge.cpp)
+    message(STATUS "[VkRenderINFO]: SYCL: Adding Gaussian Renderer to source")
+    list(APPEND LIBRARIES ${GIGEVISION_LIB})
 endif ()
 
 list(APPEND SOURCE_FILES ${SCRIPT_FILES})

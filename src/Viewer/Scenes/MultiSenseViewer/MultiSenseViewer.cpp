@@ -13,8 +13,8 @@ namespace VkRender {
     MultiSenseViewer::MultiSenseViewer(Renderer &ctx, const std::string& name) : Scene(name) {
         {
             auto entity = createEntity("S30Camera");
-           // auto &modelComponent = entity.addComponent<MeshComponent>(Utils::getModelsPath() / "obj" / "3dgs.obj");
-            auto &modelComponent = entity.addComponent<MeshComponent>("/home/magnus/phd/SuGaR/output/refined_mesh/0005/sugarfine_3Dgs30000_sdfestim02_sdfnorm02_level03_decim1000000_normalconsistency01_gaussperface1.obj");
+            auto &modelComponent = entity.addComponent<MeshComponent>(Utils::getModelsPath() / "obj" / "s30.obj");
+            //auto &modelComponent = entity.addComponent<MeshComponent>("/home/magnus/phd/SuGaR/output/refined_mesh/0005/sugarfine_3Dgs30000_sdfestim02_sdfnorm02_level03_decim1000000_normalconsistency01_gaussperface1.obj");
             auto &transform = entity.getComponent<TransformComponent>();
             //transform.setScale({0.25f, 0.25f, 0.25f});
         }

@@ -27,19 +27,23 @@ if (GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
 endif ()
 # Include the proprietary GigE-Vision Module
 if (PROPRIETARY_GIGEVISION_MODULE)
-    if (NOT GIGEVISION_MODULE_PATH)
-        message(FATAL_ERROR "GIGEVISION_MODULE_PATH is required when PROPRIETARY_GIGEVISION_MODULE is ON")
+    if (NOT GIGEVISION_HEADERS_PATH)
+        message(FATAL_ERROR "GIGEVISION_HEADERS_PATH is required when PROPRIETARY_GIGEVISION_MODULE is ON")
     endif ()
+    if (NOT GIGEVISION_LIB_PATH)
+        message(FATAL_ERROR "GIGEVISION_LIB_PATH is required when PROPRIETARY_GIGEVISION_MODULE is ON")
+    endif ()
+
     # Include directories for the proprietary module
-    include_directories(${GIGEVISION_MODULE_PATH}/include)
+    include_directories(${GIGEVISION_HEADERS_PATH})
 
     # Add the proprietary module library
     # Assuming the proprietary module provides a library file, you can link it like this:
-    set(PROPRIETARY_MODULE_LIB ${GIGEVISION_MODULE_PATH}/lib/libcrlgev.a)
+    set(GIGEVISION_LIB ${GIGEVISION_LIB_PATH}/libcrlgev.a)
 
     # Check if the library exists
-    if (NOT EXISTS ${PROPRIETARY_MODULE_LIB})
-        message(FATAL_ERROR "Proprietary module library not found at ${PROPRIETARY_MODULE_LIB}")
+    if (NOT EXISTS ${GIGEVISION_LIB})
+        message(FATAL_ERROR "Proprietary module library not found at ${GIGEVISION_LIB}")
     endif ()
     message(STATUS "[VkRenderINFO]: Proprietary GIGEVISION ENABLED")
 else ()

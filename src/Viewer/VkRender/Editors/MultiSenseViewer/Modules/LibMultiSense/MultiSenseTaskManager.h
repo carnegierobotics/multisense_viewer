@@ -41,8 +41,8 @@
 
 #include "Viewer/Tools/ThreadPool.h"
 #include "Viewer/VkRender/Core/RenderDefinitions.h"
-#include "Viewer/Scenes/MultiSenseViewer/Modules/LibMultiSense/LibMultiSenseConnector.h"
-#include "Viewer/Scenes/MultiSenseViewer/Modules/LibMultiSense/CommonHeader.h"
+#include "LibMultiSenseConnector.h"
+#include "CommonHeader.h"
 
 namespace VkRender::MultiSense {
     class MultiSenseTaskManager {

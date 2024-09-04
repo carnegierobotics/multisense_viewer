@@ -52,7 +52,7 @@
 #include "Viewer/Tools/Utils.h"
 #include "CommonHeader.h"
 
-#include <MultiSense/MultiSenseChannel.hh>
+#include <multisense_viewer/external/LibMultiSense/source/LibMultiSense/include/MultiSense/MultiSenseChannel.hh>
 
 
 namespace VkRender::MultiSense {

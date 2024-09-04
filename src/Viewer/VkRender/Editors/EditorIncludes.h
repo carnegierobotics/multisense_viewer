@@ -15,8 +15,8 @@
 #include "Viewer/VkRender/Editors/EditorDefinitions.h"
 #include "Viewer/VkRender/Entity.h"
 
-#include "Viewer/Scenes/MultiSenseViewer/Modules/LibMultiSense/MultiSenseRendererBridge.h"
-#include "Viewer/Scenes/MultiSenseViewer/Modules/GigE-Vision//MultiSenseRendererGigEVisionBridge.h"
+#include "Viewer/VkRender/Editors/MultiSenseViewer/Modules/LibMultiSense/MultiSenseRendererBridge.h"
+#include "Viewer/VkRender/Editors/MultiSenseViewer/Modules/GigE-Vision/MultiSenseRendererGigEVisionBridge.h"
 #include "Viewer/VkRender/Core/VulkanFramebuffer.h"
 #include "Viewer/VkRender/Core/VulkanImage.h"
 

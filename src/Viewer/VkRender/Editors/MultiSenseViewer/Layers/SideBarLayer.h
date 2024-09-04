@@ -2,7 +2,7 @@
 #define SIDEBAR_H
 
 
-#include "Viewer/Scenes/MultiSenseViewer/Modules/LibMultiSense/CommonHeader.h"
+#include "Viewer/VkRender/Editors/MultiSenseViewer/Modules/LibMultiSense/CommonHeader.h"
 
 
 

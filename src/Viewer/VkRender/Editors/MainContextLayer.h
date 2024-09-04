@@ -35,7 +35,7 @@ namespace VkRender {
         };
 
 
-        static void addPopup(GuiObjectHandles& uiContext) {
+        void addPopup(GuiObjectHandles& uiContext) {
             float popupWidth = 550.0f;
             float popupHeight = 600.0f;
             ImGui::SetNextWindowSize(ImVec2(popupWidth, popupHeight), ImGuiCond_Always);
@@ -234,7 +234,7 @@ namespace VkRender {
                     uiContext.usageMonitor->userClickAction("Connect", "button",
                                                             ImGui::GetCurrentWindow()->Name);
 
-                    //uiContext.shared->multiSenseRendererBridge->addNewProfile(profileInfo);
+                    m_context->multiSense().rendererBridge->addNewProfile(profileInfo);
                     uiContext.shared->openAddDevicePopup = false;
                     ImGui::CloseCurrentPopup();
                 }

@@ -45,13 +45,16 @@
 #include "Viewer/VkRender/Core/VulkanRenderer.h"
 #include "Viewer/Scenes/ScriptSupport/ScriptBuilder.h"
 #include "Viewer/Tools/Macros.h"
-#include "UsageMonitor.h"
 #include "Viewer/Scenes/Scene.h"
-#include "ApplicationConfig.h"
+#include "Viewer/Application/ApplicationConfig.h"
+#include "Viewer/Application/UsageMonitor.h"
 #include "Viewer/VkRender/Core/Camera.h"
 #include "Viewer/VkRender/Core/UUID.h"
 #include "Viewer/VkRender/Editors/Editor.h"
 #include "Viewer/VkRender/Editors/EditorFactory.h"
+
+#include "Viewer/Modules/MultiSense/MultiSenseRendererBridge.h"
+#include "Viewer/Modules/MultiSense/GigE-Vision//GigEVisionConnector.h"
 
 namespace VkRender {
     class Entity;
@@ -64,6 +67,11 @@ namespace VkRender {
     struct ProjectConfig {
         std::string name;
         std::vector<EditorType> editorTypes;
+    };
+
+    struct MultiSenseData { // TODO rename
+        std::shared_ptr<VkRender::MultiSense::MultiSenseRendererBridge> rendererBridge{};
+        std::shared_ptr<VkRender::MultiSense::GigEVisionConnector> rendererGigEVisionBridge{};
     };
 
     class Application : VulkanRenderer {
@@ -107,6 +115,8 @@ namespace VkRender {
         SharedEditorData &sharedEditorData() { return m_sharedEditorData; }
 
         const ProjectConfig &getProjectConfig() { return m_projectConfig; }
+
+        MultiSenseData &multiSense() { return m_multiSense; }
 
         // TODO we should collect per frame info like this somewhere
         float deltaTime() { return frameTimer; }
@@ -153,9 +163,6 @@ namespace VkRender {
         void onCharInput(unsigned int codepoint) override;
 
     private:
-        //std::unordered_map<std::string, Camera> m_cameras;
-        //std::unique_ptr<VkRender::GuiManager> m_guiManager{};
-
         std::vector<std::unique_ptr<Editor>> m_editors;
         ProjectConfig m_projectConfig;
 
@@ -168,6 +175,9 @@ namespace VkRender {
         std::shared_ptr<GuiResources> m_guiResources;
         SharedContextData m_sharedContextData;
         SharedEditorData m_sharedEditorData;
+
+        MultiSenseData m_multiSense;
+
 
         friend class ApplicationConfig;
 

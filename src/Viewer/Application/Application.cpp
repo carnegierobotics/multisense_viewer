@@ -58,8 +58,9 @@ namespace VkRender {
         m_usageMonitor->loadSettingsFromFile();
         m_usageMonitor->userStartSession(rendererStartTime);
         // Initialize shared data across editors:
-        //m_sharedContextData.multiSenseRendererBridge = std::make_shared<MultiSense::MultiSenseRendererBridge>();
-        //m_sharedContextData.multiSenseRendererGigEVisionBridge = std::make_shared<MultiSense::MultiSenseRendererGigEVisionBridge>();
+
+        m_multiSense.rendererBridge = std::make_shared<MultiSense::MultiSenseRendererBridge>();
+        m_multiSense.rendererGigEVisionBridge = std::make_shared<MultiSense::GigEVisionConnector>();
 
 
         VulkanRenderPassCreateInfo passCreateInfo(m_vulkanDevice, &m_allocator);
@@ -266,7 +267,8 @@ namespace VkRender {
         updateEditors();
         m_mainEditor->update((frameCounter == 0), frameTimer, &input);
         m_logger->frameNumber = frameID;
-        //m_sharedContextData.multiSenseRendererBridge->update(); // TODO reconsider if we should call crl updates here?
+
+        m_multiSense.rendererBridge->update(); // TODO reconsider if we should call crl updates here?
 
         std::string versionRemote;
     }
@@ -314,9 +316,8 @@ namespace VkRender {
         for (auto &editor: m_editors) {
             editor->render(drawCmdBuffers);
         }
+
         m_mainEditor->render(drawCmdBuffers);
-        /** IF WE SHOULD RENDER SECOND IMAGE FOR MOUSE PICKING EVENTS (Reason: let user see PerPixelInformation)
-         *  THIS INCLUDES RENDERING SELECTED OBJECTS AND COPYING CONTENTS BACK TO CPU INSTEAD OF DISPLAYING TO SCREEN **/
     }
 
     void Application::windowResized(int32_t dx, int32_t dy, double widthScale, double heightScale) {

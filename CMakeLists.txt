@@ -126,10 +126,11 @@ set(SOURCE_FILES
         src/Viewer/Tools/Logger.cpp
         src/Viewer/Tools/ThreadPool.h
 
-        src/Viewer/VkRender/Editors/MultiSenseViewer/Modules/LibMultiSense/MultiSenseRendererBridge.cpp
-        src/Viewer/VkRender/Editors/MultiSenseViewer/Modules/LibMultiSense/CommonHeader.h
-        src/Viewer/VkRender/Editors/MultiSenseViewer/Modules/LibMultiSense/LibMultiSenseConnector.cpp
-        src/Viewer/VkRender/Editors/MultiSenseViewer/Modules/LibMultiSense/MultiSenseTaskManager.cpp
+        src/Viewer/Modules/MultiSense/MultiSenseRendererBridge.cpp
+        src/Viewer/Modules/MultiSense/CommonHeader.h
+        src/Viewer/Modules/MultiSense/LibMultiSense/LibMultiSenseConnector.cpp
+        src/Viewer/Modules/MultiSense/MultiSenseTaskManager.cpp
+
         src/Viewer/VkRender/Editors/Common/Properties/PropertiesLayer.cpp
         src/Viewer/VkRender/Core/VulkanTexture.cpp
         src/Viewer/VkRender/Core/VulkanTexture.h
@@ -168,7 +169,7 @@ if (ENABLE_SYCL)
 endif ()
 
 if (PROPRIETARY_GIGEVISION_MODULE)
-    list(APPEND SCRIPT_FILES src/Viewer/VkRender/Editors/MultiSenseViewer/Modules/GigE-Vision/MultiSenseRendererGigEVisionBridge.cpp)
+    list(APPEND SCRIPT_FILES src/Viewer/Modules/MultiSense/GigE-Vision/GigEVisionConnector.cpp)
     message(STATUS "[VkRenderINFO]: SYCL: Adding Gaussian Renderer to source")
     list(APPEND LIBRARIES ${GIGEVISION_LIB})
 endif ()

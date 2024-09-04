@@ -2,7 +2,7 @@
 #define SIDEBAR_H
 
 
-#include "Viewer/VkRender/Editors/MultiSenseViewer/Modules/LibMultiSense/CommonHeader.h"
+#include "Viewer/Modules/MultiSense/CommonHeader.h"
 
 
 
@@ -32,8 +32,8 @@ namespace VkRender {
         ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLDarkGray425);
         std::default_random_engine rng;
         float sidebarElementHeight = 140.0f;
-        /*
-        for (auto &profile: uiContext.shared->multiSenseRendererBridge->getProfileList()) {
+
+        for (auto &profile: m_context->multiSense().rendererBridge->getProfileList()) {
 
             // Color the sidebar and window depending on the connection state. Must be found before we start drawing the window containing the profile.
             std::string buttonIdentifier = "InvalidConnectionState";
@@ -156,18 +156,18 @@ namespace VkRender {
             ImGui::PopStyleVar(2);
 
             if (deviceButton && profile.connectionState != MultiSense::MULTISENSE_CONNECTED) {
-                uiContext.shared->multiSenseRendererBridge->connect(profile);
+                m_context->multiSense().rendererBridge->connect(profile);
             } else if (deviceButton) {
-                uiContext.shared->multiSenseRendererBridge->disconnect(profile);
+                m_context->multiSense().rendererBridge->disconnect(profile);
             }
 
             if (removeProfileButtonX) {
-                uiContext.shared->multiSenseRendererBridge->removeProfile(profile);
+                m_context->multiSense().rendererBridge->removeProfile(profile);
             }
 
             ImGui::EndChild();
         }
-            */
+
         ImGui::PopStyleColor();
     }
 
@@ -182,6 +182,7 @@ namespace VkRender {
         //askUsageLoggingPermissionPopUp(uiContext);
         // Settings button
 
+        /*
         {
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
             if (ImGui::Button("Settings", ImVec2(uiContext.editorUi->width, 17.0f))) {
@@ -190,6 +191,7 @@ namespace VkRender {
             }
             ImGui::PopStyleVar();
         }
+        */
 
 
 

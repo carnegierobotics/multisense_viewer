@@ -38,6 +38,7 @@ namespace VkRender::MultiSense {
     void MultiSenseRendererBridge::addNewProfile(MultiSenseProfileInfo createInfo) {
         if (m_multiSenseDevices.size() > 3)
             return;
+
         MultiSenseDevice device;
         // Perform connection with CRLPhysicalCamera and all that
         // Provide status updates to UI

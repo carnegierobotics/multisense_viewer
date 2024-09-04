@@ -13,9 +13,9 @@
 #endif
 
 namespace VkRender::MultiSense {
-    class MultiSenseRendererGigEVisionBridge {
+    class GigEVisionConnector {
     public:
-        MultiSenseRendererGigEVisionBridge(){
+        GigEVisionConnector(){
 
 #ifdef VKRENDER_GIGEVISION_ENABLED
             device_obj cam_device;

@@ -35,8 +35,7 @@ namespace VkRender {
 
         }
     private:
-        std::shared_ptr<MultiSense::MultiSenseRendererBridge> multiSenseRendererBridge{};
-        std::shared_ptr<MultiSense::MultiSenseRendererGigEVisionBridge> multiSenseRendererGigEVisionBridge{};
+
     };
 }
 

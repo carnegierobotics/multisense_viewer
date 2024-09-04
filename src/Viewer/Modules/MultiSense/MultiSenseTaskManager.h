@@ -41,8 +41,9 @@
 
 #include "Viewer/Tools/ThreadPool.h"
 #include "Viewer/VkRender/Core/RenderDefinitions.h"
-#include "LibMultiSenseConnector.h"
+#include "Viewer/Modules/MultiSense/LibMultiSense/LibMultiSenseConnector.h"
 #include "CommonHeader.h"
+#include "Viewer/Modules/MultiSense/GigE-Vision/GigEVisionConnector.h"
 
 namespace VkRender::MultiSense {
     class MultiSenseTaskManager {
@@ -60,20 +61,23 @@ namespace VkRender::MultiSense {
         }
 
         MultiSenseConnectionState connectionState() {
-            return m_camera.connectionState();
+            return m_libMultiSense.connectionState();
         }
 
     private:
         std::unique_ptr<ThreadPool> m_threadPool;
-        LibMultiSenseConnector m_camera;
+
+        LibMultiSenseConnector m_libMultiSense;
+
+        GigEVisionConnector m_gigEVision;
 
         static void connectTask(void *ctx, const MultiSenseDevice &device) {
             auto *context = reinterpret_cast<MultiSenseTaskManager *>(ctx);
-            context->m_camera.connect(device.createInfo.inputIP, device.createInfo.ifName);
+            context->m_libMultiSense.connect(device.createInfo.inputIP, device.createInfo.ifName);
         }
         static void disconnectTask(void *ctx) {
             auto *context = reinterpret_cast<MultiSenseTaskManager *>(ctx);
-            context->m_camera.disconnect();
+            context->m_libMultiSense.disconnect();
         }
 
     };

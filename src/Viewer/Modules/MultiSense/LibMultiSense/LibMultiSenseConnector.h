@@ -50,7 +50,7 @@
 
 #include "Viewer/VkRender/Core/RenderDefinitions.h"
 #include "Viewer/Tools/Utils.h"
-#include "CommonHeader.h"
+#include "Viewer/Modules/MultiSense/CommonHeader.h"
 
 #include <multisense_viewer/external/LibMultiSense/source/LibMultiSense/include/MultiSense/MultiSenseChannel.hh>
 

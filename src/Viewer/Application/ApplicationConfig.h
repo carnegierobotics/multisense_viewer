@@ -5,7 +5,7 @@
 #ifndef MULTISENSE_VIEWER_RENDERCONFIG_H
 #define MULTISENSE_VIEWER_RENDERCONFIG_H
 
-#include "Viewer/VkRender/pch.h"
+#include "pch.h"
 #include <vulkan/vulkan.hpp>
 
 
@@ -36,12 +36,12 @@
 
 #include "Viewer/Tools/Logger.h"
 #include "Viewer/Tools/Utils.h"
-#include "Viewer/VkRender/ApplicationUserSetting.h"
+#include "ApplicationUserSetting.h"
 
 namespace VkRender {
-    class Renderer;
+    class Application;
 
-    class RendererConfig {
+    class ApplicationConfig {
     public:
         struct CRLServerInfo {
             std::string server; // Including prot
@@ -50,8 +50,8 @@ namespace VkRender {
             std::string versionInfoDestination;
         };
 
-        static RendererConfig &getInstance() {
-            static RendererConfig instance;
+        static ApplicationConfig &getInstance() {
+            static ApplicationConfig instance;
             return instance;
         }
 
@@ -119,11 +119,11 @@ namespace VkRender {
         }
 
     private:
-        RendererConfig();
+        ApplicationConfig();
 
 
 
-        ~RendererConfig() = default;
+        ~ApplicationConfig() = default;
 
         CRLServerInfo m_ServerInfo{};
         AppConfig::ApplicationUserSetting m_UserSetting{};
@@ -144,7 +144,7 @@ namespace VkRender {
         const std::string &getAppVersionRemote() const;
 
         void setAppVersionRemote(const std::string &mAppVersionRemote);
-        void saveSettings(Renderer *ctx);
+        void saveSettings(Application *ctx);
 
     private:
 

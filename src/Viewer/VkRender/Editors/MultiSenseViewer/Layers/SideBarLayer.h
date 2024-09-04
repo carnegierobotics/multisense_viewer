@@ -32,6 +32,7 @@ namespace VkRender {
         ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLDarkGray425);
         std::default_random_engine rng;
         float sidebarElementHeight = 140.0f;
+        /*
         for (auto &profile: uiContext.shared->multiSenseRendererBridge->getProfileList()) {
 
             // Color the sidebar and window depending on the connection state. Must be found before we start drawing the window containing the profile.
@@ -166,6 +167,7 @@ namespace VkRender {
 
             ImGui::EndChild();
         }
+            */
         ImGui::PopStyleColor();
     }
 
@@ -179,7 +181,7 @@ namespace VkRender {
         //addPopup(uiContext);
         //askUsageLoggingPermissionPopUp(uiContext);
         // Settings button
-        /*
+
         {
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
             if (ImGui::Button("Settings", ImVec2(uiContext.editorUi->width, 17.0f))) {
@@ -188,7 +190,7 @@ namespace VkRender {
             }
             ImGui::PopStyleVar();
         }
-         */
+
 
 
         drawProfilesInSidebar(uiContext);
@@ -197,7 +199,7 @@ namespace VkRender {
         // Add version number
         ImGui::SetCursorPos(ImVec2(0.0f, uiContext.info->editorHeight - 10.0f));
         ImGui::PushFont(uiContext.info->font8);
-        ImGui::Text("%s", (std::string("Ver: ") + RendererConfig::getInstance().getAppVersion()).c_str());
+        ImGui::Text("%s", (std::string("Ver: ") + ApplicationConfig::getInstance().getAppVersion()).c_str());
         ImGui::PopFont();
 
         ImGui::EndChild();

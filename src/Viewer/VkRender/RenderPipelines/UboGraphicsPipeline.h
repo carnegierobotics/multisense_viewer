@@ -12,13 +12,13 @@
 #include "GraphicsPipeline.h"
 
 namespace VkRender {
-    class Renderer;
+    class Application;
 
     class UboGraphicsPipeline : public GraphicsPipeline {
     public:
 
 
-        UboGraphicsPipeline(Renderer &m_context, const RenderPassInfo &renderPassInfo);
+        UboGraphicsPipeline(Application &m_context, const RenderPassInfo &renderPassInfo);
         ~UboGraphicsPipeline();
 
         void update(uint32_t currentFrame) override;

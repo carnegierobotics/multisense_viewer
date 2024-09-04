@@ -5,7 +5,7 @@
 #ifndef MULTISENSE_VIEWER_GAUSSIANMODELCOMPONENT_H
 #define MULTISENSE_VIEWER_GAUSSIANMODELCOMPONENT_H
 
-#include "Viewer/VkRender/pch.h"
+#include "Viewer/Application/pch.h"
 #include "MeshComponent.h"
 
 namespace VkRender {

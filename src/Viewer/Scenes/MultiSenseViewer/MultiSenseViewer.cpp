@@ -1,16 +1,16 @@
 //
 // Created by mgjer on 14/07/2024.
 //
-#include "Viewer/VkRender/Renderer.h"
+#include "Viewer/Application/Application.h"
 
 #include "Viewer/Scenes/MultiSenseViewer/MultiSenseViewer.h"
 #include "Viewer/VkRender/Components/MeshComponent.h"
-#include "Viewer/VkRender/Entity.h"
+#include "Viewer/VkRender/Core/Entity.h"
 #include "Viewer/VkRender/Components/GaussianModelComponent.h"
 
 namespace VkRender {
 
-    MultiSenseViewer::MultiSenseViewer(Renderer &ctx, const std::string& name) : Scene(name) {
+    MultiSenseViewer::MultiSenseViewer(Application &ctx, const std::string& name) : Scene(name) {
         {
             auto entity = createEntity("S30Camera");
             auto &modelComponent = entity.addComponent<MeshComponent>(Utils::getModelsPath() / "obj" / "s30.obj");

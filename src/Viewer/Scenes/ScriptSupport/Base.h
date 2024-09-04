@@ -9,14 +9,14 @@
 #include "Viewer/Tools/Macros.h"
 
 namespace VkRender {
-    class Renderer;
+    class Application;
     class GuiObjectHandles;
     /**
      * @brief Base class for scripts that can be attached to renderer. See @refitem Example for how to implement a script.
      */
     class Base {
     public:
-        Renderer* m_context;
+        Application* m_context;
         virtual ~Base() = default;
 
         DISABLE_WARNING_PUSH

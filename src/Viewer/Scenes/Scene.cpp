@@ -2,9 +2,9 @@
 // Created by magnus on 8/13/24.
 //
 
-#include "Entity.h"
+#include "Viewer/VkRender/Core/Entity.h"
 
-#include "Viewer/VkRender/Scene.h"
+#include "Viewer/Scenes/Scene.h"
 #include "Viewer/VkRender/Components/Components.h"
 #include "Viewer/VkRender/RenderPipelines/DefaultGraphicsPipeline.h"
 #include "Viewer/VkRender/Components/MeshComponent.h"

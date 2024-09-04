@@ -9,7 +9,7 @@
 #include "Viewer/VkRender/Editors/Editor.h"
 #include "Viewer/Tools/Utils.h"
 
-#include "Viewer/VkRender/Renderer.h"
+#include "Viewer/Application/Application.h"
 
 #include "Viewer/VkRender/Core/VulkanRenderPass.h"
 #include "Viewer/VkRender/Core/VulkanFramebuffer.h"

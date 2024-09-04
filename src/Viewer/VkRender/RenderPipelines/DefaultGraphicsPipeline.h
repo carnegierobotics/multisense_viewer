@@ -32,9 +32,9 @@ namespace VkRender {
 
         ~DefaultGraphicsPipeline();
 
-        explicit DefaultGraphicsPipeline(Renderer &m_context, const RenderPassInfo &renderPassInfo,
-                                                  const std::string &vertexShader = "default.vert.spv",
-                                                  const std::string &fragmentShader = "default.frag.spv");
+        explicit DefaultGraphicsPipeline(Application &m_context, const RenderPassInfo &renderPassInfo,
+                                         const std::string &vertexShader = "default.vert.spv",
+                                         const std::string &fragmentShader = "default.frag.spv");
 
 
         void cleanUp();

@@ -175,7 +175,7 @@ namespace VkRender {
 
         ScriptComponent(const ScriptComponent &) = default;
 
-        ScriptComponent(std::string scriptName, Renderer *m_context) {
+        ScriptComponent(std::string scriptName, Application *m_context) {
             script = ComponentMethodFactory::Create(scriptName);
             script->m_context = m_context;
             if (script == nullptr) {

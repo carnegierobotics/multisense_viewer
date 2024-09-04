@@ -44,9 +44,9 @@
 
 #include <utility>
 
-#include "Viewer/VkRender/pch.h"
+#include "Viewer/Application/pch.h"
 
-#include "Viewer/VkRender/UsageMonitor.h"
+#include "Viewer/Application/UsageMonitor.h"
 #include "Viewer/VkRender/Core/RenderDefinitions.h"
 #include "Viewer/VkRender/Core/KeyInput.h"
 #include "Viewer/VkRender/Editors/MultiSenseViewer/Modules/LibMultiSense/MultiSenseRendererBridge.h"
@@ -56,7 +56,7 @@
 #include "Viewer/VkRender/Editors/EditorIncludes.h"
 
 namespace VkRender {
-    class Renderer;
+    class Application;
     class Entity;
     class Scene;
     /** @brief Set of Default colors */
@@ -237,12 +237,12 @@ namespace VkRender {
         virtual void setScene(std::shared_ptr<Scene> scene){
             m_scene = std::move(scene);
         }
-        virtual void setContext(Renderer* ctx){
+        virtual void setContext(Application* ctx){
             m_context = ctx;
         }
 
         std::shared_ptr<Scene> m_scene;
-        Renderer* m_context;
+        Application* m_context;
     };
 }
 

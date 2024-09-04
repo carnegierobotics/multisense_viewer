@@ -1,8 +1,8 @@
 //
 // Created by mgjer on 14/07/2024.
 //
-#include "Viewer/VkRender/Renderer.h"
-#include "Viewer/VkRender/Entity.h"
+#include "Viewer/Application/Application.h"
+#include "Viewer/VkRender/Core/Entity.h"
 
 #include "Viewer/Scenes/Default/DefaultScene.h"
 #include "Viewer/VkRender/Components/MeshComponent.h"
@@ -12,7 +12,7 @@
 namespace VkRender {
 
 
-    DefaultScene::DefaultScene(Renderer &ctx, const std::string& name) : Scene(name) {
+    DefaultScene::DefaultScene(Application &ctx, const std::string& name) : Scene(name) {
         Log::Logger::getInstance()->info("DefaultScene Constructor");
         auto entity = createEntity("FirstEntity");
         auto &modelComponent = entity.addComponent<MeshComponent>(Utils::getModelsPath() / "obj" / "viking_room.obj");

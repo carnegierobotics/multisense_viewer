@@ -5,9 +5,9 @@
 #include "Viewer/VkRender/Editors/Common/Properties/PropertiesLayer.h"
 #include "Viewer/VkRender/ImGui/Layer.h"
 #include "Viewer/VkRender/Components/Components.h"
-#include "Viewer/VkRender/Scene.h"
-#include "Viewer/VkRender/Renderer.h"
-#include "Viewer/VkRender/Entity.h"
+#include "Viewer/Scenes/Scene.h"
+#include "Viewer/Application/Application.h"
+#include "Viewer/VkRender/Core/Entity.h"
 
 namespace VkRender {
 
@@ -303,7 +303,7 @@ namespace VkRender {
                 entity.addComponent<MeshComponent>(loadFileInfo.path);
             }
             // Copy the selected file path to wherever it's needed
-            auto &opts = RendererConfig::getInstance().getUserSetting();
+            auto &opts = ApplicationConfig::getInstance().getUserSetting();
             opts.lastOpenedImportModelFolderPath = loadFileInfo.path;
             // Additional processing of the file can be done here
             Log::Logger::getInstance()->info("File selected: {}", loadFileInfo.path.filename().string());
@@ -324,7 +324,7 @@ namespace VkRender {
                                                const std::vector<std::string> &type,
                                                LayerUtils::FileTypeLoadFlow flow) {
         if (!loadFileFuture.valid()) {
-            auto &opts = RendererConfig::getInstance().getUserSetting();
+            auto &opts = ApplicationConfig::getInstance().getUserSetting();
             std::string openLoc = Utils::getSystemHomePath().string();
             if (!opts.lastOpenedImportModelFolderPath.empty()) {
                 openLoc = opts.lastOpenedImportModelFolderPath.remove_filename().string();

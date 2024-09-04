@@ -2,7 +2,7 @@
 // Created by magnus on 4/11/24.
 //
 
-#include "Viewer/VkRender/Entity.h"
+#include "Entity.h"
 
 
 namespace VkRender {

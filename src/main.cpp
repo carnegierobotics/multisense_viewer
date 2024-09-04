@@ -33,7 +33,7 @@
  * Significant history (date, user, action):
  *   2022-09-12, mgjerde@carnegierobotics.com, Created file.
  **/
-#include "Viewer/VkRender/Renderer.h"
+#include "Viewer/Application/Application.h"
 
 #ifdef WIN32
     #ifdef WIN_DEBUG
@@ -45,7 +45,7 @@
 int main() {
     Log::Logger::getInstance((Utils::getSystemCachePath() / "logger.log").string());
 
-    VkRender::Renderer app("MultiSense Viewer");
+    VkRender::Application app("MultiSense Viewer");
     try{
         app.run();
         // Time cleanup

@@ -66,7 +66,7 @@ namespace VkRender {
         GuiObjectHandles handles;
 
         GuiManager(VulkanDevice &vulkanDevice, VkRenderPass const &renderPass, EditorUI *editorUi,
-                   VkSampleCountFlagBits msaaSamples, uint32_t imageCount, Renderer *ctx, ImGuiContext *imguiCtx,
+                   VkSampleCountFlagBits msaaSamples, uint32_t imageCount, Application *ctx, ImGuiContext *imguiCtx,
                    const GuiResources *guiResources, SharedContextData* sharedData); // TODO context should be pass by reference as it is no nullable?
 
         ~GuiManager() {
@@ -125,7 +125,7 @@ namespace VkRender {
 
         std::unique_ptr<VulkanGraphicsPipeline> m_pipeline;
         VulkanDevice &m_vulkanDevice;
-        Renderer* m_context;
+        Application* m_context;
         std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> saveSettingsTimer;
 
 

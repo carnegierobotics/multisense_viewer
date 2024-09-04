@@ -4,7 +4,7 @@
 
 #include "Viewer/VkRender/Editors/MyEditor/EditorMyProject.h"
 
-#include "Viewer/VkRender/Renderer.h"
+#include "Viewer/Application/Application.h"
 #include "Viewer/VkRender/Components/Components.h"
 
 namespace VkRender {

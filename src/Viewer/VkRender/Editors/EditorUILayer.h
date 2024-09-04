@@ -9,7 +9,7 @@
 #include "Viewer/VkRender/ImGui/IconsFontAwesome6.h"
 #include "EditorDefinitions.h"
 
-#include "Viewer/VkRender/Renderer.h"
+#include "Viewer/Application/Application.h"
 
 /** Is attached to the renderer through the GuiManager and instantiated in the GuiManager Constructor through
  *         pushLayer<[LayerName]>();

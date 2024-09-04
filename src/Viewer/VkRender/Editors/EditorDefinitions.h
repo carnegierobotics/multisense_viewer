@@ -5,7 +5,7 @@
 #ifndef MULTISENSE_VIEWER_EDITORDEFINITIONS_H
 #define MULTISENSE_VIEWER_EDITORDEFINITIONS_H
 
-#include "Viewer/VkRender/pch.h"
+#include "Viewer/Application/pch.h"
 
 namespace VkRender {
 

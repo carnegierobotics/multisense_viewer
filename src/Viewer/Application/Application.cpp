@@ -34,7 +34,7 @@
  *   2022-4-9, mgjerde@carnegierobotics.com, Created file.
  **/
 
-#include "Viewer/VkRender/Renderer.h"
+#include "Application.h"
 #include "Viewer/VkRender/Core/UUID.h"
 #include "Viewer/Tools/Utils.h"
 #include "Viewer/Tools/Populate.h"
@@ -44,8 +44,8 @@
 #include "Viewer/Scenes/MultiSenseViewer/MultiSenseViewer.h"
 
 namespace VkRender {
-    Renderer::Renderer(const std::string &title) : VulkanRenderer(title) {
-        RendererConfig &config = RendererConfig::getInstance();
+    Application::Application(const std::string &title) : VulkanRenderer(title) {
+        ApplicationConfig &config = ApplicationConfig::getInstance();
         this->m_title = title;
         Log::Logger::getInstance()->setLogLevel(config.getLogLevel());
         m_logger = Log::Logger::getInstance();
@@ -58,9 +58,8 @@ namespace VkRender {
         m_usageMonitor->loadSettingsFromFile();
         m_usageMonitor->userStartSession(rendererStartTime);
         // Initialize shared data across editors:
-        m_sharedContextData.multiSenseRendererBridge = std::make_shared<MultiSense::MultiSenseRendererBridge>();
-        m_sharedContextData.multiSenseRendererGigEVisionBridge = std::make_shared<
-                MultiSense::MultiSenseRendererGigEVisionBridge>();
+        //m_sharedContextData.multiSenseRendererBridge = std::make_shared<MultiSense::MultiSenseRendererBridge>();
+        //m_sharedContextData.multiSenseRendererGigEVisionBridge = std::make_shared<MultiSense::MultiSenseRendererGigEVisionBridge>();
 
 
         VulkanRenderPassCreateInfo passCreateInfo(m_vulkanDevice, &m_allocator);
@@ -87,7 +86,7 @@ namespace VkRender {
 
         m_editorFactory = std::make_unique<EditorFactory>();
 
-        std::string lastActiveProject = RendererConfig::getInstance().getUserSetting().projectName;
+        std::string lastActiveProject = ApplicationConfig::getInstance().getUserSetting().projectName;
         loadProject(Utils::getProjectFileFromName(lastActiveProject));
 
         if (m_editors.empty()) {
@@ -109,12 +108,12 @@ namespace VkRender {
         }
 
 
-        std::string lastActiveScene = RendererConfig::getInstance().getUserSetting().sceneName;
+        std::string lastActiveScene = ApplicationConfig::getInstance().getUserSetting().sceneName;
         loadScene(lastActiveScene);
 
     }
 
-    void Renderer::loadProject(const std::filesystem::path &filePath) {
+    void Application::loadProject(const std::filesystem::path &filePath) {
         // Remove project if already loaded
         m_editors.clear();
         m_projectConfig = {};
@@ -213,7 +212,7 @@ namespace VkRender {
     }
 
     // TODO make scene objects serializeable and loadable.
-    void Renderer::loadScene(const std::filesystem::path &scenePath) {
+    void Application::loadScene(const std::filesystem::path &scenePath) {
         if (scenePath == "MultiSense Scene")
             m_scene = std::make_shared<MultiSenseViewer>(*this, "MultiSense Scene");
         else {
@@ -224,7 +223,7 @@ namespace VkRender {
         }
     }
 
-    void Renderer::deleteScene(std::filesystem::path scenePath) {
+    void Application::deleteScene(std::filesystem::path scenePath) {
         // Find the scene to delete
         Log::Logger::getInstance()->info("Deleting Scene with Reference count: {}", m_scene.use_count());
         //m_scene.reset();
@@ -232,7 +231,7 @@ namespace VkRender {
     }
 
 
-    void Renderer::addDeviceFeatures() {
+    void Application::addDeviceFeatures() {
         if (deviceFeatures.fillModeNonSolid) {
             enabledFeatures.fillModeNonSolid = VK_TRUE;
             // Wide lines must be present for line m_Width > 1.0f
@@ -245,7 +244,7 @@ namespace VkRender {
         }
     }
 
-    void Renderer::updateUniformBuffers() {
+    void Application::updateUniformBuffers() {
         // update imgui io:
 
         ImGui::SetCurrentContext(m_mainEditor->guiContext());
@@ -267,28 +266,28 @@ namespace VkRender {
         updateEditors();
         m_mainEditor->update((frameCounter == 0), frameTimer, &input);
         m_logger->frameNumber = frameID;
-        m_sharedContextData.multiSenseRendererBridge->update(); // TODO reconsider if we should call crl updates here?
+        //m_sharedContextData.multiSenseRendererBridge->update(); // TODO reconsider if we should call crl updates here?
 
         std::string versionRemote;
     }
 
-    std::unique_ptr<Editor> Renderer::createEditor(EditorCreateInfo &createInfo) {
+    std::unique_ptr<Editor> Application::createEditor(EditorCreateInfo &createInfo) {
         auto editor = createEditorWithUUID(UUID(), createInfo);
         return editor;
     }
 
-    std::unique_ptr<Editor> Renderer::createEditorWithUUID(UUID uuid, EditorCreateInfo &createInfo) {
+    std::unique_ptr<Editor> Application::createEditorWithUUID(UUID uuid, EditorCreateInfo &createInfo) {
         return m_editorFactory->createEditor(createInfo.editorTypeDescription, createInfo, uuid);
     }
 
-    void Renderer::recreateEditor(std::unique_ptr<Editor> &editor, EditorCreateInfo &createInfo) {
+    void Application::recreateEditor(std::unique_ptr<Editor> &editor, EditorCreateInfo &createInfo) {
         auto newEditor = createEditor(createInfo);
         newEditor->ui() = editor->ui();
         newEditor->onSceneLoad(std::shared_ptr<Scene>());
         editor = std::move(newEditor);
     }
 
-    void Renderer::updateEditors() {
+    void Application::updateEditors() {
         // Reorder Editors elements according to UI
         for (auto &editor: m_editors) {
             if (editor->ui().changed) {
@@ -310,7 +309,7 @@ namespace VkRender {
         }
     }
 
-    void Renderer::onRender() {
+    void Application::onRender() {
         /** Generate Draw Commands **/
         for (auto &editor: m_editors) {
             editor->render(drawCmdBuffers);
@@ -320,7 +319,7 @@ namespace VkRender {
          *  THIS INCLUDES RENDERING SELECTED OBJECTS AND COPYING CONTENTS BACK TO CPU INSTEAD OF DISPLAYING TO SCREEN **/
     }
 
-    void Renderer::windowResized(int32_t dx, int32_t dy, double widthScale, double heightScale) {
+    void Application::windowResized(int32_t dx, int32_t dy, double widthScale, double heightScale) {
 
         Widgets::clear();
 
@@ -340,7 +339,7 @@ namespace VkRender {
         m_mainEditor->resize(ci);
     }
 
-    void Renderer::cleanUp() {
+    void Application::cleanUp() {
         if (std::filesystem::exists(Utils::getRuntimeConfigFilePath())) {
             std::filesystem::remove(Utils::getRuntimeConfigFilePath());
             Log::Logger::getInstance()->info("Removed runtime config file before cleanup {}",
@@ -348,17 +347,17 @@ namespace VkRender {
         }
 
         auto startTime = std::chrono::steady_clock::now();
-        auto &userSetting = RendererConfig::getInstance().getUserSetting();
+        auto &userSetting = ApplicationConfig::getInstance().getUserSetting();
         userSetting.projectName = m_projectConfig.name;
         if (m_scene)
             userSetting.sceneName = m_scene->getSceneName();
 
         m_usageMonitor->userEndSession();
         if (m_usageMonitor->hasUserLogCollectionConsent() &&
-            RendererConfig::getInstance().getUserSetting().sendUsageLogOnExit)
+            ApplicationConfig::getInstance().getUserSetting().sendUsageLogOnExit)
             m_usageMonitor->sendUsageLog();
 
-        RendererConfig::getInstance().saveSettings(this);
+        ApplicationConfig::getInstance().saveSettings(this);
         auto timeSpan = std::chrono::duration_cast<std::chrono::duration<float> >(
                 std::chrono::steady_clock::now() - startTime);
         Log::Logger::getInstance()->trace("Sending logs on exit took {}s", timeSpan.count());
@@ -378,7 +377,7 @@ namespace VkRender {
         // Destroy framebuffer
     }
 
-    void Renderer::handleEditorResize() {
+    void Application::handleEditorResize() {
         //// UPDATE EDITOR WITH UI EVENTS - Very little logic here
         for (auto &editor: m_editors) {
             Editor::handleHoverState(editor, mouse);
@@ -490,7 +489,7 @@ namespace VkRender {
     }
 
 
-    void Renderer::resizeEditors(bool anyCornerClicked) {
+    void Application::resizeEditors(bool anyCornerClicked) {
         bool isValidResizeAll = true;
         for (auto &editor: m_editors) {
             if (editor->ui().resizeActive && (!anyCornerClicked || editor->ui().splitting)) {
@@ -509,7 +508,7 @@ namespace VkRender {
         }
     }
 
-    void Renderer::splitEditor(uint32_t splitEditorIndex) {
+    void Application::splitEditor(uint32_t splitEditorIndex) {
         auto &editor = m_editors[splitEditorIndex];
         EditorCreateInfo &editorCreateInfo = editor->getCreateInfo();
         EditorCreateInfo newEditorCreateInfo(m_guiResources, this, &m_sharedContextData, m_vulkanDevice, &m_allocator,
@@ -550,7 +549,7 @@ namespace VkRender {
         m_editors.push_back(std::move(newEditor));
     }
 
-    void Renderer::mergeEditors(const std::array<UUID, 2> &mergeEditorIndices) {
+    void Application::mergeEditors(const std::array<UUID, 2> &mergeEditorIndices) {
         UUID id1 = mergeEditorIndices[0];
         UUID id2 = mergeEditorIndices[1];
         auto &editor1 = findEditorByUUID(id1);
@@ -591,7 +590,7 @@ namespace VkRender {
         editor1->resize(ci1);
     }
 
-    EditorCreateInfo Renderer::getNewEditorCreateInfo(std::unique_ptr<Editor> &editor) {
+    EditorCreateInfo Application::getNewEditorCreateInfo(std::unique_ptr<Editor> &editor) {
         EditorCreateInfo newEditorCI(m_guiResources, this, &m_sharedContextData, m_vulkanDevice, &m_allocator,
                                      m_frameBuffers.data());
         EditorCreateInfo::copy(&newEditorCI, &editor->getCreateInfo());
@@ -620,7 +619,7 @@ namespace VkRender {
         return newEditorCI;
     }
 
-    void Renderer::mouseMoved(float x, float y, bool &handled) {
+    void Application::mouseMoved(float x, float y, bool &handled) {
         mouse.insideApp = !(x < 0 || x > m_width || y < 0 || y > m_height);
         float dx = x - mouse.x;
         float dy = y - mouse.y;
@@ -662,7 +661,7 @@ namespace VkRender {
         handled = true;
     }
 
-    void Renderer::mouseScroll(float change) {
+    void Application::mouseScroll(float change) {
         ImGuiIO &io = ImGui::GetIO();
         io.MouseWheel += 0.5f * static_cast<float>(change);
         for (auto &editor: m_editors) {
@@ -676,7 +675,7 @@ namespace VkRender {
     }
 
 
-    std::unique_ptr<Editor> &Renderer::findEditorByUUID(const UUID &uuid) {
+    std::unique_ptr<Editor> &Application::findEditorByUUID(const UUID &uuid) {
         for (auto &editor: m_editors) {
             if (uuid == editor->getUUID()) {
                 return editor;
@@ -685,7 +684,7 @@ namespace VkRender {
     }
 
 
-    void Renderer::postRenderActions() {
+    void Application::postRenderActions() {
         // Reset mousewheel across imgui contexts
         /*
         for (std::vector<ImGuiContext *> list = {m_mainEditor->m_guiManager->m_imguiContext,
@@ -701,7 +700,7 @@ namespace VkRender {
 
            */
 
-    void Renderer::keyboardCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
+    void Application::keyboardCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
         for (auto &editor: m_editors) {
             ImGui::SetCurrentContext(editor->guiContext());
             ImGuiIO &io = ImGui::GetIO();
@@ -725,12 +724,12 @@ namespace VkRender {
         io.AddKeyEvent(imgui_key, (action == GLFW_PRESS) || (action == GLFW_REPEAT));
     }
 
-    std::shared_ptr<Scene> Renderer::activeScene() {
+    std::shared_ptr<Scene> Application::activeScene() {
         return m_scene;
     }
 
 
-    void Renderer::onFileDrop(const std::filesystem::path &path) {
+    void Application::onFileDrop(const std::filesystem::path &path) {
         for (auto &editor: m_editors) {
             Editor::handleHoverState(editor, mouse);
         }
@@ -743,7 +742,7 @@ namespace VkRender {
         }
     }
 
-    void Renderer::onCharInput(unsigned int codepoint) {
+    void Application::onCharInput(unsigned int codepoint) {
         for (auto &editor: m_editors) {
             ImGui::SetCurrentContext(editor->guiContext());
             ImGuiIO &io = ImGui::GetIO();
@@ -754,11 +753,11 @@ namespace VkRender {
         io.AddInputCharacter(static_cast<unsigned short>(codepoint));
     }
 
-    bool Renderer::isCurrentScene(std::string sceneName) {
+    bool Application::isCurrentScene(std::string sceneName) {
         return activeScene()->getSceneName() == sceneName;
     }
 
-    bool Renderer::isCurrentProject(std::string projectName) {
+    bool Application::isCurrentProject(std::string projectName) {
 
 
         return false;

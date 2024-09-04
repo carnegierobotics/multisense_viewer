@@ -39,8 +39,8 @@
 #include <future>
 
 #include "Viewer/VkRender/ImGui/Layer.h"
-#include "Viewer/VkRender/Core/RendererConfig.h"
-#include "Viewer/VkRender/UsageMonitor.h"
+#include "Viewer/Application/ApplicationConfig.h"
+#include "Viewer/Application/UsageMonitor.h"
 
 class DebugWindow : public VkRender::Layer {
 public:
@@ -169,7 +169,7 @@ public:
     void onUIRender(VkRender::GuiObjectHandles &handles) override {
         if (!handles.showDebugWindow)
             return;
-        VkRender::RendererConfig &config = VkRender::RendererConfig::getInstance();
+        VkRender::ApplicationConfig &config = VkRender::ApplicationConfig::getInstance();
         auto user = config.getUserSetting();
         bool update = false;
 
@@ -288,7 +288,7 @@ public:
             }
             ImGui::EndCombo();
         }
-        ImGui::Text("Anonymous ID: %s", VkRender::RendererConfig::getInstance().getAnonymousIdentifier().c_str());
+        ImGui::Text("Anonymous ID: %s", VkRender::ApplicationConfig::getInstance().getAnonymousIdentifier().c_str());
 
         ImGui::Spacing();
         ImGui::Separator();

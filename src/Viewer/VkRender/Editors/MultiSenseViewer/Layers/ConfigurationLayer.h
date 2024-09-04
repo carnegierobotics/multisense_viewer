@@ -55,12 +55,14 @@ namespace VkRender {
 
         void drawConfigurationPage(GuiObjectHandles &uiContext) {
             MultiSense::MultiSenseDevice multisense{};
+            /*
             auto devices = uiContext.shared->multiSenseRendererBridge->getProfileList();
             for (const auto &device: devices) {
                 if (device.connectionState == MultiSense::MULTISENSE_CONNECTED) {
                     multisense = device;
                 }
             }
+            */
             //if (multisense.connectionState != MultiSense::MULTISENSE_CONNECTED)
             //    return;
 

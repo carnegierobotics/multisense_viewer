@@ -234,7 +234,7 @@ namespace VkRender {
                     uiContext.usageMonitor->userClickAction("Connect", "button",
                                                             ImGui::GetCurrentWindow()->Name);
 
-                    uiContext.shared->multiSenseRendererBridge->addNewProfile(profileInfo);
+                    //uiContext.shared->multiSenseRendererBridge->addNewProfile(profileInfo);
                     uiContext.shared->openAddDevicePopup = false;
                     ImGui::CloseCurrentPopup();
                 }

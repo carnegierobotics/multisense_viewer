@@ -9,10 +9,10 @@
 #include "Viewer/VkRender/ImGui/LayerUtils.h"
 
 #include "Viewer/VkRender/Components/GLTFModelComponent.h"
-#include "Viewer/VkRender/Renderer.h"
+#include "Viewer/Application/Application.h"
 #include "Viewer/VkRender/Components/SkyboxGraphicsPipelineComponent.h"
 #include "Viewer/VkRender/Components/MeshComponent.h"
-#include "Viewer/VkRender/Entity.h"
+#include "Viewer/VkRender/Core/Entity.h"
 #include "Viewer/VkRender/Components/RenderComponents/DefaultGraphicsPipelineComponent2.h"
 
 /** Is attached to the renderer through the GuiManager and instantiated in the GuiManager Constructor through

@@ -7,7 +7,7 @@
 
 #include "Viewer/Tools/Populate.h"
 #include "Viewer/VkRender/Editors/Editor.h"
-#include "Viewer/VkRender/Renderer.h"
+#include "Viewer/Application/Application.h"
 #include "VulkanResourceManager.h"
 
 namespace VkRender {

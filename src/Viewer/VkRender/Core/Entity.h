@@ -6,10 +6,10 @@
 #define MULTISENSE_VIEWER_ENTITY_H
 
 #include <cassert>
-#include <entt/entt.hpp>
+#include <multisense_viewer/external/entt/include/entt/entt.hpp>
 
 #include "Viewer/Tools/Macros.h"
-#include "Viewer/VkRender/Scene.h"
+#include "Viewer/Scenes/Scene.h"
 
 namespace VkRender {
 

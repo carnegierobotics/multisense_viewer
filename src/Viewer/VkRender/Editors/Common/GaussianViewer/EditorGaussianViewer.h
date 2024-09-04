@@ -7,7 +7,7 @@
 
 #include "Viewer/VkRender/Editors/Editor.h"
 #include "Viewer/VkRender/Core/Camera.h"
-#include "Viewer/VkRender/Scene.h"
+#include "Viewer/Scenes/Scene.h"
 #include "Viewer/VkRender/RenderPipelines/3DGS/GaussianModelGraphicsPipeline.h"
 #include "Viewer/VkRender/RenderPipelines/GraphicsPipeline2D.h"
 

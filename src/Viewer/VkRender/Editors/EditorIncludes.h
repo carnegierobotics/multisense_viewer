@@ -11,9 +11,9 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include <imgui.h>
 
-#include "Viewer/VkRender/pch.h"
+#include "Viewer/Application/pch.h"
 #include "Viewer/VkRender/Editors/EditorDefinitions.h"
-#include "Viewer/VkRender/Entity.h"
+#include "Viewer/VkRender/Core/Entity.h"
 
 #include "Viewer/VkRender/Editors/MultiSenseViewer/Modules/LibMultiSense/MultiSenseRendererBridge.h"
 #include "Viewer/VkRender/Editors/MultiSenseViewer/Modules/GigE-Vision/MultiSenseRendererGigEVisionBridge.h"
@@ -27,11 +27,11 @@ namespace VkRender {
         std::vector<std::shared_ptr<VulkanFramebuffer>> depthOnlyFramebuffer;
     } ;
 
+    // TODO Probably not the best way to share data among editors
     struct SharedContextData {
         bool openAddDevicePopup = false;
         Entity m_selectedEntity;
-        std::shared_ptr<MultiSense::MultiSenseRendererBridge> multiSenseRendererBridge{};
-        std::shared_ptr<MultiSense::MultiSenseRendererGigEVisionBridge> multiSenseRendererGigEVisionBridge{};
+
 
         bool startRecording = false;
         bool newFrame = false;

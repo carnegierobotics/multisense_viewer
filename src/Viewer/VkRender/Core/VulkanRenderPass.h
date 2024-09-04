@@ -15,7 +15,7 @@
 #include "Viewer/VkRender/Editors/EditorDefinitions.h"
 
 namespace VkRender {
-    class Renderer;
+    class Application;
 
     typedef enum VulkanRenderPassType{
         DEFAULT,
@@ -72,7 +72,7 @@ namespace VkRender {
         VulkanRenderPassCreateInfo pPassCreateInfo{};
         VulkanDevice *vulkanDevice = nullptr;
         VmaAllocator *allocator = nullptr;
-        Renderer* context;
+        Application* context;
         VkFramebuffer *frameBuffers{};
 
         int32_t x = 0;
@@ -90,7 +90,7 @@ namespace VkRender {
         std::shared_ptr<GuiResources> guiResources;
         SharedContextData *sharedUIContextData;
 
-        EditorCreateInfo(std::shared_ptr<GuiResources> guiRes, Renderer* ctx,
+        EditorCreateInfo(std::shared_ptr<GuiResources> guiRes, Application* ctx,
                          SharedContextData *sharedData,
                          VulkanDevice *dev, VmaAllocator *alloc, VkFramebuffer* fbs)
                 : vulkanDevice(dev), allocator(alloc), guiResources(std::move(guiRes)),

@@ -39,7 +39,7 @@
 
 #pragma once
 
-#include "Viewer/VkRender/pch.h"
+#include "Viewer/Application/pch.h"
 
 #include <tiny_gltf.h>
 

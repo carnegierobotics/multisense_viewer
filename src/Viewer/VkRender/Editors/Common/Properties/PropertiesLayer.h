@@ -6,7 +6,7 @@
 #define MULTISENSE_VIEWER_PROPERTIESLAYER
 
 #include "Viewer/VkRender/ImGui/Layer.h"
-#include "Viewer/VkRender/Entity.h"
+#include "Viewer/VkRender/Core/Entity.h"
 #include "Viewer/VkRender/ImGui/LayerUtils.h"
 #include <glm/gtc/type_ptr.hpp>  // Include this header for glm::value_ptr
 

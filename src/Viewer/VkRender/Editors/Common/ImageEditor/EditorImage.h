@@ -6,7 +6,7 @@
 #define MULTISENSE_VIEWER_EDITORIMAGE
 
 #include "Viewer/VkRender/Editors/Editor.h"
-#include "Viewer/VkRender/Scene.h"
+#include "Viewer/Scenes/Scene.h"
 #include "Viewer/VkRender/RenderPipelines/GraphicsPipeline.h"
 #include "Viewer/VkRender/Core/VulkanTexture.h"
 

@@ -5,10 +5,10 @@
 #include <iostream>
 #include <future>
 
-#include "Viewer/VkRender/UsageMonitor.h"
+#include "UsageMonitor.h"
 #include "Viewer/Tools/Logger.h"
 #include "Viewer/Tools/Utils.h"
-#include "Viewer/VkRender/Core/RendererConfig.h"
+#include "ApplicationConfig.h"
 #include "Viewer/VkRender/Core/ServerConnection.h"
 
 UsageMonitor::UsageMonitor() {
@@ -20,7 +20,7 @@ UsageMonitor::UsageMonitor() {
     if (!std::filesystem::exists(usageFilePath)) {
         initializeJSONFile();
     }
-    VkRender::RendererConfig &config = VkRender::RendererConfig::getInstance();
+    VkRender::ApplicationConfig &config = VkRender::ApplicationConfig::getInstance();
 
     // Connect to CRL server
     server = std::make_unique<VkRender::ServerConnection>(config.getAnonymousIdentifier(), config.getServerInfo());
@@ -34,7 +34,7 @@ UsageMonitor::UsageMonitor() {
 
 void UsageMonitor::loadSettingsFromFile() {
     nlohmann::json jsonObj = openUsageFile();
-    VkRender::RendererConfig &config = VkRender::RendererConfig::getInstance();
+    VkRender::ApplicationConfig &config = VkRender::ApplicationConfig::getInstance();
 
     if (!jsonObj.contains("settings")) {
         nlohmann::json settingsJson;
@@ -162,7 +162,7 @@ void UsageMonitor::initializeJSONFile() {
         // Handle the error
     }
 
-    VkRender::RendererConfig &config = VkRender::RendererConfig::getInstance();
+    VkRender::ApplicationConfig &config = VkRender::ApplicationConfig::getInstance();
 
     std::string logVersion = "1.0.0";
     std::ofstream output_file(usageFilePath);
@@ -195,7 +195,7 @@ bool UsageMonitor::getLatestAppVersionRemote(std::string *version) {
     bool success = false;
     if (getAppVersionRemoteFuture.valid() &&
         getAppVersionRemoteFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
-        *version = VkRender::RendererConfig::getInstance().getAppVersionRemote();
+        *version = VkRender::ApplicationConfig::getInstance().getAppVersionRemote();
         success = getAppVersionRemoteFuture.get();
     }
 
@@ -281,7 +281,7 @@ void UsageMonitor::userStartSession(
         std::chrono::system_clock::time_point startTime) {
     m_StartTime = startTime;
     nlohmann::json obj;
-    auto gpuDevice = VkRender::RendererConfig::getInstance().getGpuDevice();
+    auto gpuDevice = VkRender::ApplicationConfig::getInstance().getGpuDevice();
 
 
     obj["event"] = "start application";

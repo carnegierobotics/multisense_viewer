@@ -37,7 +37,7 @@
 #ifndef MULTISENSE_VULKANDEVICE_H
 #define MULTISENSE_VULKANDEVICE_H
 
-#include "Viewer/VkRender/pch.h"
+#include "Viewer/Application/pch.h"
 
 #include "Viewer/Tools/Populate.h"
 #include "Viewer/VkRender/Core/Buffer.h"

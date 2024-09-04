@@ -39,7 +39,7 @@
 
 
 #include <vulkan/vulkan.h>
-#include "Viewer/VkRender/pch.h"
+#include "Viewer/Application/pch.h"
 
 /**
 * @brief Encapsulates access to a Vulkan buffer backed up by m_Device memory

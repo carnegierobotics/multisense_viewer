@@ -6,8 +6,8 @@
 #define MULTISENSE_VIEWER_SERVERCONNECTION_H
 
 #include <httplib.h>
-#include "Viewer/VkRender/Core/RendererConfig.h"
-#include "Viewer/VkRender/pch.h"
+#include "Viewer/Application/ApplicationConfig.h"
+#include "Viewer/Application/pch.h"
 
 namespace VkRender {
 class ServerConnection {
@@ -19,7 +19,7 @@ public:
  * @param protocol http or https
  * @param destination destination in the server that requests should go to by default
  */
-    ServerConnection(const std::string& identifier, const VkRender::RendererConfig::CRLServerInfo& serverInfo){
+    ServerConnection(const std::string& identifier, const VkRender::ApplicationConfig::CRLServerInfo& serverInfo){
         // Create the HTTP client
         m_Identifier = identifier;
         m_ServerInfo = serverInfo;
@@ -38,7 +38,7 @@ public:
 private:
     std::unique_ptr<httplib::Client> m_Client;
     std::string m_Identifier;
-    VkRender::RendererConfig::CRLServerInfo m_ServerInfo;
+    VkRender::ApplicationConfig::CRLServerInfo m_ServerInfo;
 };
 }
 

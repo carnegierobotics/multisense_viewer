@@ -4,11 +4,11 @@
 
 
 #include "Viewer/VkRender/RenderPipelines/UboGraphicsPipeline.h"
-#include "Viewer/VkRender/Renderer.h"
+#include "Viewer/Application/Application.h"
 
 namespace VkRender {
 
-    UboGraphicsPipeline::UboGraphicsPipeline(Renderer &m_context,
+    UboGraphicsPipeline::UboGraphicsPipeline(Application &m_context,
                                              const RenderPassInfo &renderPassInfo)
             : m_vulkanDevice(m_context.vkDevice()),
               m_renderPassInfo(std::move(renderPassInfo)) {

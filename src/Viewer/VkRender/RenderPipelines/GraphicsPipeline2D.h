@@ -14,12 +14,12 @@
 #include "Viewer/VkRender/Core/VulkanTexture.h"
 
 namespace VkRender {
-    class Renderer;
+    class Application;
 
     // TODO instead of inherting from standard 3D Graphics pipeline, we should inherit from a separate type just for 2D to avoid messy overrides
     class GraphicsPipeline2D : public GraphicsPipeline {
     public:
-        GraphicsPipeline2D(Renderer &context, const RenderPassInfo &renderPassInfo);
+        GraphicsPipeline2D(Application &context, const RenderPassInfo &renderPassInfo);
 
         ~GraphicsPipeline2D() override;
 

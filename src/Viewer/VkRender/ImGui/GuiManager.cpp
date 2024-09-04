@@ -46,7 +46,7 @@
 #include <imgui_impl_vulkan.h>
 #include <ranges>
 #include "Viewer/VkRender/ImGui/GuiManager.h"
-#include "Viewer/VkRender/Renderer.h"
+#include "Viewer/Application/Application.h"
 
 
 namespace VkRender {
@@ -63,7 +63,7 @@ namespace VkRender {
 
 
     GuiManager::GuiManager(VulkanDevice &vulkanDevice, VkRenderPass const &renderPass, EditorUI *editorUi,
-                           VkSampleCountFlagBits msaaSamples, uint32_t imageCount, Renderer* ctx,
+                           VkSampleCountFlagBits msaaSamples, uint32_t imageCount, Application* ctx,
                            ImGuiContext *imguiCtx,
                            const GuiResources *guiResources, SharedContextData* sharedData) : handles(sharedData),
             m_guiResources(guiResources), m_vulkanDevice(vulkanDevice), m_context(ctx) {

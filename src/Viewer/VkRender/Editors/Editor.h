@@ -19,7 +19,7 @@
 #include "Viewer/VkRender/Core/VulkanFramebuffer.h"
 
 namespace VkRender {
-    class Renderer;
+    class Application;
 
 
 
@@ -161,7 +161,7 @@ namespace VkRender {
         void createOffscreenFramebuffer();
 
     protected:
-        Renderer* m_context;
+        Application* m_context;
         std::unique_ptr<VulkanRenderPass> m_renderPass;
         std::unique_ptr<VulkanRenderPass> m_depthRenderPass;
         std::unique_ptr<VulkanRenderPass> m_offscreenRenderPass;

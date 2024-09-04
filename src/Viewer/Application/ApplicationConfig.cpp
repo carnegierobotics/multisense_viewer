@@ -3,17 +3,17 @@
 //
 
 #include <random>
-#include <nlohmann/json.hpp>
+#include <multisense_viewer/external/json/include/nlohmann/json.hpp>
 
-#include "Viewer/VkRender/Core/RendererConfig.h"
-#include "Viewer/VkRender/Renderer.h"
+#include "ApplicationConfig.h"
+#include "Application.h"
 #include "Viewer/Tools/Utils.h"
 
 namespace VkRender {
 
 #ifdef WIN32
 
-    void RendererConfig::getOSVersion() {
+    void ApplicationConfig::getOSVersion() {
         std::string major;
         std::string minor;
 
@@ -52,7 +52,7 @@ namespace VkRender {
         m_OSVersion = versionString;
     }
 
-    std::string RendererConfig::fetchArchitecture() {
+    std::string ApplicationConfig::fetchArchitecture() {
         SYSTEM_INFO systemInfo;
         GetNativeSystemInfo(&systemInfo);
 
@@ -69,7 +69,7 @@ namespace VkRender {
 
 #else
 
-    void RendererConfig::getOSVersion() {
+    void ApplicationConfig::getOSVersion() {
         // OS type
         // OS version
         std::ifstream ifs("/etc/os-release");
@@ -96,7 +96,7 @@ namespace VkRender {
         m_OSVersion = version;
     }
 
-    std::string RendererConfig::fetchArchitecture() {
+    std::string ApplicationConfig::fetchArchitecture() {
         struct utsname unameData{};
         if (uname(&unameData) != 0) {
             Log::Logger::getInstance()->error("Error calling uname()", unameData.machine);
@@ -110,7 +110,7 @@ namespace VkRender {
 
 #endif
 
-    std::string RendererConfig::fetchApplicationVersion() {
+    std::string ApplicationConfig::fetchApplicationVersion() {
         auto path = Utils::getAssetsPath() / "Generated/VersionInfo";
         std::ifstream infile(path);
         std::string line;
@@ -160,69 +160,69 @@ namespace VkRender {
         return applicationVersion;
     }
 
-    const std::string &RendererConfig::getArchitecture() const {
+    const std::string &ApplicationConfig::getArchitecture() const {
         return m_Architecture;
     }
 
-    const std::string &RendererConfig::getOsVersion() const {
+    const std::string &ApplicationConfig::getOsVersion() const {
         return m_OSVersion;
     }
 
-    const std::string &RendererConfig::getAppVersion() const {
+    const std::string &ApplicationConfig::getAppVersion() const {
         return m_AppVersion;
     }
 
-    const std::string &RendererConfig::getTimeStamp() const {
+    const std::string &ApplicationConfig::getTimeStamp() const {
         return m_TimeStamp;
     }
 
-    const std::string &RendererConfig::getOS() const {
+    const std::string &ApplicationConfig::getOS() const {
         return m_OS;
     }
 
-    const std::string &RendererConfig::getGpuDevice() const {
+    const std::string &ApplicationConfig::getGpuDevice() const {
         return m_GPUDevice;
     }
 
-    void RendererConfig::setGpuDevice(VkPhysicalDevice const &physicalDevice) {
+    void ApplicationConfig::setGpuDevice(VkPhysicalDevice const &physicalDevice) {
         VkPhysicalDeviceProperties properties{};
         vkGetPhysicalDeviceProperties(physicalDevice, &properties);
         m_GPUDevice = properties.deviceName;
     }
 
-    AppConfig::ApplicationUserSetting &RendererConfig::getUserSetting() {
+    AppConfig::ApplicationUserSetting &ApplicationConfig::getUserSetting() {
         return m_UserSetting;
     }
 
-    AppConfig::ApplicationUserSetting *RendererConfig::getUserSettingRef() {
+    AppConfig::ApplicationUserSetting *ApplicationConfig::getUserSettingRef() {
         return &m_UserSetting;
     }
 
-    const std::string &RendererConfig::getAnonymousIdentifier() const {
+    const std::string &ApplicationConfig::getAnonymousIdentifier() const {
         return m_Identifier;
     }
 
-    const std::string &RendererConfig::getAppVersionRemote() const {
+    const std::string &ApplicationConfig::getAppVersionRemote() const {
         return m_AppVersionRemote;
     }
 
-    void RendererConfig::setAppVersionRemote(const std::string &mAppVersionRemote) {
+    void ApplicationConfig::setAppVersionRemote(const std::string &mAppVersionRemote) {
         m_AppVersionRemote = mAppVersionRemote;
     }
 
-    const std::vector<std::string> &RendererConfig::getEnabledExtensions() const {
+    const std::vector<std::string> &ApplicationConfig::getEnabledExtensions() const {
         return m_EnabledExtensions;
     }
 
-    void RendererConfig::addEnabledExtension(const std::string &extensionName) {
+    void ApplicationConfig::addEnabledExtension(const std::string &extensionName) {
         m_EnabledExtensions.emplace_back(extensionName);
     }
 
-    bool RendererConfig::hasEnabledExtension(const std::string &extensionName) const {
+    bool ApplicationConfig::hasEnabledExtension(const std::string &extensionName) const {
         return Utils::isInVector(m_EnabledExtensions, extensionName);
     }
 
-    void RendererConfig::saveSettings(Renderer *ctx) {
+    void ApplicationConfig::saveSettings(Application *ctx) {
         // Save application settings to file
         // Save application settings to file
         try {
@@ -252,7 +252,7 @@ namespace VkRender {
 
     }
 
-    RendererConfig::RendererConfig() {
+    ApplicationConfig::ApplicationConfig() {
         getOSVersion();
         m_Architecture = fetchArchitecture();
         m_AppVersion = fetchApplicationVersion();

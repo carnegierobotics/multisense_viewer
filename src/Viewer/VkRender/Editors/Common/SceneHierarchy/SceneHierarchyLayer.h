@@ -6,8 +6,8 @@
 #define MULTISENSE_VIEWER_SCENEHIERARCHY_H
 
 #include "Viewer/VkRender/ImGui/Layer.h"
-#include "Viewer/VkRender/Renderer.h"
-#include "Viewer/VkRender/Entity.h"
+#include "Viewer/Application/Application.h"
+#include "Viewer/VkRender/Core/Entity.h"
 #include "Viewer/VkRender/ImGui/LayerUtils.h"
 #include "Viewer/VkRender/RenderPipelines/DefaultGraphicsPipeline.h"
 #include "Viewer/VkRender/Components/MeshComponent.h"

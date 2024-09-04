@@ -3,7 +3,7 @@
 //
 
 #include "Viewer/VkRender/Editors/Common/ImageEditor/EditorImage.h"
-#include "Viewer/VkRender/Renderer.h"
+#include "Viewer/Application/Application.h"
 #include "Viewer/VkRender/RenderPipelines/RenderBase.h"
 
 namespace VkRender {

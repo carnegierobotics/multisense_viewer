@@ -81,7 +81,7 @@ namespace VkRender {
         }
 
         if (!latestVersion.empty()) {
-            VkRender::RendererConfig::getInstance().setAppVersionRemote(latestVersion);
+            VkRender::ApplicationConfig::getInstance().setAppVersionRemote(latestVersion);
             success = true;
         }
         return success;

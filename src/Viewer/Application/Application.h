@@ -36,18 +36,18 @@
 #ifndef MULTISENSE_RENDERER_H
 #define MULTISENSE_RENDERER_H
 
-#include "Viewer/VkRender/pch.h"
+#include "pch.h"
 
 #include <GLFW/glfw3.h>
-#include <entt/entt.hpp>
+#include <multisense_viewer/external/entt/include/entt/entt.hpp>
 
 
 #include "Viewer/VkRender/Core/VulkanRenderer.h"
 #include "Viewer/Scenes/ScriptSupport/ScriptBuilder.h"
 #include "Viewer/Tools/Macros.h"
-#include "Viewer/VkRender/UsageMonitor.h"
-#include "Viewer/VkRender/Scene.h"
-#include "Viewer/VkRender/Core/RendererConfig.h"
+#include "UsageMonitor.h"
+#include "Viewer/Scenes/Scene.h"
+#include "ApplicationConfig.h"
 #include "Viewer/VkRender/Core/Camera.h"
 #include "Viewer/VkRender/Core/UUID.h"
 #include "Viewer/VkRender/Editors/Editor.h"
@@ -66,7 +66,7 @@ namespace VkRender {
         std::vector<EditorType> editorTypes;
     };
 
-    class Renderer : VulkanRenderer {
+    class Application : VulkanRenderer {
 
     public:
 
@@ -74,9 +74,9 @@ namespace VkRender {
          * @brief Default constructor for renderer
          * @param title Title of application
          */
-        explicit Renderer(const std::string &title);
+        explicit Application(const std::string &title);
 
-        ~Renderer() override = default;
+        ~Application() override = default;
 
         /**
          * @brief runs the renderer loop
@@ -169,7 +169,7 @@ namespace VkRender {
         SharedContextData m_sharedContextData;
         SharedEditorData m_sharedEditorData;
 
-        friend class RendererConfig;
+        friend class ApplicationConfig;
 
         void updateEditors();
 

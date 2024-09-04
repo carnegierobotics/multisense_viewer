@@ -6,7 +6,7 @@
 #define MULTISENSE_VIEWER_DEFAULTSCENE_H
 
 
-#include "Viewer/VkRender/Scene.h"
+#include "Viewer/Scenes/Scene.h"
 
 #include "Viewer/Scenes/Default/Scripts/MultiSense.h"
 //#include "Viewer/Scenes/Default/Scripts/ImageViewer.h"
@@ -17,7 +17,7 @@ class DefaultScene : public Scene {
 
     public:
 
-        explicit DefaultScene(Renderer& ctx, const std::string& name);
+        explicit DefaultScene(Application& ctx, const std::string& name);
 
         void loadScripts();
 

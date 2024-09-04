@@ -73,7 +73,7 @@ set(SOURCE_FILES
         src/Viewer/VkRender/Core/VulkanRenderer.cpp
         src/Viewer/VkRender/Core/VulkanSwapchain.cpp
         src/Viewer/VkRender/Core/UUID.cpp
-        src/Viewer/VkRender/Core/RendererConfig.cpp
+        src/Viewer/Application/ApplicationConfig.cpp
         src/Viewer/VkRender/Core/ServerConnection.cpp
         src/Viewer/VkRender/Core/CommandBuffer.cpp
         src/Viewer/VkRender/Core/VulkanRenderPass.cpp
@@ -82,17 +82,18 @@ set(SOURCE_FILES
         src/Viewer/VkRender/Core/VulkanImage.cpp
         src/Viewer/VkRender/Core/VulkanFramebuffer.cpp
 
-        src/Viewer/VkRender/pch.cpp
-        src/Viewer/VkRender/Renderer.cpp
-        src/Viewer/VkRender/UsageMonitor.cpp
-        src/Viewer/VkRender/ApplicationUserSetting.h
-        src/Viewer/VkRender/Scene.cpp
-        src/Viewer/VkRender/Entity.cpp
+        src/Viewer/Application/pch.cpp
+        src/Viewer/Application/Application.cpp
+        src/Viewer/Application/UsageMonitor.cpp
+        src/Viewer/Application/ApplicationUserSetting.h
+        src/Viewer/VkRender/Core/Entity.cpp
 
         src/Viewer/VkRender/RenderPipelines/DefaultGraphicsPipeline.cpp
         src/Viewer/VkRender/RenderPipelines/UboGraphicsPipeline.cpp
         src/Viewer/VkRender/RenderPipelines/GraphicsPipeline2D.cpp
         src/Viewer/VkRender/RenderPipelines/PointCloudGraphicsPipeline.cpp
+
+        src/Viewer/Scenes/Scene.cpp
 
         src/Viewer/VkRender/Components/MeshComponent.cpp
         src/Viewer/VkRender/Components/GaussianModelComponent.cpp

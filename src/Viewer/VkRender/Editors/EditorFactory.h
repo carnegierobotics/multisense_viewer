@@ -7,7 +7,7 @@
 
 #include <utility>
 
-#include "Viewer/VkRender/pch.h"
+#include "Viewer/Application/pch.h"
 
 #include "Viewer/VkRender/Editors/Editor.h"
 #include "Viewer/VkRender/Editors/Common/3DViewport/Editor3DViewport.h"

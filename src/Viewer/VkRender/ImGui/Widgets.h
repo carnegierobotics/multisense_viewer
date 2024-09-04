@@ -7,7 +7,7 @@
 
 #include "Viewer/VkRender/Core/RenderDefinitions.h"
 #include "Viewer/Tools/Logger.h"
-#include "Viewer/VkRender/pch.h"
+#include "Viewer/Application/pch.h"
 
 
 enum ScriptWidgetType {

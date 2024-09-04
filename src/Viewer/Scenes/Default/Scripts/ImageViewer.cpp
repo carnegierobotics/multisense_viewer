@@ -5,8 +5,8 @@
 #include "Viewer/Scenes/Default/Scripts/ImageViewer.h"
 #include "Viewer/VkRender/ImGui/Widgets.h"
 #include "Viewer/VkRender/Components/Components.h"
-#include "Viewer/VkRender/Renderer.h"
-#include "Viewer/VkRender/Entity.h"
+#include "Viewer/Application/Application.h"
+#include "Viewer/VkRender/Core/Entity.h"
 #include "Viewer/VkRender/Components/RenderComponents/DefaultGraphicsPipelineComponent2.h"
 #include "Viewer/VkRender/Components/MeshComponent.h"
 

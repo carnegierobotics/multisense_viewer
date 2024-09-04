@@ -4,16 +4,16 @@
 
 #include "Viewer/VkRender/RenderPipelines/DefaultGraphicsPipeline.h"
 #include "Viewer/VkRender/Components/MeshComponent.h"
-#include "Viewer/VkRender/Renderer.h"
+#include "Viewer/Application/Application.h"
 #include "Viewer/VkRender/Core/VulkanResourceManager.h"
 
 namespace VkRender {
 
 
-    DefaultGraphicsPipeline::DefaultGraphicsPipeline(Renderer &m_context,
-                                                                       const RenderPassInfo &renderPassInfo,
-                                                                       const std::string &vertexShader,
-                                                                       const std::string &fragmentShader)
+    DefaultGraphicsPipeline::DefaultGraphicsPipeline(Application &m_context,
+                                                     const RenderPassInfo &renderPassInfo,
+                                                     const std::string &vertexShader,
+                                                     const std::string &fragmentShader)
             : m_vulkanDevice(m_context.vkDevice()),
               m_renderPassInfo(std::move(renderPassInfo)) {
 

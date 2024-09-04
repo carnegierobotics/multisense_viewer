@@ -4,10 +4,10 @@
 
 #include "Viewer/VkRender/Editors/Common/3DViewport/Editor3DViewport.h"
 
-#include "Viewer/VkRender/Renderer.h"
+#include "Viewer/Application/Application.h"
 #include "Viewer/VkRender/Components/Components.h"
 #include "Viewer/VkRender/RenderPipelines/DefaultGraphicsPipeline.h"
-#include "Viewer/VkRender/Entity.h"
+#include "Viewer/VkRender/Core/Entity.h"
 #include "Viewer/VkRender/Components/MeshComponent.h"
 #include "Viewer/VkRender/RenderPipelines/UboGraphicsPipeline.h"
 

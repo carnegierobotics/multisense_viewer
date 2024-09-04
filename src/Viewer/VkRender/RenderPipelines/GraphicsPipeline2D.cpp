@@ -4,14 +4,14 @@
 
 #include "Viewer/VkRender/RenderPipelines/GraphicsPipeline2D.h"
 
-#include "Viewer/VkRender/Renderer.h"
+#include "Viewer/Application/Application.h"
 
 #include "Viewer/Tools/Utils.h"
 #include "Viewer/VkRender/Components/MeshComponent.h"
 
 
 namespace VkRender {
-    GraphicsPipeline2D::GraphicsPipeline2D(Renderer &m_context, const RenderPassInfo &renderPassInfo)
+    GraphicsPipeline2D::GraphicsPipeline2D(Application &m_context, const RenderPassInfo &renderPassInfo)
             : m_vulkanDevice(m_context.vkDevice()),
               m_renderPassInfo(std::move(renderPassInfo)) {
         m_numSwapChainImages = m_context.swapChainBuffers().size();

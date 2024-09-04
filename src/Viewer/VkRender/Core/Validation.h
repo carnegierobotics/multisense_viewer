@@ -46,7 +46,7 @@
 #endif
 #include <GLFW/glfw3.h>
 
-#include "Viewer/VkRender/pch.h"
+#include "Viewer/Application/pch.h"
 #include "Viewer/Tools/Macros.h"
 
 namespace Validation {

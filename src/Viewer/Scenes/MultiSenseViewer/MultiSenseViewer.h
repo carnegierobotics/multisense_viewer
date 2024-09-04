@@ -5,7 +5,7 @@
 #ifndef MULTISENSE_VIEWER_MULTISENSEVIEWER_H
 #define MULTISENSE_VIEWER_MULTISENSEVIEWER_H
 
-#include "Viewer/VkRender/Scene.h"
+#include "Viewer/Scenes/Scene.h"
 
 namespace VkRender {
     struct ColmapCameraPose {
@@ -28,7 +28,7 @@ namespace VkRender {
     class MultiSenseViewer : public Scene {
 
     public:
-        explicit MultiSenseViewer(Renderer& ctx, const std::string& name);
+        explicit MultiSenseViewer(Application& ctx, const std::string& name);
 
         void update(uint32_t i) override;
 

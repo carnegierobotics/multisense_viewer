@@ -34,6 +34,9 @@ namespace VkRender {
         void onUpdate() override {
 
         }
+    private:
+        std::shared_ptr<MultiSense::MultiSenseRendererBridge> multiSenseRendererBridge{};
+        std::shared_ptr<MultiSense::MultiSenseRendererGigEVisionBridge> multiSenseRendererGigEVisionBridge{};
     };
 }
 

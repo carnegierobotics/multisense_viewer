@@ -119,7 +119,7 @@ namespace VkRender {
     SceneHierarchyLayer::openImportFileDialog(const std::string &fileDescription, const std::vector<std::string> &type,
                                               LayerUtils::FileTypeLoadFlow flow) {
         if (!loadFileFuture.valid()) {
-            auto &opts = RendererConfig::getInstance().getUserSetting();
+            auto &opts = ApplicationConfig::getInstance().getUserSetting();
             std::string openLoc = Utils::getSystemHomePath().string();
             if (!opts.lastOpenedImportModelFolderPath.empty()) {
                 openLoc = opts.lastOpenedImportModelFolderPath.remove_filename().string();
@@ -157,7 +157,7 @@ namespace VkRender {
 
             }
             // Copy the selected file path to wherever it's needed
-            auto &opts = RendererConfig::getInstance().getUserSetting();
+            auto &opts = ApplicationConfig::getInstance().getUserSetting();
             opts.lastOpenedImportModelFolderPath = loadFileInfo.path;
             // Additional processing of the file can be done here
             Log::Logger::getInstance()->info("File selected: {}", loadFileInfo.path.filename().string());

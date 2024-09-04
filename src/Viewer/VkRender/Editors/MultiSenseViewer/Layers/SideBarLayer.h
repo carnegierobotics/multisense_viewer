@@ -33,7 +33,7 @@ namespace VkRender {
         std::default_random_engine rng;
         float sidebarElementHeight = 140.0f;
 
-        for (auto &profile: m_context->multiSense().rendererBridge->getProfileList()) {
+        for (auto &profile: m_context->multiSense()->getProfileList()) {
 
             // Color the sidebar and window depending on the connection state. Must be found before we start drawing the window containing the profile.
             std::string buttonIdentifier = "InvalidConnectionState";
@@ -156,13 +156,13 @@ namespace VkRender {
             ImGui::PopStyleVar(2);
 
             if (deviceButton && profile.connectionState != MultiSense::MULTISENSE_CONNECTED) {
-                m_context->multiSense().rendererBridge->connect(profile);
+                m_context->multiSense()->connect(profile);
             } else if (deviceButton) {
-                m_context->multiSense().rendererBridge->disconnect(profile);
+                m_context->multiSense()->disconnect(profile);
             }
 
             if (removeProfileButtonX) {
-                m_context->multiSense().rendererBridge->removeProfile(profile);
+                m_context->multiSense()->removeProfile(profile);
             }
 
             ImGui::EndChild();

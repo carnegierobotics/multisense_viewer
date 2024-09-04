@@ -15,8 +15,6 @@
 #include "Viewer/VkRender/Editors/EditorDefinitions.h"
 #include "Viewer/VkRender/Core/Entity.h"
 
-#include "Viewer/Modules/MultiSense/MultiSenseRendererBridge.h"
-#include "Viewer/Modules/MultiSense/GigE-Vision/GigEVisionConnector.h"
 #include "Viewer/VkRender/Core/VulkanFramebuffer.h"
 #include "Viewer/VkRender/Core/VulkanImage.h"
 
@@ -31,8 +29,6 @@ namespace VkRender {
     struct SharedContextData {
         bool openAddDevicePopup = false;
         Entity m_selectedEntity;
-
-
         bool startRecording = false;
         bool newFrame = false;
     };

@@ -13,12 +13,14 @@ namespace VkRender::MultiSense {
     void MultiSenseRendererBridge::update() {
         // check for new connection
         for (auto &device: m_multiSenseDevices) {
-
             // Get connection state from libmultisense
             device.connectionState = m_multiSenseTaskManager.connectionState();
-
-
         }
+    }
+
+    void MultiSenseRendererBridge::setup() {
+        // Initiate gigevision protocol
+        m_multiSenseTaskManager.initiateGigEV();
     }
 
     std::vector<std::string> MultiSenseRendererBridge::getAvailableAdapterList() {
@@ -56,7 +58,7 @@ namespace VkRender::MultiSense {
         // erase-remove idiom
         m_multiSenseDevices.erase(
                 std::remove_if(m_multiSenseDevices.begin(), m_multiSenseDevices.end(),
-                               [&profile](const MultiSenseDevice& device) {
+                               [&profile](const MultiSenseDevice &device) {
                                    return device.createInfo.profileName == profile.createInfo.profileName;
                                }),
                 m_multiSenseDevices.end()
@@ -67,8 +69,27 @@ namespace VkRender::MultiSense {
         // Check that we are not busy connection already of we are on the same device?
         m_multiSenseTaskManager.connect(profile);
     }
+
     void MultiSenseRendererBridge::disconnect(const MultiSenseDevice &profile) {
         // Check that we are not busy connection already of we are on the same device?
         m_multiSenseTaskManager.disconnect();
+    }
+
+    std::vector<std::string> MultiSenseRendererBridge::availableSources() {
+        std::vector<std::string> sources;
+        sources.emplace_back("No Source");
+        sources.emplace_back("Luma Rectified Left");
+        sources.emplace_back("Luma Rectified Right");
+        sources.emplace_back("Disparity Left");
+        return sources;
+    }
+
+    bool MultiSenseRendererBridge::anyMultiSenseDeviceOnline() {
+        bool anyConnected = true; // TODO set false
+        for (const auto &dev: m_multiSenseDevices) {
+            if (dev.connectionState == MultiSenseConnectionState::MULTISENSE_CONNECTED)
+                anyConnected = true;
+        }
+        return anyConnected;
     }
 }

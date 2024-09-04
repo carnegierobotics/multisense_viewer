@@ -64,6 +64,11 @@ namespace VkRender::MultiSense {
             return m_libMultiSense.connectionState();
         }
 
+        void initiateGigEV() {
+            m_threadPool->Push(MultiSenseTaskManager::initiateGigEVTask, this);
+
+        }
+
     private:
         std::unique_ptr<ThreadPool> m_threadPool;
 
@@ -78,6 +83,12 @@ namespace VkRender::MultiSense {
         static void disconnectTask(void *ctx) {
             auto *context = reinterpret_cast<MultiSenseTaskManager *>(ctx);
             context->m_libMultiSense.disconnect();
+        }
+
+        static void initiateGigEVTask(void *ctx) {
+            auto *context = reinterpret_cast<MultiSenseTaskManager *>(ctx);
+            context->m_gigEVision.initiate();
+            context->m_gigEVision.searchForDevices();
         }
 
     };

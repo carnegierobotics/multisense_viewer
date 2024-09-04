@@ -26,7 +26,11 @@ namespace VkRender::MultiSense {
 
         std::vector<MultiSenseDevice> &getProfileList();
 
+        std::vector<std::string> availableSources();
+
         void update();
+        void setup();
+        bool anyMultiSenseDeviceOnline();
 
     private:
         std::vector<MultiSenseDevice> m_multiSenseDevices;

@@ -8,20 +8,28 @@
 #include <string>
 #include <vector>
 
-#ifdef VKRENDER_GIGEVISION_ENABLED
 #include <libcrlgev/camera_obj.hh>
-#endif
+#
 
 namespace VkRender::MultiSense {
     class GigEVisionConnector {
     public:
         GigEVisionConnector(){
 
-#ifdef VKRENDER_GIGEVISION_ENABLED
-            device_obj cam_device;
-            cam_device.enumerate();
-#endif
+
         }
+
+        void initiate(){
+            camDevice = std::make_unique<device_obj>();
+        }
+
+        void searchForDevices(){
+            camDevice->enumerate();
+
+        }
+
+        std::unique_ptr<device_obj> camDevice;
+
     };
 }
 

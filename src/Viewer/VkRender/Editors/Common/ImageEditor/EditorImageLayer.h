@@ -30,9 +30,9 @@ namespace VkRender {
 
             // Set window position and size
             // Set window position and size
-            ImVec2 window_pos = ImVec2(5.0f, 55.0f); // Position (x, y)
-            ImVec2 window_size = ImVec2(handles.editorUi->width - 5.0f,
-                                        handles.editorUi->height - 55.0f); // Size (width, height)
+            ImVec2 window_pos = ImVec2(50.0f, 5.0f); // Position (x, y)
+            ImVec2 window_size = ImVec2(handles.editorUi->width - window_pos.x,
+                                        handles.editorUi->height - window_pos.y); // Size (width, height)
 
             // Set window flags to remove decorations
             ImGuiWindowFlags window_flags =
@@ -44,9 +44,34 @@ namespace VkRender {
             ImGui::SetNextWindowSize(window_size, ImGuiCond_Always);
             // Create the parent window
             ImGui::Begin("EditorImageLayer", nullptr, window_flags);
-            //handles.editorUi->saveRenderToFile = ImGui::Button("Save image");
-            //handles.editorUi->reloadPipeline = ImGui::Button("Reload pipeline");
 
+            ImGui::SetCursorPosX(window_size.x - 5 - 150.0f);
+            ImGui::SetNextItemWidth(150.0f);
+            // If we have a device connected:
+            if (m_context->multiSense()->anyMultiSenseDeviceOnline()) {
+
+                // Available sources from camera
+                std::vector<std::string> sources = m_context->multiSense()->availableSources();
+                static int selectedSourceIndex = 0;
+                static std::string item_current = sources[selectedSourceIndex];            // Here our selection is a single pointer stored outside the object.
+
+                if (ImGui::BeginCombo("Select source:", item_current.c_str(), ImGuiComboFlags_HeightLarge)) {
+                    for (int n = 0; n < sources.size(); n++) {
+                        bool is_selected = (item_current == sources[n]);
+                        if (ImGui::Selectable(sources[n].c_str(), is_selected))
+                            item_current = sources[n];
+                        if (is_selected)
+                            ImGui::SetItemDefaultFocus();   // Set the initial focus when opening the combo (scrolling + for keyboard navigation support in the upcoming navigation branch)
+                    }
+                    ImGui::EndCombo();
+                }
+
+                // IF no source selected show no preview texture:
+
+                if (item_current == "No Source"){
+                    handles.editorUi;
+                }
+            }
             ImGui::End();
 
 

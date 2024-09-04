@@ -54,7 +54,6 @@
 #include "Viewer/VkRender/Editors/EditorFactory.h"
 
 #include "Viewer/Modules/MultiSense/MultiSenseRendererBridge.h"
-#include "Viewer/Modules/MultiSense/GigE-Vision//GigEVisionConnector.h"
 
 namespace VkRender {
     class Entity;
@@ -71,7 +70,6 @@ namespace VkRender {
 
     struct MultiSenseData { // TODO rename
         std::shared_ptr<VkRender::MultiSense::MultiSenseRendererBridge> rendererBridge{};
-        std::shared_ptr<VkRender::MultiSense::GigEVisionConnector> rendererGigEVisionBridge{};
     };
 
     class Application : VulkanRenderer {
@@ -116,7 +114,7 @@ namespace VkRender {
 
         const ProjectConfig &getProjectConfig() { return m_projectConfig; }
 
-        MultiSenseData &multiSense() { return m_multiSense; }
+        std::shared_ptr<MultiSense::MultiSenseRendererBridge> multiSense() { return m_multiSense.rendererBridge; }
 
         // TODO we should collect per frame info like this somewhere
         float deltaTime() { return frameTimer; }

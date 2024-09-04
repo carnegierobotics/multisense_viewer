@@ -8,9 +8,9 @@
 
 namespace VkRender {
     EditorImage::EditorImage(EditorCreateInfo &createInfo, UUID uuid) : Editor(createInfo, uuid) {
+        addUI("EditorImageLayer");
         addUI("EditorUILayer");
         addUI("DebugWindow");
-        addUI("EditorImageLayer");
 
 
     }

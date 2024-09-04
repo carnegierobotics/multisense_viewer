@@ -114,9 +114,12 @@ namespace VkRender {
             ImGui::SetNextWindowPos(ImVec2(5.0f, 5.0f), ImGuiCond_Always);
             ImGui::SetNextWindowSize(ImVec2(window_size.x - 10.0f, 50.0f), ImGuiCond_Always);
             // Create the parent window
-            ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 2.0f);
+            //ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 2.0f);
             ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2.0f, 2.0f));
+            auto bgColor = Colors::CRLDarkGray425;
+            bgColor.w = 0.5;
+            ImGui::PushStyleColor(ImGuiCol_WindowBg, bgColor);
 
             ImGui::Begin("EditorSelectorWindow", nullptr, window_flags);
 
@@ -129,8 +132,8 @@ namespace VkRender {
             ImGui::PopFont();
             togglePopup(handles);
 
-            ImGui::PopStyleVar(3);
-
+            ImGui::PopStyleVar(2);
+            ImGui::PopStyleColor();
             ImGui::End();
 
         }

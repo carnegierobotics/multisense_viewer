@@ -59,10 +59,6 @@ namespace VkRender {
         m_usageMonitor->userStartSession(rendererStartTime);
         // Initialize shared data across editors:
 
-        m_multiSense.rendererBridge = std::make_shared<MultiSense::MultiSenseRendererBridge>();
-        m_multiSense.rendererGigEVisionBridge = std::make_shared<MultiSense::GigEVisionConnector>();
-
-
         VulkanRenderPassCreateInfo passCreateInfo(m_vulkanDevice, &m_allocator);
         passCreateInfo.msaaSamples = msaaSamples;
         passCreateInfo.swapchainImageCount = swapchain->imageCount;
@@ -112,6 +108,9 @@ namespace VkRender {
         std::string lastActiveScene = ApplicationConfig::getInstance().getUserSetting().sceneName;
         loadScene(lastActiveScene);
 
+
+        m_multiSense.rendererBridge = std::make_shared<MultiSense::MultiSenseRendererBridge>();
+        m_multiSense.rendererBridge->setup();
     }
 
     void Application::loadProject(const std::filesystem::path &filePath) {
@@ -247,6 +246,7 @@ namespace VkRender {
 
     void Application::updateUniformBuffers() {
         // update imgui io:
+        m_logger->frameNumber = frameID;
 
         ImGui::SetCurrentContext(m_mainEditor->guiContext());
         ImGuiIO &mainIO = ImGui::GetIO();
@@ -264,13 +264,11 @@ namespace VkRender {
             otherIO.MouseDown[0] = mouse.left;
             otherIO.MouseDown[1] = mouse.right;
         }
+
         updateEditors();
         m_mainEditor->update((frameCounter == 0), frameTimer, &input);
-        m_logger->frameNumber = frameID;
 
-        m_multiSense.rendererBridge->update(); // TODO reconsider if we should call crl updates here?
-
-        std::string versionRemote;
+        m_multiSense.rendererBridge->update();
     }
 
     std::unique_ptr<Editor> Application::createEditor(EditorCreateInfo &createInfo) {

@@ -50,7 +50,6 @@
 #include "Viewer/VkRender/Core/RenderDefinitions.h"
 #include "Viewer/VkRender/Core/KeyInput.h"
 #include "Viewer/Modules/MultiSense/MultiSenseRendererBridge.h"
-#include "Viewer/Modules/MultiSense/GigE-Vision/GigEVisionConnector.h"
 
 #include "Viewer/Tools/ThreadPool.h"
 #include "Viewer/VkRender/Editors/EditorIncludes.h"

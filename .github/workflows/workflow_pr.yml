@@ -75,7 +75,7 @@ jobs:
 
 
     - name: "Create Artifact"
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: multisense-zip
         path: ${{github.workspace}}/MultiSense_viewer.zip

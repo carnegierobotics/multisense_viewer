@@ -818,11 +818,14 @@ public:
                 static int mtuValues[] = {576, 1280, 1400, 1500, 2000, 4000, 7200, 9000};  // common MTU values
                 static int customMTU = 7200;
                 static int mtuIndex = 6;  // Default index for the slider (1500 as default)
+                static bool customMTUUsed = false;
 
+                std::string prevvalue = customMTUUsed ? std::to_string(customMTU) : std::to_string(mtuValues[mtuIndex]);
                 if (ImGui::SliderInt("##MTU", &mtuIndex, 0, IM_ARRAYSIZE(mtuValues) - 1,
-                                     std::to_string(mtuValues[mtuIndex]).c_str())) {
+                                     prevvalue.c_str())) {
                     handles->usageMonitor->userClickAction("##MTU setting", "SliderFloat",
                                                            ImGui::GetCurrentWindow()->Name);
+                    customMTUUsed= false;
                     d.parameters.stereo.mtu = mtuValues[mtuIndex];
                 }
                 d.parameters.stereo.update |= ImGui::IsItemDeactivatedAfterEdit();
@@ -844,6 +847,7 @@ public:
                         ImGui::CloseCurrentPopup();
                         d.parameters.stereo.mtu = (float) customMTU;  // Update the MTU with the custom value
                         d.parameters.stereo.update |= btnClick;
+                        customMTUUsed = true;
                     }
                     ImGui::EndPopup();
                 }

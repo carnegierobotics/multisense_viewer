@@ -193,7 +193,7 @@ namespace VkRender::MultiSense {
 		 * @param[in] index Which remotehead to select
 		 */
 		static void setAdditionalParametersTask(void* context, float fps, float gain, float gamma, float spfs,
-			bool hdr, VkRender::Device* dev,
+			bool hdr, int mtu, VkRender::Device* dev,
 			crl::multisense::RemoteHeadChannel index
 		);
 

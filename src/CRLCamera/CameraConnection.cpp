@@ -60,6 +60,7 @@ namespace VkRender::MultiSense {
         // Populate dev-parameters with the currently set settings on the camera
 
         if (dev->parameters.updateGuiParams) {
+            Log::Logger::getInstance()->info("Updating GUI with MultiSense parameters");
             const auto &conf = camPtr.getCameraInfo(dev->configRemoteHead).imgConf;
             p->stereo.ep.exposure = conf.exposure();
             p->stereo.ep.autoExposure = conf.autoExposure();
@@ -103,6 +104,8 @@ namespace VkRender::MultiSense {
             p->light.flashing = lightConf.getFlash();
             p->light.startupTime = static_cast<float>(lightConf.getStartupTime()) / 1000.0f;
             p->stereo.stereoPostFilterStrength = conf.stereoPostFilterStrength();
+            //p->stereo.mtu = camPtr.getCameraInfo(dev->configRemoteHead).sensorMTU;
+
             dev->parameters.updateGuiParams = false;
         }
 
@@ -110,7 +113,7 @@ namespace VkRender::MultiSense {
             Log::Logger::getInstance()->trace("Pushing {} to threadpool", "setAdditionalParametersTask");
             pool->Push(CameraConnection::setAdditionalParametersTask, this, p->stereo.fps, p->stereo.gain,
                        p->stereo.gamma,
-                       p->stereo.stereoPostFilterStrength, p->stereo.hdrEnabled, dev, dev->configRemoteHead);
+                       p->stereo.stereoPostFilterStrength, p->stereo.hdrEnabled, p->stereo.mtu, dev, dev->configRemoteHead);
         }
 
         if (dev->parameters.stereo.ep.update && pool->getTaskListSize() < MAX_TASK_STACK_SIZE) {
@@ -1008,7 +1011,7 @@ namespace VkRender::MultiSense {
 
     void
     CameraConnection::setAdditionalParametersTask(void *context, float fps, float gain, float gamma, float spfs,
-                                                  bool hdr, VkRender::Device *dev,
+                                                  bool hdr, int mtu, VkRender::Device *dev,
                                                   crl::multisense::RemoteHeadChannel index) {
         auto *app = reinterpret_cast<CameraConnection *>(context);
         std::scoped_lock lock(app->writeParametersMtx);
@@ -1017,6 +1020,7 @@ namespace VkRender::MultiSense {
         if (!app->camPtr.setFps(fps, index)) return;
         if (!app->camPtr.setPostFilterStrength(spfs, index)) return;
         if (!app->camPtr.setHDR(hdr, index)) return;
+        if (!app->camPtr.setMtu(mtu, index)) return;
 
 
         app->updateFromCameraParameters(dev, index);

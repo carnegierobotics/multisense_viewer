@@ -35,6 +35,23 @@ jobs:
         id: install_path_id_ubuntu
         run: echo "install_path_ubuntu=multisense_${{  env.MAJOR }}.${{  env.MINOR }}-${{  env.PATCH }}_amd64/opt/multisense" >> $GITHUB_OUTPUT
 
+      - name: Fetch all tags
+        run: git fetch --tags
+
+      - name: Get the latest tag
+        id: get_tag
+        run: echo "::set-output name=TAG::$(git describe --tags --abbrev=0)"
+
+      - name: Print version
+        run: echo "The version is ${{ steps.get_tag.outputs.TAG }}"
+
+      - name: Set Output
+        id: install_path_id
+        run: echo "install_path=multisense_${{ steps.get_tag.outputs.TAG }}_amd64" >> $GITHUB_OUTPUT
+
+      - name: Set Output Ubuntu
+        id: install_path_id_ubuntu
+        run: echo "install_path_ubuntu=multisense_${{ steps.get_tag.outputs.TAG }}_amd64/opt/multisense" >> $GITHUB_OUTPUT
 
   BuildWindows:
     name: Build For Windows

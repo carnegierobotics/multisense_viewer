@@ -28,7 +28,7 @@ jobs:
       - name: Read version info
         id: read_version_info
         run: |
-          VERSION_FILE="<source>/Assets/generated/VersionInfo"
+          VERSION_FILE="${{github.workspace}}/Assets/generated/VersionInfo"
           VERSION=$(grep -oP '(?<=VERSION=).*' $VERSION_FILE)
           echo "VERSION is $VERSION"
           echo "::set-output name=VERSION::$VERSION"

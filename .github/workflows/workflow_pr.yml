@@ -23,25 +23,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      # Read version info from the generated file instead of git tags
-      - name: Read version info
-        id: read_version_info
+      - name: Fetch all tags
+        run: git fetch --tags
+
+      - name: Get the latest tag or describe version
+        id: get_tag
         run: |
-          VERSION_FILE="${{github.workspace}}/Assets/generated/VersionInfo"
-          VERSION=$(grep -oP '(?<=VERSION=).*' $VERSION_FILE)
-          echo "VERSION is $VERSION"
-          echo "::set-output name=VERSION::$VERSION"
+          TAG=$(git describe --tags --always)
+          echo "::set-output name=TAG::$TAG"
 
       - name: Print version
-        run: echo "The version is ${{ steps.read_version_info.outputs.VERSION }}"
+        run: echo "The version is ${{ steps.get_tag.outputs.TAG }}"
 
       - name: Set Output
         id: install_path_id
-        run: echo "install_path=multisense_${{ steps.read_version_info.outputs.VERSION }}_amd64" >> $GITHUB_OUTPUT
+        run: echo "install_path=multisense_${{ steps.get_tag.outputs.TAG }}_amd64" >> $GITHUB_OUTPUT
 
       - name: Set Output Ubuntu
         id: install_path_id_ubuntu
-        run: echo "install_path_ubuntu=multisense_${{ steps.read_version_info.outputs.VERSION }}_amd64/opt/multisense" >> $GITHUB_OUTPUT
+        run: echo "install_path_ubuntu=multisense_${{ steps.get_tag.outputs.TAG }}_amd64/opt/multisense" >> $GITHUB_OUTPUT
 
 
   BuildWindows:

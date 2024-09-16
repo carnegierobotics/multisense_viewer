@@ -4,20 +4,22 @@
 
 #ifndef MULTISENSE_RENDERER_GIG_E_VISION_BRIDGE_H
 #define MULTISENSE_RENDERER_GIG_E_VISION_BRIDGE_H
-#include <cstdint>
 #include <string>
-#include <vector>
+
+#include "Viewer/Modules/MultiSense/MultiSenseInterface.h"
 
 #include <libcrlgev/camera_obj.hh>
-#
+
 
 namespace VkRender::MultiSense {
-    class GigEVisionConnector {
+    class GigEVisionConnector : public MultiSenseInterface {
     public:
         GigEVisionConnector(){
 
 
         }
+
+        void connect(std::string ip, std::string ifName) override;
 
         void initiate(){
             camDevice = std::make_unique<device_obj>();

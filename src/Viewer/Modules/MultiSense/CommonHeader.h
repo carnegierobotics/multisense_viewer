@@ -6,7 +6,6 @@
 #define COMMONHEADER_H
 #include <cstdint>
 #include <string>
-#include <vector>
 
 namespace VkRender::MultiSense {
     typedef enum MultiSenseConnectionState {

@@ -2,9 +2,8 @@
 // Created by magnus on 6/26/24.
 //
 
-#ifndef MULTISENSEINTERFACE_H
-#define MULTISENSEINTERFACE_H
-#include <cstdint>
+#ifndef MULTISENSE_RENDERER_BRIDGE_H
+#define MULTISENSE_RENDERER_BRIDGE_H
 #include <string>
 #include <vector>
 
@@ -40,4 +39,4 @@ namespace VkRender::MultiSense {
 }
 
 
-#endif //MULTISENSEINTERFACE_H
+#endif //MULTISENSE_RENDERER_BRIDGE_H

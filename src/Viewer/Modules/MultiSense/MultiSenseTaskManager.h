@@ -40,57 +40,75 @@
 #include <memory>
 
 #include "Viewer/Tools/ThreadPool.h"
-#include "Viewer/VkRender/Core/RenderDefinitions.h"
-#include "Viewer/Modules/MultiSense/LibMultiSense/LibMultiSenseConnector.h"
-#include "CommonHeader.h"
-#include "Viewer/Modules/MultiSense/GigE-Vision/GigEVisionConnector.h"
+#include "Viewer/Modules/MultiSense/CommonHeader.h"
 
-namespace VkRender::MultiSense {
-    class MultiSenseTaskManager {
+#include "Viewer/Modules/MultiSense/MultiSenseInterface.h"
+
+#ifdef VKRENDER_GIGEVISION_ENABLED
+"Viewer/Modules/MultiSense/GigEVisionConnector/GigEVisionConnector.h"
+#endif
+
+#include "Viewer/Modules/MultiSense/LibMultiSense/LibMultiSenseConnector.h"
+
+namespace VkRender::MultiSense
+{
+    class MultiSenseTaskManager
+    {
     public:
-        MultiSenseTaskManager() {
+        MultiSenseTaskManager(bool gigEVision = false)
+        {
+#ifdef VKRENDER_GIGEVISION_ENABLED
+            m_interface = std::make_unique<GigEVisionConnector>();
+#else
+            m_interface = std::make_unique<LibMultiSenseConnector>();
+#endif
             m_threadPool = std::make_unique<ThreadPool>(1);
         }
 
 
-        void connect(const MultiSenseDevice &device) {
+        void connect(const MultiSenseDevice& device)
+        {
             m_threadPool->Push(MultiSenseTaskManager::connectTask, this, device);
         }
-        void disconnect() {
+
+        void disconnect()
+        {
             m_threadPool->Push(MultiSenseTaskManager::disconnectTask, this);
         }
 
-        MultiSenseConnectionState connectionState() {
-            return m_libMultiSense.connectionState();
+        MultiSenseConnectionState connectionState()
+        {
+            return m_interface->connectionState();
         }
 
-        void initiateGigEV() {
+        void initiateGigEV()
+        {
             m_threadPool->Push(MultiSenseTaskManager::initiateGigEVTask, this);
-
         }
 
     private:
         std::unique_ptr<ThreadPool> m_threadPool;
 
-        LibMultiSenseConnector m_libMultiSense;
+        std::unique_ptr<MultiSenseInterface> m_interface;
 
-        GigEVisionConnector m_gigEVision;
-
-        static void connectTask(void *ctx, const MultiSenseDevice &device) {
-            auto *context = reinterpret_cast<MultiSenseTaskManager *>(ctx);
-            context->m_libMultiSense.connect(device.createInfo.inputIP, device.createInfo.ifName);
-        }
-        static void disconnectTask(void *ctx) {
-            auto *context = reinterpret_cast<MultiSenseTaskManager *>(ctx);
-            context->m_libMultiSense.disconnect();
+        static void connectTask(void* ctx, const MultiSenseDevice& device)
+        {
+            auto* context = reinterpret_cast<MultiSenseTaskManager*>(ctx);
+            context->m_interface->connect(device.createInfo.inputIP, device.createInfo.ifName);
         }
 
-        static void initiateGigEVTask(void *ctx) {
-            auto *context = reinterpret_cast<MultiSenseTaskManager *>(ctx);
-            context->m_gigEVision.initiate();
-            context->m_gigEVision.searchForDevices();
+        static void disconnectTask(void* ctx)
+        {
+            auto* context = reinterpret_cast<MultiSenseTaskManager*>(ctx);
+            context->m_interface->disconnect();
         }
 
+        static void initiateGigEVTask(void* ctx)
+        {
+            auto* context = reinterpret_cast<MultiSenseTaskManager*>(ctx);
+            //context->m_interface->initiate();
+            //context->m_interface->searchForDevices();
+        }
     };
 }
 

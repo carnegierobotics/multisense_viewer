@@ -5,6 +5,8 @@
 #ifndef MULTISENSEVIEWERINTERFACE_H
 #define MULTISENSEVIEWERINTERFACE_H
 
+#include "CommonHeader.h"
+
 namespace VkRender::MultiSense
 {
     class MultiSenseInterface

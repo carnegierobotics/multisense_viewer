@@ -14,15 +14,21 @@
 namespace VkRender::MultiSense {
     class GigEVisionConnector : public MultiSenseInterface {
     public:
-        GigEVisionConnector(){
-
-
-        }
+        GigEVisionConnector() = default;
 
         void connect(std::string ip, std::string ifName) override;
 
+        void disconnect() override;
+
         void initiate(){
             camDevice = std::make_unique<device_obj>();
+        }
+
+        ~GigEVisionConnector() override = default;
+
+
+        MultiSenseConnectionState connectionState() override {
+            return MultiSenseInterface::connectionState();
         }
 
         void searchForDevices(){

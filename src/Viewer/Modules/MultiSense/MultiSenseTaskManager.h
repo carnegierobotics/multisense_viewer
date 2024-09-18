@@ -45,7 +45,7 @@
 #include "Viewer/Modules/MultiSense/MultiSenseInterface.h"
 
 #ifdef VKRENDER_GIGEVISION_ENABLED
-"Viewer/Modules/MultiSense/GigEVisionConnector/GigEVisionConnector.h"
+#include "Viewer/Modules/MultiSense/GigE-Vision/GigEVisionConnector.h"
 #endif
 
 #include "Viewer/Modules/MultiSense/LibMultiSense/LibMultiSenseConnector.h"

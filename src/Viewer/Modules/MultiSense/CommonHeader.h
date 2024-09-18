@@ -2,8 +2,8 @@
 // Created by magnus on 6/26/24.
 //
 
-#ifndef COMMONHEADER_H
-#define COMMONHEADER_H
+#ifndef MULTISENSE_VIEWER_COMMONHEADER_H
+#define MULTISENSE_VIEWER_COMMONHEADER_H
 #include <cstdint>
 #include <string>
 

@@ -49,9 +49,8 @@
 #include "Viewer/Application/UsageMonitor.h"
 #include "Viewer/VkRender/Core/RenderDefinitions.h"
 #include "Viewer/VkRender/Core/KeyInput.h"
-#include "Viewer/Modules/MultiSense/MultiSenseRendererBridge.h"
-
 #include "Viewer/Tools/ThreadPool.h"
+
 #include "Viewer/VkRender/Editors/EditorIncludes.h"
 
 namespace VkRender {
@@ -172,7 +171,7 @@ namespace VkRender {
     struct GuiObjectHandles {
         /** @brief Handle for current devices located in sidebar */
         /** @brief GUI window info used for creation and updating */
-        std::unique_ptr<GuiLayerUpdateInfo> info{};
+        std::shared_ptr<GuiLayerUpdateInfo> info{};
 
         const Input *input{};
         /** @brief Display the debug window */
@@ -186,9 +185,10 @@ namespace VkRender {
         const VkRender::MouseButtons *mouse{};
 
         /** @brief Initialize \refitem clearColor because MSVC does not allow initializer list for std::array */
-        GuiObjectHandles(SharedContextData* sharedData) : shared(sharedData) {
+        explicit GuiObjectHandles(SharedContextData* sharedData) : shared(sharedData) {
         }
 
+        GuiObjectHandles() = default;
         /** @brief Reference to threadpool held by GuiManager */
         std::shared_ptr<ThreadPool> pool{};
         CameraSelection m_cameraSelection{};
@@ -205,7 +205,6 @@ namespace VkRender {
      */
     class Layer {
     public:
-        virtual ~Layer() = default;
 
         /** @brief
          * Pure virtual must be overridden.
@@ -224,7 +223,7 @@ namespace VkRender {
          * Called per frame, but before each script (\refitem Example) is updated
          * @param handles a UI object handle to collect user input
          */
-        virtual void onUIRender(GuiObjectHandles& handles) = 0;
+        virtual void onUIRender() = 0;
 
         /**
          * @brief Pure virtual must be overridden.
@@ -242,6 +241,7 @@ namespace VkRender {
 
         std::shared_ptr<Scene> m_scene;
         Application* m_context;
+        GuiObjectHandles m_editor;
     };
 }
 

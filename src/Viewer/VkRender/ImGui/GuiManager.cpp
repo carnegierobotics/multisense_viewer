@@ -74,7 +74,7 @@ namespace VkRender {
         vertexCount.resize(imageCount);
         m_imguiContext = imguiCtx;
         ImGui::SetCurrentContext(m_imguiContext);
-        handles.info = std::make_unique<GuiLayerUpdateInfo>();
+        handles.info = std::make_shared<GuiLayerUpdateInfo>();
 
         handles.info->deviceName = m_vulkanDevice.m_Properties.deviceName;
         handles.info->title = "MultiSense Viewer";
@@ -220,7 +220,7 @@ namespace VkRender {
 
         {
             for (auto &layer: m_LayerStack) {
-                layer->onUIRender(handles);
+                layer->onUIRender();
             }
         }
         ImGui::Render();
@@ -378,6 +378,7 @@ namespace VkRender {
             auto layer = LayerFactory::createLayer(layerName);
             layer->setContext(m_context);
             layer->setScene(m_context->activeScene());
+            layer->m_editor = handles; // TODO getter/setter?
             if (layer) {
                 m_LayerStack.emplace_back(layer)->onAttach();
             } else {

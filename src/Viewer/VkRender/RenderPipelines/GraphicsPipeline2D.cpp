@@ -17,7 +17,7 @@ namespace VkRender {
         m_numSwapChainImages = m_context.swapChainBuffers().size();
         m_vulkanDevice = m_context.vkDevice();
         m_vertexShader = "default2D.vert";
-        m_fragmentShader = "depth2D.frag";
+        m_fragmentShader = "default2D.frag";
         m_renderData.resize(m_numSwapChainImages);
         setupUniformBuffers();
 

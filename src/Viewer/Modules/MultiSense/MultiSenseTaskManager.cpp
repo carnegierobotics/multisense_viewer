@@ -37,10 +37,12 @@
 #ifdef WIN32
 
 #else
+
 #include <net/if.h>
 #include <arpa/inet.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
+
 #endif
 
 #include "MultiSenseTaskManager.h"
@@ -50,6 +52,73 @@
 #define MAX_NUM_REMOTEHEADS 4
 
 namespace VkRender::MultiSense {
+
+    MultiSenseTaskManager::MultiSenseTaskManager(MultiSenseConnectionType connType) {
+        m_threadPool = std::make_unique<ThreadPool>(1);
+
+        switch (connType) {
+            case MULTISENSE_CONNECTION_TYPE_GIGEVISION:
+                m_interface = std::make_unique<GigEVisionConnector>();
+                break;
+            case MULTISENSE_CONNECTION_TYPE_LIBMULTISENSE:
+                m_interface = std::make_unique<LibMultiSenseConnector>();
+                break;
+            default:
+                Log::Logger::getInstance()->warning("MultiSense Connection type is not supported.");
+        }
+
+
+    };
+
+
+
+    uint8_t *MultiSenseTaskManager::getImage() {
+        return m_interface->getImage();
+    }
+
+
+    void MultiSenseTaskManager::setup() {
+        m_threadPool->Push(MultiSenseTaskManager::setupTask, this);
+
+    }
+
+    void MultiSenseTaskManager::update() {
+        m_threadPool->Push(MultiSenseTaskManager::updateTask, this);
+
+    }
+
+    void MultiSenseTaskManager::connect(const MultiSenseDevice &device) {
+        m_threadPool->Push(MultiSenseTaskManager::connectTask, this, device);
+    }
+
+    void MultiSenseTaskManager::disconnect() {
+        m_threadPool->Push(MultiSenseTaskManager::disconnectTask, this);
+    }
+
+    MultiSenseConnectionState MultiSenseTaskManager::connectionState() {
+        return m_interface->connectionState();
+    }
+
+
+    void MultiSenseTaskManager::connectTask(void *ctx, const MultiSenseDevice &device) {
+        auto *context = reinterpret_cast<MultiSenseTaskManager *>(ctx);
+        context->m_interface->connect(device.profileCreateInfo.inputIP, device.profileCreateInfo.ifName);
+    }
+
+    void MultiSenseTaskManager::updateTask(void *ctx) {
+        auto *context = reinterpret_cast<MultiSenseTaskManager *>(ctx);
+        context->m_interface->update();
+    }
+    void MultiSenseTaskManager::setupTask(void *ctx) {
+        auto *context = reinterpret_cast<MultiSenseTaskManager *>(ctx);
+        context->m_interface->setup();
+    }
+
+    void MultiSenseTaskManager::disconnectTask(void *ctx) {
+        auto *context = reinterpret_cast<MultiSenseTaskManager *>(ctx);
+        context->m_interface->disconnect();
+    }
+
 
 #ifdef D
     void CameraConnection::updateActiveDevice(VkRender::Device *dev) {

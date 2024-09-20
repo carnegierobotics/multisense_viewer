@@ -26,13 +26,13 @@ namespace VkRender {
 
 
         /** Called once per frame **/
-        void onUIRender(VkRender::GuiObjectHandles &handles) override {
+        void onUIRender() override {
 
             // Set window position and size
             // Set window position and size
             ImVec2 window_pos = ImVec2(50.0f, 5.0f); // Position (x, y)
-            ImVec2 window_size = ImVec2(handles.editorUi->width - window_pos.x,
-                                        handles.editorUi->height - window_pos.y); // Size (width, height)
+            ImVec2 window_size = ImVec2(m_editor.editorUi->width - window_pos.x,
+                                        m_editor.editorUi->height - window_pos.y); // Size (width, height)
 
             // Set window flags to remove decorations
             ImGuiWindowFlags window_flags =
@@ -45,7 +45,19 @@ namespace VkRender {
             // Create the parent window
             ImGui::Begin("EditorImageLayer", nullptr, window_flags);
 
-            ImGui::SetCursorPosX(window_size.x - 5 - 150.0f);
+            ImGui::Checkbox("Retrieve from MultiSense", &m_editor.editorUi->multisenseSource);
+            ImGui::SameLine();
+
+            if (ImGui::Button("Connect")){
+                m_context->multiSense()->connect(MultiSense::MultiSenseDevice());
+            }
+
+            ImGui::SameLine();
+
+            if (ImGui::Button("Disconnect")){
+                m_context->multiSense()->disconnect(MultiSense::MultiSenseDevice());
+            }
+            ImGui::SameLine();
             ImGui::SetNextItemWidth(150.0f);
             // If we have a device connected:
             if (m_context->multiSense()->anyMultiSenseDeviceOnline()) {
@@ -69,7 +81,7 @@ namespace VkRender {
                 // IF no source selected show no preview texture:
 
                 if (item_current == "No Source"){
-                    handles.editorUi;
+                    m_editor.editorUi;
                 }
             }
             ImGui::End();

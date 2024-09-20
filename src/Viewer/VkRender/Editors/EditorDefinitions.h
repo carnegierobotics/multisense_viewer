@@ -16,7 +16,8 @@ namespace VkRender {
         ImageEditor,
         Properties,
         GaussianViewer,
-        MultiSenseViewer,
+        MultiSenseViewer_Sidebar,
+        MultiSenseViewer_Configuration,
         SceneHierarchy,
         TestWindow,
         };
@@ -26,14 +27,16 @@ namespace VkRender {
                 EditorType::ImageEditor,
                 EditorType::Properties,
                 EditorType::GaussianViewer,
-                EditorType::MultiSenseViewer,
+                EditorType::MultiSenseViewer_Sidebar,
+                EditorType::MultiSenseViewer_Configuration,
                 EditorType::SceneHierarchy,
                 EditorType::TestWindow};
     };
     // Function to convert enum to string
     static std::string editorTypeToString(EditorType type) {
         switch(type) {
-            case EditorType::MultiSenseViewer: return "MultiSense Viewer";
+            case EditorType::MultiSenseViewer_Sidebar: return "MultiSense Viewer Sidebar";
+            case EditorType::MultiSenseViewer_Configuration: return "MultiSense Viewer Configuration";
             case EditorType::SceneHierarchy: return "Scene Hierarchy";
             case EditorType::TestWindow: return "Test Window";
             case EditorType::Viewport3D: return "3D Viewport";
@@ -46,13 +49,14 @@ namespace VkRender {
 
     // Function to convert string to enum
     static EditorType stringToEditorType(const std::string &str) {
-        if (str == "MultiSense Viewer") return EditorType::MultiSenseViewer;
         if (str == "Scene Hierarchy") return EditorType::SceneHierarchy;
         if (str == "Test Window") return EditorType::TestWindow;
         if (str == "3D Viewport") return EditorType::Viewport3D;
         if (str == "Properties") return EditorType::Properties;
         if (str == "Gaussian Viewer") return EditorType::GaussianViewer;
         if (str == "Image Editor") return EditorType::ImageEditor;
+        if (str == "MultiSense Viewer Sidebar") return EditorType::MultiSenseViewer_Sidebar;
+        if (str == "MultiSense Viewer Configuration") return EditorType::MultiSenseViewer_Configuration;
         throw std::invalid_argument("Unknown editor type string");
     }
 }

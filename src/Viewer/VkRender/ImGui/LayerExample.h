@@ -61,7 +61,7 @@ public:
     }
 
     /** Called once per frame **/
-    void onUIRender(VkRender::GuiObjectHandles& uiContext) override {
+    void onUIRender() override {
         // Create a Button
         /*
         bool clicked = ImGui::Button("Dont Click", ImVec2(150.0f, 50.0f));

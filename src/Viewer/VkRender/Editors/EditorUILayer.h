@@ -32,34 +32,34 @@ namespace VkRender {
 
         }
 
-        void togglePopup(VkRender::GuiObjectHandles &handles) {
+        void togglePopup() {
             static bool toggles[] = {true, false, false, false, false};
             // Options for the combo box
             auto items = m_context->getProjectConfig().editorTypes;
             static int item_current_idx = 0; // Here we store our current item index
-            handles.editorUi->changed = false;
+            m_editor.editorUi->changed = false;
 
-            handles.editorUi->changed = false;
+            m_editor.editorUi->changed = false;
             if (ImGui::BeginPopup("EditorSelectionPopup")) {
                 ImGui::SeparatorText("Editor Types");
                 for (int i = 0; i < items.size(); i++) {
                     if (ImGui::Selectable(editorTypeToString(items[i]).c_str())) {
                         item_current_idx = i;
-                        handles.editorUi->selectedType = items[item_current_idx];
-                        handles.editorUi->changed = true;
+                        m_editor.editorUi->selectedType = items[item_current_idx];
+                        m_editor.editorUi->changed = true;
                     }
                 }
-                ImGui::MenuItem("Console", nullptr, &handles.showDebugWindow);
+                ImGui::MenuItem("Console", nullptr, &m_editor.showDebugWindow);
                 ImGui::EndPopup();
             }
         }
 
         /** Called once per frame **/
-        void onUIRender(VkRender::GuiObjectHandles &handles) override {
+        void onUIRender() override {
 
             // Set window position and size
             ImVec2 window_pos = ImVec2(0.0f, 0.0f); // Position (x, y)
-            ImVec2 window_size = ImVec2(handles.info->applicationWidth, handles.info->applicationHeight); // Size (width, height)
+            ImVec2 window_size = ImVec2(m_editor.info->applicationWidth, m_editor.info->applicationHeight); // Size (width, height)
 
 
             // Set window flags to remove decorations
@@ -82,12 +82,12 @@ namespace VkRender {
             float borderSize = 3.0f;
 
             ImVec4 color;
-            if (handles.editorUi->active)
-                color = handles.editorUi->backgroundColorActive;
-            else if (handles.editorUi->hovered)
-                color = handles.editorUi->backgroundColorHovered;
+            if (m_editor.editorUi->active)
+                color = m_editor.editorUi->backgroundColorActive;
+            else if (m_editor.editorUi->hovered)
+                color = m_editor.editorUi->backgroundColorHovered;
             else
-                color = handles.editorUi->backgroundColor;
+                color = m_editor.editorUi->backgroundColor;
 
             color.w = 1.0f;
             color = ImVec4(0.2f, 0.2f, 0.2f, 1.0f);
@@ -123,14 +123,14 @@ namespace VkRender {
 
             ImGui::Begin("EditorSelectorWindow", nullptr, window_flags);
 
-            ImGui::PushFont(handles.info->fontIcons);
+            ImGui::PushFont(m_editor.info->fontIcons);
             ImVec2 txtSize = ImGui::CalcTextSize(ICON_FA_WINDOW_RESTORE);
             txtSize.x += 10.0f;
             if (ImGui::Button(ICON_FA_WINDOW_RESTORE, ImVec2(txtSize))) {
                 ImGui::OpenPopup("EditorSelectionPopup");
             }
             ImGui::PopFont();
-            togglePopup(handles);
+            togglePopup();
 
             ImGui::PopStyleVar(2);
             ImGui::PopStyleColor();

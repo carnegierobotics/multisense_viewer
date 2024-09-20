@@ -163,7 +163,7 @@ namespace VkRender {
         }
     }
 
-    void PropertiesLayer::drawComponents(VkRender::GuiObjectHandles &handles, Entity entity) {
+    void PropertiesLayer::drawComponents(Entity entity) {
 
         if (ImGui::Button("Add Component"))
             ImGui::OpenPopup("AddComponent");
@@ -184,7 +184,7 @@ namespace VkRender {
             drawVec3Control("Rotation",  component.getRotation(), 0.0f, 2.0f);
             drawVec3Control("Scale", component.getScale(), 1.0f);
         });
-        drawComponent<CameraComponent>("Camera", entity, [&handles, &entity](auto &component) {
+        drawComponent<CameraComponent>("Camera", entity, [](auto &component) {
 
             drawFloatControl("Field of View", component().fov(), 1.0f);
             component().updateProjectionMatrix();
@@ -210,12 +210,12 @@ namespace VkRender {
     }
 
 /** Called once per frame **/
-    void PropertiesLayer::onUIRender(VkRender::GuiObjectHandles &handles) {
+    void PropertiesLayer::onUIRender() {
 
-        setSelectedEntity(handles.shared->m_selectedEntity);
+        setSelectedEntity(m_editor.shared->m_selectedEntity);
 // Set window position and size
         ImVec2 window_pos = ImVec2(0.0f, 55.0f); // Position (x, y)
-        ImVec2 window_size = ImVec2(handles.editorUi->width, handles.editorUi->height); // Size (width, height)
+        ImVec2 window_size = ImVec2(m_editor.editorUi->width, m_editor.editorUi->height); // Size (width, height)
 // Set window flags to remove decorations
         ImGuiWindowFlags window_flags =
                 ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
@@ -233,10 +233,10 @@ namespace VkRender {
 
 
         if (m_selectionContext) {
-            drawComponents(handles, m_selectionContext);
+            drawComponents(m_selectionContext);
         }
 
-        checkFileImportCompletion(handles);
+        checkFileImportCompletion();
 
         /*
         auto view = scene->getRegistry().view<TransformComponent, TagComponent>();
@@ -280,7 +280,7 @@ namespace VkRender {
     }
 
     void
-    PropertiesLayer::handleSelectedFile(const LayerUtils::LoadFileInfo &loadFileInfo, GuiObjectHandles &handles) {
+    PropertiesLayer::handleSelectedFile(const LayerUtils::LoadFileInfo &loadFileInfo) {
         if (!loadFileInfo.path.empty()) {
             if (loadFileInfo.filetype == LayerUtils::OBJ_FILE) {
                 // Load into the active scene
@@ -312,11 +312,11 @@ namespace VkRender {
         }
     }
 
-    void PropertiesLayer::checkFileImportCompletion(GuiObjectHandles &handles) {
+    void PropertiesLayer::checkFileImportCompletion() {
         if (loadFileFuture.valid() &&
             loadFileFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
             LayerUtils::LoadFileInfo loadFileInfo = loadFileFuture.get(); // Get the result from the future
-            handleSelectedFile(loadFileInfo, handles);
+            handleSelectedFile(loadFileInfo);
         }
     }
 

@@ -71,6 +71,10 @@ namespace VkRender::MultiSense {
         }
     }
 
+    void LibMultiSenseConnector::update() {
+
+    }
+
     void LibMultiSenseConnector::disconnect() {
         Log::Logger::getInstance()->info("Disconnecting MultiSense channel");
         std::scoped_lock lock(m_channelMutex);
@@ -869,6 +873,16 @@ namespace VkRender::MultiSense {
         m_channelInfo.KColorMatExtrinsic = T;
         m_channelInfo.KColorMat = K;
     }
+
+    void LibMultiSenseConnector::setup() {
+
+    }
+
+    uint8_t *LibMultiSenseConnector::getImage() {
+        return nullptr;
+    }
+
+
     /*
 
     bool LibMultiSenseConnector::getExposure(short m_channelID, bool hasAuxCamera) {

@@ -12,7 +12,8 @@
 #include "Viewer/VkRender/Editors/Editor.h"
 #include "Viewer/VkRender/Editors/Common/3DViewport/Editor3DViewport.h"
 #include "Viewer/VkRender/Editors/Common/SceneHierarchy/EditorSceneHierarchy.h"
-#include "Viewer/VkRender/Editors/MultiSenseViewer/EditorMultiSenseViewer.h"
+#include "Viewer/VkRender/Editors/MultiSenseViewer/SidebarEditor/SideBarEditor.h"
+#include "Viewer/VkRender/Editors/MultiSenseViewer/ConfigurationEditor/ConfigurationEditor.h"
 #include "Viewer/VkRender/Editors/Common/Test/EditorTest.h"
 #include "Viewer/VkRender/Editors/Common/Properties/EditorProperties.h"
 #include "Viewer/VkRender/Editors/Common/GaussianViewer/EditorGaussianViewer.h"
@@ -29,8 +30,11 @@ namespace VkRender {
             registerEditor(EditorType::SceneHierarchy, [](EditorCreateInfo &ci, UUID) {
                 return std::make_unique<EditorSceneHierarchy>(ci);
             });
-            registerEditor(EditorType::MultiSenseViewer, [](EditorCreateInfo &ci, UUID) {
-                return std::make_unique<EditorMultiSenseViewer>(ci);
+            registerEditor(EditorType::MultiSenseViewer_Sidebar, [](EditorCreateInfo &ci, UUID) {
+                return std::make_unique<SideBarEditor>(ci);
+            });
+            registerEditor(EditorType::MultiSenseViewer_Configuration, [](EditorCreateInfo &ci, UUID) {
+                return std::make_unique<ConfigurationEditor>(ci);
             });
             registerEditor(EditorType::Viewport3D, [](EditorCreateInfo &ci, UUID) {
                 return std::make_unique<Editor3DViewport>(ci);

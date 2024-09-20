@@ -14,22 +14,22 @@ namespace VkRender {
     public:
 
         /** Called once per frame **/
-        void onUIRender(GuiObjectHandles &uiContext) override {
+        void onUIRender() override {
 
             bool pOpen = true;
             ImGuiWindowFlags window_flags = 0;
             window_flags =
                     ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus |
                     ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoScrollWithMouse;
-            ImGui::SetNextWindowPos(uiContext.info->editorStartPos, ImGuiCond_Always);
-            ImGui::SetNextWindowSize(uiContext.info->editorSize);
+            ImGui::SetNextWindowPos(m_editor.info->editorStartPos, ImGuiCond_Always);
+            ImGui::SetNextWindowSize(m_editor.info->editorSize);
             ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::Colors::CRLCoolGray);
             ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
             ImGui::Begin("WelcomeScreen", &pOpen, window_flags);
             ImVec2 winSize = ImGui::GetWindowSize();
 
-            drawConfigurationPage(uiContext);
+            drawConfigurationPage();
 
 
             ImGui::End();
@@ -53,10 +53,10 @@ namespace VkRender {
         }
 
 
-        void drawConfigurationPage(GuiObjectHandles &uiContext) {
+        void drawConfigurationPage() {
             MultiSense::MultiSenseDevice multisense{};
             /*
-            auto devices = uiContext.shared->multiSenseRendererBridge->getProfileList();
+            auto devices = m_editor.shared->multiSenseRendererBridge->getProfileList();
             for (const auto &device: devices) {
                 if (device.connectionState == MultiSense::MULTISENSE_CONNECTED) {
                     multisense = device;
@@ -73,26 +73,26 @@ namespace VkRender {
 /*
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(3.0f, 5.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, uiContext.info->scrollbarSize);
+        ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarSize, m_editor.info->scrollbarSize);
         ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::Colors::CRLCoolGray);
         ImGui::PushStyleVar(ImGuiStyleVar_ScrollbarRounding, 0.0f);
         */
             ImGui::PushStyleVar(ImGuiStyleVar_TabRounding, 0.0f);
 
             ImGui::BeginChild("ControlArea",
-                              ImVec2(uiContext.editorUi->width, uiContext.editorUi->height),
+                              ImVec2(m_editor.editorUi->width, m_editor.editorUi->height),
                               window_flags | ImGuiWindowFlags_NoBringToFrontOnFocus);
 
             /// DRAW EITHER 2D or 3D Control TAB. ALSO TOP TAB BARS FOR CONTROLS OR SENSOR PARAM
             ImGuiTabBarFlags tab_bar_flags = 0; // = ImGuiTabBarFlags_FittingPolicyResizeDown;
             ImVec2 framePadding = ImGui::GetStyle().FramePadding;
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4.0f, 5.0f));
-            ImGui::PushFont(uiContext.info->font15);
+            ImGui::PushFont(m_editor.info->font15);
 
             float numControlTabs = 2;
             if (ImGui::BeginTabBar("InteractionTabs", tab_bar_flags)) {
                 /// Calculate spaces for centering tab bar text
-                float tabBarWidth = uiContext.editorUi->width / numControlTabs;
+                float tabBarWidth = m_editor.editorUi->width / numControlTabs;
                 ImGui::SetNextItemWidth(tabBarWidth);
                 std::string tabLabel = "Features?";
                 float labelSize = ImGui::CalcTextSize(tabLabel.c_str()).x;
@@ -103,7 +103,7 @@ namespace VkRender {
                 std::string spaces(int(startPos / spaceSize), ' ');
 
                 if (ImGui::BeginTabItem((spaces + tabLabel).c_str())) {
-                    ImGui::PushFont(uiContext.info->font13);
+                    ImGui::PushFont(m_editor.info->font13);
 
                     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, framePadding);
 
@@ -112,7 +112,7 @@ namespace VkRender {
                     ImGui::EndTabItem();
                 }
                 if (ImGui::IsItemActivated() || ImGui::IsItemClicked())
-                    uiContext.usageMonitor->userClickAction("Preview Control", "tab",
+                    m_editor.usageMonitor->userClickAction("Preview Control", "tab",
                                                             ImGui::GetCurrentWindow()->Name);
                 /// Calculate spaces for centering tab bar text
                 ImGui::SetNextItemWidth(tabBarWidth);
@@ -125,16 +125,16 @@ namespace VkRender {
 
                 if (ImGui::BeginTabItem((spaces + tabLabel).c_str())) {
                     ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, framePadding);
-                    ImGui::PushFont(uiContext.info->font13);
+                    ImGui::PushFont(m_editor.info->font13);
 
-                    createCameraSettingsBar(uiContext);
+                    createCameraSettingsBar();
 
                     ImGui::PopStyleVar(); //Framepadding
                     ImGui::PopFont();
                     ImGui::EndTabItem();
                 }
                 if (ImGui::IsItemActivated() || ImGui::IsItemClicked())
-                    uiContext.usageMonitor->userClickAction("Sensor Config", "tab",
+                    m_editor.usageMonitor->userClickAction("Sensor Config", "tab",
                                                             ImGui::GetCurrentWindow()->Name);
 
                 ImGui::EndTabBar();
@@ -144,13 +144,13 @@ namespace VkRender {
             ImGui::EndChild();
         }
 
-        void createCameraSettingsBar(GuiObjectHandles &uiContext) {
+        void createCameraSettingsBar() {
 
             float textSpacing = 90.0f;
             ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
             static bool autoExp = true;
             // Exposure Tab
-            ImGui::PushFont(uiContext.info->font18);
+            ImGui::PushFont(m_editor.info->font18);
             ImGui::Dummy(ImVec2(0.0f, 10.0f));
             ImGui::Dummy(ImVec2(10.0f, 0.0f));
             ImGui::SameLine();
@@ -181,7 +181,7 @@ namespace VkRender {
                     const bool is_selected = (selectedModeIndex == n);
                     if (ImGui::Selectable(availableResolutions[n].c_str(), is_selected)) {
                         selectedModeIndex = static_cast<uint32_t>(n);
-                        uiContext.usageMonitor->userClickAction("Resolution", "combo", ImGui::GetCurrentWindow()->Name);
+                        m_editor.usageMonitor->userClickAction("Resolution", "combo", ImGui::GetCurrentWindow()->Name);
                     }
                     // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
                     if (is_selected) {
@@ -201,7 +201,7 @@ namespace VkRender {
             ImGui::Text("%s", txt.c_str());
             ImGui::SameLine(0, textSpacing - txtSize.x);
             if (ImGui::Checkbox("##Enable Auto Exposure", &autoExp)) {
-                uiContext.usageMonitor->userClickAction("Enable Auto Exposure", "Checkbox",
+                m_editor.usageMonitor->userClickAction("Enable Auto Exposure", "Checkbox",
                                                         ImGui::GetCurrentWindow()->Name);
 
             }

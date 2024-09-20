@@ -40,7 +40,7 @@ namespace VkRender {
         }
 
 
-        void processEntities(GuiObjectHandles &handles) {
+        void processEntities() {
             auto view = m_context->registry().view<TagComponent>(
                     entt::exclude<VkRender::SkyboxGraphicsPipelineComponent, VkRender::ScriptComponent>);
 
@@ -52,7 +52,7 @@ namespace VkRender {
             }
         }
 
-        void processEntity(GuiObjectHandles &handles, entt::entity entity, TagComponent &tag) {
+        void processEntity(entt::entity entity, TagComponent &tag) {
             // Your processing logic here
             // This function is called for both component types
             if (ImGui::TreeNodeEx(tag.Tag.c_str(), ImGuiTreeNodeFlags_None)) {
@@ -112,7 +112,7 @@ namespace VkRender {
 
         }
 
-        void createSceneHierarchy(GuiObjectHandles &handles) {
+        void createSceneHierarchy() {
             ImGui::Text("Scene hierarchy");
             // Calculate 90% of the available width
             float width = ImGui::GetContentRegionAvail().x * 0.9f;
@@ -131,7 +131,7 @@ namespace VkRender {
             ImGui::PopStyleColor(); // Reset to previous style color
         }
 
-        void otherTab(GuiObjectHandles &handles) {
+        void otherTab() {
             // Set a dynamic height based on content, starting with a minimum of 150px
             float height = 50.0f; // Start with your minimum height
             float maxHeight = 500.0f;
@@ -144,7 +144,7 @@ namespace VkRender {
         }
 
 
-        void cameraTab(GuiObjectHandles &handles) {
+        void cameraTab() {
             // Set a dynamic height based on content, starting with a minimum of 150px
             float height = 250.0f; // Start with your minimum height
             float maxHeight = 600.0f;
@@ -279,7 +279,7 @@ namespace VkRender {
 
         }
 
-        void createTabBar(GuiObjectHandles &handles) {
+        void createTabBar() {
 
             ImGuiTabBarFlags tab_bar_flags = 0; // = ImGuiTabBarFlags_FittingPolicyResizeDown;
             ImVec2 framePadding = ImGui::GetStyle().FramePadding;
@@ -330,7 +330,7 @@ namespace VkRender {
         }
 
 /** Called once per frame **/
-        void onUIRender(VkRender::GuiObjectHandles &handles) override {
+        void onUIRender() override {
             if (!handles.renderer3D)
                 return;
             bool pOpen = true;

@@ -32,12 +32,12 @@ namespace VkRender {
         }
 
         /** Called once per frame **/
-        void onUIRender(VkRender::GuiObjectHandles &handles) override {
+        void onUIRender() override {
 
             // Set window position and size
             ImVec2 window_pos = ImVec2(5.0f, 55.0f); // Position (x, y)
-            ImVec2 window_size = ImVec2(handles.editorUi->width - 5.0f,
-                                        handles.editorUi->height - 55.0f); // Size (width, height)
+            ImVec2 window_size = ImVec2(m_editor.editorUi->width - 5.0f,
+                                        m_editor.editorUi->height - 55.0f); // Size (width, height)
 
 
             // Set window flags to remove decorations
@@ -57,7 +57,7 @@ namespace VkRender {
             static bool toggle = false;
             ImGui::Checkbox("Save image toggle", &toggle);
             if (toggle) {
-                handles.editorUi->saveRenderToFile = true;
+                m_editor.editorUi->saveRenderToFile = true;
             }
             */
 
@@ -76,7 +76,7 @@ namespace VkRender {
                     if (ImGui::Selectable(cameraName.c_str(), is_selected)) {
                         selectedCameraIndex = index;
                         currentCameraName = cameraName;
-                        handles.shared->m_selectedEntity = Entity(entity, m_scene.get());
+                        m_editor.shared->m_selectedEntity = Entity(entity, m_scene.get());
                     }
                     if (is_selected) {
                         ImGui::SetItemDefaultFocus(); // Set the initial focus when opening the combo (scrolling + for keyboard navigation support in the upcoming navigation branch)
@@ -87,10 +87,10 @@ namespace VkRender {
                 ImGui::EndCombo();
             }
             */
-            ImGui::Checkbox("Preview selected camera entity", &handles.editorUi->setActiveCamera);
+            ImGui::Checkbox("Preview selected camera entity", &m_editor.editorUi->setActiveCamera);
 
-            ImGui::Checkbox("Render depth", &handles.editorUi->renderDepth);
-            handles.editorUi->saveRenderToFile = ImGui::Button("Save image");
+            ImGui::Checkbox("Render depth", &m_editor.editorUi->renderDepth);
+            m_editor.editorUi->saveRenderToFile = ImGui::Button("Save image");
 
             if (ImGui::Button("Create camera")) {
                 auto scene = m_context->activeScene();
@@ -98,10 +98,10 @@ namespace VkRender {
                 auto &transform = entity.getComponent<TransformComponent>();
                 auto &camera = entity.getComponent<CameraComponent>();
                 entity.addComponent<MeshComponent>(1);
-                transform.setPosition(handles.editorUi->editorCamera->pose.pos);
-                auto quaternion = glm::quat_cast(handles.editorUi->editorCamera->getFlyCameraTransMat());
+                transform.setPosition(m_editor.editorUi->editorCamera->pose.pos);
+                auto quaternion = glm::quat_cast(m_editor.editorUi->editorCamera->getFlyCameraTransMat());
                 transform.setQuaternion(quaternion);
-                camera().pose.pos = handles.editorUi->editorCamera->pose.pos;
+                camera().pose.pos = m_editor.editorUi->editorCamera->pose.pos;
                 camera().pose.q = quaternion;
                 camera().updateViewMatrix();
             };

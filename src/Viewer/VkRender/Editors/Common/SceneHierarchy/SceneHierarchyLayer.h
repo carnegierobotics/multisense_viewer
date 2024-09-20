@@ -22,31 +22,29 @@ namespace VkRender {
 
         void onDetach() override;
 
-        void onUIRender(GuiObjectHandles &handles) override;
+        void onUIRender() override;
 
         void onFinishedRender() override;
 
     private:
         std::future<LayerUtils::LoadFileInfo> loadFileFuture;
 
-        void drawCameraPanel(GuiObjectHandles &handles, Entity &entity);
+        void drawCameraPanel(Entity &entity);
 
         void openImportFileDialog(const std::string &fileDescription, const std::vector<std::string> &type,
                                   LayerUtils::FileTypeLoadFlow flow);
 
-        void handleSelectedFile(const LayerUtils::LoadFileInfo &loadFileInfo, GuiObjectHandles &handles);
+        void handleSelectedFile(const LayerUtils::LoadFileInfo &loadFileInfo);
 
-        void checkFileImportCompletion(GuiObjectHandles &handles);
+        void checkFileImportCompletion();
 
-        void processEntities(GuiObjectHandles &handles);
+        void processEntities();
 
         void rightClickPopup();
 
         //Entity m_selectionContext;
 
         void drawEntityNode(Entity entity);
-
-        void drawEntityNode(GuiObjectHandles &handles, Entity entity);
     };
 
 

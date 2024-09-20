@@ -50,6 +50,10 @@ namespace VkRender {
         std::shared_ptr<VulkanTexture2D> m_colorTexture;
         std::shared_ptr<VulkanImage> m_colorImage;
 
+        std::shared_ptr<VulkanTexture2D> m_multiSenseTexture;
+        std::shared_ptr<VulkanImage> m_multiSenseImage;
+
+
     };
 }
 

@@ -26,7 +26,7 @@ public:
     }
 
     /** Called once per frame **/
-    void onUIRender(VkRender::GuiObjectHandles& uiContext) override {
+    void onUIRender() override {
         bool pOpen = true;
         ImGuiWindowFlags window_flags = 0;
         window_flags =

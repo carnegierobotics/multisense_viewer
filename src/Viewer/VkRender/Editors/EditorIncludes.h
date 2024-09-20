@@ -157,6 +157,7 @@ namespace VkRender {
         // TODO fix this. UI Elements may not be needed for all editor tyypes, should probably be editor type specific
         bool setActiveCamera = true;
         bool render3DGSImage = false;
+        bool multisenseSource = false;
         int render3dgsColor = 0;
         bool gsRightView = false;
         bool contentHovered = false;

@@ -166,8 +166,8 @@ public:
     std::future<void> sendUserLogFuture;
 
 /** Called once per frame **/
-    void onUIRender(VkRender::GuiObjectHandles &handles) override {
-        if (!handles.showDebugWindow)
+    void onUIRender() override {
+        if (!m_editor.showDebugWindow)
             return;
         VkRender::ApplicationConfig &config = VkRender::ApplicationConfig::getInstance();
         auto user = config.getUserSetting();
@@ -175,18 +175,18 @@ public:
 
         static bool pOpen = true;
         ImGuiWindowFlags window_flags = 0;
-        ImGui::SetNextWindowSize(ImVec2(handles.info->debuggerWidth, handles.info->debuggerHeight),
+        ImGui::SetNextWindowSize(ImVec2(m_editor.info->debuggerWidth, m_editor.info->debuggerHeight),
                                  ImGuiCond_FirstUseEver);
         ImGui::Begin("Debugger Window", &pOpen, window_flags);
 
         // Make window close on X click. But also close/open on button press
-        handles.showDebugWindow = pOpen;
+        m_editor.showDebugWindow = pOpen;
         if (!pOpen)
             pOpen = true;
 
-        window.Draw(handles);
-        handles.info->debuggerWidth = ImGui::GetWindowWidth();
-        handles.info->debuggerHeight = ImGui::GetWindowHeight();
+        window.Draw(m_editor);
+        m_editor.info->debuggerWidth = ImGui::GetWindowWidth();
+        m_editor.info->debuggerHeight = ImGui::GetWindowHeight();
 
         auto* log = Log::Logger::getConsoleLogQueue();
 
@@ -199,38 +199,38 @@ public:
 
         ImGui::BeginChild("InfoChild",  ImVec2(0, 0), false, ImGuiWindowFlags_NoDecoration);
         // Update frame time display
-        if (handles.info->firstFrame) {
-            std::rotate(handles.info->frameTimes.begin(), handles.info->frameTimes.begin() + 1,
-                        handles.info->frameTimes.end());
-            float frameTime = 1000.0f / (handles.info->frameTimer * 1000.0f);
-            handles.info->frameTimes.back() = frameTime;
-            if (frameTime < handles.info->frameTimeMin) {
-                handles.info->frameTimeMin = frameTime;
+        if (m_editor.info->firstFrame) {
+            std::rotate(m_editor.info->frameTimes.begin(), m_editor.info->frameTimes.begin() + 1,
+                        m_editor.info->frameTimes.end());
+            float frameTime = 1000.0f / (m_editor.info->frameTimer * 1000.0f);
+            m_editor.info->frameTimes.back() = frameTime;
+            if (frameTime < m_editor.info->frameTimeMin) {
+                m_editor.info->frameTimeMin = frameTime;
             }
-            if (frameTime > handles.info->frameTimeMax) {
-                handles.info->frameTimeMax = frameTime;
+            if (frameTime > m_editor.info->frameTimeMax) {
+                m_editor.info->frameTimeMax = frameTime;
             }
         }
 
         ImGui::Dummy(ImVec2(5.0f, 0.0f));
         ImGui::SameLine();
-        ImGui::PlotLines("##FrameTimes", &handles.info->frameTimes[0], 50, 0, nullptr,
-                         handles.info->frameTimeMin,
-                         handles.info->frameTimeMax, ImVec2(handles.info->sidebarWidth - 28.0f, 80.0f));
+        ImGui::PlotLines("##FrameTimes", &m_editor.info->frameTimes[0], 50, 0, nullptr,
+                         m_editor.info->frameTimeMin,
+                         m_editor.info->frameTimeMax, ImVec2(m_editor.info->sidebarWidth - 28.0f, 80.0f));
         ImGui::Dummy(ImVec2(5.0f, 0.0f));
-        ImGui::Text("Frame time: %.5f", static_cast<double>( handles.info->frameTimer));
-        ImGui::Text("Frame: %lu", handles.info->frameID);
+        ImGui::Text("Frame time: %.5f", static_cast<double>( m_editor.info->frameTimer));
+        ImGui::Text("Frame: %lu", m_editor.info->frameID);
         ImGui::Separator();
 
 
-        ImGui::PushFont(handles.info->font15);
+        ImGui::PushFont(m_editor.info->font15);
         ImGui::Text("Application Options:");
         ImGui::PopFont();
 
         if (ImGui::Checkbox("Send Logs on exit", &user.sendUsageLogOnExit)) {
             update = true;
-            handles.usageMonitor->setSetting("send_usage_log_on_exit", Utils::boolToString(user.sendUsageLogOnExit));
-            handles.usageMonitor->userClickAction("Send Logs on exit", "Checkbox",
+            m_editor.usageMonitor->setSetting("send_usage_log_on_exit", Utils::boolToString(user.sendUsageLogOnExit));
+            m_editor.usageMonitor->userClickAction("Send Logs on exit", "Checkbox",
                                                    ImGui::GetCurrentWindow()->Name);
         }
 
@@ -245,13 +245,13 @@ public:
         static bool sendUserLog = false;
         sendUserLog = ImGui::Button("Send user log");
         if (sendUserLog) {
-            sendUserLogFuture = std::async(std::launch::async, &DebugWindow::sendUsageLog, this, &handles);
-            handles.usageMonitor->userClickAction("Send user log", "Button", ImGui::GetCurrentWindow()->Name);
+            sendUserLogFuture = std::async(std::launch::async, &DebugWindow::sendUsageLog, this, &m_editor);
+            m_editor.usageMonitor->userClickAction("Send user log", "Button", ImGui::GetCurrentWindow()->Name);
         }
 
         if (ImGui::Button("Reset consent")) {
-            handles.usageMonitor->setSetting("ask_user_consent_to_collect_statistics", "true");
-            handles.usageMonitor->userClickAction("Reset statistics consent", "Button",
+            m_editor.usageMonitor->setSetting("ask_user_consent_to_collect_statistics", "true");
+            m_editor.usageMonitor->userClickAction("Reset statistics consent", "Button",
                                                    ImGui::GetCurrentWindow()->Name);
             user.askForUsageLoggingPermissions = true;
             update = true;
@@ -276,9 +276,9 @@ public:
                     itemIdIndex = n;
                     auto level = Utils::getLogLevelEnumFromString(items[n]);
                     user.logLevel = level;
-                    handles.usageMonitor->setSetting("log_level", items[n]);
+                    m_editor.usageMonitor->setSetting("log_level", items[n]);
                     update |= true;
-                    handles.usageMonitor->userClickAction("Set Log level", "combo",
+                    m_editor.usageMonitor->userClickAction("Set Log level", "combo",
                                                            ImGui::GetCurrentWindow()->Name);
 
                 }

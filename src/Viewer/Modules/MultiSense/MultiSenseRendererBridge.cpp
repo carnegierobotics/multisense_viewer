@@ -14,13 +14,26 @@ namespace VkRender::MultiSense {
         // check for new connection
         for (auto &device: m_multiSenseDevices) {
             // Get connection state from libmultisense
-            device.connectionState = m_multiSenseTaskManager.connectionState();
+            //device.connectionState = device.multiSenseTaskManager->connectionState();
+
+            device.multiSenseTaskManager->update();
+
+
         }
     }
 
     void MultiSenseRendererBridge::setup() {
-        // Initiate gigevision protocol
-        m_multiSenseTaskManager.initiateGigEV();
+        // Initiate gigevision protocol and start searching
+        // Create a profile in case we find one
+        MultiSenseProfileInfo profileInfo;
+        MultiSenseDevice device;
+        device.profileCreateInfo = MultiSenseProfileInfo();
+        device.multiSenseTaskManager = std::make_shared<MultiSenseTaskManager>(MULTISENSE_CONNECTION_TYPE_GIGEVISION);
+        device.multiSenseTaskManager->setup();
+
+        m_multiSenseDevices.emplace_back(device);
+        //m_multiSenseTaskManager.setup();
+
     }
 
     std::vector<std::string> MultiSenseRendererBridge::getAvailableAdapterList() {
@@ -44,9 +57,10 @@ namespace VkRender::MultiSense {
         MultiSenseDevice device;
         // Perform connection with CRLPhysicalCamera and all that
         // Provide status updates to UI
-        device.createInfo = std::move(createInfo);
+        device.profileCreateInfo = std::move(createInfo);
+        device.multiSenseTaskManager = std::make_shared<MultiSenseTaskManager>(MULTISENSE_CONNECTION_TYPE_LIBMULTISENSE);
+
         m_multiSenseDevices.emplace_back(device);
-        m_multiSenseTaskManager.connect(device);
     }
 
     std::vector<MultiSenseDevice> &MultiSenseRendererBridge::getProfileList() {
@@ -59,20 +73,19 @@ namespace VkRender::MultiSense {
         m_multiSenseDevices.erase(
                 std::remove_if(m_multiSenseDevices.begin(), m_multiSenseDevices.end(),
                                [&profile](const MultiSenseDevice &device) {
-                                   return device.createInfo.profileName == profile.createInfo.profileName;
+                                   return device.profileCreateInfo.profileName == profile.profileCreateInfo.profileName;
                                }),
                 m_multiSenseDevices.end()
         );
     }
 
     void MultiSenseRendererBridge::connect(const MultiSenseDevice &profile) {
-        // Check that we are not busy connection already of we are on the same device?
-        m_multiSenseTaskManager.connect(profile);
+        m_multiSenseDevices.front().multiSenseTaskManager->connect(MultiSenseDevice());
     }
 
     void MultiSenseRendererBridge::disconnect(const MultiSenseDevice &profile) {
         // Check that we are not busy connection already of we are on the same device?
-        m_multiSenseTaskManager.disconnect();
+        m_multiSenseDevices.front().multiSenseTaskManager->disconnect();
     }
 
     std::vector<std::string> MultiSenseRendererBridge::availableSources() {
@@ -87,9 +100,20 @@ namespace VkRender::MultiSense {
     bool MultiSenseRendererBridge::anyMultiSenseDeviceOnline() {
         bool anyConnected = true; // TODO set false
         for (const auto &dev: m_multiSenseDevices) {
-            if (dev.connectionState == MultiSenseConnectionState::MULTISENSE_CONNECTED)
+            if (dev.multiSenseTaskManager->connectionState() == MultiSenseConnectionState::MULTISENSE_CONNECTED)
                 anyConnected = true;
         }
         return anyConnected;
+    }
+
+    uint8_t *MultiSenseRendererBridge::getImage() {
+        for (const auto &dev: m_multiSenseDevices) {
+            if (dev.multiSenseTaskManager->connectionState() == MultiSenseConnectionState::MULTISENSE_CONNECTED){
+
+
+            }
+        return dev.multiSenseTaskManager->getImage();
+        }
+        return nullptr;
     }
 }

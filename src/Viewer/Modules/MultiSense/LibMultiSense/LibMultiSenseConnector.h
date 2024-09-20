@@ -106,6 +106,9 @@ namespace VkRender::MultiSense {
         ~LibMultiSenseConnector() override = default;
 
         void connect(std::string ip, std::string adapterName) override;
+        void update() override;
+        void setup() override;
+        uint8_t* getImage() override;
 
         /**@brief Starts the desired stream if supported
          *

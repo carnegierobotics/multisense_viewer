@@ -32,12 +32,12 @@ namespace VkRender {
         }
 
         /** Called once per frame **/
-        void onUIRender(VkRender::GuiObjectHandles &handles) override {
+        void onUIRender() override {
 
             // Set window position and size
             ImVec2 window_pos = ImVec2(5.0f, 55.0f); // Position (x, y)
-            ImVec2 window_size = ImVec2(handles.editorUi->width - 5.0f,
-                                        handles.editorUi->height - 55.0f); // Size (width, height)
+            ImVec2 window_size = ImVec2(m_editor.editorUi->width - 5.0f,
+                                        m_editor.editorUi->height - 55.0f); // Size (width, height)
 
 
             // Set window flags to remove decorations
@@ -51,23 +51,23 @@ namespace VkRender {
             // Create the parent window
             ImGui::Begin("EditorGaussianViewerLayer", nullptr, window_flags);
 
-            ImGui::PushFont(handles.info->font15);
+            ImGui::PushFont(m_editor.info->font15);
 
-            handles.editorUi->render3DGSImage = ImGui::Button("Render 3DGS image");
+            m_editor.editorUi->render3DGSImage = ImGui::Button("Render 3DGS image");
 
             static bool toggle = false;
 
-            ImGui::RadioButton("3DGS image", &handles.editorUi->render3dgsColor, 0);
-            ImGui::RadioButton("Normals", &handles.editorUi->render3dgsColor, 1);
-            ImGui::RadioButton("Depth", &handles.editorUi->render3dgsColor, 2);
+            ImGui::RadioButton("3DGS image", &m_editor.editorUi->render3dgsColor, 0);
+            ImGui::RadioButton("Normals", &m_editor.editorUi->render3dgsColor, 1);
+            ImGui::RadioButton("Depth", &m_editor.editorUi->render3dgsColor, 2);
 
             ImGui::Checkbox("Toggle rendering", &toggle);
             if (toggle){
-                handles.editorUi->render3DGSImage = true;
+                m_editor.editorUi->render3DGSImage = true;
             }
 
-            handles.editorUi->saveRenderToFile = ImGui::Button("Save image");
-            ImGui::Checkbox("Right view", &handles.editorUi->gsRightView);
+            m_editor.editorUi->saveRenderToFile = ImGui::Button("Save image");
+            ImGui::Checkbox("Right view", &m_editor.editorUi->gsRightView);
 
 
             ImGui::PopFont();

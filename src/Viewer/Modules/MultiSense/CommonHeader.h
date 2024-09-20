@@ -4,18 +4,28 @@
 
 #ifndef MULTISENSE_VIEWER_COMMONHEADER_H
 #define MULTISENSE_VIEWER_COMMONHEADER_H
+
 #include <cstdint>
 #include <string>
+#include <memory>
 
 namespace VkRender::MultiSense {
+    class MultiSenseTaskManager;
+
+    typedef enum MultiSenseConnectionType {
+        MULTISENSE_CONNECTION_TYPE_LIBMULTISENSE,
+        MULTISENSE_CONNECTION_TYPE_GIGEVISION
+    } MultiSenseConnectionType;
+
     typedef enum MultiSenseConnectionState {
-        MULTISENSE_DISCONNECTED =                  0x00,
-        MULTISENSE_CONNECTED =                     0x01,
-        MULTISENSE_CHANNEL_BUSY =                  0x08,
-        MULTISENSE_UNAVAILABLE =                   0x0F,
+        MULTISENSE_DISCONNECTED = 0x00,
+        MULTISENSE_CONNECTED = 0x01,
+        MULTISENSE_CHANNEL_BUSY = 0x08,
+        MULTISENSE_UNAVAILABLE = 0x0F,
     } MultiSenseConnectionState;
 
     struct MultiSenseProfileInfo {
+        bool show = false;
         std::string profileName = "Default profile";
         std::string ifName = "Default Ethernet";
         std::string cameraModel = "MultiSense Model";
@@ -39,9 +49,8 @@ namespace VkRender::MultiSense {
     };
 
     struct MultiSenseDevice {
-        MultiSenseConnectionState connectionState = MULTISENSE_DISCONNECTED;
-
-        MultiSenseProfileInfo createInfo;
+        std::shared_ptr<MultiSenseTaskManager> multiSenseTaskManager;
+        MultiSenseProfileInfo profileCreateInfo;
     };
 }
 

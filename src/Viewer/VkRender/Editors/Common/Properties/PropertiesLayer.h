@@ -19,7 +19,7 @@ namespace VkRender {
 
         void onDetach() override;
 
-        void onUIRender(GuiObjectHandles &handles) override;
+        void onUIRender() override;
 
         void onFinishedRender() override;
 
@@ -29,7 +29,7 @@ namespace VkRender {
         template<typename T, typename UIFunction>
         void drawComponent(const std::string &name, Entity entity, UIFunction uiFunction);
 
-        void drawComponents(VkRender::GuiObjectHandles &handles, Entity entity);
+        void drawComponents(Entity entity);
 
         Entity m_selectionContext;
         std::future<LayerUtils::LoadFileInfo> loadFileFuture;
@@ -37,9 +37,9 @@ namespace VkRender {
         template<typename T>
         void displayAddComponentEntry(const std::string &entryName);
 
-        void checkFileImportCompletion(GuiObjectHandles &handles);
+        void checkFileImportCompletion();
 
-        void handleSelectedFile(const LayerUtils::LoadFileInfo &loadFileInfo, GuiObjectHandles &handles);
+        void handleSelectedFile(const LayerUtils::LoadFileInfo &loadFileInfo);
 
         void openImportFileDialog(const std::string &fileDescription, const std::vector<std::string> &type,
                                   LayerUtils::FileTypeLoadFlow flow);

@@ -26,11 +26,11 @@ namespace VkRender {
 
 
         /** Called once per frame **/
-        void onUIRender(VkRender::GuiObjectHandles &handles) override {
+        void onUIRender() override {
 
             // Set window position and size
             ImVec2 window_pos = ImVec2(0.0f, 0.0f); // Position (x, y)
-            ImVec2 window_size = ImVec2(handles.info->applicationWidth, handles.info->applicationHeight); // Size (width, height)
+            ImVec2 window_size = ImVec2(m_editor.info->applicationWidth, m_editor.info->applicationHeight); // Size (width, height)
 
 
 
@@ -40,12 +40,12 @@ namespace VkRender {
                     ImGuiWindowFlags_NoFocusOnAppearing;
 
             ImVec4 color;
-            if (handles.editorUi->active)
-                color = handles.editorUi->backgroundColorActive;
-            else if (handles.editorUi->hovered)
-                color = handles.editorUi->backgroundColorHovered;
+            if (m_editor.editorUi->active)
+                color = m_editor.editorUi->backgroundColorActive;
+            else if (m_editor.editorUi->hovered)
+                color = m_editor.editorUi->backgroundColorHovered;
             else
-                color = handles.editorUi->backgroundColor;
+                color = m_editor.editorUi->backgroundColor;
 
             ImGui::PushStyleColor(ImGuiCol_WindowBg, color);
             // Set next window position and size
@@ -57,7 +57,7 @@ namespace VkRender {
             // Create the parent window
             ImGui::Begin("EditorTestWindow", nullptr, window_flags);
 
-            ImGui::PushFont(handles.info->font24);
+            ImGui::PushFont(m_editor.info->font24);
             std::string txt = std::to_string(0);
             ImVec2 txtSize = ImGui::CalcTextSize(txt.c_str());
 

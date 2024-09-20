@@ -12,6 +12,7 @@
 #include "CommonHeader.h"
 
 namespace VkRender::MultiSense {
+
     class MultiSenseRendererBridge {
     public:
         std::vector<std::string> getAvailableAdapterList();
@@ -31,10 +32,11 @@ namespace VkRender::MultiSense {
         void setup();
         bool anyMultiSenseDeviceOnline();
 
+        uint8_t* getImage();
+
     private:
         std::vector<MultiSenseDevice> m_multiSenseDevices;
         AdapterUtils m_adapterUtils;
-        MultiSenseTaskManager m_multiSenseTaskManager;
     };
 }
 

@@ -19,16 +19,16 @@ namespace VkRender {
     }
 
 
-    void SceneHierarchyLayer::drawEntityNode(GuiObjectHandles &handles, Entity entity) {
+    void SceneHierarchyLayer::drawEntityNode(Entity entity) {
         auto &tag = entity.getComponent<TagComponent>().Tag;
         //handles.shared->m_selectedEntity = handles.shared->m_selectedEntity;
 
-        ImGuiTreeNodeFlags flags = ((handles.shared->m_selectedEntity == entity) ? ImGuiTreeNodeFlags_Selected : 0) |
+        ImGuiTreeNodeFlags flags = ((m_editor.shared->m_selectedEntity == entity) ? ImGuiTreeNodeFlags_Selected : 0) |
                                    ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_OpenOnArrow;
         flags |= ImGuiTreeNodeFlags_SpanAvailWidth;
         bool opened = ImGui::TreeNodeEx((void *) (uint64_t) (uint32_t) entity, flags, "%s", tag.c_str());
         if (ImGui::IsItemClicked()) {
-            handles.shared->m_selectedEntity = entity;
+            m_editor.shared->m_selectedEntity = entity;
         }
 
         bool entityDeleted = false;
@@ -52,15 +52,15 @@ namespace VkRender {
 
         if (entityDeleted) {
             m_scene->destroyEntity(entity);
-            if (handles.shared->m_selectedEntity == entity) {
-                handles.shared->m_selectedEntity = {};
+            if (m_editor.shared->m_selectedEntity == entity) {
+                m_editor.shared->m_selectedEntity = {};
             }
         }
-        //handles.shared->m_selectedEntity = handles.shared->m_selectedEntity;
+        //m_editor.shared->m_selectedEntity = m_editor.shared->m_selectedEntity;
 
     }
 
-    void SceneHierarchyLayer::processEntities(GuiObjectHandles &handles) {
+    void SceneHierarchyLayer::processEntities() {
         if (!m_scene)
             return;
 
@@ -74,9 +74,9 @@ namespace VkRender {
         });
         static auto lastTime = std::chrono::steady_clock::now();
 
-        handles.shared->newFrame = false;
+        m_editor.shared->newFrame = false;
         static int selection = 0;
-        if (handles.shared->startRecording) {
+        if (m_editor.shared->startRecording) {
             // Increment the selected cameras.
             auto currentTime = std::chrono::steady_clock::now();
             auto elapsedTime = std::chrono::duration_cast<std::chrono::seconds>(currentTime - lastTime).count();
@@ -88,20 +88,20 @@ namespace VkRender {
                     selection = 0; // Wrap around if it exceeds the number of entities
                 }
                 // Update the selected entity
-                handles.shared->m_selectedEntity = entities[selection];
+                m_editor.shared->m_selectedEntity = entities[selection];
                 // Update the last time
                 lastTime = currentTime;
-                handles.shared->newFrame = true;
+                m_editor.shared->newFrame = true;
             }
         }
         if (m_scene) {
             m_scene->getRegistry().view<entt::entity>().each([&](auto entityID) {
                 Entity entity{entityID, m_scene.get()};
                 // Perform your operations with the entity
-                drawEntityNode(handles, entity);
+                drawEntityNode(entity);
             });
             //if (ImGui::IsMouseDown(0) && ImGui::IsWindowHovered())
-            //    handles.shared->m_selectedEntity = {};
+            //    m_editor.shared->m_selectedEntity = {};
 
             // Right-click on blank space
             if (ImGui::BeginPopupContextWindow(0, 1)) {
@@ -131,7 +131,7 @@ namespace VkRender {
 
 /** Handle the file path after selection is complete **/
     void
-    SceneHierarchyLayer::handleSelectedFile(const LayerUtils::LoadFileInfo &loadFileInfo, GuiObjectHandles &handles) {
+    SceneHierarchyLayer::handleSelectedFile(const LayerUtils::LoadFileInfo &loadFileInfo) {
         if (!loadFileInfo.path.empty()) {
             if (loadFileInfo.filetype == LayerUtils::OBJ_FILE) {
 
@@ -167,11 +167,11 @@ namespace VkRender {
     }
 
 
-    void SceneHierarchyLayer::checkFileImportCompletion(GuiObjectHandles &handles) {
+    void SceneHierarchyLayer::checkFileImportCompletion() {
         if (loadFileFuture.valid() &&
             loadFileFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
             LayerUtils::LoadFileInfo loadFileInfo = loadFileFuture.get(); // Get the result from the future
-            handleSelectedFile(loadFileInfo, handles);
+            handleSelectedFile(loadFileInfo);
         }
     }
 
@@ -205,10 +205,10 @@ namespace VkRender {
 
 
 /** Called once per frame **/
-    void SceneHierarchyLayer::onUIRender(VkRender::GuiObjectHandles &handles) {
+    void SceneHierarchyLayer::onUIRender() {
         // Set window position and size
-        ImVec2 window_pos = ImVec2(0.0f, handles.info->menuBarHeight); // Position (x, y)
-        ImVec2 window_size = ImVec2(handles.editorUi->width, handles.editorUi->height); // Size (width, height)
+        ImVec2 window_pos = ImVec2(0.0f, m_editor.info->menuBarHeight); // Position (x, y)
+        ImVec2 window_size = ImVec2(m_editor.editorUi->width, m_editor.editorUi->height); // Size (width, height)
         // Set window flags to remove decorations
         ImGuiWindowFlags window_flags =
                 ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
@@ -221,18 +221,18 @@ namespace VkRender {
         ImGui::Text("Scene hierarchy");
         // Calculate 90% of the available width
         float width = ImGui::GetContentRegionAvail().x * 0.9f;
-        float height = ImGui::GetContentRegionAvail().y * 0.95f - handles.info->menuBarHeight;
+        float height = ImGui::GetContentRegionAvail().y * 0.95f - m_editor.info->menuBarHeight;
         ImGui::PushStyleColor(ImGuiCol_ChildBg, Colors::CRLGray424Main); // Example: Dark grey
         // Create the child window with calculated dimensions and scrolling enabled beyond maxHeight
         ImGui::SetCursorPosX((window_size.x - width) / 2);
         ImGui::BeginChild("SceneHierarchyChild", ImVec2(width, height), true);
         rightClickPopup();
-        processEntities(handles);
+        processEntities();
         ImGui::EndChild();
         ImGui::PopStyleColor();
         // End the parent window
         ImGui::End();
-        checkFileImportCompletion(handles);
+        checkFileImportCompletion();
     }
 
 /** Called once upon this object destruction **/

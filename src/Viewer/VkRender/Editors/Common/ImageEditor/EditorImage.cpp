@@ -13,6 +13,44 @@ namespace VkRender {
         addUI("DebugWindow");
 
 
+        RenderPassInfo renderPassInfo{};
+        renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
+        renderPassInfo.renderPass = m_renderPass->getRenderPass();
+
+        VkImageCreateInfo imageCI = Populate::imageCreateInfo();
+        imageCI.imageType = VK_IMAGE_TYPE_2D;
+        imageCI.format = VK_FORMAT_R8_UNORM;
+        imageCI.extent = {static_cast<uint32_t>(960), static_cast<uint32_t>(600), 1};
+        imageCI.mipLevels = 1;
+        imageCI.arrayLayers = 1;
+        imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
+        imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
+        imageCI.usage =
+                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+        imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        VkImageViewCreateInfo imageViewCI = Populate::imageViewCreateInfo();
+        imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        imageViewCI.format = VK_FORMAT_R8_UNORM;
+        imageViewCI.subresourceRange.baseMipLevel = 0;
+        imageViewCI.subresourceRange.levelCount = 1;
+        imageViewCI.subresourceRange.baseArrayLayer = 0;
+        imageViewCI.subresourceRange.layerCount = 1;
+        imageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+
+        VulkanImageCreateInfo vulkanImageCreateInfo(m_context->vkDevice(), m_context->allocator(), imageCI,
+                                                    imageViewCI);
+        vulkanImageCreateInfo.debugInfo = "Color texture: Image Editor";
+        m_multiSenseImage = std::make_shared<VulkanImage>(vulkanImageCreateInfo);
+
+        VulkanTexture2DCreateInfo textureCreateInfo(m_context->vkDevice());
+        textureCreateInfo.image = m_multiSenseImage;
+        m_multiSenseTexture = std::make_shared<VulkanTexture2D>(textureCreateInfo);
+
+
+        //m_renderPipelines = std::make_unique<GraphicsPipeline2D>(*m_context, renderPassInfo);
+        //m_renderPipelines->bindTexture(m_multiSenseTexture);
+
     }
 
     void EditorImage::onEditorResize() {
@@ -46,7 +84,8 @@ namespace VkRender {
             imageCI.arrayLayers = 1;
             imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
             imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
-            imageCI.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+            imageCI.usage =
+                    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
             imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
             imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
             VkImageViewCreateInfo imageViewCI = Populate::imageViewCreateInfo();
@@ -58,7 +97,8 @@ namespace VkRender {
             imageViewCI.subresourceRange.layerCount = 1;
             imageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 
-            VulkanImageCreateInfo vulkanImageCreateInfo(m_context->vkDevice(), m_context->allocator(), imageCI, imageViewCI);
+            VulkanImageCreateInfo vulkanImageCreateInfo(m_context->vkDevice(), m_context->allocator(), imageCI,
+                                                        imageViewCI);
             vulkanImageCreateInfo.debugInfo = "Color texture: Image Editor";
             m_colorImage = std::make_shared<VulkanImage>(vulkanImageCreateInfo);
 
@@ -94,7 +134,13 @@ namespace VkRender {
     }
 
     void EditorImage::onUpdate() {
-
+        if (m_ui.multisenseSource) {
+            // get image from multisense
+            auto *img = m_context->multiSense()->getImage();
+            if (img) {
+                m_multiSenseTexture->loadImage(img, 960 * 600);
+            }
+        }
         if (m_context->sharedEditorData().selectedUUIDContext && !m_depthImagePipeline) {
             RenderPassInfo renderPassInfo{};
             renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
@@ -107,8 +153,9 @@ namespace VkRender {
         }
 
         //ui().saveRenderToFile = m_createInfo.sharedUIContextData->newFrame;
-        if (m_createInfo.sharedUIContextData->m_selectedEntity){
-            ui().renderToFileName = "scene_0000/disparity/" +  m_createInfo.sharedUIContextData->m_selectedEntity.getComponent<TagComponent>().Tag;
+        if (m_createInfo.sharedUIContextData->m_selectedEntity) {
+            ui().renderToFileName = "scene_0000/disparity/" +
+                                    m_createInfo.sharedUIContextData->m_selectedEntity.getComponent<TagComponent>().Tag;
             ui().renderToFileName.replace_extension(".png");
         }
 

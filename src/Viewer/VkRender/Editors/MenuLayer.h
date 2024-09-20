@@ -30,7 +30,7 @@ namespace VkRender {
 
 
         /** Called once per frame **/
-        void onUIRender(VkRender::GuiObjectHandles &handles) override {
+        void onUIRender() override {
 
 
             // Push style variables
@@ -46,7 +46,7 @@ namespace VkRender {
             ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
 
 
-            ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, handles.info->menuBarHeight));
+            ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, m_editor.info->menuBarHeight));
             ImGui::BeginMainMenuBar();
             if (ImGui::BeginMenu("File")) {
                 // Projects Menu
@@ -95,9 +95,9 @@ namespace VkRender {
             }
 
             if (ImGui::BeginMenu("View")) {
-                ImGui::MenuItem("Fix Aspect Ratio", nullptr, &handles.fixAspectRatio);
-                ImGui::MenuItem("Revert Window Layout", nullptr, &handles.revertWindowLayout);
-                ImGui::MenuItem("Console", nullptr, &handles.showDebugWindow);
+                ImGui::MenuItem("Fix Aspect Ratio", nullptr, &m_editor.fixAspectRatio);
+                ImGui::MenuItem("Revert Window Layout", nullptr, &m_editor.revertWindowLayout);
+                ImGui::MenuItem("Console", nullptr, &m_editor.showDebugWindow);
                 ImGui::EndMenu();
             }
 

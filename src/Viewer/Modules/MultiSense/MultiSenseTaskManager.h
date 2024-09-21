@@ -44,12 +44,7 @@
 
 #include "Viewer/Modules/MultiSense/MultiSenseInterface.h"
 
-#ifdef VKRENDER_GIGEVISION_ENABLED
-
 #include "Viewer/Modules/MultiSense/GigE-Vision/GigEVisionConnector.h"
-
-#endif
-
 #include "Viewer/Modules/MultiSense/LibMultiSense/LibMultiSenseConnector.h"
 
 namespace VkRender::MultiSense {

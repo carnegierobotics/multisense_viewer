@@ -4,11 +4,13 @@
 
 #ifndef MULTISENSE_RENDERER_GIG_E_VISION_BRIDGE_H
 #define MULTISENSE_RENDERER_GIG_E_VISION_BRIDGE_H
+
 #include <string>
+
+#ifdef VKRENDER_GIGEVISION_ENABLED
 
 #include "Viewer/Modules/MultiSense/MultiSenseInterface.h"
 #include "Viewer/Tools/Logger.h"
-
 #include <libcrlgev/camera_obj.hh>
 
 
@@ -56,5 +58,39 @@ namespace VkRender::MultiSense {
     };
 }
 
+#else
+namespace VkRender::MultiSense {
 
+    class GigEVisionConnector : public MultiSenseInterface {
+
+    public:
+        ~GigEVisionConnector() override = default;
+
+        void connect(std::string ip, std::string adapterName) override {
+
+        }
+
+        void disconnect() override {
+
+        }
+
+        void update() override {
+
+        }
+
+        void setup() override {
+
+        }
+
+        uint8_t *getImage() override {
+            return nullptr;
+        }
+
+        MultiSenseConnectionState connectionState() override {
+            return MultiSenseInterface::connectionState();
+        }
+    };
+}
+
+#endif // GIGEV_ENABLED
 #endif //MULTISENSE_RENDERER_GIG_E_VISION_BRIDGE_H

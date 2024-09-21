@@ -58,6 +58,9 @@ namespace VkRender::MultiSense {
 
         switch (connType) {
             case MULTISENSE_CONNECTION_TYPE_GIGEVISION:
+#ifndef VKRENDER_GIGEVISION_ENABLED
+            Log::Logger::getInstance()->warning("GigEVision Connection interface created but GigEVision is not enabled");
+#endif
                 m_interface = std::make_unique<GigEVisionConnector>();
                 break;
             case MULTISENSE_CONNECTION_TYPE_LIBMULTISENSE:

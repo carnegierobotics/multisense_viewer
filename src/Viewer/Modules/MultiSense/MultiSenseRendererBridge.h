@@ -10,21 +10,21 @@
 #include "Viewer/Tools/AdapterUtils.h"
 #include "MultiSenseTaskManager.h"
 #include "CommonHeader.h"
+#include "MultiSenseDevice.h"
 
 namespace VkRender::MultiSense {
 
     class MultiSenseRendererBridge {
     public:
-        std::vector<std::string> getAvailableAdapterList();
+        void setSelectedMultiSenseProfile(std::shared_ptr<MultiSenseDevice> ref);
+        MultiSenseProfileInfo getSelectedMultiSenseProfile();
 
-        void setSelectedAdapter(std::string adapterName);
+        void addNewProfile(MultiSenseProfileInfo, bool connectAndQuery = true);
+        void removeProfile(std::shared_ptr<MultiSenseDevice> ref);
+        void connect();
+        void disconnect();
 
-        void addNewProfile(MultiSenseProfileInfo);
-        void removeProfile(const MultiSenseDevice& profile);
-        void connect(const MultiSenseDevice& profile);
-        void disconnect(const MultiSenseDevice& profile);
-
-        std::vector<MultiSenseDevice> &getProfileList();
+        std::vector<std::shared_ptr<MultiSenseDevice>> getAllMultiSenseProfiles();
 
         std::vector<std::string> availableSources();
 
@@ -35,7 +35,8 @@ namespace VkRender::MultiSense {
         uint8_t* getImage();
 
     private:
-        std::vector<MultiSenseDevice> m_multiSenseDevices;
+        std::vector<std::shared_ptr<MultiSenseDevice>> m_multiSenseDevices;
+        std::shared_ptr<MultiSenseDevice> m_selectedProfileRef;
         AdapterUtils m_adapterUtils;
     };
 }

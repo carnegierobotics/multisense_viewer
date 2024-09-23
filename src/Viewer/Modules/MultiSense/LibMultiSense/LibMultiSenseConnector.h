@@ -57,6 +57,8 @@ namespace VkRender::MultiSense {
      */
     class LibMultiSenseConnector : public MultiSenseInterface {
 
+    public:
+        void getCameraInfo(MultiSenseProfileInfo *profileInfo) override;
 
     public:
         struct ImuData {
@@ -105,11 +107,12 @@ namespace VkRender::MultiSense {
 
         ~LibMultiSenseConnector() override = default;
 
-        void connect(std::string ip, std::string adapterName) override;
+        void connect(std::string ip) override;
         void update() override;
         void setup() override;
         uint8_t* getImage() override;
 
+        MultiSenseConnectionState connectionState() override;
         /**@brief Starts the desired stream if supported
          *
          * @param[in] stringSrc source described in string (also shown in UI)
@@ -223,20 +226,10 @@ namespace VkRender::MultiSense {
 
         void setIMUConfig(uint32_t tableIndex, crl::multisense::RemoteHeadChannel channelID = 0);
 
-        MultiSenseConnectionState connectionState() {
-
-            if (m_channelMutex.try_lock()) {
-                m_channelMutex.unlock();
-                return state;
-            } else {
-                return MULTISENSE_CHANNEL_BUSY;
-            }
-        }
-
-        void disconnect();
+        void disconnect() override;
 
     private:
-        std::unique_ptr<ChannelWrapper> m_channel{};
+        std::unique_ptr<ChannelWrapper> m_channel = nullptr;
         CameraInfo m_channelInfo{};
         std::mutex m_channelMutex;
         MultiSenseConnectionState state;

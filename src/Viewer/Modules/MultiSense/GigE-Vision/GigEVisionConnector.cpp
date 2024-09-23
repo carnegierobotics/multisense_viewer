@@ -13,8 +13,8 @@ namespace VkRender::MultiSense {
     static GigEVisionConnector::Image s_image;
     static std::unordered_map<int, image_data> s_imageObjects;
 
-    void GigEVisionConnector::connect(std::string ip, std::string ifName) {
-
+    void GigEVisionConnector::connect(std::string ip) {
+        Log::Logger::getInstance()->info("Attempting to connect using gev. Connecto to first found device..");
         int32_t numDevices = m_gigEv->enumerate();
         if (numDevices > 0) {
             m_gigEv->connect(numDevices - 1);

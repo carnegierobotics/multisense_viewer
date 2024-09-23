@@ -128,8 +128,6 @@ namespace VkRender {
             if (connectMethodSelector == MANUAL_CONNECT) {
                 // AdapterSearch Threaded operation
                 // Threaded adapter search for manual connect
-                profileInfo.show = true;
-
                 {
                     ImGui::Dummy(ImVec2(0.0f, 30.0f));
                     ImGui::Dummy(ImVec2(20.0f, 0.0f));
@@ -225,6 +223,7 @@ namespace VkRender {
             }
 
             if (btnConnect) {
+                profileInfo.connectionType = MultiSense::MULTISENSE_CONNECTION_TYPE_LIBMULTISENSE;
                 uiContext.usageMonitor->userClickAction("Connect", "button",
                                                         ImGui::GetCurrentWindow()->Name);
 

@@ -40,7 +40,6 @@
 #include "Viewer/Tools/Populate.h"
 
 #include "Viewer/VkRender/Editors/EditorDefinitions.h"
-#include "Viewer/VkRender/Components/MeshComponent.h"
 #include "Viewer/Scenes/MultiSenseViewer/MultiSenseViewer.h"
 
 namespace VkRender {

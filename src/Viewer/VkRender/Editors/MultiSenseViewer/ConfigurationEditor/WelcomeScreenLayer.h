@@ -11,6 +11,8 @@ namespace VkRender {
         /** Called once per frame **/
         void onUIRender() override {
 
+            if (m_context->multiSense()->anyMultiSenseDeviceOnline())
+                return;
 
             bool pOpen = true;
             ImGuiWindowFlags window_flags = 0;

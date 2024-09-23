@@ -5,12 +5,10 @@
 #ifndef MULTISENSE_VIEWER_COMMONHEADER_H
 #define MULTISENSE_VIEWER_COMMONHEADER_H
 
-#include <cstdint>
-#include <string>
-#include <memory>
+
+#include "Viewer/Application/pch.h"
 
 namespace VkRender::MultiSense {
-    class MultiSenseTaskManager;
 
     typedef enum MultiSenseConnectionType {
         MULTISENSE_CONNECTION_TYPE_LIBMULTISENSE,
@@ -24,6 +22,13 @@ namespace VkRender::MultiSense {
         MULTISENSE_UNAVAILABLE = 0x0F,
     } MultiSenseConnectionState;
 
+    struct DeviceData {
+        std::vector<std::string> resolutions{};
+        std::vector<std::string> sources{"Select Data Source"};
+
+        std::unordered_map<int, std::string> enabledSources;
+    };
+
     struct MultiSenseProfileInfo {
         bool show = false;
         std::string profileName = "Default profile";
@@ -31,6 +36,9 @@ namespace VkRender::MultiSense {
         std::string cameraModel = "MultiSense Model";
         std::string serialNumber = "Serial Number";
         std::string inputIP = "10.66.171.21";
+
+        MultiSenseConnectionType connectionType = MultiSenseConnectionType::MULTISENSE_CONNECTION_TYPE_LIBMULTISENSE;
+        DeviceData deviceData;
 
         MultiSenseProfileInfo() {
             // Reserve memory in case user inputs are long
@@ -40,17 +48,6 @@ namespace VkRender::MultiSense {
             serialNumber.reserve(128);
             inputIP.reserve(24);
         }
-    };
-
-    struct sensorData {
-        uint32_t exposure = 20000;
-        uint32_t fps = 30;
-        float gain = 2.2f;
-    };
-
-    struct MultiSenseDevice {
-        std::shared_ptr<MultiSenseTaskManager> multiSenseTaskManager;
-        MultiSenseProfileInfo profileCreateInfo;
     };
 }
 

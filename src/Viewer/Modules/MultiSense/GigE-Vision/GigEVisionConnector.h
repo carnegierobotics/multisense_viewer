@@ -29,7 +29,11 @@ namespace VkRender::MultiSense {
 
         }
 
-        void connect(std::string ip, std::string ifName) override;
+        void getCameraInfo(MultiSenseProfileInfo *profileInfo) override {
+
+        }
+
+        void connect(std::string ip) override;
         void update() override;
         void setup() override;
         void disconnect() override;
@@ -66,7 +70,7 @@ namespace VkRender::MultiSense {
     public:
         ~GigEVisionConnector() override = default;
 
-        void connect(std::string ip, std::string adapterName) override {
+        void connect(std::string ip) override {
 
         }
 

@@ -13,10 +13,11 @@ namespace VkRender::MultiSense
     {
     public:
         virtual ~MultiSenseInterface() = default;
-        virtual void connect(std::string ip, std::string adapterName) = 0;
+        virtual void connect(std::string ip) = 0;
         virtual void disconnect() = 0;
         virtual void update() = 0;
         virtual void setup() = 0;
+        virtual void getCameraInfo(MultiSenseProfileInfo* profileInfo) = 0;
         virtual uint8_t* getImage() = 0;
 
         virtual MultiSenseConnectionState connectionState() { return MULTISENSE_DISCONNECTED;}

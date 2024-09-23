@@ -15,6 +15,7 @@ namespace VkRender {
         explicit ConfigurationEditor(EditorCreateInfo &createInfo) : Editor(
                 createInfo) {
 
+            addUI("ConfigurationLayer");
             addUI("WelcomeScreenLayer");
             addUI("DebugWindow");
         }
@@ -25,8 +26,6 @@ namespace VkRender {
 
         void onUpdate() override {
             // If we have a device in sidebar
-
-
 
         }
     private:

@@ -40,34 +40,29 @@
 
 #endif
 
-#include <vulkan/vulkan_core.h>
 
-#include <cmath>
-
-#include "LibMultiSenseConnector.h"
+#include "Viewer/Modules/MultiSense/LibMultiSense/LibMultiSenseConnector.h"
+#include "Viewer/Modules/MultiSense/LibMultiSense/MultiSenseUtils.h"
 #include "Viewer/VkRender/Core/RenderDefinitions.h"
 #include "Viewer/Tools/Utils.h"
 
 namespace VkRender::MultiSense {
 
-    void LibMultiSenseConnector::connect(std::string ip, std::string adapterName) {
-        Log::Logger::getInstance()->info("Attempting to connect to ip: {}. Adapter is: {}", ip, adapterName);
+    void LibMultiSenseConnector::connect(std::string ip) {
+        Log::Logger::getInstance()->info("Attempting to connect to ip: {}", ip);
         std::scoped_lock lock(m_channelMutex);
         m_channel = std::make_unique<ChannelWrapper>(ip);
         if (m_channel->ptr() != nullptr) {
             crl::multisense::system::DeviceInfo devInfo;
             m_channel->ptr()->getDeviceInfo(devInfo);
-            Log::Logger::getInstance()->info("We got a connection! Device info: {}, {}", devInfo.name,
+            Log::Logger::getInstance()->info("We got a connection! Device info: {}, {}. Querying MultiSense info...", devInfo.name,
                                              devInfo.buildDate);
-            updateCameraInfo();
             addCallbacks(static_cast<crl::multisense::RemoteHeadChannel>(0));
-            setMtu(7200, static_cast<crl::multisense::RemoteHeadChannel>(0));
             state = MULTISENSE_CONNECTED;
         } else {
-            Log::Logger::getInstance()->warning("Connection to: {}. failed. Adapter is: {}", ip, adapterName);
+            Log::Logger::getInstance()->warning("Connection to: {}. failed", ip);
             m_channel = nullptr;
             state = MULTISENSE_UNAVAILABLE;
-
         }
     }
 
@@ -503,68 +498,6 @@ namespace VkRender::MultiSense {
         }
     }
 
-    void LibMultiSenseConnector::updateCameraInfo() {
-        // The calling function will repeat this loop until everything succeeds.
-        bool allSucceeded = true;
-        bool interruptConnection = false;
-        Log::Logger::getInstance()->trace("Updating Camera info");
-
-        allSucceeded &= updateAndLog([&](auto &data) { return m_channel->ptr()->getImageConfig(data); },
-                                     m_channelInfo.imgConf,
-                                     "imgConf");
-        if (interruptConnection) return;
-        allSucceeded &= updateAndLog([&](auto &data) { return m_channel->ptr()->getDeviceModes(data); },
-                                     m_channelInfo.supportedDeviceModes, "supportedDeviceModes");
-        if (interruptConnection) return;
-        allSucceeded &= updateAndLog([&](auto &data) { return m_channel->ptr()->getEnabledStreams(data); },
-                                     m_channelInfo.supportedSources, "supportedSources");
-        if (interruptConnection) return;
-        allSucceeded &= updateAndLog([&](auto &data) { return m_channel->ptr()->getNetworkConfig(data); },
-                                     m_channelInfo.netConfig,
-                                     "netConfig");
-        if (interruptConnection) return;
-        allSucceeded &= updateAndLog([&](auto &data) { return m_channel->ptr()->getVersionInfo(data); },
-                                     m_channelInfo.versionInfo,
-                                     "versionInfo");
-        if (interruptConnection) return;
-        allSucceeded &= updateAndLog([&](auto &data) { return m_channel->ptr()->getDeviceInfo(data); },
-                                     m_channelInfo.devInfo,
-                                     "devInfo");
-        if (interruptConnection) return;
-        allSucceeded &= updateAndLog([&](auto &data) { return m_channel->ptr()->getMtu(data); },
-                                     m_channelInfo.sensorMTU,
-                                     "sensorMTU");
-        if (interruptConnection) return;
-        allSucceeded &= updateAndLog([&](auto &data) { return m_channel->ptr()->getLightingConfig(data); },
-                                     m_channelInfo.lightConf,
-                                     "lightConf");
-        if (interruptConnection) return;
-        allSucceeded &= updateAndLog([&](auto &data) { return m_channel->ptr()->getImageCalibration(data); },
-                                     m_channelInfo.calibration, "calibration");
-        if (interruptConnection) return;
-
-        // TODO I want to update most info on startup but this function varies. On KS21 this will always fail.
-        //  This also assumes that getDeviceInfo above also succeeded
-        if (m_channelInfo.devInfo.hardwareRevision !=
-            crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_KS21) {
-            allSucceeded &= updateAndLog([&](auto &data) { return m_channel->ptr()->getAuxImageConfig(data); },
-                                         m_channelInfo.auxImgConf, "auxImageConfig");
-        }
-
-        updateQMatrix();
-
-        if (!allSucceeded) {
-            Log::Logger::getInstance()->error(
-                    "Querying the camera for config did not succeed, viewer may not work correctly");
-        } else {
-            Log::Logger::getInstance()->info("Querying the camera for config did succeeded");
-        }
-
-        // Also check for IMU information. This is not present on most devices.
-        //if (interruptConnection) return false;
-        //getIMUConfig(m_channelID);
-        //return allSucceeded;
-    }
 
     /*
        bool LibMultiSenseConnector::getStatus(crl::multisense::RemoteHeadChannel m_channelID,
@@ -880,6 +813,101 @@ namespace VkRender::MultiSense {
 
     uint8_t *LibMultiSenseConnector::getImage() {
         return nullptr;
+    }
+
+    MultiSenseConnectionState LibMultiSenseConnector::connectionState() {
+        if (m_channelMutex.try_lock()) {
+            m_channelMutex.unlock();
+            return state;
+        } else {
+            return MULTISENSE_CHANNEL_BUSY;
+        }
+
+    }
+
+    void LibMultiSenseConnector::getCameraInfo(MultiSenseProfileInfo *profileInfo) {
+        std::scoped_lock lock(m_channelMutex);
+
+        if (!m_channel){
+            return;
+        }
+        bool allSucceeded = true;
+        bool interruptConnection = false;
+
+        // Define a list of tasks that handle updating and logging
+        std::vector<std::function<bool()>> updateTasks = {
+                [&] { return updateAndLog([&](auto &data) { return m_channel->ptr()->getDeviceInfo(data); }, m_channelInfo.devInfo, "getDeviceInfo"); },
+                [&] { return updateAndLog([&](auto &data) { return m_channel->ptr()->getImageConfig(data); }, m_channelInfo.imgConf, "getImageConfig"); },
+                [&] { return updateAndLog([&](auto &data) { return m_channel->ptr()->getDeviceModes(data); }, m_channelInfo.supportedDeviceModes, "getDeviceModes"); },
+                [&] { return updateAndLog([&](auto &data) { return m_channel->ptr()->getNetworkConfig(data); }, m_channelInfo.netConfig, "getNetworkConfig"); },
+                [&] { return updateAndLog([&](auto &data) { return m_channel->ptr()->getVersionInfo(data); }, m_channelInfo.versionInfo, "getVersionInfo"); },
+                [&] { return updateAndLog([&](auto &data) { return m_channel->ptr()->getMtu(data); }, m_channelInfo.sensorMTU, "getMtu"); },
+                [&] { return updateAndLog([&](auto &data) { return m_channel->ptr()->getLightingConfig(data); }, m_channelInfo.lightConf, "getLightingConfig"); },
+                [&] { return updateAndLog([&](auto &data) { return m_channel->ptr()->getImageCalibration(data); }, m_channelInfo.calibration, "getImageCalibration"); },
+                [&] { return updateAndLog([&](auto &data) { return m_channel->ptr()->getAuxImageConfig(data); }, m_channelInfo.auxImgConf, "getAuxImageConfig"); }
+        };
+
+        // Execute each task and check for interruption
+        for (const auto& task : updateTasks) {
+            if (interruptConnection) return;
+            allSucceeded &= task();
+        }
+
+        // TODO I want to update most info on startup but this function varies. On KS21 this will always fail.
+        //  This also assumes that getDeviceInfo above also succeeded
+        /*
+        if (m_channelInfo.devInfo.hardwareRevision !=
+            crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_KS21) {
+            allSucceeded &= updateAndLog([&](auto &data) { return m_channel->ptr()->getAuxImageConfig(data); },
+                                         m_channelInfo.auxImgConf, "auxImageConfig");
+        }
+        */
+
+        updateQMatrix();
+
+        if (!allSucceeded) {
+            Log::Logger::getInstance()->warning(
+                    "Querying the camera for all configs did not succeed");
+        } else {
+            Log::Logger::getInstance()->info("Successfully retrieved camera information");
+        }
+
+
+        Log::Logger::getInstance()->info(
+                "Connection with LibMultiSense: {}, MultiSense FW: {}, Hardware REV: {}, Serial No.: {}",
+                m_channelInfo.versionInfo.apiVersion,                   // API version
+                m_channelInfo.versionInfo.sensorFirmwareVersion,         // Firmware version
+                Utils::hardwareRevisionToString(m_channelInfo.devInfo.hardwareRevision),                       // Imager device name
+                m_channelInfo.devInfo.serialNumber                       // Imager device name
+        );
+
+
+        crl::multisense::DataSource commonSources = crl::multisense::Source_All;
+
+        for (const auto& mode : m_channelInfo.supportedDeviceModes) {
+            std::string modeName = std::to_string(mode.width) + " x " + std::to_string(mode.height) + " x " +
+                                   std::to_string(mode.disparities);
+            profileInfo->deviceData.resolutions.emplace_back(modeName);
+            Log::Logger::getInstance()->info("Found supported resolution: {}", modeName);
+            // Perform bitwise AND with the current mode's supportedDataSources
+            commonSources &= mode.supportedDataSources;
+        }
+        // Check if any common sources were found
+        if (commonSources == crl::multisense::Source_Unknown) {
+            Log::Logger::getInstance()->warning("No common supported data sources were found.");
+        }
+        m_channelInfo.supportedSources = commonSources;
+        uint32_t bits = commonSources;
+        for (auto mask: Utils::ViewerAvailableLibMultiSenseSources) {
+            bool enabled = (bits & mask);
+            if (enabled) {
+                profileInfo->deviceData.sources.emplace_back(Utils::dataSourceToString(mask));
+                Log::Logger::getInstance()->info("Found supported source: {}", Utils::dataSourceToString(mask));
+            }
+        }
+        if ( profileInfo->deviceData.sources.empty())
+            Log::Logger::getInstance()->warning("No supported sources were found. This may be an error");
+
     }
 
 

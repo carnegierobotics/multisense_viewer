@@ -40,7 +40,6 @@
 #include <memory>
 
 #include "Viewer/Tools/ThreadPool.h"
-#include "Viewer/Modules/MultiSense/CommonHeader.h"
 
 #include "Viewer/Modules/MultiSense/MultiSenseInterface.h"
 
@@ -48,12 +47,14 @@
 #include "Viewer/Modules/MultiSense/LibMultiSense/LibMultiSenseConnector.h"
 
 namespace VkRender::MultiSense {
+
     class MultiSenseTaskManager {
     public:
         explicit MultiSenseTaskManager(MultiSenseConnectionType connType);
         void setup();
         void update();
-        void connect(const MultiSenseDevice &device);
+        void connect(const MultiSenseProfileInfo &profile);
+        void retrieveCameraInfo(MultiSenseProfileInfo *profile);
         void disconnect() ;
         MultiSenseConnectionState connectionState();
         uint8_t * getImage();
@@ -62,10 +63,12 @@ namespace VkRender::MultiSense {
         std::unique_ptr<ThreadPool> m_threadPool;
         std::unique_ptr<MultiSenseInterface> m_interface;
 
-        static void connectTask(void *ctx, const MultiSenseDevice &device);
+        static void connectTask(void *ctx, const MultiSenseProfileInfo &profile);
+        static void retrieveCameraInfoTask(void *ctx, MultiSenseProfileInfo *profile);
         static void disconnectTask(void *ctx);
         static void updateTask(void *ctx);
         static void setupTask(void *ctx);
+
     };
 }
 

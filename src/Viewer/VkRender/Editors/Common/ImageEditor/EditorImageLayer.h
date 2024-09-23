@@ -45,44 +45,37 @@ namespace VkRender {
             // Create the parent window
             ImGui::Begin("EditorImageLayer", nullptr, window_flags);
 
-            ImGui::Checkbox("Retrieve from MultiSense", &m_editor.editorUi->multisenseSource);
-            ImGui::SameLine();
-
-            if (ImGui::Button("Connect")){
-                m_context->multiSense()->connect(MultiSense::MultiSenseDevice());
-            }
-
-            ImGui::SameLine();
-
-            if (ImGui::Button("Disconnect")){
-                m_context->multiSense()->disconnect(MultiSense::MultiSenseDevice());
-            }
-            ImGui::SameLine();
             ImGui::SetNextItemWidth(150.0f);
             // If we have a device connected:
             if (m_context->multiSense()->anyMultiSenseDeviceOnline()) {
 
                 // Available sources from camera
-                std::vector<std::string> sources = m_context->multiSense()->availableSources();
-                static int selectedSourceIndex = 0;
-                static std::string item_current = sources[selectedSourceIndex];            // Here our selection is a single pointer stored outside the object.
+                auto profile& = m_context->multiSense()->getSelectedMultiSenseProfile();
+                std::vector<std::string> &availableSources = profile.deviceData.sources;
 
-                if (ImGui::BeginCombo("Select source:", item_current.c_str(), ImGuiComboFlags_HeightLarge)) {
-                    for (int n = 0; n < sources.size(); n++) {
-                        bool is_selected = (item_current == sources[n]);
-                        if (ImGui::Selectable(sources[n].c_str(), is_selected))
-                            item_current = sources[n];
+                if (availableSources.empty()) {
+                    availableSources.emplace_back("Error: No sources available");
+                }
+
+                std::string& previewValue = availableSources.front();
+
+                if (profile.deviceData.enabledSources.contains(*reinterpret_cast<int *>(&m_editor))){
+                    previewValue = profile.deviceData.enabledSources[*reinterpret_cast<int *>(&m_editor)];
+                }
+
+                if (ImGui::BeginCombo(("Select source:" + std::to_string(*reinterpret_cast<int *>(&m_editor))).c_str(), previewValue.c_str(), ImGuiComboFlags_HeightLarge)) {
+                    for (int n = 0; n < availableSources.size(); n++) {
+                        bool is_selected = (profile.deviceData.enabledSources[*reinterpret_cast<int *>(&m_editor)] == availableSources[n]);
+                        if (ImGui::Selectable(availableSources[n].c_str(), is_selected)) {
+                            profile.deviceData.enabledSources[*reinterpret_cast<int *>(&m_editor)] = availableSources[n];
+                        }
+
                         if (is_selected)
                             ImGui::SetItemDefaultFocus();   // Set the initial focus when opening the combo (scrolling + for keyboard navigation support in the upcoming navigation branch)
                     }
                     ImGui::EndCombo();
                 }
 
-                // IF no source selected show no preview texture:
-
-                if (item_current == "No Source"){
-                    m_editor.editorUi;
-                }
             }
             ImGui::End();
 

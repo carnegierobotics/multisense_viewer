@@ -15,14 +15,9 @@ namespace VkRender {
 
         explicit EditorTest(EditorCreateInfo &createInfo, UUID uuid = UUID()) : Editor(
                 createInfo, uuid) {
-
-            if (createInfo.resizeable)
-                addUI("EditorUILayer");
-
+            addUI("EditorUILayer");
             addUI("EditorTestLayer");
-
             addUI("DebugWindow");
-
         }
 
         void onRender(CommandBuffer &drawCmdBuffers) override {

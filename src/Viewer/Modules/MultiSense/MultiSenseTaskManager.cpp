@@ -34,22 +34,11 @@
  *   2022-3-21, mgjerde@carnegierobotics.com, Created file.
  **/
 
-#ifdef WIN32
-
-#else
-
-#include <net/if.h>
-#include <arpa/inet.h>
-#include <sys/ioctl.h>
-#include <unistd.h>
-
-#endif
 
 #include "MultiSenseTaskManager.h"
 #include "Viewer/Tools/Utils.h"
 
 #define MAX_TASK_STACK_SIZE 4
-#define MAX_NUM_REMOTEHEADS 4
 
 namespace VkRender::MultiSense {
 
@@ -90,8 +79,8 @@ namespace VkRender::MultiSense {
 
     }
 
-    void MultiSenseTaskManager::connect(const MultiSenseDevice &device) {
-        m_threadPool->Push(MultiSenseTaskManager::connectTask, this, device);
+    void MultiSenseTaskManager::connect(const MultiSenseProfileInfo &profileInfo) {
+        m_threadPool->Push(MultiSenseTaskManager::connectTask, this, profileInfo);
     }
 
     void MultiSenseTaskManager::disconnect() {
@@ -102,10 +91,15 @@ namespace VkRender::MultiSense {
         return m_interface->connectionState();
     }
 
+    void MultiSenseTaskManager::retrieveCameraInfo(MultiSenseProfileInfo *profile) {
+        m_threadPool->Push(MultiSenseTaskManager::retrieveCameraInfoTask, this, profile);
 
-    void MultiSenseTaskManager::connectTask(void *ctx, const MultiSenseDevice &device) {
+    }
+
+
+    void MultiSenseTaskManager::connectTask(void *ctx, const MultiSenseProfileInfo &profileInfo) {
         auto *context = reinterpret_cast<MultiSenseTaskManager *>(ctx);
-        context->m_interface->connect(device.profileCreateInfo.inputIP, device.profileCreateInfo.ifName);
+        context->m_interface->connect(profileInfo.inputIP);
     }
 
     void MultiSenseTaskManager::updateTask(void *ctx) {
@@ -120,6 +114,11 @@ namespace VkRender::MultiSense {
     void MultiSenseTaskManager::disconnectTask(void *ctx) {
         auto *context = reinterpret_cast<MultiSenseTaskManager *>(ctx);
         context->m_interface->disconnect();
+    }
+
+    void MultiSenseTaskManager::retrieveCameraInfoTask(void *ctx, MultiSenseProfileInfo *profile) {
+        auto *context = reinterpret_cast<MultiSenseTaskManager *>(ctx);
+        context->m_interface->getCameraInfo(profile);
     }
 
 

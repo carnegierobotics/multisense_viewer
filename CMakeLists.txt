@@ -127,14 +127,14 @@ set(SOURCE_FILES
         src/Viewer/Tools/ThreadPool.h
 
         src/Viewer/Modules/MultiSense/MultiSenseRendererBridge.cpp
+        src/Viewer/Modules/MultiSense/MultiSenseDevice.cpp
         src/Viewer/Modules/MultiSense/CommonHeader.h
-        src/Viewer/Modules/MultiSense/LibMultiSense/LibMultiSenseConnector.cpp
         src/Viewer/Modules/MultiSense/MultiSenseTaskManager.cpp
+        src/Viewer/Modules/MultiSense/LibMultiSense/LibMultiSenseConnector.cpp
 
         src/Viewer/VkRender/Editors/Common/Properties/PropertiesLayer.cpp
         src/Viewer/VkRender/Core/VulkanTexture.cpp
         src/Viewer/VkRender/Core/VulkanTexture.h
-
 )
 
 set(SCRIPT_FILES

@@ -55,7 +55,7 @@
 #include "Viewer/VkRender/ImGui/Widgets.h"
 #include "Viewer/VkRender/ImGui/LayerFactory.h"
 #include "Viewer/VkRender/Editors/EditorIncludes.h"
-#include "GuiResources.h"
+#include "GuiAssets.h"
 #include "Viewer/VkRender/Core/VulkanGraphicsPipeline.h"
 
 namespace VkRender {
@@ -63,26 +63,22 @@ namespace VkRender {
 
     class GuiManager {
     public:
-        GuiObjectHandles handles;
 
         GuiManager(VulkanDevice &vulkanDevice, VkRenderPass const &renderPass, EditorUI *editorUi,
                    VkSampleCountFlagBits msaaSamples, uint32_t imageCount, Application *ctx, ImGuiContext *imguiCtx,
-                   const GuiResources *guiResources, SharedContextData* sharedData); // TODO context should be pass by reference as it is no nullable?
+                   const GuiAssets *guiResources); // TODO context should be pass by reference as it is no nullable?
 
         ~GuiManager() {
-            //Log::Logger::getInstance()->info("Saving ImGui file: {}", (Utils::getSystemCachePath() / "imgui.ini").string().c_str());
-            //ImGui::SaveIniSettingsToDisk((Utils::getSystemCachePath() / "imgui.ini").string().c_str());
             for (const auto &layerStack: m_LayerStack)
                 layerStack->onDetach();
-
             ImGui::DestroyContext(m_imguiContext);
         };
 
-        void resize(uint32_t width, uint32_t height, VkRenderPass const &renderPass, VkSampleCountFlagBits msaaSamples, std::shared_ptr<GuiResources> guiResources);
+        void resize(uint32_t width, uint32_t height, VkRenderPass const &renderPass, VkSampleCountFlagBits msaaSamples, std::shared_ptr<GuiAssets> guiResources);
 
 
         /**@brief Update function called from renderer. Function calls each layer in order to generate buffers for draw commands*/
-        void update(bool updateFrameGraph, float frameTimer, EditorUI &editorUI, const Input *pInput);
+        void update(bool updateFrameGraph, float frameTimer, const Input *pInput);
 
         /**@brief Draw command called once per command buffer recording*/
         void drawFrame(VkCommandBuffer commandBuffer, uint32_t imageIndex, uint32_t width, uint32_t height, uint32_t x,
@@ -91,15 +87,9 @@ namespace VkRender {
         /**@brief ReCreate buffers if they have changed in size*/
         bool updateBuffers(uint32_t imageIndex);
 
-        /** @brief Push a new GUI Layer to the layer stack. Layers are drawn in the order they are pushed. **/
-        template<typename T>
-        void pushLayer() {
-            static_assert(std::is_base_of<Layer, T>::value, "Pushed type does not inherit Layer class!");
-            m_LayerStack.emplace_back(std::make_shared<T>())->onAttach();
-        }
+        void pushLayer(const std::string &layerName, Editor* editorContext);
 
-        void pushLayer(const std::string &layerName);
-
+        const GuiResourcesData& guiResources(){return m_guiResourcesData;}
         void setSceneContext(std::shared_ptr<Scene> scene){
             for (auto& layer : m_LayerStack){
                 layer->setScene(scene);
@@ -111,12 +101,11 @@ namespace VkRender {
 
         // GuiManager framework
         std::vector<std::shared_ptr<Layer>> m_LayerStack{};
-        GuiResources::PushConstBlock pushConstBlock{};
+        GuiAssets::PushConstBlock pushConstBlock{};
         // Textures
-        const GuiResources *m_guiResources;
-        // Vulkan resources for rendering the UI
-        //Buffer vertexBuffer;
-        //Buffer indexBuffer;
+        const GuiAssets *m_guiResources;
+        GuiResourcesData m_guiResourcesData;
+
         // Vulkan resources for rendering the UI
         std::vector<Buffer> vertexBuffer;
         std::vector<Buffer> indexBuffer;
@@ -127,9 +116,6 @@ namespace VkRender {
         VulkanDevice &m_vulkanDevice;
         Application* m_context;
         std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> saveSettingsTimer;
-
-
-        void createGraphicsPipeline(const VkRenderPass &renderPass, VkSampleCountFlagBits msaaSamples);
 
     };
 }

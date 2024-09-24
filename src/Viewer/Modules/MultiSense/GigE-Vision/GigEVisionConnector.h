@@ -34,10 +34,10 @@ namespace VkRender::MultiSense {
         }
 
         void connect(std::string ip) override;
-        void update() override;
+        void update(MultiSenseUpdateData* updateData) override;
         void setup() override;
         void disconnect() override;
-        uint8_t* getImage() override;
+        void getImage(MultiSenseStreamData* data) override;
 
         MultiSenseConnectionState connectionState() override {
             return MultiSenseInterface::connectionState();

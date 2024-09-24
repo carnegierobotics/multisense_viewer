@@ -34,11 +34,12 @@ namespace VkRender {
         /** Called once per frame **/
         void onUIRender() override {
 
+            float menuBarHeight = 25.0f;
 
             // Set window position and size
-            ImVec2 window_pos = ImVec2(0.0f, m_editor.info->menuBarHeight); // Position (x, y)
-            ImVec2 window_size = ImVec2(m_editor.info->applicationWidth,
-                                        m_editor.info->applicationHeight - window_pos.y); // Size (width, height)
+            ImVec2 window_pos = ImVec2(0.0f, menuBarHeight); // Position (x, y)
+            ImVec2 window_size = ImVec2(m_editor->ui()->width,
+                                       m_editor->ui()->height - window_pos.y); // Size (width, height)
 
 
             // Set window flags to remove decorations
@@ -56,13 +57,13 @@ namespace VkRender {
             // Create the parent window
             ImGui::Begin("EditorBorderWindow", nullptr, window_flags);
 
-            ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, m_editor.info->menuBarHeight));
+            ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, menuBarHeight));
 
-            if (m_editor.shared->openAddDevicePopup) {
+            if (m_editor->ui()->shared->openAddDevicePopup) {
                 ImGui::OpenPopup("add_device_modal");
             }
 
-            addPopup(m_editor, m_context);
+            addPopup(m_context, m_editor);
             ImGui::End();
 
             ImGui::PopStyleVar(2);

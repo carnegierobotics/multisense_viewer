@@ -2,8 +2,8 @@
 // Created by magnus on 7/30/24.
 //
 
-#ifndef MULTISENSE_VIEWER_GUIRESOURCES_H
-#define MULTISENSE_VIEWER_GUIRESOURCES_H
+#ifndef MULTISENSE_VIEWER_GUIASSETS_H
+#define MULTISENSE_VIEWER_GUIASSETS_H
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include <imgui.h>
@@ -16,7 +16,7 @@ namespace VkRender {
     // Should load elements from disk only when they are asked for
     // Should not have application specific strings in the constructor to identify resources
     // cherno youtube video about asset managers: https://youtu.be/38M-RwHG2hY?t=1373
-    struct GuiResources {
+    struct GuiAssets {
         // UI params are set via push constants
         struct PushConstBlock {
             glm::vec2 scale;
@@ -49,8 +49,8 @@ namespace VkRender {
         std::vector<VkDescriptorSet> gifImageDescriptors{};
         std::vector<VkShaderModule> shaderModules{};
         VulkanDevice *device = nullptr;
-        explicit GuiResources(VulkanDevice *d);
-        GuiResources() = default;
+        explicit GuiAssets(VulkanDevice *d);
+        GuiAssets() = default;
 
         ImFont *font8{}, *font13{}, *font15, *font18{}, *font24{}, *fontIcons{};
         uint32_t fontCount = 0;
@@ -63,7 +63,7 @@ namespace VkRender {
 
         void loadImGuiTextureFromFileName(const std::string &file, uint32_t i);
 
-        ~GuiResources(){
+        ~GuiAssets(){
             vkDestroyDescriptorPool(device->m_LogicalDevice, descriptorPool, nullptr);
             vkDestroyDescriptorSetLayout(device->m_LogicalDevice, descriptorSetLayout, nullptr);
             for (auto &shaderModule: shaderModules) {
@@ -72,4 +72,4 @@ namespace VkRender {
         }
     };
 }
-#endif //MULTISENSE_VIEWER_GUIRESOURCES_H
+#endif //MULTISENSE_VIEWER_GUIASSETS_H

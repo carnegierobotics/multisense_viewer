@@ -210,6 +210,7 @@ namespace VkRender::LayerUtils {
     DISABLE_WARNING_POP
 #endif
 
+/*
     struct WidgetPosition {
         float paddingX = -1.0f;
         ImVec4 textColor = VkRender::Colors::CRLTextWhite;
@@ -315,6 +316,7 @@ namespace VkRender::LayerUtils {
         }
         ImGui::Dummy(ImVec2());
     }
+    */
 
 }
 

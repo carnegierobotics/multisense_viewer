@@ -32,9 +32,21 @@
       "sizeType": "percentage",
       "uiLayers": [],
       "width": 60,
-      "height": 100,
+      "height": 50,
       "x": 40,
       "y": 0
+    },
+    {
+      "borderSize": 5,
+      "editorIndex": 3,
+      "editorTypeDescription": "Image Editor",
+      "resizeable": true,
+      "sizeType": "percentage",
+      "uiLayers": [],
+      "width": 60,
+      "height": 50,
+      "x": 40,
+      "y": 50
     }
   ],
   "generalSettings": {

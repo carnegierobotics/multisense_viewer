@@ -64,8 +64,10 @@ namespace VkRender::MultiSense {
 
 
 
-    uint8_t *MultiSenseTaskManager::getImage() {
-        return m_interface->getImage();
+    void MultiSenseTaskManager::getImage(MultiSenseStreamData* data) {
+        // fetch:
+
+        m_interface->getImage(data);
     }
 
 
@@ -75,7 +77,7 @@ namespace VkRender::MultiSense {
     }
 
     void MultiSenseTaskManager::update() {
-        m_threadPool->Push(MultiSenseTaskManager::updateTask, this);
+        m_threadPool->Push(MultiSenseTaskManager::updateTask, this, &m_updateData);
 
     }
 
@@ -97,14 +99,33 @@ namespace VkRender::MultiSense {
     }
 
 
+    void MultiSenseTaskManager::startStreaming(const std::vector<std::string>& streams) {
+
+        m_threadPool->Push(MultiSenseTaskManager::startStreamingTask, this, streams);
+    }
+
+
+    void MultiSenseTaskManager::stopStreaming(const std::vector<std::string> &streams) {
+        m_threadPool->Push(MultiSenseTaskManager::stopStreamingTask, this, streams);
+    }
+
+
+    std::vector<std::string>& MultiSenseTaskManager::getEnabledSources(){
+        return m_updateData.enabledSources;
+    }
+
+    /**
+     * THREADED TASKS BELOW
+     * **/
+
     void MultiSenseTaskManager::connectTask(void *ctx, const MultiSenseProfileInfo &profileInfo) {
         auto *context = reinterpret_cast<MultiSenseTaskManager *>(ctx);
         context->m_interface->connect(profileInfo.inputIP);
     }
 
-    void MultiSenseTaskManager::updateTask(void *ctx) {
+    void MultiSenseTaskManager::updateTask(void *ctx, MultiSenseUpdateData* updateData) {
         auto *context = reinterpret_cast<MultiSenseTaskManager *>(ctx);
-        context->m_interface->update();
+        context->m_interface->update(updateData);
     }
     void MultiSenseTaskManager::setupTask(void *ctx) {
         auto *context = reinterpret_cast<MultiSenseTaskManager *>(ctx);
@@ -119,6 +140,19 @@ namespace VkRender::MultiSense {
     void MultiSenseTaskManager::retrieveCameraInfoTask(void *ctx, MultiSenseProfileInfo *profile) {
         auto *context = reinterpret_cast<MultiSenseTaskManager *>(ctx);
         context->m_interface->getCameraInfo(profile);
+    }
+    void MultiSenseTaskManager::startStreamingTask(void *ctx,const std::vector<std::string>& streams) {
+        auto *context = reinterpret_cast<MultiSenseTaskManager *>(ctx);
+        context->m_interface->startStreaming(streams);
+
+
+    }
+
+    void MultiSenseTaskManager::stopStreamingTask(void *ctx, const std::vector<std::string> &streams) {
+        auto *context = reinterpret_cast<MultiSenseTaskManager *>(ctx);
+        for (const auto& stream : streams){
+            context->m_interface->stopStream(stream);
+        }
     }
 
 

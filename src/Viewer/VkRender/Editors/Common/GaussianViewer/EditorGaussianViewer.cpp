@@ -44,11 +44,12 @@ namespace VkRender {
     }
 
     void VkRender::EditorGaussianViewer::onUpdate() {
+        /*
         auto cameraView = m_activeScene->getRegistry().view<CameraComponent, TagComponent>();
         for (auto entity: cameraView) {
             auto e = Entity(entity, m_activeScene.get());
             if (e == m_createInfo.sharedUIContextData->m_selectedEntity) {
-                if (ui().gsRightView){
+                if (ui()->gsRightView){
                     // Find the right view corresponding
                     auto& selectedTagComponent = cameraView.get<TagComponent>(entity);
                     std::string rightCameraName = selectedTagComponent.Tag + ":stereo-right";
@@ -70,21 +71,13 @@ namespace VkRender {
         if (!m_activeCamera)
             return;
 
-        ui().saveRenderToFile = m_createInfo.sharedUIContextData->newFrame;
+        ui()->saveRenderToFile = m_createInfo.sharedUIContextData->newFrame;
 
-        if (m_createInfo.sharedUIContextData->m_selectedEntity){
-            if (ui().gsRightView){
-                ui().renderToFileName = "scene_0000/right/" +  m_createInfo.sharedUIContextData->m_selectedEntity.getComponent<TagComponent>().Tag;
-            } else {
-                ui().renderToFileName = "scene_0000/left/" +  m_createInfo.sharedUIContextData->m_selectedEntity.getComponent<TagComponent>().Tag;
-            }
-            ui().renderToFileName.replace_extension(".png");
-        }
 
         generatePipelines();
-        if (ui().render3DGSImage || m_createInfo.sharedUIContextData->newFrame) {
+        if (ui()->render3DGSImage || m_createInfo.sharedUIContextData->newFrame) {
             for (auto &pipeline: m_gaussianRenderPipelines) {
-                pipeline.second->generateImage(*m_activeCamera, ui().render3dgsColor);
+                pipeline.second->generateImage(*m_activeCamera, ui()->render3dgsColor);
             }
         }
         auto view = m_activeScene->getRegistry().view<TransformComponent, GaussianModelComponent>(); // TODO make one specific component type for renderables in standard pipelines
@@ -96,6 +89,7 @@ namespace VkRender {
                 m_gaussianRenderPipelines[entity]->update(m_context->currentFrameIndex());
             }
         }
+        */
     }
 
     void VkRender::EditorGaussianViewer::onRender(CommandBuffer &drawCmdBuffers) {
@@ -107,10 +101,10 @@ namespace VkRender {
     }
 
     void VkRender::EditorGaussianViewer::onMouseMove(const VkRender::MouseButtons &mouse) {
-        if (ui().hovered && mouse.left) {
+        if (ui()->hovered && mouse.left) {
             //m_activeCamera->rotate(mouse.dx, mouse.dy);
         }
-        if (ui().hovered && mouse.right) {
+        if (ui()->hovered && mouse.right) {
             //m_activeCamera->translate(mouse.dx, mouse.dy);
         }
     }

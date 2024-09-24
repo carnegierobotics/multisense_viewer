@@ -42,6 +42,7 @@
 #include <stb_image.h>
 
 #define IMGUI_DEFINE_MATH_OPERATORS
+
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
 #include <ranges>
@@ -61,12 +62,11 @@ namespace VkRender {
     }
 
 
-
     GuiManager::GuiManager(VulkanDevice &vulkanDevice, VkRenderPass const &renderPass, EditorUI *editorUi,
-                           VkSampleCountFlagBits msaaSamples, uint32_t imageCount, Application* ctx,
+                           VkSampleCountFlagBits msaaSamples, uint32_t imageCount, Application *ctx,
                            ImGuiContext *imguiCtx,
-                           const GuiResources *guiResources, SharedContextData* sharedData) : handles(sharedData),
-            m_guiResources(guiResources), m_vulkanDevice(vulkanDevice), m_context(ctx) {
+                           const GuiAssets *guiResources) : m_guiResources(guiResources),
+                                                            m_vulkanDevice(vulkanDevice), m_context(ctx) {
 
         vertexBuffer.resize(imageCount);
         indexBuffer.resize(imageCount);
@@ -74,20 +74,14 @@ namespace VkRender {
         vertexCount.resize(imageCount);
         m_imguiContext = imguiCtx;
         ImGui::SetCurrentContext(m_imguiContext);
-        handles.info = std::make_shared<GuiLayerUpdateInfo>();
-
-        handles.info->deviceName = m_vulkanDevice.m_Properties.deviceName;
-        handles.info->title = "MultiSense Viewer";
         // Load UI info from file:
-        handles.usageMonitor = ctx->m_usageMonitor;
-        handles.editorUi = editorUi;
 
         ImGuiIO &io = ImGui::GetIO();
         io.GetClipboardTextFn = ImGuiGlfwGetClipboardText;
         io.SetClipboardTextFn = ImGuiGlfwSetClipboardText;
         io.DisplaySize = ImVec2(static_cast<float>(editorUi->width), static_cast<float>(editorUi->height));
         io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
-        handles.info->imageButtonTextureDescriptor.resize(m_guiResources->iconCount);
+        m_guiResourcesData.imageButtonTextureDescriptor.resize(m_guiResources->iconCount);
         io.Fonts->SetTexID(reinterpret_cast<ImTextureID>(m_guiResources->fontDescriptors[m_guiResources->fontCount]));
 
         ImGuiStyle &style = ImGui::GetStyle();
@@ -106,26 +100,27 @@ namespace VkRender {
         style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.8f);
 
 
-        handles.info->font8 = guiResources->font8;
-        handles.info->font13 = guiResources->font13;
-        handles.info->font15 = guiResources->font15;
-        handles.info->font18 = guiResources->font18;
-        handles.info->font24 = guiResources->font24;
-        handles.info->fontIcons = guiResources->fontIcons;
+        m_guiResourcesData.font8 = guiResources->font8;
+        m_guiResourcesData.font13 = guiResources->font13;
+        m_guiResourcesData.font15 = guiResources->font15;
+        m_guiResourcesData.font18 = guiResources->font18;
+        m_guiResourcesData.font24 = guiResources->font24;
+        m_guiResourcesData.fontIcons = guiResources->fontIcons;
 
         for (int i = 0; i < m_guiResources->iconCount; ++i) {
-            handles.info->imageButtonTextureDescriptor[i] = reinterpret_cast<void *>(m_guiResources->imageIconDescriptors[i]);
+            m_guiResourcesData.imageButtonTextureDescriptor[i] = reinterpret_cast<void *>(m_guiResources->imageIconDescriptors[i]);
         }
         for (int i = 0; i < m_guiResources->gif.totalFrames; ++i) {
-            handles.info->gif.image[i] = m_guiResources->gifImageDescriptors[i];
+            m_guiResourcesData.gif.image[i] = m_guiResources->gifImageDescriptors[i];
         }
 
         VulkanGraphicsPipelineCreateInfo pipelineCreateInfo(renderPass, m_vulkanDevice);
-        pipelineCreateInfo.rasterizationStateCreateInfo = Populate::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+        pipelineCreateInfo.rasterizationStateCreateInfo = Populate::pipelineRasterizationStateCreateInfo(
+                VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE);
         pipelineCreateInfo.msaaSamples = msaaSamples;
         pipelineCreateInfo.shaders = guiResources->shaders;
         pipelineCreateInfo.descriptorSetLayout = guiResources->descriptorSetLayout;
-        pipelineCreateInfo.pushConstBlockSize = sizeof(GuiResources::PushConstBlock);
+        pipelineCreateInfo.pushConstBlockSize = sizeof(GuiAssets::PushConstBlock);
         pipelineCreateInfo.depthTesting = VK_FALSE;
 
         // Vertex bindings an attributes based on ImGui vertex definition
@@ -157,7 +152,8 @@ namespace VkRender {
         // Create buffers to make sure they are initialized. We risk destroying without initializing if everything is null
     }
 
-    void GuiManager::resize(uint32_t width, uint32_t height, const VkRenderPass &renderPass, VkSampleCountFlagBits msaaSamples, std::shared_ptr<GuiResources> guiResources) {
+    void GuiManager::resize(uint32_t width, uint32_t height, const VkRenderPass &renderPass,
+                            VkSampleCountFlagBits msaaSamples, std::shared_ptr<GuiAssets> guiResources) {
         ImGui::SetCurrentContext(m_imguiContext);
         ImGuiIO &io = ImGui::GetIO();
         io.DisplaySize = ImVec2(static_cast<float>(width), static_cast<float>(height));
@@ -165,9 +161,10 @@ namespace VkRender {
         pipelineCreateInfo.msaaSamples = msaaSamples;
         pipelineCreateInfo.shaders = guiResources->shaders;
         pipelineCreateInfo.descriptorSetLayout = guiResources->descriptorSetLayout;
-        pipelineCreateInfo.pushConstBlockSize = sizeof(GuiResources::PushConstBlock);
-        pipelineCreateInfo.rasterizationStateCreateInfo = Populate::pipelineRasterizationStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE,
-                                                                                                         VK_FRONT_FACE_COUNTER_CLOCKWISE);
+        pipelineCreateInfo.pushConstBlockSize = sizeof(GuiAssets::PushConstBlock);
+        pipelineCreateInfo.rasterizationStateCreateInfo = Populate::pipelineRasterizationStateCreateInfo(
+                VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE,
+                VK_FRONT_FACE_COUNTER_CLOCKWISE);
         pipelineCreateInfo.depthTesting = VK_FALSE;
 
         // Vertex bindings an attributes based on ImGui vertex definition
@@ -199,22 +196,25 @@ namespace VkRender {
     }
 
     void
-    GuiManager::update(bool updateFrameGraph, float frameTimer, EditorUI &editorUI, const Input *pInput) {
+    GuiManager::update(bool updateFrameGraph, float frameTimer, const Input *pInput) {
         ImGui::SetCurrentContext(m_imguiContext);
+
+
+        /*
         //Log::Logger::getInstance()->trace("Set ImGUI Context {} and updating", reinterpret_cast<uint64_t>(m_imguiContext));
-        handles.editorUi = &editorUI;
-        handles.info->frameTimer = frameTimer;
-        handles.info->firstFrame = updateFrameGraph;
-        handles.info->applicationWidth = static_cast<float>(editorUI.width);
-        handles.info->applicationHeight = static_cast<float>(editorUI.height);
+        m_guiResourcesData.frameTimer = frameTimer;
+        m_guiResourcesData.firstFrame = updateFrameGraph;
+        m_guiResourcesData.applicationWidth = static_cast<float>(editorUI.width);
+        m_guiResourcesData.applicationHeight = static_cast<float>(editorUI.height);
 
-        handles.info->editorWidth = static_cast<float>(editorUI.width);
-        handles.info->editorHeight = static_cast<float>(editorUI.height);
-        handles.info->editorSize = ImVec2(handles.info->editorWidth, handles.info->editorHeight);
-        handles.info->editorStartPos = ImVec2(0.0f, 0.0f);
+        m_guiResourcesData.editorWidth = static_cast<float>(editorUI.width);
+        m_guiResourcesData.editorHeight = static_cast<float>(editorUI.height);
+        m_guiResourcesData.editorSize = ImVec2(m_guiResourcesData.editorWidth, m_guiResourcesData.editorHeight);
+        m_guiResourcesData.editorStartPos = ImVec2(0.0f, 0.0f);
 
-        handles.info->aspect = static_cast<float>(editorUI.width) / static_cast<float>(editorUI.height);
-        handles.input = pInput;
+        m_guiResourcesData.aspect = static_cast<float>(editorUI.width) / static_cast<float>(editorUI.height);
+        m_guiResourcesData.= pInput;
+        */
 
         ImGui::NewFrame();
 
@@ -265,8 +265,8 @@ namespace VkRender {
             vertexBuffer[currentFrame].unmap();
             vertexBuffer[currentFrame].destroy();
             if (VK_SUCCESS !=
-                    m_vulkanDevice.createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-                                                &vertexBuffer[currentFrame], vertexBufferSize))
+                m_vulkanDevice.createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+                                            &vertexBuffer[currentFrame], vertexBufferSize))
                 throw std::runtime_error("Failed to create vertex Buffer");
             vertexCount[currentFrame] = imDrawData->TotalVtxCount;
             vertexBuffer[currentFrame].map();
@@ -279,8 +279,8 @@ namespace VkRender {
             indexBuffer[currentFrame].unmap();
             indexBuffer[currentFrame].destroy();
             if (VK_SUCCESS !=
-                    m_vulkanDevice.createBuffer(VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-                                                &indexBuffer[currentFrame], indexBufferSize))
+                m_vulkanDevice.createBuffer(VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+                                            &indexBuffer[currentFrame], indexBufferSize))
                 throw std::runtime_error("Failed to create index buffer");
             indexCount[currentFrame] = imDrawData->TotalIdxCount;
             indexBuffer[currentFrame].map();
@@ -320,7 +320,7 @@ namespace VkRender {
         pushConstBlock.scale = glm::vec2(2.0f / static_cast<float>(width), 2.0f / static_cast<float>(height));
         pushConstBlock.translate = glm::vec2(-1.0f, -1.0f);
         vkCmdPushConstants(commandBuffer, m_pipeline->getPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0,
-                           sizeof(GuiResources::PushConstBlock),
+                           sizeof(GuiAssets::PushConstBlock),
                            &pushConstBlock);
 
         // Render commands
@@ -354,8 +354,10 @@ namespace VkRender {
                                                     0); // We're missing one pixel
                     scissorRect.offset.y = std::max(static_cast<int32_t>(pcmd->ClipRect.y + y - 1),
                                                     0); // We're missing one pixel
-                    scissorRect.extent.width = static_cast<uint32_t>(pcmd->ClipRect.z - pcmd->ClipRect.x + 2); // We're missing one pixel
-                    scissorRect.extent.height = static_cast<uint32_t>(pcmd->ClipRect.w - pcmd->ClipRect.y + 2); // We're missing one pixel
+                    scissorRect.extent.width = static_cast<uint32_t>(pcmd->ClipRect.z - pcmd->ClipRect.x +
+                                                                     2); // We're missing one pixel
+                    scissorRect.extent.height = static_cast<uint32_t>(pcmd->ClipRect.w - pcmd->ClipRect.y +
+                                                                      2); // We're missing one pixel
 
                     vkCmdSetScissor(commandBuffer, 0, 1, &scissorRect);
                     vkCmdDrawIndexed(commandBuffer, pcmd->ElemCount, 1, pcmd->IdxOffset + indexOffset,
@@ -368,22 +370,22 @@ namespace VkRender {
             // Reset the scissors
             VkRect2D scissorRectFull;
             scissorRectFull.offset = {static_cast<int32_t>(x), static_cast<int32_t>(y)};
-            scissorRectFull.extent = {static_cast<uint32_t>(handles.info->applicationWidth),
-                                      static_cast<uint32_t>(handles.info->applicationHeight)}; // Set these to your framebuffer or viewport dimensions
+            scissorRectFull.extent = {static_cast<uint32_t>(width),
+                                      static_cast<uint32_t>(height)}; // Set these to your framebuffer or viewport dimensions
             //vkCmdSetScissor(commandBuffer, 0, 1, &scissorRectFull);
         }
     }
 
-    void GuiManager::pushLayer(const std::string &layerName) {
-            auto layer = LayerFactory::createLayer(layerName);
-            layer->setContext(m_context);
-            layer->setScene(m_context->activeScene());
-            layer->m_editor = handles; // TODO getter/setter?
-            if (layer) {
-                m_LayerStack.emplace_back(layer)->onAttach();
-            } else {
-                // Handle unknown layer case, e.g., throw an exception or log an error
-            }
+    void GuiManager::pushLayer(const std::string &layerName, Editor *editorContext) {
+        auto layer = LayerFactory::createLayer(layerName);
+        layer->setContext(m_context);
+        layer->setScene(m_context->activeScene());
+        layer->m_editor = editorContext; // TODO getter/setter?
+        if (layer) {
+            m_LayerStack.emplace_back(layer)->onAttach();
+        } else {
+            // Handle unknown layer case, e.g., throw an exception or log an error
+        }
 
     }
 

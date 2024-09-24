@@ -12,6 +12,8 @@
 
 namespace VkRender {
 
+
+
     class EditorImage : public Editor {
     public:
         EditorImage() = delete;

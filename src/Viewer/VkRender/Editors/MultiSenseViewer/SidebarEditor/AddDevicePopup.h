@@ -15,7 +15,8 @@ namespace VkRender {
     };
 
 
-    static void addPopup(GuiObjectHandles &uiContext, Application *context) {
+    static void addPopup(Application *context, Editor* editor) {
+        const GuiResourcesData &guiResources = editor->guiResources();
         float popupWidth = 550.0f;
         float popupHeight = 600.0f;
         ImGui::SetNextWindowSize(ImVec2(popupWidth, popupHeight), ImGuiCond_Always);
@@ -41,7 +42,7 @@ namespace VkRender {
             ImGui::GetWindowDrawList()->AddRectFilled(popupDrawPos, headerPosMax,
                                                       ImColor(Colors::CRLRed), 0.0f, 0);
 
-            ImGui::PushFont(uiContext.info->font24);
+            ImGui::PushFont(guiResources.font24);
             std::string title = "Connect to MultiSense";
             ImVec2 size = ImGui::CalcTextSize(title.c_str());
             float anchorPoint =
@@ -93,31 +94,31 @@ namespace VkRender {
             ImVec4 tint_col = ImVec4(1.0f, 1.0f, 1.0f, 1.0f); // No tint
 
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
-            //ImGui::BeginChild("IconChild", ImVec2(uiContext.info->popupWidth, 40.0f), false, ImGuiWindowFlags_NoDecoration);
+            //ImGui::BeginChild("IconChild", ImVec2(guiResources.popupWidth, 40.0f), false, ImGuiWindowFlags_NoDecoration);
             ImVec2 imageButtonSize(245.0f, 55.0f);
-            ImGui::PushFont(uiContext.info->font15);
+            ImGui::PushFont(guiResources.font15);
 
             static int connectMethodSelector = 0;
 
             if (ImGui::ImageButtonText("Automatic", &connectMethodSelector, AUTO_CONNECT, imageButtonSize,
-                                       uiContext.info->imageButtonTextureDescriptor[3], ImVec2(33.0f, 31.0f), uv0,
+                                       guiResources.imageButtonTextureDescriptor[3], ImVec2(33.0f, 31.0f), uv0,
                                        uv1,
                                        tint_col)) {
                 Log::Logger::getInstance()->info(
                         "User clicked AUTO_CONNECT. Tab is {}, 0 = none, 1 = AutoConnect, 2 = ManualConnect",
                         connectMethodSelector);
-                uiContext.usageMonitor->userClickAction("Automatic", "ImageButtonText",
+                context->usageMonitor()->userClickAction("Automatic", "ImageButtonText",
                                                         ImGui::GetCurrentWindow()->Name);
             }
             ImGui::SameLine(0, 30.0f);
             if (ImGui::ImageButtonText("Manual", &connectMethodSelector, MANUAL_CONNECT, imageButtonSize,
-                                       uiContext.info->imageButtonTextureDescriptor[4], ImVec2(40.0f, 40.0f), uv0,
+                                       guiResources.imageButtonTextureDescriptor[4], ImVec2(40.0f, 40.0f), uv0,
                                        uv1,
                                        tint_col)) {
                 Log::Logger::getInstance()->info(
                         "User clicked MANUAL_CONNECT. Tab is {}, 0 = none, 1 = AutoConnect, 2 = ManualConnect",
                         connectMethodSelector);
-                uiContext.usageMonitor->userClickAction("Manual", "ImageButtonText",
+                context->usageMonitor()->userClickAction("Manual", "ImageButtonText",
                                                         ImGui::GetCurrentWindow()->Name);
             }
             ImGui::PopFont();
@@ -177,7 +178,7 @@ namespace VkRender {
                        const bool is_selected = (interfaceIndex == n);
                        if (ImGui::Selectable(interfaceNameList[n].c_str(), is_selected)) {
                            interfaceIndex = static_cast<uint32_t>(n);
-                           uiContext.usageMonitor->userClickAction("SelectAdapter", "combo",
+                           context->usageMonitor()->userClickAction("SelectAdapter", "combo",
                                                                     ImGui::GetCurrentWindow()->Name);
                            uiContext.multiSenseRendererBridge->setSelectedAdapter(interfaceNameList[interfaceIndex]);
                        }
@@ -208,7 +209,7 @@ namespace VkRender {
             ImGui::SetCursorPos(ImVec2(0.0f, popupHeight - 50.0f));
             ImGui::Dummy(ImVec2(20.0f, 0.0f));
             ImGui::SameLine();
-            ImGui::PushFont(uiContext.info->font15);
+            ImGui::PushFont(guiResources.font15);
             bool btnCancel = ImGui::Button("Close", ImVec2(190.0f, 30.0f));
             ImGui::SameLine(0, 130.0f);
 
@@ -216,19 +217,19 @@ namespace VkRender {
             ImGui::PopFont();
 
             if (btnCancel) {
-                uiContext.usageMonitor->userClickAction("Cancel", "button",
+                context->usageMonitor()->userClickAction("Cancel", "button",
                                                         ImGui::GetCurrentWindow()->Name);
-                uiContext.shared->openAddDevicePopup = false;
+                editor->ui()->shared->openAddDevicePopup = false;
                 ImGui::CloseCurrentPopup();
             }
 
             if (btnConnect) {
                 profileInfo.connectionType = MultiSense::MULTISENSE_CONNECTION_TYPE_LIBMULTISENSE;
-                uiContext.usageMonitor->userClickAction("Connect", "button",
+                context->usageMonitor()->userClickAction("Connect", "button",
                                                         ImGui::GetCurrentWindow()->Name);
 
                 context->multiSense()->addNewProfile(profileInfo);
-                uiContext.shared->openAddDevicePopup = false;
+                editor->ui()->shared->openAddDevicePopup = false;
                 ImGui::CloseCurrentPopup();
             }
 

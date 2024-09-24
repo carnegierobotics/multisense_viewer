@@ -36,8 +36,8 @@ namespace VkRender {
 
             // Set window position and size
             ImVec2 window_pos = ImVec2(5.0f, 55.0f); // Position (x, y)
-            ImVec2 window_size = ImVec2(m_editor.editorUi->width - 5.0f,
-                                        m_editor.editorUi->height - 55.0f); // Size (width, height)
+            ImVec2 window_size = ImVec2(m_editor->ui()->width - 5.0f,
+                                        m_editor->ui()->height - 55.0f); // Size (width, height)
 
 
             // Set window flags to remove decorations
@@ -51,26 +51,26 @@ namespace VkRender {
             // Create the parent window
             ImGui::Begin("EditorGaussianViewerLayer", nullptr, window_flags);
 
-            ImGui::PushFont(m_editor.info->font15);
+            /*
+            ImGui::PushFont(m_editor->guiResources().font15);
 
-            m_editor.editorUi->render3DGSImage = ImGui::Button("Render 3DGS image");
+            m_editor->ui()->render3DGSImage = ImGui::Button("Render 3DGS image");
 
             static bool toggle = false;
 
-            ImGui::RadioButton("3DGS image", &m_editor.editorUi->render3dgsColor, 0);
-            ImGui::RadioButton("Normals", &m_editor.editorUi->render3dgsColor, 1);
-            ImGui::RadioButton("Depth", &m_editor.editorUi->render3dgsColor, 2);
+            ImGui::RadioButton("3DGS image", &m_editor->ui()->render3dgsColor, 0);
+            ImGui::RadioButton("Normals", &m_editor->ui()->render3dgsColor, 1);
+            ImGui::RadioButton("Depth", &m_editor->ui()->render3dgsColor, 2);
 
             ImGui::Checkbox("Toggle rendering", &toggle);
             if (toggle){
-                m_editor.editorUi->render3DGSImage = true;
+                m_editor->ui()->render3DGSImage = true;
             }
 
-            m_editor.editorUi->saveRenderToFile = ImGui::Button("Save image");
-            ImGui::Checkbox("Right view", &m_editor.editorUi->gsRightView);
-
-
+            m_editor->ui()->saveRenderToFile = ImGui::Button("Save image");
+            ImGui::Checkbox("Right view", &m_editor->ui()->gsRightView);
             ImGui::PopFont();
+  */
 
             ImGui::End();
 

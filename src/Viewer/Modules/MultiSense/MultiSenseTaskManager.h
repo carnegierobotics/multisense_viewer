@@ -57,17 +57,27 @@ namespace VkRender::MultiSense {
         void retrieveCameraInfo(MultiSenseProfileInfo *profile);
         void disconnect() ;
         MultiSenseConnectionState connectionState();
-        uint8_t * getImage();
+        void getImage(MultiSenseStreamData *data);
+        void startStreaming(const std::vector<std::string>& streams);
+        void stopStreaming(const std::vector<std::string>& streams);
+        std::vector<std::string> &getEnabledSources();
 
     private:
         std::unique_ptr<ThreadPool> m_threadPool;
         std::unique_ptr<MultiSenseInterface> m_interface;
 
+        MultiSenseUpdateData m_updateData;
+
         static void connectTask(void *ctx, const MultiSenseProfileInfo &profile);
         static void retrieveCameraInfoTask(void *ctx, MultiSenseProfileInfo *profile);
         static void disconnectTask(void *ctx);
-        static void updateTask(void *ctx);
+        static void updateTask(void *ctx, MultiSenseUpdateData *updateData);
         static void setupTask(void *ctx);
+
+
+        static void startStreamingTask(void *ctx, const std::vector<std::string>& streams);
+        static void stopStreamingTask(void *ctx, const std::vector<std::string>& streams);
+
 
     };
 }

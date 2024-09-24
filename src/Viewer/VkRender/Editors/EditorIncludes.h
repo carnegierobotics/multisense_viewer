@@ -154,6 +154,10 @@ namespace VkRender {
         ImVec4 backgroundColorHovered{};
         ImVec4 backgroundColorActive{};
 
+        SharedContextData* shared;
+
+        bool showDebugWindow = false;
+        /*
         // TODO fix this. UI Elements may not be needed for all editor tyypes, should probably be editor type specific
         bool setActiveCamera = true;
         bool render3DGSImage = false;
@@ -161,13 +165,15 @@ namespace VkRender {
         int render3dgsColor = 0;
         bool gsRightView = false;
         bool contentHovered = false;
-        Camera* editorCamera;
-        Camera* activeCamera;
+        Camera* editorCamera{};
+        Camera* activeCamera{};
+        bool reloadPipeline = false;
+        // TODO end
+        */
+
+        bool renderDepth = true; // TODO testing
         bool saveRenderToFile = false;
         std::filesystem::path renderToFileName = "output.png";
-        bool reloadPipeline = false;
-        bool renderDepth = true;
-        // TODO end
 
         bool active = false;
         bool hovered = false;
@@ -198,6 +204,7 @@ namespace VkRender {
             backgroundColorActive = backgroundColor;
             backgroundColorActive.w = 0.7f;
         }
+        virtual ~EditorUI() = default;  // Ensure polymorphic behavior
 
     };
 

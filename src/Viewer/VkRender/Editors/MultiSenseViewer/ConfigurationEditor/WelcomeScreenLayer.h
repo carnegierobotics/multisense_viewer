@@ -19,8 +19,8 @@ namespace VkRender {
             window_flags =
                     ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus |
                     ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoScrollWithMouse;
-            ImGui::SetNextWindowPos(m_editor.info->editorStartPos, ImGuiCond_Always);
-            ImGui::SetNextWindowSize(m_editor.info->editorSize);
+            ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f), ImGuiCond_Always);
+            ImGui::SetNextWindowSize(ImVec2(m_editor->ui()->width, m_editor->ui()->height));
             ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::Colors::CRLCoolGray);
             ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));

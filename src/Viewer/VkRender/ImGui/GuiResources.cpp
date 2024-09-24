@@ -3,13 +3,13 @@
 //
 
 #include <stb_image.h>
-#include "Viewer/VkRender/ImGui/GuiResources.h"
+#include "Viewer/VkRender/ImGui/GuiAssets.h"
 #include "Viewer/Tools/Utils.h"
 #include "Viewer/VkRender/ImGui/IconsFontAwesome6.h"
 
 namespace VkRender {
 
-    GuiResources::GuiResources(VulkanDevice *d) : device(d) {
+    GuiAssets::GuiAssets(VulkanDevice *d) : device(d) {
 
         std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings{};
         setLayoutBindings = {
@@ -117,7 +117,7 @@ namespace VkRender {
     }
 
 
-    ImFont *GuiResources::loadFontFromFileName(const std::filesystem::path &file, float fontSize, bool iconFont) {
+    ImFont *GuiAssets::loadFontFromFileName(const std::filesystem::path &file, float fontSize, bool iconFont) {
         ImFont *font;
 
         if (iconFont) {
@@ -180,7 +180,7 @@ namespace VkRender {
     }
 
 
-    void GuiResources::loadAnimatedGif(const std::string &file) {
+    void GuiAssets::loadAnimatedGif(const std::string &file) {
         int width = 0, height = 0, depth = 0, comp = 0;
         int *delays = nullptr;
         int channels = 4;
@@ -241,7 +241,7 @@ namespace VkRender {
         stbi_image_free(pixels);
     }
 
-    void GuiResources::loadImGuiTextureFromFileName(const std::string &file, uint32_t i) {
+    void GuiAssets::loadImGuiTextureFromFileName(const std::string &file, uint32_t i) {
         int texWidth, texHeight, texChannels;
         stbi_uc *pixels = stbi_load(file.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
         VkDeviceSize imageSize = static_cast<VkDeviceSize>(texWidth * texHeight * texChannels);

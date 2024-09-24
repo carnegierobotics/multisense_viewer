@@ -68,9 +68,6 @@ namespace VkRender {
         std::vector<EditorType> editorTypes;
     };
 
-    struct MultiSenseData { // TODO rename
-        std::shared_ptr<VkRender::MultiSense::MultiSenseRendererBridge> rendererBridge{};
-    };
 
     class Application : VulkanRenderer {
 
@@ -114,7 +111,8 @@ namespace VkRender {
 
         const ProjectConfig &getProjectConfig() { return m_projectConfig; }
 
-        std::shared_ptr<MultiSense::MultiSenseRendererBridge> multiSense() { return m_multiSense.rendererBridge; }
+        std::shared_ptr<MultiSense::MultiSenseRendererBridge> multiSense() { return m_multiSense; }
+        std::shared_ptr<UsageMonitor> usageMonitor() { return m_usageMonitor; }
 
         // TODO we should collect per frame info like this somewhere
         float deltaTime() { return frameTimer; }
@@ -122,8 +120,6 @@ namespace VkRender {
         ImGuiContext *getMainUIContext() { return m_mainEditor->guiContext(); }
 
         uint32_t currentFrameIndex() { return currentFrame; }
-
-        std::shared_ptr<UsageMonitor> m_usageMonitor; // TODO make private, used widely in imgui code to record user actions
 
         void loadScene(const std::filesystem::path &string);
 
@@ -170,11 +166,12 @@ namespace VkRender {
 
         std::unique_ptr<Editor> m_mainEditor;
 
-        std::shared_ptr<GuiResources> m_guiResources;
+        std::shared_ptr<GuiAssets> m_guiResources;
         SharedContextData m_sharedContextData;
         SharedEditorData m_sharedEditorData;
+        std::shared_ptr<UsageMonitor> m_usageMonitor;
 
-        MultiSenseData m_multiSense;
+        std::shared_ptr<VkRender::MultiSense::MultiSenseRendererBridge> m_multiSense;
 
 
         friend class ApplicationConfig;

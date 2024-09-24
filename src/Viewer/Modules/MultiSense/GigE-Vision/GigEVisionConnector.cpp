@@ -37,7 +37,7 @@ namespace VkRender::MultiSense {
 
     }
 
-    void GigEVisionConnector::update() {
+    void GigEVisionConnector::update(MultiSenseUpdateData* updateData) {
 
 
         auto now = std::chrono::steady_clock::now();
@@ -73,7 +73,7 @@ namespace VkRender::MultiSense {
         }
     }
 
-    uint8_t *GigEVisionConnector::getImage() {
+    void GigEVisionConnector::getImage(MultiSenseStreamData* data) {
         std::unique_lock<std::mutex> lk(s_imageMutex); // Lock the mutex
         auto timeout = std::chrono::milliseconds(0);
         // Use wait_for to periodically check if the condition is met
@@ -91,13 +91,11 @@ namespace VkRender::MultiSense {
                                                  s_imageObjects[imageInfo.source_port].block_id);
             }
 
-            return s_imageObjects[imageInfo.source_port].image_buf.data();
 
         } else {
             // Timeout occurred, you can do something else or retry
             // Perform other tasks or simply retry
         }
-        return nullptr;
     }
 
     void GigEVisionConnector::streamCallback(image_data info, uint8_t *imageBuffer) {

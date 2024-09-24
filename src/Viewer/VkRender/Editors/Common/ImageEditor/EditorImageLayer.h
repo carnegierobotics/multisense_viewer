@@ -10,6 +10,11 @@
 
 namespace VkRender {
 
+    struct EditorImageUI : public EditorUI {
+        bool renderMultiSense = false;
+
+        EditorImageUI() = default;
+    };
 
     class EditorImageLayer : public Layer {
 
@@ -31,8 +36,8 @@ namespace VkRender {
             // Set window position and size
             // Set window position and size
             ImVec2 window_pos = ImVec2(50.0f, 5.0f); // Position (x, y)
-            ImVec2 window_size = ImVec2(m_editor.editorUi->width - window_pos.x,
-                                        m_editor.editorUi->height - window_pos.y); // Size (width, height)
+            ImVec2 window_size = ImVec2(m_editor->ui()->width - window_pos.x,
+                                        m_editor->ui()->height - window_pos.y); // Size (width, height)
 
             // Set window flags to remove decorations
             ImGuiWindowFlags window_flags =
@@ -45,40 +50,44 @@ namespace VkRender {
             // Create the parent window
             ImGui::Begin("EditorImageLayer", nullptr, window_flags);
 
+            auto imageUI = std::dynamic_pointer_cast<EditorImageUI>(m_editor->ui());
+
+            ImGui::Checkbox("Show", &imageUI->renderMultiSense);
+
             ImGui::SetNextItemWidth(150.0f);
             // If we have a device connected:
             if (m_context->multiSense()->anyMultiSenseDeviceOnline()) {
 
                 // Available sources from camera
-                auto profile& = m_context->multiSense()->getSelectedMultiSenseProfile();
-                std::vector<std::string> &availableSources = profile.deviceData.sources;
+                auto& profile = m_context->multiSense()->getSelectedMultiSenseProfile();
+                std::vector<std::string>& availableSources = profile.deviceData().sources;
+                int& currentItemIndex = profile.deviceData().streamWindow[m_editor->getUUID()].selectedSourceIndex;
 
+                // Ensure there is at least one option
                 if (availableSources.empty()) {
                     availableSources.emplace_back("Error: No sources available");
+                    currentItemIndex = 0;
                 }
+                const char* combo_preview_value = availableSources[currentItemIndex].c_str();  // Pass in the preview value visible before opening the combo (it could be anything)
 
-                std::string& previewValue = availableSources.front();
-
-                if (profile.deviceData.enabledSources.contains(*reinterpret_cast<int *>(&m_editor))){
-                    previewValue = profile.deviceData.enabledSources[*reinterpret_cast<int *>(&m_editor)];
-                }
-
-                if (ImGui::BeginCombo(("Select source:" + std::to_string(*reinterpret_cast<int *>(&m_editor))).c_str(), previewValue.c_str(), ImGuiComboFlags_HeightLarge)) {
-                    for (int n = 0; n < availableSources.size(); n++) {
-                        bool is_selected = (profile.deviceData.enabledSources[*reinterpret_cast<int *>(&m_editor)] == availableSources[n]);
+                if (ImGui::BeginCombo(("combo 1##" + m_editor->getUUID().operator std::string()).c_str(), combo_preview_value, ImGuiComboFlags_None))
+                {
+                    for (int n = 0; n < availableSources.size(); n++)
+                    {
+                        const bool is_selected = (currentItemIndex == n);
                         if (ImGui::Selectable(availableSources[n].c_str(), is_selected)) {
-                            profile.deviceData.enabledSources[*reinterpret_cast<int *>(&m_editor)] = availableSources[n];
+                            currentItemIndex = n;
+                            profile.deviceData().streamWindow[m_editor->getUUID()].enabledSource = availableSources[n];
+                            profile.deviceData().streamWindow[m_editor->getUUID()].sourceUpdate = true;
                         }
-
+                        // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
                         if (is_selected)
-                            ImGui::SetItemDefaultFocus();   // Set the initial focus when opening the combo (scrolling + for keyboard navigation support in the upcoming navigation branch)
+                            ImGui::SetItemDefaultFocus();
                     }
                     ImGui::EndCombo();
                 }
-
             }
             ImGui::End();
-
 
         }
 

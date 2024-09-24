@@ -25,7 +25,6 @@ namespace VkRender {
         // The pipelines also define memory handles between CPU and GPU. It makes more logical scenes if these attributes belong to the OBJModelComponent
         // But we need it accessed in the pipeline
         m_editorCamera = Camera(m_createInfo.width, m_createInfo.height);
-        ui().editorCamera = &m_editorCamera;
         m_activeCamera = m_editorCamera;
         m_activeScene = m_context->activeScene();
         // Pass the destroy function to the scene
@@ -127,8 +126,9 @@ namespace VkRender {
             auto view = m_activeScene->getRegistry().view<CameraComponent>();
             m_activeCamera = m_editorCamera;
             for (auto entity: view) {
+                /*
                 auto e = Entity(entity, m_activeScene.get());
-                if (ui().setActiveCamera && e == m_createInfo.sharedUIContextData->m_selectedEntity) {
+                if (ui()->setActiveCamera && e == m_createInfo.sharedUIContextData->m_selectedEntity) {
                     auto &registry = m_activeScene->getRegistry();
                     auto &cameraComponent = registry.get<CameraComponent>(entity);
                     auto &transform = registry.get<TransformComponent>(entity);
@@ -139,13 +139,14 @@ namespace VkRender {
                     //transform.getQuaternion() = cameraComponent().pose.q;
                     m_activeCamera = cameraComponent();
                     m_ui.activeCamera = &m_activeCamera.get();
-                }
+                } */
             }
+
         }
-        ui().saveRenderToFile = m_createInfo.sharedUIContextData->newFrame;
+        ui()->saveRenderToFile = m_createInfo.sharedUIContextData->newFrame;
         if (m_createInfo.sharedUIContextData->m_selectedEntity){
-            ui().renderToFileName = "scene_0000/viewport/" +  m_createInfo.sharedUIContextData->m_selectedEntity.getComponent<TagComponent>().Tag;
-            ui().renderToFileName.replace_extension(".png");
+            ui()->renderToFileName = "scene_0000/viewport/" +  m_createInfo.sharedUIContextData->m_selectedEntity.getComponent<TagComponent>().Tag;
+            ui()->renderToFileName.replace_extension(".png");
         }
         generatePipelines();
         // Update model transforms:
@@ -193,14 +194,14 @@ namespace VkRender {
     }
 
     void Editor3DViewport::onMouseMove(const MouseButtons &mouse) {
-        if (ui().hovered && mouse.left && !ui().resizeActive) {
+        if (ui()->hovered && mouse.left && !ui()->resizeActive) {
             m_editorCamera.rotate(mouse.dx, mouse.dy);
         }
         m_activeScene->onMouseEvent(mouse);
     }
 
     void Editor3DViewport::onMouseScroll(float change) {
-        if (ui().hovered)
+        if (ui()->hovered)
             m_editorCamera.setArcBallPosition((change > 0.0f) ? 0.95f : 1.05f);
         m_activeScene->onMouseScroll(change);
     }

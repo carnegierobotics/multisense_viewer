@@ -50,7 +50,7 @@ namespace VkRender {
         m_logger = Log::Logger::getInstance();
         VulkanRenderer::initVulkan();
         VulkanRenderer::prepare();
-        m_guiResources = std::make_shared<GuiResources>(m_vulkanDevice);
+        m_guiResources = std::make_shared<GuiAssets>(m_vulkanDevice);
         m_logger->info("Initialized Backend");
         config.setGpuDevice(physicalDevice);
         m_usageMonitor = std::make_shared<UsageMonitor>();
@@ -108,8 +108,8 @@ namespace VkRender {
         loadScene(lastActiveScene);
 
 
-        m_multiSense.rendererBridge = std::make_shared<MultiSense::MultiSenseRendererBridge>();
-        m_multiSense.rendererBridge->setup();
+        m_multiSense = std::make_shared<MultiSense::MultiSenseRendererBridge>();
+        m_multiSense->setup();
     }
 
     void Application::loadProject(const std::filesystem::path &filePath) {
@@ -267,7 +267,7 @@ namespace VkRender {
         updateEditors();
         m_mainEditor->update((frameCounter == 0), frameTimer, &input);
 
-        m_multiSense.rendererBridge->update();
+        m_multiSense->update();
     }
 
     std::unique_ptr<Editor> Application::createEditor(EditorCreateInfo &createInfo) {
@@ -289,11 +289,11 @@ namespace VkRender {
     void Application::updateEditors() {
         // Reorder Editors elements according to UI
         for (auto &editor: m_editors) {
-            if (editor->ui().changed) {
+            if (editor->ui()->changed) {
                 // Set a new one
                 Log::Logger::getInstance()->info("New Editor requested");
                 auto &ci = editor->getCreateInfo();
-                ci.editorTypeDescription = editor->ui().selectedType;
+                ci.editorTypeDescription = editor->ui()->selectedType;
                 recreateEditor(editor, ci);
             }
         }
@@ -302,7 +302,7 @@ namespace VkRender {
         // Update which shared data and such
 
         for (auto &editor: m_editors) {
-            if (editor->ui().renderDepth) {
+            if (editor->ui()->renderDepth) {
                 m_sharedEditorData.selectedUUIDContext = std::make_shared<UUID>(editor->getUUID());
             }
         }
@@ -388,20 +388,20 @@ namespace VkRender {
         bool anyResizeHovered = false;
         bool horizontalResizeHovered = false;
         for (auto &editor: m_editors) {
-            if (editor->ui().cornerBottomLeftHovered && editor->getCreateInfo().resizeable) showHandCursor = true;
-            if (editor->ui().cornerBottomLeftClicked && editor->getCreateInfo().resizeable) showCrosshairCursor = true;
+            if (editor->ui()->cornerBottomLeftHovered && editor->getCreateInfo().resizeable) showHandCursor = true;
+            if (editor->ui()->cornerBottomLeftClicked && editor->getCreateInfo().resizeable) showCrosshairCursor = true;
 
-            if (editor->ui().cornerBottomLeftClicked) anyCornerClicked = true;
-            if (editor->ui().resizeHovered) anyResizeHovered = true;
-            if (EditorBorderState::Left == editor->ui().lastHoveredBorderType ||
-                EditorBorderState::Right == editor->ui().lastHoveredBorderType)
+            if (editor->ui()->cornerBottomLeftClicked) anyCornerClicked = true;
+            if (editor->ui()->resizeHovered) anyResizeHovered = true;
+            if (EditorBorderState::Left == editor->ui()->lastHoveredBorderType ||
+                EditorBorderState::Right == editor->ui()->lastHoveredBorderType)
                 horizontalResizeHovered = true;
         }
 
         //// UPDATE EDITOR Based on UI EVENTS
         for (auto &editor: m_editors) {
             // Dont update the editor if managed by another instance
-            if (!editor->ui().indirectlyActivated) {
+            if (!editor->ui()->indirectlyActivated) {
                 Editor::handleIndirectClickState(m_editors, editor, mouse);
             }
             Editor::handleDragState(editor, mouse);
@@ -414,46 +414,46 @@ namespace VkRender {
             editor->update((frameCounter == 0), frameTimer, &input);
 
             if (!mouse.left) {
-                if (editor->ui().indirectlyActivated) {
+                if (editor->ui()->indirectlyActivated) {
                     Editor::handleHoverState(editor, mouse);
-                    editor->ui().lastClickedBorderType = None;
-                    editor->ui().active = false;
-                    editor->ui().indirectlyActivated = false;
+                    editor->ui()->lastClickedBorderType = None;
+                    editor->ui()->active = false;
+                    editor->ui()->indirectlyActivated = false;
                 }
-                editor->ui().resizeActive = false;
-                editor->ui().cornerBottomLeftClicked = false;
-                editor->ui().dragHorizontal = false;
-                editor->ui().dragVertical = false;
-                editor->ui().dragActive = false;
-                editor->ui().splitting = false;
-                editor->ui().lastPressedPos = glm::ivec2(-1, -1);
-                editor->ui().dragDelta = glm::ivec2(0, 0);
-                editor->ui().cursorDelta = glm::ivec2(0, 0);
+                editor->ui()->resizeActive = false;
+                editor->ui()->cornerBottomLeftClicked = false;
+                editor->ui()->dragHorizontal = false;
+                editor->ui()->dragVertical = false;
+                editor->ui()->dragActive = false;
+                editor->ui()->splitting = false;
+                editor->ui()->lastPressedPos = glm::ivec2(-1, -1);
+                editor->ui()->dragDelta = glm::ivec2(0, 0);
+                editor->ui()->cursorDelta = glm::ivec2(0, 0);
             }
             if (!mouse.right) {
-                editor->ui().rightClickBorder = false;
-                editor->ui().lastRightClickedBorderType = None;
+                editor->ui()->rightClickBorder = false;
+                editor->ui()->lastRightClickedBorderType = None;
             }
             if (mouse.left && mouse.action == GLFW_PRESS) {
                 Log::Logger::getInstance()->info("We Left-clicked Editor: {}'s area :{}",
                                                  editor->getCreateInfo().editorIndex,
-                                                 editor->ui().lastClickedBorderType);
+                                                 editor->ui()->lastClickedBorderType);
             }
             if (mouse.right && mouse.action == GLFW_PRESS) {
                 Log::Logger::getInstance()->info("We Right-clicked Editor: {}'s area :{}. Merge? {}",
                                                  editor->getCreateInfo().editorIndex,
-                                                 editor->ui().lastClickedBorderType,
-                                                 editor->ui().rightClickBorder);
+                                                 editor->ui()->lastClickedBorderType,
+                                                 editor->ui()->rightClickBorder);
             }
         }
         bool splitEditors = false;
         uint32_t splitEditorIndex = UINT32_MAX;
         for (size_t index = 0; auto &editor: m_editors) {
             if (editor->getCreateInfo().resizeable &&
-                editor->ui().cornerBottomLeftClicked &&
+                editor->ui()->cornerBottomLeftClicked &&
                 editor->getCreateInfo().width > 100 && editor->getCreateInfo().height > 100 &&
-                (editor->ui().dragHorizontal || editor->ui().dragVertical) &&
-                !editor->ui().splitting) {
+                (editor->ui()->dragHorizontal || editor->ui()->dragVertical) &&
+                !editor->ui()->splitting) {
                 splitEditors = true;
                 splitEditorIndex = index;
             }
@@ -466,7 +466,7 @@ namespace VkRender {
         bool mergeEditor = false;
         std::array<UUID, 2> editorsUUID;
         for (size_t index = 0; auto &editor: m_editors) {
-            if (editor->ui().shouldMerge) {
+            if (editor->ui()->shouldMerge) {
                 editorsUUID[index] = editor->getUUID();
                 index++;
                 mergeEditor = true;
@@ -490,7 +490,7 @@ namespace VkRender {
     void Application::resizeEditors(bool anyCornerClicked) {
         bool isValidResizeAll = true;
         for (auto &editor: m_editors) {
-            if (editor->ui().resizeActive && (!anyCornerClicked || editor->ui().splitting)) {
+            if (editor->ui()->resizeActive && (!anyCornerClicked || editor->ui()->splitting)) {
                 auto createInfo = getNewEditorCreateInfo(editor);
                 if (!Editor::isValidResize(createInfo, editor))
                     isValidResizeAll = false;
@@ -498,7 +498,7 @@ namespace VkRender {
         }
         if (isValidResizeAll) {
             for (auto &editor: m_editors) {
-                if (editor->ui().resizeActive && (!anyCornerClicked || editor->ui().splitting)) {
+                if (editor->ui()->resizeActive && (!anyCornerClicked || editor->ui()->splitting)) {
                     auto createInfo = getNewEditorCreateInfo(editor);
                     editor->resize(createInfo);
                 }
@@ -514,13 +514,13 @@ namespace VkRender {
 
         EditorCreateInfo::copy(&newEditorCreateInfo, &editorCreateInfo);
 
-        if (editor->ui().dragHorizontal) {
-            editorCreateInfo.width -= editor->ui().dragDelta.x;
-            editorCreateInfo.x += editor->ui().dragDelta.x;
-            newEditorCreateInfo.width = editor->ui().dragDelta.x;
+        if (editor->ui()->dragHorizontal) {
+            editorCreateInfo.width -= editor->ui()->dragDelta.x;
+            editorCreateInfo.x += editor->ui()->dragDelta.x;
+            newEditorCreateInfo.width = editor->ui()->dragDelta.x;
         } else {
-            editorCreateInfo.height += editor->ui().dragDelta.y;
-            newEditorCreateInfo.height = -editor->ui().dragDelta.y;
+            editorCreateInfo.height += editor->ui()->dragDelta.y;
+            newEditorCreateInfo.height = -editor->ui()->dragDelta.y;
             newEditorCreateInfo.y = editorCreateInfo.height + editorCreateInfo.y;
         }
         newEditorCreateInfo.editorIndex = m_editors.size();
@@ -529,18 +529,18 @@ namespace VkRender {
             return;
         editor->resize(editorCreateInfo);
         auto newEditor = createEditor(newEditorCreateInfo);
-        editor->ui().resizeActive = true;
-        newEditor->ui().resizeActive = true;
-        editor->ui().active = true;
-        newEditor->ui().active = true;
-        editor->ui().splitting = true;
-        newEditor->ui().splitting = true;
-        if (editor->ui().dragHorizontal) {
-            editor->ui().lastClickedBorderType = EditorBorderState::Left;
-            newEditor->ui().lastClickedBorderType = EditorBorderState::Right;
+        editor->ui()->resizeActive = true;
+        newEditor->ui()->resizeActive = true;
+        editor->ui()->active = true;
+        newEditor->ui()->active = true;
+        editor->ui()->splitting = true;
+        newEditor->ui()->splitting = true;
+        if (editor->ui()->dragHorizontal) {
+            editor->ui()->lastClickedBorderType = EditorBorderState::Left;
+            newEditor->ui()->lastClickedBorderType = EditorBorderState::Right;
         } else {
-            editor->ui().lastClickedBorderType = EditorBorderState::Bottom;
-            newEditor->ui().lastClickedBorderType = EditorBorderState::Top;
+            editor->ui()->lastClickedBorderType = EditorBorderState::Bottom;
+            newEditor->ui()->lastClickedBorderType = EditorBorderState::Top;
         }
 
         newEditor->onSceneLoad(std::shared_ptr<Scene>());
@@ -557,8 +557,8 @@ namespace VkRender {
                                              id1.operator std::string(), id2.operator std::string());
             return;
         }
-        editor1->ui().shouldMerge = false;
-        editor2->ui().shouldMerge = false;
+        editor1->ui()->shouldMerge = false;
+        editor2->ui()->shouldMerge = false;
         auto &ci1 = editor1->getCreateInfo();
         auto &ci2 = editor2->getCreateInfo();
         int32_t newX = std::min(ci1.x, ci2.x);
@@ -566,9 +566,9 @@ namespace VkRender {
         int32_t newWidth = ci1.width + ci2.width;
         int32_t newHeight = ci1.height + ci2.height;
 
-        if (editor1->ui().lastRightClickedBorderType & EditorBorderState::HorizontalBorders) {
+        if (editor1->ui()->lastRightClickedBorderType & EditorBorderState::HorizontalBorders) {
             ci1.height = newHeight;
-        } else if (editor1->ui().lastRightClickedBorderType & EditorBorderState::VerticalBorders) {
+        } else if (editor1->ui()->lastRightClickedBorderType & EditorBorderState::VerticalBorders) {
             ci1.width = newWidth;
         }
         ci1.x = newX;
@@ -593,20 +593,20 @@ namespace VkRender {
                                      m_frameBuffers.data());
         EditorCreateInfo::copy(&newEditorCI, &editor->getCreateInfo());
 
-        switch (editor->ui().lastClickedBorderType) {
+        switch (editor->ui()->lastClickedBorderType) {
             case EditorBorderState::Left:
-                newEditorCI.x = editor->ui().x + editor->ui().cursorDelta.x;
-                newEditorCI.width = editor->ui().width - editor->ui().cursorDelta.x;
+                newEditorCI.x = editor->ui()->x + editor->ui()->cursorDelta.x;
+                newEditorCI.width = editor->ui()->width - editor->ui()->cursorDelta.x;
                 break;
             case EditorBorderState::Right:
-                newEditorCI.width = editor->ui().width + editor->ui().cursorDelta.x;
+                newEditorCI.width = editor->ui()->width + editor->ui()->cursorDelta.x;
                 break;
             case EditorBorderState::Top:
-                newEditorCI.y = editor->ui().y + editor->ui().cursorDelta.y;
-                newEditorCI.height = editor->ui().height - editor->ui().cursorDelta.y;
+                newEditorCI.y = editor->ui()->y + editor->ui()->cursorDelta.y;
+                newEditorCI.height = editor->ui()->height - editor->ui()->cursorDelta.y;
                 break;
             case EditorBorderState::Bottom:
-                newEditorCI.height = editor->ui().height + editor->ui().cursorDelta.y;
+                newEditorCI.height = editor->ui()->height + editor->ui()->cursorDelta.y;
                 break;
             default:
                 Log::Logger::getInstance()->trace(
@@ -733,7 +733,7 @@ namespace VkRender {
         }
 
         for (auto &editor: m_editors) {
-            if (editor->ui().hovered) {
+            if (editor->ui()->hovered) {
                 // Add drop event here
                 editor->onFileDrop(path);
             }

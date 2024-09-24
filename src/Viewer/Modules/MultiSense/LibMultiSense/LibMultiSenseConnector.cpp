@@ -55,7 +55,8 @@ namespace VkRender::MultiSense {
         if (m_channel->ptr() != nullptr) {
             crl::multisense::system::DeviceInfo devInfo;
             m_channel->ptr()->getDeviceInfo(devInfo);
-            Log::Logger::getInstance()->info("We got a connection! Device info: {}, {}. Querying MultiSense info...", devInfo.name,
+            Log::Logger::getInstance()->info("We got a connection! Device info: {}, {}. Querying MultiSense info...",
+                                             devInfo.name,
                                              devInfo.buildDate);
             addCallbacks(static_cast<crl::multisense::RemoteHeadChannel>(0));
             state = MULTISENSE_CONNECTED;
@@ -66,7 +67,74 @@ namespace VkRender::MultiSense {
         }
     }
 
-    void LibMultiSenseConnector::update() {
+    void LibMultiSenseConnector::update(MultiSenseUpdateData* updateData) {
+        static auto lastCheckTime = std::chrono::steady_clock::now();
+        auto currentTime = std::chrono::steady_clock::now();
+        const std::chrono::seconds checkInterval(2);  // Check every x seconds
+        if (!m_channel){
+            return;
+        }
+        // Only check for enabled streams if enough time has passed
+        if (currentTime - lastCheckTime >= checkInterval) {
+            crl::multisense::DataSource enabledSources = 0;
+            m_channel->ptr()->getEnabledStreams(enabledSources);
+            uint32_t bits = enabledSources;
+            auto& v = updateData->enabledSources;
+            v.clear();
+            for (auto mask : Utils::ViewerAvailableLibMultiSenseSources) {
+                bool enabled = (bits & mask);
+                if (enabled) {
+                    if (!(std::find(v.begin(), v.end(), Utils::dataSourceToString(mask)) != v.end())) {
+                        updateData->enabledSources.emplace_back(Utils::dataSourceToString(mask));
+                    }
+                    Log::Logger::getInstance()->info("Found enabled source: {}", Utils::dataSourceToString(mask));
+                }
+            }
+            // Update the last check time
+            lastCheckTime = currentTime;
+        }
+
+
+    }
+
+    void LibMultiSenseConnector::getImage(MultiSenseStreamData *data) {
+        auto src = Utils::stringToDataSource(data->dataSource);
+
+        crl::multisense::DataSource colorSource;
+        crl::multisense::DataSource lumaSource;
+        std::shared_ptr<ImageBufferWrapper> header;
+        std::shared_ptr<ImageBufferWrapper> headerTwo;
+
+        if (data->dataSource == "Color Aux") {
+            colorSource = crl::multisense::Source_Chroma_Aux;
+            lumaSource = crl::multisense::Source_Luma_Aux;
+            header = m_channel->imageBuffer->getImageBuffer(lumaSource);
+            headerTwo = m_channel->imageBuffer->getImageBuffer(colorSource);
+            if (headerTwo == nullptr) {
+                return;
+            }
+        } else {
+            header = m_channel->imageBuffer->getImageBuffer(src);
+        }
+
+        if (header == nullptr) {
+            return;
+        }
+
+        if (header->data().source != src || data->width != header->data()
+                .width || data->height < header->data().height) {
+            Log::Logger::getInstance()->warning(
+                    "In getCameraStream: Monochrome source and dimensions did not match expected values");
+            return;
+        }
+        data->id = static_cast<uint32_t>(header->data().frameId);
+        std::memcpy(data->imagePtr, header->data().imageDataP, header->data().imageLength);
+        // Copy extra zeros (black pixels) to the bottom row if heights does not match
+        if (data->height != header->data().height) {
+            uint32_t diff = data->height - header->data().height;
+            std::memset(data->imagePtr + header->data().imageLength, 0x00, diff * data->width);
+        }
+
 
     }
 
@@ -78,48 +146,41 @@ namespace VkRender::MultiSense {
         state = MULTISENSE_DISCONNECTED;
     }
 
-    bool LibMultiSenseConnector::start(const std::string &dataSourceStr, crl::multisense::RemoteHeadChannel channelID) {
-        /*
-        crl::multisense::DataSource source = Utils::stringToDataSource(dataSourceStr);
-        if (source == false)
-            return false;
-        // Start stream
-        crl::multisense::Status status = channelMap[channelID]->ptr()->startStreams(source);
-        if (status == crl::multisense::Status_Ok) {
-            Log::Logger::getInstance()->info("Started stream: {} on channel {}",
-                                             Utils::dataSourceToString(source).c_str(), channelID);
-            return true;
-        } else
-            Log::Logger::getInstance()->info("Failed to start stream: {}  status code {}",
-                                             Utils::dataSourceToString(source).c_str(), status);
-        return false;
-    */
-        return false;
 
+    void LibMultiSenseConnector::startStreaming(const std::vector<std::string> &streams) {
+        std::scoped_lock lock(m_channelMutex);
+
+        for (const auto &sourceStr: streams) {
+            crl::multisense::DataSource source = Utils::stringToDataSource(sourceStr);
+            if (!source) {
+                Log::Logger::getInstance()->info("Failed to recognize '{}' source", sourceStr.c_str());
+                return;
+            }
+            // Start stream
+            crl::multisense::Status status = m_channel->ptr()->startStreams(source);
+            if (status == crl::multisense::Status_Ok) {
+                Log::Logger::getInstance()->info("Started stream: {}", Utils::dataSourceToString(source).c_str());
+            } else
+                Log::Logger::getInstance()->info("Failed to start stream: {}  status code {}",
+                                                 Utils::dataSourceToString(source).c_str(), status);
+        }
     }
 
-    bool LibMultiSenseConnector::stop(const std::string &dataSourceStr, crl::multisense::RemoteHeadChannel channelID) {
-        /*
-        if (channelMap[channelID] == nullptr)
-            return false;
 
-        crl::multisense::DataSource src = Utils::stringToDataSource(dataSourceStr);
+    void LibMultiSenseConnector::stopStream(const std::string &source) {
+
+        crl::multisense::DataSource src = Utils::stringToDataSource(source);
         if (!src) {
-            Log::Logger::getInstance()->info("Failed to recognize '{}' source", dataSourceStr.c_str());
-            return false;
+            Log::Logger::getInstance()->info("Failed to recognize '{}' source", source.c_str());
+            return;
         }
 
-        crl::multisense::Status status = channelMap[channelID]->ptr()->stopStreams(src);
+        crl::multisense::Status status = m_channel->ptr()->stopStreams(src);
         if (status == crl::multisense::Status_Ok) {
-            Log::Logger::getInstance()->info("Stopped camera stream {} on channel {}", dataSourceStr.c_str(),
-                                             channelID);
-            return true;
+            Log::Logger::getInstance()->info("Stopped camera stream {}", source.c_str());
         } else {
-            Log::Logger::getInstance()->info("Failed to stop stream {}", dataSourceStr.c_str());
-            return false;
+            Log::Logger::getInstance()->info("Failed to stop stream {}", source.c_str());
         }
-         */
-        return false;
     }
 
     void LibMultiSenseConnector::remoteHeadCallback(const crl::multisense::image::Header &header, void *userDataP) {
@@ -498,7 +559,6 @@ namespace VkRender::MultiSense {
         }
     }
 
-
     /*
        bool LibMultiSenseConnector::getStatus(crl::multisense::RemoteHeadChannel m_channelID,
                                   crl::multisense::system::StatusMessage *msg) {
@@ -811,10 +871,6 @@ namespace VkRender::MultiSense {
 
     }
 
-    uint8_t *LibMultiSenseConnector::getImage() {
-        return nullptr;
-    }
-
     MultiSenseConnectionState LibMultiSenseConnector::connectionState() {
         if (m_channelMutex.try_lock()) {
             m_channelMutex.unlock();
@@ -828,7 +884,7 @@ namespace VkRender::MultiSense {
     void LibMultiSenseConnector::getCameraInfo(MultiSenseProfileInfo *profileInfo) {
         std::scoped_lock lock(m_channelMutex);
 
-        if (!m_channel){
+        if (!m_channel) {
             return;
         }
         bool allSucceeded = true;
@@ -836,19 +892,46 @@ namespace VkRender::MultiSense {
 
         // Define a list of tasks that handle updating and logging
         std::vector<std::function<bool()>> updateTasks = {
-                [&] { return updateAndLog([&](auto &data) { return m_channel->ptr()->getDeviceInfo(data); }, m_channelInfo.devInfo, "getDeviceInfo"); },
-                [&] { return updateAndLog([&](auto &data) { return m_channel->ptr()->getImageConfig(data); }, m_channelInfo.imgConf, "getImageConfig"); },
-                [&] { return updateAndLog([&](auto &data) { return m_channel->ptr()->getDeviceModes(data); }, m_channelInfo.supportedDeviceModes, "getDeviceModes"); },
-                [&] { return updateAndLog([&](auto &data) { return m_channel->ptr()->getNetworkConfig(data); }, m_channelInfo.netConfig, "getNetworkConfig"); },
-                [&] { return updateAndLog([&](auto &data) { return m_channel->ptr()->getVersionInfo(data); }, m_channelInfo.versionInfo, "getVersionInfo"); },
-                [&] { return updateAndLog([&](auto &data) { return m_channel->ptr()->getMtu(data); }, m_channelInfo.sensorMTU, "getMtu"); },
-                [&] { return updateAndLog([&](auto &data) { return m_channel->ptr()->getLightingConfig(data); }, m_channelInfo.lightConf, "getLightingConfig"); },
-                [&] { return updateAndLog([&](auto &data) { return m_channel->ptr()->getImageCalibration(data); }, m_channelInfo.calibration, "getImageCalibration"); },
-                [&] { return updateAndLog([&](auto &data) { return m_channel->ptr()->getAuxImageConfig(data); }, m_channelInfo.auxImgConf, "getAuxImageConfig"); }
+                [&] {
+                    return updateAndLog([&](auto &data) { return m_channel->ptr()->getDeviceInfo(data); },
+                                        m_channelInfo.devInfo, "getDeviceInfo");
+                },
+                [&] {
+                    return updateAndLog([&](auto &data) { return m_channel->ptr()->getImageConfig(data); },
+                                        m_channelInfo.imgConf, "getImageConfig");
+                },
+                [&] {
+                    return updateAndLog([&](auto &data) { return m_channel->ptr()->getDeviceModes(data); },
+                                        m_channelInfo.supportedDeviceModes, "getDeviceModes");
+                },
+                [&] {
+                    return updateAndLog([&](auto &data) { return m_channel->ptr()->getNetworkConfig(data); },
+                                        m_channelInfo.netConfig, "getNetworkConfig");
+                },
+                [&] {
+                    return updateAndLog([&](auto &data) { return m_channel->ptr()->getVersionInfo(data); },
+                                        m_channelInfo.versionInfo, "getVersionInfo");
+                },
+                [&] {
+                    return updateAndLog([&](auto &data) { return m_channel->ptr()->getMtu(data); },
+                                        m_channelInfo.sensorMTU, "getMtu");
+                },
+                [&] {
+                    return updateAndLog([&](auto &data) { return m_channel->ptr()->getLightingConfig(data); },
+                                        m_channelInfo.lightConf, "getLightingConfig");
+                },
+                [&] {
+                    return updateAndLog([&](auto &data) { return m_channel->ptr()->getImageCalibration(data); },
+                                        m_channelInfo.calibration, "getImageCalibration");
+                },
+                [&] {
+                    return updateAndLog([&](auto &data) { return m_channel->ptr()->getAuxImageConfig(data); },
+                                        m_channelInfo.auxImgConf, "getAuxImageConfig");
+                }
         };
 
         // Execute each task and check for interruption
-        for (const auto& task : updateTasks) {
+        for (const auto &task: updateTasks) {
             if (interruptConnection) return;
             allSucceeded &= task();
         }
@@ -877,17 +960,18 @@ namespace VkRender::MultiSense {
                 "Connection with LibMultiSense: {}, MultiSense FW: {}, Hardware REV: {}, Serial No.: {}",
                 m_channelInfo.versionInfo.apiVersion,                   // API version
                 m_channelInfo.versionInfo.sensorFirmwareVersion,         // Firmware version
-                Utils::hardwareRevisionToString(m_channelInfo.devInfo.hardwareRevision),                       // Imager device name
+                Utils::hardwareRevisionToString(
+                        m_channelInfo.devInfo.hardwareRevision),                       // Imager device name
                 m_channelInfo.devInfo.serialNumber                       // Imager device name
         );
 
 
         crl::multisense::DataSource commonSources = crl::multisense::Source_All;
 
-        for (const auto& mode : m_channelInfo.supportedDeviceModes) {
+        for (const auto &mode: m_channelInfo.supportedDeviceModes) {
             std::string modeName = std::to_string(mode.width) + " x " + std::to_string(mode.height) + " x " +
                                    std::to_string(mode.disparities);
-            profileInfo->deviceData.resolutions.emplace_back(modeName);
+            profileInfo->deviceData().resolutions.emplace_back(modeName);
             Log::Logger::getInstance()->info("Found supported resolution: {}", modeName);
             // Perform bitwise AND with the current mode's supportedDataSources
             commonSources &= mode.supportedDataSources;
@@ -901,11 +985,11 @@ namespace VkRender::MultiSense {
         for (auto mask: Utils::ViewerAvailableLibMultiSenseSources) {
             bool enabled = (bits & mask);
             if (enabled) {
-                profileInfo->deviceData.sources.emplace_back(Utils::dataSourceToString(mask));
+                profileInfo->deviceData().sources.emplace_back(Utils::dataSourceToString(mask));
                 Log::Logger::getInstance()->info("Found supported source: {}", Utils::dataSourceToString(mask));
             }
         }
-        if ( profileInfo->deviceData.sources.empty())
+        if (profileInfo->deviceData().sources.empty())
             Log::Logger::getInstance()->warning("No supported sources were found. This may be an error");
 
     }

@@ -39,6 +39,8 @@
 #include <future>
 
 #include "Viewer/VkRender/ImGui/Layer.h"
+#include "Viewer/VkRender/Editors/Editor.h"
+#include "Viewer/Application/Application.h"
 #include "Viewer/Application/ApplicationConfig.h"
 #include "Viewer/Application/UsageMonitor.h"
 
@@ -76,7 +78,7 @@ public:
                     LineOffsets.push_back(old_size + 1);
         }
 
-        void Draw(VkRender::GuiObjectHandles &pHandles) {
+        void Draw() {
             // Options menu
             if (ImGui::BeginPopup("Options")) {
                 ImGui::Checkbox("Auto-scroll", &AutoScroll);
@@ -94,7 +96,7 @@ public:
             Filter.Draw("Filter", 300.0f);
 
             ImGui::Separator();
-            if (ImGui::BeginChild("scrolling", ImVec2(pHandles.info->debuggerWidth - pHandles.info->metricsWidth, 0),
+            if (ImGui::BeginChild("scrolling", ImVec2(800.0f - 350.0f, 0),
                                   false,
                                   ImGuiWindowFlags_HorizontalScrollbar)) {
                 if (clear)
@@ -167,7 +169,7 @@ public:
 
 /** Called once per frame **/
     void onUIRender() override {
-        if (!m_editor.showDebugWindow)
+        if (!m_editor->ui()->showDebugWindow)
             return;
         VkRender::ApplicationConfig &config = VkRender::ApplicationConfig::getInstance();
         auto user = config.getUserSetting();
@@ -175,18 +177,16 @@ public:
 
         static bool pOpen = true;
         ImGuiWindowFlags window_flags = 0;
-        ImGui::SetNextWindowSize(ImVec2(m_editor.info->debuggerWidth, m_editor.info->debuggerHeight),
+        ImGui::SetNextWindowSize(ImVec2(800.0f, 500.0f),
                                  ImGuiCond_FirstUseEver);
         ImGui::Begin("Debugger Window", &pOpen, window_flags);
 
         // Make window close on X click. But also close/open on button press
-        m_editor.showDebugWindow = pOpen;
+        m_editor->ui()->showDebugWindow = pOpen;
         if (!pOpen)
             pOpen = true;
 
-        window.Draw(m_editor);
-        m_editor.info->debuggerWidth = ImGui::GetWindowWidth();
-        m_editor.info->debuggerHeight = ImGui::GetWindowHeight();
+        window.Draw();
 
         auto* log = Log::Logger::getConsoleLogQueue();
 
@@ -199,38 +199,39 @@ public:
 
         ImGui::BeginChild("InfoChild",  ImVec2(0, 0), false, ImGuiWindowFlags_NoDecoration);
         // Update frame time display
-        if (m_editor.info->firstFrame) {
-            std::rotate(m_editor.info->frameTimes.begin(), m_editor.info->frameTimes.begin() + 1,
-                        m_editor.info->frameTimes.end());
-            float frameTime = 1000.0f / (m_editor.info->frameTimer * 1000.0f);
-            m_editor.info->frameTimes.back() = frameTime;
-            if (frameTime < m_editor.info->frameTimeMin) {
-                m_editor.info->frameTimeMin = frameTime;
+        if (false) {
+            std::rotate(frameTimes.begin(), frameTimes.begin() + 1,
+                        frameTimes.end());
+            float frameTime = 1000.0f / (frameTimer * 1000.0f);
+            frameTimes.back() = frameTime;
+            if (frameTime < frameTimeMin) {
+                frameTimeMin = frameTime;
             }
-            if (frameTime > m_editor.info->frameTimeMax) {
-                m_editor.info->frameTimeMax = frameTime;
+            if (frameTime > frameTimeMax) {
+                frameTimeMax = frameTime;
             }
         }
 
         ImGui::Dummy(ImVec2(5.0f, 0.0f));
         ImGui::SameLine();
-        ImGui::PlotLines("##FrameTimes", &m_editor.info->frameTimes[0], 50, 0, nullptr,
-                         m_editor.info->frameTimeMin,
-                         m_editor.info->frameTimeMax, ImVec2(m_editor.info->sidebarWidth - 28.0f, 80.0f));
+        ImGui::PlotLines("##FrameTimes", &frameTimes[0], 50, 0, nullptr,
+                         frameTimeMin,
+                         frameTimeMax, ImVec2(200.0f - 28.0f, 80.0f));
         ImGui::Dummy(ImVec2(5.0f, 0.0f));
-        ImGui::Text("Frame time: %.5f", static_cast<double>( m_editor.info->frameTimer));
-        ImGui::Text("Frame: %lu", m_editor.info->frameID);
+        ImGui::Text("Frame time: %.5f", static_cast<double>( frameTimer));
+        ImGui::Text("Frame: %lu", 0b1111);
         ImGui::Separator();
 
 
-        ImGui::PushFont(m_editor.info->font15);
+        //ImGui::PushFont(font15);
         ImGui::Text("Application Options:");
-        ImGui::PopFont();
+        //ImGui::PopFont();
+
 
         if (ImGui::Checkbox("Send Logs on exit", &user.sendUsageLogOnExit)) {
             update = true;
-            m_editor.usageMonitor->setSetting("send_usage_log_on_exit", Utils::boolToString(user.sendUsageLogOnExit));
-            m_editor.usageMonitor->userClickAction("Send Logs on exit", "Checkbox",
+            m_context->usageMonitor()->setSetting("send_usage_log_on_exit", Utils::boolToString(user.sendUsageLogOnExit));
+            m_context->usageMonitor()->userClickAction("Send Logs on exit", "Checkbox",
                                                    ImGui::GetCurrentWindow()->Name);
         }
 
@@ -245,13 +246,13 @@ public:
         static bool sendUserLog = false;
         sendUserLog = ImGui::Button("Send user log");
         if (sendUserLog) {
-            sendUserLogFuture = std::async(std::launch::async, &DebugWindow::sendUsageLog, this, &m_editor);
-            m_editor.usageMonitor->userClickAction("Send user log", "Button", ImGui::GetCurrentWindow()->Name);
+            sendUserLogFuture = std::async(std::launch::async, &DebugWindow::sendUsageLog, this);
+            m_context->usageMonitor()->userClickAction("Send user log", "Button", ImGui::GetCurrentWindow()->Name);
         }
 
         if (ImGui::Button("Reset consent")) {
-            m_editor.usageMonitor->setSetting("ask_user_consent_to_collect_statistics", "true");
-            m_editor.usageMonitor->userClickAction("Reset statistics consent", "Button",
+            m_context->usageMonitor()->setSetting("ask_user_consent_to_collect_statistics", "true");
+            m_context->usageMonitor()->userClickAction("Reset statistics consent", "Button",
                                                    ImGui::GetCurrentWindow()->Name);
             user.askForUsageLoggingPermissions = true;
             update = true;
@@ -276,9 +277,9 @@ public:
                     itemIdIndex = n;
                     auto level = Utils::getLogLevelEnumFromString(items[n]);
                     user.logLevel = level;
-                    m_editor.usageMonitor->setSetting("log_level", items[n]);
+                    m_context->usageMonitor()->setSetting("log_level", items[n]);
                     update |= true;
-                    m_editor.usageMonitor->userClickAction("Set Log level", "combo",
+                    m_context->usageMonitor()->userClickAction("Set Log level", "combo",
                                                            ImGui::GetCurrentWindow()->Name);
 
                 }
@@ -311,11 +312,17 @@ public:
 
     }
 
-    void sendUsageLog(VkRender::GuiObjectHandles *handles) {
-        if (handles)
-            handles->usageMonitor->sendUsageLog();
+    void sendUsageLog() {
+        m_context->usageMonitor()->sendUsageLog();
     }
 
+private:
+    /**@brief array containing the last 50 entries of frametimes */
+    std::array<float, 50> frameTimes{};
+    /**@brief min/max values for frametimes, used for updating graph*/
+    float frameTimeMin = 9999.0f, frameTimeMax = 0.0f;
+    /**@brief value for current frame timer*/
+    float frameTimer{};
 
 };
 

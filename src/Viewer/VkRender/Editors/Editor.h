@@ -68,7 +68,7 @@ namespace VkRender {
 
         virtual ~Editor() = default;
 
-        void addUI(const std::string &layerName) { m_guiManager->pushLayer(layerName); }
+        void addUI(const std::string &layerName) { m_guiManager->pushLayer(layerName, this); }
 
         const EditorSizeLimits &getSizeLimits() const { return m_sizeLimits; }
 
@@ -80,9 +80,10 @@ namespace VkRender {
 
         UUID getUUID() const { return m_uuid; }
 
-        EditorUI &ui() { return m_ui; }
-
-        void setUIState(const EditorUI &state) { m_ui = state; }
+        std::shared_ptr<EditorUI> ui() { return m_ui; }
+        const GuiResourcesData& guiResources(){
+            return m_guiManager->guiResources();
+        }
 
         void render(CommandBuffer &drawCmdBuffers);
 
@@ -114,7 +115,6 @@ namespace VkRender {
         void loadScene(std::shared_ptr<Scene> ptr);
 
         void update(bool updateGraph, float frametime, Input *input);
-
 
         void updateBorderState(const glm::vec2 &mousePos);
 
@@ -178,7 +178,8 @@ namespace VkRender {
 
         DepthFramebuffer m_depthOnlyFramebuffer;
         UUID m_uuid;
-        EditorUI m_ui;
+        std::shared_ptr<EditorUI> m_ui;
+
     };
 }
 

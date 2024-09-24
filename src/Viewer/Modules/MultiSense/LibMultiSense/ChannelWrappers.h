@@ -64,8 +64,8 @@ private:
 
 class ImageBuffer {
 public:
-    explicit ImageBuffer(crl::multisense::RemoteHeadChannel remoteHeadChannel, bool logSkippedFrames) :
-            id(remoteHeadChannel), m_SkipLogging(logSkippedFrames) {}
+    explicit ImageBuffer(bool logSkippedFrames) :
+            m_SkipLogging(logSkippedFrames) {}
 
 
     void updateImageBuffer(const std::shared_ptr<ImageBufferWrapper> &buf) {
@@ -74,75 +74,56 @@ public:
         if (imagePointersMap.empty())
             return;
 
-        if (id < crl::multisense::Remote_Head_VPB || id > crl::multisense::Remote_Head_3)
-            return;
-
         std::scoped_lock<std::mutex> lock(mut);
 
         if (!m_SkipLogging) {
-            if (buf->data().frameId != (counterMap[id][buf->data().source] + 1) &&
-                counterMap[id][buf->data().source] != 0) {
+            if (buf->data().frameId != (counterMap[buf->data().source] + 1) &&
+                counterMap[buf->data().source] != 0) {
                 Log::Logger::getInstance()->info("We skipped frames. new frame {}, last received {}",
-                                                 buf->data().frameId, (counterMap[id][buf->data().source]));
+                                                 buf->data().frameId, (counterMap[buf->data().source]));
             }
         }
-
-
-        imagePointersMap[id][buf->data().source] = buf;
-        counterMap[id][buf->data().source] = buf->data().frameId;
-
-
+        imagePointersMap[buf->data().source] = buf;
+        counterMap[buf->data().source] = buf->data().frameId;
     }
 
     // Question: making it a return statement initiates a copy? Pass by reference and return m_Image pointer?
-    std::shared_ptr<ImageBufferWrapper> getImageBuffer(uint32_t idx, crl::multisense::DataSource src) {
+    std::shared_ptr<ImageBufferWrapper> getImageBuffer(crl::multisense::DataSource src) {
         std::lock_guard<std::mutex> lock(mut);
-        return imagePointersMap[idx][src];
+        return imagePointersMap[src];
     }
 
-    crl::multisense::RemoteHeadChannel id{};
     bool m_SkipLogging = false;
 private:
-    std::mutex mut;
-    std::unordered_map<uint32_t, std::unordered_map<crl::multisense::DataSource, std::shared_ptr<ImageBufferWrapper>>> imagePointersMap{};
-    std::unordered_map<crl::multisense::RemoteHeadChannel, std::unordered_map<crl::multisense::DataSource, int64_t>> counterMap;
+    std::mutex mut{};
+    std::unordered_map<crl::multisense::DataSource, std::shared_ptr<ImageBufferWrapper>> imagePointersMap{};
+    std::unordered_map<crl::multisense::DataSource, int64_t> counterMap{};
 
 
 };
 
 class IMUBuffer {
 public:
-    explicit IMUBuffer(crl::multisense::RemoteHeadChannel remoteHeadChannel, bool logSkippedFrames) :
-            id(remoteHeadChannel), m_SkipLogging(logSkippedFrames) {}
-
+    explicit IMUBuffer(bool logSkippedFrames) : m_SkipLogging(logSkippedFrames) {}
 
     void updateIMUBuffer(const std::shared_ptr<IMUBufferWrapper> &buf) {
-
-        // replace latest data into m_Image pointers
-        if (imuPointersMap.empty())
-            return;
-        if (id < crl::multisense::Remote_Head_VPB || id > crl::multisense::Remote_Head_3)
-            return;
         // Lock
         std::scoped_lock<std::mutex> lock(mut);
-
-        imuPointersMap[id] = buf;
-        counterMap[id] = buf->data().sequence;
-
+        imuPointersMap = buf;
+        counterMap = buf->data().sequence;
     }
 
     // Question: making it a return statement initiates a copy? Pass by reference and return m_Image pointer?
-    std::shared_ptr<IMUBufferWrapper> getIMUBuffer(uint32_t idx) {
+    std::shared_ptr<IMUBufferWrapper> getIMUBuffer() {
         std::lock_guard<std::mutex> lock(mut);
-        return imuPointersMap[idx];
+        return imuPointersMap;
     }
 
-    crl::multisense::RemoteHeadChannel id{};
     bool m_SkipLogging = false;
 private:
-    std::mutex mut;
-    std::unordered_map<uint32_t, std::shared_ptr<IMUBufferWrapper>> imuPointersMap{};
-    std::unordered_map<crl::multisense::RemoteHeadChannel, uint32_t> counterMap;
+    std::mutex mut{};
+    std::shared_ptr<IMUBufferWrapper> imuPointersMap{};
+    uint32_t counterMap{};
 
 
 };
@@ -173,8 +154,8 @@ public:
 
             //skipLogging =
         }
-        imageBuffer = new ImageBuffer(remoteHeadChannel == -1 ? 0 : remoteHeadChannel, skipLogging);
-        imuBuffer = new IMUBuffer(remoteHeadChannel == -1 ? 0 : remoteHeadChannel, skipLogging);
+        imageBuffer = new ImageBuffer(skipLogging);
+        imuBuffer = new IMUBuffer(skipLogging);
 
     }
 

@@ -72,6 +72,7 @@ public:
     void onUIRender() override {
         // We dont want to risk blocking usage permissions modal with NewVersionAvailable popup
 
+        /*
         if (m_editor.newVersionAvailable && m_editor.askUserForNewVersion) {
             ImGui::OpenPopup("New Version Available!", ImGuiPopupFlags_NoOpenOverExistingPopup);
         } else {
@@ -81,8 +82,8 @@ public:
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(5.0f, 5.0f));
         ImVec2 anonymousWindowSize(500.0f, 180.0f);
-        ImGui::SetNextWindowPos(ImVec2((m_editor.info->applicationWidth / 2) - (anonymousWindowSize.x / 2),
-                                       (m_editor.info->applicationHeight / 2) - (anonymousWindowSize.y / 2) - 50.0f));
+        ImGui::SetNextWindowPos(ImVec2((m_editor->ui()->width / 2) - (anonymousWindowSize.x / 2),
+                                       (m_editor->guiResources().applicationHeight / 2) - (anonymousWindowSize.y / 2) - 50.0f));
         if (ImGui::BeginPopupModal("New Version Available!", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
             std::string url = "https://github.com/carnegierobotics/multisense_viewer/releases";
             static bool isLinkHovered = false;
@@ -103,7 +104,7 @@ public:
             ImGui::SetNextItemWidth(ImGui::CalcTextSize("GitHub Releases").x);
             if (ImGui::Selectable("GitHub Releases", false, ImGuiSelectableFlags_DontClosePopups)) {
                 openURL(url);
-                m_editor.usageMonitor->userClickAction("GitHub Releases", "Selectable", ImGui::GetCurrentWindow()->Name);
+                m_context->usageMonitor()->userClickAction("GitHub Releases", "Selectable", ImGui::GetCurrentWindow()->Name);
 
             }
 
@@ -114,8 +115,8 @@ public:
 
             if (ImGui::Button("Awesome, Let's go!")) {
                 openURL(url);
-                m_editor.askUserForNewVersion = false;
-                m_editor.usageMonitor->userClickAction("Awesome, Let's go!", "Button", ImGui::GetCurrentWindow()->Name);
+                //m_editor.askUserForNewVersion = false;
+                m_context->usageMonitor()->userClickAction("Awesome, Let's go!", "Button", ImGui::GetCurrentWindow()->Name);
                 ImGui::CloseCurrentPopup();
             }
             ImGui::SetItemDefaultFocus();
@@ -123,15 +124,16 @@ public:
             ImGui::SameLine();
 
             if (ImGui::Button("Remind me later")) {
-                m_editor.usageMonitor->userClickAction("Remind me later", "Button", ImGui::GetCurrentWindow()->Name);
+                m_context->usageMonitor()->userClickAction("Remind me later", "Button", ImGui::GetCurrentWindow()->Name);
 
-                m_editor.askUserForNewVersion = false;
+                //m_editor.askUserForNewVersion = false;
                 ImGui::CloseCurrentPopup();
             }
             ImGui::EndPopup();
         }
 
         ImGui::PopStyleVar(2);
+         */
     }
 
     /** Called once upon this object destruction **/

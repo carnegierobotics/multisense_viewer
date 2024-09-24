@@ -17,11 +17,11 @@ namespace VkRender::MultiSense {
     class MultiSenseRendererBridge {
     public:
         void setSelectedMultiSenseProfile(std::shared_ptr<MultiSenseDevice> ref);
-        MultiSenseProfileInfo getSelectedMultiSenseProfile();
+        MultiSenseProfileInfo& getSelectedMultiSenseProfile();
 
         void addNewProfile(MultiSenseProfileInfo, bool connectAndQuery = true);
         void removeProfile(std::shared_ptr<MultiSenseDevice> ref);
-        void connect();
+        void connect(bool retrieveCameraInfo = true);
         void disconnect();
 
         std::vector<std::shared_ptr<MultiSenseDevice>> getAllMultiSenseProfiles();
@@ -32,7 +32,7 @@ namespace VkRender::MultiSense {
         void setup();
         bool anyMultiSenseDeviceOnline();
 
-        uint8_t* getImage();
+        void getImage(MultiSenseStreamData* data);
 
     private:
         std::vector<std::shared_ptr<MultiSenseDevice>> m_multiSenseDevices;

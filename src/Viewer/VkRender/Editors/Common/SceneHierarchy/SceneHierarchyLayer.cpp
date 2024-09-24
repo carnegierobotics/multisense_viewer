@@ -23,12 +23,12 @@ namespace VkRender {
         auto &tag = entity.getComponent<TagComponent>().Tag;
         //handles.shared->m_selectedEntity = handles.shared->m_selectedEntity;
 
-        ImGuiTreeNodeFlags flags = ((m_editor.shared->m_selectedEntity == entity) ? ImGuiTreeNodeFlags_Selected : 0) |
+        ImGuiTreeNodeFlags flags = ((m_editor->ui()->shared->m_selectedEntity == entity) ? ImGuiTreeNodeFlags_Selected : 0) |
                                    ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_OpenOnArrow;
         flags |= ImGuiTreeNodeFlags_SpanAvailWidth;
         bool opened = ImGui::TreeNodeEx((void *) (uint64_t) (uint32_t) entity, flags, "%s", tag.c_str());
         if (ImGui::IsItemClicked()) {
-            m_editor.shared->m_selectedEntity = entity;
+            m_editor->ui()->shared->m_selectedEntity = entity;
         }
 
         bool entityDeleted = false;
@@ -52,11 +52,11 @@ namespace VkRender {
 
         if (entityDeleted) {
             m_scene->destroyEntity(entity);
-            if (m_editor.shared->m_selectedEntity == entity) {
-                m_editor.shared->m_selectedEntity = {};
+            if (m_editor->ui()->shared->m_selectedEntity == entity) {
+                m_editor->ui()->shared->m_selectedEntity = {};
             }
         }
-        //m_editor.shared->m_selectedEntity = m_editor.shared->m_selectedEntity;
+        //m_editor->ui()->shared->m_selectedEntity = m_editor->ui()->shared->m_selectedEntity;
 
     }
 
@@ -74,9 +74,9 @@ namespace VkRender {
         });
         static auto lastTime = std::chrono::steady_clock::now();
 
-        m_editor.shared->newFrame = false;
+        m_editor->ui()->shared->newFrame = false;
         static int selection = 0;
-        if (m_editor.shared->startRecording) {
+        if (m_editor->ui()->shared->startRecording) {
             // Increment the selected cameras.
             auto currentTime = std::chrono::steady_clock::now();
             auto elapsedTime = std::chrono::duration_cast<std::chrono::seconds>(currentTime - lastTime).count();
@@ -88,10 +88,10 @@ namespace VkRender {
                     selection = 0; // Wrap around if it exceeds the number of entities
                 }
                 // Update the selected entity
-                m_editor.shared->m_selectedEntity = entities[selection];
+                m_editor->ui()->shared->m_selectedEntity = entities[selection];
                 // Update the last time
                 lastTime = currentTime;
-                m_editor.shared->newFrame = true;
+                m_editor->ui()->shared->newFrame = true;
             }
         }
         if (m_scene) {
@@ -101,7 +101,7 @@ namespace VkRender {
                 drawEntityNode(entity);
             });
             //if (ImGui::IsMouseDown(0) && ImGui::IsWindowHovered())
-            //    m_editor.shared->m_selectedEntity = {};
+            //    m_editor->ui()->shared->m_selectedEntity = {};
 
             // Right-click on blank space
             if (ImGui::BeginPopupContextWindow(0, 1)) {
@@ -207,8 +207,9 @@ namespace VkRender {
 /** Called once per frame **/
     void SceneHierarchyLayer::onUIRender() {
         // Set window position and size
-        ImVec2 window_pos = ImVec2(0.0f, m_editor.info->menuBarHeight); // Position (x, y)
-        ImVec2 window_size = ImVec2(m_editor.editorUi->width, m_editor.editorUi->height); // Size (width, height)
+        float menuBarHeight = 25.0f;
+        ImVec2 window_pos = ImVec2(0.0f, menuBarHeight); // Position (x, y)
+        ImVec2 window_size = ImVec2(m_editor->ui()->width, m_editor->ui()->height); // Size (width, height)
         // Set window flags to remove decorations
         ImGuiWindowFlags window_flags =
                 ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
@@ -221,7 +222,7 @@ namespace VkRender {
         ImGui::Text("Scene hierarchy");
         // Calculate 90% of the available width
         float width = ImGui::GetContentRegionAvail().x * 0.9f;
-        float height = ImGui::GetContentRegionAvail().y * 0.95f - m_editor.info->menuBarHeight;
+        float height = ImGui::GetContentRegionAvail().y * 0.95f - menuBarHeight;
         ImGui::PushStyleColor(ImGuiCol_ChildBg, Colors::CRLGray424Main); // Example: Dark grey
         // Create the child window with calculated dimensions and scrolling enabled beyond maxHeight
         ImGui::SetCursorPosX((window_size.x - width) / 2);

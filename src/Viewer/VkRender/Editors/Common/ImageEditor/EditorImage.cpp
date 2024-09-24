@@ -5,6 +5,7 @@
 #include "Viewer/VkRender/Editors/Common/ImageEditor/EditorImage.h"
 #include "Viewer/Application/Application.h"
 #include "Viewer/VkRender/RenderPipelines/RenderBase.h"
+#include "Viewer/VkRender/Editors/Common/ImageEditor/EditorImageLayer.h"
 
 namespace VkRender {
     EditorImage::EditorImage(EditorCreateInfo &createInfo, UUID uuid) : Editor(createInfo, uuid) {
@@ -12,6 +13,7 @@ namespace VkRender {
         addUI("EditorUILayer");
         addUI("DebugWindow");
 
+        m_ui = std::make_unique<EditorImageUI>(); // override UI element
 
         RenderPassInfo renderPassInfo{};
         renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
@@ -48,8 +50,8 @@ namespace VkRender {
         m_multiSenseTexture = std::make_shared<VulkanTexture2D>(textureCreateInfo);
 
 
-        //m_renderPipelines = std::make_unique<GraphicsPipeline2D>(*m_context, renderPassInfo);
-        //m_renderPipelines->bindTexture(m_multiSenseTexture);
+        m_renderPipelines = std::make_unique<GraphicsPipeline2D>(*m_context, renderPassInfo);
+        m_renderPipelines->bindTexture(m_multiSenseTexture);
 
     }
 
@@ -134,12 +136,20 @@ namespace VkRender {
     }
 
     void EditorImage::onUpdate() {
-        if (m_ui.multisenseSource) {
+        auto imageUI = std::dynamic_pointer_cast<EditorImageUI>(m_ui);
+
+        if (imageUI->renderMultiSense) {
             // get image from multisense
-            auto *img = m_context->multiSense()->getImage();
-            if (img) {
-                m_multiSenseTexture->loadImage(img, 960 * 600);
+            MultiSense::MultiSenseStreamData data;
+            data.imagePtr = static_cast<uint8_t *>(malloc(960 * 600));
+            data.width = 960;
+            data.height = 600;
+            data.dataSource = "Luma Left";
+            m_context->multiSense()->getImage(&data);
+            {
+                m_multiSenseTexture->loadImage(data.imagePtr, 960 * 600);
             }
+            free(data.imagePtr);
         }
         if (m_context->sharedEditorData().selectedUUIDContext && !m_depthImagePipeline) {
             RenderPassInfo renderPassInfo{};
@@ -152,11 +162,11 @@ namespace VkRender {
             m_depthImagePipeline->bindTexture(m_texture);
         }
 
-        //ui().saveRenderToFile = m_createInfo.sharedUIContextData->newFrame;
+        //ui()->saveRenderToFile = m_createInfo.sharedUIContextData->newFrame;
         if (m_createInfo.sharedUIContextData->m_selectedEntity) {
-            ui().renderToFileName = "scene_0000/disparity/" +
+            ui()->renderToFileName = "scene_0000/disparity/" +
                                     m_createInfo.sharedUIContextData->m_selectedEntity.getComponent<TagComponent>().Tag;
-            ui().renderToFileName.replace_extension(".png");
+            ui()->renderToFileName.replace_extension(".png");
         }
 
         auto view = m_activeScene->getRegistry().view<CameraComponent>();
@@ -195,7 +205,7 @@ namespace VkRender {
         //if (m_depthImagePipeline)
         //    m_depthImagePipeline->draw(drawCmdBuffers);
 
-        if (m_renderPipelines) {
+        if (m_renderPipelines && std::dynamic_pointer_cast<EditorImageUI>(m_ui)->renderMultiSense) {
 
             m_renderPipelines->draw(drawCmdBuffers);
         }

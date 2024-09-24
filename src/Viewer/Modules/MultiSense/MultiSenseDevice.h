@@ -24,12 +24,11 @@ namespace VkRender::MultiSense {
 
         std::shared_ptr<MultiSenseTaskManager> multiSenseTaskManager;
         MultiSenseProfileInfo profileCreateInfo;
-        std::mutex m_profileInfoMutex;  // Mutex to guard profileInfo
 
         void connect();
 
         void retrieveCameraInfo();
-        MultiSenseProfileInfo getCameraInfo();
+        MultiSenseProfileInfo& getCameraInfo();
     };
 
 

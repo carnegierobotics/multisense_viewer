@@ -37,19 +37,19 @@ namespace VkRender {
             // Options for the combo box
             auto items = m_context->getProjectConfig().editorTypes;
             static int item_current_idx = 0; // Here we store our current item index
-            m_editor.editorUi->changed = false;
+            m_editor->ui()->changed = false;
 
-            m_editor.editorUi->changed = false;
+            m_editor->ui()->changed = false;
             if (ImGui::BeginPopup("EditorSelectionPopup")) {
                 ImGui::SeparatorText("Editor Types");
                 for (int i = 0; i < items.size(); i++) {
                     if (ImGui::Selectable(editorTypeToString(items[i]).c_str())) {
                         item_current_idx = i;
-                        m_editor.editorUi->selectedType = items[item_current_idx];
-                        m_editor.editorUi->changed = true;
+                        m_editor->ui()->selectedType = items[item_current_idx];
+                        m_editor->ui()->changed = true;
                     }
                 }
-                ImGui::MenuItem("Console", nullptr, &m_editor.showDebugWindow);
+                ImGui::MenuItem("Console", nullptr, &m_editor->ui()->showDebugWindow);
                 ImGui::EndPopup();
             }
         }
@@ -59,7 +59,7 @@ namespace VkRender {
 
             // Set window position and size
             ImVec2 window_pos = ImVec2(0.0f, 0.0f); // Position (x, y)
-            ImVec2 window_size = ImVec2(m_editor.info->applicationWidth, m_editor.info->applicationHeight); // Size (width, height)
+            ImVec2 window_size = ImVec2(m_editor->ui()->width, m_editor->ui()->height); // Size (width, height)
 
 
             // Set window flags to remove decorations
@@ -82,12 +82,12 @@ namespace VkRender {
             float borderSize = 3.0f;
 
             ImVec4 color;
-            if (m_editor.editorUi->active)
-                color = m_editor.editorUi->backgroundColorActive;
-            else if (m_editor.editorUi->hovered)
-                color = m_editor.editorUi->backgroundColorHovered;
+            if (m_editor->ui()->active)
+                color = m_editor->ui()->backgroundColorActive;
+            else if (m_editor->ui()->hovered)
+                color = m_editor->ui()->backgroundColorHovered;
             else
-                color = m_editor.editorUi->backgroundColor;
+                color = m_editor->ui()->backgroundColor;
 
             color.w = 1.0f;
             color = ImVec4(0.2f, 0.2f, 0.2f, 1.0f);
@@ -123,7 +123,7 @@ namespace VkRender {
 
             ImGui::Begin("EditorSelectorWindow", nullptr, window_flags);
 
-            ImGui::PushFont(m_editor.info->fontIcons);
+            ImGui::PushFont(m_editor->guiResources().fontIcons);
             ImVec2 txtSize = ImGui::CalcTextSize(ICON_FA_WINDOW_RESTORE);
             txtSize.x += 10.0f;
             if (ImGui::Button(ICON_FA_WINDOW_RESTORE, ImVec2(txtSize))) {

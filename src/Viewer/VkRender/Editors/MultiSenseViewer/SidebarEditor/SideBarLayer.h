@@ -15,13 +15,13 @@ namespace VkRender {
 
 
         void addDeviceButton() {
-            ImGui::SetCursorPos(ImVec2(0.0f, m_editor.editorUi->height - 50.0f));
+            ImGui::SetCursorPos(ImVec2(0.0f, m_editor->ui()->height - 50.0f));
 
             ImGui::PushStyleColor(ImGuiCol_Button, Colors::CRLBlueIsh);
-            if (ImGui::Button("ADD DEVICE", ImVec2(m_editor.editorUi->width, 35.0f))) {
-                m_editor.shared->openAddDevicePopup = !m_editor.shared->openAddDevicePopup;
+            if (ImGui::Button("ADD DEVICE", ImVec2(m_editor->ui()->width, 35.0f))) {
+                m_editor->ui()->shared->openAddDevicePopup = !m_editor->ui()->shared->openAddDevicePopup;
 
-                m_editor.usageMonitor->userClickAction("ADD_DEVICE", "button", ImGui::GetCurrentWindow()->Name);
+                m_context->usageMonitor()->userClickAction("ADD_DEVICE", "button", ImGui::GetCurrentWindow()->Name);
             }
             ImGui::PopStyleColor();
         }
@@ -65,7 +65,7 @@ namespace VkRender {
                 // Connect button
                 ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
                 std::string winId = profile->profileCreateInfo.profileName + "Child" + std::to_string(rng());;
-                ImGui::BeginChild(winId.c_str(), ImVec2(m_editor.editorUi->width, sidebarElementHeight),
+                ImGui::BeginChild(winId.c_str(), ImVec2(m_editor->ui()->width, sidebarElementHeight),
                                   false, ImGuiWindowFlags_NoDecoration);
 
                 ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::CRLBlueIsh);
@@ -89,7 +89,7 @@ namespace VkRender {
                 ImVec2 lineSize;
                 // Profile Name
                 {
-                    ImGui::PushFont(m_editor.info->font24);
+                    ImGui::PushFont(m_editor->guiResources().font24);
                     lineSize = ImGui::CalcTextSize(profile->profileCreateInfo.profileName.c_str());
                     cursorPos.x = window_center.x - (lineSize.x / 2);
                     ImGui::SetCursorPos(cursorPos);
@@ -98,7 +98,7 @@ namespace VkRender {
                 }
                 // Camera Name
                 {
-                    ImGui::PushFont(m_editor.info->font13);
+                    ImGui::PushFont(m_editor->guiResources().font13);
                     lineSize = ImGui::CalcTextSize(profile->profileCreateInfo.cameraModel.c_str());
                     cursorPos.x = window_center.x - (lineSize.x / 2);
                     ImGui::SetCursorPos(ImVec2(cursorPos.x, ImGui::GetCursorPosY()));
@@ -107,7 +107,7 @@ namespace VkRender {
                 }
                 // Camera IP Address
                 {
-                    ImGui::PushFont(m_editor.info->font13);
+                    ImGui::PushFont(m_editor->guiResources().font13);
                     lineSize = ImGui::CalcTextSize(profile->profileCreateInfo.inputIP.c_str());
                     cursorPos.x = window_center.x - (lineSize.x / 2);
                     ImGui::SetCursorPos(ImVec2(cursorPos.x, ImGui::GetCursorPosY()));
@@ -119,7 +119,7 @@ namespace VkRender {
                 // Status Button
                 {
                     ImGui::Dummy(ImVec2(0.0f, 5.0f));
-                    ImGui::PushFont(m_editor.info->font18);
+                    ImGui::PushFont(m_editor->guiResources().font18);
                     //ImGuiStyle style = ImGui::GetStyle();
                     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 12);
                     cursorPos.x = window_center.x - (ImGui::GetFontSize() * 10 / 2);
@@ -136,7 +136,7 @@ namespace VkRender {
                 if (profile->multiSenseTaskManager->connectionState() == MultiSense::MULTISENSE_CHANNEL_BUSY) {
                     deviceButton = ImGui::ButtonWithGif(buttonIdentifier.c_str(),
                                                         ImVec2(ImGui::GetFontSize() * 10, 35.0f),
-                                                        m_editor.info->gif.image[gifFrameIndex], ImVec2(35.0f, 35.0f),
+                                                        m_editor->guiResources().gif.image[gifFrameIndex], ImVec2(35.0f, 35.0f),
                                                         uv0,
                                                         uv1,
                                                         tint_col, VkRender::Colors::CRLBlueIsh);
@@ -148,14 +148,14 @@ namespace VkRender {
                 ImGui::PopStyleColor(2);
 
                 auto now = std::chrono::system_clock::now();
-                std::chrono::duration<float, std::milli> elapsed_milliseconds = now - m_editor.info->gif.lastUpdateTime;
+                std::chrono::duration<float, std::milli> elapsed_milliseconds = now - lastUpdateTime;
 
                 if (elapsed_milliseconds.count() >= 33.0) {
                     gifFrameIndex++;
-                    m_editor.info->gif.lastUpdateTime = now;
+                    lastUpdateTime = now;
                 }
 
-                if (gifFrameIndex >= m_editor.info->gif.totalFrames)
+                if (gifFrameIndex >= m_editor->guiResources().gif.totalFrames)
                     gifFrameIndex = 0;
 
                 ImGui::PopFont();
@@ -167,6 +167,7 @@ namespace VkRender {
 
                 if (deviceButton &&
                     profile->multiSenseTaskManager->connectionState() != MultiSense::MULTISENSE_CONNECTED) {
+                    m_context->multiSense()->connect();
                     m_context->multiSense()->connect();
                 } else if (deviceButton) {
                     m_context->multiSense()->disconnect();
@@ -189,13 +190,13 @@ namespace VkRender {
 
             ImGui::PushStyleColor(ImGuiCol_ChildBg, Colors::CRLGray424Main);
             // Begin the sidebar as a child window
-            ImGui::BeginChild("Sidebar", ImVec2(m_editor.editorUi->width, m_editor.editorUi->height), false,
+            ImGui::BeginChild("Sidebar", ImVec2(m_editor->ui()->width, m_editor->ui()->height), false,
                               ImGuiWindowFlags_NoScrollWithMouse);
             drawProfilesInSidebar();
             addDeviceButton();
             // Add version number
-            ImGui::SetCursorPos(ImVec2(0.0f, m_editor.info->editorHeight - 10.0f));
-            ImGui::PushFont(m_editor.info->font8);
+            ImGui::SetCursorPos(ImVec2(0.0f, m_editor->ui()->height - 10.0f));
+            ImGui::PushFont(m_editor->guiResources().font8);
             ImGui::Text("%s", (std::string("Ver: ") + ApplicationConfig::getInstance().getAppVersion()).c_str());
             ImGui::PopFont();
 
@@ -223,7 +224,7 @@ namespace VkRender {
                     ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus |
                     ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBackground;
             ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f), ImGuiCond_Always);
-            ImGui::SetNextWindowSize(ImVec2(m_editor.editorUi->width, m_editor.editorUi->height));
+            ImGui::SetNextWindowSize(ImVec2(m_editor->ui()->width, m_editor->ui()->height));
             ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::Colors::CRLCoolGray);
             ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
@@ -251,6 +252,9 @@ namespace VkRender {
         void onDetach() override {
 
         }
+    private:
+        std::chrono::time_point<std::chrono::system_clock> lastUpdateTime = std::chrono::system_clock::now();
+
     };
 
 }

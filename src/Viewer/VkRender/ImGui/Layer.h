@@ -57,6 +57,7 @@ namespace VkRender {
     class Application;
     class Entity;
     class Scene;
+    class Editor;
     /** @brief Set of Default colors */
     namespace Colors {
         static const ImVec4 green(0.26f, 0.42f, 0.31f, 1.0f);
@@ -74,71 +75,6 @@ namespace VkRender {
         static const ImVec4 CRLTextGray(0.2f, 0.2f, 0.2f, 1.0f);
         static const ImVec4 CRLTextWhite(0.9f, 0.9f, 0.9f, 1.0f);
     }
-
-    struct GuiLayerUpdateInfo {
-        bool firstFrame{};
-        /** @brief Width of window surface */
-        float applicationWidth{}; // TODO not implemented same as editor size
-        /** @brief Height of window surface */
-        float applicationHeight{}; // TODO not implemented same as editor size
-
-
-        /** @brief aspect ratio of window surface */
-        float aspect{};
-        /**@brief Width of sidebar*/
-        float sidebarWidth = 200.0f;
-        float controlAreaWidth = 440.0f, controlAreaHeight = applicationHeight;
-
-        float menuBarHeight = 25.0f;
-        float editorUILayerHeight = 25.0f;
-        float editorUIHeightOffset = menuBarHeight + editorUILayerHeight;
-
-        /** @brief Width of available editor (After menu bar) */
-        float editorWidth = applicationWidth;
-        /** @brief Height of available editor (After menu bar) */
-        float editorHeight = applicationHeight - menuBarHeight - editorUILayerHeight;
-        ImVec2 editorStartPos = ImVec2(0.0f, menuBarHeight + editorUILayerHeight);
-        ImVec2 editorSize = ImVec2(editorWidth, editorHeight);
-
-        /**@brief Width debug window*/
-        float debuggerWidth = 960.0f * 0.75f;
-        /**@brief Heightdebug window */
-        float debuggerHeight = 480.0f * 0.75f;
-        /**@brief Width of metrics sidebar in debug window*/
-        float metricsWidth = 350.0f;
-        /**@brief Physical Graphics m_Device used*/
-        std::string deviceName = "DeviceName";
-        /**@brief Title of Application */
-        std::string title = "TitleName";
-        /**@brief array containing the last 50 entries of frametimes */
-        std::array<float, 50> frameTimes{};
-        /**@brief min/max values for frametimes, used for updating graph*/
-        float frameTimeMin = 9999.0f, frameTimeMax = 0.0f;
-        /**@brief value for current frame timer*/
-        float frameTimer{};
-
-        float applicationRuntime = 0.0f;
-        glm::vec4 backgroundColor{};
-        glm::vec4 backgroundColorActive{};
-
-        /** @brief Current frame*/
-        uint64_t frameID = 0;
-        /**@brief Font types used throughout the gui. usage: ImGui::PushFont(font13).. Initialized in GuiManager class */
-        ImFont *font8{}, *font13{}, *font15, *font18{}, *font24{}, *fontIcons{};
-
-        /** @brief
-        * Container to hold animated gif images
-        */
-        struct {
-            ImTextureID image[20]{};
-            uint32_t totalFrames{};
-            std::chrono::time_point<std::chrono::system_clock> lastUpdateTime = std::chrono::system_clock::now();
-        } gif{};
-
-        /** @brief Containing descriptor handles for each image button texture */
-        std::vector<ImTextureID> imageButtonTextureDescriptor;
-    };
-
 
     /** @brief block for simulated camera, Mostly used for testing  */
     struct CameraSelection {
@@ -168,35 +104,21 @@ namespace VkRender {
     };
 
     /** @brief Handle which is the MAIN link between ''frontend and backend'' */
-    struct GuiObjectHandles {
-        /** @brief Handle for current devices located in sidebar */
+    struct GuiResourcesData {
         /** @brief GUI window info used for creation and updating */
-        std::shared_ptr<GuiLayerUpdateInfo> info{};
+        /**@brief Font types used throughout the gui. usage: ImGui::PushFont(font13).. Initialized in GuiManager class */
+        ImFont *font8{}, *font13{}, *font15, *font18{}, *font24{}, *fontIcons{};
 
-        const Input *input{};
-        /** @brief Display the debug window */
-        bool showDebugWindow = false;
+        /** @brief
+        * Container to hold animated gif images
+        */
+        struct {
+            ImTextureID image[20]{};
+            uint32_t totalFrames{};
+        } gif{};
 
-        std::shared_ptr<UsageMonitor> usageMonitor;
-        /** @brief if a new version has been launched by crl*/
-        bool newVersionAvailable = false;
-        bool askUserForNewVersion = true;
-
-        const VkRender::MouseButtons *mouse{};
-
-        /** @brief Initialize \refitem clearColor because MSVC does not allow initializer list for std::array */
-        explicit GuiObjectHandles(SharedContextData* sharedData) : shared(sharedData) {
-        }
-
-        GuiObjectHandles() = default;
-        /** @brief Reference to threadpool held by GuiManager */
-        std::shared_ptr<ThreadPool> pool{};
-        CameraSelection m_cameraSelection{};
-        Paths m_paths;
-        bool revertWindowLayout = false;
-        bool fixAspectRatio = false;
-        EditorUI* editorUi{};
-        SharedContextData* shared;
+        /** @brief Containing descriptor handles for each image button texture */
+        std::vector<ImTextureID> imageButtonTextureDescriptor;
     };
 
     /**
@@ -241,7 +163,7 @@ namespace VkRender {
 
         std::shared_ptr<Scene> m_scene;
         Application* m_context;
-        GuiObjectHandles m_editor;
+        Editor* m_editor;
     };
 }
 

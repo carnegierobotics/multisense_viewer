@@ -78,7 +78,7 @@ namespace VkRender::MultiSense {
 
         }
 
-        void update() override {
+        void update(MultiSenseUpdateData* updateData) override {
 
         }
 
@@ -86,8 +86,19 @@ namespace VkRender::MultiSense {
 
         }
 
-        uint8_t *getImage() override {
-            return nullptr;
+
+        void getCameraInfo(MultiSenseProfileInfo *profileInfo) override {
+
+        }
+
+        void getImage(MultiSenseStreamData *data) override {
+
+        }
+
+        void startStreaming(const std::vector<std::string> &streams) override {
+        }
+
+        void stopStream(const std::string &stream) override {
         }
 
         MultiSenseConnectionState connectionState() override {

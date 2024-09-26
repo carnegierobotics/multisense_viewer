@@ -144,10 +144,7 @@ namespace VkRender {
 
         }
         ui()->saveRenderToFile = m_createInfo.sharedUIContextData->newFrame;
-        if (m_createInfo.sharedUIContextData->m_selectedEntity){
-            ui()->renderToFileName = "scene_0000/viewport/" +  m_createInfo.sharedUIContextData->m_selectedEntity.getComponent<TagComponent>().Tag;
-            ui()->renderToFileName.replace_extension(".png");
-        }
+
         generatePipelines();
         // Update model transforms:
         auto view = m_activeScene->getRegistry().view<TransformComponent, MeshComponent>(); // TODO make one specific component type for renderables in standard pipelines

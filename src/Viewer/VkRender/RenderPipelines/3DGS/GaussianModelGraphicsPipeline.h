@@ -15,7 +15,7 @@
 #ifdef SYCL_ENABLED
 #include <sycl/sycl.hpp>
 #include "Viewer/VkRender/RenderPipelines/3DGS/radixsort/RadixSorter.h"
-#include "Viewer/SYCL/RasterizerUtils.h"
+#include "Viewer/VkRender/RenderPipelines/3DGS/RasterizerUtils.h"
 #endif
 
 namespace VkRender {

@@ -29,11 +29,8 @@ namespace VkRender {
         }
 
 #ifdef SYCL_ENABLED
-        {
-            auto gaussianEntity = createEntity("GaussianEntity");
-           // auto &gaussianEntityModelComponent = gaussianEntity.addComponent<GaussianModelComponent>(Utils::getModelsPath() / "3dgs" / "3dgs.ply");
-            auto &gaussianEntityModelComponent = gaussianEntity.addComponent<GaussianModelComponent>(
-                    "/home/magnus/phd/SuGaR/output/refined_ply/0005/sugarfine_3Dgs30000_sdfestim02_sdfnorm02_level03_decim1000000_normalconsistency01_gaussperface1.ply");
+        {  auto gaussianEntity = createEntity("GaussianEntity");
+           auto &gaussianEntityModelComponent = gaussianEntity.addComponent<GaussianModelComponent>(Utils::getModelsPath() / "3dgs" / "3dgs.ply");
 
             int debug = 1;
         }

@@ -8,6 +8,7 @@
 #include "Viewer/VkRender/Components/MeshComponent.h"
 #include "Viewer/Application/Application.h"
 #include "Viewer/VkRender/Core/Entity.h"
+#include "EditorGaussianViewerLayer.h"
 
 namespace VkRender {
     void VkRender::EditorGaussianViewer::onSceneLoad(std::shared_ptr<Scene> scene) {
@@ -17,7 +18,15 @@ namespace VkRender {
             onEntityDestroyed(entity);
         });
 
+        addUIData<EditorGaussianViewerUI>();
+
         generatePipelines();
+    }
+
+    void EditorGaussianViewer::onEditorResize() {
+        if (m_activeCamera)
+            m_activeCamera->setPerspective(static_cast<float>(m_createInfo.width) / m_createInfo.height);
+
     }
 
     void EditorGaussianViewer::generatePipelines() {
@@ -44,27 +53,14 @@ namespace VkRender {
     }
 
     void VkRender::EditorGaussianViewer::onUpdate() {
-        /*
+        auto imageUI = std::dynamic_pointer_cast<EditorGaussianViewerUI>(m_ui);
+
         auto cameraView = m_activeScene->getRegistry().view<CameraComponent, TagComponent>();
         for (auto entity: cameraView) {
             auto e = Entity(entity, m_activeScene.get());
             if (e == m_createInfo.sharedUIContextData->m_selectedEntity) {
-                if (ui()->gsRightView){
-                    // Find the right view corresponding
-                    auto& selectedTagComponent = cameraView.get<TagComponent>(entity);
-                    std::string rightCameraName = selectedTagComponent.Tag + ":stereo-right";
-                    // Iterate over all camera components to find the one with the right name
-                    cameraView.each([&](auto otherEntity, CameraComponent& otherCameraComponent, TagComponent& otherTagComponent) {
-                        if (otherTagComponent.Tag == rightCameraName) {
-                            // If found, set the right camera as the active camera
-                            m_activeCamera = std::make_shared<Camera>(otherCameraComponent());
-                        }
-                    });
-                    }
-                 else {
-                    auto &cameraComponent = cameraView.get<CameraComponent>(entity);
-                    m_activeCamera = std::make_shared<Camera>(cameraComponent());
-                }
+                auto &cameraComponent = cameraView.get<CameraComponent>(entity);
+                m_activeCamera = std::make_shared<Camera>(cameraComponent());
             }
         }
 
@@ -75,9 +71,9 @@ namespace VkRender {
 
 
         generatePipelines();
-        if (ui()->render3DGSImage || m_createInfo.sharedUIContextData->newFrame) {
+        if (imageUI->render3dgsImage || m_createInfo.sharedUIContextData->newFrame) {
             for (auto &pipeline: m_gaussianRenderPipelines) {
-                pipeline.second->generateImage(*m_activeCamera, ui()->render3dgsColor);
+                pipeline.second->generateImage(*m_activeCamera, 0);
             }
         }
         auto view = m_activeScene->getRegistry().view<TransformComponent, GaussianModelComponent>(); // TODO make one specific component type for renderables in standard pipelines
@@ -89,7 +85,7 @@ namespace VkRender {
                 m_gaussianRenderPipelines[entity]->update(m_context->currentFrameIndex());
             }
         }
-        */
+
     }
 
     void VkRender::EditorGaussianViewer::onRender(CommandBuffer &drawCmdBuffers) {
@@ -102,7 +98,7 @@ namespace VkRender {
 
     void VkRender::EditorGaussianViewer::onMouseMove(const VkRender::MouseButtons &mouse) {
         if (ui()->hovered && mouse.left) {
-            //m_activeCamera->rotate(mouse.dx, mouse.dy);
+            m_activeCamera->rotate(mouse.dx, mouse.dy);
         }
         if (ui()->hovered && mouse.right) {
             //m_activeCamera->translate(mouse.dx, mouse.dy);

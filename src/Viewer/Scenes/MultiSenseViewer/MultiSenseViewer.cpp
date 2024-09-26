@@ -30,7 +30,7 @@ namespace VkRender {
 
 #ifdef SYCL_ENABLED
         {  auto gaussianEntity = createEntity("GaussianEntity");
-           auto &gaussianEntityModelComponent = gaussianEntity.addComponent<GaussianModelComponent>(Utils::getModelsPath() / "3dgs" / "3dgs.ply");
+           auto &gaussianEntityModelComponent = gaussianEntity.addComponent<GaussianModelComponent>(Utils::getModelsPath() / "3dgs" / "3dgs_insect.ply");
 
             int debug = 1;
         }

@@ -120,6 +120,7 @@ namespace VkRender {
         ImGuiContext *getMainUIContext() { return m_mainEditor->guiContext(); }
 
         uint32_t currentFrameIndex() { return currentFrame; }
+        uint32_t getFrameId() { return frameID; }
 
         void loadScene(const std::filesystem::path &string);
 

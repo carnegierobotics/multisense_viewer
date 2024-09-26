@@ -17,6 +17,13 @@
 
 namespace VkRender {
 
+    struct EditorGaussianViewerUI : public EditorUI {
+        bool render3dgsImage = false;
+
+        // Constructor that copies everything from base EditorUI
+        EditorGaussianViewerUI(const EditorUI &baseUI) : EditorUI(baseUI) {}
+    };
+
 
     class EditorGaussianViewerLayer : public Layer {
 
@@ -50,22 +57,22 @@ namespace VkRender {
 
             // Create the parent window
             ImGui::Begin("EditorGaussianViewerLayer", nullptr, window_flags);
+            auto imageUI = std::dynamic_pointer_cast<EditorGaussianViewerUI>(m_editor->ui());
+
+            imageUI->render3dgsImage = ImGui::Button("Render 3DGS image");
+
+            static bool toggle = false;
+            ImGui::SameLine();
+            ImGui::Checkbox("Toggle rendering", &toggle);
+            if (toggle){
+                imageUI->render3dgsImage = true;
+            }
 
             /*
             ImGui::PushFont(m_editor->guiResources().font15);
 
-            m_editor->ui()->render3DGSImage = ImGui::Button("Render 3DGS image");
 
-            static bool toggle = false;
 
-            ImGui::RadioButton("3DGS image", &m_editor->ui()->render3dgsColor, 0);
-            ImGui::RadioButton("Normals", &m_editor->ui()->render3dgsColor, 1);
-            ImGui::RadioButton("Depth", &m_editor->ui()->render3dgsColor, 2);
-
-            ImGui::Checkbox("Toggle rendering", &toggle);
-            if (toggle){
-                m_editor->ui()->render3DGSImage = true;
-            }
 
             m_editor->ui()->saveRenderToFile = ImGui::Button("Save image");
             ImGui::Checkbox("Right view", &m_editor->ui()->gsRightView);

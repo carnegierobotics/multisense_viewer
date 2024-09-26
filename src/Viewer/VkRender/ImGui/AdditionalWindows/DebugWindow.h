@@ -70,9 +70,9 @@ public:
         void AddLog(const char *fmt, ...) IM_FMTARGS(2) {
             int old_size = Buf.size();
             va_list args;
-                    va_start(args, fmt);
+            va_start(args, fmt);
             Buf.appendfv(fmt, args);
-                    va_end(args);
+            va_end(args);
             for (int new_size = Buf.size(); old_size < new_size; old_size++)
                 if (Buf[old_size] == '\n')
                     LineOffsets.push_back(old_size + 1);
@@ -188,7 +188,7 @@ public:
 
         window.Draw();
 
-        auto* log = Log::Logger::getConsoleLogQueue();
+        auto *log = Log::Logger::getConsoleLogQueue();
 
         while (!log->empty()) {
             window.AddLog("%s\n", log->front().c_str());
@@ -197,13 +197,24 @@ public:
 
         ImGui::SameLine();
 
-        ImGui::BeginChild("InfoChild",  ImVec2(0, 0), false, ImGuiWindowFlags_NoDecoration);
+        ImGui::BeginChild("InfoChild", ImVec2(0, 0), false, ImGuiWindowFlags_NoDecoration);
         // Update frame time display
-        if (false) {
-            std::rotate(frameTimes.begin(), frameTimes.begin() + 1,
-                        frameTimes.end());
+        static float elapsedTime = 0.0f;
+        static constexpr float interval = 0.1f; // 100 ms in seconds
+        elapsedTime += m_context->deltaTime();
+
+// Check if 100 ms has passed
+        if (elapsedTime >= interval) {
+            // Reset the timer
+            elapsedTime = 0.0f;
+
+            // Perform your operations every 100 ms
+            frameTimer = m_context->deltaTime();
+
+            std::rotate(frameTimes.begin(), frameTimes.begin() + 1, frameTimes.end());
             float frameTime = 1000.0f / (frameTimer * 1000.0f);
             frameTimes.back() = frameTime;
+
             if (frameTime < frameTimeMin) {
                 frameTimeMin = frameTime;
             }
@@ -219,7 +230,7 @@ public:
                          frameTimeMax, ImVec2(200.0f - 28.0f, 80.0f));
         ImGui::Dummy(ImVec2(5.0f, 0.0f));
         ImGui::Text("Frame time: %.5f", static_cast<double>( frameTimer));
-        ImGui::Text("Frame: %lu", 0b1111);
+        ImGui::Text("Frame: %d", m_context->getFrameId());
         ImGui::Separator();
 
 
@@ -230,9 +241,10 @@ public:
 
         if (ImGui::Checkbox("Send Logs on exit", &user.sendUsageLogOnExit)) {
             update = true;
-            m_context->usageMonitor()->setSetting("send_usage_log_on_exit", Utils::boolToString(user.sendUsageLogOnExit));
+            m_context->usageMonitor()->setSetting("send_usage_log_on_exit",
+                                                  Utils::boolToString(user.sendUsageLogOnExit));
             m_context->usageMonitor()->userClickAction("Send Logs on exit", "Checkbox",
-                                                   ImGui::GetCurrentWindow()->Name);
+                                                       ImGui::GetCurrentWindow()->Name);
         }
 
 
@@ -253,7 +265,7 @@ public:
         if (ImGui::Button("Reset consent")) {
             m_context->usageMonitor()->setSetting("ask_user_consent_to_collect_statistics", "true");
             m_context->usageMonitor()->userClickAction("Reset statistics consent", "Button",
-                                                   ImGui::GetCurrentWindow()->Name);
+                                                       ImGui::GetCurrentWindow()->Name);
             user.askForUsageLoggingPermissions = true;
             update = true;
         }
@@ -280,7 +292,7 @@ public:
                     m_context->usageMonitor()->setSetting("log_level", items[n]);
                     update |= true;
                     m_context->usageMonitor()->userClickAction("Set Log level", "combo",
-                                                           ImGui::GetCurrentWindow()->Name);
+                                                               ImGui::GetCurrentWindow()->Name);
 
                 }
                 // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)

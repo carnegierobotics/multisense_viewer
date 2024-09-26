@@ -8,11 +8,10 @@ set(GIGEVISION_LIB_PATH "" CACHE PATH "Path to the proprietary GigE-Vision modul
 set(GIGEVISION_HEADERS_PATH "" CACHE PATH "Path to the proprietary GigE-Vision module headers")
 
 if (ENABLE_SYCL)
-    find_package(AdaptiveCpp REQUIRED HINTS /home/magnus/compilers/AdaptiveCpp/build)
     #set(CMAKE_CXX_COMPILER "icpx")
     #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -g -O0")  # Enable SSE4.1 and SSSE3 support. _mm_min_epi32 and _mm_shuffle_epi8 require specific SSE
-    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -fsycl-targets=nvptx64-nvidia-cuda,spir64 -g")
-    #set(CMAKE_CXX_COMPILER "clang++")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -fsycl-targets=nvptx64-nvidia-cuda,spir64 -g")
+    set(CMAKE_CXX_COMPILER "clang++")
 
     add_compile_definitions(SYCL_ENABLED)
     message(STATUS "[VkRenderINFO]: SYCL support enabled. Compiler: ${CMAKE_CXX_COMPILER} Flags: ${CMAKE_CXX_FLAGS}")
@@ -165,7 +164,7 @@ set(LIBRARIES
 if (ENABLE_SYCL)
     list(APPEND SCRIPT_FILES src/Viewer/VkRender/RenderPipelines/3DGS/GaussianModelGraphicsPipeline.cpp)
     message(STATUS "[VkRenderINFO]: SYCL: Adding Gaussian Renderer to source")
-    #target_compile_options(ktx PRIVATE -msse4.1 -mssse3)
+    target_compile_options(ktx PRIVATE -msse4.1 -mssse3)
     list(APPEND LIBRARIES sycl)
 endif ()
 

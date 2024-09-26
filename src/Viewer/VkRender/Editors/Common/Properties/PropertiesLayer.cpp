@@ -228,7 +228,7 @@ namespace VkRender {
 // Create the parent window
         ImGui::Begin("PropertiesLayer", NULL, window_flags);
 
-        ImGui::Text("Properties goes here");
+        ImGui::Text("Entity Properties");
         std::shared_ptr<Scene> scene = m_context->activeScene();
 
 

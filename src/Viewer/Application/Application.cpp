@@ -218,7 +218,7 @@ namespace VkRender {
             m_scene = std::make_shared<DefaultScene>(*this, "Default Scene");
         }
         for (auto &editor: m_editors) {
-            editor->loadScene(std::shared_ptr<Scene>());
+            editor->loadScene(std::shared_ptr<Scene>(m_scene));
         }
     }
 
@@ -384,14 +384,14 @@ namespace VkRender {
             Editor::handleClickState(editor, mouse);
         }
 
-        bool showHandCursor = false;
-        bool showCrosshairCursor = false;
+        bool hoveredLeftCornerResizeable = false;
+        bool clickedLeftCornerResizeable = false;
         bool anyCornerClicked = false;
         bool anyResizeHovered = false;
         bool horizontalResizeHovered = false;
         for (auto &editor: m_editors) {
-            if (editor->ui()->cornerBottomLeftHovered && editor->getCreateInfo().resizeable) showHandCursor = true;
-            if (editor->ui()->cornerBottomLeftClicked && editor->getCreateInfo().resizeable) showCrosshairCursor = true;
+            if (editor->ui()->cornerBottomLeftHovered && editor->getCreateInfo().resizeable) hoveredLeftCornerResizeable = true;
+            if (editor->ui()->cornerBottomLeftClicked && editor->getCreateInfo().resizeable) clickedLeftCornerResizeable = true;
 
             if (editor->ui()->cornerBottomLeftClicked) anyCornerClicked = true;
             if (editor->ui()->resizeHovered) anyResizeHovered = true;
@@ -476,10 +476,10 @@ namespace VkRender {
         if (mergeEditor)
             mergeEditors(editorsUUID);
         //
-        if (showCrosshairCursor) {
+        if (clickedLeftCornerResizeable) {
             glfwSetCursor(window, m_cursors.crossHair);
-        } else if (showHandCursor) {
-            glfwSetCursor(window, m_cursors.hand);
+        } else if (hoveredLeftCornerResizeable) {
+            glfwSetCursor(window, m_cursors.crossHair);
         } else if (anyResizeHovered) {
             glfwSetCursor(window, horizontalResizeHovered ? m_cursors.resizeHorizontal : m_cursors.resizeVertical);
         } else {
@@ -536,6 +536,8 @@ namespace VkRender {
         newEditor->ui()->active = true;
         editor->ui()->splitting = true;
         newEditor->ui()->splitting = true;
+
+
         if (editor->ui()->dragHorizontal) {
             editor->ui()->lastClickedBorderType = EditorBorderState::Left;
             newEditor->ui()->lastClickedBorderType = EditorBorderState::Right;
@@ -544,7 +546,9 @@ namespace VkRender {
             newEditor->ui()->lastClickedBorderType = EditorBorderState::Top;
         }
 
-        newEditor->onSceneLoad(std::shared_ptr<Scene>());
+        // Copy UI states
+
+        newEditor->onSceneLoad(std::shared_ptr<Scene>(m_scene));
         m_editors.push_back(std::move(newEditor));
     }
 

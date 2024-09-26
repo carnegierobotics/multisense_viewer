@@ -120,8 +120,17 @@ namespace VkRender {
         }
     };
 
+    /** @brief Layout variables for UI Layer and is shared across layers */
+    struct EditorUILayoutInfo{
+        float uiHeight = 50.0f;
+        float borderSize = 3.0f;
+        float uiYOffset = uiHeight + borderSize;
+
+    };
+
 
     struct EditorUI {
+
         int32_t x = 0;
         int32_t y = 0;
         int32_t borderSize = 0;
@@ -156,6 +165,7 @@ namespace VkRender {
 
         SharedContextData* shared;
 
+        EditorUILayoutInfo layoutConstants;
         bool showDebugWindow = false;
         bool renderDepth = true; // TODO testing
         bool saveRenderToFile = false;

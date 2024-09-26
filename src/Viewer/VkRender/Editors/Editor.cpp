@@ -83,7 +83,7 @@ namespace VkRender {
     }
 
     void Editor::loadScene(std::shared_ptr<Scene> scene) {
-        onSceneLoad(std::shared_ptr<Scene>());
+        onSceneLoad(scene);
         m_guiManager->setSceneContext(scene);
     }
 

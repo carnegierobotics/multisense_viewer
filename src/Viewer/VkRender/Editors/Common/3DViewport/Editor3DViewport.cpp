@@ -19,11 +19,16 @@ namespace VkRender {
         // Grid and objects
     }
 
+    void Editor3DViewport::onEditorResize() {
+        m_editorCamera.setPerspective(static_cast<float>(m_createInfo.width) / m_createInfo.height);
+    }
+
     void Editor3DViewport::onSceneLoad(std::shared_ptr<Scene> scene) {
         // Once we load a scene we need to create pipelines according to the objects specified in the scene.
         // For OBJModels we are alright with a default rendering pipeline (Phong lightining and stuff)
         // The pipelines also define memory handles between CPU and GPU. It makes more logical scenes if these attributes belong to the OBJModelComponent
         // But we need it accessed in the pipeline
+
         m_editorCamera = Camera(m_createInfo.width, m_createInfo.height);
         m_activeCamera = m_editorCamera;
         m_activeScene = m_context->activeScene();

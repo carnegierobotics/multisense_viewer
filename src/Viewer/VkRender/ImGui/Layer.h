@@ -155,7 +155,7 @@ namespace VkRender {
         virtual void onFinishedRender() = 0;
 
         virtual void setScene(std::shared_ptr<Scene> scene){
-            m_scene = std::move(scene);
+            m_scene = scene;
         }
         virtual void setContext(Application* ctx){
             m_context = ctx;

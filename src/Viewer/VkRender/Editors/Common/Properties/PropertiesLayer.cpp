@@ -213,8 +213,8 @@ namespace VkRender {
     void PropertiesLayer::onUIRender() {
 
         setSelectedEntity(m_editor->ui()->shared->m_selectedEntity);
-// Set window position and size
-        ImVec2 window_pos = ImVec2(0.0f, 55.0f); // Position (x, y)
+
+        ImVec2 window_pos = ImVec2(0.0f, m_editor->ui()->layoutConstants.uiYOffset); // Position (x, y)
         ImVec2 window_size = ImVec2(m_editor->ui()->width, m_editor->ui()->height); // Size (width, height)
 // Set window flags to remove decorations
         ImGuiWindowFlags window_flags =

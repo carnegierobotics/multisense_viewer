@@ -35,7 +35,7 @@ namespace VkRender {
         void onUIRender() override {
 
             // Set window position and size
-            ImVec2 window_pos = ImVec2(5.0f, 55.0f); // Position (x, y)
+            ImVec2 window_pos = ImVec2(0.0f, m_editor->ui()->layoutConstants.uiYOffset); // Position (x, y)
             ImVec2 window_size = ImVec2(m_editor->ui()->width - 5.0f,
                                         m_editor->ui()->height - 55.0f); // Size (width, height)
 

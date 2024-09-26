@@ -24,6 +24,7 @@ namespace VkRender {
         void onRenderDepthOnly(CommandBuffer &drawCmdBuffers) override;
 
         void onSceneLoad(std::shared_ptr<Scene> scene) override;
+        void onEditorResize() override;
 
 
         ~Editor3DViewport() override {

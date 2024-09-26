@@ -207,8 +207,7 @@ namespace VkRender {
 /** Called once per frame **/
     void SceneHierarchyLayer::onUIRender() {
         // Set window position and size
-        float menuBarHeight = 25.0f;
-        ImVec2 window_pos = ImVec2(0.0f, menuBarHeight); // Position (x, y)
+        ImVec2 window_pos = ImVec2(0.0f,  m_editor->ui()->layoutConstants.uiYOffset); // Position (x, y)
         ImVec2 window_size = ImVec2(m_editor->ui()->width, m_editor->ui()->height); // Size (width, height)
         // Set window flags to remove decorations
         ImGuiWindowFlags window_flags =
@@ -222,7 +221,7 @@ namespace VkRender {
         ImGui::Text("Scene hierarchy");
         // Calculate 90% of the available width
         float width = ImGui::GetContentRegionAvail().x * 0.9f;
-        float height = ImGui::GetContentRegionAvail().y * 0.95f - menuBarHeight;
+        float height = ImGui::GetContentRegionAvail().y * 0.95f;
         ImGui::PushStyleColor(ImGuiCol_ChildBg, Colors::CRLGray424Main); // Example: Dark grey
         // Create the child window with calculated dimensions and scrolling enabled beyond maxHeight
         ImGui::SetCursorPosX((window_size.x - width) / 2);

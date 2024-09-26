@@ -36,7 +36,7 @@ namespace VkRender {
 
             // Set window position and size
             // Set window position and size
-            ImVec2 window_pos = ImVec2(50.0f, 5.0f); // Position (x, y)
+            ImVec2 window_pos = ImVec2(0.0f, m_editor->ui()->layoutConstants.uiYOffset); // Position (x, y)
             ImVec2 window_size = ImVec2(m_editor->ui()->width - window_pos.x,
                                         m_editor->ui()->height - window_pos.y); // Size (width, height)
 

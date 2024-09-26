@@ -177,7 +177,7 @@ namespace VkRender {
             auto startAll = std::chrono::high_resolution_clock::now();
 
             auto startWaitForQueue = std::chrono::high_resolution_clock::now();
-            queue;
+            queue.wait();
             std::chrono::duration<double, std::milli> waitForQueueDuration =
                     std::chrono::high_resolution_clock::now() - startWaitForQueue;
 
@@ -197,7 +197,7 @@ namespace VkRender {
             scene.colorMethod = colorType;
 
             auto startPreprocess = std::chrono::high_resolution_clock::now();
-            queue.fill(numTilesTouchedBuffer, 0x00, numPoints);
+            queue.fill(numTilesTouchedBuffer, 0x00, numPoints).wait();
 
             queue.submit([&](sycl::handler &h) {
 
@@ -207,21 +207,21 @@ namespace VkRender {
                                                       sphericalHarmonicsBuffer,
                                                       numTilesTouchedBuffer,
                                                       pointsBuffer, &scene));
-            });
+            }).wait();
 
             auto endPreprocess = std::chrono::high_resolution_clock::now();
             std::chrono::duration<double, std::milli> preprocessDuration = endPreprocess - startPreprocess;
             auto startInclusiveSum = std::chrono::high_resolution_clock::now();
-            //queue.fill(pointOffsets, 0x00, numPoints);
+            //queue.fill(pointOffsets, 0x00, numPoints).wait();
 
             queue.submit([&](sycl::handler &h) {
                 h.parallel_for(sycl::range<1>(1),
                                Rasterizer::InclusiveSum(numTilesTouchedBuffer, pointOffsets, numPoints));
-            });
+            }).wait();
 
 
             uint32_t numRendered = 1;
-            queue.memcpy(&numRendered, pointOffsets + (numPoints - 1), sizeof(uint32_t));
+            queue.memcpy(&numRendered, pointOffsets + (numPoints - 1), sizeof(uint32_t)).wait();
             //printf("3DGS Rendering: Total Gaussians: %u. %uM\n", numRendered, numRendered / 1e6);
 
             Log::Logger::getInstance()->info("3DGS Rendering: Total Gaussians: {}. {:.3f}M", numRendered,
@@ -242,7 +242,7 @@ namespace VkRender {
                                                                                     valuesBuffer,
                                                                                     depthValues,
                                                                                     numRendered, tileGrid));
-                });
+                }).wait();
 
                 std::chrono::duration<double, std::milli> duplicateGaussiansDuration =
                         std::chrono::high_resolution_clock::now() - startDuplicateGaussians;
@@ -252,7 +252,7 @@ namespace VkRender {
                 float minDepthValue = -1;
                 if (colorType == 2) {
                     std::vector<float> depthValuesHost(numPoints);
-                    queue.memcpy(depthValuesHost.data(), depthValues, sizeof(float) * numPoints);
+                    queue.memcpy(depthValuesHost.data(), depthValues, sizeof(float) * numPoints).wait();
                     std::sort(depthValuesHost.begin(), depthValuesHost.end());
                     maxDepthValue = depthValuesHost.back();
                     // Find the minimum non-zero value
@@ -280,7 +280,7 @@ namespace VkRender {
                     key = dis(gen);
                 }
                 queue.memcpy(keysBuffer, keys.data(), numKeys * sizeof(uint32_t));
-                //queue.memcpy(keys.data(), keysBuffer, numRendered * sizeof(uint32_t));
+                //queue.memcpy(keys.data(), keysBuffer, numRendered * sizeof(uint32_t)).wait();
                 */
 
                 // Load keys
@@ -293,13 +293,13 @@ namespace VkRender {
                         std::chrono::high_resolution_clock::now() - startSorting;
 
                 auto startIdentifyTileRanges = std::chrono::high_resolution_clock::now();
-                queue.memset(rangesBuffer, static_cast<int>(0x00), numTiles * (sizeof(int) * 2));
+                queue.memset(rangesBuffer, static_cast<int>(0x00), numTiles * (sizeof(int) * 2)).wait();
 
                 queue.submit([&](sycl::handler &h) {
                     h.parallel_for<class IdentifyTileRanges>(numRendered,
                                                              Rasterizer::IdentifyTileRanges(rangesBuffer, keysBuffer,
                                                                                             numRendered));
-                });
+                }).wait();
                 std::chrono::duration<double, std::milli> identifyTileRangesDuration =
                         std::chrono::high_resolution_clock::now() - startIdentifyTileRanges;
 
@@ -321,7 +321,7 @@ namespace VkRender {
                                                                                          imageWidth, imageHeight,
                                                                                          horizontal_blocks, numTiles,
                                                                                          maxDepthValue, minDepthValue));
-                });
+                }).wait();
 
 
                 /*
@@ -343,7 +343,7 @@ namespace VkRender {
 
                 auto startCopyImageToHost = std::chrono::high_resolution_clock::now();
                 queue.memcpy(m_image, imageBuffer, m_width * m_height * 4);
-                queue;
+                queue.wait();
 
                 Rasterizer::saveAsPPM(m_image, m_width, m_height, "../output.ppm");
                 std::chrono::duration<double, std::milli> copyImageDuration =

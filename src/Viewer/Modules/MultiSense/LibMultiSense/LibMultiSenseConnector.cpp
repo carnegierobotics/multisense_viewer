@@ -81,13 +81,13 @@ namespace VkRender::MultiSense {
             uint32_t bits = enabledSources;
             auto& v = updateData->enabledSources;
             v.clear();
-            for (auto mask : Utils::ViewerAvailableLibMultiSenseSources) {
+            for (auto mask : MultiSenseUtils::ViewerAvailableLibMultiSenseSources) {
                 bool enabled = (bits & mask);
                 if (enabled) {
-                    if (!(std::find(v.begin(), v.end(), Utils::dataSourceToString(mask)) != v.end())) {
-                        updateData->enabledSources.emplace_back(Utils::dataSourceToString(mask));
+                    if (!(std::find(v.begin(), v.end(), MultiSenseUtils::dataSourceToString(mask)) != v.end())) {
+                        updateData->enabledSources.emplace_back(MultiSenseUtils::dataSourceToString(mask));
                     }
-                    Log::Logger::getInstance()->info("Found enabled source: {}", Utils::dataSourceToString(mask));
+                    Log::Logger::getInstance()->info("Found enabled source: {}", MultiSenseUtils::dataSourceToString(mask));
                 }
             }
             // Update the last check time
@@ -98,7 +98,7 @@ namespace VkRender::MultiSense {
     }
 
     void LibMultiSenseConnector::getImage(MultiSenseStreamData *data) {
-        auto src = Utils::stringToDataSource(data->dataSource);
+        auto src = MultiSenseUtils::stringToDataSource(data->dataSource);
 
         crl::multisense::DataSource colorSource;
         crl::multisense::DataSource lumaSource;
@@ -151,7 +151,7 @@ namespace VkRender::MultiSense {
         std::scoped_lock lock(m_channelMutex);
 
         for (const auto &sourceStr: streams) {
-            crl::multisense::DataSource source = Utils::stringToDataSource(sourceStr);
+            crl::multisense::DataSource source = MultiSenseUtils::stringToDataSource(sourceStr);
             if (!source) {
                 Log::Logger::getInstance()->info("Failed to recognize '{}' source", sourceStr.c_str());
                 return;
@@ -159,17 +159,17 @@ namespace VkRender::MultiSense {
             // Start stream
             crl::multisense::Status status = m_channel->ptr()->startStreams(source);
             if (status == crl::multisense::Status_Ok) {
-                Log::Logger::getInstance()->info("Started stream: {}", Utils::dataSourceToString(source).c_str());
+                Log::Logger::getInstance()->info("Started stream: {}", MultiSenseUtils::dataSourceToString(source).c_str());
             } else
                 Log::Logger::getInstance()->info("Failed to start stream: {}  status code {}",
-                                                 Utils::dataSourceToString(source).c_str(), status);
+                                                 MultiSenseUtils::dataSourceToString(source).c_str(), status);
         }
     }
 
 
     void LibMultiSenseConnector::stopStream(const std::string &source) {
 
-        crl::multisense::DataSource src = Utils::stringToDataSource(source);
+        crl::multisense::DataSource src = MultiSenseUtils::stringToDataSource(source);
         if (!src) {
             Log::Logger::getInstance()->info("Failed to recognize '{}' source", source.c_str());
             return;
@@ -960,7 +960,7 @@ namespace VkRender::MultiSense {
                 "Connection with LibMultiSense: {}, MultiSense FW: {}, Hardware REV: {}, Serial No.: {}",
                 m_channelInfo.versionInfo.apiVersion,                   // API version
                 m_channelInfo.versionInfo.sensorFirmwareVersion,         // Firmware version
-                Utils::hardwareRevisionToString(
+                MultiSenseUtils::hardwareRevisionToString(
                         m_channelInfo.devInfo.hardwareRevision),                       // Imager device name
                 m_channelInfo.devInfo.serialNumber                       // Imager device name
         );
@@ -982,11 +982,11 @@ namespace VkRender::MultiSense {
         }
         m_channelInfo.supportedSources = commonSources;
         uint32_t bits = commonSources;
-        for (auto mask: Utils::ViewerAvailableLibMultiSenseSources) {
+        for (auto mask: MultiSenseUtils::ViewerAvailableLibMultiSenseSources) {
             bool enabled = (bits & mask);
             if (enabled) {
-                profileInfo->deviceData().sources.emplace_back(Utils::dataSourceToString(mask));
-                Log::Logger::getInstance()->info("Found supported source: {}", Utils::dataSourceToString(mask));
+                profileInfo->deviceData().sources.emplace_back(MultiSenseUtils::dataSourceToString(mask));
+                Log::Logger::getInstance()->info("Found supported source: {}", MultiSenseUtils::dataSourceToString(mask));
             }
         }
         if (profileInfo->deviceData().sources.empty())

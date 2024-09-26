@@ -8,7 +8,7 @@
 #include <MultiSense/MultiSenseChannel.hh>
 #include <MultiSense/MultiSenseTypes.hh>
 
-namespace VkRender::MultiSense::Utils {
+namespace VkRender::MultiSenseUtils {
 
     static const std::vector<uint32_t> ViewerAvailableLibMultiSenseSources = {
             crl::multisense::Source_Luma_Left,

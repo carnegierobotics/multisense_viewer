@@ -265,7 +265,7 @@ namespace VkRender {
         }
 
         updateEditors();
-        m_mainEditor->update((frameCounter == 0), frameTimer, &input);
+        m_mainEditor->update();
 
         m_multiSense->update();
     }
@@ -296,6 +296,8 @@ namespace VkRender {
                 ci.editorTypeDescription = editor->ui()->selectedType;
                 recreateEditor(editor, ci);
             }
+
+            editor->update();
         }
         handleEditorResize();
 
@@ -411,7 +413,6 @@ namespace VkRender {
 
         resizeEditors(anyCornerClicked);
         for (auto &editor: m_editors) {
-            editor->update((frameCounter == 0), frameTimer, &input);
 
             if (!mouse.left) {
                 if (editor->ui()->indirectlyActivated) {

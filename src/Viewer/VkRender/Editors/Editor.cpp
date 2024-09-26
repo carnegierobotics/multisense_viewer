@@ -484,14 +484,17 @@ namespace VkRender {
         );
     }
 
-    void Editor::update(bool updateGraph, float frameTime, Input *input) {
+    void Editor::update() {
+        m_ui->x = m_createInfo.x;
+        m_ui->y = m_createInfo.y;
+
         /*
         if (m_ui->reloadPipeline)
             onPipelineReload();
 
          */
 
-        m_guiManager->update(updateGraph, frameTime, input);
+        m_guiManager->update();
         onUpdate();
     }
 

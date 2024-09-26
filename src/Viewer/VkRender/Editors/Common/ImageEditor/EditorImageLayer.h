@@ -13,7 +13,8 @@ namespace VkRender {
     struct EditorImageUI : public EditorUI {
         bool renderMultiSense = false;
 
-        EditorImageUI() = default;
+        // Constructor that copies everything from base EditorUI
+        EditorImageUI(const EditorUI &baseUI) : EditorUI(baseUI) {}
     };
 
     class EditorImageLayer : public Layer {

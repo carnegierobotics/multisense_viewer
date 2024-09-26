@@ -78,7 +78,7 @@ namespace VkRender {
 
 
         /**@brief Update function called from renderer. Function calls each layer in order to generate buffers for draw commands*/
-        void update(bool updateFrameGraph, float frameTimer, const Input *pInput);
+        void update();
 
         /**@brief Draw command called once per command buffer recording*/
         void drawFrame(VkCommandBuffer commandBuffer, uint32_t imageIndex, uint32_t width, uint32_t height, uint32_t x,

@@ -8,6 +8,7 @@
 
 #include "Viewer/Tools/AdapterUtils.h"
 #include "Viewer/Modules/MultiSense/MultiSenseDevice.h"
+#include "Viewer/Modules/MultiSense/LibMultiSense/MultiSenseUtils.h"
 
 namespace VkRender::MultiSense {
 
@@ -26,7 +27,8 @@ namespace VkRender::MultiSense {
                 // Collect all requested sources from the stream windows
                 std::vector<std::string> requestedSources;
                 for (auto& window : dev.streamWindow) {
-                    requestedSources.emplace_back(window.second.enabledSource);
+                    if (MultiSenseUtils::stringToDataSource(window.second.enabledSource))
+                        requestedSources.emplace_back(window.second.enabledSource);
                     window.second.sourceUpdate = false; // Reset source update flag
                 }
                 // Get currently enabled sources

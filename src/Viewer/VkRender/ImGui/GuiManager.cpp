@@ -196,7 +196,7 @@ namespace VkRender {
     }
 
     void
-    GuiManager::update(bool updateFrameGraph, float frameTimer, const Input *pInput) {
+    GuiManager::update() {
         ImGui::SetCurrentContext(m_imguiContext);
 
 

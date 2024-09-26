@@ -193,7 +193,7 @@ namespace VkRender {
                 }
                 ImGui::EndCombo();
             }
-            ImGui::PopStyleColor(); // ImGuiCol_Text
+            ImGui::PopStyleColor(2); // ImGuiCol_Text
 
 
             ImGui::Dummy(ImVec2(0.0f, 10.0f));
@@ -209,7 +209,55 @@ namespace VkRender {
 
             }
 
-            ImGui::PopStyleColor(); // ImGuiCol_Text
+
+            ImGui::Dummy(ImVec2(0.0f, 5.0f));
+            ImGui::Dummy(ImVec2(3.0f, 0.0f));
+            ImGui::SameLine();
+            ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
+            ImGui::HelpMarker("\n Right click to set custom value \n ");
+            ImGui::PopStyleColor();
+            ImGui::SameLine(0.0f, 5);
+            txt = "MTU Setting:";
+            txtSize = ImGui::CalcTextSize(txt.c_str());
+            ImGui::Text("%s", txt.c_str());
+            ImGui::SameLine(0, textSpacing - txtSize.x);
+            ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
+            static int mtuValues[] = {576, 1280, 1400, 1500, 2000, 4000, 7200, 9000};  // common MTU values
+            static int customMTU = 7200;
+            static int mtuIndex = 6;  // Default index for the slider (1500 as default)
+
+            int mtuValue = 0;
+            bool update = false;
+
+            if (ImGui::SliderInt("##MTU", &mtuIndex, 0, IM_ARRAYSIZE(mtuValues) - 1,
+                                 std::to_string(mtuValues[mtuIndex]).c_str())) {
+                m_context->usageMonitor()->userClickAction("##MTU setting", "SliderFloat",
+                                                       ImGui::GetCurrentWindow()->Name);
+                mtuValue = mtuValues[mtuIndex];
+            }
+            update |= ImGui::IsItemDeactivatedAfterEdit();
+
+            // Handle right-click context menu to enter custom MTU value
+            if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
+                ImGui::OpenPopup("MTU_InputPopup");  // Open the popup when right-clicked
+            }
+
+            if (ImGui::BeginPopup("MTU_InputPopup")) {
+                ImGui::Text("Enter custom MTU value:");
+                if (ImGui::InputInt("##CustomMTUInput", &customMTU)) {
+                    // Ensure the custom MTU value is within a reasonable range
+                    if (customMTU < 576) customMTU = 576;  // Minimum IPv4 MTU
+                    if (customMTU > 9014) customMTU = 9014;  // Maximum Jumbo Frame MTU
+                }
+                bool btnClick = ImGui::Button("Set");
+                if (btnClick) {
+                    ImGui::CloseCurrentPopup();
+                    mtuValue = customMTU;  // Update the MTU with the custom value
+                    update |= btnClick;
+                }
+                ImGui::EndPopup();
+            }
+            ImGui::PopStyleColor();
 
         }
     };

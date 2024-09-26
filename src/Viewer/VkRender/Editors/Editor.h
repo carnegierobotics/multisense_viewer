@@ -69,7 +69,12 @@ namespace VkRender {
         virtual ~Editor() = default;
 
         void addUI(const std::string &layerName) { m_guiManager->pushLayer(layerName, this); }
-
+        /**@brief Extends the UI data struct with custom type*/
+        template <typename T>
+        void addUIData() {
+            static_assert(std::is_base_of<EditorUI, T>::value, "T must derive from EditorUI");
+            m_ui = std::make_shared<T>(*m_ui); // Replace m_ui with a new instance of type T
+        }
         const EditorSizeLimits &getSizeLimits() const { return m_sizeLimits; }
 
         EditorCreateInfo &getCreateInfo() { return m_createInfo; }
@@ -114,7 +119,7 @@ namespace VkRender {
 
         void loadScene(std::shared_ptr<Scene> ptr);
 
-        void update(bool updateGraph, float frametime, Input *input);
+        void update();
 
         void updateBorderState(const glm::vec2 &mousePos);
 

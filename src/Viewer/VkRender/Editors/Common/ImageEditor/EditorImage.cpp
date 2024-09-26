@@ -12,8 +12,7 @@ namespace VkRender {
         addUI("EditorImageLayer");
         addUI("EditorUILayer");
         addUI("DebugWindow");
-
-        m_ui = std::make_unique<EditorImageUI>(); // override UI element
+        addUIData<EditorImageUI>();
 
         RenderPassInfo renderPassInfo{};
         renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;

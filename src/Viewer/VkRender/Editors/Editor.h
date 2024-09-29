@@ -90,6 +90,8 @@ namespace VkRender {
             return m_guiManager->guiResources();
         }
 
+        void renderScene(CommandBuffer & command_buffer, const VkRenderPass& renderPass, uint32_t frameBufferCount, VkFramebuffer* frameBuffers, const VkViewport & viewport, VkRect2D scissor, bool includeGUI = true, uint32_t clear_value_count = 0, VkClearValue * clear_values = nullptr);
+
         void render(CommandBuffer &drawCmdBuffers);
 
         virtual void onRender(CommandBuffer &drawCmdBuffers) {

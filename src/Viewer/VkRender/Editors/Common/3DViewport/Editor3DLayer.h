@@ -35,10 +35,9 @@ namespace VkRender {
         void onUIRender() override {
 
             // Set window position and size
-            ImVec2 window_pos = ImVec2(0.0f, m_editor->ui()->layoutConstants.uiYOffset); // Position (x, y)
-            ImVec2 window_size = ImVec2(m_editor->ui()->width - 5.0f,
-                                        m_editor->ui()->height - 55.0f); // Size (width, height)
-
+            ImVec2 window_pos = ImVec2( m_editor->ui()->layoutConstants.uiXOffset, 0.0f); // Position (x, y)
+            ImVec2 window_size = ImVec2(m_editor->ui()->width - window_pos.x,
+                                        m_editor->ui()->height - window_pos.y); // Size (width, height)
 
             // Set window flags to remove decorations
             ImGuiWindowFlags window_flags =
@@ -51,7 +50,7 @@ namespace VkRender {
             // Create the parent window
             ImGui::Begin("Editor3DLayer", nullptr, window_flags);
 
-
+            ImGui::Checkbox("Render to Offscreen", &m_editor->ui()->renderToOffscreen);;
 
             /*
             static bool toggle = false;

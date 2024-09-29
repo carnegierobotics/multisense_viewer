@@ -15,8 +15,6 @@
 #include "Viewer/VkRender/Core/VulkanFramebuffer.h"
 
 namespace VkRender {
-
-
     Editor::Editor(EditorCreateInfo &createInfo, UUID _uuid) : m_createInfo(createInfo),
                                                                m_context(createInfo.context),
                                                                m_sizeLimits(createInfo.pPassCreateInfo.width,
@@ -28,7 +26,7 @@ namespace VkRender {
         m_ui->width = m_createInfo.width;
         m_ui->x = m_createInfo.x;
         m_ui->y = m_createInfo.y;
-        m_ui->shared =  m_createInfo.sharedUIContextData;
+        m_ui->shared = m_createInfo.sharedUIContextData;
 
         m_createInfo.pPassCreateInfo.debugInfo = editorTypeToString(m_createInfo.editorTypeDescription);
         m_renderPass = std::make_unique<VulkanRenderPass>(&m_createInfo.pPassCreateInfo);
@@ -79,7 +77,6 @@ namespace VkRender {
         createOffscreenFramebuffer();
 
         onEditorResize();
-
     }
 
     void Editor::loadScene(std::shared_ptr<Scene> scene) {
@@ -87,14 +84,66 @@ namespace VkRender {
         m_guiManager->setSceneContext(scene);
     }
 
-    void Editor::render(CommandBuffer &drawCmdBuffers) {
+    void Editor::renderScene(CommandBuffer &drawCmdBuffers, const VkRenderPass &renderPass, uint32_t imageIndex,
+                             VkFramebuffer *frameBuffers, const VkViewport &viewport, VkRect2D scissor, bool includeGUI,
+                             uint32_t clearValueCount, VkClearValue *clearValues) {
         const uint32_t &currentFrame = *drawCmdBuffers.frameIndex;
-        const uint32_t &imageIndex = *drawCmdBuffers.activeImageIndex;
+        /// *** Color render pass *** ///
+        VkRenderPassBeginInfo renderPassBeginInfo = Populate::renderPassBeginInfo();
+        renderPassBeginInfo.renderPass = renderPass;
+        renderPassBeginInfo.renderArea.offset.x = static_cast<int32_t>(viewport.x);
+        renderPassBeginInfo.renderArea.offset.y = static_cast<int32_t>(viewport.y);
+        renderPassBeginInfo.renderArea.extent.width = m_createInfo.width;
+        renderPassBeginInfo.renderArea.extent.height = m_createInfo.height;
+        renderPassBeginInfo.clearValueCount = clearValueCount;
+        renderPassBeginInfo.pClearValues = clearValues;
 
+        renderPassBeginInfo.framebuffer = frameBuffers[imageIndex];
+
+        vkCmdBeginRenderPass(drawCmdBuffers.buffers[currentFrame], &renderPassBeginInfo,
+                             VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdSetViewport(drawCmdBuffers.buffers[currentFrame], 0, 1, &viewport);
+        vkCmdSetScissor(drawCmdBuffers.buffers[currentFrame], 0, 1, &scissor);
+
+        onRender(drawCmdBuffers);
+
+        if (includeGUI)
+            m_guiManager->drawFrame(drawCmdBuffers.buffers[currentFrame], currentFrame, m_createInfo.width,
+                                    m_createInfo.height, m_createInfo.x, m_createInfo.y);
+        vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
+    }
+
+    void Editor::render(CommandBuffer &drawCmdBuffers) {
         /// Depth render pass
         if (m_ui->renderDepth)
             renderDepthPass(drawCmdBuffers);
 
+        /// Off-screen render pass
+        if (m_ui->renderToOffscreen) {
+            const uint32_t clearValueCount = 3;
+            VkClearValue clearValues[clearValueCount];
+            clearValues[0].color = {{0.33f, 0.33f, 0.5f, 1.0f}}; // Clear color to black (or any other color)
+            clearValues[1].depthStencil = {1.0f, 0}; // Clear depth to 1.0 and stencil to 0
+            clearValues[2].color = {{0.33f, 0.33f, 0.5f, 1.0f}}; // Clear depth to 1.0 and stencil to 0
+
+            /// "Normal" Render pass
+            VkViewport viewport{};
+            viewport.x = 0.0f;
+            viewport.y = 0.0f;
+            viewport.width = static_cast<float>(m_createInfo.width);
+            viewport.height = static_cast<float>(m_createInfo.height);
+            viewport.minDepth = 0.0f;
+            viewport.maxDepth = 1.0f;
+            VkRect2D scissor{};
+            scissor.offset = {(0), (0)};
+            scissor.extent = {static_cast<uint32_t>(m_createInfo.width), static_cast<uint32_t>(m_createInfo.height)};
+            renderScene(drawCmdBuffers, m_offscreenRenderPass->getRenderPass(), 0, &m_offscreenFramebuffer.framebuffer->framebuffer() , viewport, scissor, false,
+                        clearValueCount, clearValues);
+
+            // Transition image to be in shader read mode
+        }
+
+        /// "Normal" Render pass
         VkViewport viewport{};
         viewport.x = static_cast<float>(m_createInfo.x);
         viewport.y = static_cast<float>(m_createInfo.y);
@@ -102,69 +151,39 @@ namespace VkRender {
         viewport.height = static_cast<float>(m_createInfo.height);
         viewport.minDepth = 0.0f;
         viewport.maxDepth = 1.0f;
-
         VkRect2D scissor{};
-        scissor.offset = {static_cast<int32_t>(m_createInfo.x), static_cast<int32_t>(m_createInfo.y)};
+        scissor.offset = {(m_createInfo.x), (m_createInfo.y)};
         scissor.extent = {static_cast<uint32_t>(m_createInfo.width), static_cast<uint32_t>(m_createInfo.height)};
-        /// *** Color render pass *** ///
-        VkRenderPassBeginInfo renderPassBeginInfo = Populate::renderPassBeginInfo();
-        renderPassBeginInfo.renderPass = m_renderPass->getRenderPass(); // Increase reference count by 1 here?
-        renderPassBeginInfo.renderArea.offset.x = static_cast<int32_t>(m_createInfo.x);
-        renderPassBeginInfo.renderArea.offset.y = static_cast<int32_t>(m_createInfo.y);
-        renderPassBeginInfo.renderArea.extent.width = m_createInfo.width;
-        renderPassBeginInfo.renderArea.extent.height = m_createInfo.height;
+        renderScene(drawCmdBuffers, m_renderPass->getRenderPass(), *drawCmdBuffers.activeImageIndex, m_createInfo.frameBuffers, viewport, scissor);
 
-        renderPassBeginInfo.clearValueCount = 0;
-        renderPassBeginInfo.pClearValues = nullptr;
-
-        renderPassBeginInfo.framebuffer = m_createInfo.frameBuffers[imageIndex];
-        vkCmdBeginRenderPass(drawCmdBuffers.buffers[currentFrame], &renderPassBeginInfo,
-                             VK_SUBPASS_CONTENTS_INLINE);
-        drawCmdBuffers.renderPassType = RENDER_PASS_UI;
-        vkCmdSetViewport(drawCmdBuffers.buffers[currentFrame], 0, 1, &viewport);
-        vkCmdSetScissor(drawCmdBuffers.buffers[currentFrame], 0, 1, &scissor);
-
-        onRender(drawCmdBuffers);
-
-        m_guiManager->drawFrame(drawCmdBuffers.buffers[currentFrame], currentFrame, m_createInfo.width,
-                                m_createInfo.height, m_createInfo.x, m_createInfo.y);
-        vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
-
-
+        // Render to offscreen framebuffer
+        // Transition and copy framebuffer to cpu
+        // Write to file
         if (ui()->saveRenderToFile) {
-            CommandBuffer copyCmd = m_context->vkDevice().createVulkanCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-                                                                                    true);
+            CommandBuffer copyCmd = m_context->vkDevice().createVulkanCommandBuffer(
+                VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
             uint32_t frameIndexValue = 0;
             uint32_t activeImageIndexValue = 0;
             copyCmd.frameIndex = &frameIndexValue;
             copyCmd.activeImageIndex = &activeImageIndexValue;
-            /// *** Render to Offscreen Framebuffer *** ///
-            VkRenderPassBeginInfo offscreenRenderPassInfo = Populate::renderPassBeginInfo();
-            offscreenRenderPassInfo.framebuffer = m_offscreenFramebuffer.framebuffer->framebuffer(); // Use the offscreen framebuffer
-            offscreenRenderPassInfo.renderArea.offset.x = 0;
-            offscreenRenderPassInfo.renderArea.offset.y = 0;
-            offscreenRenderPassInfo.renderArea.extent.width = m_createInfo.width;
-            offscreenRenderPassInfo.renderArea.extent.height = m_createInfo.height;
-            offscreenRenderPassInfo.renderPass = m_offscreenRenderPass->getRenderPass(); // Increase reference count by 1 here?
-
-            VkClearValue clearValues[3];
+            const uint32_t clearValueCount = 3;
+            VkClearValue clearValues[clearValueCount];
             clearValues[0].color = {{0.33f, 0.33f, 0.5f, 1.0f}}; // Clear color to black (or any other color)
-            clearValues[1].depthStencil = {1.0f, 0};           // Clear depth to 1.0 and stencil to 0
-            clearValues[2].color = {{0.33f, 0.33f, 0.5f, 1.0f}};       // Clear depth to 1.0 and stencil to 0
-
-            offscreenRenderPassInfo.clearValueCount = 3;
-            offscreenRenderPassInfo.pClearValues = clearValues;
-
-            scissor.offset = {0, 0};
-            viewport.x = static_cast<float>(0);
-            viewport.y = static_cast<float>(0);
-            vkCmdBeginRenderPass(copyCmd.buffers.front(), &offscreenRenderPassInfo,
-                                 VK_SUBPASS_CONTENTS_INLINE);
-            vkCmdSetViewport(copyCmd.buffers.front(), 0, 1, &viewport);
-            vkCmdSetScissor(copyCmd.buffers.front(), 0, 1, &scissor);
-            onRender(copyCmd);
-            vkCmdEndRenderPass(copyCmd.buffers.front());
-
+            clearValues[1].depthStencil = {1.0f, 0}; // Clear depth to 1.0 and stencil to 0
+            clearValues[2].color = {{0.33f, 0.33f, 0.5f, 1.0f}}; // Clear depth to 1.0 and stencil to 0
+            /// "Normal" Render pass
+            VkViewport viewport{};
+            viewport.x = 0.0f;
+            viewport.y = 0.0f;
+            viewport.width = static_cast<float>(m_createInfo.width);
+            viewport.height = static_cast<float>(m_createInfo.height);
+            viewport.minDepth = 0.0f;
+            viewport.maxDepth = 1.0f;
+            VkRect2D scissor{};
+            scissor.offset = VkOffset2D(0, 0);
+            scissor.extent = {static_cast<uint32_t>(m_createInfo.width), static_cast<uint32_t>(m_createInfo.height)};
+            renderScene(copyCmd, m_offscreenRenderPass->getRenderPass(), 0, &m_offscreenFramebuffer.framebuffer->framebuffer() , viewport, scissor, false,
+                        clearValueCount, clearValues);
 
             /// *** Copy Image Data to CPU Buffer *** ///
             VkImageMemoryBarrier barrier = {};
@@ -173,7 +192,7 @@ namespace VkRender {
             barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
             barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
             barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            barrier.image = m_offscreenFramebuffer.resolvedImage->image();  // Use the offscreen image
+            barrier.image = m_offscreenFramebuffer.resolvedImage->image(); // Use the offscreen image
             barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
             barrier.subresourceRange.baseMipLevel = 0;
             barrier.subresourceRange.levelCount = 1;
@@ -192,11 +211,11 @@ namespace VkRender {
 
 
             CHECK_RESULT(m_context->vkDevice().createBuffer(
-                    VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                    m_offscreenFramebuffer.resolvedImage->getImageSizeRBGA(),
-                    &stagingBuffer.buffer,
-                    &stagingBuffer.memory));
+                VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                m_offscreenFramebuffer.resolvedImage->getImageSizeRBGA(),
+                &stagingBuffer.buffer,
+                &stagingBuffer.memory));
 
             // Copy the image to the buffer
             VkBufferImageCopy region = {};
@@ -208,21 +227,24 @@ namespace VkRender {
             region.imageSubresource.baseArrayLayer = 0;
             region.imageSubresource.layerCount = 1;
             region.imageOffset = {0, 0, 0};
-            region.imageExtent = {static_cast<uint32_t>(m_createInfo.width), static_cast<uint32_t>(m_createInfo.height),
-                                  1};
+            region.imageExtent = {
+                static_cast<uint32_t>(m_createInfo.width), static_cast<uint32_t>(m_createInfo.height),
+                1
+            };
 
             vkCmdCopyImageToBuffer(copyCmd.buffers.front(), m_offscreenFramebuffer.resolvedImage->image(),
                                    VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, stagingBuffer.buffer, 1, &region);
 
             Utils::setImageLayout(
-                    copyCmd.buffers.front(),
-                    m_offscreenFramebuffer.resolvedImage->image(),
-                    VK_IMAGE_ASPECT_COLOR_BIT,
-                    VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                    VK_PIPELINE_STAGE_TRANSFER_BIT,
-                    VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
-            m_context->vkDevice().flushCommandBuffer(copyCmd.buffers.front(), m_context->vkDevice().m_TransferQueue, true);
+                copyCmd.buffers.front(),
+                m_offscreenFramebuffer.resolvedImage->image(),
+                VK_IMAGE_ASPECT_COLOR_BIT,
+                VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                VK_PIPELINE_STAGE_TRANSFER_BIT,
+                VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+            m_context->vkDevice().flushCommandBuffer(copyCmd.buffers.front(), m_context->vkDevice().m_TransferQueue,
+                                                     true);
             // Map memory and save image to a file
             void *data;
             vkMapMemory(m_context->vkDevice().m_LogicalDevice, stagingBuffer.memory, 0,
@@ -241,11 +263,9 @@ namespace VkRender {
             }
             // Save the image
             if (!std::filesystem::exists(ui()->renderToFileName.parent_path())) {
-                try{
+                try {
                     std::filesystem::create_directories(ui()->renderToFileName.parent_path());
-
-                } catch (std::exception& e){
-
+                } catch (std::exception &e) {
                 }
             }
             stbi_write_png(ui()->renderToFileName.string().c_str(), width, height, channels, rgbData, width * channels);
@@ -254,14 +274,11 @@ namespace VkRender {
             // Clean up
             delete[] rgbData;
             vkUnmapMemory(m_context->vkDevice().m_LogicalDevice, stagingBuffer.memory);
-
         }
-
     }
 
 
     void Editor::renderDepthPass(CommandBuffer &drawCmdBuffers) {
-
         const uint32_t &currentFrame = *drawCmdBuffers.frameIndex;
         const uint32_t &imageIndex = *drawCmdBuffers.activeImageIndex;
 
@@ -285,7 +302,7 @@ namespace VkRender {
         renderPassBeginInfo.renderArea.extent.height = m_createInfo.height;
 
         VkClearValue clearValues[1];
-        clearValues[0].depthStencil = {1.0f, 0};           // Clear depth to 1.0 and stencil to 0
+        clearValues[0].depthStencil = {1.0f, 0}; // Clear depth to 1.0 and stencil to 0
 
         renderPassBeginInfo.clearValueCount = 1;
         renderPassBeginInfo.pClearValues = clearValues;
@@ -293,7 +310,6 @@ namespace VkRender {
         renderPassBeginInfo.framebuffer = m_depthOnlyFramebuffer.depthOnlyFramebuffer[imageIndex]->framebuffer();
         vkCmdBeginRenderPass(drawCmdBuffers.buffers[currentFrame], &renderPassBeginInfo,
                              VK_SUBPASS_CONTENTS_INLINE);
-        drawCmdBuffers.renderPassType = RENDER_PASS_UI;
         vkCmdSetViewport(drawCmdBuffers.buffers[currentFrame], 0, 1, &viewport);
         vkCmdSetScissor(drawCmdBuffers.buffers[currentFrame], 0, 1, &scissor);
 
@@ -303,7 +319,7 @@ namespace VkRender {
 
         if (ui()->saveRenderToFile) {
             CommandBuffer copyCmd = m_context->vkDevice().createVulkanCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-                                                                                    true);
+                true);
             uint32_t frameIndexValue = 0;
             uint32_t activeImageIndexValue = 0;
             copyCmd.frameIndex = &frameIndexValue;
@@ -316,7 +332,7 @@ namespace VkRender {
             renderPassBeginInfo.renderArea.extent.width = m_createInfo.width;
             renderPassBeginInfo.renderArea.extent.height = m_createInfo.height;
             VkClearValue clearValues[1];
-            clearValues[0].depthStencil = {1.0f, 0};           // Clear depth to 1.0 and stencil to 0
+            clearValues[0].depthStencil = {1.0f, 0}; // Clear depth to 1.0 and stencil to 0
             renderPassBeginInfo.clearValueCount = 1;
             renderPassBeginInfo.pClearValues = clearValues;
             renderPassBeginInfo.framebuffer = m_depthOnlyFramebuffer.depthOnlyFramebuffer[imageIndex]->framebuffer();
@@ -324,7 +340,7 @@ namespace VkRender {
             scissor.offset = {0, 0};
             viewport.x = static_cast<float>(0);
             viewport.y = static_cast<float>(0);
-            vkCmdBeginRenderPass(copyCmd.buffers.front(), &renderPassBeginInfo,VK_SUBPASS_CONTENTS_INLINE);
+            vkCmdBeginRenderPass(copyCmd.buffers.front(), &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
             vkCmdSetViewport(copyCmd.buffers.front(), 0, 1, &viewport);
             vkCmdSetScissor(copyCmd.buffers.front(), 0, 1, &scissor);
             onRenderDepthOnly(copyCmd);
@@ -337,7 +353,7 @@ namespace VkRender {
             barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
             barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
             barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            barrier.image = m_depthOnlyFramebuffer.depthImage->image();  // Use the offscreen image
+            barrier.image = m_depthOnlyFramebuffer.depthImage->image(); // Use the offscreen image
             barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
             barrier.subresourceRange.baseMipLevel = 0;
             barrier.subresourceRange.levelCount = 1;
@@ -358,11 +374,11 @@ namespace VkRender {
 
 
             CHECK_RESULT(m_context->vkDevice().createBuffer(
-                    VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                    m_depthOnlyFramebuffer.depthImage->getImageSizeRBGA(),
-                    &stagingBuffer.buffer,
-                    &stagingBuffer.memory));
+                VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                m_depthOnlyFramebuffer.depthImage->getImageSizeRBGA(),
+                &stagingBuffer.buffer,
+                &stagingBuffer.memory));
 
             // Copy the image to the buffer
             VkBufferImageCopy region = {};
@@ -374,20 +390,22 @@ namespace VkRender {
             region.imageSubresource.baseArrayLayer = 0;
             region.imageSubresource.layerCount = 1;
             region.imageOffset = {0, 0, 0};
-            region.imageExtent = {static_cast<uint32_t>(m_createInfo.width), static_cast<uint32_t>(m_createInfo.height),
-                                  1};
+            region.imageExtent = {
+                static_cast<uint32_t>(m_createInfo.width), static_cast<uint32_t>(m_createInfo.height),
+                1
+            };
 
-            vkCmdCopyImageToBuffer(copyCmd.buffers.front(),m_depthOnlyFramebuffer.depthImage->image(),
+            vkCmdCopyImageToBuffer(copyCmd.buffers.front(), m_depthOnlyFramebuffer.depthImage->image(),
                                    VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, stagingBuffer.buffer, 1, &region);
 
             Utils::setImageLayout(
-                    copyCmd.buffers.front(),
-                   m_depthOnlyFramebuffer.depthImage->image(),
-                    VK_IMAGE_ASPECT_DEPTH_BIT,
-                    VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                    VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-                    VK_PIPELINE_STAGE_TRANSFER_BIT,
-                    VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT);
+                copyCmd.buffers.front(),
+                m_depthOnlyFramebuffer.depthImage->image(),
+                VK_IMAGE_ASPECT_DEPTH_BIT,
+                VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+                VK_PIPELINE_STAGE_TRANSFER_BIT,
+                VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT);
             m_context->vkDevice().flushCommandBuffer(copyCmd.buffers.front(), m_context->vkDevice().m_TransferQueue,
                                                      true);
             // Map memory and save image to a file
@@ -417,12 +435,13 @@ namespace VkRender {
                 } catch (std::exception &e) {
                 }
             }
-            TIFF* out = TIFFOpen(filePath.string().c_str(), "w");
+            TIFF *out = TIFFOpen(filePath.string().c_str(), "w");
             if (!out) {
-                Log::Logger::getInstance()->error("Could not open TIFF file for writing: {}", filePath.string().c_str());
+                Log::Logger::getInstance()->error("Could not open TIFF file for writing: {}",
+                                                  filePath.string().c_str());
                 return;
             }
-            float* depthData = static_cast<float*>(data);
+            float *depthData = static_cast<float *>(data);
             const float nearPlane = 0.1f;
             const float farPlane = 100.0f;
 
@@ -457,7 +476,7 @@ namespace VkRender {
 
             TIFFSetField(out, TIFFTAG_ROWSPERSTRIP, TIFFDefaultStripSize(out, width));
 
-// Write the data
+            // Write the data
             for (uint32_t row = 0; row < height; row++) {
                 if (TIFFWriteScanline(out, &depthData[row * width], row, 0) < 0) {
                     Log::Logger::getInstance()->error("Failed to write TIFF scanline for row {}", row);
@@ -471,16 +490,14 @@ namespace VkRender {
             vkUnmapMemory(m_context->vkDevice().m_LogicalDevice, stagingBuffer.memory);
         }
 
-
-
         Utils::setImageLayout(
-                drawCmdBuffers.buffers[currentFrame],
-                m_depthOnlyFramebuffer.depthImage->image(),
-                VK_IMAGE_ASPECT_DEPTH_BIT,
-                VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
-                VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
+            drawCmdBuffers.buffers[currentFrame],
+            m_depthOnlyFramebuffer.depthImage->image(),
+            VK_IMAGE_ASPECT_DEPTH_BIT,
+            VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
         );
     }
 
@@ -542,13 +559,13 @@ namespace VkRender {
             m_ui->lastHoveredBorderType = EditorBorderState::Right;
             return;
         }
-// Top border including borderSize pixels outside the window
+        // Top border including borderSize pixels outside the window
         if (mousePos.x >= m_ui->x && mousePos.x <= m_ui->x + m_ui->width &&
             mousePos.y >= m_ui->y - m_ui->borderSize && mousePos.y <= m_ui->y + m_ui->borderSize) {
             m_ui->lastHoveredBorderType = EditorBorderState::Top;
             return;
         }
-// Bottom border including borderSize pixels outside the window
+        // Bottom border including borderSize pixels outside the window
         if (mousePos.x >= m_ui->x && mousePos.x <= m_ui->x + m_ui->width &&
             mousePos.y >= m_ui->y + m_ui->height - m_ui->borderSize &&
             mousePos.y <= m_ui->y + m_ui->height + m_ui->borderSize) {
@@ -557,7 +574,6 @@ namespace VkRender {
         }
         if (mousePos.x >= m_ui->x && mousePos.x <= m_ui->x + m_ui->width && mousePos.y >= m_ui->y &&
             mousePos.y <= m_ui->y + m_ui->height) {
-
             m_ui->lastHoveredBorderType = EditorBorderState::Inside;
             return;
         }
@@ -626,10 +642,10 @@ namespace VkRender {
     }
 
     void
-    Editor::windowResizeEditorsHorizontal(int32_t dx, double widthScale, std::vector<std::unique_ptr<Editor>> &editors,
+    Editor::windowResizeEditorsHorizontal(int32_t dx, double widthScale, std::vector<std::unique_ptr<Editor> > &editors,
                                           uint32_t width) {
         std::vector<size_t> maxHorizontalEditors;
-        std::map<size_t, std::vector<size_t>> indicesHorizontalEditors;
+        std::map<size_t, std::vector<size_t> > indicesHorizontalEditors;
         for (size_t i = 0; auto &sortedEditor: editors) {
             auto &editor = sortedEditor;
             // Find the matching neighbors to the right (We sorted our editors list)
@@ -669,15 +685,13 @@ namespace VkRender {
         }
 
 
-
-
         // Extract entries from the map to a vector
-        std::vector<std::pair<size_t, std::vector<size_t>>> entries(indicesHorizontalEditors.begin(),
-                                                                    indicesHorizontalEditors.end());
+        std::vector<std::pair<size_t, std::vector<size_t> > > entries(indicesHorizontalEditors.begin(),
+                                                                      indicesHorizontalEditors.end());
 
         // Comparator function to sort by ciX
-        auto comparator = [&](const std::pair<size_t, std::vector<size_t>> &a,
-                              const std::pair<size_t, std::vector<size_t>> &b) {
+        auto comparator = [&](const std::pair<size_t, std::vector<size_t> > &a,
+                              const std::pair<size_t, std::vector<size_t> > &b) {
             // Assuming you want to sort based on the ciX value of the first editor in each vector
             size_t indexA = a.second.front(); // or however you decide which index to use
             size_t indexB = b.second.front();
@@ -698,11 +712,11 @@ namespace VkRender {
                                                  nextCI.editorIndex, nextCI.x, ci.editorIndex,
                                                  ci.x + ci.width);
             }
-        }        // Perform the actual resize events
+        } // Perform the actual resize events
 
 
         // Map to store counts and indices of editors bordering the same editor
-        std::map<size_t, std::pair<size_t, std::vector<size_t>>> identicalBorders;
+        std::map<size_t, std::pair<size_t, std::vector<size_t> > > identicalBorders;
 
         // Iterate over the map to count bordering editors and store indices
         for (const auto &editorIndices: entries) {
@@ -752,10 +766,10 @@ namespace VkRender {
     }
 
     void
-    Editor::windowResizeEditorsVertical(int32_t dy, double heightScale, std::vector<std::unique_ptr<Editor>> &editors,
+    Editor::windowResizeEditorsVertical(int32_t dy, double heightScale, std::vector<std::unique_ptr<Editor> > &editors,
                                         uint32_t height) {
         std::vector<size_t> maxHorizontalEditors;
-        std::map<size_t, std::vector<size_t>> indicesVertical;
+        std::map<size_t, std::vector<size_t> > indicesVertical;
         for (size_t i = 0; auto &sortedEditor: editors) {
             auto &editor = sortedEditor;
             // Find the matching neighbors to the right (We sorted our editors list)
@@ -794,12 +808,12 @@ namespace VkRender {
         }
 
         // Extract entries from the map to a vector
-        std::vector<std::pair<size_t, std::vector<size_t>>> entries(indicesVertical.begin(),
-                                                                    indicesVertical.end());
+        std::vector<std::pair<size_t, std::vector<size_t> > > entries(indicesVertical.begin(),
+                                                                      indicesVertical.end());
 
         // Comparator function to sort by ciX
-        auto comparator = [&](const std::pair<size_t, std::vector<size_t>> &a,
-                              const std::pair<size_t, std::vector<size_t>> &b) {
+        auto comparator = [&](const std::pair<size_t, std::vector<size_t> > &a,
+                              const std::pair<size_t, std::vector<size_t> > &b) {
             // Assuming you want to sort based on the ciX value of the first editor in each vector
             size_t indexA = a.second.front(); // or however you decide which index to use
             size_t indexB = b.second.front();
@@ -821,11 +835,11 @@ namespace VkRender {
                                                  nextCI.editorIndex, nextCI.y, ci.editorIndex,
                                                  ci.y + ci.height);
             }
-        }        // Perform the actual resize events
+        } // Perform the actual resize events
 
 
         // Map to store counts and indices of editors bordering the same editor
-        std::map<size_t, std::pair<size_t, std::vector<size_t>>> identicalBorders;
+        std::map<size_t, std::pair<size_t, std::vector<size_t> > > identicalBorders;
 
         // Iterate over the map to count bordering editors and store indices
         for (const auto &editorIndices: entries) {
@@ -899,9 +913,9 @@ namespace VkRender {
         }
         editor->ui()->cornerBottomLeftHovered = editor->ui()->lastHoveredBorderType == EditorBorderState::BottomLeft;
         editor->ui()->resizeHovered = (EditorBorderState::Left == editor->ui()->lastHoveredBorderType ||
-                                      EditorBorderState::Right == editor->ui()->lastHoveredBorderType ||
-                                      EditorBorderState::Top == editor->ui()->lastHoveredBorderType ||
-                                      EditorBorderState::Bottom == editor->ui()->lastHoveredBorderType);
+                                       EditorBorderState::Right == editor->ui()->lastHoveredBorderType ||
+                                       EditorBorderState::Top == editor->ui()->lastHoveredBorderType ||
+                                       EditorBorderState::Bottom == editor->ui()->lastHoveredBorderType);
         editor->ui()->hovered = editor->ui()->lastHoveredBorderType != EditorBorderState::None;
 
         if (editor->ui()->hovered) {
@@ -951,7 +965,7 @@ namespace VkRender {
     }
 
     void
-    Editor::handleIndirectClickState(std::vector<std::unique_ptr<Editor>> &editors, std::unique_ptr<Editor> &editor,
+    Editor::handleIndirectClickState(std::vector<std::unique_ptr<Editor> > &editors, std::unique_ptr<Editor> &editor,
                                      const VkRender::MouseButtons &mouse) {
         if (mouse.left && mouse.action == GLFW_PRESS) {
             //&& (!anyCornerHovered && !anyCornerClicked)) {
@@ -977,11 +991,11 @@ namespace VkRender {
             editor->ui()->lastClickedBorderType = editor->checkLineBorderState(mouse.pos, true);
 
             Log::Logger::getInstance()->info(
-                    "Indirect access from Editor {} to Editor {}' border: {}. Our editor resize {} {}",
-                    editor->m_createInfo.editorIndex,
-                    otherEditor->m_createInfo.editorIndex,
-                    otherEditor->ui()->lastClickedBorderType, editor->ui()->resizeActive,
-                    editor->ui()->lastClickedBorderType);
+                "Indirect access from Editor {} to Editor {}' border: {}. Our editor resize {} {}",
+                editor->m_createInfo.editorIndex,
+                otherEditor->m_createInfo.editorIndex,
+                otherEditor->ui()->lastClickedBorderType, editor->ui()->resizeActive,
+                editor->ui()->lastClickedBorderType);
         }
         otherBorder = otherEditor->checkLineBorderState(mouse.pos, false);
         if (otherBorder & EditorBorderState::VerticalBorders) {
@@ -992,16 +1006,16 @@ namespace VkRender {
             otherEditor->ui()->lastHoveredBorderType = otherBorder;
             editor->ui()->lastClickedBorderType = editor->checkLineBorderState(mouse.pos, false);
             Log::Logger::getInstance()->info(
-                    "Indirect access from Editor {} to Editor {}' border: {}. Our editor resize {} {}",
-                    editor->m_createInfo.editorIndex,
-                    otherEditor->m_createInfo.editorIndex,
-                    otherEditor->ui()->lastClickedBorderType, editor->ui()->resizeActive,
-                    editor->ui()->lastClickedBorderType);
+                "Indirect access from Editor {} to Editor {}' border: {}. Our editor resize {} {}",
+                editor->m_createInfo.editorIndex,
+                otherEditor->m_createInfo.editorIndex,
+                otherEditor->ui()->lastClickedBorderType, editor->ui()->resizeActive,
+                editor->ui()->lastClickedBorderType);
         }
     }
 
 
-    void Editor::checkIfEditorsShouldMerge(std::vector<std::unique_ptr<Editor>> &editors) {
+    void Editor::checkIfEditorsShouldMerge(std::vector<std::unique_ptr<Editor> > &editors) {
         int debug = 1;
 
         for (size_t i = 0; i < editors.size(); ++i) {
@@ -1063,8 +1077,7 @@ namespace VkRender {
         return editor->validateEditorSize(newEditorCI);
     }
 
-    void Editor::createOffscreenFramebuffer() {
-        {
+    void Editor::createOffscreenFramebuffer() { {
             VkImageCreateInfo imageCI = Populate::imageCreateInfo();
             imageCI.imageType = VK_IMAGE_TYPE_2D;
             imageCI.format = m_createInfo.pPassCreateInfo.depthFormat;
@@ -1094,10 +1107,7 @@ namespace VkRender {
             createInfo.dstLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
             createInfo.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
             m_offscreenFramebuffer.depthStencil = std::make_shared<VulkanImage>(createInfo);
-        }
-
-
-        {
+        } {
             VkImageCreateInfo imageCI = Populate::imageCreateInfo();
             imageCI.imageType = VK_IMAGE_TYPE_2D;
             imageCI.format = m_createInfo.pPassCreateInfo.swapchainColorFormat;
@@ -1125,9 +1135,7 @@ namespace VkRender {
             createInfo.dstLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
             createInfo.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
             m_offscreenFramebuffer.colorImage = std::make_unique<VulkanImage>(createInfo);
-
-        }
-        {
+        } {
             VkImageCreateInfo imageCI = Populate::imageCreateInfo();
             imageCI.imageType = VK_IMAGE_TYPE_2D;
             imageCI.format = m_createInfo.pPassCreateInfo.swapchainColorFormat;
@@ -1155,9 +1163,7 @@ namespace VkRender {
             createInfo.dstLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
             createInfo.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
             m_offscreenFramebuffer.resolvedImage = std::make_unique<VulkanImage>(createInfo);
-        }
-
-        {
+        } {
             VulkanFramebufferCreateInfo fbCreateInfo(m_context->vkDevice());
             fbCreateInfo.width = m_createInfo.width;
             fbCreateInfo.height = m_createInfo.height;
@@ -1201,10 +1207,8 @@ namespace VkRender {
             createInfo.dstLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
             createInfo.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
             m_depthOnlyFramebuffer.depthImage = std::make_unique<VulkanImage>(createInfo);
-
-        }
-
-        {   // Create a framebuffer specifically for the depth-only render pass
+        } {
+            // Create a framebuffer specifically for the depth-only render pass
 
 
             VulkanFramebufferCreateInfo fbCreateInfo(m_context->vkDevice());
@@ -1225,7 +1229,5 @@ namespace VkRender {
 
             m_context->sharedEditorData().depthFrameBuffer[m_uuid] = m_depthOnlyFramebuffer;
         }
-
     }
-
 }

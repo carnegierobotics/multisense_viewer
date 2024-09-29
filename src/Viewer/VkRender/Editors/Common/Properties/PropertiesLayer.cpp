@@ -22,6 +22,13 @@ namespace VkRender {
 
     }
 
+    void PropertiesLayer::setScene(std::shared_ptr<Scene> scene) {
+        Layer::setScene(scene);
+
+        // Reset the selection context
+        m_selectionContext = Entity(); // reset selectioncontext
+    }
+
     void PropertiesLayer::drawVec3Control(const std::string &label, glm::vec3 &values, float resetValue = 0.0f,
                                           float speed = 1.0f, float columnWidth = 100.0f) {
         ImGuiIO &io = ImGui::GetIO();

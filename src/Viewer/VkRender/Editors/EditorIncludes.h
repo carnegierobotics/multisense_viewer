@@ -123,8 +123,10 @@ namespace VkRender {
     /** @brief Layout variables for UI Layer and is shared across layers */
     struct EditorUILayoutInfo{
         float uiHeight = 50.0f;
+        float uiWidth = 50.0f;
         float borderSize = 3.0f;
         float uiYOffset = uiHeight + borderSize;
+        float uiXOffset = uiWidth + borderSize;
 
     };
 
@@ -170,6 +172,7 @@ namespace VkRender {
         bool renderDepth = true; // TODO testing
         bool saveRenderToFile = false;
         std::filesystem::path renderToFileName = "output.png";
+        bool renderToOffscreen = false;
 
         bool active = false;
         bool hovered = false;

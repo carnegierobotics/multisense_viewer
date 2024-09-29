@@ -24,7 +24,6 @@ struct CommandBuffer {
 
     uint32_t* frameIndex = nullptr;
     uint32_t* activeImageIndex = nullptr;
-    RenderPassType renderPassType = RENDER_PASS_COLOR;
 };
 
 

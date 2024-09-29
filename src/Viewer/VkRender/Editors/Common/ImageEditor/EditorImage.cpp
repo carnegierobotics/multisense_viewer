@@ -14,6 +14,7 @@ namespace VkRender {
         addUI("DebugWindow");
         addUIData<EditorImageUI>();
 
+        /*
         RenderPassInfo renderPassInfo{};
         renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
         renderPassInfo.renderPass = m_renderPass->getRenderPass();
@@ -51,6 +52,7 @@ namespace VkRender {
 
         m_renderPipelines = std::make_unique<GraphicsPipeline2D>(*m_context, renderPassInfo);
         m_renderPipelines->bindTexture(m_multiSenseTexture);
+        */
 
     }
 
@@ -150,6 +152,11 @@ namespace VkRender {
             }
             free(data.imagePtr);
         }
+
+        if (imageUI->renderFromSceneCamera) {
+            // Get offscreen rendered image
+        }
+
         if (m_context->sharedEditorData().selectedUUIDContext && !m_depthImagePipeline) {
             RenderPassInfo renderPassInfo{};
             renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
@@ -204,7 +211,7 @@ namespace VkRender {
         //if (m_depthImagePipeline)
         //    m_depthImagePipeline->draw(drawCmdBuffers);
 
-        if (m_renderPipelines && std::dynamic_pointer_cast<EditorImageUI>(m_ui)->renderMultiSense) {
+        if (m_renderPipelines) {
 
             m_renderPipelines->draw(drawCmdBuffers);
         }

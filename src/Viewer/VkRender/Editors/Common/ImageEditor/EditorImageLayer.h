@@ -13,6 +13,8 @@ namespace VkRender {
     struct EditorImageUI : public EditorUI {
         bool renderMultiSense = false;
 
+        bool renderFromSceneCamera = false;
+
         // Constructor that copies everything from base EditorUI
         EditorImageUI(const EditorUI &baseUI) : EditorUI(baseUI) {}
     };
@@ -36,7 +38,7 @@ namespace VkRender {
 
             // Set window position and size
             // Set window position and size
-            ImVec2 window_pos = ImVec2(0.0f, m_editor->ui()->layoutConstants.uiYOffset); // Position (x, y)
+            ImVec2 window_pos = ImVec2( m_editor->ui()->layoutConstants.uiXOffset, 0.0f); // Position (x, y)
             ImVec2 window_size = ImVec2(m_editor->ui()->width - window_pos.x,
                                         m_editor->ui()->height - window_pos.y); // Size (width, height)
 
@@ -53,8 +55,38 @@ namespace VkRender {
 
             auto imageUI = std::dynamic_pointer_cast<EditorImageUI>(m_editor->ui());
 
-            ImGui::Checkbox("Show", &imageUI->renderMultiSense);
 
+            ImGui::Checkbox("Scene camera", &imageUI->renderFromSceneCamera); ImGui::SameLine();
+            if (imageUI->renderFromSceneCamera) {
+                auto view = m_scene->getRegistry().view<CameraComponent>();
+                std::vector<std::string> cameraEntityNames;
+                for (auto entity : view) {
+                    if (m_scene->getRegistry().all_of<TagComponent>(entity)) {
+                        auto& tag = m_scene->getRegistry().get<TagComponent>(entity);
+                        cameraEntityNames.push_back(tag.Tag);  // Assuming TagComponent has a 'name' string member
+                    }
+                }
+                static int item_current_idx = 0; // Store the selected index
+                const char* combo_preview_value = cameraEntityNames[item_current_idx].c_str(); // Preview value for the combo box
+                // Step 3: Create the combo box with ImGui
+                ImGui::SetNextItemWidth(150.0f);
+                if (ImGui::BeginCombo("Scene camera: ", combo_preview_value)) {
+                    for (int n = 0; n < cameraEntityNames.size(); n++) {
+                        const bool is_selected = (item_current_idx == n);
+                        if (ImGui::Selectable(cameraEntityNames[n].c_str(), is_selected)) {
+                            item_current_idx = n;
+                            auto* editor = reinterpret_cast<EditorImage *>(m_editor);
+
+                        }
+
+                        // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                        if (is_selected)
+                            ImGui::SetItemDefaultFocus();
+                    }
+                    ImGui::EndCombo();
+                    ImGui::SameLine();
+                }
+            }
             ImGui::SetNextItemWidth(150.0f);
             // If we have a device connected:
             if (m_context->multiSense()->anyMultiSenseDeviceOnline()) {

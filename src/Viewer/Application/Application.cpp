@@ -37,7 +37,6 @@
 #include "Application.h"
 #include "Viewer/VkRender/Core/UUID.h"
 #include "Viewer/Tools/Utils.h"
-#include "Viewer/Tools/Populate.h"
 
 #include "Viewer/VkRender/Editors/EditorDefinitions.h"
 #include "Viewer/Scenes/MultiSenseViewer/MultiSenseViewer.h"
@@ -80,7 +79,12 @@ namespace VkRender {
         m_mainEditor->addUI("MenuLayer");
         m_mainEditor->addUI("MainContextLayer");
 
+
         m_editorFactory = std::make_unique<EditorFactory>();
+
+        auto sceneRenderer = mainMenuEditor;
+        sceneRenderer.editorTypeDescription = EditorType::SceneRenderer;
+        m_sceneRenderer = createEditor(sceneRenderer);
 
         std::string lastActiveProject = ApplicationConfig::getInstance().getUserSetting().projectName;
         loadProject(Utils::getProjectFileFromName(lastActiveProject));
@@ -217,6 +221,8 @@ namespace VkRender {
         else {
             m_scene = std::make_shared<DefaultScene>(*this, "Default Scene");
         }
+
+        m_sceneRenderer->loadScene(m_scene);
         for (auto &editor: m_editors) {
             editor->loadScene(std::shared_ptr<Scene>(m_scene));
         }
@@ -263,6 +269,7 @@ namespace VkRender {
             otherIO.MouseDown[0] = mouse.left;
             otherIO.MouseDown[1] = mouse.right;
         }
+        m_sceneRenderer->update();
 
         updateEditors();
         m_mainEditor->update();
@@ -301,16 +308,14 @@ namespace VkRender {
         }
         handleEditorResize();
 
-        // Update which shared data and such
-
+        // Update shared data
         for (auto &editor: m_editors) {
-            if (editor->ui()->renderDepth) {
-                m_sharedEditorData.selectedUUIDContext = std::make_shared<UUID>(editor->getUUID());
-            }
+            m_sharedEditorData.selectedUUIDContext = std::make_shared<UUID>(editor->getUUID());
         }
     }
 
     void Application::onRender() {
+        m_sceneRenderer->render(drawCmdBuffers);
         /** Generate Draw Commands **/
         for (auto &editor: m_editors) {
             editor->render(drawCmdBuffers);
@@ -336,7 +341,9 @@ namespace VkRender {
         ci.width = m_width;
         ci.height = m_height;
         ci.frameBuffers = m_frameBuffers.data();
+        m_sceneRenderer->resize(ci);
         m_mainEditor->resize(ci);
+
     }
 
     void Application::cleanUp() {

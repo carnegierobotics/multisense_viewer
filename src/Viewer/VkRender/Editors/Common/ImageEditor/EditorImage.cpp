@@ -153,8 +153,20 @@ namespace VkRender {
             free(data.imagePtr);
         }
 
-        if (imageUI->renderFromSceneCamera) {
+        if (imageUI->update) {
             // Get offscreen rendered image
+            auto sceneRenderer = m_context->sceneRenderer();
+            auto& image = sceneRenderer->getOffscreenFramebuffer().resolvedImage;
+            VulkanTexture2DCreateInfo textureCreateInfo(m_context->vkDevice());
+            textureCreateInfo.image = image;
+            m_colorTexture = std::make_shared<VulkanTexture2D>(textureCreateInfo);
+            RenderPassInfo renderPassInfo{};
+            renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
+            renderPassInfo.renderPass = m_renderPass->getRenderPass();
+            m_renderPipelines = std::make_unique<GraphicsPipeline2D>(*m_context, renderPassInfo);
+            m_renderPipelines->bindTexture(m_colorTexture);
+            imageUI->update = false;
+
         }
 
         if (m_context->sharedEditorData().selectedUUIDContext && !m_depthImagePipeline) {
@@ -166,13 +178,6 @@ namespace VkRender {
             m_texture = std::make_shared<VulkanTexture2D>(textureCreateInfo);
             m_depthImagePipeline = std::make_unique<GraphicsPipeline2D>(*m_context, renderPassInfo);
             m_depthImagePipeline->bindTexture(m_texture);
-        }
-
-        //ui()->saveRenderToFile = m_createInfo.sharedUIContextData->newFrame;
-        if (m_createInfo.sharedUIContextData->m_selectedEntity) {
-            ui()->renderToFileName = "scene_0000/disparity/" +
-                                    m_createInfo.sharedUIContextData->m_selectedEntity.getComponent<TagComponent>().Tag;
-            ui()->renderToFileName.replace_extension(".png");
         }
 
         auto view = m_activeScene->getRegistry().view<CameraComponent>();

@@ -195,6 +195,7 @@ namespace VkRender {
 
             drawFloatControl("Field of View", component().fov(), 1.0f);
             component().updateProjectionMatrix();
+            ImGui::Checkbox("Render scene from viewpoint", &component.renderFromViewpoint());
 
         });
 

@@ -14,6 +14,10 @@ namespace VkRender {
         bool renderMultiSense = false;
 
         bool renderFromSceneCamera = false;
+        bool update = false;
+
+        int previewID = 0;
+        std::string previewText = "";
 
         // Constructor that copies everything from base EditorUI
         EditorImageUI(const EditorUI &baseUI) : EditorUI(baseUI) {}
@@ -66,17 +70,16 @@ namespace VkRender {
                         cameraEntityNames.push_back(tag.Tag);  // Assuming TagComponent has a 'name' string member
                     }
                 }
-                static int item_current_idx = 0; // Store the selected index
-                const char* combo_preview_value = cameraEntityNames[item_current_idx].c_str(); // Preview value for the combo box
+                const char* combo_preview_value = cameraEntityNames[imageUI->previewID].c_str(); // Preview value for the combo box
                 // Step 3: Create the combo box with ImGui
                 ImGui::SetNextItemWidth(150.0f);
-                if (ImGui::BeginCombo("Scene camera: ", combo_preview_value)) {
+                if (ImGui::BeginCombo(("Camera ##" + m_editor->getUUID().operator std::string()).c_str(), combo_preview_value)) {
                     for (int n = 0; n < cameraEntityNames.size(); n++) {
-                        const bool is_selected = (item_current_idx == n);
+                        const bool is_selected = (imageUI->previewID == n);
                         if (ImGui::Selectable(cameraEntityNames[n].c_str(), is_selected)) {
-                            item_current_idx = n;
+                            imageUI->previewID = n;
                             auto* editor = reinterpret_cast<EditorImage *>(m_editor);
-
+                            imageUI->update = true;
                         }
 
                         // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)

@@ -67,9 +67,6 @@ namespace VkRender {
         if (!m_activeCamera)
             return;
 
-        ui()->saveRenderToFile = m_createInfo.sharedUIContextData->newFrame;
-
-
         generatePipelines();
         if (imageUI->render3dgsImage || m_createInfo.sharedUIContextData->newFrame) {
             for (auto &pipeline: m_gaussianRenderPipelines) {

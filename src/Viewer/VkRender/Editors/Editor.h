@@ -90,6 +90,8 @@ namespace VkRender {
             return m_guiManager->guiResources();
         }
 
+        OffscreenFramebuffer& getOffscreenFramebuffer(){return m_offscreenFramebuffer;}
+
         void renderScene(CommandBuffer & command_buffer, const VkRenderPass& renderPass, uint32_t frameBufferCount, VkFramebuffer* frameBuffers, const VkViewport & viewport, VkRect2D scissor, bool includeGUI = true, uint32_t clear_value_count = 0, VkClearValue * clear_values = nullptr);
 
         void render(CommandBuffer &drawCmdBuffers);
@@ -176,17 +178,14 @@ namespace VkRender {
 
         void renderDepthPass(CommandBuffer &drawCmdBuffers);
 
-        struct OffscreenFramebuffer {
-            std::unique_ptr<VulkanImage> colorImage;
-            std::unique_ptr<VulkanImage> resolvedImage;
-            std::shared_ptr<VulkanImage> depthStencil;
-            std::unique_ptr<VulkanFramebuffer> framebuffer;
-        } m_offscreenFramebuffer;
+        OffscreenFramebuffer m_offscreenFramebuffer;
 
         DepthFramebuffer m_depthOnlyFramebuffer;
         UUID m_uuid;
         std::shared_ptr<EditorUI> m_ui;
 
+        bool m_renderDepthOnly = false;
+        bool m_renderToOffscreen = false;
     };
 }
 

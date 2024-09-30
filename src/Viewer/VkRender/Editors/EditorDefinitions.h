@@ -12,6 +12,7 @@ namespace VkRender {
     // Define the EditorType enum
     enum class EditorType {
         None,
+        SceneRenderer,
         Viewport3D,
         ImageEditor,
         Properties,
@@ -23,7 +24,9 @@ namespace VkRender {
         };
 
     static std::vector<EditorType> getAllEditorTypes() {
-        return {EditorType::Viewport3D,
+        return {
+                EditorType::SceneRenderer,
+                EditorType::Viewport3D,
                 EditorType::ImageEditor,
                 EditorType::Properties,
                 EditorType::GaussianViewer,
@@ -35,6 +38,7 @@ namespace VkRender {
     // Function to convert enum to string
     static std::string editorTypeToString(EditorType type) {
         switch(type) {
+            case EditorType::SceneRenderer: return "Scene Renderer";
             case EditorType::MultiSenseViewer_Sidebar: return "MultiSense Viewer Sidebar";
             case EditorType::MultiSenseViewer_Configuration: return "MultiSense Viewer Configuration";
             case EditorType::SceneHierarchy: return "Scene Hierarchy";
@@ -49,6 +53,7 @@ namespace VkRender {
 
     // Function to convert string to enum
     static EditorType stringToEditorType(const std::string &str) {
+        if (str == "Scene Renderer") return EditorType::SceneRenderer;
         if (str == "Scene Hierarchy") return EditorType::SceneHierarchy;
         if (str == "Test Window") return EditorType::TestWindow;
         if (str == "3D Viewport") return EditorType::Viewport3D;

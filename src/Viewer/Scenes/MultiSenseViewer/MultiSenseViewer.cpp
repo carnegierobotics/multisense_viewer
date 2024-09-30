@@ -27,6 +27,15 @@ namespace VkRender {
             cameraComponent.camera.pose.pos = transform.getPosition();
             cameraEntity.addComponent<MeshComponent>(1);
         }
+        {
+            auto cameraEntity = createNewCamera("SecondaryCamera", 400, 400);
+            auto &cameraComponent = cameraEntity.getComponent<CameraComponent>();
+            cameraComponent.camera.setType(Camera::flycam);
+            auto &transform = cameraEntity.getComponent<TransformComponent>();
+            transform.setPosition({2.0f, 0.0f, 2.5f});
+            cameraComponent.camera.pose.pos = transform.getPosition();
+            cameraEntity.addComponent<MeshComponent>(1);
+        }
 
 #ifdef SYCL_ENABLED
         {  auto gaussianEntity = createEntity("GaussianEntity");

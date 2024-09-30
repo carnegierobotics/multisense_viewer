@@ -55,7 +55,6 @@ namespace VkRender {
         };
 
         struct Rotation {
-
             glm::vec3 rotation;
 
             glm::quat quaternion;
@@ -79,14 +78,15 @@ namespace VkRender {
         }
 
 
-
         void setQuaternion(const glm::quat &q) {
             rot.quaternion = q;
             type = RotationType::Quaternion;
         }
+
         glm::quat &getQuaternion() {
             return rot.quaternion;
         }
+
         glm::vec3 &getRotation() {
             return rot.rotation;
         }
@@ -95,13 +95,14 @@ namespace VkRender {
             translation = v;
         }
 
-        void setScale(const glm::vec3& s){
+        void setScale(const glm::vec3 &s) {
             scale = s;
         }
 
         glm::vec3 &getPosition() {
             return translation;
         }
+
         glm::vec3 &getScale() {
             return scale;
         }
@@ -136,20 +137,19 @@ namespace VkRender {
             }
             return rotMat;
         }
-    private:
 
+    private:
         RotationType type;
 
         glm::vec3 translation = {0.0f, 0.0f, 0.0f};
         glm::vec3 rotation = {0.0f, 0.0f, 0.0f};
         glm::vec3 scale = {1.0f, 1.0f, 1.0f};
-
     };
 
 
     struct CameraComponent {
         Camera camera;
-        bool drawGizmo = true;
+        bool render = false;
 
         CameraComponent() = default;
 
@@ -165,6 +165,8 @@ namespace VkRender {
         Camera &operator()() {
             return camera;
         }
+
+        bool &renderFromViewpoint() { return render; }
     };
 
     struct ScriptComponent {
@@ -217,9 +219,9 @@ namespace VkRender {
 
 
     using AllComponents =
-            ComponentGroup<TransformComponent,
-                    CameraComponent, ScriptComponent,
-                    Rigidbody2DComponent, TextComponent>;
+    ComponentGroup<TransformComponent,
+        CameraComponent, ScriptComponent,
+        Rigidbody2DComponent, TextComponent>;
 
     DISABLE_WARNING_POP
 }

@@ -19,6 +19,13 @@
 #include "Viewer/VkRender/Core/VulkanImage.h"
 
 namespace VkRender {
+    struct OffscreenFramebuffer {
+        std::shared_ptr<VulkanImage> colorImage;
+        std::shared_ptr<VulkanImage> resolvedImage;
+        std::shared_ptr<VulkanImage> depthStencil;
+        std::unique_ptr<VulkanFramebuffer> framebuffer;
+    };
+
 
     struct DepthFramebuffer {
         std::shared_ptr<VulkanImage> depthImage;
@@ -128,6 +135,7 @@ namespace VkRender {
         float uiYOffset = uiHeight + borderSize;
         float uiXOffset = uiWidth + borderSize;
 
+
     };
 
 
@@ -169,10 +177,6 @@ namespace VkRender {
 
         EditorUILayoutInfo layoutConstants;
         bool showDebugWindow = false;
-        bool renderDepth = true; // TODO testing
-        bool saveRenderToFile = false;
-        std::filesystem::path renderToFileName = "output.png";
-        bool renderToOffscreen = false;
 
         bool active = false;
         bool hovered = false;

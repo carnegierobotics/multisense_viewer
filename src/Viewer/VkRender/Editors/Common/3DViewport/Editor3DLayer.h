@@ -17,6 +17,11 @@
 
 namespace VkRender {
 
+    struct Editor3DViewportUI : public EditorUI {
+        bool renderToOffscreen = false;
+        // Constructor that copies everything from base EditorUI
+        explicit Editor3DViewportUI(const EditorUI &baseUI) : EditorUI(baseUI) {}
+    };
 
     class Editor3DLayer : public Layer {
 
@@ -49,8 +54,9 @@ namespace VkRender {
 
             // Create the parent window
             ImGui::Begin("Editor3DLayer", nullptr, window_flags);
+            auto imageUI = std::dynamic_pointer_cast<Editor3DViewportUI>(m_editor->ui());
 
-            ImGui::Checkbox("Render to Offscreen", &m_editor->ui()->renderToOffscreen);;
+            ImGui::Checkbox("Render to Offscreen", &imageUI->renderToOffscreen);
 
             /*
             static bool toggle = false;

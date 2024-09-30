@@ -18,6 +18,7 @@
 #include "Viewer/VkRender/Editors/Common/Properties/EditorProperties.h"
 #include "Viewer/VkRender/Editors/Common/GaussianViewer/EditorGaussianViewer.h"
 #include "Viewer/VkRender/Editors/Common/ImageEditor/EditorImage.h"
+#include "Viewer/VkRender/Editors/Common/SceneRenderer/SceneRenderer.h"
 
 namespace VkRender {
 
@@ -27,6 +28,9 @@ namespace VkRender {
     class EditorFactory {
     public:
         EditorFactory(){
+            registerEditor(EditorType::SceneRenderer, [](EditorCreateInfo &ci, UUID) {
+                return std::make_unique<SceneRenderer>(ci);
+            });
             registerEditor(EditorType::SceneHierarchy, [](EditorCreateInfo &ci, UUID) {
                 return std::make_unique<EditorSceneHierarchy>(ci);
             });

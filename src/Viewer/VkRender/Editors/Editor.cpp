@@ -114,12 +114,8 @@ namespace VkRender {
     }
 
     void Editor::render(CommandBuffer &drawCmdBuffers) {
-        /// Depth render pass
-        if (m_ui->renderDepth)
-            renderDepthPass(drawCmdBuffers);
-
         /// Off-screen render pass
-        if (m_ui->renderToOffscreen) {
+        if (m_renderToOffscreen) {
             const uint32_t clearValueCount = 3;
             VkClearValue clearValues[clearValueCount];
             clearValues[0].color = {{0.33f, 0.33f, 0.5f, 1.0f}}; // Clear color to black (or any other color)
@@ -137,29 +133,48 @@ namespace VkRender {
             VkRect2D scissor{};
             scissor.offset = {(0), (0)};
             scissor.extent = {static_cast<uint32_t>(m_createInfo.width), static_cast<uint32_t>(m_createInfo.height)};
+            VkImageSubresourceRange subresourceRange = {};
+            subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            subresourceRange.levelCount = 1;
+            subresourceRange.layerCount = 1;
+
+            Utils::setImageLayout(drawCmdBuffers.buffers[*drawCmdBuffers.frameIndex], m_offscreenFramebuffer.resolvedImage->image(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, subresourceRange, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+
+
             renderScene(drawCmdBuffers, m_offscreenRenderPass->getRenderPass(), 0, &m_offscreenFramebuffer.framebuffer->framebuffer() , viewport, scissor, false,
                         clearValueCount, clearValues);
-
             // Transition image to be in shader read mode
+
+            Utils::setImageLayout(drawCmdBuffers.buffers[*drawCmdBuffers.frameIndex], m_offscreenFramebuffer.resolvedImage->image(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, subresourceRange, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+
+
+        } else if (m_renderDepthOnly) {
+            renderDepthPass(drawCmdBuffers);
+        } else {
+            /// "Normal" Render pass
+            VkViewport viewport{};
+            viewport.x = static_cast<float>(m_createInfo.x);
+            viewport.y = static_cast<float>(m_createInfo.y);
+            viewport.width = static_cast<float>(m_createInfo.width);
+            viewport.height = static_cast<float>(m_createInfo.height);
+            viewport.minDepth = 0.0f;
+            viewport.maxDepth = 1.0f;
+            VkRect2D scissor{};
+            scissor.offset = {(m_createInfo.x), (m_createInfo.y)};
+            scissor.extent = {static_cast<uint32_t>(m_createInfo.width), static_cast<uint32_t>(m_createInfo.height)};
+            renderScene(drawCmdBuffers, m_renderPass->getRenderPass(), *drawCmdBuffers.activeImageIndex, m_createInfo.frameBuffers, viewport, scissor);
         }
 
-        /// "Normal" Render pass
-        VkViewport viewport{};
-        viewport.x = static_cast<float>(m_createInfo.x);
-        viewport.y = static_cast<float>(m_createInfo.y);
-        viewport.width = static_cast<float>(m_createInfo.width);
-        viewport.height = static_cast<float>(m_createInfo.height);
-        viewport.minDepth = 0.0f;
-        viewport.maxDepth = 1.0f;
-        VkRect2D scissor{};
-        scissor.offset = {(m_createInfo.x), (m_createInfo.y)};
-        scissor.extent = {static_cast<uint32_t>(m_createInfo.width), static_cast<uint32_t>(m_createInfo.height)};
-        renderScene(drawCmdBuffers, m_renderPass->getRenderPass(), *drawCmdBuffers.activeImageIndex, m_createInfo.frameBuffers, viewport, scissor);
+
 
         // Render to offscreen framebuffer
         // Transition and copy framebuffer to cpu
         // Write to file
+        /*
         if (ui()->saveRenderToFile) {
+
             CommandBuffer copyCmd = m_context->vkDevice().createVulkanCommandBuffer(
                 VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
             uint32_t frameIndexValue = 0;
@@ -274,7 +289,8 @@ namespace VkRender {
             // Clean up
             delete[] rgbData;
             vkUnmapMemory(m_context->vkDevice().m_LogicalDevice, stagingBuffer.memory);
-        }
+
+        }*/
     }
 
 
@@ -317,6 +333,7 @@ namespace VkRender {
         vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
 
 
+        /*
         if (ui()->saveRenderToFile) {
             CommandBuffer copyCmd = m_context->vkDevice().createVulkanCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY,
                 true);
@@ -416,7 +433,7 @@ namespace VkRender {
             int width = m_createInfo.width;
             int height = m_createInfo.height;
             // Save the image
-            std::filesystem::path filePath = m_ui->renderToFileName;
+            std::filesystem::path filePath; // = m_ui->renderToFileName;
 
             // Convert the path to a string
             std::string filePathStr = filePath.string();
@@ -489,6 +506,7 @@ namespace VkRender {
 
             vkUnmapMemory(m_context->vkDevice().m_LogicalDevice, stagingBuffer.memory);
         }
+        */
 
         Utils::setImageLayout(
             drawCmdBuffers.buffers[currentFrame],
@@ -1132,9 +1150,9 @@ namespace VkRender {
                     "OffScreenFrameBufferColorImage: " + editorTypeToString(m_createInfo.editorTypeDescription);
             createInfo.setLayout = true;
             createInfo.srcLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            createInfo.dstLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            createInfo.dstLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             createInfo.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            m_offscreenFramebuffer.colorImage = std::make_unique<VulkanImage>(createInfo);
+            m_offscreenFramebuffer.colorImage = std::make_shared<VulkanImage>(createInfo);
         } {
             VkImageCreateInfo imageCI = Populate::imageCreateInfo();
             imageCI.imageType = VK_IMAGE_TYPE_2D;
@@ -1144,7 +1162,7 @@ namespace VkRender {
             imageCI.arrayLayers = 1;
             imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
             imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
-            imageCI.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+            imageCI.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
             imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
             imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
             VkImageViewCreateInfo imageViewCI = Populate::imageViewCreateInfo();
@@ -1160,9 +1178,9 @@ namespace VkRender {
                     "OffScreenFrameBufferResolvedColorImage: " + editorTypeToString(m_createInfo.editorTypeDescription);
             createInfo.setLayout = true;
             createInfo.srcLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            createInfo.dstLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            createInfo.dstLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             createInfo.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            m_offscreenFramebuffer.resolvedImage = std::make_unique<VulkanImage>(createInfo);
+            m_offscreenFramebuffer.resolvedImage = std::make_shared<VulkanImage>(createInfo);
         } {
             VulkanFramebufferCreateInfo fbCreateInfo(m_context->vkDevice());
             fbCreateInfo.width = m_createInfo.width;

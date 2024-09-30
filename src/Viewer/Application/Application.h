@@ -117,6 +117,8 @@ namespace VkRender {
         // TODO we should collect per frame info like this somewhere
         float deltaTime() { return frameTimer; }
 
+        Editor* sceneRenderer() const {return m_sceneRenderer.get();}
+
         ImGuiContext *getMainUIContext() { return m_mainEditor->guiContext(); }
 
         uint32_t currentFrameIndex() { return currentFrame; }
@@ -166,6 +168,7 @@ namespace VkRender {
         std::unique_ptr<EditorFactory> m_editorFactory;
 
         std::unique_ptr<Editor> m_mainEditor;
+        std::unique_ptr<Editor> m_sceneRenderer;
 
         std::shared_ptr<GuiAssets> m_guiResources;
         SharedContextData m_sharedContextData;

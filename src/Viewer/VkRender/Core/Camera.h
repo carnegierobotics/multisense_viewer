@@ -83,8 +83,8 @@ namespace VkRender {
         float m_Znear = 0.1f;
         float m_Zfar = 10.0f;
 
-        uint32_t m_height = 0;
-        uint32_t m_width = 0;
+        uint32_t m_height = 1280;
+        uint32_t m_width = 720;
 
         Camera() = default;
 
@@ -115,7 +115,7 @@ namespace VkRender {
         }
 
         void updateProjectionMatrix(){
-            setPerspective(m_width / m_height);
+            setPerspective(static_cast<float>(m_width) / m_height);
         }
         struct Pose {
             //glm::quat q = glm::quat(0.5f, 0.5f, -0.5f, -0.5f); // We start by having a orientation facing positive x

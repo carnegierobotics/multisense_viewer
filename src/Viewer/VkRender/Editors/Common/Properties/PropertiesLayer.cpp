@@ -10,16 +10,12 @@
 #include "Viewer/VkRender/Core/Entity.h"
 
 namespace VkRender {
-
-
     /** Called once upon this object creation**/
     void PropertiesLayer::onAttach() {
-
     }
 
-/** Called after frame has finished rendered **/
+    /** Called after frame has finished rendered **/
     void PropertiesLayer::onFinishedRender() {
-
     }
 
     void PropertiesLayer::setScene(std::shared_ptr<Scene> scene) {
@@ -94,8 +90,9 @@ namespace VkRender {
 
         ImGui::PopID();
     }
+
     void PropertiesLayer::drawFloatControl(const std::string &label, float &value, float resetValue = 0.0f,
-                                          float speed = 1.0f, float columnWidth = 100.0f) {
+                                           float speed = 1.0f, float columnWidth = 100.0f) {
         ImGuiIO &io = ImGui::GetIO();
         auto boldFont = io.Fonts->Fonts[0];
 
@@ -171,7 +168,6 @@ namespace VkRender {
     }
 
     void PropertiesLayer::drawComponents(Entity entity) {
-
         if (ImGui::Button("Add Component"))
             ImGui::OpenPopup("AddComponent");
 
@@ -188,14 +184,13 @@ namespace VkRender {
 
         drawComponent<TransformComponent>("Transform", entity, [](auto &component) {
             drawVec3Control("Translation", component.getPosition());
-            drawVec3Control("Rotation",  component.getRotation(), 0.0f, 2.0f);
+            drawVec3Control("Rotation", component.getRotation(), 0.0f, 2.0f);
             drawVec3Control("Scale", component.getScale(), 1.0f);
         });
         drawComponent<CameraComponent>("Camera", entity, [](auto &component) {
-
-            drawFloatControl("Field of View", component().fov(), 1.0f);
-            component().updateProjectionMatrix();
-            ImGui::Checkbox("Render scene from viewpoint", &component.renderFromViewpoint());
+                drawFloatControl("Field of View", component().fov(), 1.0f);
+                component().updateProjectionMatrix();
+                ImGui::Checkbox("Render scene from viewpoint", &component.renderFromViewpoint());
 
         });
 
@@ -209,23 +204,22 @@ namespace VkRender {
             }
         });
         drawComponent<TagComponent>("Tag", entity, [this](auto &component) {
-            ImGui::Text("Entity Name:"); ImGui::SameLine();
+            ImGui::Text("Entity Name:");
+            ImGui::SameLine();
             // Define a buffer large enough to hold the tag's content
             // Copy the current tag content into the buffer
             // Check if `m_tagBuffer` is initialized or if the entity's tag has changed
             if (m_needsTagUpdate || strncmp(m_tagBuffer, component.getTag().c_str(), sizeof(m_tagBuffer)) != 0) {
                 strncpy(m_tagBuffer, component.getTag().c_str(), sizeof(m_tagBuffer));
-                m_tagBuffer[sizeof(m_tagBuffer) - 1] = '\0';  // Null-terminate to avoid overflow
-                m_needsTagUpdate = false;  // Reset the flag after updating the buffer
+                m_tagBuffer[sizeof(m_tagBuffer) - 1] = '\0'; // Null-terminate to avoid overflow
+                m_needsTagUpdate = false; // Reset the flag after updating the buffer
             }
             // Use ImGui::InputText to allow editing
             if (ImGui::InputText("##Tag", m_tagBuffer, sizeof(m_tagBuffer))) {
                 // If the input changes, update the component's tag
                 component.setTag(m_tagBuffer);
             }
-
         });
-
     }
 
     void PropertiesLayer::setSelectedEntity(Entity entity) {
@@ -233,23 +227,22 @@ namespace VkRender {
         m_needsTagUpdate = true; // update tag
     }
 
-/** Called once per frame **/
+    /** Called once per frame **/
     void PropertiesLayer::onUIRender() {
-
         setSelectedEntity(m_editor->ui()->shared->m_selectedEntity);
 
         ImVec2 window_pos = ImVec2(0.0f, m_editor->ui()->layoutConstants.uiYOffset); // Position (x, y)
         ImVec2 window_size = ImVec2(m_editor->ui()->width, m_editor->ui()->height); // Size (width, height)
-// Set window flags to remove decorations
+        // Set window flags to remove decorations
         ImGuiWindowFlags window_flags =
                 ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
                 ImGuiWindowFlags_NoBringToFrontOnFocus;
 
-// Set next window position and size
+        // Set next window position and size
         ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always);
         ImGui::SetNextWindowSize(window_size, ImGuiCond_Always);
 
-// Create the parent window
+        // Create the parent window
         ImGui::Begin("PropertiesLayer", NULL, window_flags);
 
         ImGui::Text("Entity Properties");
@@ -288,9 +281,8 @@ namespace VkRender {
         ImGui::End();
     }
 
-/** Called once upon this object destruction **/
+    /** Called once upon this object destruction **/
     void PropertiesLayer::onDetach() {
-
     }
 
     template<typename T>
@@ -310,14 +302,13 @@ namespace VkRender {
                 // Load into the active scene
                 auto &meshComponent = m_selectionContext.getComponent<MeshComponent>();
                 meshComponent.loadOBJ(loadFileInfo.path);
-
             } else if (loadFileInfo.filetype == LayerUtils::PLY_3DGS) {
                 // Load into the active scene
                 auto &registry = m_context->activeScene()->getRegistry();
                 auto view = registry.view<GaussianModelComponent>();
                 for (auto &entity: view) {
                     m_context->activeScene()->destroyEntity(
-                            Entity(entity, m_context->activeScene().get()));
+                        Entity(entity, m_context->activeScene().get()));
                 }
                 auto entity = m_context->activeScene()->createEntity(loadFileInfo.path.filename().string());
                 entity.addComponent<GaussianModelComponent>(loadFileInfo.path);
@@ -357,5 +348,4 @@ namespace VkRender {
                                         type, openLoc, flow);
         }
     }
-
 }

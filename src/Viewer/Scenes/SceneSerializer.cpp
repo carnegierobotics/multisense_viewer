@@ -112,6 +112,22 @@ namespace VkRender {
             out << YAML::Value << mesh.m_modelPath.string();
             out << YAML::EndMap;
         }
+        if (entity.hasComponent<CameraComponent>()) {
+            out << YAML::Key << "CameraComponent";
+            out << YAML::BeginMap;
+            auto& camera = entity.getComponent<CameraComponent>();
+            out << YAML::Key << "render";
+            out << YAML::Value << camera.render;
+            auto& cameraProps = camera.camera;
+            out << YAML::Key << "Width"; out << YAML::Value << cameraProps.m_width;
+            out << YAML::Key << "Height"; out << YAML::Value << cameraProps.m_height;
+            out << YAML::Key << "ZNear"; out << YAML::Value << cameraProps.m_Znear;
+            out << YAML::Key << "ZFar"; out << YAML::Value << cameraProps.m_Zfar;
+            out << YAML::Key << "FOV"; out << YAML::Value << cameraProps.m_Fov;
+
+
+            out << YAML::EndMap;
+        }
 
         out << YAML::EndMap;
     }

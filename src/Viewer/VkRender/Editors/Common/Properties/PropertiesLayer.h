@@ -35,6 +35,8 @@ namespace VkRender {
 
         Entity m_selectionContext;
         std::future<LayerUtils::LoadFileInfo> loadFileFuture;
+        char m_tagBuffer[256];  // Adjust size as needed
+        bool m_needsTagUpdate = true;
 
         template<typename T>
         void displayAddComponentEntry(const std::string &entryName);

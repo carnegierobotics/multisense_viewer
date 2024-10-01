@@ -135,12 +135,13 @@ set(SOURCE_FILES
         src/Viewer/VkRender/Editors/Common/Properties/PropertiesLayer.cpp
         src/Viewer/VkRender/Core/VulkanTexture.cpp
         src/Viewer/VkRender/Core/VulkanTexture.h
+
+        src/Viewer/Scenes/SceneSerializer.cpp
 )
 
 set(SCRIPT_FILES
         src/Viewer/Scenes/Default/DefaultScene.cpp
         src/Viewer/Scenes/Default/Scripts/MultiSense.cpp
-
         src/Viewer/Scenes/MultiSenseViewer/MultiSenseViewer.cpp
 
         #src/Viewer/Scenes/Renderer3D/Example/Example3D.cpp
@@ -159,6 +160,7 @@ set(LIBRARIES
         GPUOpen::VulkanMemoryAllocator
         tinyply
         MultiSense
+        yaml-cpp
 )
 
 if (ENABLE_SYCL)

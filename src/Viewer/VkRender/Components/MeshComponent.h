@@ -22,17 +22,10 @@
 
 namespace VkRender {
     struct MeshComponent {
-    public:
-
-        typedef enum ModelComponentState {
-            Uninitialized, // Nothing has happend
-            loaded, // Need graphics pipeline
-            ready, // ready to render
-        } ModelComponentState;
 
         MeshComponent() {
             loadModel(Utils::getModelsPath() / "obj" / "quad.obj");
-            m_modelPath = "Default mesh";
+            m_modelPath = Utils::getModelsPath() / "obj" / "quad.obj";
         }
 
         MeshComponent(const MeshComponent &) = delete;

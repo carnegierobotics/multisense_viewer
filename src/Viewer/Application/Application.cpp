@@ -35,6 +35,9 @@
  **/
 
 #include "Application.h"
+
+#include <Viewer/Scenes/SceneSerializer.h>
+
 #include "Viewer/VkRender/Core/UUID.h"
 #include "Viewer/Tools/Utils.h"
 
@@ -81,6 +84,9 @@ namespace VkRender {
 
 
         m_editorFactory = std::make_unique<EditorFactory>();
+        m_activeScene = std::make_shared<Scene>("DefaultScene");
+        SceneSerializer serializer(m_activeScene);
+        serializer.deserialize(Utils::getAssetsPath() / "Scenes" / "Example.multisense");
 
         std::string lastActiveProject = ApplicationConfig::getInstance().getUserSetting().projectName;
         loadProject(Utils::getProjectFileFromName(lastActiveProject));
@@ -134,7 +140,7 @@ namespace VkRender {
         sceneRenderer.editorTypeDescription = EditorType::SceneRenderer;
 
         m_sceneRenderers[uuid] = createEditorWithUUID(uuid, sceneRenderer);
-        m_sceneRenderers[uuid]->loadScene(m_scene);
+        m_sceneRenderers[uuid]->loadScene(m_activeScene);
         return m_sceneRenderers[uuid].get();
     }
 
@@ -235,23 +241,17 @@ namespace VkRender {
 
     // TODO make scene objects serializeable and loadable.
     void Application::loadScene(const std::filesystem::path &scenePath) {
-        if (scenePath == "MultiSense Scene")
-            m_scene = std::make_shared<MultiSenseViewer>(*this, "MultiSense Scene");
-        else {
-            m_scene = std::make_shared<DefaultScene>(*this, "Default Scene");
-        }
-
         for (auto &editor: m_sceneRenderers) {
-            editor.second->loadScene(m_scene);
+            editor.second->loadScene(m_activeScene);
         }
         for (auto &editor: m_editors) {
-            editor->loadScene(std::shared_ptr<Scene>(m_scene));
+            editor->loadScene(std::shared_ptr<Scene>(m_activeScene));
         }
     }
 
     void Application::deleteScene(std::filesystem::path scenePath) {
         // Find the scene to delete
-        Log::Logger::getInstance()->info("Deleting Scene with Reference count: {}", m_scene.use_count());
+        Log::Logger::getInstance()->info("Deleting Scene with Reference count: {}", m_activeScene.use_count());
         //m_scene.reset();
     }
 
@@ -381,8 +381,8 @@ namespace VkRender {
         auto startTime = std::chrono::steady_clock::now();
         auto &userSetting = ApplicationConfig::getInstance().getUserSetting();
         userSetting.projectName = m_projectConfig.name;
-        if (m_scene)
-            userSetting.sceneName = m_scene->getSceneName();
+        if (m_activeScene)
+            userSetting.sceneName = m_activeScene->getSceneName();
 
         m_usageMonitor->userEndSession();
         if (m_usageMonitor->hasUserLogCollectionConsent() &&
@@ -470,14 +470,14 @@ namespace VkRender {
             }
             if (mouse.left && mouse.action == GLFW_PRESS) {
                 Log::Logger::getInstance()->trace("We Left-clicked Editor: {}'s area :{}",
-                                                 editor->getCreateInfo().editorIndex,
-                                                 editor->ui()->lastClickedBorderType);
+                                                  editor->getCreateInfo().editorIndex,
+                                                  editor->ui()->lastClickedBorderType);
             }
             if (mouse.right && mouse.action == GLFW_PRESS) {
                 Log::Logger::getInstance()->trace("We Right-clicked Editor: {}'s area :{}. Merge? {}",
-                                                 editor->getCreateInfo().editorIndex,
-                                                 editor->ui()->lastClickedBorderType,
-                                                 editor->ui()->rightClickBorder);
+                                                  editor->getCreateInfo().editorIndex,
+                                                  editor->ui()->lastClickedBorderType,
+                                                  editor->ui()->rightClickBorder);
             }
         }
         bool splitEditors = false;
@@ -581,7 +581,7 @@ namespace VkRender {
 
         // Copy UI states
 
-        newEditor->onSceneLoad(std::shared_ptr<Scene>(m_scene));
+        newEditor->onSceneLoad(std::shared_ptr<Scene>(m_activeScene));
         m_editors.push_back(std::move(newEditor));
     }
 
@@ -761,7 +761,7 @@ namespace VkRender {
     }
 
     std::shared_ptr<Scene> Application::activeScene() {
-        return m_scene;
+        return m_activeScene;
     }
 
 

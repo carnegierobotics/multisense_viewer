@@ -160,7 +160,7 @@ namespace VkRender {
         std::vector<std::unique_ptr<Editor> > m_editors;
         ProjectConfig m_projectConfig;
 
-        std::shared_ptr<Scene> m_scene;
+        std::shared_ptr<Scene> m_activeScene;
         std::string m_selectedCameraTag = "Default Camera";
         std::unique_ptr<EditorFactory> m_editorFactory;
 

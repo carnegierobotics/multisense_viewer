@@ -207,7 +207,22 @@ namespace VkRender {
                 std::vector<std::string> types{".obj"};
                 openImportFileDialog("Wavefront", types, LayerUtils::OBJ_FILE);
             }
-
+        });
+        drawComponent<TagComponent>("Tag", entity, [this](auto &component) {
+            ImGui::Text("Entity Name:"); ImGui::SameLine();
+            // Define a buffer large enough to hold the tag's content
+            // Copy the current tag content into the buffer
+            // Check if `m_tagBuffer` is initialized or if the entity's tag has changed
+            if (m_needsTagUpdate || strncmp(m_tagBuffer, component.getTag().c_str(), sizeof(m_tagBuffer)) != 0) {
+                strncpy(m_tagBuffer, component.getTag().c_str(), sizeof(m_tagBuffer));
+                m_tagBuffer[sizeof(m_tagBuffer) - 1] = '\0';  // Null-terminate to avoid overflow
+                m_needsTagUpdate = false;  // Reset the flag after updating the buffer
+            }
+            // Use ImGui::InputText to allow editing
+            if (ImGui::InputText("##Tag", m_tagBuffer, sizeof(m_tagBuffer))) {
+                // If the input changes, update the component's tag
+                component.setTag(m_tagBuffer);
+            }
 
         });
 
@@ -215,6 +230,7 @@ namespace VkRender {
 
     void PropertiesLayer::setSelectedEntity(Entity entity) {
         m_selectionContext = entity;
+        m_needsTagUpdate = true; // update tag
     }
 
 /** Called once per frame **/

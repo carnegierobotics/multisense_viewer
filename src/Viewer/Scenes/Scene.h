@@ -71,6 +71,7 @@ namespace VkRender {
         std::unordered_map<void*, std::deque<DestroyCallback>> m_destroyCallbacks;
 
         friend class Entity;
+        friend class SceneSerializer;
 
         template<typename T>
         void onComponentAdded(Entity entity, T &component);

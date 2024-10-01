@@ -122,12 +122,12 @@ namespace VkRender {
         if (!m_activeScene)
             return;
         m_renderToOffscreen = false;
-        for (auto &e: m_createInfo.sharedUIContextData->selectedEntityMap) {
-            std::string entityTag = e.second.getComponent<TagComponent>().Tag;
-            if (e.first == getUUID()) {
-                auto &cameraComponent = e.second.getComponent<CameraComponent>();
+        for (auto &[uuid, entity]: m_createInfo.sharedUIContextData->selectedEntityMap) {
+            std::string entityTag = entity.getComponent<TagComponent>().Tag;
+            if (uuid == getUUID()) {
+                auto &cameraComponent = entity.getComponent<CameraComponent>();
                 if (cameraComponent.renderFromViewpoint()) {
-                    auto &transform = e.second.getComponent<TransformComponent>();
+                    auto &transform = entity.getComponent<TransformComponent>();
                     cameraComponent.camera.setPerspective(
                         static_cast<float>(m_createInfo.width) / m_createInfo.height);
                     cameraComponent().pose.pos = transform.getPosition();

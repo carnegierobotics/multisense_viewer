@@ -5,6 +5,8 @@
 #ifndef MULTISENSE_VIEWER_MENULAYER_H
 #define MULTISENSE_VIEWER_MENULAYER_H
 
+#include <Viewer/Scenes/SceneSerializer.h>
+
 #include "Viewer/VkRender/ImGui/Layer.h"
 
 /** Is attached to the renderer through the GuiManager and instantiated in the GuiManager Constructor through
@@ -74,15 +76,15 @@ namespace VkRender {
                     bool isDefaultScene = m_context->isCurrentScene("Default Scene");
                     bool isMultiSenseScene = m_context->isCurrentScene("MultiSense Viewer Scene");
 
-                    if (ImGui::MenuItem("Default Scene", nullptr, isDefaultScene)) {
-                        if (!isDefaultScene) {
-                            m_context->loadScene("Default Scene");
-                        }
+                    if (ImGui::MenuItem("Serialize", nullptr, isDefaultScene)) {
+
+                        SceneSerializer serializer(m_context->activeScene());
+                        serializer.serialize(Utils::getAssetsPath() / "Scenes" / "Example.multisense");
+
                     }
-                    if (ImGui::MenuItem("MultiSense Scene", nullptr, isMultiSenseScene)) {
-                        if (!isMultiSenseScene) {
-                            m_context->loadScene("MultiSense Scene");
-                        }
+                    if (ImGui::MenuItem("Deserialize", nullptr, isMultiSenseScene)) {
+                        SceneSerializer serializer(m_context->activeScene());
+                        serializer.deserialize(Utils::getAssetsPath() / "Scenes" / "Example.multisense");
                     }
                     ImGui::EndMenu();  // End the Scenes submenu
                 }

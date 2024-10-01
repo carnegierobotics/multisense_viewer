@@ -46,6 +46,10 @@ namespace VkRender {
         TagComponent(const TagComponent &other) = default;
 
         TagComponent &operator=(const TagComponent &other) = default;
+
+        std::string& getTag() {return Tag;}
+        void setTag(const std::string &tag) {Tag = tag;}
+
     };
 
     struct TransformComponent {
@@ -149,7 +153,7 @@ namespace VkRender {
 
     struct CameraComponent {
         Camera camera;
-        bool render = false;
+        bool render = true;
 
         CameraComponent() = default;
 

@@ -17,7 +17,7 @@ namespace VkRender {
         bool update = false;
 
         int previewID = 0;
-        std::string previewText = "";
+        std::string selectedCameraName = "";
 
         // Constructor that copies everything from base EditorUI
         EditorImageUI(const EditorUI &baseUI) : EditorUI(baseUI) {}
@@ -78,8 +78,9 @@ namespace VkRender {
                         const bool is_selected = (imageUI->previewID == n);
                         if (ImGui::Selectable(cameraEntityNames[n].c_str(), is_selected)) {
                             imageUI->previewID = n;
-                            auto* editor = reinterpret_cast<EditorImage *>(m_editor);
+                            imageUI->selectedCameraName = cameraEntityNames[n];
                             imageUI->update = true;
+                            auto* editor = reinterpret_cast<EditorImage *>(m_editor);
                         }
 
                         // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)

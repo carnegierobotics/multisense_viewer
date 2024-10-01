@@ -70,9 +70,7 @@ namespace VkRender {
 
 
     class Application : VulkanRenderer {
-
     public:
-
         /**
          * @brief Default constructor for renderer
          * @param title Title of application
@@ -117,7 +115,8 @@ namespace VkRender {
         // TODO we should collect per frame info like this somewhere
         float deltaTime() { return frameTimer; }
 
-        Editor* sceneRenderer() const {return m_sceneRenderer.get();}
+        Editor *getSceneRendererByUUID(const UUID &uuid);
+        Editor * addSceneRendererWithUUID(const UUID &uuid);
 
         ImGuiContext *getMainUIContext() { return m_mainEditor->guiContext(); }
 
@@ -137,8 +136,6 @@ namespace VkRender {
         void deleteScene(std::filesystem::path scenePath);
 
     private:
-
-
         void keyboardCallback(GLFWwindow *window, int key, int scancode, int action, int mods) override;
 
         void onRender() override;
@@ -160,7 +157,7 @@ namespace VkRender {
         void onCharInput(unsigned int codepoint) override;
 
     private:
-        std::vector<std::unique_ptr<Editor>> m_editors;
+        std::vector<std::unique_ptr<Editor> > m_editors;
         ProjectConfig m_projectConfig;
 
         std::shared_ptr<Scene> m_scene;
@@ -168,8 +165,7 @@ namespace VkRender {
         std::unique_ptr<EditorFactory> m_editorFactory;
 
         std::unique_ptr<Editor> m_mainEditor;
-        std::unique_ptr<Editor> m_sceneRenderer;
-
+        std::unordered_map<UUID, std::unique_ptr<Editor> > m_sceneRenderers;
         std::shared_ptr<GuiAssets> m_guiResources;
         SharedContextData m_sharedContextData;
         SharedEditorData m_sharedEditorData;
@@ -195,7 +191,6 @@ namespace VkRender {
         void mergeEditors(const std::array<UUID, 2> &mergeEditorIndices);
 
         std::unique_ptr<Editor> &findEditorByUUID(const UUID &uuid);
-
     };
 }
 

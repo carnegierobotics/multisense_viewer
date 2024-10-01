@@ -12,8 +12,8 @@ namespace VkRender {
     public:
         SideBarEditor() = delete;
 
-        explicit SideBarEditor(EditorCreateInfo &createInfo) : Editor(
-                createInfo) {
+        explicit SideBarEditor(EditorCreateInfo &createInfo, UUID uuid) : Editor(
+                createInfo, uuid) {
 
             addUI("SideBarLayer");
             addUI("DebugWindow");

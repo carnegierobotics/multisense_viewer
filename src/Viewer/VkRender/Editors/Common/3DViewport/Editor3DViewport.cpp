@@ -13,7 +13,7 @@
 #include "Viewer/VkRender/RenderPipelines/UboGraphicsPipeline.h"
 
 namespace VkRender {
-    Editor3DViewport::Editor3DViewport(EditorCreateInfo &createInfo) : Editor(createInfo) {
+    Editor3DViewport::Editor3DViewport(EditorCreateInfo &createInfo, UUID uuid) : Editor(createInfo, uuid) {
         addUI("EditorUILayer");
         addUI("DebugWindow");
         addUI("Editor3DLayer");

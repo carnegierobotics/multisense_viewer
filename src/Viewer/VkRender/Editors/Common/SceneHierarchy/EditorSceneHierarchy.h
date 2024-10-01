@@ -13,7 +13,7 @@ namespace VkRender {
     public:
         EditorSceneHierarchy() = delete;
 
-        explicit EditorSceneHierarchy(EditorCreateInfo &createInfo) : Editor(createInfo) {
+        explicit EditorSceneHierarchy(EditorCreateInfo &createInfo, UUID uuid) : Editor(createInfo, uuid) {
 
             addUI("EditorUILayer");
             addUI("SceneHierarchyLayer");

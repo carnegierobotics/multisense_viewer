@@ -13,7 +13,7 @@
 
 
 namespace VkRender {
-    SceneRenderer::SceneRenderer(EditorCreateInfo &createInfo) : Editor(createInfo) {
+    SceneRenderer::SceneRenderer(EditorCreateInfo &createInfo, UUID uuid) : Editor(createInfo, uuid) {
     }
 
 
@@ -121,28 +121,26 @@ namespace VkRender {
     void SceneRenderer::onUpdate() {
         if (!m_activeScene)
             return;
-        m_renderToOffscreen = false; {
-            auto view = m_activeScene->getRegistry().view<CameraComponent>();
-            for (auto entity: view) {
-                auto e = Entity(entity, m_activeScene.get());
-                if (e == m_createInfo.sharedUIContextData->m_selectedEntity && e.hasComponent<CameraComponent>()) {
-                    auto &registry = m_activeScene->getRegistry();
-                    auto &cameraComponent = registry.get<CameraComponent>(entity);
-                    if (cameraComponent.renderFromViewpoint()) {
-                        auto &transform = registry.get<TransformComponent>(entity);
-                        cameraComponent.camera.setPerspective(
-                            static_cast<float>(m_createInfo.width) / m_createInfo.height);
-                        cameraComponent().pose.pos = transform.getPosition();
-                        cameraComponent().pose.q = glm::quat_cast(transform.getRotMat());
-                        cameraComponent().updateViewMatrix();
-                        transform.getPosition() = cameraComponent().pose.pos;
-                        transform.getQuaternion() = cameraComponent().pose.q;
-                        m_activeCamera = std::make_shared<Camera>(cameraComponent.camera);
-                        m_renderToOffscreen = true;
-                    }
+        m_renderToOffscreen = false;
+        for (auto &e: m_createInfo.sharedUIContextData->selectedEntityMap) {
+            std::string entityTag = e.second.getComponent<TagComponent>().Tag;
+            if (e.first == getUUID()) {
+                auto &cameraComponent = e.second.getComponent<CameraComponent>();
+                if (cameraComponent.renderFromViewpoint()) {
+                    auto &transform = e.second.getComponent<TransformComponent>();
+                    cameraComponent.camera.setPerspective(
+                        static_cast<float>(m_createInfo.width) / m_createInfo.height);
+                    cameraComponent().pose.pos = transform.getPosition();
+                    cameraComponent().pose.q = glm::quat_cast(transform.getRotMat());
+                    cameraComponent().updateViewMatrix();
+                    transform.getPosition() = cameraComponent().pose.pos;
+                    transform.getQuaternion() = cameraComponent().pose.q;
+                    m_activeCamera = std::make_shared<Camera>(cameraComponent.camera);
+                    m_renderToOffscreen = true;
                 }
             }
         }
+
 
         generatePipelines();
         // Update model transforms:

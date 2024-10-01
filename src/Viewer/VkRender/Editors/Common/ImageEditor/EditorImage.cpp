@@ -155,18 +155,29 @@ namespace VkRender {
 
         if (imageUI->update) {
             // Get offscreen rendered image
-            auto sceneRenderer = m_context->sceneRenderer();
-            auto& image = sceneRenderer->getOffscreenFramebuffer().resolvedImage;
-            VulkanTexture2DCreateInfo textureCreateInfo(m_context->vkDevice());
-            textureCreateInfo.image = image;
-            m_colorTexture = std::make_shared<VulkanTexture2D>(textureCreateInfo);
-            RenderPassInfo renderPassInfo{};
-            renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
-            renderPassInfo.renderPass = m_renderPass->getRenderPass();
-            m_renderPipelines = std::make_unique<GraphicsPipeline2D>(*m_context, renderPassInfo);
-            m_renderPipelines->bindTexture(m_colorTexture);
+            auto sceneRenderer = m_context->getSceneRendererByUUID(getUUID());
+            if (!sceneRenderer) {
+                sceneRenderer = m_context->addSceneRendererWithUUID(getUUID());
+                auto& image = sceneRenderer->getOffscreenFramebuffer().resolvedImage;
+                VulkanTexture2DCreateInfo textureCreateInfo(m_context->vkDevice());
+                textureCreateInfo.image = image;
+                m_colorTexture = std::make_shared<VulkanTexture2D>(textureCreateInfo);
+                RenderPassInfo renderPassInfo{};
+                renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
+                renderPassInfo.renderPass = m_renderPass->getRenderPass();
+                m_renderPipelines = std::make_unique<GraphicsPipeline2D>(*m_context, renderPassInfo);
+                m_renderPipelines->bindTexture(m_colorTexture);
+            }
+            auto view = m_activeScene->getRegistry().view<CameraComponent, TagComponent>();
+            std::vector<std::string> cameraEntityNames;
+            cameraEntityNames.reserve(view.size_hint());
+            for (auto entity : view) {
+                auto& tag = view.get<TagComponent>(entity);
+                if (tag.Tag == imageUI->selectedCameraName) {
+                    m_ui->shared->selectedEntityMap[getUUID()] = Entity(entity, m_activeScene.get());
+                }
+            }
             imageUI->update = false;
-
         }
 
         if (m_context->sharedEditorData().selectedUUIDContext && !m_depthImagePipeline) {

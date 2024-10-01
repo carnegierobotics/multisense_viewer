@@ -82,10 +82,6 @@ namespace VkRender {
 
         m_editorFactory = std::make_unique<EditorFactory>();
 
-        auto sceneRenderer = mainMenuEditor;
-        sceneRenderer.editorTypeDescription = EditorType::SceneRenderer;
-        m_sceneRenderer = createEditor(sceneRenderer);
-
         std::string lastActiveProject = ApplicationConfig::getInstance().getUserSetting().projectName;
         loadProject(Utils::getProjectFileFromName(lastActiveProject));
 
@@ -107,13 +103,39 @@ namespace VkRender {
             m_editors.push_back(std::move(editor));
         }
 
-
         std::string lastActiveScene = ApplicationConfig::getInstance().getUserSetting().sceneName;
         loadScene(lastActiveScene);
 
-
         m_multiSense = std::make_shared<MultiSense::MultiSenseRendererBridge>();
         m_multiSense->setup();
+    }
+
+    Editor *Application::getSceneRendererByUUID(const UUID &uuid) {
+        if (m_sceneRenderers.contains(uuid))
+            return m_sceneRenderers.find(uuid)->second.get();
+        return nullptr;
+    }
+
+    Editor *Application::addSceneRendererWithUUID(const UUID &uuid) {
+        EditorCreateInfo sceneRenderer(m_guiResources, this, &m_sharedContextData, m_vulkanDevice, &m_allocator,
+                                       m_frameBuffers.data());
+        VulkanRenderPassCreateInfo passCreateInfo(m_vulkanDevice, &m_allocator);
+        passCreateInfo.msaaSamples = msaaSamples;
+        passCreateInfo.swapchainImageCount = swapchain->imageCount;
+        passCreateInfo.swapchainColorFormat = swapchain->colorFormat;
+        passCreateInfo.depthFormat = depthFormat;
+        passCreateInfo.height = static_cast<int32_t>(m_height);
+        passCreateInfo.width = static_cast<int32_t>(m_width);
+        sceneRenderer.borderSize = 0;
+        sceneRenderer.resizeable = false;
+        sceneRenderer.height = static_cast<int32_t>(m_height);
+        sceneRenderer.width = static_cast<int32_t>(m_width);
+        sceneRenderer.pPassCreateInfo = passCreateInfo;
+        sceneRenderer.editorTypeDescription = EditorType::SceneRenderer;
+
+        m_sceneRenderers[uuid] = createEditorWithUUID(uuid, sceneRenderer);
+        m_sceneRenderers[uuid]->loadScene(m_scene);
+        return m_sceneRenderers[uuid].get();
     }
 
     void Application::loadProject(const std::filesystem::path &filePath) {
@@ -140,19 +162,16 @@ namespace VkRender {
             auto editorLayers = jsonGeneralSettings.value("editorTypes", nlohmann::json::array());
             // Check if editorLayers is an array and then iterate over it
             if (editorLayers.is_array() && !editorLayers.empty()) {
-                for (const auto& layer : editorLayers) {
+                for (const auto &layer: editorLayers) {
                     // Assuming the elements are strings
                     std::string editorType = layer.get<std::string>();
                     m_projectConfig.editorTypes.emplace_back(stringToEditorType(editorType));
                     Log::Logger::getInstance()->info("Adding editor type: {} to available types", editorType);
-
                 }
             } else {
                 Log::Logger::getInstance()->warning("editorLayers is not an array, is empty, or does not exist.");
                 m_projectConfig.editorTypes = getAllEditorTypes();
             }
-
-
         }
 
         if (jsonContent.contains("editors")) {
@@ -179,7 +198,7 @@ namespace VkRender {
                 }
                 createInfo.borderSize = jsonEditor.value("borderSize", 5);
                 createInfo.editorTypeDescription = stringToEditorType(
-                        jsonEditor.value("editorTypeDescription", ""));
+                    jsonEditor.value("editorTypeDescription", ""));
                 createInfo.resizeable = jsonEditor.value("resizeable", true);
                 createInfo.editorIndex = jsonEditor.value("editorIndex", 0);
                 createInfo.uiContext = getMainUIContext();
@@ -199,10 +218,10 @@ namespace VkRender {
                 // Create an Editor object with the createInfo
                 m_editors.push_back(std::move(createEditor(createInfo)));
                 Log::Logger::getInstance()->info(
-                        "Loaded editor {}: type = {}, x = {}, y = {}, width = {}, height = {}",
-                        createInfo.editorIndex,
-                        editorTypeToString(createInfo.editorTypeDescription), createInfo.x,
-                        createInfo.y, createInfo.width, createInfo.height);
+                    "Loaded editor {}: type = {}, x = {}, y = {}, width = {}, height = {}",
+                    createInfo.editorIndex,
+                    editorTypeToString(createInfo.editorTypeDescription), createInfo.x,
+                    createInfo.y, createInfo.width, createInfo.height);
             }
         }
 
@@ -222,7 +241,9 @@ namespace VkRender {
             m_scene = std::make_shared<DefaultScene>(*this, "Default Scene");
         }
 
-        m_sceneRenderer->loadScene(m_scene);
+        for (auto &editor: m_sceneRenderers) {
+            editor.second->loadScene(m_scene);
+        }
         for (auto &editor: m_editors) {
             editor->loadScene(std::shared_ptr<Scene>(m_scene));
         }
@@ -232,7 +253,6 @@ namespace VkRender {
         // Find the scene to delete
         Log::Logger::getInstance()->info("Deleting Scene with Reference count: {}", m_scene.use_count());
         //m_scene.reset();
-
     }
 
 
@@ -269,8 +289,9 @@ namespace VkRender {
             otherIO.MouseDown[0] = mouse.left;
             otherIO.MouseDown[1] = mouse.right;
         }
-        m_sceneRenderer->update();
-
+        for (auto &editor: m_sceneRenderers) {
+            editor.second->update();
+        }
         updateEditors();
         m_mainEditor->update();
 
@@ -315,8 +336,10 @@ namespace VkRender {
     }
 
     void Application::onRender() {
-        m_sceneRenderer->render(drawCmdBuffers);
         /** Generate Draw Commands **/
+        for (auto &editor: m_sceneRenderers) {
+            editor.second->render(drawCmdBuffers);
+        }
         for (auto &editor: m_editors) {
             editor->render(drawCmdBuffers);
         }
@@ -325,7 +348,6 @@ namespace VkRender {
     }
 
     void Application::windowResized(int32_t dx, int32_t dy, double widthScale, double heightScale) {
-
         Widgets::clear();
 
         if (dx != 0)
@@ -341,9 +363,12 @@ namespace VkRender {
         ci.width = m_width;
         ci.height = m_height;
         ci.frameBuffers = m_frameBuffers.data();
-        m_sceneRenderer->resize(ci);
-        m_mainEditor->resize(ci);
+        for (auto &editor: m_sceneRenderers) {
+            auto &ci = editor.second->getCreateInfo();
+            editor.second->resize(ci);
+        }
 
+        m_mainEditor->resize(ci);
     }
 
     void Application::cleanUp() {
@@ -366,20 +391,20 @@ namespace VkRender {
 
         ApplicationConfig::getInstance().saveSettings(this);
         auto timeSpan = std::chrono::duration_cast<std::chrono::duration<float> >(
-                std::chrono::steady_clock::now() - startTime);
+            std::chrono::steady_clock::now() - startTime);
         Log::Logger::getInstance()->trace("Sending logs on exit took {}s", timeSpan.count());
 
         startTime = std::chrono::steady_clock::now();
         // Shutdown GUI manually since it contains thread. Not strictly necessary but nice to have
         //m_guiManager.reset();
         timeSpan = std::chrono::duration_cast<std::chrono::duration<float> >(
-                std::chrono::steady_clock::now() - startTime);
+            std::chrono::steady_clock::now() - startTime);
         Log::Logger::getInstance()->trace("Deleting GUI on exit took {}s", timeSpan.count());
         startTime = std::chrono::steady_clock::now();
 
 
         timeSpan = std::chrono::duration_cast<std::chrono::duration<float> >(
-                std::chrono::steady_clock::now() - startTime);
+            std::chrono::steady_clock::now() - startTime);
         Log::Logger::getInstance()->trace("Deleting entities on exit took {}s", timeSpan.count());
         // Destroy framebuffer
     }
@@ -397,8 +422,10 @@ namespace VkRender {
         bool anyResizeHovered = false;
         bool horizontalResizeHovered = false;
         for (auto &editor: m_editors) {
-            if (editor->ui()->cornerBottomLeftHovered && editor->getCreateInfo().resizeable) hoveredLeftCornerResizeable = true;
-            if (editor->ui()->cornerBottomLeftClicked && editor->getCreateInfo().resizeable) clickedLeftCornerResizeable = true;
+            if (editor->ui()->cornerBottomLeftHovered && editor->getCreateInfo().resizeable)
+                hoveredLeftCornerResizeable = true;
+            if (editor->ui()->cornerBottomLeftClicked && editor->getCreateInfo().resizeable)
+                clickedLeftCornerResizeable = true;
 
             if (editor->ui()->cornerBottomLeftClicked) anyCornerClicked = true;
             if (editor->ui()->resizeHovered) anyResizeHovered = true;
@@ -420,7 +447,6 @@ namespace VkRender {
 
         resizeEditors(anyCornerClicked);
         for (auto &editor: m_editors) {
-
             if (!mouse.left) {
                 if (editor->ui()->indirectlyActivated) {
                     Editor::handleHoverState(editor, mouse);
@@ -443,12 +469,12 @@ namespace VkRender {
                 editor->ui()->lastRightClickedBorderType = None;
             }
             if (mouse.left && mouse.action == GLFW_PRESS) {
-                Log::Logger::getInstance()->info("We Left-clicked Editor: {}'s area :{}",
+                Log::Logger::getInstance()->trace("We Left-clicked Editor: {}'s area :{}",
                                                  editor->getCreateInfo().editorIndex,
                                                  editor->ui()->lastClickedBorderType);
             }
             if (mouse.right && mouse.action == GLFW_PRESS) {
-                Log::Logger::getInstance()->info("We Right-clicked Editor: {}'s area :{}. Merge? {}",
+                Log::Logger::getInstance()->trace("We Right-clicked Editor: {}'s area :{}. Merge? {}",
                                                  editor->getCreateInfo().editorIndex,
                                                  editor->ui()->lastClickedBorderType,
                                                  editor->ui()->rightClickBorder);
@@ -591,11 +617,11 @@ namespace VkRender {
         auto editor2UUID = editor2->getUUID();
         // Remove editor2 safely based on UUID
         m_editors.erase(
-                std::remove_if(m_editors.begin(), m_editors.end(),
-                               [editor2UUID](const std::unique_ptr<Editor> &editor) {
-                                   return editor->getUUID() == editor2UUID;
-                               }),
-                m_editors.end()
+            std::remove_if(m_editors.begin(), m_editors.end(),
+                           [editor2UUID](const std::unique_ptr<Editor> &editor) {
+                               return editor->getUUID() == editor2UUID;
+                           }),
+            m_editors.end()
         );
         editor1->resize(ci1);
     }
@@ -622,8 +648,8 @@ namespace VkRender {
                 break;
             default:
                 Log::Logger::getInstance()->trace(
-                        "Resize is somehow active but we have not clicked any borders: {}",
-                        editor->getCreateInfo().editorIndex);
+                    "Resize is somehow active but we have not clicked any borders: {}",
+                    editor->getCreateInfo().editorIndex);
                 break;
         }
         return newEditorCI;
@@ -768,9 +794,6 @@ namespace VkRender {
     }
 
     bool Application::isCurrentProject(std::string projectName) {
-
-
         return false;
     }
-
 };

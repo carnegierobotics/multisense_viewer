@@ -16,7 +16,7 @@ namespace VkRender {
     public:
         Editor3DViewport() = delete;
 
-        explicit Editor3DViewport(EditorCreateInfo &createInfo);
+        explicit Editor3DViewport(EditorCreateInfo &createInfo, UUID uuid);
 
         void onUpdate() override;
 

@@ -12,8 +12,8 @@ namespace VkRender {
     public:
         ConfigurationEditor() = delete;
 
-        explicit ConfigurationEditor(EditorCreateInfo &createInfo) : Editor(
-                createInfo) {
+        explicit ConfigurationEditor(EditorCreateInfo &createInfo, UUID uuid) : Editor(
+                createInfo, uuid) {
 
             addUI("ConfigurationLayer");
             addUI("WelcomeScreenLayer");

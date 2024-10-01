@@ -15,7 +15,7 @@ namespace VkRender {
     public:
         SceneRenderer() = delete;
 
-        explicit SceneRenderer(EditorCreateInfo &createInfo);
+        explicit SceneRenderer(EditorCreateInfo &createInfo, UUID uuid);
 
         void onUpdate() override;
 

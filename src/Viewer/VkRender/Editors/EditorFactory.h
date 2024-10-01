@@ -28,20 +28,20 @@ namespace VkRender {
     class EditorFactory {
     public:
         EditorFactory(){
-            registerEditor(EditorType::SceneRenderer, [](EditorCreateInfo &ci, UUID) {
-                return std::make_unique<SceneRenderer>(ci);
+            registerEditor(EditorType::SceneRenderer, [](EditorCreateInfo &ci, UUID uuid) {
+                return std::make_unique<SceneRenderer>(ci, uuid);
             });
-            registerEditor(EditorType::SceneHierarchy, [](EditorCreateInfo &ci, UUID) {
-                return std::make_unique<EditorSceneHierarchy>(ci);
+            registerEditor(EditorType::SceneHierarchy, [](EditorCreateInfo &ci, UUID uuid) {
+                return std::make_unique<EditorSceneHierarchy>(ci, uuid);
             });
-            registerEditor(EditorType::MultiSenseViewer_Sidebar, [](EditorCreateInfo &ci, UUID) {
-                return std::make_unique<SideBarEditor>(ci);
+            registerEditor(EditorType::MultiSenseViewer_Sidebar, [](EditorCreateInfo &ci, UUID uuid) {
+                return std::make_unique<SideBarEditor>(ci, uuid);
             });
-            registerEditor(EditorType::MultiSenseViewer_Configuration, [](EditorCreateInfo &ci, UUID) {
-                return std::make_unique<ConfigurationEditor>(ci);
+            registerEditor(EditorType::MultiSenseViewer_Configuration, [](EditorCreateInfo &ci, UUID uuid) {
+                return std::make_unique<ConfigurationEditor>(ci, uuid);
             });
-            registerEditor(EditorType::Viewport3D, [](EditorCreateInfo &ci, UUID) {
-                return std::make_unique<Editor3DViewport>(ci);
+            registerEditor(EditorType::Viewport3D, [](EditorCreateInfo &ci, UUID uuid) {
+                return std::make_unique<Editor3DViewport>(ci, uuid);
             });
             registerEditor(EditorType::ImageEditor, [](EditorCreateInfo &ci, UUID uuid) {
                 return std::make_unique<EditorImage>(ci, uuid);
@@ -59,7 +59,7 @@ namespace VkRender {
 #endif
         }
 
-        using CreatorFunc = std::function<std::unique_ptr<Editor>(EditorCreateInfo&, UUID)>;
+        using CreatorFunc = std::function<std::unique_ptr<Editor>(EditorCreateInfo&, UUID uuid)>;
 
         void registerEditor(EditorType type, CreatorFunc func) {
             m_creators[type] = std::move(func);

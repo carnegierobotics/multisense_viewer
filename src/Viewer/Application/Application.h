@@ -156,7 +156,6 @@ namespace VkRender {
 
         void onCharInput(unsigned int codepoint) override;
 
-    private:
         std::vector<std::unique_ptr<Editor> > m_editors;
         ProjectConfig m_projectConfig;
 
@@ -175,6 +174,7 @@ namespace VkRender {
 
 
         friend class ApplicationConfig;
+        friend class Scene;
 
         void updateEditors();
 

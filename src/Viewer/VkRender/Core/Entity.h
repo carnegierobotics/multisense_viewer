@@ -53,6 +53,7 @@ namespace VkRender {
         void removeComponent()
         {
             VK_ASSERT(hasComponent<T>(), "Entity does not have component!");
+
             m_scene->m_registry.remove<T>(m_entityHandle);
         }
 

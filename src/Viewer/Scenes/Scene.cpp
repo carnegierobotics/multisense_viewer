@@ -10,8 +10,14 @@
 #include "Viewer/VkRender/Components/MeshComponent.h"
 #include "Viewer/VkRender/Components/GaussianModelComponent.h"
 #include "Viewer/VkRender/Components/ImageComponent.h"
+#include "Viewer/Application/Application.h"
 
 namespace VkRender {
+    Scene::Scene(const std::string &name, VkRender::Application *context) {
+        m_sceneName = name;
+        m_context = context;
+    }
+
     Entity Scene::createEntityWithUUID(UUID uuid, const std::string &name) {
 
         Entity entity = {m_registry.create(), this};
@@ -81,16 +87,36 @@ namespace VkRender {
 
     }
 
+    void Scene::notifyEditorsComponentAdded(Entity entity, MeshComponent &component) {
+        for (auto &editor: m_context->m_sceneRenderers) {
+            editor.second->onComponentAdded(entity, component);
+        }
+
+        for (auto &editor: m_context->m_editors) {
+            editor->onComponentAdded(entity, component);
+        }
+
+
+
+    }
+
     DISABLE_WARNING_PUSH
     DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER
 
     template<typename T>
     void Scene::onComponentAdded(Entity entity, T &component) {
         static_assert(sizeof(T) == 0);
+        notifyEditorsComponentAdded(entity, component);
+
     }
 
     template<>
     void Scene::onComponentAdded<IDComponent>(Entity entity, IDComponent &component) {
+    }
+
+    template<>
+    void Scene::onComponentAdded<MeshComponent>(Entity entity, MeshComponent &component) {
+        notifyEditorsComponentAdded(entity, component);
     }
 
     template<>
@@ -118,12 +144,9 @@ namespace VkRender {
     }
 
     template<>
-    void Scene::onComponentAdded<MeshComponent>(Entity entity, MeshComponent &component) {
-    }
-
-    template<>
     void Scene::onComponentAdded<GaussianModelComponent>(Entity entity, GaussianModelComponent &component) {
     }
+
     template<>
     void Scene::onComponentAdded<ImageComponent>(Entity entity, ImageComponent &component) {
     }

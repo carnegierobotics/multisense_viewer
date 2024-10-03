@@ -51,6 +51,7 @@ namespace VkRender {
 
         Log::Logger::getInstance()->info("Creating new Editor. UUID: {}, size: {}x{}, at pos: ({},{})",
                                          m_uuid.operator std::string(), m_ui->width, m_ui->height, m_ui->x, m_ui->y);
+        //m_guiManager->setSceneContext(scene);
 
         createOffscreenFramebuffer();
     }
@@ -81,7 +82,6 @@ namespace VkRender {
 
     void Editor::loadScene(std::shared_ptr<Scene> scene) {
         onSceneLoad(scene);
-        m_guiManager->setSceneContext(scene);
     }
 
     void Editor::renderScene(CommandBuffer &drawCmdBuffers, const VkRenderPass &renderPass, uint32_t imageIndex,

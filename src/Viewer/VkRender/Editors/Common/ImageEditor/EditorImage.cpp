@@ -138,7 +138,9 @@ namespace VkRender {
 
     void EditorImage::onUpdate() {
         auto imageUI = std::dynamic_pointer_cast<EditorImageUI>(m_ui);
-
+        m_activeScene = m_context->activeScene();
+        if (!m_activeScene)
+            return;
         if (imageUI->renderMultiSense) {
             // get image from multisense
             MultiSense::MultiSenseStreamData data;

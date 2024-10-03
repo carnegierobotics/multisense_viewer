@@ -40,11 +40,14 @@ namespace VkRender {
 
         void onMouseScroll(float change) override;
 
+        void onComponentAdded(Entity entity, MeshComponent& meshComponent) override;
+
+
     private:
         Camera m_editorCamera;
         std::reference_wrapper<Camera> m_activeCamera = m_editorCamera;
         std::shared_ptr<Scene> m_activeScene;
-        std::unordered_map<UUID, std::unique_ptr<GraphicsPipeline>> m_renderPipelines;
+        std::unordered_map<uint32_t, std::unique_ptr<GraphicsPipeline>> m_renderPipelines;
         std::unordered_map<UUID, std::unique_ptr<GraphicsPipeline>> m_depthOnlyRenderPipelines;
 
         void onEntityDestroyed(entt::entity entity);

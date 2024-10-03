@@ -25,22 +25,8 @@ namespace VkRender {
     };
 
 
-    class MultiSenseViewer : public Scene {
+    class MultiSenseViewer {
 
-    public:
-        explicit MultiSenseViewer(Application& ctx, const std::string& name);
-
-        void update(uint32_t i) override;
-
-        ~MultiSenseViewer() override{
-        }
-
-        std::vector<ColmapCameraPose> loadColmapImages(const std::string &filePath);
-        void applyColmapCameraPoses(const std::vector<ColmapCameraPose> &cameraPoses, double d);
-
-        ColmapCamera loadColmapCamera(const std::string &filePath, int targetCameraId);
-
-        double computeFOV(double focalLength, double sensorSize);
     };
 }
 

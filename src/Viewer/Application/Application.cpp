@@ -77,6 +77,8 @@ namespace VkRender {
         mainMenuEditor.width = static_cast<int32_t>(m_width);
         mainMenuEditor.pPassCreateInfo = passCreateInfo;
 
+        m_activeScene = std::make_shared<Scene>("DefaultScene", this);
+
         m_mainEditor = std::make_unique<Editor>(mainMenuEditor);
         m_mainEditor->addUI("DebugWindow");
         m_mainEditor->addUI("MenuLayer");
@@ -84,9 +86,7 @@ namespace VkRender {
 
 
         m_editorFactory = std::make_unique<EditorFactory>();
-        m_activeScene = std::make_shared<Scene>("DefaultScene");
-        SceneSerializer serializer(m_activeScene);
-        serializer.deserialize(Utils::getAssetsPath() / "Scenes" / "Example.multisense");
+
 
         std::string lastActiveProject = ApplicationConfig::getInstance().getUserSetting().projectName;
         loadProject(Utils::getProjectFileFromName(lastActiveProject));
@@ -109,8 +109,8 @@ namespace VkRender {
             m_editors.push_back(std::move(editor));
         }
 
-        std::string lastActiveScene = ApplicationConfig::getInstance().getUserSetting().sceneName;
-        loadScene(lastActiveScene);
+        SceneSerializer serializer(m_activeScene);
+        serializer.deserialize(Utils::getAssetsPath() / "Scenes" / "Example.multisense");
 
         m_multiSense = std::make_shared<MultiSense::MultiSenseRendererBridge>();
         m_multiSense->setup();

@@ -13,25 +13,7 @@
 
 namespace VkRender {
 
-class DefaultScene : public Scene {
-
-    public:
-
-        explicit DefaultScene(Application& ctx, const std::string& name);
-
-        void loadScripts();
-
-        void loadSkybox();
-
-        void addGuiLayers();
-
-        void update(uint32_t i) override;
-
-        void cleanUp();
-
-
-    private:
-
+class DefaultScene {
 
     };
 }

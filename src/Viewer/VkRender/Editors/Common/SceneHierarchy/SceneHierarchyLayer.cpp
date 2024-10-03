@@ -61,6 +61,8 @@ namespace VkRender {
     }
 
     void SceneHierarchyLayer::processEntities() {
+        m_scene = m_context->activeScene();
+
         if (!m_scene)
             return;
 

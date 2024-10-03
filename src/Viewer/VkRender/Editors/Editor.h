@@ -68,7 +68,9 @@ namespace VkRender {
 
         virtual ~Editor() = default;
 
-        void addUI(const std::string &layerName) { m_guiManager->pushLayer(layerName, this); }
+        void addUI(const std::string &layerName) {
+            m_guiManager->pushLayer(layerName, this);
+        }
         /**@brief Extends the UI data struct with custom type*/
         template <typename T>
         void addUIData() {
@@ -120,6 +122,10 @@ namespace VkRender {
         virtual void onFileDrop(const std::filesystem::path &path) {}
 
         virtual void onEditorResize() {}
+
+        virtual void onComponentAdded(Entity entity, MeshComponent& meshComponent){
+
+        }
 
         void loadScene(std::shared_ptr<Scene> ptr);
 

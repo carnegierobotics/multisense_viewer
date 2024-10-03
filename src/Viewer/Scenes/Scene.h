@@ -16,9 +16,7 @@ namespace VkRender {
         using DestroyCallback = std::function<void(entt::entity)>;
 
     public:
-        explicit Scene(const std::string& name){
-            m_sceneName = name;
-        };
+        Scene(const std::string &name, Application *context);
 
         virtual void update(uint32_t i) {};
 
@@ -50,27 +48,28 @@ namespace VkRender {
 
         entt::registry &getRegistry() { return m_registry; };
 
-        const entt::registry& getRegistry() const {
+        const entt::registry &getRegistry() const {
             return m_registry;
         }
 
 
         const std::string &getSceneName() { return m_sceneName; }
 
-        void addDestroyFunction(void* owner, DestroyCallback callback) {
+        void addDestroyFunction(void *owner, DestroyCallback callback) {
             m_destroyCallbacks[owner].push_back(std::move(callback));
             m_registry.on_destroy<entt::entity>().connect<&Scene::onEntityDestroyed>(*this);
         }
 
-        void removeDestroyFunction(void* owner) {
+        void removeDestroyFunction(void *owner) {
             m_destroyCallbacks.erase(owner);
         }
 
     protected:
         entt::registry m_registry;
-        std::unordered_map<void*, std::deque<DestroyCallback>> m_destroyCallbacks;
+        std::unordered_map<void *, std::deque<DestroyCallback>> m_destroyCallbacks;
 
         friend class Entity;
+
         friend class SceneSerializer;
 
         template<typename T>
@@ -78,13 +77,17 @@ namespace VkRender {
 
     private:
         void onEntityDestroyed(entt::registry &registry, entt::entity entity) {
-            for (auto& [owner, callbacks] : m_destroyCallbacks) {
-                for (auto& callback : callbacks) {
+            for (auto &[owner, callbacks]: m_destroyCallbacks) {
+                for (auto &callback: callbacks) {
                     callback(entity);
                 }
             }
         }
+
+        void notifyEditorsComponentAdded(Entity entity, MeshComponent &component);
+
         std::string m_sceneName = "Unnamed Scene";
+        Application *m_context;
 
     };
 

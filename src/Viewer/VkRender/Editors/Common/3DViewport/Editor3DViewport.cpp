@@ -30,53 +30,15 @@ namespace VkRender {
         // For OBJModels we are alright with a default rendering pipeline (Phong lightining and stuff)
         // The pipelines also define memory handles between CPU and GPU. It makes more logical scenes if these attributes belong to the OBJModelComponent
         // But we need it accessed in the pipeline
-
         m_editorCamera = Camera(m_createInfo.width, m_createInfo.height);
         m_activeCamera = m_editorCamera;
         m_activeScene = m_context->activeScene();
         // Pass the destroy function to the scene
+        if (!m_activeScene)
+            return;
         m_activeScene->addDestroyFunction(this, [this](entt::entity entity) {
             onEntityDestroyed(entity);
         });
-        generatePipelines();
-    }
-
-    void Editor3DViewport::generatePipelines() {
-        // Generate pipelines
-        auto view = m_activeScene->getRegistry().view<TransformComponent, MeshComponent>(); // TODO make one specific component type for renderables in standard pipelines
-        for (auto entity: view) {
-            auto &model = view.get<MeshComponent>(entity);
-            const UUID &meshUUID = model.getUUID();
-            if (!m_renderPipelines.contains(meshUUID)) {
-                RenderPassInfo renderPassInfo{};
-                renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
-                renderPassInfo.renderPass = m_renderPass->getRenderPass();
-                // Decide which pipeline to use
-                if (model.usesUBOMesh()) {
-                    m_renderPipelines[meshUUID] = std::make_unique<UboGraphicsPipeline>(*m_context, renderPassInfo);
-                } else {
-                    m_renderPipelines[meshUUID] = std::make_unique<DefaultGraphicsPipeline>(*m_context, renderPassInfo);
-                }
-                m_renderPipelines[meshUUID]->bind(model);
-                cleanUpUnusedPipelines();
-            }
-
-            if (!m_depthOnlyRenderPipelines.contains(meshUUID)) {
-                RenderPassInfo renderPassInfo{};
-                renderPassInfo.sampleCount = VK_SAMPLE_COUNT_1_BIT; // TODO we could infer this from render pass creation
-                renderPassInfo.renderPass = m_depthRenderPass->getRenderPass();
-                // Decide which pipeline to use
-                if (model.usesUBOMesh()) {
-                    m_depthOnlyRenderPipelines[meshUUID] = std::make_unique<UboGraphicsPipeline>(*m_context,
-                                                                                                 renderPassInfo);
-                } else {
-                    m_depthOnlyRenderPipelines[meshUUID] = std::make_unique<DefaultGraphicsPipeline>(*m_context,
-                                                                                                     renderPassInfo);
-                }
-                m_depthOnlyRenderPipelines[meshUUID]->bind(model);
-                cleanUpUnusedPipelines();
-            }
-        }
     }
 
     void Editor3DViewport::cleanUpUnusedPipelines() {
@@ -93,10 +55,12 @@ namespace VkRender {
             // Step 2: Iterate over existing pipelines and find unused UUIDs
             std::vector<UUID> unusedUUIDs;
             for (const auto &[uuid, pipeline]: m_renderPipelines) {
+                /*
                 if (activeUUIDs.find(uuid) == activeUUIDs.end()) {
                     // UUID not found in active UUIDs, mark it for deletion
                     unusedUUIDs.push_back(uuid);
                 }
+                */
             }
             // Step 3: Remove the unused pipelines
             for (const UUID &uuid: unusedUUIDs) {
@@ -128,54 +92,36 @@ namespace VkRender {
 
     void Editor3DViewport::onUpdate() {
         auto imageUI = std::dynamic_pointer_cast<Editor3DViewportUI>(m_ui);
-
+        m_activeScene = m_context->activeScene();
         if (!m_activeScene)
             return;
-        {
-            auto view = m_activeScene->getRegistry().view<CameraComponent>();
-            m_activeCamera = m_editorCamera;
-            for (auto entity: view) {
-
-                auto e = Entity(entity, m_activeScene.get());
-                if ( e == m_createInfo.sharedUIContextData->m_selectedEntity && e.hasComponent<CameraComponent>() && imageUI->renderToOffscreen) {
-                    auto &registry = m_activeScene->getRegistry();
-                    auto &cameraComponent = registry.get<CameraComponent>(entity);
-                    auto &transform = registry.get<TransformComponent>(entity);
-                    cameraComponent.camera.setPerspective(static_cast<float>(m_createInfo.width) / m_createInfo.height);
-                    cameraComponent().pose.pos = transform.getPosition();
-                    cameraComponent().pose.q = glm::quat_cast(transform.getRotMat());
-                    cameraComponent().updateViewMatrix();
-                    transform.getPosition() = cameraComponent().pose.pos;
-                    transform.getQuaternion() = cameraComponent().pose.q;
-                    m_activeCamera = cameraComponent();
-                }
-            }
-
-        }
-
-        generatePipelines();
         // Update model transforms:
-        auto view = m_activeScene->getRegistry().view<TransformComponent, MeshComponent>(); // TODO make one specific component type for renderables in standard pipelines
-        for (auto entity: view) {
-            auto &model = view.get<MeshComponent>(entity);
-            const UUID &meshUUID = model.getUUID();
-            if (m_renderPipelines.contains(meshUUID)) {
-                auto transform = view.get<TransformComponent>(entity);
-                m_renderPipelines[meshUUID]->updateTransform(transform);
-                m_renderPipelines[meshUUID]->updateView(m_activeCamera);
-                m_renderPipelines[meshUUID]->update(m_context->currentFrameIndex());
-            }
-            if (m_depthOnlyRenderPipelines.contains(meshUUID)) {
-                Entity e(entity, m_activeScene.get());
-                if (e.hasComponent<CameraComponent>())
-                    continue;
-                auto transform = view.get<TransformComponent>(entity);
-                m_depthOnlyRenderPipelines[meshUUID]->updateTransform(transform);
-                m_depthOnlyRenderPipelines[meshUUID]->updateView(m_activeCamera);
-                m_depthOnlyRenderPipelines[meshUUID]->update(m_context->currentFrameIndex());
-            }
+        for (auto &pipeline: m_renderPipelines) {
+            auto entity = Entity(static_cast<entt::entity>(pipeline.first), m_activeScene.get());
+            auto &transform = entity.getComponent<TransformComponent>();
+            pipeline.second->updateTransform(transform);
+            pipeline.second->updateView(m_activeCamera);
+            pipeline.second->update(m_context->currentFrameIndex());
         }
         m_activeScene->update(m_context->currentFrameIndex());
+    }
+
+    void Editor3DViewport::onComponentAdded(Entity entity, MeshComponent &meshComponent) {
+        // add graphics pipeline for meshcomponent
+        Log::Logger::getInstance()->info("Add meshcomponent for entity: {} in editor: {}",
+                                         entity.getUUID().operator std::string(), getUUID().operator std::string());
+        if (!m_renderPipelines.contains(entity)) {
+            RenderPassInfo renderPassInfo{};
+            renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
+            renderPassInfo.renderPass = m_renderPass->getRenderPass();
+            // Decide which pipeline to use
+            if (meshComponent.usesUBOMesh()) {
+                m_renderPipelines[entity] = std::make_unique<UboGraphicsPipeline>(*m_context, renderPassInfo);
+            } else {
+                m_renderPipelines[entity] = std::make_unique<DefaultGraphicsPipeline>(*m_context, renderPassInfo);
+            }
+            m_renderPipelines[entity]->bind(meshComponent);
+        }
     }
 
     void Editor3DViewport::onRender(CommandBuffer &drawCmdBuffers) {
@@ -212,4 +158,5 @@ namespace VkRender {
             m_editorCamera.setArcBallPosition((change > 0.0f) ? 0.95f : 1.05f);
         m_activeScene->onMouseScroll(change);
     }
-}
+};
+

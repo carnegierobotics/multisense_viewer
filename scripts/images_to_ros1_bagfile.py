@@ -40,7 +40,10 @@ def write_bag_file(bag_path, image_paths, left_camera_info, right_camera_info):
                 image_path = os.path.join(path, name)
                 image = cv2.imread(image_path, cv2.IMREAD_ANYDEPTH)
 
-                ros_time = rospy.Time.from_sec(float(time))
+                sec, microsec = time.split('.')
+                microsec = microsec.zfill(6)
+
+                ros_time = rospy.Time.from_sec(float(sec + '.' + microsec))
 
                 header = Header()
                 header.frame_id = frame

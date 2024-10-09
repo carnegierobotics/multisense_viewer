@@ -3,23 +3,25 @@
 # - Pulls submodules into /external folder
 # - Adds each submodule to project add_subdirectory/include_directory
 # - Adds internal library Autoconnect
-# - Option to enabled all warnings when compiling with GCC
+# - Option to enable all warnings when compiling with GCC
 
-set(CRL_SERVER_IP 35.211.65.110:80)
-set(CRL_SERVER_PROTOCOL http)
-set(CRL_SERVER_DESTINATION /api.php)
-set(CRL_SERVER_VERSIONINFO_DESTINATION /version.php)
-set(VIEWER_LOG_LEVEL LOG_INFO)
+set(CRL_SERVER_IP "35.211.65.110:80")
+set(CRL_SERVER_PROTOCOL "http")
+set(CRL_SERVER_DESTINATION "/api.php")
+set(CRL_SERVER_VERSIONINFO_DESTINATION "/version.php")
+set(VIEWER_LOG_LEVEL "LOG_INFO")
 
+# Find Git for submodule handling
 find_package(Git QUIET)
 if (GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
-    # Update submodules as needed
     option(GIT_SUBMODULE "Check submodules during build" OFF)
     if (GIT_SUBMODULE)
         message(STATUS "Submodule update")
-        execute_process(COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive
+        execute_process(
+                COMMAND ${GIT_EXECUTABLE} submodule update --init --recursive
                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                RESULT_VARIABLE GIT_SUBMOD_RESULT)
+                RESULT_VARIABLE GIT_SUBMOD_RESULT
+        )
         if (NOT GIT_SUBMOD_RESULT EQUAL "0")
             message(FATAL_ERROR "git submodule update --init --recursive failed with ${GIT_SUBMOD_RESULT}, please checkout submodules")
         endif ()
@@ -224,18 +226,19 @@ else ()
     include_directories(${ENTT_DIR}/include/)
 endif ()
 
+# Generate version file
 function(GenerateVersionFile)
-    file(WRITE ${CMAKE_SOURCE_DIR}/Assets/Generated/VersionInfo "VERSION=${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}\nSERVER=${CRL_SERVER_IP}\nPROTOCOL=${CRL_SERVER_PROTOCOL}\nDESTINATION=${CRL_SERVER_DESTINATION}\nDESTINATION_VERSIONINFO=${CRL_SERVER_VERSIONINFO_DESTINATION}\nLOG_LEVEL=${VIEWER_LOG_LEVEL}")
+    file(WRITE ${CMAKE_SOURCE_DIR}/Assets/Generated/VersionInfo "VERSION=${PROJECT_VERSION}\nSERVER=${CRL_SERVER_IP}\nPROTOCOL=${CRL_SERVER_PROTOCOL}\nDESTINATION=${CRL_SERVER_DESTINATION}\nDESTINATION_VERSIONINFO=${CRL_SERVER_VERSIONINFO_DESTINATION}\nLOG_LEVEL=${VIEWER_LOG_LEVEL}")
 endfunction()
 
+# Set install directory
 if (UNIX)
-    set(INSTALL_DIRECTORY ${CMAKE_BINARY_DIR}/multisense_${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}_${ARCHITECTURE}/opt/multisense)
+    set(INSTALL_DIRECTORY "${CMAKE_BINARY_DIR}/multisense_${PROJECT_VERSION}_${CMAKE_SYSTEM_PROCESSOR}/opt/multisense")
 elseif (WIN32)
-    set(INSTALL_DIRECTORY ${CMAKE_BINARY_DIR}/multisense_${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}_${ARCHITECTURE}/)
+    set(INSTALL_DIRECTORY "${CMAKE_BINARY_DIR}/multisense_${PROJECT_VERSION}_${CMAKE_SYSTEM_PROCESSOR}/")
 endif ()
 
 if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     message(STATUS "[VkRenderINFO]: Set install directory to ${INSTALL_DIRECTORY}")
-    set(${CMAKE_INSTALL_PREFIX} ${INSTALL_DIRECTORY}
-            CACHE PATH "default install path" FORCE)
+    set(CMAKE_INSTALL_PREFIX "${INSTALL_DIRECTORY}" CACHE PATH "default install path" FORCE)
 endif ()

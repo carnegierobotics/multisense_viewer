@@ -1,69 +1,70 @@
 cmake_minimum_required(VERSION 3.25)
 
+# Project definition
+project(MultiSense-Viewer
+        VERSION 1.2.0
+        DESCRIPTION "A MultiSense Viewer Application"
+        LANGUAGES C CXX
+)
+
+# Options
 option(WARNINGS_AS_ERRORS "Treat compiler warnings as errors" FALSE)
 option(ENABLE_SYCL "Compile with SYCL support. Provided that llvm-sycl clang++ is in path" FALSE)
 option(BUILD_DOC "Build documentation" ON)
 option(PROPRIETARY_GIGEVISION_MODULE "Include the proprietary GigE-Vision module" OFF)
+
+# Paths for proprietary module
 set(GIGEVISION_LIB_PATH "" CACHE PATH "Path to the proprietary GigE-Vision module library")
 set(GIGEVISION_HEADERS_PATH "" CACHE PATH "Path to the proprietary GigE-Vision module headers")
 
-if (ENABLE_SYCL)
-    #set(CMAKE_CXX_COMPILER "icpx")
-    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -g -O0")  # Enable SSE4.1 and SSSE3 support. _mm_min_epi32 and _mm_shuffle_epi8 require specific SSE
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -fsycl-targets=nvptx64-nvidia-cuda,spir64 -g")
-    set(CMAKE_CXX_COMPILER "clang++")
+# Compiler settings
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
+if (ENABLE_SYCL)
+    set(CMAKE_CXX_COMPILER "clang++")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -fsycl-targets=nvptx64-nvidia-cuda,spir64 -g")
     add_compile_definitions(SYCL_ENABLED)
     message(STATUS "[VkRenderINFO]: SYCL support enabled. Compiler: ${CMAKE_CXX_COMPILER} Flags: ${CMAKE_CXX_FLAGS}")
 else ()
     message(STATUS "[VkRenderINFO]: SYCL support not enabled.")
 endif ()
 
-
-project(
-        MultiSense-Viewer
-        DESCRIPTION "A MultiSense Viewer Application"
-        LANGUAGES C CXX
-)
-
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-# Set application version
-set(VERSION_MAJOR "1")
-set(VERSION_MINOR "2")
-set(VERSION_PATCH "0")
-set(ARCHITECTURE "amd64")
-set(INSTALL_DIRECTORY ${CMAKE_BINARY_DIR}/multisense_${VERSION_MAJOR}.${VERSION_MINOR}-${VERSION_PATCH}_${ARCHITECTURE}/)
-
-# Set default build type
+# Set default build type if none was specified
 if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     message(STATUS "[VkRenderINFO]: Setting build type to 'Release' as none was specified.")
-    set(CMAKE_BUILD_TYPE
-            Release
-            CACHE STRING "Choose the type of build." FORCE)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
     set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
 endif ()
+
+# Include common CMake modules
+include(cmake/Common.cmake)
+include(cmake/CompilerWarnings.cmake)
+
+# Add version file generation
+GenerateVersionFile()
 
 # Find Vulkan
 find_package(Vulkan REQUIRED)
 
-include(cmake/Common.cmake)
-include(cmake/CompilerWarnings.cmake)
-
-find_package(Doxygen)
-if (Doxygen_FOUND)
-    add_subdirectory(docs)
-else ()
-    message(STATUS "[VkRenderINFO]: Doxygen not found, not building docs")
-endif ()
-
+# Include directories
 include_directories(src)
 include_directories(Assets)
 include_directories(SYSTEM external/ffmpeg/include)
 include_directories(SYSTEM ${Vulkan_INCLUDE_DIRS})
 include_directories(SYSTEM src/Viewer/VkRender/ImGui/Custom)
-GenerateVersionFile()
+
+# Find Doxygen for documentation
+find_package(Doxygen)
+if (Doxygen_FOUND AND BUILD_DOC)
+    add_subdirectory(docs)
+else ()
+    message(STATUS "[VkRenderINFO]: Doxygen not found, not building docs")
+endif ()
+
+# Set application version
+set(INSTALL_DIRECTORY ${CMAKE_BINARY_DIR}/multisense_${PROJECT_VERSION}_${CMAKE_SYSTEM_PROCESSOR}/)
 
 set(SOURCE_FILES
         src/main.cpp
@@ -142,7 +143,7 @@ set(SOURCE_FILES
         src/Viewer/Scenes/SceneSerializer.cpp
 )
 
-
+# Libraries
 set(LIBRARIES
         Vulkan::Vulkan
         glfw
@@ -158,19 +159,19 @@ set(LIBRARIES
         yaml-cpp
 )
 
+# Add SYCL-specific files
 if (ENABLE_SYCL)
     list(APPEND SOURCE_FILES src/Viewer/VkRender/RenderPipelines/3DGS/GaussianModelGraphicsPipeline.cpp)
     message(STATUS "[VkRenderINFO]: SYCL: Adding Gaussian Renderer to source")
-    target_compile_options(ktx PRIVATE -msse4.1 -mssse3)
     list(APPEND LIBRARIES sycl)
 endif ()
 
+# Add proprietary GigE-Vision module
 if (PROPRIETARY_GIGEVISION_MODULE)
     list(APPEND SOURCE_FILES src/Viewer/Modules/MultiSense/GigE-Vision/GigEVisionConnector.cpp)
-    message(STATUS "[VkRenderINFO]: SYCL: Adding Gaussian Renderer to source")
     list(APPEND LIBRARIES ${GIGEVISION_LIB})
+    target_compile_definitions(MultiSense-Viewer PRIVATE VKRENDER_GIGEVISION_ENABLED)
 endif ()
-
 
 # Custom command and target to copy assets if they have changed
 file(GLOB ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/Assets/*")
@@ -180,14 +181,14 @@ add_custom_command(
         DEPENDS ${ASSETS}
         COMMENT "Copying assets..."
 )
-
 add_custom_target(copy_assets ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/Assets)
 
-if (UNIX) # Linux
+# Build configurations for different platforms
+if (UNIX)
+    # Linux-specific settings
     if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-        message("INFO: Default Install prefix was chosen so set install path to ${INSTALL_DIRECTORY}")
-        set(CMAKE_INSTALL_PREFIX "${INSTALL_DIRECTORY}"
-                CACHE PATH "default install path" FORCE)
+        message(STATUS "INFO: Default Install prefix was chosen so set install path to ${INSTALL_DIRECTORY}")
+        set(CMAKE_INSTALL_PREFIX "${INSTALL_DIRECTORY}" CACHE PATH "default install path" FORCE)
     endif ()
     set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
@@ -198,25 +199,24 @@ if (UNIX) # Linux
     link_directories(${GTK3_LIBRARY_DIRS})
     add_definitions(${GTK3_CFLAGS_OTHER})
 
+    # Build executable
+    set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
     add_executable(MultiSense-Viewer ${SOURCE_FILES})
     target_link_libraries(MultiSense-Viewer ${LIBRARIES} ${GTK3_LIBRARIES} fmt::fmt)
     add_dependencies(MultiSense-Viewer copy_assets)
 
+    # Set warnings
     set_project_warnings(MultiSense-Viewer)
 
-    if (PROPRIETARY_GIGEVISION_MODULE)
-        target_link_libraries(MultiSense-Viewer ${PROPRIETARY_MODULE_LIB})
-    endif ()
-
+    # Install configuration
     install(TARGETS MultiSense-Viewer RUNTIME DESTINATION ${INSTALL_DIRECTORY})
     install(DIRECTORY ${CMAKE_SOURCE_DIR}/Assets CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
-endif ()
 
-if (WIN32)
+elseif (WIN32)
+    # Windows-specific settings
     if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-        message("INFO: Default Install prefix was chosen so set install path to ${INSTALL_DIRECTORY}")
-        set(CMAKE_INSTALL_PREFIX "${INSTALL_DIRECTORY}"
-                CACHE PATH "default install path" FORCE)
+        message(STATUS "INFO: Default Install prefix was chosen so set install path to ${INSTALL_DIRECTORY}")
+        set(CMAKE_INSTALL_PREFIX "${INSTALL_DIRECTORY}" CACHE PATH "default install path" FORCE)
     endif ()
 
     if (MSVC)
@@ -225,70 +225,30 @@ if (WIN32)
         add_definitions(-DNOMINMAX)
     endif ()
 
-    add_library(libsll STATIC IMPORTED GLOBAL)
-    set_target_properties(libsll PROPERTIES
-            IMPORTED_LINK_INTERFACE_LANGUAGES "C"
-            IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/external/openssl_1.1.1/lib/libssl.lib")
-
-    add_library(libcrypto STATIC IMPORTED GLOBAL)
-    set_target_properties(libcrypto PROPERTIES
-            IMPORTED_LINK_INTERFACE_LANGUAGES "C"
-            IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/external/openssl_1.1.1/lib/libcrypto.lib")
-
+    # Build executable
     add_executable(MultiSense-Viewer WIN32 ${SOURCE_FILES})
-    target_link_libraries(MultiSense-Viewer ${LIBRARIES} libsll libcrypto fmt::fmt userenv.lib)
+    target_link_libraries(MultiSense-Viewer ${LIBRARIES} fmt::fmt userenv.lib)
     add_dependencies(MultiSense-Viewer copy_assets)
 
+    # Set warnings
     set_project_warnings(MultiSense-Viewer)
 
+    # Set runtime output directory
     set_target_properties(MultiSense-Viewer PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
     set_target_properties(MultiSense-Viewer PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR})
-    set_target_properties(MultiSense PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
-    set_target_properties(MultiSense PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR})
-    set_target_properties(MultiSense PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR})
 
-    set(THIRD_PARTY_DLLS
-            ${CMAKE_CURRENT_SOURCE_DIR}/external/openssl_1.1.1/bin/libcrypto-1_1-x64.dll
-            ${CMAKE_CURRENT_SOURCE_DIR}/external/openssl_1.1.1/bin/libssl-1_1-x64.dll
-    )
-
-    foreach (file_i ${THIRD_PARTY_DLLS})
-        add_custom_command(
-                TARGET MultiSense-Viewer
-                POST_BUILD
-                COMMAND ${CMAKE_COMMAND}
-                ARGS -E copy ${file_i} ${CMAKE_BINARY_DIR}/)
-    endforeach ()
-
+    # Install configuration
     install(TARGETS MultiSense-Viewer CONFIGURATIONS Release RUNTIME DESTINATION ${INSTALL_DIRECTORY})
     install(TARGETS MultiSense-Viewer CONFIGURATIONS Release ARCHIVE DESTINATION ${INSTALL_DIRECTORY})
     install(TARGETS MultiSense-Viewer CONFIGURATIONS Release LIBRARY DESTINATION ${INSTALL_DIRECTORY})
-
-    install(FILES
-            ${CMAKE_BINARY_DIR}/MultiSense.dll
-            ${CMAKE_BINARY_DIR}/libcrypto-1_1-x64.dll
-            ${CMAKE_BINARY_DIR}/libssl-1_1-x64.dll
-            CONFIGURATIONS Release ARCHIVE DESTINATION ${INSTALL_DIRECTORY})
-
+    install(FILES ${CMAKE_BINARY_DIR}/MultiSense.dll CONFIGURATIONS Release ARCHIVE DESTINATION ${INSTALL_DIRECTORY})
     install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Assets CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
 
-    if (MSVC)
-        if (${CMAKE_VERSION} VERSION_LESS "3.6.0")
-            message("\n\t[ WARNING ]\n\n\tCMake version lower than 3.6.\n\n\t - Please update CMake and rerun; OR\n\t - Manually set 'GLFW-CMake-starter' as StartUp Project in Visual Studio.\n")
-        else ()
-            set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT MultiSense-Viewer)
-            set_property(TARGET MultiSense-Viewer PROPERTY CXX_STANDARD 20)
-        endif ()
-    endif ()
 endif ()
 
-# Compile definitions
+# Compile definitions for different build types
 if (CMAKE_BUILD_TYPE MATCHES "Release")
     target_compile_definitions(MultiSense-Viewer PRIVATE VKRENDER_MULTISENSE_VIEWER_PRODUCTION)
 else ()
     target_compile_definitions(MultiSense-Viewer PRIVATE VKRENDER_MULTISENSE_VIEWER_DEBUG)
-endif ()
-
-if (PROPRIETARY_GIGEVISION_MODULE)
-    target_compile_definitions(MultiSense-Viewer PRIVATE VKRENDER_GIGEVISION_ENABLED)
 endif ()

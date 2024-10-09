@@ -43,7 +43,6 @@
 
 
 #include "Viewer/VkRender/Core/VulkanRenderer.h"
-#include "Viewer/Scenes/ScriptSupport/ScriptBuilder.h"
 #include "Viewer/Tools/Macros.h"
 #include "Viewer/Scenes/Scene.h"
 #include "Viewer/Application/ApplicationConfig.h"

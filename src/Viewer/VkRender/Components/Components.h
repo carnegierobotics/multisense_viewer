@@ -14,8 +14,6 @@
 #include <glm/gtx/quaternion.hpp>
 #include "Viewer/VkRender/Core/Camera.h"
 #include "Viewer/VkRender/Core/UUID.h"
-#include "Viewer/Scenes/ScriptSupport/Base.h"
-#include "Viewer/Scenes/ScriptSupport/ScriptBuilder.h"
 #include "MeshComponent.h"
 
 namespace VkRender {
@@ -174,22 +172,12 @@ namespace VkRender {
     };
 
     struct ScriptComponent {
-        std::string ClassName;
-        std::shared_ptr<Base> script;
+        std::string className;
 
         ScriptComponent() = default;
 
         ScriptComponent(const ScriptComponent &) = default;
 
-        ScriptComponent(std::string scriptName, Application *m_context) {
-            script = ComponentMethodFactory::Create(scriptName);
-            script->m_context = m_context;
-            if (script == nullptr) {
-                Log::Logger::getInstance()->error("Failed to register script {}.", scriptName);
-                return;
-            }
-            Log::Logger::getInstance()->info("Registered script: {} in factory", scriptName.c_str());
-        }
     };
 
 

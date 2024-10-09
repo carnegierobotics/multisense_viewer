@@ -16,6 +16,7 @@
 #include "Viewer/Tools/Utils.h"
 
 namespace VkRender {
+    class Application;
 
     class DefaultGraphicsPipeline : public GraphicsPipeline {
     public:

@@ -36,13 +36,10 @@
 
 #include "Application.h"
 
-#include <Viewer/Scenes/SceneSerializer.h>
-
+#include "Viewer/Scenes/SceneSerializer.h"
 #include "Viewer/VkRender/Core/UUID.h"
 #include "Viewer/Tools/Utils.h"
-
 #include "Viewer/VkRender/Editors/EditorDefinitions.h"
-#include "Viewer/Scenes/MultiSenseViewer/MultiSenseViewer.h"
 
 namespace VkRender {
     Application::Application(const std::string &title) : VulkanRenderer(title) {

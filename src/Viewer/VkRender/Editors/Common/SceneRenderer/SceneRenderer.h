@@ -6,7 +6,6 @@
 #define MULTISENSE_SCENERENDERER_H
 
 #include "Viewer/VkRender/Editors/Editor.h"
-#include "Viewer/Scenes/Default/DefaultScene.h"
 #include "Viewer/VkRender/RenderPipelines/DefaultGraphicsPipeline.h"
 #include "Viewer/VkRender/RenderPipelines/UboGraphicsPipeline.h"
 

@@ -132,22 +132,17 @@ set(SOURCE_FILES
         src/Viewer/Modules/MultiSense/MultiSenseTaskManager.cpp
         src/Viewer/Modules/MultiSense/LibMultiSense/LibMultiSenseConnector.cpp
 
+        src/Viewer/VkRender/Editors/PipelineKey.cpp
         src/Viewer/VkRender/Editors/Common/Properties/PropertiesLayer.cpp
+        src/Viewer/VkRender/Editors/PipelineManager.cpp
+
         src/Viewer/VkRender/Core/VulkanTexture.cpp
         src/Viewer/VkRender/Core/VulkanTexture.h
 
         src/Viewer/Scenes/SceneSerializer.cpp
 )
 
-set(SCRIPT_FILES
-        src/Viewer/Scenes/Default/DefaultScene.cpp
-        src/Viewer/Scenes/Default/Scripts/MultiSense.cpp
-        src/Viewer/Scenes/MultiSenseViewer/MultiSenseViewer.cpp
 
-        #src/Viewer/Scenes/Renderer3D/Example/Example3D.cpp
-        #src/Viewer/Scenes/Renderer3D/MultiSense.cpp
-)
-# Define the libraries variable
 set(LIBRARIES
         Vulkan::Vulkan
         glfw
@@ -164,19 +159,18 @@ set(LIBRARIES
 )
 
 if (ENABLE_SYCL)
-    list(APPEND SCRIPT_FILES src/Viewer/VkRender/RenderPipelines/3DGS/GaussianModelGraphicsPipeline.cpp)
+    list(APPEND SOURCE_FILES src/Viewer/VkRender/RenderPipelines/3DGS/GaussianModelGraphicsPipeline.cpp)
     message(STATUS "[VkRenderINFO]: SYCL: Adding Gaussian Renderer to source")
     target_compile_options(ktx PRIVATE -msse4.1 -mssse3)
     list(APPEND LIBRARIES sycl)
 endif ()
 
 if (PROPRIETARY_GIGEVISION_MODULE)
-    list(APPEND SCRIPT_FILES src/Viewer/Modules/MultiSense/GigE-Vision/GigEVisionConnector.cpp)
+    list(APPEND SOURCE_FILES src/Viewer/Modules/MultiSense/GigE-Vision/GigEVisionConnector.cpp)
     message(STATUS "[VkRenderINFO]: SYCL: Adding Gaussian Renderer to source")
     list(APPEND LIBRARIES ${GIGEVISION_LIB})
 endif ()
 
-list(APPEND SOURCE_FILES ${SCRIPT_FILES})
 
 # Custom command and target to copy assets if they have changed
 file(GLOB ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/Assets/*")

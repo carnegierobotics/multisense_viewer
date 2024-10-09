@@ -5,8 +5,9 @@
 #ifndef MULTISENSE_VIEWER_EDITOR3DVIEWPORT_H
 #define MULTISENSE_VIEWER_EDITOR3DVIEWPORT_H
 
+#include <Viewer/VkRender/Editors/PipelineManager.h>
+
 #include "Viewer/VkRender/Editors/Editor.h"
-#include "Viewer/Scenes/Default/DefaultScene.h"
 #include "Viewer/VkRender/RenderPipelines/DefaultGraphicsPipeline.h"
 #include "Viewer/VkRender/RenderPipelines/UboGraphicsPipeline.h"
 
@@ -21,6 +22,12 @@ namespace VkRender {
         void onUpdate() override;
 
         void onRender(CommandBuffer &drawCmdBuffers) override;
+
+        void initializeMaterial(MaterialComponent &material);
+
+        void collectRenderCommands(
+            std::unordered_map<std::shared_ptr<GraphicsPipeline>, std::vector<RenderCommand>> &renderGroups);
+
         void onRenderDepthOnly(CommandBuffer &drawCmdBuffers) override;
 
         void onSceneLoad(std::shared_ptr<Scene> scene) override;
@@ -50,6 +57,7 @@ namespace VkRender {
         std::unordered_map<uint32_t, std::unique_ptr<GraphicsPipeline>> m_renderPipelines;
         std::unordered_map<UUID, std::unique_ptr<GraphicsPipeline>> m_depthOnlyRenderPipelines;
 
+         PipelineManager m_pipelineManager;
         void onEntityDestroyed(entt::entity entity);
 
         void generatePipelines();

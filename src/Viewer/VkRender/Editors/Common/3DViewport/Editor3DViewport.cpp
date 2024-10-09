@@ -4,6 +4,8 @@
 
 #include "Viewer/VkRender/Editors/Common/3DViewport/Editor3DViewport.h"
 
+#include <Viewer/VkRender/Components/MaterialComponent.h>
+
 #include "Editor3DLayer.h"
 #include "Viewer/Application/Application.h"
 #include "Viewer/VkRender/Components/Components.h"
@@ -33,61 +35,6 @@ namespace VkRender {
         m_editorCamera = Camera(m_createInfo.width, m_createInfo.height);
         m_activeCamera = m_editorCamera;
         m_activeScene = m_context->activeScene();
-        // Pass the destroy function to the scene
-        if (!m_activeScene)
-            return;
-        m_activeScene->addDestroyFunction(this, [this](entt::entity entity) {
-            onEntityDestroyed(entity);
-        });
-    }
-
-    void Editor3DViewport::cleanUpUnusedPipelines() {
-        // Delete pipelines if the UUID no longer exists
-        // CLEAN UP DEFAULT PIPELINES
-        {
-            // Step 1: Collect all active UUIDs
-            std::unordered_set<UUID> activeUUIDs;
-            auto view = m_activeScene->getRegistry().view<MeshComponent>();
-            for (auto entity: view) {
-                const UUID &meshUUID = m_activeScene->getRegistry().get<MeshComponent>(entity).getUUID();
-                activeUUIDs.insert(meshUUID);
-            }
-            // Step 2: Iterate over existing pipelines and find unused UUIDs
-            std::vector<UUID> unusedUUIDs;
-            for (const auto &[uuid, pipeline]: m_renderPipelines) {
-                /*
-                if (activeUUIDs.find(uuid) == activeUUIDs.end()) {
-                    // UUID not found in active UUIDs, mark it for deletion
-                    unusedUUIDs.push_back(uuid);
-                }
-                */
-            }
-            // Step 3: Remove the unused pipelines
-            for (const UUID &uuid: unusedUUIDs) {
-                m_renderPipelines.erase(uuid);
-            }
-        }
-        // CLEAN UP DEPTH PIPELINES
-        {  // Step 1: Collect all active UUIDs
-            std::unordered_set<UUID> activeUUIDs;
-            auto view = m_activeScene->getRegistry().view<MeshComponent>();
-            for (auto entity: view) {
-                const UUID &meshUUID = m_activeScene->getRegistry().get<MeshComponent>(entity).getUUID();
-                activeUUIDs.insert(meshUUID);
-            }
-            // Step 2: Iterate over existing pipelines and find unused UUIDs
-            std::vector<UUID> unusedUUIDs;
-            for (const auto &[uuid, pipeline]: m_depthOnlyRenderPipelines) {
-                if (activeUUIDs.find(uuid) == activeUUIDs.end()) {
-                    // UUID not found in active UUIDs, mark it for deletion
-                    unusedUUIDs.push_back(uuid);
-                }
-            }
-            // Step 3: Remove the unused pipelines
-            for (const UUID &uuid: unusedUUIDs) {
-                m_depthOnlyRenderPipelines.erase(uuid);
-            }
-        }
     }
 
     void Editor3DViewport::onUpdate() {
@@ -129,6 +76,84 @@ namespace VkRender {
 
         for (auto &val: m_renderPipelines | std::views::values) {
             val->draw(drawCmdBuffers);
+        }
+    }
+
+    void Editor3DViewport::initializeMaterial(MaterialComponent& material) {
+        /*
+         *
+        *If multiple materials use the same descriptor set layout, you can cache and reuse them:
+
+        std::unordered_map<DescriptorSetLayoutKey, VkDescriptorSetLayout> descriptorSetLayoutCache;
+        DescriptorSetLayoutKey: Define a key based on the bindings and types of descriptors.
+        Reuse: Before creating a new descriptor set layout, check if an identical one already exists in the cache.
+         **/
+        // Define descriptor set layout bindings based on the material's properties
+        std::vector<VkDescriptorSetLayoutBinding> bindings;
+
+        // Example: if the material uses a uniform buffer
+        if (material.usesUniformBuffer) {
+            VkDescriptorSetLayoutBinding uboLayoutBinding = {};
+            uboLayoutBinding.binding = 0;
+            uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            uboLayoutBinding.descriptorCount = 1;
+            uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+            uboLayoutBinding.pImmutableSamplers = nullptr;
+            bindings.push_back(uboLayoutBinding);
+        }
+
+        // Example: if the material uses a combined image sampler (texture)
+        if (material.usesTexture) {
+            VkDescriptorSetLayoutBinding samplerLayoutBinding = {};
+            samplerLayoutBinding.binding = 1;
+            samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            samplerLayoutBinding.descriptorCount = 1;
+            samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+            samplerLayoutBinding.pImmutableSamplers = nullptr;
+            bindings.push_back(samplerLayoutBinding);
+        }
+
+        // Create the descriptor set layout
+        VkDescriptorSetLayoutCreateInfo layoutInfo = {};
+        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+        layoutInfo.pBindings = bindings.data();
+
+        if (vkCreateDescriptorSetLayout(m_context->vkDevice().m_LogicalDevice, &layoutInfo, nullptr, &material.descriptorSetLayout) != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create descriptor set layout!");
+        }
+
+        // Allocate and write to the descriptor set
+        //allocateAndWriteDescriptorSet(material);
+    }
+
+    void Editor3DViewport::collectRenderCommands(std::unordered_map<std::shared_ptr<GraphicsPipeline>, std::vector<RenderCommand>>& renderGroups) {
+        auto view = m_activeScene->getRegistry().view<MeshComponent, MaterialComponent, TransformComponent>();
+
+        for (auto entity : view) {
+            auto& meshComponent = view.get<MeshComponent>(entity);
+            auto& materialComponent = view.get<MaterialComponent>(entity);
+            auto& transformComponent = view.get<TransformComponent>(entity);
+
+            // Ensure the material's descriptor set layout is initialized
+            if (materialComponent.descriptorSetLayout == VK_NULL_HANDLE) {
+                initializeMaterial(materialComponent);
+            }
+
+            // Create or retrieve pipeline
+            PipelineKey key = { materialComponent.renderMode, materialComponent.shaderName, materialComponent.descriptorSetLayout };
+            auto pipeline = m_pipelineManager.getOrCreatePipeline(key, m_renderPass->getRenderPass());
+
+            // Create render command
+            RenderCommand command;
+            command.entity = Entity(entity, m_activeScene.get());
+            command.pipeline = pipeline;
+            command.mesh = &meshComponent;
+            command.material = &materialComponent;
+            command.transform = &transformComponent;
+
+            // Add to render group
+            renderGroups[pipeline].push_back(command);
         }
     }
 

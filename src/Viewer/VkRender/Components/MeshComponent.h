@@ -21,6 +21,40 @@
 #include "Viewer/Tools/Utils.h"
 
 namespace VkRender {
+    struct MeshData {
+        std::vector<Vertex> vertices;
+        std::vector<uint32_t> indices;
+
+        MeshData() = default;
+
+        explicit MeshData(const std::filesystem::path &string);
+    };
+
+    struct MeshComponent {
+        MeshComponent() = default;
+
+        explicit MeshComponent(std::filesystem::path path) : meshPath(std::move(path)) {
+        };
+        std::filesystem::path meshPath; // Path to the mesh file (e.g., OBJ, PLY)
+        bool hasIndices = true; // Whether the mesh uses an index buffer
+        bool dynamic = false; // Flag to indicate whether the mesh is dynamic
+        // ... other logical properties
+
+        VkPolygonMode polygonMode = VK_POLYGON_MODE_FILL;
+    };
+
+    struct MeshInstance {
+        Buffer vertexBuffer;
+        Buffer indexBuffer;
+        uint32_t vertexCount = 0;
+        uint32_t indexCount = 0;
+        // Additional data like vertex layout, primitive type, etc.
+        VkPrimitiveTopology topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+
+        // Other GPU-specific resources
+    };
+
+    /*
     struct MeshComponent {
 
         MeshComponent() {
@@ -81,6 +115,7 @@ namespace VkRender {
         UUID m_meshUUID;
 
     };
+*/
 };
 
 

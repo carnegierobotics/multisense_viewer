@@ -11,7 +11,7 @@
 #include "Viewer/VkRender/Core/VulkanTexture.h"
 
 namespace VkRender {
-
+    class GraphicsPipeline2D;
 
 
     class EditorImage : public Editor {
@@ -41,9 +41,8 @@ namespace VkRender {
         entt::registry m_registry;
         bool m_recreateOnNextImageChange = false;
         std::unique_ptr<ImageComponent> imageComponent;
-        std::unique_ptr<ImageComponent> depthImageComponent;
-        std::unique_ptr<GraphicsPipeline> m_renderPipelines;
-        std::unique_ptr<GraphicsPipeline> m_depthImagePipeline;
+        std::unique_ptr<GraphicsPipeline2D> m_renderPipelines;
+
         std::shared_ptr<Scene> m_activeScene;
         std::shared_ptr<Camera> m_activeCamera;
 

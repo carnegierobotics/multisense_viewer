@@ -130,7 +130,7 @@ namespace VkRender {
     }
 
     template<typename T, typename UIFunction>
-    void PropertiesLayer::drawComponent(const std::string &name, Entity entity, UIFunction uiFunction) {
+    void PropertiesLayer::drawComponent(const std::string &componentName, Entity entity, UIFunction uiFunction) {
         const ImGuiTreeNodeFlags treeNodeFlags =
                 ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth |
                 ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowOverlap;
@@ -141,7 +141,7 @@ namespace VkRender {
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{4, 4});
             float lineHeight = GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f;
             ImGui::Separator();
-            bool open = ImGui::TreeNodeEx((void *) typeid(T).hash_code(), treeNodeFlags, "%s", name.c_str());
+            bool open = ImGui::TreeNodeEx((void *) typeid(T).hash_code(), treeNodeFlags, "%s", componentName.c_str());
             ImGui::PopStyleVar();
             ImGui::SameLine(contentRegionAvailable.x - lineHeight * 0.5f);
 
@@ -151,9 +151,10 @@ namespace VkRender {
 
             bool removeComponent = false;
             if (ImGui::BeginPopup("ComponentSettings")) {
-                if (ImGui::MenuItem("Remove component"))
-                    removeComponent = true;
-
+                if (componentName != "Tag") {
+                    if (ImGui::MenuItem("Remove component"))
+                        removeComponent = true;
+                }
                 ImGui::EndPopup();
             }
 
@@ -176,31 +177,47 @@ namespace VkRender {
             displayAddComponentEntry<ScriptComponent>("Script");
             displayAddComponentEntry<TextComponent>("Text Component");
             displayAddComponentEntry<TransformComponent>("Transform Component");
-
             displayAddComponentEntry<MeshComponent>("MeshComponent");
+            displayAddComponentEntry<MaterialComponent>("MaterialComponent");
 
             ImGui::EndPopup();
         }
 
         drawComponent<TransformComponent>("Transform", entity, [](auto &component) {
             drawVec3Control("Translation", component.getPosition());
-            drawVec3Control("Rotation", component.getRotation(), 0.0f, 2.0f);
+            drawVec3Control("Rotation", component.getRotationEuler(), 0.0f, 2.0f);
+            component.updateFromEulerRotation();
             drawVec3Control("Scale", component.getScale(), 1.0f);
         });
         drawComponent<CameraComponent>("Camera", entity, [](auto &component) {
-                drawFloatControl("Field of View", component().fov(), 1.0f);
-                component().updateProjectionMatrix();
-                ImGui::Checkbox("Render scene from viewpoint", &component.renderFromViewpoint());
-
+            drawFloatControl("Field of View", component().fov(), 1.0f);
+            component().updateProjectionMatrix();
+            ImGui::Checkbox("Render scene from viewpoint", &component.renderFromViewpoint());
         });
 
-        drawComponent<MeshComponent>("Mesh", entity, [this](auto &component) {
+        drawComponent<MeshComponent>("Mesh", entity, [this, entity](auto &component) {
             ImGui::Text("MeshFile:");
-            ImGui::Text("%s", component.getModelPath().string().c_str());
+            ImGui::Text("%s", component.meshPath.string().c_str());
+
+
             // Load mesh from file here:
             if (ImGui::Button("Load .obj file")) {
                 std::vector<std::string> types{".obj"};
                 openImportFileDialog("Wavefront", types, LayerUtils::OBJ_FILE);
+            }
+
+            // Polygon Mode Control
+            ImGui::Text("Polygon Mode:");
+            const char *polygonModes[] = {"Line", "Fill"};
+            int currentMode = (component.polygonMode == VK_POLYGON_MODE_LINE) ? 0 : 1;
+            if (ImGui::Combo("Polygon Mode", &currentMode, polygonModes, IM_ARRAYSIZE(polygonModes))) {
+                if (currentMode == 0) {
+                    component.polygonMode = VK_POLYGON_MODE_LINE;
+                } else {
+                    component.polygonMode = VK_POLYGON_MODE_FILL;
+                }
+                // notify component updated
+                m_scene->onComponentUpdated(entity, component);
             }
         });
         drawComponent<TagComponent>("Tag", entity, [this](auto &component) {
@@ -219,6 +236,61 @@ namespace VkRender {
                 // If the input changes, update the component's tag
                 component.setTag(m_tagBuffer);
             }
+        });
+
+        drawComponent<MaterialComponent>("Material", entity, [this, entity](auto &component) {
+            ImGui::Text("Material Properties");
+
+            // Base Color Control
+            ImGui::Text("Base Color");
+            ImGui::ColorEdit4("##BaseColor", glm::value_ptr(component.baseColor));
+
+            // Metallic Control
+            ImGui::Text("Metallic");
+            ImGui::SliderFloat("##Metallic", &component.metallic, 0.0f, 1.0f);
+
+            // Roughness Control
+            ImGui::Text("Roughness");
+            ImGui::SliderFloat("##Roughness", &component.roughness, 0.0f, 1.0f);
+
+            // Emissive Factor Control
+            ImGui::Text("Emissive Factor");
+            ImGui::ColorEdit3("##EmissiveFactor", glm::value_ptr(component.emissiveFactor));
+
+            component.updateShaders = false;
+            if (ImGui::Button("Reload shaders")) {
+                component.updateShaders = true;
+                m_scene->onComponentUpdated(entity, component);
+            }
+            // Texture Control
+            ImGui::Checkbox("Use Albedo Texture", &component.usesTexture);
+            if (component.usesTexture) {
+                ImGui::Text("Albedo Texture:");
+                ImGui::Text("%s", component.albedoTexturePath.string().c_str());
+
+                // Button to load texture
+                if (ImGui::Button("Load Albedo Texture")) {
+                    std::vector<std::string> types{".png", ".jpg", ".bmp"};
+                    //openImportFileDialog("Load Texture", types, LayerUtils::TEXTURE_FILE);
+                }
+            }
+
+            // Shader Controls
+            ImGui::Text("Vertex Shader:");
+            ImGui::Text("%s", component.vertexShaderName.string().c_str());
+            if (ImGui::Button("Load Vertex Shader")) {
+                std::vector<std::string> types{".vert"};
+                //openImportFileDialog("Load Vertex Shader", types, LayerUtils::VERTEX_SHADER_FILE);
+            }
+
+            ImGui::Text("Fragment Shader:");
+            ImGui::Text("%s", component.fragmentShaderName.string().c_str());
+            if (ImGui::Button("Load Fragment Shader")) {
+                std::vector<std::string> types{".frag"};
+                //openImportFileDialog("Load Fragment Shader", types, LayerUtils::FRAGMENT_SHADER_FILE);
+            }
+
+            // Notify scene that material component has been updated
         });
     }
 
@@ -300,8 +372,9 @@ namespace VkRender {
         if (!loadFileInfo.path.empty()) {
             if (loadFileInfo.filetype == LayerUtils::OBJ_FILE) {
                 // Load into the active scene
-                auto &meshComponent = m_selectionContext.getComponent<MeshComponent>();
-                meshComponent.loadOBJ(loadFileInfo.path);
+                if (m_selectionContext.hasComponent<MeshComponent>())
+                    m_selectionContext.removeComponent<MeshComponent>();
+                m_selectionContext.addComponent<MeshComponent>(loadFileInfo.path);
             } else if (loadFileInfo.filetype == LayerUtils::PLY_3DGS) {
                 // Load into the active scene
                 auto &registry = m_context->activeScene()->getRegistry();

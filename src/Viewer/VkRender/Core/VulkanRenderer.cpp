@@ -365,27 +365,27 @@ namespace VkRender {
 
     void VulkanRenderer::createCommandBuffers() {
         // Create one command buffer for each swap chain m_Image and reuse for rendering
-        drawCmdBuffers.buffers.resize(swapchain->imageCount);
+        drawCmdBuffers = CommandBuffer(swapchain->imageCount);;
 
         VkCommandBufferAllocateInfo cmdBufAllocateInfo =
                 Populate::commandBufferAllocateInfo(
                         cmdPool,
                         VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-                        static_cast<uint32_t>(drawCmdBuffers.buffers.size()));
+                        static_cast<uint32_t>(drawCmdBuffers.getBuffers().size()));
 
-        VkResult result = vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, drawCmdBuffers.buffers.data());
+        VkResult result = vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, drawCmdBuffers.getBuffers().data());
         if (result != VK_SUCCESS) throw std::runtime_error("Failed to allocate command buffers");
 
 
         // Create one command buffer for each swap chain m_Image and reuse for rendering
-        computeCommand.buffers.resize(swapchain->imageCount);
+        computeCommand = CommandBuffer(swapchain->imageCount);;
 
         VkCommandBufferAllocateInfo cmdBufAllocateComputeInfo = Populate::commandBufferAllocateInfo(
                 cmdPoolCompute,
                 VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-                static_cast<uint32_t>(computeCommand.buffers.size()));
+                static_cast<uint32_t>(computeCommand.getBuffers().size()));
 
-        result = vkAllocateCommandBuffers(device, &cmdBufAllocateComputeInfo, computeCommand.buffers.data());
+        result = vkAllocateCommandBuffers(device, &cmdBufAllocateComputeInfo, computeCommand.getBuffers().data());
         if (result != VK_SUCCESS) throw std::runtime_error("Failed to allocate command buffers");
     }
 
@@ -453,10 +453,10 @@ namespace VkRender {
 
 
     void VulkanRenderer::destroyCommandBuffers() {
-        vkFreeCommandBuffers(device, cmdPool, static_cast<uint32_t>(drawCmdBuffers.buffers.size()),
-                             drawCmdBuffers.buffers.data());
-        vkFreeCommandBuffers(device, cmdPoolCompute, static_cast<uint32_t>(computeCommand.buffers.size()),
-                             computeCommand.buffers.data());
+        vkFreeCommandBuffers(device, cmdPool, static_cast<uint32_t>(drawCmdBuffers.getBuffers().size()),
+                             drawCmdBuffers.getBuffers().data());
+        vkFreeCommandBuffers(device, cmdPoolCompute, static_cast<uint32_t>(computeCommand.getBuffers().size()),
+                             computeCommand.getBuffers().data());
     }
 
     void VulkanRenderer::windowResize() {
@@ -513,10 +513,8 @@ namespace VkRender {
 
     void VulkanRenderer::renderLoop() {
         auto graphLastTimestamp = std::chrono::high_resolution_clock::now();
-        drawCmdBuffers.frameIndex = &currentFrame;
-        drawCmdBuffers.activeImageIndex = &imageIndex;
-
         while (!glfwWindowShouldClose(window)) {
+
             auto tStart = std::chrono::high_resolution_clock::now();
             frameID++; // First frame will have id 1.
             glfwPollEvents();
@@ -569,11 +567,11 @@ namespace VkRender {
 
 
         vkResetFences(device, 1, &computeInFlightFences[currentFrame]);
-
-        vkResetCommandBuffer(computeCommand.buffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
+        auto activeBuffer = computeCommand.getActiveBuffer();
+        vkResetCommandBuffer(activeBuffer, /*VkCommandBufferResetFlagBits*/ 0);
         /** call renderer compute function **/
         sInfo.commandBufferCount = 1;
-        sInfo.pCommandBuffers = &computeCommand.buffers[currentFrame];
+        sInfo.pCommandBuffers = &activeBuffer;
         sInfo.signalSemaphoreCount = 1;
         sInfo.pSignalSemaphores = &semaphores[currentFrame].computeComplete;
         if (vkQueueSubmit(computeQueue, 1, &sInfo, computeInFlightFences[currentFrame]) != VK_SUCCESS) {
@@ -613,12 +611,12 @@ namespace VkRender {
             throw std::runtime_error(
                     "Failed to acquire next m_Image in prepareFrame. VkResult: " + std::to_string(result));
 
-
         result = vkResetFences(device, 1, &waitFences[currentFrame]);
         if (result != VK_SUCCESS)
-            throw std::runtime_error("Failed to reset fence");
 
-        vkResetCommandBuffer(drawCmdBuffers.buffers[currentFrame], /*VkCommandBufferResetFlagBits*/ 0);
+            throw std::runtime_error("Failed to reset fence");
+        drawCmdBuffers.activeImageIndex = imageIndex;
+        vkResetCommandBuffer(drawCmdBuffers.getActiveBuffer(), /*VkCommandBufferResetFlagBits*/ 0);
     }
 
     void VulkanRenderer::submitFrame() {
@@ -637,6 +635,7 @@ namespace VkRender {
                 semaphores[currentFrame].renderComplete,
         };
 
+        auto activeBuffer = drawCmdBuffers.getActiveBuffer();
         submitInfo = {};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
         submitInfo.waitSemaphoreCount = 1;
@@ -645,7 +644,7 @@ namespace VkRender {
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = signalSemaphores;
         submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &drawCmdBuffers.buffers[currentFrame];
+        submitInfo.pCommandBuffers = &activeBuffer;
         vkQueueSubmit(graphicsQueue, 1, &submitInfo, waitFences[currentFrame]);
 
         VkResult result = swapchain->queuePresent(graphicsQueue, imageIndex,
@@ -662,6 +661,8 @@ namespace VkRender {
 
 
         currentFrame = (currentFrame + 1) % swapchain->imageCount;
+        drawCmdBuffers.frameIndex = currentFrame;
+
     }
 
     /** CALLBACKS **/
@@ -1172,7 +1173,7 @@ namespace VkRender {
         clearValues[0] = {{{0.15f, 0.15f, 0.15f, 1.0f}}};
         clearValues[1].depthStencil = {1.0f, 0};
         clearValues[2] = {{{0.15f, 0.15f, 0.15f, 1.0f}}};
-        vkBeginCommandBuffer(drawCmdBuffers.buffers[currentFrame], &cmdBufInfo);
+        vkBeginCommandBuffer(drawCmdBuffers.getActiveBuffer(), &cmdBufInfo);
         VkRenderPassBeginInfo renderPassBeginInfo = Populate::renderPassBeginInfo();
         renderPassBeginInfo.renderPass = m_mainRenderPass->getRenderPass();
         // Increase reference count by 1 here?
@@ -1183,9 +1184,9 @@ namespace VkRender {
         renderPassBeginInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
         renderPassBeginInfo.pClearValues = clearValues.data();
         renderPassBeginInfo.framebuffer = m_frameBuffers[imageIndex];
-        vkCmdBeginRenderPass(drawCmdBuffers.buffers[currentFrame], &renderPassBeginInfo,
+        vkCmdBeginRenderPass(drawCmdBuffers.getActiveBuffer(), &renderPassBeginInfo,
                              VK_SUBPASS_CONTENTS_INLINE);
-        vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
+        vkCmdEndRenderPass(drawCmdBuffers.getActiveBuffer());
 
         onRender();
 
@@ -1193,11 +1194,11 @@ namespace VkRender {
         subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         subresourceRange.levelCount = 1;
         subresourceRange.layerCount = 1;
-        Utils::setImageLayout(drawCmdBuffers.buffers[currentFrame], swapchain->buffers[imageIndex].image,
+        Utils::setImageLayout(drawCmdBuffers.getActiveBuffer(), swapchain->buffers[imageIndex].image,
                               VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                               VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, subresourceRange,
                               VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
-        vkEndCommandBuffer(drawCmdBuffers.buffers[currentFrame]);
+        vkEndCommandBuffer(drawCmdBuffers.getActiveBuffer());
     }
 
     void VulkanRenderer::createDepthStencil() {

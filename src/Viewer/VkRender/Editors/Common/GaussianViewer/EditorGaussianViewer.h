@@ -50,7 +50,6 @@ namespace VkRender {
 
         void generatePipelines();
 
-        void onEntityDestroyed(entt::entity entity);
 
     };
 }

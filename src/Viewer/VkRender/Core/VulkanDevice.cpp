@@ -526,16 +526,17 @@ VkCommandBuffer VulkanDevice::createCommandBuffer(VkCommandBufferLevel level, bo
 }
 
 CommandBuffer VulkanDevice::createVulkanCommandBuffer(VkCommandBufferLevel level, bool begin) {
-    CommandBuffer cmdBuffer;
-    cmdBuffer.buffers.resize(1);
+    CommandBuffer cmdBuffer(1);
 
+
+    VkCommandBuffer buffer = cmdBuffer.getActiveBuffer();
     VkCommandBufferAllocateInfo cmdBufAllocateInfo = Populate::commandBufferAllocateInfo(m_CommandPool, level, 1);
-    if (vkAllocateCommandBuffers(m_LogicalDevice, &cmdBufAllocateInfo, &cmdBuffer.buffers[0]) != VK_SUCCESS)
+    if (vkAllocateCommandBuffers(m_LogicalDevice, &cmdBufAllocateInfo, &buffer) != VK_SUCCESS)
         throw std::runtime_error("Failed to allocate command buffers");
     // If requested, also start recording for the new command buffer
     if (begin) {
         VkCommandBufferBeginInfo cmdBufInfo = Populate::commandBufferBeginInfo();
-        if (vkBeginCommandBuffer(cmdBuffer.buffers[0], &cmdBufInfo) != VK_SUCCESS)
+        if (vkBeginCommandBuffer(buffer, &cmdBufInfo) != VK_SUCCESS)
             throw std::runtime_error("Failed to begin command buffer");
     }
 

@@ -6,6 +6,8 @@
 #define PIPELINEKEY_H
 
 #include <string>
+#include <vector>
+#include <filesystem>
 #include <vulkan/vulkan.h> // For Vulkan types
 
 namespace VkRender {
@@ -17,10 +19,13 @@ namespace VkRender {
     };
 
     struct PipelineKey {
-        RenderMode renderMode;
-        std::string shaderName;
-        VkDescriptorSetLayout descriptorSetLayout; // Include the descriptor set layout
-
+        RenderMode renderMode = RenderMode::Opaque;
+        std::filesystem::path vertexShaderName = "default.vert";
+        std::filesystem::path fragmentShaderName = "default.frag";
+        std::vector<VkDescriptorSetLayout> setLayouts; // Include the descriptor set layout
+        VkPrimitiveTopology topology = VK_PRIMITIVE_TOPOLOGY_MAX_ENUM;
+        VkPolygonMode polygonMode = VK_POLYGON_MODE_MAX_ENUM;
+        uint64_t* materialPtr = nullptr;
         bool operator==(const PipelineKey& other) const;
     };
 
@@ -30,13 +35,24 @@ namespace VkRender {
 template<>
 struct std::hash<VkRender::PipelineKey> {
     std::size_t operator()(const VkRender::PipelineKey &key) const {
-        // Compute individual hashes for each member and combine them
-        std::size_t hash1 = std::hash<int>{}(static_cast<int>(key.renderMode)); // Assuming RenderMode is an enum
-        std::size_t hash2 = std::hash<std::string>{}(key.shaderName);
-        std::size_t hash3 = std::hash<VkDescriptorSetLayout>{}(key.descriptorSetLayout);
+        std::size_t seed = 0;
 
-        // Combine the hash values (bitwise XOR and shifts)
-        return hash1 ^ (hash2 << 1) ^ (hash3 << 2);
+        // Helper function to hash and combine with seed
+        auto hash_combine = [&seed](auto&& value) {
+            std::hash<std::decay_t<decltype(value)>> hasher;
+            seed ^= hasher(value) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        };
+
+        // Hash each member of PipelineKey
+        hash_combine(static_cast<int>(key.renderMode)); // Assuming RenderMode is an enum
+        hash_combine(key.vertexShaderName);
+        hash_combine(key.fragmentShaderName);
+        hash_combine(key.materialPtr);
+        hash_combine(key.setLayouts.size());
+        hash_combine(static_cast<int>(key.topology)); // Assuming topology is an enum
+        hash_combine(static_cast<int>(key.polygonMode)); // Assuming polygonMode is an enum
+
+        return seed;
     }
 };
 

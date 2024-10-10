@@ -6,21 +6,19 @@
 #define MULTISENSE_VIEWER_DEFAULTGRAPHICSPIPELINECOMPONENT2_H
 
 
-#include <stb_image.h>
+#include <Viewer/VkRender/Editors/PipelineKey.h>
+
 #include "Viewer/VkRender/Core/RenderDefinitions.h"
 #include "Viewer/VkRender/RenderPipelines/RenderBase.h"
-#include "Viewer/VkRender/RenderPipelines/GraphicsPipeline.h"
 
 #include "Viewer/VkRender/Components/Components.h"
-#include "Viewer/Tools/Logger.h"
-#include "Viewer/Tools/Utils.h"
+
 
 namespace VkRender {
     class Application;
 
-    class DefaultGraphicsPipeline : public GraphicsPipeline {
+    class DefaultGraphicsPipeline {
     public:
-
         DefaultGraphicsPipeline() = delete;
 
         /** @brief
@@ -34,21 +32,14 @@ namespace VkRender {
         ~DefaultGraphicsPipeline();
 
         explicit DefaultGraphicsPipeline(Application &m_context, const RenderPassInfo &renderPassInfo,
-                                         const std::string &vertexShader = "default.vert.spv",
-                                         const std::string &fragmentShader = "default.frag.spv");
+                                         const PipelineKey &key);
 
 
         void cleanUp();
 
-        void update(uint32_t currentFrame) override;
+        void bind(CommandBuffer &commandBuffer) const;
 
-        void updateTransform(TransformComponent &transform) override;
-
-        void draw(CommandBuffer &cmdBuffers) override;
-
-        void updateView(const Camera &camera) override;
-
-        void bind(MeshComponent &meshComponent) override;
+        std::shared_ptr<VulkanGraphicsPipeline> pipeline() { return m_graphicsPipeline; }
 
     private:
         struct Vertices {
@@ -56,6 +47,7 @@ namespace VkRender {
             VkDeviceMemory memory = VK_NULL_HANDLE;
             uint32_t vertexCount = 0;
         };
+
         struct Indices {
             VkBuffer buffer = VK_NULL_HANDLE;
             VkDeviceMemory memory = VK_NULL_HANDLE;
@@ -71,13 +63,15 @@ namespace VkRender {
         Indices indices{};
         Vertices vertices{};
 
-        std::string m_vertexShader;
-        std::string m_fragmentShader;
+        std::filesystem::path m_vertexShader;
+        std::filesystem::path m_fragmentShader;
 
         UBOMatrix m_vertexParams; // Non GPU-accessible data, shared across frames
         FragShaderParams m_fragParams; // Non GPU-accessible data, shared across frames
         std::vector<DefaultRenderData> m_renderData;
         SharedRenderData m_sharedRenderData;
+
+        std::shared_ptr<VulkanGraphicsPipeline> m_graphicsPipeline;
 
         void setupUniformBuffers();
 
@@ -87,7 +81,5 @@ namespace VkRender {
 
         void setTexture(const VkDescriptorImageInfo *info);
     };
-
-
 };
 #endif //MULTISENSE_VIEWER_DEFAULTGRAPHICSPIPELINECOMPONENT2_H

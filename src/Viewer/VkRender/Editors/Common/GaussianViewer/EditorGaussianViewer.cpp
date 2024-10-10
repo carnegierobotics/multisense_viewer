@@ -14,9 +14,6 @@ namespace VkRender {
     void VkRender::EditorGaussianViewer::onSceneLoad(std::shared_ptr<Scene> scene) {
         m_activeScene = m_context->activeScene();
 
-        m_activeScene->addDestroyFunction(this, [this](entt::entity entity) {
-            onEntityDestroyed(entity);
-        });
 
         addUIData<EditorGaussianViewerUI>();
 
@@ -48,9 +45,7 @@ namespace VkRender {
     }
 
 
-    void EditorGaussianViewer::onEntityDestroyed(entt::entity entity) {
-        m_gaussianRenderPipelines.erase(entity);
-    }
+
 
     void VkRender::EditorGaussianViewer::onUpdate() {
         auto imageUI = std::dynamic_pointer_cast<EditorGaussianViewerUI>(m_ui);

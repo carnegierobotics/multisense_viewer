@@ -25,7 +25,7 @@ namespace VkRender {
         VkPushConstantRange pushConstantRange = Populate::pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT,
                                                                             createInfo.pushConstBlockSize, 0);
         VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = Populate::pipelineLayoutCreateInfo(
-                &createInfo.descriptorSetLayout, 1);
+         createInfo.descriptorSetLayouts.data(), createInfo.descriptorSetLayouts.size());
 
         pipelineLayoutCreateInfo.pushConstantRangeCount = createInfo.pushConstBlockSize ? 1 : 0;
         pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;

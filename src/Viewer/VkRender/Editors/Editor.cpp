@@ -87,7 +87,6 @@ namespace VkRender {
     void Editor::renderScene(CommandBuffer &drawCmdBuffers, const VkRenderPass &renderPass, uint32_t imageIndex,
                              VkFramebuffer *frameBuffers, const VkViewport &viewport, VkRect2D scissor, bool includeGUI,
                              uint32_t clearValueCount, VkClearValue *clearValues) {
-        const uint32_t &currentFrame = *drawCmdBuffers.frameIndex;
         /// *** Color render pass *** ///
         VkRenderPassBeginInfo renderPassBeginInfo = Populate::renderPassBeginInfo();
         renderPassBeginInfo.renderPass = renderPass;
@@ -100,17 +99,17 @@ namespace VkRender {
 
         renderPassBeginInfo.framebuffer = frameBuffers[imageIndex];
 
-        vkCmdBeginRenderPass(drawCmdBuffers.buffers[currentFrame], &renderPassBeginInfo,
+        vkCmdBeginRenderPass(drawCmdBuffers.getActiveBuffer(), &renderPassBeginInfo,
                              VK_SUBPASS_CONTENTS_INLINE);
-        vkCmdSetViewport(drawCmdBuffers.buffers[currentFrame], 0, 1, &viewport);
-        vkCmdSetScissor(drawCmdBuffers.buffers[currentFrame], 0, 1, &scissor);
+        vkCmdSetViewport(drawCmdBuffers.getActiveBuffer(), 0, 1, &viewport);
+        vkCmdSetScissor(drawCmdBuffers.getActiveBuffer(), 0, 1, &scissor);
 
         onRender(drawCmdBuffers);
 
         if (includeGUI)
-            m_guiManager->drawFrame(drawCmdBuffers.buffers[currentFrame], currentFrame, m_createInfo.width,
+            m_guiManager->drawFrame(drawCmdBuffers.getActiveBuffer(), drawCmdBuffers.frameIndex, m_createInfo.width,
                                     m_createInfo.height, m_createInfo.x, m_createInfo.y);
-        vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
+        vkCmdEndRenderPass(drawCmdBuffers.getActiveBuffer());
     }
 
     void Editor::render(CommandBuffer &drawCmdBuffers) {
@@ -138,7 +137,7 @@ namespace VkRender {
             subresourceRange.levelCount = 1;
             subresourceRange.layerCount = 1;
 
-            Utils::setImageLayout(drawCmdBuffers.buffers[*drawCmdBuffers.frameIndex], m_offscreenFramebuffer.resolvedImage->image(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            Utils::setImageLayout(drawCmdBuffers.getActiveBuffer(), m_offscreenFramebuffer.resolvedImage->image(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
     VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, subresourceRange, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
 
 
@@ -146,7 +145,7 @@ namespace VkRender {
                         clearValueCount, clearValues);
             // Transition image to be in shader read mode
 
-            Utils::setImageLayout(drawCmdBuffers.buffers[*drawCmdBuffers.frameIndex], m_offscreenFramebuffer.resolvedImage->image(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            Utils::setImageLayout(drawCmdBuffers.getActiveBuffer(), m_offscreenFramebuffer.resolvedImage->image(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, subresourceRange, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 
 
@@ -164,7 +163,7 @@ namespace VkRender {
             VkRect2D scissor{};
             scissor.offset = {(m_createInfo.x), (m_createInfo.y)};
             scissor.extent = {static_cast<uint32_t>(m_createInfo.width), static_cast<uint32_t>(m_createInfo.height)};
-            renderScene(drawCmdBuffers, m_renderPass->getRenderPass(), *drawCmdBuffers.activeImageIndex, m_createInfo.frameBuffers, viewport, scissor);
+            renderScene(drawCmdBuffers, m_renderPass->getRenderPass(), drawCmdBuffers.activeImageIndex, m_createInfo.frameBuffers, viewport, scissor);
         }
 
 
@@ -295,8 +294,8 @@ namespace VkRender {
 
 
     void Editor::renderDepthPass(CommandBuffer &drawCmdBuffers) {
-        const uint32_t &currentFrame = *drawCmdBuffers.frameIndex;
-        const uint32_t &imageIndex = *drawCmdBuffers.activeImageIndex;
+        const uint32_t &currentFrame = drawCmdBuffers.frameIndex;
+        const uint32_t &imageIndex = drawCmdBuffers.activeImageIndex;
 
         VkViewport viewport{};
         viewport.x = static_cast<float>(0);
@@ -324,13 +323,13 @@ namespace VkRender {
         renderPassBeginInfo.pClearValues = clearValues;
 
         renderPassBeginInfo.framebuffer = m_depthOnlyFramebuffer.depthOnlyFramebuffer[imageIndex]->framebuffer();
-        vkCmdBeginRenderPass(drawCmdBuffers.buffers[currentFrame], &renderPassBeginInfo,
+        vkCmdBeginRenderPass(drawCmdBuffers.getActiveBuffer(), &renderPassBeginInfo,
                              VK_SUBPASS_CONTENTS_INLINE);
-        vkCmdSetViewport(drawCmdBuffers.buffers[currentFrame], 0, 1, &viewport);
-        vkCmdSetScissor(drawCmdBuffers.buffers[currentFrame], 0, 1, &scissor);
+        vkCmdSetViewport(drawCmdBuffers.getActiveBuffer(), 0, 1, &viewport);
+        vkCmdSetScissor(drawCmdBuffers.getActiveBuffer(), 0, 1, &scissor);
 
         onRenderDepthOnly(drawCmdBuffers);
-        vkCmdEndRenderPass(drawCmdBuffers.buffers[currentFrame]);
+        vkCmdEndRenderPass(drawCmdBuffers.getActiveBuffer());
 
 
         /*
@@ -509,7 +508,7 @@ namespace VkRender {
         */
 
         Utils::setImageLayout(
-            drawCmdBuffers.buffers[currentFrame],
+            drawCmdBuffers.getActiveBuffer(),
             m_depthOnlyFramebuffer.depthImage->image(),
             VK_IMAGE_ASPECT_DEPTH_BIT,
             VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,

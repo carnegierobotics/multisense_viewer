@@ -7,29 +7,13 @@
 
 
 namespace VkRender {
-    std::shared_ptr<DefaultGraphicsPipeline> PipelineManager::getOrCreatePipeline(const PipelineKey &key, const VkRenderPass& renderPass) {
+    std::shared_ptr<DefaultGraphicsPipeline> PipelineManager::getOrCreatePipeline(const PipelineKey &key, const RenderPassInfo& renderPassInfo, Application* context) {
         auto it = m_pipelineCache.find(key);
         if (it != m_pipelineCache.end()) {
             return it->second;
         }
-
-        // Create a new pipeline
-        VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
-        pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutInfo.setLayoutCount = 1;
-        pipelineLayoutInfo.pSetLayouts = &key.descriptorSetLayout;
-        // Add push constant ranges if necessary
-
-        VkPipelineLayout pipelineLayout;
-        if (vkCreatePipelineLayout(nullptr, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
-            throw std::runtime_error("Failed to create pipeline layout!");
-        }
-        RenderPassInfo renderPassInfo{};
-        renderPassInfo.sampleCount = VK_SAMPLE_COUNT_1_BIT;
-        renderPassInfo.renderPass = renderPass;
-
         // Create the graphics pipeline using the pipeline layout
-        auto pipeline = std::make_shared<DefaultGraphicsPipeline>(*m_context, renderPassInfo);
+        auto pipeline = std::make_shared<DefaultGraphicsPipeline>(*context, renderPassInfo, key);
         m_pipelineCache[key] = pipeline;
         return pipeline;
     }

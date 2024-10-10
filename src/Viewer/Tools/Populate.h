@@ -332,6 +332,8 @@ namespace Populate {
         pipelineLayoutCreateInfo.setLayoutCount = setLayoutCount;
         pipelineLayoutCreateInfo.pSetLayouts = pSetLayouts;
         pipelineLayoutCreateInfo.pNext = nullptr;
+        pipelineLayoutCreateInfo.pushConstantRangeCount = 0;
+        pipelineLayoutCreateInfo.flags = 0;
         return pipelineLayoutCreateInfo;
     }
 

@@ -360,7 +360,7 @@ namespace Utils {
         shaderStage.stage = stage;
         shaderStage.module = *module;
         shaderStage.pName = "main";
-        Log::Logger::getInstance()->trace("Loaded shader {} for stage {}", fileName, static_cast<uint32_t>(stage));
+        Log::Logger::getInstance()->info("Loaded shader {} for stage {}", fileName, static_cast<uint32_t>(stage));
         return shaderStage;
     }
 

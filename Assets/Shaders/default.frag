@@ -5,14 +5,14 @@ layout (location = 1) in vec4 fragPos;
 layout (location = 2) in vec3 inNormal;
 layout (location = 3) in vec3 inFragPos; // World space position
 
-layout (binding = 0) uniform UBO
+
+layout (binding = 0) uniform CameraUBO
 {
     mat4 projection;
     mat4 view;
-    mat4 model;
-    vec3 camPos;
-} ubo;
-
+    vec3 position;
+} camera;
+/*
 layout(binding = 1) uniform Info {
     vec4 lightDir;
     float exposure;
@@ -24,7 +24,7 @@ layout(binding = 1) uniform Info {
 } info;
 
 layout (binding = 2) uniform sampler2D samplerColorMap;
-
+*/
 layout (location = 0) out vec4 outColor;
 
 vec3 calculatePhongLighting(vec3 normal, vec3 fragPos, vec3 viewDir, vec3 lightDir) {
@@ -52,13 +52,17 @@ vec3 calculatePhongLighting(vec3 normal, vec3 fragPos, vec3 viewDir, vec3 lightD
 
 void main()
 {
+
     vec3 lightDir = normalize(vec3(-0.5, 0.0, 1.0)); // Fixed sunlight direction
 
     vec3 norm = normalize(inNormal);
-    vec3 viewDir = normalize(ubo.camPos - inFragPos);
+    vec3 viewDir = normalize(camera.position - inFragPos);
 
     vec3 phongLighting = calculatePhongLighting(norm, inFragPos, viewDir, lightDir);
 
-    vec4 texColor = texture(samplerColorMap, inUV);
-    outColor = vec4(phongLighting, 1.0) * texColor;
+    //vec4 texColor = texture(samplerColorMap, inUV);
+    outColor = vec4(phongLighting * 0.7, 1.0);// * texColor;
+
+
+    //outColor = vec4(0.3, 0.5, 0.5, 1.0);
 }

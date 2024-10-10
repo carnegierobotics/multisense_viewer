@@ -119,7 +119,7 @@ namespace VkRender {
                 VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE);
         pipelineCreateInfo.msaaSamples = msaaSamples;
         pipelineCreateInfo.shaders = guiResources->shaders;
-        pipelineCreateInfo.descriptorSetLayout = guiResources->descriptorSetLayout;
+        pipelineCreateInfo.descriptorSetLayouts.push_back(guiResources->descriptorSetLayout);
         pipelineCreateInfo.pushConstBlockSize = sizeof(GuiAssets::PushConstBlock);
         pipelineCreateInfo.depthTesting = VK_FALSE;
 
@@ -160,7 +160,7 @@ namespace VkRender {
         VulkanGraphicsPipelineCreateInfo pipelineCreateInfo(renderPass, m_vulkanDevice);
         pipelineCreateInfo.msaaSamples = msaaSamples;
         pipelineCreateInfo.shaders = guiResources->shaders;
-        pipelineCreateInfo.descriptorSetLayout = guiResources->descriptorSetLayout;
+        pipelineCreateInfo.descriptorSetLayouts.push_back(guiResources->descriptorSetLayout);
         pipelineCreateInfo.pushConstBlockSize = sizeof(GuiAssets::PushConstBlock);
         pipelineCreateInfo.rasterizationStateCreateInfo = Populate::pipelineRasterizationStateCreateInfo(
                 VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE,

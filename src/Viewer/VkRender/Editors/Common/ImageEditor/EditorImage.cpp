@@ -132,8 +132,6 @@ namespace VkRender {
         VulkanTexture2DCreateInfo textureCreateInfo(m_context->vkDevice());
         textureCreateInfo.image = m_context->sharedEditorData().depthFrameBuffer[m_context->sharedEditorData().selectedUUIDContext.operator*()].depthImage; // TODO get this from the Editor3D Viewport then I think it is solved
         m_texture = std::make_shared<VulkanTexture2D>(textureCreateInfo);
-        m_depthImagePipeline = std::make_unique<GraphicsPipeline2D>(*m_context, renderPassInfo);
-        m_depthImagePipeline->bindTexture(m_texture);
     }
 
     void EditorImage::onUpdate() {
@@ -160,6 +158,7 @@ namespace VkRender {
             auto sceneRenderer = m_context->getSceneRendererByUUID(getUUID());
             if (!sceneRenderer) {
                 sceneRenderer = m_context->addSceneRendererWithUUID(getUUID());
+                sceneRenderer->onSceneLoad(m_activeScene);
                 auto& image = sceneRenderer->getOffscreenFramebuffer().resolvedImage;
                 VulkanTexture2DCreateInfo textureCreateInfo(m_context->vkDevice());
                 textureCreateInfo.image = image;
@@ -182,55 +181,12 @@ namespace VkRender {
             imageUI->update = false;
         }
 
-        if (m_context->sharedEditorData().selectedUUIDContext && !m_depthImagePipeline) {
-            RenderPassInfo renderPassInfo{};
-            renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
-            renderPassInfo.renderPass = m_renderPass->getRenderPass();
-            VulkanTexture2DCreateInfo textureCreateInfo(m_context->vkDevice());
-            textureCreateInfo.image = m_context->sharedEditorData().depthFrameBuffer[m_context->sharedEditorData().selectedUUIDContext.operator*()].depthImage; // TODO get this from the Editor3D Viewport then I think it is solved
-            m_texture = std::make_shared<VulkanTexture2D>(textureCreateInfo);
-            m_depthImagePipeline = std::make_unique<GraphicsPipeline2D>(*m_context, renderPassInfo);
-            m_depthImagePipeline->bindTexture(m_texture);
-        }
 
-        auto view = m_activeScene->getRegistry().view<CameraComponent>();
-        for (auto entity: view) {
-            auto e = Entity(entity, m_activeScene.get());
-            if (e == m_createInfo.sharedUIContextData->m_selectedEntity) {
-                auto &cameraComponent = view.get<CameraComponent>(entity);
-                m_activeCamera = std::make_shared<Camera>(cameraComponent());
-            }
-        }
-
-
-        if (m_depthImagePipeline && m_activeCamera) {
-
-            m_depthImagePipeline->updateView(m_activeCamera.operator*());
-            m_depthImagePipeline->update(m_context->currentFrameIndex());
-        }
-
-        if (m_renderPipelines && m_activeCamera) {
-            m_renderPipelines->updateView(m_activeCamera.operator*());
-            m_renderPipelines->update(m_context->currentFrameIndex());
-        }
         m_activeScene->update(m_context->currentFrameIndex());
-        // update Image when needed
-
-        // Check if any 3D viewport is rendering depth
-
-        // We want to attach the depth only image
-
-        // Update it from the latest render
     }
 
     void EditorImage::onRender(CommandBuffer &drawCmdBuffers) {
-
-
-        //if (m_depthImagePipeline)
-        //    m_depthImagePipeline->draw(drawCmdBuffers);
-
         if (m_renderPipelines) {
-
             m_renderPipelines->draw(drawCmdBuffers);
         }
     }

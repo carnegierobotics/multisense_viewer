@@ -19,7 +19,6 @@ namespace VkRender {
     }
 
     Entity Scene::createEntityWithUUID(UUID uuid, const std::string &name) {
-
         Entity entity = {m_registry.create(), this};
         entity.addComponent<IDComponent>(uuid);
         entity.addComponent<TransformComponent>();
@@ -29,7 +28,6 @@ namespace VkRender {
                                          entity.getUUID().operator std::string(), entity.getName());
 
         return entity;
-
     }
 
     Entity Scene::findEntityByName(std::string_view name) {
@@ -41,14 +39,11 @@ namespace VkRender {
                     return Entity{entity, this};
             }
             return {};
-
         }
-
     }
 
     Entity Scene::createEntity(const std::string &name) {
         return createEntityWithUUID(UUID(), name);
-
     }
 
     void Scene::destroyEntity(Entity entity) {
@@ -60,14 +55,31 @@ namespace VkRender {
         if (m_registry.valid(entity)) {
             Log::Logger::getInstance()->info("Deleting Entity with UUID: {} and Tag: {}",
                                              entity.getUUID().operator std::string(), entity.getName());
+            notifyComponentRemoval(entity);
 
             // Perform the deletion
             m_registry.destroy(entity);
         } else {
             Log::Logger::getInstance()->warning(
-                    "Attempted to delete an invalid or already deleted entity with UUID: {}",
-                    entity.getUUID().operator std::string());
+                "Attempted to delete an invalid or already deleted entity with UUID: {}",
+                entity.getUUID().operator std::string());
         }
+    }
+
+    void Scene::notifyComponentRemoval(Entity entity) {
+        // Check for each component type, and remove if the entity has the component
+        if (entity.hasComponent<MeshComponent>()) {
+            entity.removeComponent<MeshComponent>();
+        }
+
+        if (entity.hasComponent<MaterialComponent>()) {
+            entity.removeComponent<MaterialComponent>();
+        }
+
+        // Repeat for other components, adding more checks for each type of component
+        // if (entity.hasComponent<OtherComponent>()) {
+        //     entity.removeComponent<OtherComponent>();
+        // }
     }
 
     Entity Scene::createNewCamera(const std::string &name, uint32_t width, uint32_t height) {
@@ -80,35 +92,69 @@ namespace VkRender {
     }
 
     void Scene::onMouseEvent(const MouseButtons &mouse) {
-
     }
 
     void Scene::onMouseScroll(float change) {
-
     }
 
     void Scene::notifyEditorsComponentAdded(Entity entity, MeshComponent &component) {
         for (auto &editor: m_context->m_sceneRenderers) {
             editor.second->onComponentAdded(entity, component);
         }
-
         for (auto &editor: m_context->m_editors) {
             editor->onComponentAdded(entity, component);
         }
-
-
-
     }
+
+    void Scene::notifyEditorsComponentUpdated(Entity entity, MeshComponent &component) {
+        for (auto &editor: m_context->m_sceneRenderers) {
+            editor.second->onComponentUpdated(entity, component);
+        }
+        for (auto &editor: m_context->m_editors) {
+            editor->onComponentUpdated(entity, component);
+        }
+    }
+    void Scene::notifyEditorsComponentRemoved(Entity entity, MeshComponent &component) {
+        for (auto &editor: m_context->m_sceneRenderers) {
+            editor.second->onComponentRemoved(entity, component);
+        }
+        for (auto &editor: m_context->m_editors) {
+            editor->onComponentRemoved(entity, component);
+        }
+    }
+
+    void Scene::notifyEditorsComponentAdded(Entity entity, MaterialComponent &component) {
+        for (auto &editor: m_context->m_sceneRenderers) {
+            editor.second->onComponentAdded(entity, component);
+        }
+        for (auto &editor: m_context->m_editors) {
+            editor->onComponentAdded(entity, component);
+        }
+    }
+
+    void Scene::notifyEditorsComponentUpdated(Entity entity, MaterialComponent &component) {
+        for (auto &editor: m_context->m_sceneRenderers) {
+            editor.second->onComponentUpdated(entity, component);
+        }
+        for (auto &editor: m_context->m_editors) {
+            editor->onComponentUpdated(entity, component);
+        }
+    }
+    void Scene::notifyEditorsComponentRemoved(Entity entity, MaterialComponent &component) {
+        for (auto &editor: m_context->m_sceneRenderers) {
+            editor.second->onComponentRemoved(entity, component);
+        }
+        for (auto &editor: m_context->m_editors) {
+            editor->onComponentRemoved(entity, component);
+        }
+    }
+
 
     DISABLE_WARNING_PUSH
     DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER
 
-    template<typename T>
-    void Scene::onComponentAdded(Entity entity, T &component) {
-        static_assert(sizeof(T) == 0);
-        notifyEditorsComponentAdded(entity, component);
 
-    }
+    /** COMPONENT ADDED **/
 
     template<>
     void Scene::onComponentAdded<IDComponent>(Entity entity, IDComponent &component) {
@@ -116,6 +162,10 @@ namespace VkRender {
 
     template<>
     void Scene::onComponentAdded<MeshComponent>(Entity entity, MeshComponent &component) {
+        notifyEditorsComponentAdded(entity, component);
+    }
+    template<>
+    void Scene::onComponentAdded<MaterialComponent>(Entity entity, MaterialComponent &component) {
         notifyEditorsComponentAdded(entity, component);
     }
 
@@ -150,8 +200,99 @@ namespace VkRender {
     template<>
     void Scene::onComponentAdded<ImageComponent>(Entity entity, ImageComponent &component) {
     }
+    /** COMPONENT REMOVE **/
+
+    template<>
+    void Scene::onComponentRemoved<IDComponent>(Entity entity, IDComponent &component) {
+    }
+
+    template<>
+    void Scene::onComponentRemoved<MeshComponent>(Entity entity, MeshComponent &component) {
+        notifyEditorsComponentRemoved(entity, component);
+    }
+    template<>
+    void Scene::onComponentRemoved<MaterialComponent>(Entity entity, MaterialComponent &component) {
+        notifyEditorsComponentRemoved(entity, component);
+    }
+    template<>
+    void Scene::onComponentRemoved<TransformComponent>(Entity entity, TransformComponent &component) {
+    }
+
+    template<>
+    void Scene::onComponentRemoved<CameraComponent>(Entity entity, CameraComponent &component) {
+    }
+
+    template<>
+    void Scene::onComponentRemoved<ScriptComponent>(Entity entity, ScriptComponent &component) {
+    }
+
+    template<>
+    void Scene::onComponentRemoved<TagComponent>(Entity entity, TagComponent &component) {
+    }
+
+    template<>
+    void Scene::onComponentRemoved<Rigidbody2DComponent>(Entity entity, Rigidbody2DComponent &component) {
+    }
+
+    template<>
+    void Scene::onComponentRemoved<TextComponent>(Entity entity, TextComponent &component) {
+    }
+
+    template<>
+    void Scene::onComponentRemoved<GaussianModelComponent>(Entity entity, GaussianModelComponent &component) {
+    }
+
+    template<>
+    void Scene::onComponentRemoved<ImageComponent>(Entity entity, ImageComponent &component) {
+    }
+
+
+    /** COMPONENT UPDATE **/
+    template<>
+    void Scene::onComponentUpdated<IDComponent>(Entity entity, IDComponent &component) {
+    }
+
+    template<>
+    void Scene::onComponentUpdated<MeshComponent>(Entity entity, MeshComponent &component) {
+        notifyEditorsComponentUpdated(entity, component);
+    }
+
+    template<>
+    void Scene::onComponentUpdated<MaterialComponent>(Entity entity, MaterialComponent &component) {
+        notifyEditorsComponentUpdated(entity, component);
+    }
+    template<>
+    void Scene::onComponentUpdated<TransformComponent>(Entity entity, TransformComponent &component) {
+    }
+
+    template<>
+    void Scene::onComponentUpdated<CameraComponent>(Entity entity, CameraComponent &component) {
+    }
+
+    template<>
+    void Scene::onComponentUpdated<ScriptComponent>(Entity entity, ScriptComponent &component) {
+    }
+
+    template<>
+    void Scene::onComponentUpdated<TagComponent>(Entity entity, TagComponent &component) {
+    }
+
+    template<>
+    void Scene::onComponentUpdated<Rigidbody2DComponent>(Entity entity, Rigidbody2DComponent &component) {
+    }
+
+    template<>
+    void Scene::onComponentUpdated<TextComponent>(Entity entity, TextComponent &component) {
+    }
+
+    template<>
+    void Scene::onComponentUpdated<GaussianModelComponent>(Entity entity, GaussianModelComponent &component) {
+    }
+
+    template<>
+    void Scene::onComponentUpdated<ImageComponent>(Entity entity, ImageComponent &component) {
+    }
 
 
     DISABLE_WARNING_POP
-
 }

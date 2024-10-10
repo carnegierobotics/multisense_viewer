@@ -90,7 +90,6 @@ set(SOURCE_FILES
         src/Viewer/VkRender/Core/Entity.cpp
 
         src/Viewer/VkRender/RenderPipelines/DefaultGraphicsPipeline.cpp
-        src/Viewer/VkRender/RenderPipelines/UboGraphicsPipeline.cpp
         src/Viewer/VkRender/RenderPipelines/GraphicsPipeline2D.cpp
         src/Viewer/VkRender/RenderPipelines/PointCloudGraphicsPipeline.cpp
 
@@ -236,6 +235,8 @@ elseif (WIN32)
     # Set runtime output directory
     set_target_properties(MultiSense-Viewer PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
     set_target_properties(MultiSense-Viewer PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR})
+    set_target_properties(MultiSense-Viewer PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR})
+    set_target_properties(MultiSense PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
     # Install configuration
     install(TARGETS MultiSense-Viewer CONFIGURATIONS Release RUNTIME DESTINATION ${INSTALL_DIRECTORY})

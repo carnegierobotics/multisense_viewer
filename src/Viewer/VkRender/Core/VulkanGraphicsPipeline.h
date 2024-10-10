@@ -26,7 +26,7 @@ namespace VkRender {
         VulkanDevice &vulkanDevice;
         std::vector<VkPipelineShaderStageCreateInfo> shaders{};
         VkRenderPass renderPass = VK_NULL_HANDLE;
-        VkDescriptorSetLayout descriptorSetLayout = VK_NULL_HANDLE;
+        std::vector<VkDescriptorSetLayout> descriptorSetLayouts;
         size_t pushConstBlockSize = 0;
         VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
         VkPipelineVertexInputStateCreateInfo vertexInputState;

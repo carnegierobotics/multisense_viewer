@@ -5,9 +5,10 @@
 #ifndef MULTISENSE_SCENERENDERER_H
 #define MULTISENSE_SCENERENDERER_H
 
+#include <Viewer/VkRender/Editors/PipelineManager.h>
+
 #include "Viewer/VkRender/Editors/Editor.h"
 #include "Viewer/VkRender/RenderPipelines/DefaultGraphicsPipeline.h"
-#include "Viewer/VkRender/RenderPipelines/UboGraphicsPipeline.h"
 
 namespace VkRender {
     class SceneRenderer : public Editor {
@@ -16,34 +17,65 @@ namespace VkRender {
 
         explicit SceneRenderer(EditorCreateInfo &createInfo, UUID uuid);
 
+        void onEditorResize() override;
+
         void onUpdate() override;
 
         void onRender(CommandBuffer &drawCmdBuffers) override;
-        void onRenderDepthOnly(CommandBuffer &drawCmdBuffers) override;
+
+        void bindResourcesAndDraw(const CommandBuffer &commandBuffer, RenderCommand &command);
+
+        void collectRenderCommands(
+            std::unordered_map<std::shared_ptr<DefaultGraphicsPipeline>, std::vector<RenderCommand>> &renderGroups);
+
+        void onComponentAdded(Entity entity, MeshComponent &meshComponent);
+
+        void onComponentRemoved(Entity entity, MeshComponent &meshComponent);
+
+        void onComponentUpdated(Entity entity, MeshComponent &meshComponent);
+
+        void onComponentAdded(Entity entity, MaterialComponent &materialComponent);
+
+        void onComponentRemoved(Entity entity, MaterialComponent &materialComponent);
+
+        void onComponentUpdated(Entity entity, MaterialComponent &materialComponent);
+
+        void createDescriptorPool();
+
+        void allocatePerEntityDescriptorSet(uint32_t frameIndex, Entity entity);
+
+        void updateGlobalUniformBuffer(uint32_t frameIndex, Entity entity);
+
+        std::shared_ptr<MaterialInstance> initializeMaterial(Entity entity, const MaterialComponent &materialComponent);
+
+        std::shared_ptr<MeshInstance> initializeMesh(const MeshComponent &meshComponent);
 
         void onSceneLoad(std::shared_ptr<Scene> scene) override;
 
-
-        ~SceneRenderer() override {
-            if (m_activeScene) {
-                m_activeScene->removeDestroyFunction(
-                        this); // Unregister the callback since we're destroying the class anyway
-                m_activeScene.reset();
-            }
-
-        }
+        ~SceneRenderer() override;
 
     private:
         std::shared_ptr<Camera>  m_activeCamera;
         std::shared_ptr<Scene> m_activeScene;
-        std::unordered_map<UUID, std::unique_ptr<GraphicsPipeline>> m_renderPipelines;
-        std::unordered_map<UUID, std::unique_ptr<GraphicsPipeline>> m_depthOnlyRenderPipelines;
+        PipelineManager m_pipelineManager;
+        std::unordered_map<UUID, std::shared_ptr<MaterialInstance>> m_materialInstances;
+        std::unordered_map<UUID, std::shared_ptr<MeshInstance>> m_meshInstances;
 
-        void onEntityDestroyed(entt::entity entity);
+        struct EntityRenderData {
+            std::vector<Buffer> cameraBuffer;
+            std::vector<Buffer> modelBuffer;
+            std::vector<VkDescriptorSet> descriptorSets;
 
-        void generatePipelines();
+            std::vector<Buffer> materialBuffer;
+            std::vector<VkDescriptorSet> materialDescriptorSets;
+        };
+        std::unordered_map<UUID, EntityRenderData> m_entityRenderData;
 
-        void cleanUpUnusedPipelines();
+        VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
+        VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
+
+        VkDescriptorSetLayout m_materialDescriptorSetLayout = VK_NULL_HANDLE;
+
     };
 }
 

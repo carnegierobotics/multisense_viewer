@@ -17,22 +17,22 @@ namespace VkRender {
     class Application;
 
     // TODO instead of inherting from standard 3D Graphics pipeline, we should inherit from a separate type just for 2D to avoid messy overrides
-    class GraphicsPipeline2D : public GraphicsPipeline {
+    class GraphicsPipeline2D {
     public:
         GraphicsPipeline2D(Application &context, const RenderPassInfo &renderPassInfo);
 
-        ~GraphicsPipeline2D() override;
+        ~GraphicsPipeline2D();
 
-        void updateTransform(TransformComponent &transform) override;
+        void updateTransform(TransformComponent &transform);
 
-        void updateView(const Camera &camera) override;
+        void updateView(const Camera &camera);
 
-        void update(uint32_t currentFrameIndex) override;
-        void updateTexture(void* data, size_t size) override;
+        void update(uint32_t currentFrameIndex);
+        void updateTexture(void* data, size_t size);
 
-        void bindTexture(std::shared_ptr<VulkanTexture> texture) override;
+        void bindTexture(std::shared_ptr<VulkanTexture> texture);
 
-        void draw(CommandBuffer &commandBuffer) override;
+        void draw(CommandBuffer &commandBuffer);
 
         void setTexture(const VkDescriptorImageInfo *info);
 

@@ -22,131 +22,102 @@ namespace VkRender {
 
     struct IDComponent {
         UUID ID{};
-
         IDComponent() = default;
-
-        IDComponent(const IDComponent &) = default;
-
         explicit IDComponent(const UUID &uuid) : ID(uuid) {
         }
 
-        // Explicitly define the copy assignment operator
-        IDComponent &operator=(const IDComponent &other) {
-            return *this;
-        }
     };
 
     struct TagComponent {
         std::string Tag;
-
-        TagComponent() = default;
-
-        TagComponent(const TagComponent &other) = default;
-
-        TagComponent &operator=(const TagComponent &other) = default;
 
         std::string& getTag() {return Tag;}
         void setTag(const std::string &tag) {Tag = tag;}
 
     };
 
-    struct TransformComponent {
-        enum class RotationType {
-            Euler,
-            Quaternion
-        };
+struct TransformComponent {
+    // Flip the up axis option
+    bool m_flipUpAxis = false;
 
-        struct Rotation {
-            glm::vec3 rotation;
+    // Transformation components
+    glm::vec3 translation = {0.0f, 0.0f, 0.0f};
+    glm::vec3 rotationEuler = {0.0f, 0.0f, 0.0f}; // Euler angles in degrees
+    glm::quat rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f); // Identity quaternion
+    glm::vec3 scale = {1.0f, 1.0f, 1.0f};
 
-            glm::quat quaternion;
-        } rot;
+    // Constructors
+    TransformComponent() = default;
 
-        bool m_flipUpAxis = false;
+    // Get the transformation matrix
+    [[nodiscard]] glm::mat4 getTransform() const {
+        glm::mat4 rotMat = glm::toMat4(rotation);
 
-        TransformComponent() = default;
-
-        TransformComponent(const TransformComponent &other) = default;
-
-        TransformComponent &operator=(const TransformComponent &other) = default;
-
-
-        [[nodiscard]] glm::mat4 GetTransform() {
-            glm::mat4 rot = getRotMat();
-
-            return glm::translate(glm::mat4(1.0f), translation)
-                   * rot
-                   * glm::scale(glm::mat4(1.0f), scale);
+        if (m_flipUpAxis) {
+            glm::mat4 flipUpRotationMatrix = glm::rotate(
+                glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+            rotMat = flipUpRotationMatrix * rotMat;
         }
 
+        return glm::translate(glm::mat4(1.0f), translation) * rotMat *
+               glm::scale(glm::mat4(1.0f), scale);
+    }
 
-        void setQuaternion(const glm::quat &q) {
-            rot.quaternion = q;
-            type = RotationType::Quaternion;
-        }
+    // Set rotation using Euler angles (degrees)
+    void setRotationEuler(const glm::vec3 &eulerAnglesDegrees) {
+        rotationEuler = eulerAnglesDegrees;
+        glm::vec3 radians = glm::radians(rotationEuler);
+        rotation = glm::quat(radians);
+    }
 
-        glm::quat &getQuaternion() {
-            return rot.quaternion;
-        }
+    // Get rotation as Euler angles (degrees)
+    glm::vec3& getRotationEuler() {
+        return rotationEuler;
+    }
+    void updateFromEulerRotation() {
+        setRotationEuler(rotationEuler);
+    }
 
-        glm::vec3 &getRotation() {
-            return rot.rotation;
-        }
+    // Set rotation using quaternion
+    void setRotationQuaternion(const glm::quat &q) {
+        rotation = q;
+        rotationEuler = glm::degrees(glm::eulerAngles(rotation));
+    }
 
-        void setPosition(const glm::vec3 &v) {
-            translation = v;
-        }
+    // Get rotation as quaternion
+    glm::quat& getRotationQuaternion() {
+        return rotation;
+    }
 
-        void setScale(const glm::vec3 &s) {
-            scale = s;
-        }
+    // Position setters and getters
+    void setPosition(const glm::vec3 &v) {
+        translation = v;
+    }
 
-        glm::vec3 &getPosition() {
-            return translation;
-        }
+    glm::vec3 &getPosition() {
+        return translation;
+    }
 
-        glm::vec3 &getScale() {
-            return scale;
-        }
+    // Scale setters and getters
+    void setScale(const glm::vec3 &s) {
+        scale = s;
+    }
 
-        void setFlipUpOption(const bool flipUp) {
-            m_flipUpAxis = flipUp;
-        }
+    glm::vec3 &getScale() {
+        return scale;
+    }
 
-        bool &getFlipUpOption() {
-            return m_flipUpAxis;
-        }
+    // Flip up axis option setters and getters
+    void setFlipUpOption(const bool flipUp) {
+        m_flipUpAxis = flipUp;
+    }
 
-        glm::mat4 getRotMat() {
-            if (type == RotationType::Euler) {
-                glm::vec3 radiansEuler = glm::radians(rot.rotation);
-                rot.quaternion = glm::quat(radiansEuler);
-                glm::mat4 rotMat = glm::toMat4(rot.quaternion);
-                if (m_flipUpAxis) {
-                    glm::mat4 m_flipUpRotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f),
-                                                                   glm::vec3(1.0f, 0.0f, 0.0f));
-                    rotMat = m_flipUpRotationMatrix * rotMat;
-                }
-                return rotMat;
-            }
-            glm::mat4 rotMat = glm::toMat4(rot.quaternion);
-            rot.rotation = glm::eulerAngles(rot.quaternion);
+    bool getFlipUpOption() const {
+        return m_flipUpAxis;
+    }
+};
 
-            if (m_flipUpAxis) {
-                glm::mat4 m_flipUpRotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f),
-                                                               glm::vec3(1.0f, 0.0f, 0.0f));
-                rotMat = m_flipUpRotationMatrix * rotMat;
-            }
-            return rotMat;
-        }
 
-    private:
-        RotationType type;
-
-        glm::vec3 translation = {0.0f, 0.0f, 0.0f};
-        glm::vec3 rotation = {0.0f, 0.0f, 0.0f};
-        glm::vec3 scale = {1.0f, 1.0f, 1.0f};
-    };
 
 
     struct CameraComponent {
@@ -156,11 +127,6 @@ namespace VkRender {
         CameraComponent() = default;
 
         explicit CameraComponent(const Camera &cam) : camera(cam) {
-        }
-
-        // Explicitly define the copy assignment operator
-        CameraComponent &operator=(const CameraComponent &other) {
-            return *this;
         }
 
         // Overload the function call operator
@@ -173,11 +139,6 @@ namespace VkRender {
 
     struct ScriptComponent {
         std::string className;
-
-        ScriptComponent() = default;
-
-        ScriptComponent(const ScriptComponent &) = default;
-
     };
 
 

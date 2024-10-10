@@ -41,7 +41,7 @@ namespace VkRender {
                 return std::make_unique<ConfigurationEditor>(ci, uuid);
             });
             registerEditor(EditorType::Viewport3D, [](EditorCreateInfo &ci, UUID uuid) {
-                return std::make_unique<Editor3DViewport>(ci, uuid);
+                return std::make_unique<VkRender::Editor3DViewport>(ci, uuid);
             });
             registerEditor(EditorType::ImageEditor, [](EditorCreateInfo &ci, UUID uuid) {
                 return std::make_unique<EditorImage>(ci, uuid);

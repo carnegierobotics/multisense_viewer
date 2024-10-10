@@ -30,7 +30,81 @@ namespace std {
 
 namespace VkRender {
 
+    MeshData::MeshData(const std::filesystem::path &filePath) {
 
+        tinyobj::ObjReaderConfig reader_config;
+        reader_config.mtl_search_path = "./"; // Path to material files
+
+        tinyobj::ObjReader reader;
+
+
+        if (!reader.ParseFromFile(filePath.string(), reader_config)) {
+            if (!reader.Error().empty()) {
+                //std::cerr << "TinyObjReader: " << reader.Error();
+                Log::Logger::getInstance()->error("Failed to load .OBJ file {}", filePath.string());
+            }
+            return;
+        }
+
+
+        if (!reader.Warning().empty()) {
+            Log::Logger::getInstance()->warning(".OBJ file empty {}", filePath.string());
+        }
+
+        auto &attrib = reader.GetAttrib();
+        auto &shapes = reader.GetShapes();
+        auto &materials = reader.GetMaterials();
+
+// Pre-allocate memory for vertices and indices vectors
+        size_t estimatedVertexCount = attrib.vertices.size() / 3;
+        size_t estimatedIndexCount = 0;
+        for (const auto &shape: shapes) {
+            estimatedIndexCount += shape.mesh.indices.size();
+        }
+
+        std::unordered_map<VkRender::Vertex, uint32_t> uniqueVertices{};
+        uniqueVertices.reserve(estimatedVertexCount);  // Reserve space for unique vertices
+
+        vertices.reserve(estimatedVertexCount);  // Reserve space to avoid resizing
+        indices.reserve(estimatedIndexCount);     // Reserve space to avoid resizing
+
+        // Using range-based loop to process vertices and indices
+        for (const auto &shape: shapes) {
+            for (const auto &index: shape.mesh.indices) {
+                Vertex vertex{};
+                vertex.pos = {
+                        attrib.vertices[3 * index.vertex_index + 0],
+                        attrib.vertices[3 * index.vertex_index + 1],
+                        attrib.vertices[3 * index.vertex_index + 2]
+                };
+
+                if (index.normal_index > -1) {
+                    vertex.normal = {
+                            attrib.normals[3 * index.normal_index + 0],
+                            attrib.normals[3 * index.normal_index + 1],
+                            attrib.normals[3 * index.normal_index + 2]
+                    };
+                } else {
+                    vertex.normal = {0.0f, 0.0f, 1.0f}; // Default normal if not present
+                }
+
+                if (index.texcoord_index > -1) {
+                    vertex.uv0 = {
+                            attrib.texcoords[2 * index.texcoord_index + 0],
+                            1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
+                    };
+                }
+                auto [it, inserted] = uniqueVertices.try_emplace(vertex, vertices.size());
+                if (inserted) {
+                    vertices.push_back(vertex);
+                }
+
+                indices.push_back(it->second);
+            }
+        }
+    }
+
+    /*
     void MeshComponent::loadModel(const std::filesystem::path &modelPath) {
 
 
@@ -178,5 +252,6 @@ namespace VkRender {
         m_meshUUID = UUID(); // Generate new UUID
     }
 
+    */
 
 };

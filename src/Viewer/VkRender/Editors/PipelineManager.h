@@ -17,22 +17,18 @@ namespace VkRender {
     struct RenderCommand {
         Entity entity;
         std::shared_ptr<DefaultGraphicsPipeline> pipeline;
-        MeshComponent* mesh;
-        MaterialComponent* material;
-        TransformComponent* transform;
-        // Other necessary data
+        MeshInstance* mesh;             // GPU-specific mesh data
+        MaterialInstance* materialInstance;  // GPU-specific material data
+        TransformComponent* transform; // ECS component with world transform
     };
 
     class PipelineManager {
     public:
-
         PipelineManager() = default;
-
-        std::shared_ptr<DefaultGraphicsPipeline> getOrCreatePipeline(const PipelineKey &key, const VkRenderPass &renderPass);
+        std::shared_ptr<DefaultGraphicsPipeline> getOrCreatePipeline(const PipelineKey &key, const RenderPassInfo &renderPassInfo, Application *context);
 
     private:
         std::unordered_map<PipelineKey, std::shared_ptr<DefaultGraphicsPipeline>> m_pipelineCache;
-        Application* m_context{};
     };
 }
 

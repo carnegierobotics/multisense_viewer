@@ -64,11 +64,9 @@
 // Predeclare to speed up compile times
 namespace VkRender {
     class Camera;
-
 }
 
 namespace VkRender {
-
     enum class RenderState {
         Busy,
         Idle,
@@ -98,12 +96,12 @@ namespace VkRender {
         glm::vec4 weight0{};
         glm::vec4 color{};
 
-        bool operator==(const Vertex& other) const {
+        bool operator==(const Vertex &other) const {
             return pos == other.pos && color == other.color && uv0 == other.uv0;
         }
     };
 
-    struct ImageVertex{
+    struct ImageVertex {
         glm::vec2 pos{};
         glm::vec2 uv0{};
     };
@@ -118,11 +116,13 @@ namespace VkRender {
         int action = 0;
         float wheel = 0.0f; // to initialize arcball zoom
         bool insideApp = false;
+
         union {
             struct {
                 float dx;
                 float dy;
             };
+
             glm::vec2 d;
         };
 
@@ -131,11 +131,12 @@ namespace VkRender {
                 float x;
                 float y;
             };
+
             glm::vec2 pos;
         };
 
-        MouseButtons() : dx(0), dy(0), x(0), y(0) {}
-
+        MouseButtons() : dx(0), dy(0), x(0), y(0) {
+        }
     };
 
     /**
@@ -181,21 +182,31 @@ namespace VkRender {
         float dt = 0.0f;
     };
 
+    struct GlobalUniformBufferObject {
+        glm::mat4 projection;
+        glm::mat4 view;
+        glm::vec3 cameraPosition;
+    };
+    struct MaterialBufferObject {
+        glm::vec4 baseColor;
+        float metallic;
+        float roughness;
+        glm::vec4 emissiveFactor;
+    };
 
     /** @brief RenderData which are shared across render passes */
     struct DefaultRenderData {
-        Buffer fragShaderParamsBuffer;  // GPU Accessible, triple-buffered
-        Buffer mvpBuffer;               // GPU Accessible, triple-buffered
+        Buffer fragShaderParamsBuffer; // GPU Accessible, triple-buffered
+        Buffer mvpBuffer; // GPU Accessible, triple-buffered
         VkDescriptorSet descriptorSet; // Triple-buffered
     };
 
-/** @brief Shared resources across all frames */
+    /** @brief Shared resources across all frames */
     struct SharedRenderData {
         VkDescriptorPool descriptorPool{};
         VkDescriptorSetLayout descriptorSetLayout{};
         std::unique_ptr<VulkanGraphicsPipeline> graphicsPipeline;
     };
-
 }
 
 

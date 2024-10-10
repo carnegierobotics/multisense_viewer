@@ -13,7 +13,7 @@
 namespace VkRender {
     GraphicsPipeline2D::GraphicsPipeline2D(Application &m_context, const RenderPassInfo &renderPassInfo)
             : m_vulkanDevice(m_context.vkDevice()),
-              m_renderPassInfo(std::move(renderPassInfo)) {
+              m_renderPassInfo(renderPassInfo) {
         m_numSwapChainImages = m_context.swapChainBuffers().size();
         m_vulkanDevice = m_context.vkDevice();
         m_vertexShader = "default2D.vert";
@@ -147,7 +147,7 @@ namespace VkRender {
     }
 
     void GraphicsPipeline2D::updateTransform(TransformComponent &transform) {
-        m_vertexParams.model = transform.GetTransform();
+        m_vertexParams.model = transform.getTransform();
 
     }
 
@@ -173,19 +173,19 @@ namespace VkRender {
 
 
     void GraphicsPipeline2D::draw(CommandBuffer &cmdBuffers) {
-        const uint32_t &cbIndex = *cmdBuffers.frameIndex;
 
-        vkCmdBindPipeline(cmdBuffers.buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS,
+
+        vkCmdBindPipeline(cmdBuffers.getActiveBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS,
                           m_sharedRenderData.graphicsPipeline->getPipeline());
-        vkCmdBindDescriptorSets(cmdBuffers.buffers[cbIndex], VK_PIPELINE_BIND_POINT_GRAPHICS,
+        vkCmdBindDescriptorSets(cmdBuffers.getActiveBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS,
                                 m_sharedRenderData.graphicsPipeline->getPipelineLayout(), 0, static_cast<uint32_t>(1),
-                                &m_renderData[cbIndex].descriptorSet, 0, nullptr);
+                                &m_renderData[cmdBuffers.frameIndex].descriptorSet, 0, nullptr);
         VkDeviceSize offsets[1] = {0};
-        vkCmdBindVertexBuffers(cmdBuffers.buffers[cbIndex], 0, 1, &m_vertices.buffer, offsets);
-        vkCmdBindIndexBuffer(cmdBuffers.buffers[cbIndex], m_indices.buffer, 0,
+        vkCmdBindVertexBuffers(cmdBuffers.getActiveBuffer(), 0, 1, &m_vertices.buffer, offsets);
+        vkCmdBindIndexBuffer(cmdBuffers.getActiveBuffer(), m_indices.buffer, 0,
                              VK_INDEX_TYPE_UINT32);
 
-        vkCmdDrawIndexed(cmdBuffers.buffers[cbIndex], m_indices.indexCount, 1,
+        vkCmdDrawIndexed(cmdBuffers.getActiveBuffer(), m_indices.indexCount, 1,
                          0, 0, 0);
 
     }
@@ -232,7 +232,7 @@ namespace VkRender {
                                                                                                  VK_FRONT_FACE_COUNTER_CLOCKWISE);
         createInfo.msaaSamples = m_renderPassInfo.sampleCount;
         createInfo.shaders = shaderStages;
-        createInfo.descriptorSetLayout = m_sharedRenderData.descriptorSetLayout;
+        createInfo.descriptorSetLayouts.push_back(m_sharedRenderData.descriptorSetLayout);
         createInfo.vertexInputState = vertexInputStateCI;
 
         m_sharedRenderData.graphicsPipeline = std::make_unique<VulkanGraphicsPipeline>(createInfo);

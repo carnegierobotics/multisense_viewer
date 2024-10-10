@@ -6,6 +6,7 @@
 #define MULTISENSE_VIEWER_SCENE_H
 
 #include <entt/entt.hpp>
+#include <Viewer/VkRender/Components/MaterialComponent.h>
 
 #include "Viewer/VkRender/Core/CommandBuffer.h"
 #include "Viewer/VkRender/Core/UUID.h"
@@ -42,6 +43,8 @@ namespace VkRender {
 
         void destroyEntity(Entity entity);
 
+        void notifyComponentRemoval(Entity entity);
+
         Entity createNewCamera(const std::string &name, uint32_t width, uint32_t height);
 
         void onMouseEvent(const MouseButtons &mouseButtons);
@@ -66,7 +69,8 @@ namespace VkRender {
         void removeDestroyFunction(void *owner) {
             m_destroyCallbacks.erase(owner);
         }
-
+        template<class T>
+        void onComponentUpdated(Entity entity, T &component);
     protected:
         entt::registry m_registry;
         std::unordered_map<void *, std::deque<DestroyCallback>> m_destroyCallbacks;
@@ -76,6 +80,10 @@ namespace VkRender {
 
         template<typename T>
         void onComponentAdded(Entity entity, T &component);
+
+        template<class T>
+        void onComponentRemoved(Entity entity, T &component);
+
 
     private:
         void onEntityDestroyed(entt::registry &registry, entt::entity entity) {
@@ -87,6 +95,14 @@ namespace VkRender {
         }
 
         void notifyEditorsComponentAdded(Entity entity, MeshComponent &component);
+        void notifyEditorsComponentUpdated(Entity entity, MeshComponent &component);
+        void notifyEditorsComponentRemoved(Entity entity, MeshComponent &component);
+        void notifyEditorsComponentAdded(Entity entity, MaterialComponent &component);
+        void notifyEditorsComponentUpdated(Entity entity, MaterialComponent &component);
+        void notifyEditorsComponentRemoved(Entity entity, MaterialComponent &component);
+
+        template<class T>
+        void notifyEditorsComponentAdded(Entity entity, T &component);
 
         std::string m_sceneName = "Unnamed Scene";
         Application *m_context;

@@ -161,6 +161,8 @@ namespace VkRender {
                 instanceCreateInfo.ppEnabledLayerNames = validationLayers.data();
                 instanceCreateInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
                 m_logger->info("Enabling Validation Layers");
+                m_setDebugUtilsObjectNameEXT = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(vkGetInstanceProcAddr(instance, "vkSetDebugUtilsObjectNameEXT"));
+
             } else {
                 std::cerr << "Validation layer VK_LAYER_KHRONOS_validation not present, validation is disabled\n";
                 m_logger->info("Disabled Validation Layers since it was not found");
@@ -180,7 +182,6 @@ namespace VkRender {
         // If requested, we flashing the default validation layers for debugging
         // If requested, we flashing the default validation layers for debugging
 #ifdef VKRENDER_MULTISENSE_VIEWER_DEBUG
-
         if (m_settings.validation) {
             // The report flags determine what type of messages for the layers will be displayed
             // For validating (debugging) an application the error and warning bits should suffice
@@ -191,7 +192,10 @@ namespace VkRender {
                 VK_SUCCESS) {
                 throw std::runtime_error("failed to set up debug messenger!");
             }
+            m_setDebugUtilsObjectNameEXT = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(vkGetInstanceProcAddr(instance, "vkSetDebugUtilsObjectNameEXT"));
+
         }
+
 #endif
         // Get list of devices and capabilities of each m_Device
         uint32_t gpuCount = 0;
@@ -613,8 +617,8 @@ namespace VkRender {
 
         result = vkResetFences(device, 1, &waitFences[currentFrame]);
         if (result != VK_SUCCESS)
-
             throw std::runtime_error("Failed to reset fence");
+        
         drawCmdBuffers.activeImageIndex = imageIndex;
         vkResetCommandBuffer(drawCmdBuffers.getActiveBuffer(), /*VkCommandBufferResetFlagBits*/ 0);
     }

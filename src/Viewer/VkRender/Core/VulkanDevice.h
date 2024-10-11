@@ -100,7 +100,7 @@ struct VulkanDevice {
                           VkBuffer *buffer, VkDeviceMemory *memory, const void *data = nullptr) const;
 
     VkResult createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, Buffer *buffer,
-                          VkDeviceSize size, void *data = nullptr);
+                          VkDeviceSize size, void *data = nullptr, const std::string& debuginfo = "",  const std::function<VkResult(VkDevice, const VkDebugUtilsObjectNameInfoEXT*)>& = nullptr);
 
     //void copyBuffer(Buffer *src, Buffer *dst, VkQueue queue, VkBufferCopy *copyRegion = nullptr);
 

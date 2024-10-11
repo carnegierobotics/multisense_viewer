@@ -22,7 +22,7 @@ namespace VkRender {
     public:
         Scene(const std::string &name, Application *context);
 
-        virtual void update(uint32_t i) {};
+        void deleteAllEntities();
 
         virtual ~Scene() {
             // Manually destroy all entities to trigger the on_destroy events
@@ -47,28 +47,13 @@ namespace VkRender {
 
         Entity createNewCamera(const std::string &name, uint32_t width, uint32_t height);
 
-        void onMouseEvent(const MouseButtons &mouseButtons);
-
-        void onMouseScroll(float change);
-
-
         entt::registry &getRegistry() { return m_registry; };
 
         const entt::registry &getRegistry() const {
             return m_registry;
         }
-
-
         const std::string &getSceneName() { return m_sceneName; }
 
-        void addDestroyFunction(void *owner, DestroyCallback callback) {
-            m_destroyCallbacks[owner].push_back(std::move(callback));
-            m_registry.on_destroy<entt::entity>().connect<&Scene::onEntityDestroyed>(*this);
-        }
-
-        void removeDestroyFunction(void *owner) {
-            m_destroyCallbacks.erase(owner);
-        }
         template<class T>
         void onComponentUpdated(Entity entity, T &component);
     protected:

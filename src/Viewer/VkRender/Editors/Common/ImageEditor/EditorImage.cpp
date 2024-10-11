@@ -57,7 +57,6 @@ namespace VkRender {
     }
 
     void EditorImage::onEditorResize() {
-        m_recreateOnNextImageChange = true;
     }
 
     void EditorImage::onFileDrop(const std::filesystem::path &path) {
@@ -126,12 +125,8 @@ namespace VkRender {
 
 
     void EditorImage::onPipelineReload() {
-        RenderPassInfo renderPassInfo{};
-        renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
-        renderPassInfo.renderPass = m_renderPass->getRenderPass();
-        VulkanTexture2DCreateInfo textureCreateInfo(m_context->vkDevice());
-        textureCreateInfo.image = m_context->sharedEditorData().depthFrameBuffer[m_context->sharedEditorData().selectedUUIDContext.operator*()].depthImage; // TODO get this from the Editor3D Viewport then I think it is solved
-        m_texture = std::make_shared<VulkanTexture2D>(textureCreateInfo);
+
+
     }
 
     void EditorImage::onUpdate() {
@@ -181,8 +176,6 @@ namespace VkRender {
             imageUI->update = false;
         }
 
-
-        m_activeScene->update(m_context->currentFrameIndex());
     }
 
     void EditorImage::onRender(CommandBuffer &drawCmdBuffers) {

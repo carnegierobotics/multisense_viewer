@@ -28,17 +28,12 @@ namespace VkRender {
         void collectRenderCommands(
             std::unordered_map<std::shared_ptr<DefaultGraphicsPipeline>, std::vector<RenderCommand>> &renderGroups);
 
-        void onComponentAdded(Entity entity, MeshComponent &meshComponent);
-
-        void onComponentRemoved(Entity entity, MeshComponent &meshComponent);
-
-        void onComponentUpdated(Entity entity, MeshComponent &meshComponent);
-
-        void onComponentAdded(Entity entity, MaterialComponent &materialComponent);
-
-        void onComponentRemoved(Entity entity, MaterialComponent &materialComponent);
-
-        void onComponentUpdated(Entity entity, MaterialComponent &materialComponent);
+        void onComponentAdded(Entity entity, MeshComponent &meshComponent) override;
+        void onComponentRemoved(Entity entity, MeshComponent &meshComponent) override;
+        void onComponentUpdated(Entity entity, MeshComponent &meshComponent) override;
+        void onComponentAdded(Entity entity, MaterialComponent &materialComponent) override;
+        void onComponentRemoved(Entity entity, MaterialComponent &materialComponent) override;
+        void onComponentUpdated(Entity entity, MaterialComponent &materialComponent) override;
 
         void createDescriptorPool();
 

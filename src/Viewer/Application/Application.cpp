@@ -113,6 +113,11 @@ namespace VkRender {
         m_multiSense->setup();
     }
 
+    Application::~Application() {
+        //m_sceneRenderers.clear();
+
+    }
+
     Editor *Application::getSceneRendererByUUID(const UUID &uuid) {
         if (m_sceneRenderers.contains(uuid))
             return m_sceneRenderers.find(uuid)->second.get();
@@ -403,7 +408,8 @@ namespace VkRender {
         timeSpan = std::chrono::duration_cast<std::chrono::duration<float> >(
             std::chrono::steady_clock::now() - startTime);
         Log::Logger::getInstance()->trace("Deleting entities on exit took {}s", timeSpan.count());
-        // Destroy framebuffer
+
+        m_activeScene->deleteAllEntities();
     }
 
     void Application::handleEditorResize() {

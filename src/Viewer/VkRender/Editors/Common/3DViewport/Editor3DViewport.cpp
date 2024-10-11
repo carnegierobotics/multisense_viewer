@@ -546,12 +546,10 @@ namespace VkRender {
         if (ui()->hovered && mouse.left && !ui()->resizeActive) {
             m_editorCamera.rotate(mouse.dx, mouse.dy);
         }
-        m_activeScene->onMouseEvent(mouse);
     }
 
     void Editor3DViewport::onMouseScroll(float change) {
         if (ui()->hovered)
             m_editorCamera.setArcBallPosition((change > 0.0f) ? 0.95f : 1.05f);
-        m_activeScene->onMouseScroll(change);
     }
 };

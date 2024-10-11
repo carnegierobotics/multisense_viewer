@@ -230,17 +230,18 @@ namespace VkRender {
         m_entityRenderData[entity.getUUID()].modelBuffer.resize(m_context->swapChainBuffers().size());
         m_entityRenderData[entity.getUUID()].descriptorSets.resize(m_context->swapChainBuffers().size());
         // Create attachable UBO buffers and such
+        auto debugFunction = m_context->getDebugUtilsObjectNameFunction();
         for (int i = 0; i < m_context->swapChainBuffers().size(); ++i) {
             m_context->vkDevice().createBuffer(
                 VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                 &m_entityRenderData[entity.getUUID()].cameraBuffer[i],
-                sizeof(GlobalUniformBufferObject));
+                sizeof(GlobalUniformBufferObject), nullptr, ("SceneRenderer:CameraBuffer:" + std::to_string(i)), debugFunction);
             m_context->vkDevice().createBuffer(
                 VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                 &m_entityRenderData[entity.getUUID()].modelBuffer[i],
-                sizeof(glm::mat4));
+                sizeof(glm::mat4), nullptr, ("SceneRenderer:ModelBuffer:" + std::to_string(i)), debugFunction);
             allocatePerEntityDescriptorSet(i, entity);
         }
     }
@@ -271,7 +272,7 @@ namespace VkRender {
                 VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                 &m_entityRenderData[entity.getUUID()].materialBuffer[i],
-                sizeof(MaterialBufferObject));
+                sizeof(MaterialBufferObject), nullptr, ("SceneRenderer:MaterialBuffer:" + std::to_string(i)), m_context->getDebugUtilsObjectNameFunction());
             updateGlobalUniformBuffer(i, entity);
         }
     }

@@ -28,10 +28,7 @@ namespace VkRender {
         void onUpdate() override;
 
         ~EditorGaussianViewer() override {
-            if (m_activeScene) {
-                m_activeScene->removeDestroyFunction(this); // Unregister the callback since we're destroying the class anyway
-                m_activeScene.reset();
-            }
+
         }
 
         void onMouseMove(const MouseButtons &mouse) override;

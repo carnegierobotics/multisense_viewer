@@ -76,7 +76,7 @@ namespace VkRender {
          */
         explicit Application(const std::string &title);
 
-        ~Application() override = default;
+        ~Application() override;
 
         /**
          * @brief runs the renderer loop
@@ -133,6 +133,11 @@ namespace VkRender {
         std::shared_ptr<Scene> activeScene();
 
         void deleteScene(std::filesystem::path scenePath);
+
+        std::function<VkResult(VkDevice, const VkDebugUtilsObjectNameInfoEXT *)> getDebugUtilsObjectNameFunction() {
+            return m_setDebugUtilsObjectNameEXT;
+        }
+
 
     private:
         void keyboardCallback(GLFWwindow *window, int key, int scancode, int action, int mods) override;

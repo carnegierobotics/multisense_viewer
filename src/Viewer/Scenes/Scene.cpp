@@ -18,6 +18,15 @@ namespace VkRender {
         m_context = context;
     }
 
+    void Scene::deleteAllEntities() {
+        auto view = m_registry.view<IDComponent>();
+        for (auto entity : view) {
+            // Wrap the registry entity in an Entity object for handling
+            Entity e{entity, this};
+            destroyEntity(e);
+        }
+    }
+
     Entity Scene::createEntityWithUUID(UUID uuid, const std::string &name) {
         Entity entity = {m_registry.create(), this};
         entity.addComponent<IDComponent>(uuid);
@@ -89,12 +98,6 @@ namespace VkRender {
         auto &transform = e.getComponent<TransformComponent>();
         c.camera.pose.pos = transform.getPosition();
         return e;
-    }
-
-    void Scene::onMouseEvent(const MouseButtons &mouse) {
-    }
-
-    void Scene::onMouseScroll(float change) {
     }
 
     void Scene::notifyEditorsComponentAdded(Entity entity, MeshComponent &component) {

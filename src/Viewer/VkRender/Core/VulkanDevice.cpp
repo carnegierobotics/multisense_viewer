@@ -76,7 +76,6 @@ VulkanDevice::VulkanDevice(VkPhysicalDevice physicalDevice, std::mutex *mut) {
         }
     }
     m_QueueSubmitMutex = mut;
-
 }
 
 VulkanDevice::~VulkanDevice() {
@@ -260,14 +259,13 @@ VulkanDevice::createLogicalDevice(VkPhysicalDeviceFeatures enabled, std::vector<
     // Enable the debug marker extension if it is present (likely meaning a debugging tool is present)
     if (extensionSupported(VK_EXT_DEBUG_MARKER_EXTENSION_NAME)) {
         deviceExtensions.push_back(VK_EXT_DEBUG_MARKER_EXTENSION_NAME);
-
     }
 
     if (!deviceExtensions.empty()) {
         for (const char *enabledExtension: deviceExtensions) {
             if (!extensionSupported(enabledExtension)) {
                 std::cerr << "Enabled m_Device extension \"" << enabledExtension
-                          << "\" is not present as device extension\n";
+                        << "\" is not present as device extension\n";
             } else {
                 Log::Logger::getInstance()->info("Enabled device extension: '{}'", enabledExtension);
             }
@@ -399,11 +397,14 @@ VulkanDevice::createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags 
 * @param buffer Pointer to a vk::Vulkan buffer object
 * @param size Size of the buffer in bytes
 * @param data Pointer to the data that should be copied to the buffer after creation (optional, if not set, no data is copied over)
+* @param debugFunction
 *
 * @return VK_SUCCESS if buffer handle and memory have been created and (optionally passed) data has been copied
 */
 VkResult VulkanDevice::createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags,
-                                    Buffer *buffer, VkDeviceSize size, void *data) {
+                                    Buffer *buffer, VkDeviceSize size, void *data, const std::string &debugName,
+                                    const std::function<VkResult(VkDevice, const VkDebugUtilsObjectNameInfoEXT *)>&
+                                    debugFunction) {
     buffer->m_Device = m_LogicalDevice;
 
     // Create the buffer handle
@@ -411,7 +412,23 @@ VkResult VulkanDevice::createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPrope
     VkResult res = vkCreateBuffer(m_LogicalDevice, &bufferCreateInfo, nullptr, &buffer->m_Buffer);
     if (res != VK_SUCCESS)
         throw std::runtime_error("Failed to create Buffer");
+#ifdef VKRENDER_MULTISENSE_VIEWER_DEBUG
+    // Set the debug name for the buffer if available
+    if (debugFunction) {
+        VkDebugUtilsObjectNameInfoEXT nameInfo{};
+        nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+        nameInfo.objectType = VK_OBJECT_TYPE_BUFFER;
+        nameInfo.objectHandle = reinterpret_cast<uint64_t>(buffer->m_Buffer);
+        nameInfo.pObjectName = debugName.c_str();
 
+        // Call the function through the function pointer
+        VkResult result = debugFunction(m_LogicalDevice, &nameInfo);
+        if (result != VK_SUCCESS) {
+            // Handle potential errors
+            throw std::runtime_error("Failed to set debug name for buffer");
+        }
+    }
+#endif
     // Create the memory backing up the buffer handle
     VkMemoryRequirements memReqs;
     VkMemoryAllocateInfo memAlloc = Populate::memoryAllocateInfo();
@@ -491,11 +508,9 @@ void VulkanDevice::copyBuffer(Buffer *src, Buffer *dst, VkQueue queue, VkBufferC
  * @param copyRegion How much buffer to copy
  */
 void VulkanDevice::copyVkBuffer(VkBuffer *src, VkBuffer *dst, VkBufferCopy *copyRegion) {
-
     VkCommandBuffer copyCmd = createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
     vkCmdCopyBuffer(copyCmd, *src, *dst, 1, copyRegion);
     flushCommandBuffer(copyCmd, m_TransferQueue, true);
-
 }
 
 /**
@@ -541,7 +556,6 @@ CommandBuffer VulkanDevice::createVulkanCommandBuffer(VkCommandBufferLevel level
     }
 
 
-
     return cmdBuffer;
 }
 
@@ -556,7 +570,8 @@ CommandBuffer VulkanDevice::createVulkanCommandBuffer(VkCommandBufferLevel level
 * @note The queue that the command buffer is submitted to must be from the same family index as the pool it was allocated from
 * @note Uses a fence to ensure command buffer has finished executing
 */
-void VulkanDevice::flushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, VkCommandPool pool, bool free, VkFence& fence) {
+void VulkanDevice::flushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, VkCommandPool pool, bool free,
+                                      VkFence &fence) {
     if (commandBuffer == VK_NULL_HANDLE) {
         return;
     }
@@ -590,9 +605,9 @@ void VulkanDevice::flushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue que
 
     flushCommandBuffer(commandBuffer, queue, m_CommandPool, free, fence);
     vkDestroyFence(m_LogicalDevice, fence, nullptr);
-
 }
-void VulkanDevice::flushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, VkCommandPool pool, bool free){
+
+void VulkanDevice::flushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue queue, VkCommandPool pool, bool free) {
     VkFenceCreateInfo fenceInfo = Populate::fenceCreateInfo(0);
     VkFence fence;
     VkFenceCreateInfo fenceCreateInfo = {};
@@ -600,7 +615,6 @@ void VulkanDevice::flushCommandBuffer(VkCommandBuffer commandBuffer, VkQueue que
     vkCreateFence(m_LogicalDevice, &fenceCreateInfo, nullptr, &fence);
     flushCommandBuffer(commandBuffer, queue, pool, free, fence);
     vkDestroyFence(m_LogicalDevice, fence, nullptr);
-
 }
 
 void VulkanDevice::beginCommandBuffer(VkCommandBuffer commandBuffer) {
@@ -625,4 +639,3 @@ VulkanDevice::VulkanDevice(VulkanDevice *copy) {
     m_QueueSubmitMutex = copy->m_QueueSubmitMutex;
     isCopy = true;
 }
-

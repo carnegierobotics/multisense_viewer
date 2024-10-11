@@ -123,6 +123,7 @@ namespace VkRender {
 
         VkRender::MouseButtons mouse{};
         float mouseScrollSpeed = 0.1f;
+        std::function<VkResult(VkDevice, const VkDebugUtilsObjectNameInfoEXT *)> m_setDebugUtilsObjectNameEXT = nullptr;
 
         Input input;
 

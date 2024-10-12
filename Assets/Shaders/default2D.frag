@@ -7,5 +7,5 @@ layout (location = 0) out vec4 outColor;
 void main() {
     vec4 color =  texture(samplerColorMap, inUV);
 
-    outColor = vec4(color.r, color.r, color.r, 1.0);
+    outColor = vec4(color.r, color.g, color.b, 1.0);
 }

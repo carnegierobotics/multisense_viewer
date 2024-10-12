@@ -11,6 +11,7 @@
 #include "Viewer/VkRender/Components/GaussianModelComponent.h"
 #include "Viewer/VkRender/Components/ImageComponent.h"
 #include "Viewer/Application/Application.h"
+#include "Viewer/VkRender/Components/PointCloudComponent.h"
 
 namespace VkRender {
     Scene::Scene(const std::string &name, VkRender::Application *context) {
@@ -20,7 +21,7 @@ namespace VkRender {
 
     void Scene::deleteAllEntities() {
         auto view = m_registry.view<IDComponent>();
-        for (auto entity : view) {
+        for (auto entity: view) {
             // Wrap the registry entity in an Entity object for handling
             Entity e{entity, this};
             destroyEntity(e);
@@ -117,6 +118,7 @@ namespace VkRender {
             editor->onComponentUpdated(entity, component);
         }
     }
+
     void Scene::notifyEditorsComponentRemoved(Entity entity, MeshComponent &component) {
         for (auto &editor: m_context->m_sceneRenderers) {
             editor.second->onComponentRemoved(entity, component);
@@ -135,6 +137,7 @@ namespace VkRender {
         }
     }
 
+
     void Scene::notifyEditorsComponentUpdated(Entity entity, MaterialComponent &component) {
         for (auto &editor: m_context->m_sceneRenderers) {
             editor.second->onComponentUpdated(entity, component);
@@ -143,12 +146,40 @@ namespace VkRender {
             editor->onComponentUpdated(entity, component);
         }
     }
+
     void Scene::notifyEditorsComponentRemoved(Entity entity, MaterialComponent &component) {
         for (auto &editor: m_context->m_sceneRenderers) {
             editor.second->onComponentRemoved(entity, component);
         }
         for (auto &editor: m_context->m_editors) {
             editor->onComponentRemoved(entity, component);
+        }
+    }
+
+    void Scene::notifyEditorsComponentAdded(Entity entity, PointCloudComponent &component) {
+        for (auto &editor: m_context->m_sceneRenderers) {
+            //editor.second->onComponentAdded(entity, component);
+        }
+        for (auto &editor: m_context->m_editors) {
+            //editor->onComponentAdded(entity, component);
+        }
+    }
+
+    void Scene::notifyEditorsComponentUpdated(Entity entity, PointCloudComponent &component) {
+        for (auto &editor: m_context->m_sceneRenderers) {
+            //editor.second->onComponentUpdated(entity, component);
+        }
+        for (auto &editor: m_context->m_editors) {
+            //editor->onComponentUpdated(entity, component);
+        }
+    }
+
+    void Scene::notifyEditorsComponentRemoved(Entity entity, PointCloudComponent &component) {
+        for (auto &editor: m_context->m_sceneRenderers) {
+            ///editor.second->onComponentRemoved(entity, component);
+        }
+        for (auto &editor: m_context->m_editors) {
+            //editor->onComponentRemoved(entity, component);
         }
     }
 
@@ -167,8 +198,15 @@ namespace VkRender {
     void Scene::onComponentAdded<MeshComponent>(Entity entity, MeshComponent &component) {
         notifyEditorsComponentAdded(entity, component);
     }
+
     template<>
     void Scene::onComponentAdded<MaterialComponent>(Entity entity, MaterialComponent &component) {
+        notifyEditorsComponentAdded(entity, component);
+    }
+
+    template<>
+
+    void Scene::onComponentAdded<PointCloudComponent>(Entity entity, PointCloudComponent &component) {
         notifyEditorsComponentAdded(entity, component);
     }
 
@@ -203,6 +241,7 @@ namespace VkRender {
     template<>
     void Scene::onComponentAdded<ImageComponent>(Entity entity, ImageComponent &component) {
     }
+
     /** COMPONENT REMOVE **/
 
     template<>
@@ -213,10 +252,17 @@ namespace VkRender {
     void Scene::onComponentRemoved<MeshComponent>(Entity entity, MeshComponent &component) {
         notifyEditorsComponentRemoved(entity, component);
     }
+
     template<>
     void Scene::onComponentRemoved<MaterialComponent>(Entity entity, MaterialComponent &component) {
         notifyEditorsComponentRemoved(entity, component);
     }
+
+    template<>
+    void Scene::onComponentRemoved<PointCloudComponent>(Entity entity, PointCloudComponent &component) {
+        notifyEditorsComponentRemoved(entity, component);
+    }
+
     template<>
     void Scene::onComponentRemoved<TransformComponent>(Entity entity, TransformComponent &component) {
     }
@@ -264,6 +310,12 @@ namespace VkRender {
     void Scene::onComponentUpdated<MaterialComponent>(Entity entity, MaterialComponent &component) {
         notifyEditorsComponentUpdated(entity, component);
     }
+
+    template<>
+    void Scene::onComponentUpdated<PointCloudComponent>(Entity entity, PointCloudComponent &component) {
+        notifyEditorsComponentUpdated(entity, component);
+    }
+
     template<>
     void Scene::onComponentUpdated<TransformComponent>(Entity entity, TransformComponent &component) {
     }

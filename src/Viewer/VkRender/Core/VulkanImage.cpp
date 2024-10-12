@@ -4,6 +4,7 @@
 
 #include "VulkanImage.h"
 #include "vk_mem_alloc.h"
+#include "Viewer/VkRender/Core/VulkanResourceManager.h"
 #include "Viewer/Tools/Utils.h"
 
 namespace VkRender {

@@ -36,6 +36,22 @@ namespace VkRender::Serialize {
         // Default case, or handle unknown input
         return VK_POLYGON_MODE_FILL;
     }
+
+    // Convert CameraType to string
+    std::string cameraTypeToString(Camera::CameraType type) {
+        switch (type) {
+            case Camera::arcball: return "arcball";
+            case Camera::flycam: return "flycam";
+            default: throw std::invalid_argument("Unknown CameraType");
+        }
+    }
+
+    // Convert string to CameraType
+    Camera::CameraType stringToCameraType(const std::string &str) {
+        if (str == "arcball") return Camera::arcball;
+        if (str == "flycam") return Camera::flycam;
+        throw std::invalid_argument("Unknown CameraType: " + str);
+    }
 }
 
 namespace YAML {
@@ -150,6 +166,8 @@ namespace VkRender {
             out << YAML::Key << "render";
             out << YAML::Value << camera.render;
             auto &cameraProps = camera.camera;
+            out << YAML::Key << "Type";
+            out << YAML::Value << Serialize::cameraTypeToString(cameraProps.m_type);
             out << YAML::Key << "Width";
             out << YAML::Value << cameraProps.m_width;
             out << YAML::Key << "Height";
@@ -184,7 +202,7 @@ namespace VkRender {
 
             // Serialize usesTexture flag (bool)
             out << YAML::Key << "UsesTexture";
-            out << YAML::Value << material.usesTexture;
+            out << YAML::Value << material.usesVideoSource;
 
             // Serialize emissiveFactor (glm::vec4)
             out << YAML::Key << "EmissiveFactor";
@@ -202,11 +220,20 @@ namespace VkRender {
             out << YAML::Value << material.fragmentShaderName.string(); // Convert path to string
 
             // Serialize albedo texture path (std::filesystem::path), only if usesTexture is true
-            if (material.usesTexture) {
-                out << YAML::Key << "AlbedoTexture";
+            if (material.usesVideoSource) {
+                out << YAML::Key << "VideoSource";
                 out << YAML::Value << material.albedoTexturePath.string(); // Convert path to string
             }
 
+            out << YAML::EndMap;
+        }
+
+        if (entity.hasComponent<PointCloudComponent>()) {
+            out << YAML::Key << "PointCloudComponent";
+            out << YAML::BeginMap;
+            auto &component = entity.getComponent<PointCloudComponent>();
+            out << YAML::Key << "PointSize";
+            out << YAML::Value << component.pointSize;
             out << YAML::EndMap;
         }
 
@@ -274,6 +301,7 @@ namespace VkRender {
                 auto cameraComponent = entity["CameraComponent"];
                 if (cameraComponent) {
                     auto &camera = deserializedEntity.addComponent<CameraComponent>();
+                    camera().setType(Serialize::stringToCameraType(cameraComponent["Type"].as<std::string>()));
                 }
 
                 auto meshComponent = entity["MeshComponent"];
@@ -281,7 +309,8 @@ namespace VkRender {
                     std::filesystem::path path(meshComponent["ModelPath"].as<std::string>());
                     if (std::filesystem::exists(path)) {
                         auto &mesh = deserializedEntity.addComponent<MeshComponent>(path);
-                        mesh.polygonMode = Serialize::StringToPolygonMode(meshComponent["PolygonMode"].as<std::string>());
+                        mesh.polygonMode = Serialize::StringToPolygonMode(
+                            meshComponent["PolygonMode"].as<std::string>());
                     } else {
                         Log::Logger::getInstance()->error("Failed to load mesh at {}", path.string());
                     }
@@ -300,7 +329,7 @@ namespace VkRender {
                     // Deserialize roughness factor
                     material.roughness = materialComponent["Roughness"].as<float>();
                     // Deserialize uses texture flag
-                    material.usesTexture = materialComponent["UsesTexture"].as<bool>();
+                    material.usesVideoSource = materialComponent["UsesTexture"].as<bool>();
                     // Deserialize emissive factor
                     auto emissiveFactor = materialComponent["EmissiveFactor"].as<std::vector<float> >();
                     if (emissiveFactor.size() == 4) {
@@ -318,15 +347,22 @@ namespace VkRender {
                             materialComponent["FragmentShader"].as<std::string>());
                     }
                     // Deserialize albedo texture path (only if usesTexture is true)
-                    if (material.usesTexture && materialComponent["AlbedoTexture"]) {
+                    if (material.usesVideoSource && materialComponent["VideoSource"]) {
                         material.albedoTexturePath = std::filesystem::path(
-                            materialComponent["AlbedoTexture"].as<std::string>());
+                            materialComponent["VideoSource"].as<std::string>());
                     }
+                }
+
+                auto pointCloudComponent = entity["PointCloudComponent"];
+                if (pointCloudComponent) {
+                    auto &component = deserializedEntity.addComponent<PointCloudComponent>();
+                    component.pointSize = pointCloudComponent["PointSize"].as<float>();
                 }
             }
         }
 
-        return true;
+        return
+                true;
     }
 
     bool SceneSerializer::deserializeRuntime(const std::filesystem::path &filePath) {

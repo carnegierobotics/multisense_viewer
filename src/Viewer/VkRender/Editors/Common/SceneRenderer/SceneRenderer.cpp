@@ -22,6 +22,8 @@ namespace VkRender {
     }
 
     SceneRenderer::~SceneRenderer() {
+        m_entityRenderData.clear();
+
         if (m_descriptorPool != VK_NULL_HANDLE) {
             vkDestroyDescriptorPool(m_context->vkDevice().m_LogicalDevice, m_descriptorPool, nullptr);
         }
@@ -36,15 +38,16 @@ namespace VkRender {
     void SceneRenderer::onSceneLoad(std::shared_ptr<Scene> scene) {
         m_activeScene = m_context->activeScene();
         // TODO not clear what this does but it creates render reosurces of the editor was copied as part of a split operation
-        auto view = m_activeScene->getRegistry().view<MeshComponent, TransformComponent>();
+        auto view = m_activeScene->getRegistry().view<MeshComponent>();
         for (auto e: view) {
-            onComponentAdded(Entity(e, m_activeScene.get()), view.get<MeshComponent>(e));
+            auto entity = Entity(e, m_activeScene.get());
+            auto name = entity.getName();
+            if (entity.hasComponent<MaterialComponent>()) {
+                onComponentAdded(entity, entity.getComponent<MaterialComponent>());
+            }
+            onComponentAdded(entity, entity.getComponent<MeshComponent>());
         }
 
-        auto view2 = m_activeScene->getRegistry().view<MaterialComponent>();
-        for (auto e: view2) {
-            onComponentAdded(Entity(e, m_activeScene.get()), view2.get<MaterialComponent>(e));
-        }
     }
 
     void SceneRenderer::onUpdate() {
@@ -57,20 +60,23 @@ namespace VkRender {
                 continue;
             std::string entityTag = entity.getComponent<TagComponent>().Tag;
             if (uuid == getUUID()) {
-                auto &cameraComponent = entity.getComponent<CameraComponent>();
-                if (cameraComponent.renderFromViewpoint()) {
-                    auto &transform = entity.getComponent<TransformComponent>();
-                    cameraComponent.camera.setPerspective(
-                        static_cast<float>(m_createInfo.width) / m_createInfo.height);
-                    cameraComponent().pose.pos = transform.getPosition();
-                    cameraComponent().pose.q = transform.getRotationQuaternion();
-                    cameraComponent().updateViewMatrix();
-                    transform.getPosition() = cameraComponent().pose.pos;
-                    transform.getRotationQuaternion() = cameraComponent().pose.q;
-                    m_activeCamera = std::make_shared<Camera>(cameraComponent.camera);
-                }
+
             }
         }
+        auto cameraView = m_activeScene->getRegistry().view<CameraComponent>();
+        for (auto e: cameraView) {
+            Entity entity(e, m_activeScene.get());
+            auto &cameraComponent = entity.getComponent<CameraComponent>();
+            if (cameraComponent.renderFromViewpoint()) {
+                auto &transform = entity.getComponent<TransformComponent>();
+                cameraComponent.camera.setPerspective(static_cast<float>(m_createInfo.width) / m_createInfo.height);
+                cameraComponent().pose.pos = transform.getPosition();
+                cameraComponent().pose.q = transform.getRotationQuaternion();
+                cameraComponent().updateViewMatrix();
+                m_activeCamera = std::make_shared<Camera>(cameraComponent.camera);
+            }
+        }
+
 
         auto view = m_activeScene->getRegistry().view<MeshComponent, TransformComponent>();
         for (auto entity: view) {
@@ -273,7 +279,6 @@ namespace VkRender {
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                 &m_entityRenderData[entity.getUUID()].materialBuffer[i],
                 sizeof(MaterialBufferObject), nullptr, ("SceneRenderer:MaterialBuffer:" + std::to_string(i)), m_context->getDebugUtilsObjectNameFunction());
-            updateGlobalUniformBuffer(i, entity);
         }
     }
 
@@ -284,11 +289,10 @@ namespace VkRender {
     }
 
     void SceneRenderer::onComponentUpdated(Entity entity, MaterialComponent &materialComponent) {
-        if (materialComponent.updateShaders) {
             if (m_materialInstances.contains(entity.getUUID())) {
                 m_materialInstances.erase(entity.getUUID());
             }
-        }
+
     }
 
     void SceneRenderer::createDescriptorPool() {

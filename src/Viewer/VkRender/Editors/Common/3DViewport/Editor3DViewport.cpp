@@ -5,6 +5,7 @@
 #include "Viewer/VkRender/Editors/Common/3DViewport/Editor3DViewport.h"
 
 #include <Viewer/VkRender/Components/MaterialComponent.h>
+#include <Viewer/VkRender/Editors/Common/CommonEditorFunctions.h>
 
 #include "Editor3DLayer.h"
 #include "Viewer/Application/Application.h"
@@ -46,12 +47,15 @@ namespace VkRender {
         m_editorCamera = Camera(m_createInfo.width, m_createInfo.height);
         m_activeCamera = m_editorCamera;
         m_activeScene = m_context->activeScene();
-        if (m_ui->splitting) {
-            // TODO not clear what this does but it creates render reosurces of the editor was copied as part of a split operation
-            auto view = m_activeScene->getRegistry().view<MeshComponent, TransformComponent>();
-            for (auto e: view) {
-                onComponentAdded(Entity(e, m_activeScene.get()), view.get<MeshComponent>(e));
+        // TODO not clear what this does but it creates render reosurces of the editor was copied as part of a split operation
+        auto view = m_activeScene->getRegistry().view<MeshComponent>();
+        for (auto e: view) {
+            auto entity = Entity(e, m_activeScene.get());
+            auto name = entity.getName();
+            if (entity.hasComponent<MaterialComponent>()) {
+                onComponentAdded(entity, entity.getComponent<MaterialComponent>());
             }
+            onComponentAdded(entity, entity.getComponent<MeshComponent>());
         }
     }
 
@@ -64,23 +68,49 @@ namespace VkRender {
         for (auto entity: view) {
             updateGlobalUniformBuffer(m_context->currentFrameIndex(), Entity(entity, m_activeScene.get()));
         }
+        // Update
+        auto materialview = m_activeScene->getRegistry().view<MaterialComponent>();
+        for (auto e: materialview) {
+            Entity entity(e, m_activeScene.get());
+            auto &material = entity.getComponent<MaterialComponent>();
+            if (material.usesVideoSource && !material.videoFileNames.empty()) {
+                // Load next frame
+                std::filesystem::path nextFileName = material.videoFileNames[material.videoFileNameIndex];
+
+                int texWidth, texHeight, texChannels;
+                stbi_uc *pixels = stbi_load(nextFileName.string().c_str(), &texWidth, &texHeight, &texChannels,
+                                            STBI_rgb_alpha);
+                VkDeviceSize imageSize = texWidth * texHeight * 4;
+                // Assuming STBI_rgb_alpha gives us 4 channels per pixel
+                if (!pixels) {
+                    continue;;
+                }
+                m_materialInstances[entity.getUUID()]->vulkanTexture->loadImage(pixels, imageSize);
+                material.videoFileNameIndex++;
+                if (material.videoFileNameIndex >= material.videoFileNames.size()) {
+                    material.videoFileNameIndex = 0;
+                }
+            }
+        }
+
         // Retrieve the list of valid entities from the active scene
         std::unordered_set<UUID> validEntities;
-        for (auto entity : view) {
+        for (auto entity: view) {
             validEntities.insert(Entity(entity, m_activeScene.get()).getUUID());
         }
         // Iterate over m_entityRenderData and find entities that no longer exist in the scene
         std::vector<UUID> staleEntities;
-        for (const auto& [entityUUID, renderData] : m_entityRenderData) {
+        for (const auto &[entityUUID, renderData]: m_entityRenderData) {
             if (validEntities.find(entityUUID) == validEntities.end()) {
                 // If the entity UUID is not found in valid entities, mark it as stale
                 staleEntities.push_back(entityUUID);
             }
         }
         // Remove each stale entity from m_entityRenderData
-        for (UUID staleEntityUUID : staleEntities) {
+        for (UUID staleEntityUUID: staleEntities) {
             m_entityRenderData.erase(staleEntityUUID);
-            Log::Logger::getInstance()->info("Cleaned up resources for Entity: {}", staleEntityUUID.operator std::string());
+            Log::Logger::getInstance()->info("Cleaned up resources for Entity: {}",
+                                             staleEntityUUID.operator std::string());
         }
     }
 
@@ -245,7 +275,6 @@ namespace VkRender {
     }
 
     void Editor3DViewport::onComponentUpdated(Entity entity, MeshComponent &meshComponent) {
-
     }
 
     void Editor3DViewport::onComponentAdded(Entity entity, MaterialComponent &materialComponent) {
@@ -261,7 +290,6 @@ namespace VkRender {
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                 &m_entityRenderData[entity.getUUID()].materialBuffer[i],
                 sizeof(MaterialBufferObject));
-            updateGlobalUniformBuffer(i, entity);
         }
     }
 
@@ -272,11 +300,49 @@ namespace VkRender {
     }
 
     void Editor3DViewport::onComponentUpdated(Entity entity, MaterialComponent &materialComponent) {
-        if (materialComponent.updateShaders) {
-            if (m_materialInstances.contains(entity.getUUID())) {
-                m_materialInstances.erase(entity.getUUID());
-            }
+        if (m_materialInstances.contains(entity.getUUID())) {
+            // TODO look into reuse instead of re-creation
+            m_materialInstances.erase(entity.getUUID());
         }
+    }
+
+    void Editor3DViewport::onComponentAdded(Entity entity, PointCloudComponent &pointCloudComponent) {
+        // Check if I readd a meshcomponent then we should destroy the renderresources attached to it:
+        m_entityRenderData[entity.getUUID()].cameraBuffer.resize(m_context->swapChainBuffers().size());
+        m_entityRenderData[entity.getUUID()].modelBuffer.resize(m_context->swapChainBuffers().size());
+        m_entityRenderData[entity.getUUID()].descriptorSets.resize(m_context->swapChainBuffers().size());
+        m_entityRenderData[entity.getUUID()].pointCloudBuffer.resize(m_context->swapChainBuffers().size());
+        m_entityRenderData[entity.getUUID()].pointCloudDescriptorSets.resize(m_context->swapChainBuffers().size());
+        // Create attachable UBO buffers and such
+        for (int i = 0; i < m_context->swapChainBuffers().size(); ++i) {
+            m_context->vkDevice().createBuffer(
+                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                &m_entityRenderData[entity.getUUID()].cameraBuffer[i],
+                sizeof(GlobalUniformBufferObject));
+            m_context->vkDevice().createBuffer(
+                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                &m_entityRenderData[entity.getUUID()].modelBuffer[i],
+                sizeof(glm::mat4));
+            m_context->vkDevice().createBuffer(
+                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                &m_entityRenderData[entity.getUUID()].pointCloudBuffer[i],
+                sizeof(PointCloudUBO));
+            allocatePerEntityDescriptorSet(i, entity);
+
+            // Allocate
+        }
+    }
+
+    void Editor3DViewport::onComponentRemoved(Entity entity, PointCloudComponent &pointCloudComponent) {
+
+
+    }
+
+    void Editor3DViewport::onComponentUpdated(Entity entity, PointCloudComponent &pointCloudComponent) {
+
     }
 
     void Editor3DViewport::createDescriptorPool() {
@@ -322,7 +388,8 @@ namespace VkRender {
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
         layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
         layoutInfo.pBindings = bindings.data();
-        if (vkCreateDescriptorSetLayout(m_context->vkDevice().m_LogicalDevice, &layoutInfo, nullptr,&m_descriptorSetLayout) != VK_SUCCESS) {
+        if (vkCreateDescriptorSetLayout(m_context->vkDevice().m_LogicalDevice, &layoutInfo, nullptr,
+                                        &m_descriptorSetLayout) != VK_SUCCESS) {
             throw std::runtime_error("Failed to create descriptor set layout!");
         }
         /*** MATERIAL DESCRIPTOR SETUP ***/
@@ -441,34 +508,59 @@ namespace VkRender {
 
 
     std::shared_ptr<MaterialInstance> Editor3DViewport::initializeMaterial(
-        Entity entity, const MaterialComponent &materialComponent) {
+        Entity entity, MaterialComponent &materialComponent) {
         // Create a new MaterialInstance
         auto materialInstance = std::make_shared<MaterialInstance>();
         auto &renderData = m_entityRenderData[entity.getUUID()];
         const auto maxFramesInFlight = static_cast<uint32_t>(m_context->swapChainBuffers().size());
         // load textures
-        int texWidth, texHeight, texChannels;
-        stbi_uc *pixels = stbi_load(materialComponent.albedoTexturePath.string().c_str(), &texWidth, &texHeight,
-                                    &texChannels, STBI_rgb_alpha);
-        auto imageSize = static_cast<VkDeviceSize>(texWidth * texHeight * texChannels);
-        if (!pixels) {
-            // load empty texture
-            Log::Logger::getInstance()->error("Failed to load texture image: {}. Reverting to empty",
-                                              materialComponent.albedoTexturePath.string());
-            pixels = stbi_load((Utils::getTexturePath() / "moon.png").string().c_str(), &texWidth, &texHeight,
-                               &texChannels, STBI_rgb_alpha);
-            imageSize = static_cast<VkDeviceSize>(texWidth * texHeight * texChannels);
-            if (!pixels) {
-                throw std::runtime_error("Failed to load backup texture image");
+
+        if (materialComponent.usesVideoSource) {
+            std::filesystem::path folderPath = materialComponent.videoFolderSource;
+            std::vector<std::filesystem::path> files;
+            // Check if the folder exists
+            if (std::filesystem::exists(folderPath) && std::filesystem::is_directory(folderPath)) {
+                // Iterate through the folder and collect files
+                for (const auto &entry: std::filesystem::directory_iterator(folderPath)) {
+                    if (entry.is_regular_file()) {
+                        files.push_back(entry.path());
+                    }
+                }
+                // Sort files by filename assuming filenames are timestamps in nanoseconds
+                std::sort(files.begin(), files.end(), [](const std::filesystem::path &a, const std::filesystem::path &b) {
+                    return a.filename().string() < b.filename().string();
+                });
+                materialComponent.videoFileNames = files;
+                materialInstance->vulkanTexture = EditorUtils::createTextureFromFile(files.front(), m_context);
+            } else {
+                materialComponent.usesVideoSource = false;
             }
         }
-        materialInstance->baseColorTexture = std::make_shared<Texture2D>(
-            pixels, imageSize, VK_FORMAT_R8G8B8A8_SRGB, static_cast<uint32_t>(texWidth),
-            static_cast<uint32_t>(texHeight), &m_context->vkDevice(),
-            m_context->vkDevice().m_TransferQueue, VK_FILTER_LINEAR, VK_IMAGE_USAGE_SAMPLED_BIT,
-            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        if (!materialComponent.usesVideoSource) {
+            int texWidth, texHeight, texChannels;
+            stbi_uc *pixels = stbi_load(materialComponent.albedoTexturePath.string().c_str(), &texWidth, &texHeight,
+                                        &texChannels, STBI_rgb_alpha);
+            auto imageSize = static_cast<VkDeviceSize>(texWidth * texHeight * texChannels);
+            if (!pixels) {
+                // load empty texture
+                Log::Logger::getInstance()->error("Failed to load texture image: {}. Reverting to empty",
+                                                  materialComponent.albedoTexturePath.string());
+                pixels = stbi_load((Utils::getTexturePath() / "moon.png").string().c_str(), &texWidth, &texHeight,
+                                   &texChannels, STBI_rgb_alpha);
+                imageSize = static_cast<VkDeviceSize>(texWidth * texHeight * texChannels);
+                if (!pixels) {
+                    throw std::runtime_error("Failed to load backup texture image");
+                }
+            }
+            materialInstance->baseColorTexture = std::make_shared<Texture2D>(
+                pixels, imageSize, VK_FORMAT_R8G8B8A8_SRGB, static_cast<uint32_t>(texWidth),
+                static_cast<uint32_t>(texHeight), &m_context->vkDevice(),
+                m_context->vkDevice().m_TransferQueue, VK_FILTER_LINEAR, VK_IMAGE_USAGE_SAMPLED_BIT,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-        stbi_image_free(pixels);
+            stbi_image_free(pixels);
+        }
+
         renderData.materialDescriptorSets.resize(maxFramesInFlight);
         for (int frameIndex = 0; frameIndex < maxFramesInFlight; ++frameIndex) {
             // Allocate Descriptor Set
@@ -493,14 +585,23 @@ namespace VkRender {
             descriptorWrites[0].descriptorCount = 1;
             descriptorWrites[0].pBufferInfo = &renderData.materialBuffer[frameIndex].m_DescriptorBufferInfo;
             // Write Model Buffer
-            descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descriptorWrites[1].dstSet = renderData.materialDescriptorSets[frameIndex];
-            descriptorWrites[1].dstBinding = 1;
-            descriptorWrites[1].dstArrayElement = 0;
-            descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            descriptorWrites[1].descriptorCount = 1;
-            descriptorWrites[1].pImageInfo = &materialInstance->baseColorTexture->m_descriptor;
-
+            if (materialComponent.usesVideoSource) {
+                descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                descriptorWrites[1].dstSet = renderData.materialDescriptorSets[frameIndex];
+                descriptorWrites[1].dstBinding = 1;
+                descriptorWrites[1].dstArrayElement = 0;
+                descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                descriptorWrites[1].descriptorCount = 1;
+                descriptorWrites[1].pImageInfo = &materialInstance->vulkanTexture->getDescriptorInfo();
+            } else {
+                descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                descriptorWrites[1].dstSet = renderData.materialDescriptorSets[frameIndex];
+                descriptorWrites[1].dstBinding = 1;
+                descriptorWrites[1].dstArrayElement = 0;
+                descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                descriptorWrites[1].descriptorCount = 1;
+                descriptorWrites[1].pImageInfo = &materialInstance->baseColorTexture->m_descriptor;
+            }
             vkUpdateDescriptorSets(m_context->vkDevice().m_LogicalDevice, descriptorWrites.size(),
                                    descriptorWrites.data(), 0, nullptr);
         }

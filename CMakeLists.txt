@@ -140,6 +140,7 @@ set(SOURCE_FILES
         src/Viewer/VkRender/Core/VulkanTexture.h
 
         src/Viewer/Scenes/SceneSerializer.cpp
+        src/Viewer/VkRender/Components/PointCloudComponent.h
 )
 
 # Libraries

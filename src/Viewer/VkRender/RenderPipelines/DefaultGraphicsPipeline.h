@@ -20,7 +20,6 @@ namespace VkRender {
     class DefaultGraphicsPipeline {
     public:
         DefaultGraphicsPipeline() = delete;
-
         /** @brief
         // Delete copy constructors, we dont want to perform shallow copied of vulkan resources leading to double deletion.
         // If copy is necessary define custom copy constructor and use move semantics or references
@@ -29,57 +28,22 @@ namespace VkRender {
 
         DefaultGraphicsPipeline &operator=(const DefaultGraphicsPipeline &) = delete;
 
-        ~DefaultGraphicsPipeline();
+        ~DefaultGraphicsPipeline() = default;
 
         explicit DefaultGraphicsPipeline(Application &m_context, const RenderPassInfo &renderPassInfo,
                                          const PipelineKey &key);
-
-
-        void cleanUp();
 
         void bind(CommandBuffer &commandBuffer) const;
 
         std::shared_ptr<VulkanGraphicsPipeline> pipeline() { return m_graphicsPipeline; }
 
     private:
-        struct Vertices {
-            VkBuffer buffer = VK_NULL_HANDLE;
-            VkDeviceMemory memory = VK_NULL_HANDLE;
-            uint32_t vertexCount = 0;
-        };
-
-        struct Indices {
-            VkBuffer buffer = VK_NULL_HANDLE;
-            VkDeviceMemory memory = VK_NULL_HANDLE;
-            uint32_t indexCount = 0;
-        };
-
         VulkanDevice &m_vulkanDevice;
         RenderPassInfo m_renderPassInfo{};
         uint32_t m_numSwapChainImages = 0;
-        Texture2D m_emptyTexture;
-        Texture2D m_objTexture;
-
-        Indices indices{};
-        Vertices vertices{};
-
         std::filesystem::path m_vertexShader;
         std::filesystem::path m_fragmentShader;
-
-        UBOMatrix m_vertexParams; // Non GPU-accessible data, shared across frames
-        FragShaderParams m_fragParams; // Non GPU-accessible data, shared across frames
-        std::vector<DefaultRenderData> m_renderData;
-        SharedRenderData m_sharedRenderData;
-
         std::shared_ptr<VulkanGraphicsPipeline> m_graphicsPipeline;
-
-        void setupUniformBuffers();
-
-        void setupDescriptors();
-
-        void setupPipeline();
-
-        void setTexture(const VkDescriptorImageInfo *info);
     };
 };
 #endif //MULTISENSE_VIEWER_DEFAULTGRAPHICSPIPELINECOMPONENT2_H

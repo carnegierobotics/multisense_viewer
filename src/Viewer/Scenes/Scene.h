@@ -11,6 +11,7 @@
 #include "Viewer/VkRender/Core/CommandBuffer.h"
 #include "Viewer/VkRender/Core/UUID.h"
 #include "Viewer/VkRender/Components/Components.h"
+#include "Viewer/VkRender/Components/PointCloudComponent.h"
 
 namespace VkRender {
     class Application;
@@ -83,6 +84,13 @@ namespace VkRender {
         void notifyEditorsComponentUpdated(Entity entity, MeshComponent &component);
         void notifyEditorsComponentRemoved(Entity entity, MeshComponent &component);
         void notifyEditorsComponentAdded(Entity entity, MaterialComponent &component);
+
+        void notifyEditorsComponentAdded(Entity entity, PointCloudComponent &component);
+
+        void notifyEditorsComponentUpdated(Entity entity, PointCloudComponent &component);
+
+        void notifyEditorsComponentRemoved(Entity entity, PointCloudComponent &component);
+
         void notifyEditorsComponentUpdated(Entity entity, MaterialComponent &component);
         void notifyEditorsComponentRemoved(Entity entity, MaterialComponent &component);
 

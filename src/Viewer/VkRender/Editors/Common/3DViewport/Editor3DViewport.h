@@ -25,7 +25,7 @@ namespace VkRender {
 
         std::shared_ptr<MeshInstance> initializeMesh(const MeshComponent &meshComponent);
 
-        std::shared_ptr<MaterialInstance> initializeMaterial(Entity entity, const MaterialComponent & materialComponent);
+        std::shared_ptr<MaterialInstance> initializeMaterial(Entity entity, MaterialComponent & materialComponent);
 
         void collectRenderCommands(
             std::unordered_map<std::shared_ptr<DefaultGraphicsPipeline>, std::vector<RenderCommand>> &renderGroups);
@@ -48,6 +48,12 @@ namespace VkRender {
         void onComponentRemoved(Entity entity, MaterialComponent& meshComponent) override;
         void onComponentUpdated(Entity entity, MaterialComponent& meshComponent) override;
 
+        void onComponentAdded(Entity entity, PointCloudComponent &pointCloudComponent);
+
+        void onComponentRemoved(Entity entity, PointCloudComponent &pointCloudComponent);
+
+        void onComponentUpdated(Entity entity, PointCloudComponent &pointCloudComponent);
+
         void createDescriptorPool();
 
         void allocatePerEntityDescriptorSet(uint32_t frameIndex, Entity entity);
@@ -64,12 +70,17 @@ namespace VkRender {
         std::unordered_map<UUID, std::shared_ptr<MeshInstance>> m_meshInstances;
 
         struct EntityRenderData {
+            // Mesh rendering and typical shader buffers
             std::vector<Buffer> cameraBuffer;
             std::vector<Buffer> modelBuffer;
             std::vector<VkDescriptorSet> descriptorSets;
 
+            // Material stuff
             std::vector<Buffer> materialBuffer;
             std::vector<VkDescriptorSet> materialDescriptorSets;
+            // Pount cloud rendering
+            std::vector<Buffer> pointCloudBuffer;
+            std::vector<VkDescriptorSet> pointCloudDescriptorSets;
         };
         std::unordered_map<UUID, EntityRenderData> m_entityRenderData;
 

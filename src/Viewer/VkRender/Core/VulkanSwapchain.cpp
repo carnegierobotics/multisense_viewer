@@ -35,6 +35,8 @@
  **/
 
 #include "Viewer/VkRender/Core/VulkanSwapchain.h"
+
+#include "Viewer/Tools/Macros.h"
 #include "Viewer/Tools/Logger.h"
 
 /** @brief Creates the surface abstraction of the native platform window used for presentation */

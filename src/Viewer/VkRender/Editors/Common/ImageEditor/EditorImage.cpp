@@ -6,6 +6,7 @@
 #include "Viewer/Application/Application.h"
 #include "Viewer/VkRender/RenderPipelines/RenderBase.h"
 #include "Viewer/VkRender/Editors/Common/ImageEditor/EditorImageLayer.h"
+#include "Viewer/VkRender/Editors/Common/CommonEditorFunctions.h"
 
 namespace VkRender {
     EditorImage::EditorImage(EditorCreateInfo &createInfo, UUID uuid) : Editor(createInfo, uuid) {
@@ -54,70 +55,24 @@ namespace VkRender {
         m_renderPipelines->bindTexture(m_multiSenseTexture);
         */
 
+        RenderPassInfo renderPassInfo{};
+        renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
+        renderPassInfo.renderPass = m_renderPass->getRenderPass();
+        m_renderPipelines = std::make_unique<GraphicsPipeline2D>(*m_context, renderPassInfo);
     }
 
     void EditorImage::onEditorResize() {
     }
 
     void EditorImage::onFileDrop(const std::filesystem::path &path) {
-
-
         std::string extension = path.extension().string();
         std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
         if (extension == ".png" || extension == ".jpg") {
-
-            int texWidth, texHeight, texChannels;
-            stbi_uc *pixels = stbi_load(path.string().c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
-            VkDeviceSize imageSize = texWidth * texHeight * 4;  // Assuming STBI_rgb_alpha gives us 4 channels per pixel
-
-            if (!pixels) {
-                throw std::runtime_error("Failed to load texture image!");
-            }
-
-            RenderPassInfo renderPassInfo{};
-            renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
-            renderPassInfo.renderPass = m_renderPass->getRenderPass();
-
-            VkImageCreateInfo imageCI = Populate::imageCreateInfo();
-            imageCI.imageType = VK_IMAGE_TYPE_2D;
-            imageCI.format = VK_FORMAT_R8G8B8A8_UNORM;
-            imageCI.extent = {static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight), 1};
-            imageCI.mipLevels = 1;
-            imageCI.arrayLayers = 1;
-            imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
-            imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
-            imageCI.usage =
-                    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-            imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-            imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            VkImageViewCreateInfo imageViewCI = Populate::imageViewCreateInfo();
-            imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
-            imageViewCI.format = VK_FORMAT_R8G8B8A8_UNORM;
-            imageViewCI.subresourceRange.baseMipLevel = 0;
-            imageViewCI.subresourceRange.levelCount = 1;
-            imageViewCI.subresourceRange.baseArrayLayer = 0;
-            imageViewCI.subresourceRange.layerCount = 1;
-            imageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-
-            VulkanImageCreateInfo vulkanImageCreateInfo(m_context->vkDevice(), m_context->allocator(), imageCI,
-                                                        imageViewCI);
-            vulkanImageCreateInfo.debugInfo = "Color texture: Image Editor";
-            m_colorImage = std::make_shared<VulkanImage>(vulkanImageCreateInfo);
-
-            VulkanTexture2DCreateInfo textureCreateInfo(m_context->vkDevice());
-            textureCreateInfo.image = m_colorImage;
-            m_colorTexture = std::make_shared<VulkanTexture2D>(textureCreateInfo);
-
-            // Copy data to texturere
-            m_colorTexture->loadImage(pixels, imageSize);
-            // Free the image data
-            stbi_image_free(pixels);
-
-            m_renderPipelines = std::make_unique<GraphicsPipeline2D>(*m_context, renderPassInfo);
-            m_renderPipelines->bindTexture(m_colorTexture);
+            m_colorTexture = EditorUtils::createTextureFromFile(path, m_context);
+            m_renderPipelines->setTexture(&m_colorTexture->getDescriptorInfo());
         }
-
     }
+
 
     void EditorImage::onSceneLoad(std::shared_ptr<Scene> scene) {
         m_activeScene = m_context->activeScene();
@@ -125,8 +80,6 @@ namespace VkRender {
 
 
     void EditorImage::onPipelineReload() {
-
-
     }
 
     void EditorImage::onUpdate() {
@@ -141,8 +94,7 @@ namespace VkRender {
             data.width = 960;
             data.height = 600;
             data.dataSource = "Luma Left";
-            m_context->multiSense()->getImage(&data);
-            {
+            m_context->multiSense()->getImage(&data); {
                 m_multiSenseTexture->loadImage(data.imagePtr, 960 * 600);
             }
             free(data.imagePtr);
@@ -153,22 +105,17 @@ namespace VkRender {
             auto sceneRenderer = m_context->getSceneRendererByUUID(getUUID());
             if (!sceneRenderer) {
                 sceneRenderer = m_context->addSceneRendererWithUUID(getUUID());
-                sceneRenderer->onSceneLoad(m_activeScene);
-                auto& image = sceneRenderer->getOffscreenFramebuffer().resolvedImage;
+                auto &image = sceneRenderer->getOffscreenFramebuffer().resolvedImage;
                 VulkanTexture2DCreateInfo textureCreateInfo(m_context->vkDevice());
                 textureCreateInfo.image = image;
                 m_colorTexture = std::make_shared<VulkanTexture2D>(textureCreateInfo);
-                RenderPassInfo renderPassInfo{};
-                renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
-                renderPassInfo.renderPass = m_renderPass->getRenderPass();
-                m_renderPipelines = std::make_unique<GraphicsPipeline2D>(*m_context, renderPassInfo);
-                m_renderPipelines->bindTexture(m_colorTexture);
+                m_renderPipelines->setTexture(&m_colorTexture->getDescriptorInfo());
             }
             auto view = m_activeScene->getRegistry().view<CameraComponent, TagComponent>();
             std::vector<std::string> cameraEntityNames;
             cameraEntityNames.reserve(view.size_hint());
-            for (auto entity : view) {
-                auto& tag = view.get<TagComponent>(entity);
+            for (auto entity: view) {
+                auto &tag = view.get<TagComponent>(entity);
                 if (tag.Tag == imageUI->selectedCameraName) {
                     m_ui->shared->selectedEntityMap[getUUID()] = Entity(entity, m_activeScene.get());
                 }
@@ -176,12 +123,36 @@ namespace VkRender {
             imageUI->update = false;
         }
 
+        if (imageUI->playVideoFromFolder) {
+
+            std::filesystem::path folderPath = "C:/Users/mgjer/PycharmProjects/multisense-rgbd/logqs_dataset/test/aux";
+            std::vector<std::filesystem::path> files;
+
+            // Iterate through the folder and collect files
+            for (const auto& entry : std::filesystem::directory_iterator(folderPath)) {
+                if (entry.is_regular_file()) {
+                    files.push_back(entry.path());
+                }
+            }
+
+            // Sort files by filename assuming filenames are timestamps in nanoseconds
+            std::sort(files.begin(), files.end(), [](const std::filesystem::path& a, const std::filesystem::path& b) {
+                return a.filename().string() < b.filename().string();
+            });
+
+            std::filesystem::path imagePath = files[m_playVideoFrameIndex];
+            m_colorTexture = EditorUtils::createTextureFromFile(imagePath, m_context);
+            m_renderPipelines->setTexture(&m_colorTexture->getDescriptorInfo());
+            m_playVideoFrameIndex++;
+
+            if (m_playVideoFrameIndex >= files.size()) {
+                m_playVideoFrameIndex = 0;
+            }
+        }
     }
 
     void EditorImage::onRender(CommandBuffer &drawCmdBuffers) {
-        if (m_renderPipelines) {
-            m_renderPipelines->draw(drawCmdBuffers);
-        }
+        m_renderPipelines->draw(drawCmdBuffers);
     }
 
     void EditorImage::onMouseMove(const MouseButtons &mouse) {
@@ -189,5 +160,7 @@ namespace VkRender {
 
     void EditorImage::onMouseScroll(float change) {
     }
+
+
 
 }

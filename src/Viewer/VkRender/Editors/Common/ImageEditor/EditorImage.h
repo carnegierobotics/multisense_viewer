@@ -48,7 +48,7 @@ namespace VkRender {
 
         std::shared_ptr<VulkanTexture2D> m_multiSenseTexture;
 
-
+        size_t m_playVideoFrameIndex = 0;
     };
 }
 

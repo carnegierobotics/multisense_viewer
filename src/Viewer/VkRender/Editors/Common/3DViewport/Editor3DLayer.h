@@ -56,61 +56,6 @@ namespace VkRender {
             ImGui::Begin("Editor3DLayer", nullptr, window_flags);
             auto imageUI = std::dynamic_pointer_cast<Editor3DViewportUI>(m_editor->ui());
 
-            ImGui::Checkbox("Render to Offscreen", &imageUI->renderToOffscreen);
-
-            /*
-            static bool toggle = false;
-            ImGui::Checkbox("Save image toggle", &toggle);
-            if (toggle) {
-                m_editor->ui()->saveRenderToFile = true;
-            }
-            */
-
-            /*
-            auto view = m_scene->getRegistry().view<CameraComponent, TagComponent>();
-            static int selectedCameraIndex = 0;
-            static std::string currentCameraName = "Select camera";
-
-            ImGui::SetNextItemWidth(200.0f);
-            if (ImGui::BeginCombo("combo 1", currentCameraName.c_str(), 0)) {
-                int index = 0;
-                for (auto entity : view) {
-                    auto& tag = view.get<TagComponent>(entity);
-                    std::string cameraName = tag.Tag; // Assuming the CameraComponent has a 'name' field.
-                    bool is_selected = (selectedCameraIndex == index);
-                    if (ImGui::Selectable(cameraName.c_str(), is_selected)) {
-                        selectedCameraIndex = index;
-                        currentCameraName = cameraName;
-                        m_editor->ui()->shared->m_selectedEntity = Entity(entity, m_scene.get());
-                    }
-                    if (is_selected) {
-                        ImGui::SetItemDefaultFocus(); // Set the initial focus when opening the combo (scrolling + for keyboard navigation support in the upcoming navigation branch)
-                    }
-
-                    ++index;
-                }
-                ImGui::EndCombo();
-            }
-
-            ImGui::Checkbox("Preview selected camera entity", &m_editor->ui()->setActiveCamera);
-
-            ImGui::Checkbox("Render depth", &m_editor->ui()->renderDepth);
-            m_editor->ui()->saveRenderToFile = ImGui::Button("Save image");
-
-            if (ImGui::Button("Create camera")) {
-                auto scene = m_context->activeScene();
-                auto entity = scene->createNewCamera("NewCamera", 1280, 720);
-                auto &transform = entity.getComponent<TransformComponent>();
-                auto &camera = entity.getComponent<CameraComponent>();
-                entity.addComponent<MeshComponent>(1);
-                transform.setPosition(m_editor->ui()->editorCamera->pose.pos);
-                auto quaternion = glm::quat_cast(m_editor->ui()->editorCamera->getFlyCameraTransMat());
-                transform.setQuaternion(quaternion);
-                camera().pose.pos = m_editor->ui()->editorCamera->pose.pos;
-                camera().pose.q = quaternion;
-                camera().updateViewMatrix();
-            };
- */
 
             ImGui::End();
 

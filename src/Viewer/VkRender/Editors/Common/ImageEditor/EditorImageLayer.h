@@ -19,6 +19,8 @@ namespace VkRender {
         int previewID = 0;
         std::string selectedCameraName = "";
 
+        bool playVideoFromFolder = false;
+
         // Constructor that copies everything from base EditorUI
         EditorImageUI(const EditorUI &baseUI) : EditorUI(baseUI) {}
     };
@@ -124,6 +126,9 @@ namespace VkRender {
                     ImGui::EndCombo();
                 }
             }
+            ImGui::SameLine();
+            ImGui::Checkbox("Play video from folder", &imageUI->playVideoFromFolder);
+            ImGui::SameLine();
             ImGui::End();
 
         }

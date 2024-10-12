@@ -65,7 +65,7 @@ namespace VkRender {
     class Camera {
     public:
         enum CameraType {
-            arcball, flycam, custom
+            arcball, flycam
         };
         CameraType m_type = CameraType::arcball;
 

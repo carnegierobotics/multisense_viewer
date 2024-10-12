@@ -35,18 +35,24 @@ namespace VkRender {
 
         Entity m_selectionContext;
         std::future<LayerUtils::LoadFileInfo> loadFileFuture;
+        std::future<LayerUtils::LoadFileInfo> loadFolderFuture;
         char m_tagBuffer[256];  // Adjust size as needed
         bool m_needsTagUpdate = true;
 
         template<typename T>
         void displayAddComponentEntry(const std::string &entryName);
 
+        void handleSelectedFileOrFolder(const LayerUtils::LoadFileInfo &loadFileInfo);
+
         void checkFileImportCompletion();
 
-        void handleSelectedFile(const LayerUtils::LoadFileInfo &loadFileInfo);
+        void checkFolderImportCompletion();
 
         void openImportFileDialog(const std::string &fileDescription, const std::vector<std::string> &type,
                                   LayerUtils::FileTypeLoadFlow flow);
+
+        void openImportFolderDialog(const std::string &fileDescription, const std::vector<std::string> &type,
+                                    LayerUtils::FileTypeLoadFlow flow);
 
         static void
         drawVec3Control(const std::string &label, glm::vec3 &values, float resetValue, float columnWidth, float speed);

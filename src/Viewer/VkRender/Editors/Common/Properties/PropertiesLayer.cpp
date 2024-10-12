@@ -7,6 +7,7 @@
 #include "Viewer/VkRender/Components/Components.h"
 #include "Viewer/Scenes/Scene.h"
 #include "Viewer/Application/Application.h"
+#include "Viewer/VkRender/Components/PointCloudComponent.h"
 #include "Viewer/VkRender/Core/Entity.h"
 
 namespace VkRender {
@@ -179,6 +180,7 @@ namespace VkRender {
             displayAddComponentEntry<TransformComponent>("Transform Component");
             displayAddComponentEntry<MeshComponent>("MeshComponent");
             displayAddComponentEntry<MaterialComponent>("MaterialComponent");
+            displayAddComponentEntry<PointCloudComponent>("PointCloudComponent");
 
             ImGui::EndPopup();
         }
@@ -192,7 +194,11 @@ namespace VkRender {
         drawComponent<CameraComponent>("Camera", entity, [](auto &component) {
             drawFloatControl("Field of View", component().fov(), 1.0f);
             component().updateProjectionMatrix();
+
             ImGui::Checkbox("Render scene from viewpoint", &component.renderFromViewpoint());
+
+            if (component.renderFromViewpoint())
+                component().setType(Camera::CameraType::flycam);
         });
 
         drawComponent<MeshComponent>("Mesh", entity, [this, entity](auto &component) {
@@ -244,7 +250,7 @@ namespace VkRender {
             // Base Color Control
             ImGui::Text("Base Color");
             ImGui::ColorEdit4("##BaseColor", glm::value_ptr(component.baseColor));
-
+            /*
             // Metallic Control
             ImGui::Text("Metallic");
             ImGui::SliderFloat("##Metallic", &component.metallic, 0.0f, 1.0f);
@@ -253,26 +259,43 @@ namespace VkRender {
             ImGui::Text("Roughness");
             ImGui::SliderFloat("##Roughness", &component.roughness, 0.0f, 1.0f);
 
+
             // Emissive Factor Control
             ImGui::Text("Emissive Factor");
             ImGui::ColorEdit3("##EmissiveFactor", glm::value_ptr(component.emissiveFactor));
+*/
 
-            component.updateShaders = false;
-            if (ImGui::Button("Reload shaders")) {
-                component.updateShaders = true;
+            if (ImGui::Button("Reload Material Shader")) {
                 m_scene->onComponentUpdated(entity, component);
             }
-            // Texture Control
-            ImGui::Checkbox("Use Albedo Texture", &component.usesTexture);
-            if (component.usesTexture) {
-                ImGui::Text("Albedo Texture:");
-                ImGui::Text("%s", component.albedoTexturePath.string().c_str());
+            ImGui::Dummy(ImVec2(5.0f, 5.0f));
+            ImGui::PushFont(m_editor->guiResources().font15);
+            ImGui::Text("Texture");
+            ImGui::PopFont();
 
+            ImGui::Text("Source:");
+            ImGui::Text("%s", component.albedoTexturePath.string().c_str());
+            // Button to load texture
+            if (ImGui::Button("Set Texture Image")) {
+                std::vector<std::string> types{".png", ".jpg", ".bmp"};
+                openImportFileDialog("Load Texture", types, LayerUtils::TEXTURE_FILE);
+            }
+
+            // Texture Control
+            ImGui::Checkbox("Use Video Source", &component.usesVideoSource);
+            if (component.usesVideoSource) {
+                ImGui::BeginChild("TextureChildWindow", ImVec2(0, ImGui::GetTextLineHeightWithSpacing() * 6), true);
+
+                ImGui::Text("Images folder:");
+                ImGui::Text("%s", component.videoFolderSource.string().c_str());
                 // Button to load texture
-                if (ImGui::Button("Load Albedo Texture")) {
+                if (ImGui::Button("Set Image Folder")) {
                     std::vector<std::string> types{".png", ".jpg", ".bmp"};
-                    //openImportFileDialog("Load Texture", types, LayerUtils::TEXTURE_FILE);
+                    openImportFolderDialog("Set Image Folder", types, LayerUtils::VIDEO_TEXTURE_FILE);
                 }
+
+
+                ImGui::EndChild();
             }
 
             // Shader Controls
@@ -280,17 +303,22 @@ namespace VkRender {
             ImGui::Text("%s", component.vertexShaderName.string().c_str());
             if (ImGui::Button("Load Vertex Shader")) {
                 std::vector<std::string> types{".vert"};
-                //openImportFileDialog("Load Vertex Shader", types, LayerUtils::VERTEX_SHADER_FILE);
+                openImportFileDialog("Load Vertex Shader", types, LayerUtils::VERTEX_SHADER_FILE);
             }
 
             ImGui::Text("Fragment Shader:");
             ImGui::Text("%s", component.fragmentShaderName.string().c_str());
             if (ImGui::Button("Load Fragment Shader")) {
                 std::vector<std::string> types{".frag"};
-                //openImportFileDialog("Load Fragment Shader", types, LayerUtils::FRAGMENT_SHADER_FILE);
+                openImportFileDialog("Load Fragment Shader", types, LayerUtils::FRAGMENT_SHADER_FILE);
             }
-
             // Notify scene that material component has been updated
+        });
+
+        drawComponent<PointCloudComponent>("PointCloud", entity, [this](auto &component) {
+            ImGui::Text("Point Size");
+            ImGui::SliderFloat("##PointSize", &component.pointSize, 0.0f, 10.0f);
+
         });
     }
 
@@ -326,6 +354,7 @@ namespace VkRender {
         }
 
         checkFileImportCompletion();
+        checkFolderImportCompletion();
 
         /*
         auto view = scene->getRegistry().view<TransformComponent, TagComponent>();
@@ -368,28 +397,50 @@ namespace VkRender {
     }
 
     void
-    PropertiesLayer::handleSelectedFile(const LayerUtils::LoadFileInfo &loadFileInfo) {
+    PropertiesLayer::handleSelectedFileOrFolder(const LayerUtils::LoadFileInfo &loadFileInfo) {
         if (!loadFileInfo.path.empty()) {
-            if (loadFileInfo.filetype == LayerUtils::OBJ_FILE) {
-                // Load into the active scene
-                if (m_selectionContext.hasComponent<MeshComponent>())
-                    m_selectionContext.removeComponent<MeshComponent>();
-                m_selectionContext.addComponent<MeshComponent>(loadFileInfo.path);
-            } else if (loadFileInfo.filetype == LayerUtils::PLY_3DGS) {
-                // Load into the active scene
-                auto &registry = m_context->activeScene()->getRegistry();
-                auto view = registry.view<GaussianModelComponent>();
-                for (auto &entity: view) {
-                    m_context->activeScene()->destroyEntity(
-                        Entity(entity, m_context->activeScene().get()));
+            switch (loadFileInfo.filetype) {
+                case LayerUtils::TEXTURE_FILE: {
+                    auto& materialComponent = m_selectionContext.getComponent<MaterialComponent>();
+                    materialComponent.albedoTexturePath = loadFileInfo.path;
+                    m_scene->onComponentUpdated(m_selectionContext, materialComponent);
+
                 }
-                auto entity = m_context->activeScene()->createEntity(loadFileInfo.path.filename().string());
-                entity.addComponent<GaussianModelComponent>(loadFileInfo.path);
-            } else if (loadFileInfo.filetype == LayerUtils::PLY_MESH) {
-                // Load into the active scene
-                auto entity = m_context->activeScene()->createEntity(loadFileInfo.path.filename().string());
-                entity.addComponent<MeshComponent>(loadFileInfo.path);
+                    break;
+                case LayerUtils::OBJ_FILE:
+                    // Load into the active scene
+                    if (m_selectionContext.hasComponent<MeshComponent>())
+                        m_selectionContext.removeComponent<MeshComponent>();
+                    m_selectionContext.addComponent<MeshComponent>(loadFileInfo.path);
+                    break;
+                case LayerUtils::PLY_3DGS: {
+                    auto &registry = m_context->activeScene()->getRegistry();
+                    auto view = registry.view<GaussianModelComponent>();
+                    for (auto &entity: view) {
+                        m_context->activeScene()->destroyEntity(
+                            Entity(entity, m_context->activeScene().get()));
+                    }
+                    auto entity = m_context->activeScene()->createEntity(loadFileInfo.path.filename().string());
+                    entity.addComponent<GaussianModelComponent>(loadFileInfo.path);
+                }
+                break;
+                case LayerUtils::PLY_MESH: {
+                    auto entity = m_context->activeScene()->createEntity(loadFileInfo.path.filename().string());
+                    entity.addComponent<MeshComponent>(loadFileInfo.path);
+                }
+                break;
+                case LayerUtils::VIDEO_TEXTURE_FILE: {
+                    auto& materialComponent = m_selectionContext.getComponent<MaterialComponent>();
+                    materialComponent.videoFolderSource = loadFileInfo.path;
+                    m_scene->onComponentUpdated(m_selectionContext, materialComponent);
+                }
+                    break;
+
+                default:
+                    Log::Logger::getInstance()->warning("Not implemented yet");
+                    break;
             }
+
             // Copy the selected file path to wherever it's needed
             auto &opts = ApplicationConfig::getInstance().getUserSetting();
             opts.lastOpenedImportModelFolderPath = loadFileInfo.path;
@@ -404,7 +455,14 @@ namespace VkRender {
         if (loadFileFuture.valid() &&
             loadFileFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
             LayerUtils::LoadFileInfo loadFileInfo = loadFileFuture.get(); // Get the result from the future
-            handleSelectedFile(loadFileInfo);
+            handleSelectedFileOrFolder(loadFileInfo);
+        }
+    }
+    void PropertiesLayer::checkFolderImportCompletion() {
+        if (loadFolderFuture.valid() &&
+            loadFolderFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+            LayerUtils::LoadFileInfo loadFileInfo = loadFolderFuture.get(); // Get the result from the future
+            handleSelectedFileOrFolder(loadFileInfo);
         }
     }
 
@@ -419,6 +477,18 @@ namespace VkRender {
             }
             loadFileFuture = std::async(VkRender::LayerUtils::selectFile, "Select " + fileDescription + " file",
                                         type, openLoc, flow);
+        }
+    }
+    void PropertiesLayer::openImportFolderDialog(const std::string &fileDescription,
+                                               const std::vector<std::string> &type,
+                                               LayerUtils::FileTypeLoadFlow flow) {
+        if (!loadFolderFuture.valid()) {
+            auto &opts = ApplicationConfig::getInstance().getUserSetting();
+            std::string openLoc = Utils::getSystemHomePath().string();
+            if (!opts.lastOpenedImportModelFolderPath.empty()) {
+                openLoc = opts.lastOpenedImportModelFolderPath.remove_filename().string();
+            }
+            loadFolderFuture = std::async(VkRender::LayerUtils::selectFolder, "Select Folder", openLoc, flow);
         }
     }
 }

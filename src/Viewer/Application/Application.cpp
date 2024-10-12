@@ -164,22 +164,8 @@ namespace VkRender {
         Log::Logger::getInstance()->info("Successfully read editor settings from: {}", filePath.string());
         if (jsonContent.contains("generalSettings")) {
             const auto &jsonGeneralSettings = jsonContent["generalSettings"];
-
             m_projectConfig.name = jsonGeneralSettings.value("projectName", "Default Project");
-            // Use .value() to get the array, or a default value
-            auto editorLayers = jsonGeneralSettings.value("editorTypes", nlohmann::json::array());
-            // Check if editorLayers is an array and then iterate over it
-            if (editorLayers.is_array() && !editorLayers.empty()) {
-                for (const auto &layer: editorLayers) {
-                    // Assuming the elements are strings
-                    std::string editorType = layer.get<std::string>();
-                    m_projectConfig.editorTypes.emplace_back(stringToEditorType(editorType));
-                    Log::Logger::getInstance()->info("Adding editor type: {} to available types", editorType);
-                }
-            } else {
-                Log::Logger::getInstance()->warning("editorLayers is not an array, is empty, or does not exist.");
-                m_projectConfig.editorTypes = getAllEditorTypes();
-            }
+            m_projectConfig.editorTypes = getAllEditorTypes();
         }
 
         if (jsonContent.contains("editors")) {
@@ -410,6 +396,7 @@ namespace VkRender {
         Log::Logger::getInstance()->trace("Deleting entities on exit took {}s", timeSpan.count());
 
         m_activeScene->deleteAllEntities();
+        m_sceneRenderers.clear();
     }
 
     void Application::handleEditorResize() {

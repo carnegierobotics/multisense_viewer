@@ -23,13 +23,6 @@ namespace VkRender {
 
         ~GraphicsPipeline2D();
 
-        void updateTransform(TransformComponent &transform);
-
-        void updateView(const Camera &camera);
-
-        void update(uint32_t currentFrameIndex);
-        void updateTexture(void* data, size_t size);
-
         void bindTexture(std::shared_ptr<VulkanTexture> texture);
 
         void draw(CommandBuffer &commandBuffer);
@@ -41,13 +34,12 @@ namespace VkRender {
 
         void setupDescriptors(const std::shared_ptr<VulkanTexture>& ptr);
 
-        void setupUniformBuffers();
-
 
         VulkanDevice &m_vulkanDevice;
         RenderPassInfo m_renderPassInfo{};
         uint32_t m_numSwapChainImages = 0;
-        std::unique_ptr<TextureVideo> m_renderTexture;
+        std::shared_ptr<VulkanTexture> m_defaultTexture;
+        std::shared_ptr<VulkanImage> m_defaultImage;
 
         struct Vertices {
             VkBuffer buffer = VK_NULL_HANDLE;
@@ -68,8 +60,17 @@ namespace VkRender {
 
         UBOMatrix m_vertexParams; // Non GPU-accessible data, shared across frames
         FragShaderParams m_fragParams; // Non GPU-accessible data, shared across frames
+        struct DefaultRenderData {
+            Buffer fragShaderParamsBuffer; // GPU Accessible, triple-buffered
+            Buffer mvpBuffer; // GPU Accessible, triple-buffered
+            VkDescriptorSet descriptorSet; // Triple-buffered
+        };
+
         std::vector<DefaultRenderData> m_renderData;
-        SharedRenderData m_sharedRenderData;
+
+        VkDescriptorPool m_descriptorPool{};
+        VkDescriptorSetLayout m_descriptorSetLayout{};
+        std::unique_ptr<VulkanGraphicsPipeline> m_graphicsPipeline = nullptr;
 
     };
 };

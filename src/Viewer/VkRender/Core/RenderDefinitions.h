@@ -52,30 +52,14 @@
 #endif
 
 #include <GLFW/glfw3.h>
-#include <vk_mem_alloc.h>
 
-#include "Viewer/VkRender/Core/Buffer.h"
-#include "Viewer/VkRender/Core/VulkanDevice.h"
-#include "Viewer/VkRender/Core/Texture.h"
-#include "Viewer/VkRender/Core/CommandBuffer.h"
-#include "Viewer/VkRender/Core/KeyInput.h"
-#include "VulkanGraphicsPipeline.h"
-
-// Predeclare to speed up compile times
-namespace VkRender {
-    class Camera;
-}
+#include "Viewer/VkRender/Core/VulkanGraphicsPipeline.h"
 
 namespace VkRender {
-    enum class RenderState {
-        Busy,
-        Idle,
-        PendingDeletion
-    };
 
     /**
-     * @brief GLFW and Vulkan combination to create a SwapChain
-     */
+ * @brief GLFW and Vulkan combination to create a SwapChain
+ */
     typedef struct SwapChainCreateInfo {
         GLFWwindow *pWindow{};
         bool vsync = true;
@@ -148,21 +132,6 @@ namespace VkRender {
         glm::mat4 model{};
         glm::vec3 camPos{};
     };
-
-    struct UBOCamera {
-        std::array<glm::vec4, 21> positions;
-    };
-
-    struct ShaderValuesParams {
-        glm::vec4 lightDir{};
-        float exposure = 4.5f;
-        float gamma = 2.2f;
-        float prefilteredCubeMipLevels;
-        float scaleIBLAmbient = 1.0f;
-        float debugViewInputs = 0;
-        float debugViewEquation = 0;
-    };
-
     /**
      * @brief Basic lighting params for simple light calculation
      */
@@ -187,6 +156,11 @@ namespace VkRender {
         glm::mat4 view;
         glm::vec3 cameraPosition;
     };
+
+    struct PointCloudUBO {
+        glm::mat4 Qmat;
+    };
+
     struct MaterialBufferObject {
         glm::vec4 baseColor;
         float metallic;
@@ -194,19 +168,6 @@ namespace VkRender {
         glm::vec4 emissiveFactor;
     };
 
-    /** @brief RenderData which are shared across render passes */
-    struct DefaultRenderData {
-        Buffer fragShaderParamsBuffer; // GPU Accessible, triple-buffered
-        Buffer mvpBuffer; // GPU Accessible, triple-buffered
-        VkDescriptorSet descriptorSet; // Triple-buffered
-    };
-
-    /** @brief Shared resources across all frames */
-    struct SharedRenderData {
-        VkDescriptorPool descriptorPool{};
-        VkDescriptorSetLayout descriptorSetLayout{};
-        std::unique_ptr<VulkanGraphicsPipeline> graphicsPipeline;
-    };
 }
 
 

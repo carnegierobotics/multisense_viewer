@@ -176,8 +176,6 @@ namespace VkRender {
     private:
         EditorSizeLimits m_sizeLimits;
         std::unique_ptr<GuiManager> m_guiManager;
-
-    private:
         void createOffscreenFramebuffer();
 
     protected:

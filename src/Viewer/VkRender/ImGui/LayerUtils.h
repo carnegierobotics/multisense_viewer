@@ -32,6 +32,10 @@ namespace VkRender::LayerUtils {
         OBJ_FILE,
         PLY_3DGS,
         PLY_MESH,
+        TEXTURE_FILE,
+        VIDEO_TEXTURE_FILE,
+        VERTEX_SHADER_FILE,
+        FRAGMENT_SHADER_FILE,
     } FileTypeLoadFlow;
     struct LoadFileInfo {
         std::filesystem::path path;
@@ -39,45 +43,6 @@ namespace VkRender::LayerUtils {
     };
 
 #ifdef WIN32
-
-    static inline std::filesystem::path selectFolder(std::string openLocation = "") {
-        PWSTR path = nullptr;
-        HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
-        if (SUCCEEDED(hr)) {
-            IFileOpenDialog* pfd;
-            hr = CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_ALL, IID_IFileOpenDialog,
-                                  reinterpret_cast<void**>(&pfd));
-            if (SUCCEEDED(hr)) {
-                DWORD dwOptions;
-                hr = pfd->GetOptions(&dwOptions);
-                if (SUCCEEDED(hr)) {
-                    hr = pfd->SetOptions(dwOptions | FOS_PICKFOLDERS);
-                    if (SUCCEEDED(hr)) {
-                        hr = pfd->Show(nullptr);
-                        if (SUCCEEDED(hr)) {
-                            IShellItem* psi;
-                            hr = pfd->GetResult(&psi);
-                            if (SUCCEEDED(hr)) {
-                                hr = psi->GetDisplayName(SIGDN_FILESYSPATH, &path);
-                                psi->Release();
-                            }
-                        }
-                    }
-                }
-                pfd->Release();
-            }
-            CoUninitialize();
-        }
-
-        if (path) {
-            int count = WideCharToMultiByte(CP_UTF8, 0, path, -1, nullptr, 0, nullptr, nullptr);
-            std::string str(count - 1, 0);
-            WideCharToMultiByte(CP_UTF8, 0, path, -1, &str[0], count, nullptr, nullptr);
-            CoTaskMemFree(path);
-            return str;
-        }
-        return std::string();
-    }
 
     static inline LoadFileInfo selectFile(const std::string& dialogName, const std::vector<std::string>& filetypes, const std::string& setCurrentFolder, LayerUtils::FileTypeLoadFlow flow) {
         PWSTR path = nullptr;
@@ -134,6 +99,59 @@ namespace VkRender::LayerUtils {
         }
         return {filePath, flow};
     }
+
+    static inline LoadFileInfo selectFolder(const std::string& dialogName, const std::string& setCurrentFolder, LayerUtils::FileTypeLoadFlow flow) {
+    PWSTR path = nullptr;
+    std::string folderPath;
+    HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+    if (SUCCEEDED(hr)) {
+        IFileOpenDialog *pfd;
+        hr = CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_ALL, IID_IFileOpenDialog,
+                              reinterpret_cast<void **>(&pfd));
+        if (SUCCEEDED(hr)) {
+            // Set the options to pick folders instead of files
+            DWORD dwFlags;
+            hr = pfd->GetOptions(&dwFlags);
+            if (SUCCEEDED(hr)) {
+                hr = pfd->SetOptions(dwFlags | FOS_PICKFOLDERS);
+            }
+
+            // Set the default folder
+            if (!setCurrentFolder.empty()) {
+                IShellItem *psiFolder;
+                std::wstring folderWStr(setCurrentFolder.begin(), setCurrentFolder.end());
+                hr = SHCreateItemFromParsingName(folderWStr.c_str(), nullptr, IID_PPV_ARGS(&psiFolder));
+                if (SUCCEEDED(hr)) {
+                    pfd->SetFolder(psiFolder);
+                    psiFolder->Release();
+                }
+            }
+
+            // Show the dialog
+            hr = pfd->Show(nullptr);
+            if (SUCCEEDED(hr)) {
+                IShellItem *psi;
+                hr = pfd->GetResult(&psi);
+                if (SUCCEEDED(hr)) {
+                    hr = psi->GetDisplayName(SIGDN_FILESYSPATH, &path);
+                    psi->Release();
+                    if (SUCCEEDED(hr)) {
+                        // Convert the selected folder path to a narrow string
+                        int count = WideCharToMultiByte(CP_UTF8, 0, path, -1, nullptr, 0, nullptr, nullptr);
+                        folderPath.resize(count - 1);
+                        WideCharToMultiByte(CP_UTF8, 0, path, -1, &folderPath[0], count, nullptr, nullptr);
+                    }
+                }
+            }
+            pfd->Release();
+        }
+        CoUninitialize();
+    }
+    if (path) {
+        CoTaskMemFree(path);
+    }
+    return {folderPath, flow};
+}
 
 #else
     DISABLE_WARNING_PUSH

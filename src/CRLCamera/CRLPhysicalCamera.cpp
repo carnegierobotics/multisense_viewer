@@ -71,12 +71,13 @@ namespace VkRender::MultiSense {
             channelMap[static_cast<crl::multisense::RemoteHeadChannel>(0)].get()->ptr()->getDeviceInfo(devInfo);
             Log::Logger::getInstance()->trace("We got a connection! Device info: {}, {}", devInfo.name,
                                               devInfo.buildDate);
+            setMtu(1500, static_cast<crl::multisense::RemoteHeadChannel>(0));
+
             if (!updateCameraInfo(const_cast<Device *>(dev), static_cast<crl::multisense::RemoteHeadChannel>(0))) {
                 Log::Logger::getInstance()->error(
                         "Failed to fetch camera info. Viewer will not present the full set of options");
             } // TODO if this one fails we have to recheck our sources we present to the screen.
             addCallbacks(static_cast<crl::multisense::RemoteHeadChannel>(0));
-            setMtu(7200, static_cast<crl::multisense::RemoteHeadChannel>(0));
         }
 
         if (dev->interruptConnection) {
@@ -333,7 +334,8 @@ namespace VkRender::MultiSense {
         // TODO I want to update most info on startup but this function varies. On KS21 this will always fail.
         //  This also assumes that getDeviceInfo above also succeeded
         if (infoMap[channelID].devInfo.hardwareRevision !=
-            crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_KS21) {
+            crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_KS21 || infoMap[channelID].devInfo.hardwareRevision !=
+                                                                                 crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_KS21i) {
             allSucceeded &= updateAndLog([&](auto &data) { return channelPtr->getAuxImageConfig(data); },
                                          info.auxImgConf, "auxImageConfig");
         }
@@ -777,6 +779,15 @@ namespace VkRender::MultiSense {
             return false;
         }
         int status = channelMap[channelID]->ptr()->setMtu(static_cast<int32_t> (mtu));
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+
+        if (crl::multisense::Status_Ok !=
+            channelMap[channelID]->ptr()->getMtu(infoMap[channelID].sensorMTU)) {
+            Log::Logger::getInstance()->error("Failed to verify aux img conf");
+            return false;
+        }
+
         if (status != crl::multisense::Status_Ok) {
             Log::Logger::getInstance()->info("Failed to set MTU {}", mtu);
             return false;

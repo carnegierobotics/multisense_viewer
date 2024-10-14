@@ -291,7 +291,7 @@ namespace VkRender::MultiSense {
             std::vector<crl::multisense::system::DeviceMode> supportedDeviceModes{};
             crl::multisense::DataSource supportedSources{0};
             std::vector<uint8_t *> rawImages{};
-            int sensorMTU = 0;
+            int sensorMTU = 1500;
             crl::multisense::image::Calibration calibration{};
             glm::mat4 QMat{};
             glm::mat4 KColorMat{};

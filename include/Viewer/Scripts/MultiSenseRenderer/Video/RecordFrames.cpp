@@ -502,9 +502,8 @@ void RecordFrames::saveImageToFileAsync(VkRender::CRLCameraDataType type, const 
         rosbagWriter->open(std::filesystem::path(path) / "MultiSense.bag");
         // Add connection if not added
         auto conn = rosbagWriter->getConnection(topic, "sensor_msgs/Image");
-        int64_t timestamp;
-        timestamp = (static_cast<int64_t>(ptr->m_TimeSeconds) * 1000000000LL)
-                    + (static_cast<int64_t>(ptr->m_TimeMicroSeconds) * 1000LL);
+        int64_t timestampNs = (static_cast<int64_t>(ptr->m_TimeSeconds) * 1000000000LL)
+                               + (static_cast<int64_t>(ptr->m_TimeMicroSeconds) * 1000LL);
 
         std::string encoding = CRLSourceToRosImageEncodingString(type);
         std::vector<uint8_t> data;
@@ -513,19 +512,19 @@ void RecordFrames::saveImageToFileAsync(VkRender::CRLCameraDataType type, const 
         // convert color to rgb
         switch (type) {
             case VkRender::CRL_GRAYSCALE_IMAGE:
-                data = rosbagWriter->serializeImage(ptr->m_Id, timestamp, ptr->m_Width, ptr->m_Height, ptr->data,
+                data = rosbagWriter->serializeImage(ptr->m_Id, timestampNs, ptr->m_Width, ptr->m_Height, ptr->data,
                                                     imageSize,
                                                     encoding, step);
                 break;
             case VkRender::CRL_DISPARITY_IMAGE:
-                data = rosbagWriter->serializeImage(ptr->m_Id, timestamp, ptr->m_Width, ptr->m_Height, ptr->data,
+                data = rosbagWriter->serializeImage(ptr->m_Id, timestampNs, ptr->m_Width, ptr->m_Height, ptr->data,
                                                     imageSize * 2,
                                                     encoding, step * 2);
                 break;
             case VkRender::CRL_COLOR_IMAGE_YUV420: {
                 std::vector<uint8_t> output(imageSize * 3);
                 RecordUtility::ycbcrToRGB(ptr->data, ptr->data2, ptr->m_Width, ptr->m_Height, output.data());
-                data = rosbagWriter->serializeImage(ptr->m_Id, timestamp, ptr->m_Width, ptr->m_Height, output.data(),
+                data = rosbagWriter->serializeImage(ptr->m_Id, timestampNs, ptr->m_Width, ptr->m_Height, output.data(),
                                                     imageSize * 3,
                                                     encoding, step * 3);
             }
@@ -537,7 +536,7 @@ void RecordFrames::saveImageToFileAsync(VkRender::CRLCameraDataType type, const 
         Log::Logger::getInstance()->trace("Got rosbag connection {}, topic: {}, type: {}, encoding {}, size {}",
                                           conn.id, conn.topic, conn.msgType, encoding, data.size());
 
-        rosbagWriter->write(conn, timestamp, data);
+        rosbagWriter->write(conn, timestampNs, data);
     }
     // Write to the timestamp file
     if (fileFormat != "rosbag")

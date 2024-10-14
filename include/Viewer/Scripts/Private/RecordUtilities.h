@@ -56,8 +56,12 @@ namespace RecordUtility {
             std::cerr << "Failed to open timestamps.csv for writing." << std::endl;
             return;
         }
+
+        std::stringstream microseconds;
+        microseconds << std::setw(6) << std::setfill('0') << ptr->m_TimeMicroSeconds;
+
         // Write the filename and timestamps to the CSV file
-        csvFile << fileName.filename() << "," << ptr->m_TimeSeconds << "." << ptr->m_TimeMicroSeconds << std::endl;
+        csvFile << fileName.filename() << "," << ptr->m_TimeSeconds << "." << microseconds.str() << std::endl;
         // Close the file (optional, as the destructor would do this)
         csvFile.close();
     }

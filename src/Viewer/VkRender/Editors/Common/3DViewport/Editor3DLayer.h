@@ -18,7 +18,7 @@
 namespace VkRender {
 
     struct Editor3DViewportUI : public EditorUI {
-        bool showVideoControlPanel = true;
+        bool showVideoControlPanel = false;
         bool resetPlayback = false;
         bool stopCollectingRenderCommands = false;
         // Constructor that copies everything from base EditorUI

@@ -156,7 +156,6 @@ namespace VkRender {
             Log::Logger::getInstance()->error("Failed to open file for reading: {}", filePath.string());
             return;
         }
-
         nlohmann::json jsonContent;
         inFile >> jsonContent;
         inFile.close();
@@ -164,7 +163,7 @@ namespace VkRender {
         Log::Logger::getInstance()->info("Successfully read editor settings from: {}", filePath.string());
         if (jsonContent.contains("generalSettings")) {
             const auto &jsonGeneralSettings = jsonContent["generalSettings"];
-            m_projectConfig.name = jsonGeneralSettings.value("projectName", "Default Project");
+            m_projectConfig.name = jsonGeneralSettings.value("projectName", "MultiSense Editor");
             m_projectConfig.editorTypes = getAllEditorTypes();
         }
 

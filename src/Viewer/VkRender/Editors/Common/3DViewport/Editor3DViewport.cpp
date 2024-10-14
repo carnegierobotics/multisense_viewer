@@ -168,31 +168,6 @@ namespace VkRender {
         std::unordered_map<std::shared_ptr<DefaultGraphicsPipeline>, std::vector<RenderCommand> > renderGroups;
         collectRenderCommands(renderGroups);
 
-        // Separate point cloud render groups
-        std::unordered_map<std::shared_ptr<DefaultGraphicsPipeline>, std::vector<RenderCommand> > pointCloudRenderGroups;
-
-        // Iterate through renderGroups and identify point cloud pipelines
-        for (auto it = renderGroups.begin(); it != renderGroups.end(); ) {
-            const auto& pipeline = it->first;
-
-            // Check if this pipeline is used for point clouds
-            bool isPointCloudPipeline = false;
-            for (const auto &command : it->second) {
-                if (command.pointCloudInstance != nullptr) {
-                    isPointCloudPipeline = true;
-                    break;
-                }
-            }
-
-            // If it's a point cloud pipeline, move it to the separate map
-            if (isPointCloudPipeline) {
-                pointCloudRenderGroups[it->first] = std::move(it->second);
-                it = renderGroups.erase(it); // Remove from original map
-            } else {
-                ++it; // Continue with the next pipeline
-            }
-        }
-
         // Render each group
         for (auto &[pipeline, commands]: renderGroups) {
             pipeline->bind(commandBuffer);
@@ -200,14 +175,8 @@ namespace VkRender {
                 // Bind resources and draw
                 bindResourcesAndDraw(commandBuffer, command);
             }
-        }        // Render each group
-        for (auto &[pipeline, commands]: pointCloudRenderGroups) {
-            pipeline->bind(commandBuffer);
-            for (auto &command: commands) {
-                // Bind resources and draw
-                bindResourcesAndDraw(commandBuffer, command);
-            }
         }
+
     }
 
     void Editor3DViewport::bindResourcesAndDraw(const CommandBuffer &commandBuffer, RenderCommand &command) {

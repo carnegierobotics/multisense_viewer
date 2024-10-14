@@ -53,18 +53,19 @@ namespace VkRender {
             if (ImGui::BeginMenu("File")) {
                 // Projects Menu
                 if (ImGui::BeginMenu("Projects")) {
-                    bool isDefaultProject = m_context->isCurrentProject("Default Project");
-                    bool isMultiSenseProject = m_context->isCurrentProject("MultiSense Viewer Project");
+                    bool isDefaultProject = m_context->isCurrentProject("MultiSense Editor");
+                    bool isMultiSenseProject = m_context->isCurrentProject("MultiSense Viewer");
 
-                    if (ImGui::MenuItem("Default Project", nullptr, isDefaultProject)) {
-                        if (!isDefaultProject) {
-                            m_context->loadProject(Utils::getProjectFileFromName("Default Project"));
+                    if (ImGui::MenuItem("MultiSense Viewer", nullptr, isMultiSenseProject)) {
+                        if (!isMultiSenseProject) {
+                            m_context->loadProject(Utils::getProjectFileFromName("MultiSense Viewer"));
                             ImGui::SetCurrentContext(m_context->getMainUIContext());
                         }
                     }
-                    if (ImGui::MenuItem("MultiSense Viewer Project", nullptr, isMultiSenseProject)) {
-                        if (!isMultiSenseProject) {
-                            m_context->loadProject(Utils::getProjectFileFromName("MultiSense Project"));
+
+                    if (ImGui::MenuItem("MultiSense Editor", nullptr, isDefaultProject)) {
+                        if (!isDefaultProject) {
+                            m_context->loadProject(Utils::getProjectFileFromName("MultiSense Editor"));
                             ImGui::SetCurrentContext(m_context->getMainUIContext());
                         }
                     }

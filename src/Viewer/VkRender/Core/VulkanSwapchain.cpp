@@ -51,7 +51,6 @@ void VulkanSwapchain::create(uint32_t *width, uint32_t *height, bool vsync)
 {
     // Store the current swap chain handle, so we can use it later on to ease up recreation
     VkSwapchainKHR oldSwapchain = swapChain;
-
     // Get physical m_Device surface m_Properties and formats
     VkSurfaceCapabilitiesKHR surfCaps;
     VkResult result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &surfCaps);

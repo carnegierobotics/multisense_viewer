@@ -28,7 +28,7 @@ latest release. Tested on Ubuntu 20.04 and 22.04
 ### Windows
 
 Head over to releases https://github.com/carnegierobotics/multisense_viewer/releases, download and run the windows installer from the
-latest release. Tested on Windows 10 and 11.
+latest release. Tested on Windows 11.
 
 ## How to use
 

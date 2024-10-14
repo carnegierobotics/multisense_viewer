@@ -319,7 +319,6 @@ namespace VkRender {
         YAML::Node data = YAML::Load(stringStream.str());
         if (!data["Scene"])
             return false;
-
         std::string sceneName = data["Scene"].as<std::string>();
         Log::Logger::getInstance()->info("Deserializing scene {}", sceneName);
         auto entities = data["Entities"];

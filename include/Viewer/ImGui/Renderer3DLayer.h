@@ -59,10 +59,6 @@ public:
         pos.maxElementWidth = 230.0f;
         VkRender::LayerUtils::createWidgets(handles, WIDGET_PLACEMENT_RENDERER3D);
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 8ffd684 (Added basis for compute shader pass)
         //ImGui::End();
 //
         //window_flags =
@@ -71,8 +67,6 @@ public:
         //ImGui::SetNextWindowSize(ImVec2(225.0f, handles->info->height - 50.0f));
         //ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.0f, 10.0f));
         //ImGui::Begin("Settings bar", &pOpen, window_flags);
-<<<<<<< HEAD
-=======
         VkRender::LayerUtils::createWidgets(handles, "Renderer3D");
 
         ImGui::End();
@@ -83,9 +77,6 @@ public:
         ImGui::SetNextWindowSize(ImVec2(225.0f, handles->info->height - 50.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.0f, 10.0f));
         ImGui::Begin("Settings bar", &pOpen, window_flags);
->>>>>>> 9fa9d54 (wip)
-=======
->>>>>>> 8ffd684 (Added basis for compute shader pass)
 
         ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
         handles->camera.reset = false;

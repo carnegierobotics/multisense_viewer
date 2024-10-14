@@ -37,6 +37,26 @@ namespace VkRender::Serialize {
         return VK_POLYGON_MODE_FILL;
     }
 
+    static std::string MeshDataTypeToString(MeshDataType meshDataType) {
+        switch (meshDataType) {
+            case OBJ_FILE:
+                return "OBJ_FILE";
+            case POINT_CLOUD:
+                return "POINT_CLOUD";
+            default:
+                return "Unknown";
+        }
+    }
+
+    static MeshDataType stringToMeshDataType(const std::string &modeStr) {
+        if (modeStr == "OBJ_FILE")
+            return OBJ_FILE;
+        if (modeStr == "POINT_CLOUD")
+            return POINT_CLOUD;
+        // Default case, or handle unknown input
+        return OBJ_FILE;
+    }
+
     // Convert CameraType to string
     std::string cameraTypeToString(Camera::CameraType type) {
         switch (type) {
@@ -155,6 +175,8 @@ namespace VkRender {
             auto &mesh = entity.getComponent<MeshComponent>();
             out << YAML::Key << "ModelPath";
             out << YAML::Value << mesh.meshPath.string();
+            out << YAML::Key << "MeshDataType";
+            out << YAML::Value << Serialize::MeshDataTypeToString(mesh.meshDataType);
             out << YAML::Key << "PolygonMode";
             out << YAML::Value << Serialize::PolygonModeToString(mesh.polygonMode); // Serialize PolygonMode as a string
             out << YAML::EndMap;
@@ -307,13 +329,11 @@ namespace VkRender {
                 auto meshComponent = entity["MeshComponent"];
                 if (meshComponent) {
                     std::filesystem::path path(meshComponent["ModelPath"].as<std::string>());
-                    if (std::filesystem::exists(path)) {
-                        auto &mesh = deserializedEntity.addComponent<MeshComponent>(path);
-                        mesh.polygonMode = Serialize::StringToPolygonMode(
-                            meshComponent["PolygonMode"].as<std::string>());
-                    } else {
-                        Log::Logger::getInstance()->error("Failed to load mesh at {}", path.string());
-                    }
+                    auto &mesh = deserializedEntity.addComponent<MeshComponent>(path);
+                    mesh.polygonMode = Serialize::StringToPolygonMode(
+                        meshComponent["PolygonMode"].as<std::string>());
+                    mesh.meshDataType = Serialize::stringToMeshDataType(
+                        meshComponent["MeshDataType"].as<std::string>());
                 }
 
                 auto materialComponent = entity["MaterialComponent"];

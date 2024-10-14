@@ -158,28 +158,28 @@ namespace VkRender {
 
     void Scene::notifyEditorsComponentAdded(Entity entity, PointCloudComponent &component) {
         for (auto &editor: m_context->m_sceneRenderers) {
-            //editor.second->onComponentAdded(entity, component);
+            editor.second->onComponentAdded(entity, component);
         }
         for (auto &editor: m_context->m_editors) {
-            //editor->onComponentAdded(entity, component);
+            editor->onComponentAdded(entity, component);
         }
     }
 
     void Scene::notifyEditorsComponentUpdated(Entity entity, PointCloudComponent &component) {
         for (auto &editor: m_context->m_sceneRenderers) {
-            //editor.second->onComponentUpdated(entity, component);
+            editor.second->onComponentUpdated(entity, component);
         }
         for (auto &editor: m_context->m_editors) {
-            //editor->onComponentUpdated(entity, component);
+            editor->onComponentUpdated(entity, component);
         }
     }
 
     void Scene::notifyEditorsComponentRemoved(Entity entity, PointCloudComponent &component) {
         for (auto &editor: m_context->m_sceneRenderers) {
-            ///editor.second->onComponentRemoved(entity, component);
+            editor.second->onComponentRemoved(entity, component);
         }
         for (auto &editor: m_context->m_editors) {
-            //editor->onComponentRemoved(entity, component);
+            editor->onComponentRemoved(entity, component);
         }
     }
 

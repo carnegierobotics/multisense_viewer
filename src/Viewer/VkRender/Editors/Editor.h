@@ -132,6 +132,10 @@ namespace VkRender {
         virtual void onComponentRemoved(Entity entity, MaterialComponent& meshComponent){}
         virtual void onComponentUpdated(Entity entity, MaterialComponent& meshComponent){}
 
+        virtual void onComponentAdded(Entity entity, PointCloudComponent& meshComponent){}
+        virtual void onComponentRemoved(Entity entity, PointCloudComponent& meshComponent){}
+        virtual void onComponentUpdated(Entity entity, PointCloudComponent& meshComponent){}
+
         void loadScene(std::shared_ptr<Scene> ptr);
 
         void update();

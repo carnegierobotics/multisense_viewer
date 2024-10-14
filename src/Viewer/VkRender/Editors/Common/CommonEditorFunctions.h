@@ -14,7 +14,17 @@ static std::shared_ptr<VulkanTexture2D> createTextureFromFile(std::filesystem::p
         stbi_uc *pixels = stbi_load(filePath.string().c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
         VkDeviceSize imageSize = texWidth * texHeight * 4; // Assuming STBI_rgb_alpha gives us 4 channels per pixel
         if (!pixels) {
-            return nullptr;
+            if (!pixels) {
+                // load empty texture
+                Log::Logger::getInstance()->error("Failed to load texture image: {}. Reverting to empty",
+                                                  filePath.string());
+                pixels = stbi_load((Utils::getTexturePath() / "moon.png").string().c_str(), &texWidth, &texHeight,
+                                   &texChannels, STBI_rgb_alpha);
+                imageSize = static_cast<VkDeviceSize>(texWidth * texHeight * texChannels);
+                if (!pixels) {
+                    throw std::runtime_error("Failed to load backup texture image");
+                }
+            }
         }
 
         VkImageCreateInfo imageCI = Populate::imageCreateInfo();

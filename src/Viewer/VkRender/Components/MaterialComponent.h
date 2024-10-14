@@ -25,26 +25,20 @@ namespace VkRender {
         // Emissive properties
         glm::vec4 emissiveFactor = glm::vec4(0.0f); // Default to no emission
 
+        bool reloadShader = false;
+
         std::filesystem::path vertexShaderName = "defaultBasic.vert";
         std::filesystem::path fragmentShaderName = "defaultBasic.frag";
         std::filesystem::path albedoTexturePath = "default.png";
 
         bool usesVideoSource = false;
         std::filesystem::path videoFolderSource = "path/to/images";
-        size_t videoFileNameIndex;
-        std::vector<std::filesystem::path> videoFileNames;
+        size_t videoIndex = 0;
     };
 
     struct MaterialInstance {
         RenderMode renderMode = RenderMode::Opaque;
-        // Textures (may be null if not present)
-        std::shared_ptr<VulkanTexture2D> vulkanTexture;
-
-        std::shared_ptr<Texture> baseColorTexture; // TODO replace with VulkanTexture
-        std::shared_ptr<Texture> metallicRoughnessTexture; // TODO replace with VulkanTexture
-        std::shared_ptr<Texture> normalTexture; // TODO replace with VulkanTexture
-        std::shared_ptr<Texture> occlusionTexture; // TODO replace with VulkanTexture
-        std::shared_ptr<Texture> emissiveTexture; // TODO replace with VulkanTexture
+        std::shared_ptr<VulkanTexture2D> baseColorTexture;
         // Rendering properties
         AlphaMode alphaMode = AlphaMode::Opaque;
         float alphaCutoff = 0.5f;  // Used if alphaMode is Mask

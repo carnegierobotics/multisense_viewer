@@ -36,8 +36,6 @@ namespace VkRender {
     struct SharedContextData {
         bool openAddDevicePopup = false;
         Entity m_selectedEntity;
-        bool startRecording = false;
-        bool newFrame = false;
 
         std::unordered_map<UUID, Entity> selectedEntityMap;
     };

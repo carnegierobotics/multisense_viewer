@@ -5,6 +5,8 @@
 #ifndef MULTISENSE_VIEWER_EDITOR3DVIEWPORT_H
 #define MULTISENSE_VIEWER_EDITOR3DVIEWPORT_H
 
+#include <Viewer/VkRender/Editors/Video/VideoPlaybackSystem.h>
+
 #include "Viewer/VkRender/Editors/PipelineManager.h"
 #include "Viewer/VkRender/Editors/Editor.h"
 #include "Viewer/VkRender/RenderPipelines/DefaultGraphicsPipeline.h"
@@ -27,6 +29,8 @@ namespace VkRender {
 
         std::shared_ptr<MaterialInstance> initializeMaterial(Entity entity, MaterialComponent & materialComponent);
 
+        std::shared_ptr<PointCloudInstance> initializePointCloud(Entity entity, PointCloudComponent &pointCloudComponent);
+
         void collectRenderCommands(
             std::unordered_map<std::shared_ptr<DefaultGraphicsPipeline>, std::vector<RenderCommand>> &renderGroups);
 
@@ -48,11 +52,9 @@ namespace VkRender {
         void onComponentRemoved(Entity entity, MaterialComponent& meshComponent) override;
         void onComponentUpdated(Entity entity, MaterialComponent& meshComponent) override;
 
-        void onComponentAdded(Entity entity, PointCloudComponent &pointCloudComponent);
-
-        void onComponentRemoved(Entity entity, PointCloudComponent &pointCloudComponent);
-
-        void onComponentUpdated(Entity entity, PointCloudComponent &pointCloudComponent);
+        void onComponentAdded(Entity entity, PointCloudComponent &pointCloudComponent) override;
+        void onComponentRemoved(Entity entity, PointCloudComponent &pointCloudComponent) override;
+        void onComponentUpdated(Entity entity, PointCloudComponent &pointCloudComponent) override;
 
         void createDescriptorPool();
 
@@ -66,8 +68,11 @@ namespace VkRender {
         std::shared_ptr<Scene> m_activeScene;
 
         PipelineManager m_pipelineManager;
+        std::shared_ptr<VideoPlaybackSystem> m_videoPlaybackSystem;
+
         std::unordered_map<UUID, std::shared_ptr<MaterialInstance>> m_materialInstances;
         std::unordered_map<UUID, std::shared_ptr<MeshInstance>> m_meshInstances;
+        std::unordered_map<UUID, std::shared_ptr<PointCloudInstance>> m_pointCloudInstances;
 
         struct EntityRenderData {
             // Mesh rendering and typical shader buffers
@@ -88,6 +93,7 @@ namespace VkRender {
         VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
 
         VkDescriptorSetLayout m_materialDescriptorSetLayout = VK_NULL_HANDLE;
+        VkDescriptorSetLayout m_pointCloudDescriptorSetLayout = VK_NULL_HANDLE;
 
     };
 }

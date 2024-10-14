@@ -21,13 +21,18 @@
 #include "Viewer/Tools/Utils.h"
 
 namespace VkRender {
+    enum MeshDataType {
+        OBJ_FILE,
+        POINT_CLOUD,
+    };
     struct MeshData {
         std::vector<Vertex> vertices;
         std::vector<uint32_t> indices;
 
         MeshData() = default;
 
-        explicit MeshData(const std::filesystem::path &string);
+        explicit MeshData(MeshDataType dataType, const std::filesystem::path &string);
+        explicit MeshData(MeshDataType dataType);
     };
 
     struct MeshComponent {
@@ -36,10 +41,7 @@ namespace VkRender {
         explicit MeshComponent(std::filesystem::path path) : meshPath(std::move(path)) {
         };
         std::filesystem::path meshPath; // Path to the mesh file (e.g., OBJ, PLY)
-        bool hasIndices = true; // Whether the mesh uses an index buffer
-        bool dynamic = false; // Flag to indicate whether the mesh is dynamic
-        // ... other logical properties
-
+        MeshDataType meshDataType = MeshDataType::OBJ_FILE;
         VkPolygonMode polygonMode = VK_POLYGON_MODE_FILL;
     };
 

@@ -63,39 +63,6 @@ namespace VkRender {
     void SceneHierarchyLayer::processEntities() {
         m_scene = m_context->activeScene();
 
-        if (!m_scene)
-            return;
-
-        std::vector<Entity> entities;
-        m_scene->getRegistry().view<entt::entity>().each([&](auto entityID) {
-            Entity entity{entityID, m_scene.get()};
-            std::string name = entity.getComponent<TagComponent>().Tag;
-            if (name.find(".jpg") != std::string::npos && name.find("stereo") == std::string::npos) {
-                entities.emplace_back(entity);
-            }
-        });
-        static auto lastTime = std::chrono::steady_clock::now();
-
-        m_editor->ui()->shared->newFrame = false;
-        static int selection = 0;
-        if (m_editor->ui()->shared->startRecording) {
-            // Increment the selected cameras.
-            auto currentTime = std::chrono::steady_clock::now();
-            auto elapsedTime = std::chrono::duration_cast<std::chrono::seconds>(currentTime - lastTime).count();
-            // Check if 5 seconds have passed
-            if (elapsedTime >= 5) {
-                // Increment the selection index
-                selection++;
-                if (selection >= entities.size()) {
-                    selection = 0; // Wrap around if it exceeds the number of entities
-                }
-                // Update the selected entity
-                m_editor->ui()->shared->m_selectedEntity = entities[selection];
-                // Update the last time
-                lastTime = currentTime;
-                m_editor->ui()->shared->newFrame = true;
-            }
-        }
         if (m_scene) {
             m_scene->getRegistry().view<entt::entity>().each([&](auto entityID) {
                 Entity entity{entityID, m_scene.get()};
@@ -209,31 +176,49 @@ namespace VkRender {
 /** Called once per frame **/
     void SceneHierarchyLayer::onUIRender() {
         // Set window position and size
-        ImVec2 window_pos = ImVec2(0.0f,  m_editor->ui()->layoutConstants.uiYOffset); // Position (x, y)
-        ImVec2 window_size = ImVec2(m_editor->ui()->width, m_editor->ui()->height); // Size (width, height)
+        ImVec2 window_pos = ImVec2(0.0f, m_editor->ui()->layoutConstants.uiYOffset); // Position (x, y)
+        ImVec2 window_size = ImVec2(m_editor->ui()->width, m_editor->ui()->height);  // Size (width, height)
+
         // Set window flags to remove decorations
         ImGuiWindowFlags window_flags =
-                ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
-                ImGuiWindowFlags_NoBringToFrontOnFocus;
+            ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
+            ImGuiWindowFlags_NoBringToFrontOnFocus;
+
         // Set next window position and size
         ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always);
         ImGui::SetNextWindowSize(window_size, ImGuiCond_Always);
+
         // Create the parent window
         ImGui::Begin("SceneHierarchyParent", NULL, window_flags);
+
         ImGui::Text("Scene hierarchy");
-        // Calculate 90% of the available width
-        float width = ImGui::GetContentRegionAvail().x * 0.9f;
-        float height = ImGui::GetContentRegionAvail().y * 0.95f;
+
+        // Calculate the dimensions for the child window
+        // Subtract 10.0f to account for 5 px border on each side
+        float width = ImGui::GetContentRegionAvail().x - 10.0f;
+        float height = ImGui::GetContentRegionAvail().y - 20.0f;
+
+        // Ensure width and height are not negative
+        if (width < 0.0f) width = 0.0f;
+        if (height < 0.0f) height = 0.0f;
+
+        // Optional: Push a style color for the child window background
         ImGui::PushStyleColor(ImGuiCol_ChildBg, Colors::CRLGray424Main); // Example: Dark grey
-        // Create the child window with calculated dimensions and scrolling enabled beyond maxHeight
-        ImGui::SetCursorPosX((window_size.x - width) / 2);
+
+        // Create the child window with calculated dimensions
         ImGui::BeginChild("SceneHierarchyChild", ImVec2(width, height), true);
+
         rightClickPopup();
         processEntities();
+
         ImGui::EndChild();
+
+        // Pop the style color if you pushed it
         ImGui::PopStyleColor();
+
         // End the parent window
         ImGui::End();
+
         checkFileImportCompletion();
     }
 

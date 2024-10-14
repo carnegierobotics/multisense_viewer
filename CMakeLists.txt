@@ -118,7 +118,7 @@ set(SOURCE_FILES
         src/Viewer/VkRender/Editors/Common/ImageEditor/EditorImage.cpp
         src/Viewer/VkRender/Editors/MainContextLayer.h
         src/Viewer/VkRender/Editors/MultiSenseViewer/Layers/LayoutSettingsLayer.h
-        src/Viewer/VkRender/Editors/MyEditor/EditorMyProject.cpp
+        src/Viewer/VkRender/Editors/Video/VideoPlaybackSystem.cpp
         src/Viewer/VkRender/Editors/Common/SceneRenderer/SceneRenderer.cpp
         src/Viewer/VkRender/Editors/Common/SceneHierarchy/SceneHierarchyLayer.cpp
 

@@ -158,8 +158,19 @@ namespace VkRender {
     };
 
     struct PointCloudUBO {
-        glm::mat4 Qmat;
+        glm::mat4 Q;
+        glm::mat4 intrinsics;
+        glm::mat4 extrinsics;
+        float width;
+        float height;
+        float disparity;
+        float focalLength;
+        float scale;
+        float pointSize;
+        float useColor;
+        float hasSampler;
     };
+
 
     struct MaterialBufferObject {
         glm::vec4 baseColor;

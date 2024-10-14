@@ -16,10 +16,11 @@ namespace VkRender {
 
     struct RenderCommand {
         Entity entity;
-        std::shared_ptr<DefaultGraphicsPipeline> pipeline;
-        MeshInstance* mesh;             // GPU-specific mesh data
-        MaterialInstance* materialInstance;  // GPU-specific material data
-        TransformComponent* transform; // ECS component with world transform
+        std::shared_ptr<DefaultGraphicsPipeline> pipeline = nullptr;
+        MeshInstance* meshInstance = nullptr;             // GPU-specific mesh data
+        MaterialInstance* materialInstance = nullptr;  // GPU-specific material data
+        PointCloudInstance* pointCloudInstance = nullptr;  // GPU-specific material data
+        TransformComponent* transform = nullptr; // ECS component with world transform
     };
 
     class PipelineManager {

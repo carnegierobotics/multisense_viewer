@@ -266,6 +266,7 @@ namespace VkRender {
 */
 
             if (ImGui::Button("Reload Material Shader")) {
+                component.reloadShader = true;
                 m_scene->onComponentUpdated(entity, component);
             }
             ImGui::Dummy(ImVec2(5.0f, 5.0f));
@@ -318,7 +319,22 @@ namespace VkRender {
         drawComponent<PointCloudComponent>("PointCloud", entity, [this](auto &component) {
             ImGui::Text("Point Size");
             ImGui::SliderFloat("##PointSize", &component.pointSize, 0.0f, 10.0f);
+            // Texture Control
+            ImGui::Checkbox("Use Video Source", &component.usesVideoSource);
+            if (component.usesVideoSource) {
+                ImGui::BeginChild("TextureChildWindow", ImVec2(0, ImGui::GetTextLineHeightWithSpacing() * 6), true);
 
+                ImGui::Text("Images folder:");
+                ImGui::Text("%s", component.videoFolderSource.string().c_str());
+                // Button to load texture
+                if (ImGui::Button("Set Image Folder")) {
+                    std::vector<std::string> types{".png", ".jpg", ".bmp"};
+                    openImportFolderDialog("Set Image Folder", types, LayerUtils::VIDEO_TEXTURE_FILE);
+                }
+
+
+                ImGui::EndChild();
+            }
         });
     }
 
@@ -391,6 +407,16 @@ namespace VkRender {
         if (!m_selectionContext.hasComponent<T>()) {
             if (ImGui::MenuItem(entryName.c_str())) {
                 m_selectionContext.addComponent<T>();
+
+                // Check if the component added is a PointCloudComponent
+                if constexpr (std::is_same_v<T, PointCloudComponent>) {
+                    if (!m_selectionContext.hasComponent<MeshComponent>()) {
+                        auto &component = m_selectionContext.addComponent<MeshComponent>();
+                        component.meshDataType = MeshDataType::POINT_CLOUD;
+                        component.polygonMode = VK_POLYGON_MODE_POINT;
+                    }
+                }
+
                 ImGui::CloseCurrentPopup();
             }
         }
@@ -401,12 +427,11 @@ namespace VkRender {
         if (!loadFileInfo.path.empty()) {
             switch (loadFileInfo.filetype) {
                 case LayerUtils::TEXTURE_FILE: {
-                    auto& materialComponent = m_selectionContext.getComponent<MaterialComponent>();
+                    auto &materialComponent = m_selectionContext.getComponent<MaterialComponent>();
                     materialComponent.albedoTexturePath = loadFileInfo.path;
                     m_scene->onComponentUpdated(m_selectionContext, materialComponent);
-
                 }
-                    break;
+                break;
                 case LayerUtils::OBJ_FILE:
                     // Load into the active scene
                     if (m_selectionContext.hasComponent<MeshComponent>())
@@ -430,11 +455,19 @@ namespace VkRender {
                 }
                 break;
                 case LayerUtils::VIDEO_TEXTURE_FILE: {
-                    auto& materialComponent = m_selectionContext.getComponent<MaterialComponent>();
-                    materialComponent.videoFolderSource = loadFileInfo.path;
-                    m_scene->onComponentUpdated(m_selectionContext, materialComponent);
+                    // TODO figure out how to know which component requested the folder or file load operation
+                    if (m_selectionContext.hasComponent<MaterialComponent>()) {
+                        auto &materialComponent = m_selectionContext.getComponent<MaterialComponent>();
+                        materialComponent.videoFolderSource = loadFileInfo.path;
+                        m_scene->onComponentUpdated(m_selectionContext, materialComponent);
+                    }
+                    if (m_selectionContext.hasComponent<PointCloudComponent>()) {
+                        auto &pointCloudComponent = m_selectionContext.getComponent<PointCloudComponent>();
+                        pointCloudComponent.videoFolderSource = loadFileInfo.path;
+                        m_scene->onComponentUpdated(m_selectionContext, pointCloudComponent);
+                    }
                 }
-                    break;
+                break;
 
                 default:
                     Log::Logger::getInstance()->warning("Not implemented yet");
@@ -458,6 +491,7 @@ namespace VkRender {
             handleSelectedFileOrFolder(loadFileInfo);
         }
     }
+
     void PropertiesLayer::checkFolderImportCompletion() {
         if (loadFolderFuture.valid() &&
             loadFolderFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
@@ -479,9 +513,10 @@ namespace VkRender {
                                         type, openLoc, flow);
         }
     }
+
     void PropertiesLayer::openImportFolderDialog(const std::string &fileDescription,
-                                               const std::vector<std::string> &type,
-                                               LayerUtils::FileTypeLoadFlow flow) {
+                                                 const std::vector<std::string> &type,
+                                                 LayerUtils::FileTypeLoadFlow flow) {
         if (!loadFolderFuture.valid()) {
             auto &opts = ApplicationConfig::getInstance().getUserSetting();
             std::string openLoc = Utils::getSystemHomePath().string();

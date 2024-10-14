@@ -7,14 +7,27 @@
 
 #include <string>
 
+#include "Viewer/VkRender/Core/VulkanTexture.h"
 namespace VkRender {
     struct PointCloudComponent {
         std::string name;
         float pointSize = 1.0f;
+
+        // File loading info
+        bool usesVideoSource = false;
+        std::filesystem::path videoFolderSource = "path/to/images";
+        size_t videoFileNameIndex;
+        std::vector<std::filesystem::path> videoFileNames;
     };
 
     struct PointCloudInstance {
-
+        struct Textures {
+            std::shared_ptr<VulkanTexture2D> depth;
+            std::shared_ptr<VulkanTexture2D> color;
+            std::shared_ptr<VulkanTexture2D> chromaV;
+            std::shared_ptr<VulkanTexture2D> chromaU;
+        };
+        std::vector<Textures> textures;
     };
 }
 #endif //POINTCLOUDCOMPONENT_H

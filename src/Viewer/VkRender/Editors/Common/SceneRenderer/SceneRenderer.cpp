@@ -119,12 +119,12 @@ namespace VkRender {
 
     void SceneRenderer::bindResourcesAndDraw(const CommandBuffer &commandBuffer, RenderCommand &command) {
         // Bind vertex buffers
-        VkBuffer vertexBuffers[] = {command.mesh->vertexBuffer.m_Buffer};
+        VkBuffer vertexBuffers[] = {command.meshInstance->vertexBuffer.m_Buffer};
         VkDeviceSize offsets[] = {0};
         vkCmdBindVertexBuffers(commandBuffer.getActiveBuffer(), 0, 1, vertexBuffers, offsets);
         // Bind index buffer if the mesh has indices
-        if (command.mesh->indexBuffer.m_Buffer != VK_NULL_HANDLE) {
-            vkCmdBindIndexBuffer(commandBuffer.getActiveBuffer(), command.mesh->indexBuffer.m_Buffer, 0,
+        if (command.meshInstance->indexBuffer.m_Buffer != VK_NULL_HANDLE) {
+            vkCmdBindIndexBuffer(commandBuffer.getActiveBuffer(), command.meshInstance->indexBuffer.m_Buffer, 0,
                                  VK_INDEX_TYPE_UINT32);
         }
         VkCommandBuffer cmdBuffer = commandBuffer.getActiveBuffer();
@@ -156,12 +156,12 @@ namespace VkRender {
             );
         }
         // Issue the draw call
-        if (command.mesh->indexBuffer.m_Buffer != VK_NULL_HANDLE) {
+        if (command.meshInstance->indexBuffer.m_Buffer != VK_NULL_HANDLE) {
             // Indexed draw call
-            vkCmdDrawIndexed(commandBuffer.getActiveBuffer(), command.mesh->indexCount, 1, 0, 0, 0);
+            vkCmdDrawIndexed(commandBuffer.getActiveBuffer(), command.meshInstance->indexCount, 1, 0, 0, 0);
         } else {
             // Non-indexed draw call
-            vkCmdDraw(commandBuffer.getActiveBuffer(), command.mesh->vertexCount, 1, 0, 0);
+            vkCmdDraw(commandBuffer.getActiveBuffer(), command.meshInstance->vertexCount, 1, 0, 0);
         }
     }
 
@@ -219,7 +219,7 @@ namespace VkRender {
             RenderCommand command;
             command.entity = entity;
             command.pipeline = pipeline;
-            command.mesh = meshInstance.get();
+            command.meshInstance = meshInstance.get();
             command.materialInstance = materialInstance.get(); // May be null if no material is attached
             command.transform = &transformComponent;
             // Add to render group
@@ -479,11 +479,6 @@ namespace VkRender {
                 throw std::runtime_error("Failed to load backup texture image");
             }
         }
-        materialInstance->baseColorTexture = std::make_shared<Texture2D>(
-            pixels, imageSize, VK_FORMAT_R8G8B8A8_SRGB, static_cast<uint32_t>(texWidth),
-            static_cast<uint32_t>(texHeight), &m_context->vkDevice(),
-            m_context->vkDevice().m_TransferQueue, VK_FILTER_LINEAR, VK_IMAGE_USAGE_SAMPLED_BIT,
-            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
         stbi_image_free(pixels);
         renderData.materialDescriptorSets.resize(maxFramesInFlight);
@@ -516,7 +511,6 @@ namespace VkRender {
             descriptorWrites[1].dstArrayElement = 0;
             descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
             descriptorWrites[1].descriptorCount = 1;
-            descriptorWrites[1].pImageInfo = &materialInstance->baseColorTexture->m_descriptor;
 
             vkUpdateDescriptorSets(m_context->vkDevice().m_LogicalDevice, descriptorWrites.size(),
                                    descriptorWrites.data(), 0, nullptr);
@@ -529,6 +523,7 @@ namespace VkRender {
 
     std::shared_ptr<MeshInstance> SceneRenderer::initializeMesh(const MeshComponent &meshComponent) {
         // Load mesh data from file or other source
+        /*
         MeshData meshData = MeshData(meshComponent.meshPath);
         // TODO use staging buffer for static meshes
         // Create MeshInstance instance
@@ -556,6 +551,7 @@ namespace VkRender {
                 indexBufferSize,
                 meshData.indices.data());
         }
-        return meshInstance;
+        */
+        return nullptr;
     }
 }

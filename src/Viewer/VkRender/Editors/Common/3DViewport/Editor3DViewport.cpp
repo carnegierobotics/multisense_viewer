@@ -3,11 +3,10 @@
 //
 
 #include "Viewer/VkRender/Editors/Common/3DViewport/Editor3DViewport.h"
-
-#include <Viewer/VkRender/Components/MaterialComponent.h>
-#include <Viewer/VkRender/Editors/Common/CommonEditorFunctions.h>
-
 #include "Editor3DLayer.h"
+
+#include "Viewer/VkRender/Components/MaterialComponent.h"
+#include "Viewer/VkRender/Editors/Common/CommonEditorFunctions.h"
 #include "Viewer/Application/Application.h"
 #include "Viewer/VkRender/Components/Components.h"
 #include "Viewer/VkRender/RenderPipelines/DefaultGraphicsPipeline.h"
@@ -21,6 +20,8 @@ namespace VkRender {
         addUI("Editor3DLayer");
         addUIData<Editor3DViewportUI>();
         createDescriptorPool();
+
+        m_videoPlaybackSystem = std::make_shared<VideoPlaybackSystem>(m_context);
     }
 
     void Editor3DViewport::onEditorResize() {
@@ -36,6 +37,10 @@ namespace VkRender {
         }
         if (m_materialDescriptorSetLayout != VK_NULL_HANDLE) {
             vkDestroyDescriptorSetLayout(m_context->vkDevice().m_LogicalDevice, m_materialDescriptorSetLayout, nullptr);
+        }
+        if (m_pointCloudDescriptorSetLayout != VK_NULL_HANDLE) {
+            vkDestroyDescriptorSetLayout(m_context->vkDevice().m_LogicalDevice, m_pointCloudDescriptorSetLayout,
+                                         nullptr);
         }
     }
 
@@ -64,35 +69,17 @@ namespace VkRender {
         m_activeScene = m_context->activeScene();
         if (!m_activeScene)
             return;
-        auto view = m_activeScene->getRegistry().view<MeshComponent, TransformComponent>();
+        auto view = m_activeScene->getRegistry().view<IDComponent>();
         for (auto entity: view) {
             updateGlobalUniformBuffer(m_context->currentFrameIndex(), Entity(entity, m_activeScene.get()));
         }
         // Update
         auto materialview = m_activeScene->getRegistry().view<MaterialComponent>();
         for (auto e: materialview) {
-            Entity entity(e, m_activeScene.get());
-            auto &material = entity.getComponent<MaterialComponent>();
-            if (material.usesVideoSource && !material.videoFileNames.empty()) {
-                // Load next frame
-                std::filesystem::path nextFileName = material.videoFileNames[material.videoFileNameIndex];
-
-                int texWidth, texHeight, texChannels;
-                stbi_uc *pixels = stbi_load(nextFileName.string().c_str(), &texWidth, &texHeight, &texChannels,
-                                            STBI_rgb_alpha);
-                VkDeviceSize imageSize = texWidth * texHeight * 4;
-                // Assuming STBI_rgb_alpha gives us 4 channels per pixel
-                if (!pixels) {
-                    continue;;
-                }
-                m_materialInstances[entity.getUUID()]->vulkanTexture->loadImage(pixels, imageSize);
-                material.videoFileNameIndex++;
-                if (material.videoFileNameIndex >= material.videoFileNames.size()) {
-                    material.videoFileNameIndex = 0;
-                }
-            }
         }
 
+        /*
+        // TODO rethink the method for cleaning up resources
         // Retrieve the list of valid entities from the active scene
         std::unordered_set<UUID> validEntities;
         for (auto entity: view) {
@@ -108,10 +95,13 @@ namespace VkRender {
         }
         // Remove each stale entity from m_entityRenderData
         for (UUID staleEntityUUID: staleEntities) {
-            m_entityRenderData.erase(staleEntityUUID);
-            Log::Logger::getInstance()->info("Cleaned up resources for Entity: {}",
-                                             staleEntityUUID.operator std::string());
+            if (m_entityRenderData.contains(staleEntityUUID)) {
+                m_entityRenderData.erase(staleEntityUUID);
+                Log::Logger::getInstance()->info("Cleaned up resources for Entity: {}",
+                                                 staleEntityUUID.operator std::string());
+            }
         }
+        */
     }
 
 
@@ -131,33 +121,40 @@ namespace VkRender {
 
     void Editor3DViewport::bindResourcesAndDraw(const CommandBuffer &commandBuffer, RenderCommand &command) {
         // Bind vertex buffers
-        VkBuffer vertexBuffers[] = {command.mesh->vertexBuffer.m_Buffer};
-        VkDeviceSize offsets[] = {0};
-        vkCmdBindVertexBuffers(commandBuffer.getActiveBuffer(), 0, 1, vertexBuffers, offsets);
-        // Bind index buffer if the mesh has indices
-        if (command.mesh->indexBuffer.m_Buffer != VK_NULL_HANDLE) {
-            vkCmdBindIndexBuffer(commandBuffer.getActiveBuffer(), command.mesh->indexBuffer.m_Buffer, 0,
-                                 VK_INDEX_TYPE_UINT32);
-        }
         VkCommandBuffer cmdBuffer = commandBuffer.getActiveBuffer();
         uint32_t frameIndex = commandBuffer.frameIndex;
         UUID entityUUID = command.entity.getUUID();
         auto &renderData = m_entityRenderData[entityUUID];
+
+        if (command.meshInstance) {
+            VkBuffer vertexBuffers[] = {command.meshInstance->vertexBuffer.m_Buffer};
+            VkDeviceSize offsets[] = {0};
+            vkCmdBindVertexBuffers(cmdBuffer, 0, 1, vertexBuffers, offsets);
+            // Bind index buffer if the mesh has indices
+            if (command.meshInstance->indexBuffer.m_Buffer != VK_NULL_HANDLE) {
+                vkCmdBindIndexBuffer(cmdBuffer, command.meshInstance->indexBuffer.m_Buffer, 0,
+                                     VK_INDEX_TYPE_UINT32);
+            }
+        }
+
         // Bind the entity's descriptor set (which includes both camera and model data)
-        vkCmdBindDescriptorSets(
-            cmdBuffer,
-            VK_PIPELINE_BIND_POINT_GRAPHICS,
-            command.pipeline->pipeline()->getPipelineLayout(),
-            0, // Set 0 (entity descriptor set)
-            1,
-            &renderData.descriptorSets[frameIndex],
-            0,
-            nullptr
-        );
+        if (command.entity.hasComponent<MeshComponent>()) {
+            vkCmdBindDescriptorSets(
+                cmdBuffer,
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                command.pipeline->pipeline()->getPipelineLayout(),
+                0, // Set 0 (entity descriptor set)
+                1,
+                &renderData.descriptorSets[frameIndex],
+                0,
+                nullptr
+            );
+        }
+
         // Bind descriptor sets (e.g., material and global descriptors)
         if (command.entity.hasComponent<MaterialComponent>()) {
             vkCmdBindDescriptorSets(
-                commandBuffer.getActiveBuffer(),
+                cmdBuffer,
                 VK_PIPELINE_BIND_POINT_GRAPHICS,
                 command.pipeline->pipeline()->getPipelineLayout(),
                 1,
@@ -167,13 +164,28 @@ namespace VkRender {
                 nullptr // Dynamic offsets
             );
         }
-        // Issue the draw call
-        if (command.mesh->indexBuffer.m_Buffer != VK_NULL_HANDLE) {
-            // Indexed draw call
-            vkCmdDrawIndexed(commandBuffer.getActiveBuffer(), command.mesh->indexCount, 1, 0, 0, 0);
-        } else {
-            // Non-indexed draw call
-            vkCmdDraw(commandBuffer.getActiveBuffer(), command.mesh->vertexCount, 1, 0, 0);
+        // Bind descriptor sets for point cloud
+        if (command.entity.hasComponent<PointCloudComponent>() && command.pointCloudInstance) {
+            vkCmdBindDescriptorSets(
+                cmdBuffer,
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                command.pipeline->pipeline()->getPipelineLayout(),
+                1,
+                1, // Descriptor set count
+                &renderData.pointCloudDescriptorSets[frameIndex],
+                0, // Dynamic offset count
+                nullptr // Dynamic offsets
+            );
+        }
+        if (command.meshInstance) {
+            // Issue the draw call
+            if (command.meshInstance->indexBuffer.m_Buffer != VK_NULL_HANDLE) {
+                // Indexed draw call
+                vkCmdDrawIndexed(cmdBuffer, command.meshInstance->indexCount, 1, 0, 0, 0);
+            } else {
+                // Non-indexed draw call
+                vkCmdDraw(cmdBuffer, command.meshInstance->vertexCount, 1, 0, 0);
+            }
         }
     }
 
@@ -222,6 +234,23 @@ namespace VkRender {
                 key.materialPtr = reinterpret_cast<uint64_t *>(materialInstance.get());
             }
 
+            std::shared_ptr<PointCloudInstance> pointCloudInstance = nullptr;
+            if (entity.hasComponent<PointCloudComponent>()) {
+                auto &pointCloudComponent = entity.getComponent<PointCloudComponent>();
+                auto pointCLoudIt = m_pointCloudInstances.find(uuid);
+                if (pointCLoudIt == m_pointCloudInstances.end()) {
+                    pointCloudInstance = initializePointCloud(entity, pointCloudComponent);
+                    if (!pointCloudInstance)
+                        continue;
+                    m_pointCloudInstances[uuid] = pointCloudInstance;
+                } else {
+                    pointCloudInstance = pointCLoudIt->second;
+                }
+                key.vertexShaderName = "pointcloud.vert.spv";
+                key.fragmentShaderName = "pointcloud.frag.spv";
+                key.setLayouts.push_back(m_pointCloudDescriptorSetLayout);
+            }
+
             // Create or retrieve the pipeline
             RenderPassInfo renderPassInfo{};
             renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
@@ -231,12 +260,15 @@ namespace VkRender {
             RenderCommand command;
             command.entity = entity;
             command.pipeline = pipeline;
-            command.mesh = meshInstance.get();
+            command.meshInstance = meshInstance.get();
             command.materialInstance = materialInstance.get(); // May be null if no material is attached
+            command.pointCloudInstance = pointCloudInstance.get(); // May be null if no pointcloud is attached
             command.transform = &transformComponent;
             // Add to render group
             renderGroups[pipeline].push_back(command);
         }
+
+        // Collect pointcloud rendercommands
     }
 
     void Editor3DViewport::onComponentAdded(Entity entity, MeshComponent &meshComponent) {
@@ -300,9 +332,19 @@ namespace VkRender {
     }
 
     void Editor3DViewport::onComponentUpdated(Entity entity, MaterialComponent &materialComponent) {
-        if (m_materialInstances.contains(entity.getUUID())) {
-            // TODO look into reuse instead of re-creation
-            m_materialInstances.erase(entity.getUUID());
+        // add a video source if selected
+        if (materialComponent.usesVideoSource && !materialComponent.videoFolderSource.empty()) {
+            VideoSource::ImageType imageType = VideoSource::ImageType::RGB;
+            // Determined based on user input or file inspection
+            float fps = 30.0f;
+            bool loop = true;
+            materialComponent.videoIndex = m_videoPlaybackSystem->addVideoSource(
+                materialComponent.videoFolderSource, imageType, fps, loop);
+        }
+        if (materialComponent.reloadShader) {
+            if (m_materialInstances.contains(entity.getUUID())) {
+                m_materialInstances.erase(entity.getUUID());
+            }
         }
     }
 
@@ -312,7 +354,6 @@ namespace VkRender {
         m_entityRenderData[entity.getUUID()].modelBuffer.resize(m_context->swapChainBuffers().size());
         m_entityRenderData[entity.getUUID()].descriptorSets.resize(m_context->swapChainBuffers().size());
         m_entityRenderData[entity.getUUID()].pointCloudBuffer.resize(m_context->swapChainBuffers().size());
-        m_entityRenderData[entity.getUUID()].pointCloudDescriptorSets.resize(m_context->swapChainBuffers().size());
         // Create attachable UBO buffers and such
         for (int i = 0; i < m_context->swapChainBuffers().size(); ++i) {
             m_context->vkDevice().createBuffer(
@@ -329,20 +370,23 @@ namespace VkRender {
                 VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                 &m_entityRenderData[entity.getUUID()].pointCloudBuffer[i],
-                sizeof(PointCloudUBO));
+                sizeof(PointCloudUBO), nullptr, "Editor3DViewport:PointCloudUBO",
+                m_context->getDebugUtilsObjectNameFunction());
             allocatePerEntityDescriptorSet(i, entity);
-
-            // Allocate
         }
     }
 
     void Editor3DViewport::onComponentRemoved(Entity entity, PointCloudComponent &pointCloudComponent) {
-
-
+        if (m_pointCloudInstances.contains(entity.getUUID())) {
+            m_pointCloudInstances.erase(entity.getUUID());
+        }
     }
 
     void Editor3DViewport::onComponentUpdated(Entity entity, PointCloudComponent &pointCloudComponent) {
-
+        if (m_pointCloudInstances.contains(entity.getUUID())) {
+            // TODO look into reuse instead of re-creation
+            m_pointCloudInstances.erase(entity.getUUID());
+        }
     }
 
     void Editor3DViewport::createDescriptorPool() {
@@ -352,13 +396,17 @@ namespace VkRender {
         // Total descriptor sets needed
         uint32_t descriptorCount = maxEntities * maxFramesInFlight;
         // Pool sizes for each descriptor type
-        std::array<VkDescriptorPoolSize, 3> poolSizes = {};
+        std::array<VkDescriptorPoolSize, 4> poolSizes = {};
         poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         poolSizes[0].descriptorCount = descriptorCount; // For camera buffers
         poolSizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         poolSizes[1].descriptorCount = descriptorCount; // For model buffers
+        // Color map sampler (fragment shader)
         poolSizes[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        poolSizes[2].descriptorCount = descriptorCount; // For model buffers
+        poolSizes[2].descriptorCount = descriptorCount; // Color map sampler
+        // Chroma U and V samplers (fragment shader)
+        poolSizes[3].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        poolSizes[3].descriptorCount = descriptorCount * 2; // For chromaU and chromaV samplers
         VkDescriptorPoolCreateInfo poolInfo = {};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
@@ -422,6 +470,63 @@ namespace VkRender {
                 VK_SUCCESS) {
                 throw std::runtime_error("Failed to create descriptor set layout!");
             }
+        } /*** POINTCLOUD DESCRIPTOR SETUP ***/
+        // Initialize GPU resources based on materialComponent data
+        {
+            std::array<VkDescriptorSetLayoutBinding, 5> layoutBindings = {
+                {
+                    // PointCloudParam in both vertex and fragment shader
+                    {
+                        .binding = 0,
+                        .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                        .descriptorCount = 1,
+                        .stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, // Used in both shaders
+                        .pImmutableSamplers = nullptr
+                    },
+                    // Depth map in vertex shader
+                    {
+                        .binding = 1,
+                        .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                        .descriptorCount = 1,
+                        .stageFlags = VK_SHADER_STAGE_VERTEX_BIT, // Only in vertex shader
+                        .pImmutableSamplers = nullptr
+                    },
+                    // Sampler color map in fragment shader
+                    {
+                        .binding = 2,
+                        .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                        .descriptorCount = 1,
+                        .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT, // Only in fragment shader
+                        .pImmutableSamplers = nullptr
+                    },
+                    // Chroma U map in fragment shader
+                    {
+                        .binding = 3,
+                        .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                        .descriptorCount = 1,
+                        .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT, // Only in fragment shader
+                        .pImmutableSamplers = nullptr
+                    },
+                    // Chroma V map in fragment shader
+                    {
+                        .binding = 4,
+                        .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                        .descriptorCount = 1,
+                        .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT, // Only in fragment shader
+                        .pImmutableSamplers = nullptr
+                    }
+                }
+            };
+
+            VkDescriptorSetLayoutCreateInfo layoutInfo{};
+            layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+            layoutInfo.bindingCount = static_cast<uint32_t>(layoutBindings.size());
+            layoutInfo.pBindings = layoutBindings.data();
+            if (vkCreateDescriptorSetLayout(m_context->vkDevice().m_LogicalDevice, &layoutInfo, nullptr,
+                                            &m_pointCloudDescriptorSetLayout) !=
+                VK_SUCCESS) {
+                throw std::runtime_error("Failed to create descriptor set layout!");
+            }
         }
     }
 
@@ -463,7 +568,7 @@ namespace VkRender {
         // Get the active camera entity
         auto &cameraComponent = m_activeCamera;;
         // Compute view and projection matrices
-        if (&cameraComponent.get()) {
+        if (entity.hasComponent<MeshComponent>() && &cameraComponent.get()) {
             GlobalUniformBufferObject globalUBO = {};
             globalUBO.view = cameraComponent.get().matrices.view;
             globalUBO.projection = cameraComponent.get().matrices.perspective;
@@ -477,7 +582,7 @@ namespace VkRender {
             vkUnmapMemory(m_context->vkDevice().m_LogicalDevice,
                           m_entityRenderData[entity.getUUID()].cameraBuffer[frameIndex].m_Memory);
         }
-        if (entity.hasComponent<TransformComponent>()) {
+        if (entity.hasComponent<TransformComponent>() && entity.hasComponent<MeshComponent>()) {
             void *data;
             auto &transformComponent = m_activeScene->getRegistry().get<TransformComponent>(entity);
             vkMapMemory(m_context->vkDevice().m_LogicalDevice,
@@ -504,6 +609,78 @@ namespace VkRender {
             vkUnmapMemory(m_context->vkDevice().m_LogicalDevice,
                           m_entityRenderData[entity.getUUID()].materialBuffer[frameIndex].m_Memory);
         }
+
+        if (entity.hasComponent<PointCloudComponent>() && !m_entityRenderData[entity.getUUID()].pointCloudBuffer.
+            empty()) {
+            auto &pointCloud = entity.getComponent<PointCloudComponent>();
+            PointCloudUBO pointCloudUBO = {};
+            pointCloudUBO.Q = glm::mat4(1.0f);
+
+            // Hardcoded intrinsics
+            float fx = 644.5986328125f;
+            float fy = 644.384033203125f;
+            float cx = 466.68487548828125f;
+            float cy = 306.7324523925781f;
+            // Hardcoded translation in stereo rectification
+            float tx = -0.27f;
+            // Populate the Q matrix
+            glm::mat4 Q(0.0f); // Start with an empty matrix
+
+            Q[0][0] = fy * tx; // Q[0][0] = fy * tx
+            Q[1][1] = fx * tx; // Q[1][1] = fx * tx
+            Q[2][3] = -fy; // Q[2][3] = -fy
+            Q[3][0] = -fy * cx * tx; // Q[3][0] = -fy * cx * tx
+            Q[3][1] = -fx * cy * tx; // Q[3][1] = -fx * cy * tx
+            Q[3][2] = fx * fy * tx; // Q[3][2] = fx * fy * tx
+            Q[3][3] = 0.0f; // Since the cameras are rectified, no need for dcx
+
+            pointCloudUBO.Q = Q;
+
+            // Set the intrinsics matrix
+            glm::mat4 intrinsics = glm::mat4(1.0f); // Identity matrix
+            intrinsics[0][0] = fx; // fx
+            intrinsics[1][1] = fy; // fy
+            intrinsics[0][2] = cx; // cx
+            intrinsics[1][2] = cy; // cy
+            pointCloudUBO.intrinsics = intrinsics;
+
+            // Hardcode the extrinsics matrix (R) - since the camera is stereo rectified,
+            // we'll assume the translation is minimal and focus on the rotation
+            glm::mat4 extrinsics = glm::mat4(1.0f); // Identity matrix
+
+            // Rotation matrix from the JSON (R matrix)
+            extrinsics[0][0] = 0.9999520778656006f; // R00
+            extrinsics[0][1] = -0.009579263627529144f; // R01
+            extrinsics[0][2] = 0.0020164381712675095f; // R02
+            extrinsics[1][0] = 0.009576529264450073f; // R10
+            extrinsics[1][1] = 0.9999532103538513f; // R11
+            extrinsics[1][2] = 0.0013617108343169093f; // R12
+            extrinsics[2][0] = -0.0020293882116675377f; // R20
+            extrinsics[2][1] = -0.0013423351338133216f; // R21
+            extrinsics[2][2] = 0.9999970197677612f; // R22
+
+            // Since this is stereo rectified from the left camera's viewpoint, you might
+            // need to apply a small translation to account for the stereo baseline, if required
+            // (translation can be added here based on the setup)
+
+            pointCloudUBO.extrinsics = extrinsics;
+            pointCloudUBO.width = 960.0f;
+            pointCloudUBO.height = 600.0f;
+            pointCloudUBO.disparity = 255.0f;
+            pointCloudUBO.pointSize = pointCloud.pointSize;
+            pointCloudUBO.hasSampler = 1.0f;
+            pointCloudUBO.useColor = 1.0f;
+            pointCloudUBO.scale = 1.0f;
+            pointCloudUBO.focalLength = -0.27f;
+
+            void *data;
+            vkMapMemory(m_context->vkDevice().m_LogicalDevice,
+                        m_entityRenderData[entity.getUUID()].pointCloudBuffer[frameIndex].m_Memory, 0,
+                        sizeof(PointCloudUBO), 0, &data);
+            memcpy(data, &pointCloudUBO, sizeof(PointCloudUBO));
+            vkUnmapMemory(m_context->vkDevice().m_LogicalDevice,
+                          m_entityRenderData[entity.getUUID()].pointCloudBuffer[frameIndex].m_Memory);
+        }
     }
 
 
@@ -513,53 +690,8 @@ namespace VkRender {
         auto materialInstance = std::make_shared<MaterialInstance>();
         auto &renderData = m_entityRenderData[entity.getUUID()];
         const auto maxFramesInFlight = static_cast<uint32_t>(m_context->swapChainBuffers().size());
-        // load textures
 
-        if (materialComponent.usesVideoSource) {
-            std::filesystem::path folderPath = materialComponent.videoFolderSource;
-            std::vector<std::filesystem::path> files;
-            // Check if the folder exists
-            if (std::filesystem::exists(folderPath) && std::filesystem::is_directory(folderPath)) {
-                // Iterate through the folder and collect files
-                for (const auto &entry: std::filesystem::directory_iterator(folderPath)) {
-                    if (entry.is_regular_file()) {
-                        files.push_back(entry.path());
-                    }
-                }
-                // Sort files by filename assuming filenames are timestamps in nanoseconds
-                std::sort(files.begin(), files.end(), [](const std::filesystem::path &a, const std::filesystem::path &b) {
-                    return a.filename().string() < b.filename().string();
-                });
-                materialComponent.videoFileNames = files;
-                materialInstance->vulkanTexture = EditorUtils::createTextureFromFile(files.front(), m_context);
-            } else {
-                materialComponent.usesVideoSource = false;
-            }
-        }
-        if (!materialComponent.usesVideoSource) {
-            int texWidth, texHeight, texChannels;
-            stbi_uc *pixels = stbi_load(materialComponent.albedoTexturePath.string().c_str(), &texWidth, &texHeight,
-                                        &texChannels, STBI_rgb_alpha);
-            auto imageSize = static_cast<VkDeviceSize>(texWidth * texHeight * texChannels);
-            if (!pixels) {
-                // load empty texture
-                Log::Logger::getInstance()->error("Failed to load texture image: {}. Reverting to empty",
-                                                  materialComponent.albedoTexturePath.string());
-                pixels = stbi_load((Utils::getTexturePath() / "moon.png").string().c_str(), &texWidth, &texHeight,
-                                   &texChannels, STBI_rgb_alpha);
-                imageSize = static_cast<VkDeviceSize>(texWidth * texHeight * texChannels);
-                if (!pixels) {
-                    throw std::runtime_error("Failed to load backup texture image");
-                }
-            }
-            materialInstance->baseColorTexture = std::make_shared<Texture2D>(
-                pixels, imageSize, VK_FORMAT_R8G8B8A8_SRGB, static_cast<uint32_t>(texWidth),
-                static_cast<uint32_t>(texHeight), &m_context->vkDevice(),
-                m_context->vkDevice().m_TransferQueue, VK_FILTER_LINEAR, VK_IMAGE_USAGE_SAMPLED_BIT,
-                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-            stbi_image_free(pixels);
-        }
+        materialInstance->baseColorTexture = EditorUtils::createTextureFromFile(Utils::getTexturePath() / "moon.png", m_context);
 
         renderData.materialDescriptorSets.resize(maxFramesInFlight);
         for (int frameIndex = 0; frameIndex < maxFramesInFlight; ++frameIndex) {
@@ -584,24 +716,15 @@ namespace VkRender {
             descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
             descriptorWrites[0].descriptorCount = 1;
             descriptorWrites[0].pBufferInfo = &renderData.materialBuffer[frameIndex].m_DescriptorBufferInfo;
-            // Write Model Buffer
-            if (materialComponent.usesVideoSource) {
-                descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-                descriptorWrites[1].dstSet = renderData.materialDescriptorSets[frameIndex];
-                descriptorWrites[1].dstBinding = 1;
-                descriptorWrites[1].dstArrayElement = 0;
-                descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-                descriptorWrites[1].descriptorCount = 1;
-                descriptorWrites[1].pImageInfo = &materialInstance->vulkanTexture->getDescriptorInfo();
-            } else {
-                descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-                descriptorWrites[1].dstSet = renderData.materialDescriptorSets[frameIndex];
-                descriptorWrites[1].dstBinding = 1;
-                descriptorWrites[1].dstArrayElement = 0;
-                descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-                descriptorWrites[1].descriptorCount = 1;
-                descriptorWrites[1].pImageInfo = &materialInstance->baseColorTexture->m_descriptor;
-            }
+
+            descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[1].dstSet = renderData.materialDescriptorSets[frameIndex];
+            descriptorWrites[1].dstBinding = 1;
+            descriptorWrites[1].dstArrayElement = 0;
+            descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            descriptorWrites[1].descriptorCount = 1;
+            descriptorWrites[1].pImageInfo = &materialInstance->baseColorTexture->getDescriptorInfo();
+
             vkUpdateDescriptorSets(m_context->vkDevice().m_LogicalDevice, descriptorWrites.size(),
                                    descriptorWrites.data(), 0, nullptr);
         }
@@ -611,15 +734,183 @@ namespace VkRender {
     }
 
 
+    std::shared_ptr<PointCloudInstance> Editor3DViewport::initializePointCloud(
+        Entity entity, PointCloudComponent &pointCloudComponent) {
+        // Create a new MaterialInstance
+        auto pointCloudInstance = std::make_shared<PointCloudInstance>();
+        const auto maxFramesInFlight = static_cast<uint32_t>(m_context->swapChainBuffers().size());
+        // Initialize point cloud instance textures etc..
+        if (pointCloudComponent.usesVideoSource) {
+            std::filesystem::path folderPath = pointCloudComponent.videoFolderSource;
+            std::vector<std::filesystem::path> files;
+            // Check if the folder exists
+            if (std::filesystem::exists(folderPath) && std::filesystem::is_directory(folderPath)) {
+                // Iterate through the folder and collect files
+                for (const auto &entry: std::filesystem::directory_iterator(folderPath)) {
+                    if (entry.is_regular_file()) {
+                        files.push_back(entry.path());
+                    }
+                }
+                // Sort files by filename assuming filenames are timestamps in nanoseconds
+                std::sort(files.begin(), files.end(),
+                          [](const std::filesystem::path &a, const std::filesystem::path &b) {
+                              return a.filename().string() < b.filename().string();
+                          });
+                pointCloudComponent.videoFileNames = files;
+                pointCloudInstance->textures.resize(maxFramesInFlight);
+                for (int frameIndex = 0; frameIndex < maxFramesInFlight; ++frameIndex) {
+                    int texWidth, texHeight, texChannels;
+                    stbi_us *pixels = stbi_load_16(files.front().string().c_str(), &texWidth, &texHeight, &texChannels,
+                                                   STBI_grey);
+                    VkDeviceSize imageSize = texWidth * texHeight * texChannels * sizeof(stbi_us);
+                    // Assuming STBI_rgb_alpha gives us 4 channels per pixel
+                    if (!pixels) {
+                        throw std::runtime_error("Failed to load backup texture image");
+                    }
+
+                    VkImageCreateInfo imageCI = Populate::imageCreateInfo();
+                    imageCI.imageType = VK_IMAGE_TYPE_2D;
+                    imageCI.format = VK_FORMAT_R16_UNORM;
+                    imageCI.extent = {static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight), 1};
+                    imageCI.mipLevels = 1;
+                    imageCI.arrayLayers = 1;
+                    imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
+                    imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
+                    imageCI.usage =
+                            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+                            VK_IMAGE_USAGE_SAMPLED_BIT;
+                    imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+                    imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                    VkImageViewCreateInfo imageViewCI = Populate::imageViewCreateInfo();
+                    imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
+                    imageViewCI.format = VK_FORMAT_R16_UNORM;
+                    imageViewCI.subresourceRange.baseMipLevel = 0;
+                    imageViewCI.subresourceRange.levelCount = 1;
+                    imageViewCI.subresourceRange.baseArrayLayer = 0;
+                    imageViewCI.subresourceRange.layerCount = 1;
+                    imageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+
+                    VulkanImageCreateInfo vulkanImageCreateInfo(m_context->vkDevice(), m_context->allocator(), imageCI,
+                                                                imageViewCI);
+                    vulkanImageCreateInfo.debugInfo = "Color texture: Image Editor";
+                    VulkanTexture2DCreateInfo textureCreateInfo(m_context->vkDevice());
+                    textureCreateInfo.image = std::make_shared<VulkanImage>(vulkanImageCreateInfo);
+                    auto texture = std::make_shared<VulkanTexture2D>(textureCreateInfo);
+
+                    // Copy data to texturere
+                    texture->loadImage(pixels, imageSize);
+                    // Free the image data
+                    stbi_image_free(pixels);
+                    pointCloudInstance->textures[frameIndex].depth = texture;
+
+                    pointCloudInstance->textures[frameIndex].color = EditorUtils::createTextureFromFile(
+                        files.front(), m_context);
+                    pointCloudInstance->textures[frameIndex].chromaU = EditorUtils::createTextureFromFile(
+                        files.front(), m_context);
+                    pointCloudInstance->textures[frameIndex].chromaV = EditorUtils::createTextureFromFile(
+                        files.front(), m_context);
+                }
+            } else {
+                return nullptr;
+            }
+        } else {
+            return nullptr;
+        }
+
+        auto &renderData = m_entityRenderData[entity.getUUID()];
+
+        renderData.pointCloudDescriptorSets.resize(maxFramesInFlight);
+        for (int frameIndex = 0; frameIndex < maxFramesInFlight; ++frameIndex) {
+            // Create a descriptor set allocation info structure
+            VkDescriptorSetAllocateInfo allocInfo{};
+            allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+            allocInfo.descriptorPool = m_descriptorPool; // Use the descriptor pool created earlier
+            allocInfo.descriptorSetCount = 1;
+            allocInfo.pSetLayouts = &m_pointCloudDescriptorSetLayout; // Use the pre-created descriptor set layout
+
+            // Allocate the descriptor set
+            if (vkAllocateDescriptorSets(m_context->vkDevice().m_LogicalDevice, &allocInfo,
+                                         &renderData.pointCloudDescriptorSets[frameIndex]) !=
+                VK_SUCCESS) {
+                throw std::runtime_error("Failed to allocate descriptor sets!");
+            }
+
+            VkDescriptorSet descriptorSet = renderData.pointCloudDescriptorSets[frameIndex];
+
+            VkWriteDescriptorSet pointCloudWrite{};
+            pointCloudWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            pointCloudWrite.dstSet = descriptorSet;
+            pointCloudWrite.dstBinding = 0; // Corresponds to binding 0 in your shaders
+            pointCloudWrite.dstArrayElement = 0;
+            pointCloudWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            pointCloudWrite.descriptorCount = 1;
+            pointCloudWrite.pBufferInfo = &renderData.pointCloudBuffer[frameIndex].
+                    m_DescriptorBufferInfo;
+
+            VkWriteDescriptorSet depthMapWrite{};
+            depthMapWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            depthMapWrite.dstSet = descriptorSet;
+            depthMapWrite.dstBinding = 1; // Corresponds to binding 1 in vertex shader
+            depthMapWrite.dstArrayElement = 0;
+            depthMapWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            depthMapWrite.descriptorCount = 1;
+            depthMapWrite.pImageInfo = &pointCloudInstance->textures[frameIndex].depth->getDescriptorInfo();
+
+            VkWriteDescriptorSet colorMapWrite{};
+            colorMapWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            colorMapWrite.dstSet = descriptorSet;
+            colorMapWrite.dstBinding = 2; // Corresponds to binding 2 in fragment shader
+            colorMapWrite.dstArrayElement = 0;
+            colorMapWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            colorMapWrite.descriptorCount = 1;
+            colorMapWrite.pImageInfo = &pointCloudInstance->textures[frameIndex].color->getDescriptorInfo();
+
+            VkWriteDescriptorSet chromaUWrite{};
+            chromaUWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            chromaUWrite.dstSet = descriptorSet;
+            chromaUWrite.dstBinding = 3; // Corresponds to binding 2 in fragment shader
+            chromaUWrite.dstArrayElement = 0;
+            chromaUWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            chromaUWrite.descriptorCount = 1;
+            chromaUWrite.pImageInfo = &pointCloudInstance->textures[frameIndex].chromaU->getDescriptorInfo();
+
+            VkWriteDescriptorSet chromaVWrite{};
+            chromaVWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            chromaVWrite.dstSet = descriptorSet;
+            chromaVWrite.dstBinding = 4; // Corresponds to binding 2 in fragment shader
+            chromaVWrite.dstArrayElement = 0;
+            chromaVWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            chromaVWrite.descriptorCount = 1;
+            chromaVWrite.pImageInfo = &pointCloudInstance->textures[frameIndex].chromaV->getDescriptorInfo();
+
+            // Group all the write descriptor sets together
+            std::array<VkWriteDescriptorSet, 5> descriptorWrites = {
+                pointCloudWrite, depthMapWrite, colorMapWrite, chromaUWrite, chromaVWrite
+            };
+
+            // Update the descriptor sets
+            vkUpdateDescriptorSets(m_context->vkDevice().m_LogicalDevice,
+                                   static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+            // Allocate
+        }
+
+        Log::Logger::getInstance()->info("Created Point Coud Instance for Entity: {}", entity.getName());
+        return pointCloudInstance;
+    }
+
     std::shared_ptr<MeshInstance> Editor3DViewport::initializeMesh(const MeshComponent &meshComponent) {
         // Load mesh data from file or other source
-        MeshData meshData = MeshData(meshComponent.meshPath);
+        MeshData meshData = MeshData(meshComponent.meshDataType, meshComponent.meshPath);
         // TODO use staging buffer for static meshes
         // Create MeshInstance instance
+
         auto meshInstance = std::make_shared<MeshInstance>();
+        meshInstance->topology = meshComponent.meshDataType == OBJ_FILE
+                                     ? VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST
+                                     : VK_PRIMITIVE_TOPOLOGY_POINT_LIST; // Set topology based on mesh data
+
         meshInstance->vertexCount = meshData.vertices.size();
         meshInstance->indexCount = meshData.indices.size();
-        meshInstance->topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST; // Set topology based on mesh data
         uint32_t vertexBufferSize = meshData.vertices.size() * sizeof(Vertex);
         uint32_t indexBufferSize = meshData.indices.size() * sizeof(uint32_t);
         if (!vertexBufferSize)
@@ -632,7 +923,7 @@ namespace VkRender {
             vertexBufferSize,
             meshData.vertices.data());
         // Create index buffer if the mesh has indices
-        if (meshComponent.hasIndices) {
+        if (indexBufferSize) {
             m_context->vkDevice().createBuffer(
                 VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,

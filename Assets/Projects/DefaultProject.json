@@ -28,9 +28,9 @@
       "resizeable": true,
       "uiLayers": [],
       "width": 20,
-      "height": 80,
+      "height": 75,
       "x": 80,
-      "y": 20
+      "y": 25
     },
     {
       "borderSize": 5,
@@ -39,7 +39,7 @@
       "resizeable": true,
       "uiLayers": [],
       "width": 20,
-      "height": 20,
+      "height": 25,
       "x": 80,
       "y": 0
     }

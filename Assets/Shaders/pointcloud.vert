@@ -6,24 +6,35 @@ layout (location = 0) in vec3 inPos;
 layout (location = 1) in vec3 inNormal;
 layout (location = 2) in vec2 inUV;
 
-layout (binding = 0) uniform UBO
+// Camera uniform block
+layout (binding = 0) uniform CameraUBO
 {
-    mat4 projectionMatrix;
-    mat4 viewMatrix;
-    mat4 modelMatrix;
-} ubo;
+    mat4 projection;
+    mat4 view;
+    vec3 pos;
+} camera;
 
-layout (binding = 1) uniform PointCloudParam {
+// Model uniform block
+layout (binding = 1) uniform ModelUBO
+{
+    mat4 model;
+} model;
+
+layout (set = 1, binding = 0) uniform PointCloudParam {
     mat4 Q;
+    mat4 intrinsics;
+    mat4 extrinsics;
     float width;
     float height;
     float disparity;
     float focalLength;
     float scale;
     float pointSize;
+    float useColor;
+    float hasSampler;
 } matrix;
 
-layout (set = 0, binding = 2) uniform sampler2D depthMap;
+layout (set = 1, binding = 1) uniform sampler2D disparityImage;
 
 
 layout(location = 0) out vec3 outNormal;
@@ -36,12 +47,13 @@ layout(location = 4) out vec2 imageDimmensions;
 void main()
 {
 
+
     outUV = inUV;
     float width = matrix.width;
     float height = matrix.height;
     imageDimmensions = vec2(width, height);
     // When uploaded to GPU, vulkan will scale the texture values to between 0-1. Since we only have 12 bit values of a 16 bit image, we multiply by 64 to scale between [0 - 1]
-    float depth = texture(depthMap, vec2(inUV.x, inUV.y)).r * 64 * 255;//  scaled to inbetween [0, 1] then up to 0 - 255 for disparity
+    float depth = texture(disparityImage, vec2(inUV.x, inUV.y)).r * 64 * 255;//  scaled to inbetween [0, 1] then up to 0 - 255 for disparity
 
     gl_PointSize = matrix.pointSize;
 
@@ -59,7 +71,7 @@ void main()
 
 
     // Replace ubo.viewMatrix with viewMatrix in your gl_Position calculation
-    gl_Position = ubo.projectionMatrix * ubo.viewMatrix * ubo.modelMatrix * vec4(outCoordinates, 1.0f);
+    gl_Position = camera.projection * camera.view * model.model * vec4(outCoordinates, 1.0f);
 
 
     outCoords = outCoordinates;

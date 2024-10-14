@@ -63,11 +63,7 @@ namespace VkRender {
             return;
 
         generatePipelines();
-        if (imageUI->render3dgsImage || m_createInfo.sharedUIContextData->newFrame) {
-            for (auto &pipeline: m_gaussianRenderPipelines) {
-                pipeline.second->generateImage(*m_activeCamera, 0);
-            }
-        }
+
         auto view = m_activeScene->getRegistry().view<TransformComponent, GaussianModelComponent>(); // TODO make one specific component type for renderables in standard pipelines
         for (auto entity: view) {
             if (m_gaussianRenderPipelines.contains(entity)) {

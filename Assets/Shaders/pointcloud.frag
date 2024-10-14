@@ -8,18 +8,26 @@ layout(location = 2) in vec3 fragPos;
 layout(location = 3) in vec3 inCoords;
 layout(location = 4) in vec2 imageDimmensions;
 
-
-layout (set = 0, binding = 3) uniform sampler2D samplerColorMap;
-
-layout (set = 0, binding = 5) uniform sampler2D chromaU;
-layout (set = 0, binding = 6) uniform sampler2D chromaV;
-
-layout (set = 0, binding = 4) uniform colorConversionParams {
-    mat4 intrinsic;
-    mat4 extrinsic;
+layout (set = 1, binding = 0) uniform PointCloudParam {
+    mat4 Q;
+    mat4 intrinsics;
+    mat4 extrinsics;
+    float width;
+    float height;
+    float disparity;
+    float focalLength;
+    float scale;
+    float pointSize;
     float useColor;
     float hasSampler;
-} mat;
+} matrix;
+
+layout (set = 1, binding = 2) uniform sampler2D samplerColorMap;
+layout (set = 1, binding = 3) uniform sampler2D chromaU;
+layout (set = 1, binding = 4) uniform sampler2D chromaV;
+
+
+
 
 layout(location = 0) out vec4 outColor;
 
@@ -68,16 +76,16 @@ vec4 BiCubic(sampler2D textureSampler, vec2 TexCoord)
 
 void main()
 {
-    if (mat.useColor == 1){
+
+    if (matrix.useColor == 1){
         if (inCoords.z > 50 && inCoords.z < 0.1){
             outColor = vec4(0.0f, 0.0f, 0.0f, 1.0f);
             return;
         }
         // Project into color image
-        vec4 colorCamCoords = 1/inCoords.z * mat.intrinsic * mat.extrinsic * vec4(inCoords, 1.0f);
+        vec4 colorCamCoords = 1/inCoords.z * matrix.intrinsics * matrix.extrinsics * vec4(inCoords, 1.0f);
         vec2 sampleCoords = vec2((colorCamCoords.x / imageDimmensions.x), colorCamCoords.y / imageDimmensions.y);
-        if (mat.hasSampler == 1){
-            //outColor = BiCubic(samplerColorMap, sampleCoords);
+        if (matrix.hasSampler == 1){
             outColor = texture(samplerColorMap, sampleCoords);
 
         } else {
@@ -97,9 +105,10 @@ void main()
         }
     }
 
-    if (mat.useColor == 0 ){
+    if (matrix.useColor == 0 ){
         vec3 tex = texture(samplerColorMap, inUV).rgb;
         outColor = vec4(tex.r, tex.r, tex.r, 1.0f);
     }
+
 
 }

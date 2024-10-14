@@ -18,7 +18,9 @@
 namespace VkRender {
 
     struct Editor3DViewportUI : public EditorUI {
-        bool renderToOffscreen = false;
+        bool showVideoControlPanel = true;
+        bool resetPlayback = false;
+        bool stopCollectingRenderCommands = false;
         // Constructor that copies everything from base EditorUI
         explicit Editor3DViewportUI(const EditorUI &baseUI) : EditorUI(baseUI) {}
     };
@@ -57,6 +59,12 @@ namespace VkRender {
             auto imageUI = std::dynamic_pointer_cast<Editor3DViewportUI>(m_editor->ui());
 
 
+            ImGui::Checkbox("Stop Collecting RenderCommands", &imageUI->stopCollectingRenderCommands); ImGui::SameLine();
+
+            ImGui::Checkbox("Video control panel", &imageUI->showVideoControlPanel); ImGui::SameLine();
+            if (imageUI->showVideoControlPanel) {
+                imageUI->resetPlayback = ImGui::Button("Reset"); ImGui::SameLine();
+            }
             ImGui::End();
 
         }

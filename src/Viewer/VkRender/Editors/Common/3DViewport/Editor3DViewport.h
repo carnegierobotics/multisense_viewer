@@ -29,7 +29,11 @@ namespace VkRender {
 
         std::shared_ptr<MaterialInstance> initializeMaterial(Entity entity, MaterialComponent & materialComponent);
 
+        void updateMaterialDescriptors(Entity entity, MaterialInstance *materialInstance);
+
         std::shared_ptr<PointCloudInstance> initializePointCloud(Entity entity, PointCloudComponent &pointCloudComponent);
+
+        void updatePointCloudDescriptors(Entity entity, PointCloudInstance *pointCloudInstance);
 
         void collectRenderCommands(
             std::unordered_map<std::shared_ptr<DefaultGraphicsPipeline>, std::vector<RenderCommand>> &renderGroups);

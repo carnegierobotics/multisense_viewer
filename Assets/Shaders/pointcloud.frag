@@ -6,12 +6,11 @@ layout(location = 0) in vec3 Normal;
 layout(location = 1) in vec2 inUV;
 layout(location = 2) in vec3 fragPos;
 layout(location = 3) in vec3 inCoords;
-layout(location = 4) in vec2 imageDimmensions;
 
 layout (set = 1, binding = 0) uniform PointCloudParam {
     mat4 Q;
-    mat4 intrinsics;
-    mat4 extrinsics;
+    mat4 colorIntrinsics;
+    mat4 colorExtrinsics;
     float width;
     float height;
     float disparity;
@@ -50,12 +49,12 @@ float Triangular(float f)
 // help of nearest four data.
 vec4 BiCubic(sampler2D textureSampler, vec2 TexCoord)
 {
-    float texelSizeX = 1.0 / imageDimmensions.x;//size of one texel
-    float texelSizeY = 1.0 / imageDimmensions.y;//size of one texel
+    float texelSizeX = 1.0 / matrix.width;//size of one texel
+    float texelSizeY = 1.0 / matrix.width;//size of one texel
     vec4 nSum = vec4(0.0, 0.0, 0.0, 0.0);
     vec4 nDenom = vec4(0.0, 0.0, 0.0, 0.0);
-    float a = fract(TexCoord.x * imageDimmensions.x);// get the decimal part
-    float b = fract(TexCoord.y * imageDimmensions.y);// get the decimal part
+    float a = fract(TexCoord.x * matrix.width);// get the decimal part
+    float b = fract(TexCoord.y * matrix.width);// get the decimal part
     for (int m = -1; m <=2; m++)
     {
         for (int n =-1; n<= 2; n++)
@@ -78,13 +77,20 @@ void main()
 {
 
     if (matrix.useColor == 1){
-        if (inCoords.z > 50 && inCoords.z < 0.1){
+        if (inCoords.z < 0.1 || inCoords.z > 50) {
             outColor = vec4(0.0f, 0.0f, 0.0f, 1.0f);
             return;
         }
         // Project into color image
-        vec4 colorCamCoords = 1/inCoords.z * matrix.intrinsics * matrix.extrinsics * vec4(inCoords, 1.0f);
-        vec2 sampleCoords = vec2((colorCamCoords.x / imageDimmensions.x), colorCamCoords.y / imageDimmensions.y);
+        vec4 colorCamCoords = matrix.colorIntrinsics * matrix.colorExtrinsics * vec4(inCoords, 1.0f);
+        colorCamCoords /= colorCamCoords.w; // Perform perspective division
+        // Normalize coordinates by image dimensions
+        vec2 sampleCoords = vec2(colorCamCoords.x / matrix.width, colorCamCoords.y / matrix.width);
+        // Ensure the projected coordinates are within bounds
+        if (sampleCoords.x < 0.0 || sampleCoords.x > 1.0 || sampleCoords.y < 0.0 || sampleCoords.y > 1.0) {
+            outColor = vec4(0.0f, 0.0f, 0.0f, 1.0f);
+            return;
+        }
         if (matrix.hasSampler == 1){
             outColor = texture(samplerColorMap, sampleCoords);
 

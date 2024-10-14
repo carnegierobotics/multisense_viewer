@@ -15,9 +15,10 @@ namespace VkRender {
 
         // File loading info
         bool usesVideoSource = false;
-        std::filesystem::path videoFolderSource = "path/to/images";
-        size_t videoFileNameIndex;
-        std::vector<std::filesystem::path> videoFileNames;
+        std::filesystem::path depthVideoFolderSource = "path/to/images";
+        std::filesystem::path colorVideoFolderSource = "path/to/images";
+        int videoIndexDepth = -1;
+        int videoIndexColor = -1;
     };
 
     struct PointCloudInstance {

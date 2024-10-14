@@ -295,6 +295,8 @@ namespace VkRender {
                     openImportFolderDialog("Set Image Folder", types, LayerUtils::VIDEO_TEXTURE_FILE);
                 }
 
+                ImGui::Checkbox("Is Disparity", &component.isDisparity);
+
 
                 ImGui::EndChild();
             }
@@ -323,13 +325,19 @@ namespace VkRender {
             ImGui::Checkbox("Use Video Source", &component.usesVideoSource);
             if (component.usesVideoSource) {
                 ImGui::BeginChild("TextureChildWindow", ImVec2(0, ImGui::GetTextLineHeightWithSpacing() * 6), true);
-
-                ImGui::Text("Images folder:");
-                ImGui::Text("%s", component.videoFolderSource.string().c_str());
+                ImGui::Text("Depth Images folder:");
+                ImGui::Text("%s", component.depthVideoFolderSource.string().c_str());
                 // Button to load texture
-                if (ImGui::Button("Set Image Folder")) {
+                if (ImGui::Button("Set Depth Images")) {
                     std::vector<std::string> types{".png", ".jpg", ".bmp"};
-                    openImportFolderDialog("Set Image Folder", types, LayerUtils::VIDEO_TEXTURE_FILE);
+                    openImportFolderDialog("Set Image Folder", types, LayerUtils::VIDEO_DISPARITY_DEPTH_TEXTURE_FILE);
+                }
+                ImGui::Text("Color Images folder:");
+                ImGui::Text("%s", component.colorVideoFolderSource.string().c_str());
+                // Button to load texture
+                if (ImGui::Button("Set Color Images")) {
+                    std::vector<std::string> types{".png", ".jpg", ".bmp"};
+                    openImportFolderDialog("Set Image Folder", types, LayerUtils::VIDEO_DISPARITY_COLOR_TEXTURE_FILE);
                 }
 
 
@@ -461,14 +469,23 @@ namespace VkRender {
                         materialComponent.videoFolderSource = loadFileInfo.path;
                         m_scene->onComponentUpdated(m_selectionContext, materialComponent);
                     }
-                    if (m_selectionContext.hasComponent<PointCloudComponent>()) {
-                        auto &pointCloudComponent = m_selectionContext.getComponent<PointCloudComponent>();
-                        pointCloudComponent.videoFolderSource = loadFileInfo.path;
-                        m_scene->onComponentUpdated(m_selectionContext, pointCloudComponent);
-                    }
+
                 }
                 break;
-
+                case LayerUtils::VIDEO_DISPARITY_DEPTH_TEXTURE_FILE:
+                    if (m_selectionContext.hasComponent<PointCloudComponent>()) {
+                        auto &pointCloudComponent = m_selectionContext.getComponent<PointCloudComponent>();
+                        pointCloudComponent.depthVideoFolderSource = loadFileInfo.path;
+                        m_scene->onComponentUpdated(m_selectionContext, pointCloudComponent);
+                    }
+                    break;
+                case LayerUtils::VIDEO_DISPARITY_COLOR_TEXTURE_FILE:
+                    if (m_selectionContext.hasComponent<PointCloudComponent>()) {
+                        auto &pointCloudComponent = m_selectionContext.getComponent<PointCloudComponent>();
+                        pointCloudComponent.colorVideoFolderSource = loadFileInfo.path;
+                        m_scene->onComponentUpdated(m_selectionContext, pointCloudComponent);
+                    }
+                    break;
                 default:
                     Log::Logger::getInstance()->warning("Not implemented yet");
                     break;

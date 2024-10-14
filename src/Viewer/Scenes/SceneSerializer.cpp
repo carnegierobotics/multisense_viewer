@@ -241,10 +241,16 @@ namespace VkRender {
             out << YAML::Key << "FragmentShader";
             out << YAML::Value << material.fragmentShaderName.string(); // Convert path to string
 
-            // Serialize albedo texture path (std::filesystem::path), only if usesTexture is true
+            // Serialize the flag for video source
+            out << YAML::Key << "UsesVideoSource";
+            out << YAML::Value << material.usesVideoSource;
+
+            // If video source is used, serialize the video folder source
             if (material.usesVideoSource) {
-                out << YAML::Key << "VideoSource";
-                out << YAML::Value << material.albedoTexturePath.string(); // Convert path to string
+                out << YAML::Key << "VideoFolderSource";
+                out << YAML::Value << material.videoFolderSource.string();
+                out << YAML::Key << "IsDisparity";
+                out << YAML::Value << material.isDisparity;
             }
 
             out << YAML::EndMap;
@@ -256,6 +262,19 @@ namespace VkRender {
             auto &component = entity.getComponent<PointCloudComponent>();
             out << YAML::Key << "PointSize";
             out << YAML::Value << component.pointSize;
+            // Serialize the flag for video source
+            out << YAML::Key << "UsesVideoSource";
+            out << YAML::Value << component.usesVideoSource;
+
+            // If video source is used, serialize the video folder source
+            if (component.usesVideoSource) {
+                out << YAML::Key << "DepthVideoFolderSource";
+                out << YAML::Value << component.depthVideoFolderSource.string();
+                out << YAML::Key << "ColorVideoFolderSource";
+                out << YAML::Value << component.colorVideoFolderSource.string();
+            }
+
+
             out << YAML::EndMap;
         }
 
@@ -319,6 +338,7 @@ namespace VkRender {
                     auto &tc = deserializedEntity.getComponent<TransformComponent>();
                     tc.setPosition(transformComponent["Position"].as<glm::vec3>());
                     tc.setRotationQuaternion(transformComponent["Rotation"].as<glm::quat>());
+                    tc.setScale(transformComponent["Scale"].as<glm::vec3>());
                 }
                 auto cameraComponent = entity["CameraComponent"];
                 if (cameraComponent) {
@@ -367,9 +387,11 @@ namespace VkRender {
                             materialComponent["FragmentShader"].as<std::string>());
                     }
                     // Deserialize albedo texture path (only if usesTexture is true)
-                    if (material.usesVideoSource && materialComponent["VideoSource"]) {
-                        material.albedoTexturePath = std::filesystem::path(
-                            materialComponent["VideoSource"].as<std::string>());
+                    if (material.usesVideoSource && materialComponent["VideoFolderSource"]) {
+                        material.videoFolderSource = std::filesystem::path(
+                            materialComponent["VideoFolderSource"].as<std::string>());
+                        material.isDisparity =
+                                materialComponent["IsDisparity"].as<bool>();
                     }
                 }
 
@@ -377,6 +399,12 @@ namespace VkRender {
                 if (pointCloudComponent) {
                     auto &component = deserializedEntity.addComponent<PointCloudComponent>();
                     component.pointSize = pointCloudComponent["PointSize"].as<float>();
+
+                    component.usesVideoSource = pointCloudComponent["UsesVideoSource"].as<bool>();
+                    component.depthVideoFolderSource = std::filesystem::path(
+                        pointCloudComponent["DepthVideoFolderSource"].as<std::string>());
+                    component.colorVideoFolderSource = std::filesystem::path(
+                        pointCloudComponent["ColorVideoFolderSource"].as<std::string>());
                 }
             }
         }

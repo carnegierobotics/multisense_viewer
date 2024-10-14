@@ -34,6 +34,8 @@ namespace VkRender::LayerUtils {
         PLY_MESH,
         TEXTURE_FILE,
         VIDEO_TEXTURE_FILE,
+        VIDEO_DISPARITY_DEPTH_TEXTURE_FILE,
+        VIDEO_DISPARITY_COLOR_TEXTURE_FILE,
         VERTEX_SHADER_FILE,
         FRAGMENT_SHADER_FILE,
     } FileTypeLoadFlow;

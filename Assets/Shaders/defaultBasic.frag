@@ -17,6 +17,7 @@ layout (set = 1, binding = 0) uniform Info {
     vec4 baseColor;
     float metallic;
     float roughness;
+    float isDisparity;
     vec4 emissiveFactor;
 } info;
 
@@ -58,5 +59,10 @@ void main()
     vec3 phongLighting = calculatePhongLighting(norm, inFragPos, viewDir, lightDir);
 
     vec4 texColor = texture(samplerColorMap, inUV);
-    outColor = vec4(phongLighting, 1.0) * texColor * info.baseColor ;
+    if (info.isDisparity == 1){
+        float color = texColor.r * 64;
+        texColor = vec4(vec3(color), 1.0);
+    }
+    //outColor = vec4(phongLighting, 1.0) * texColor * info.baseColor ;
+    outColor = texColor * info.baseColor ;
 }

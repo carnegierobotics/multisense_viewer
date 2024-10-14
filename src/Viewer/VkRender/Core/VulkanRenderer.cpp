@@ -1171,7 +1171,7 @@ namespace VkRender {
 
     void VulkanRenderer::recordCommands() {
         VkCommandBufferBeginInfo cmdBufInfo = Populate::commandBufferBeginInfo();
-        cmdBufInfo.flags = 0;
+        cmdBufInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT; // Allow reusing this command buffer
         cmdBufInfo.pInheritanceInfo = nullptr;
         std::array<VkClearValue, 3> clearValues{};
         clearValues[0] = {{{0.15f, 0.15f, 0.15f, 1.0f}}};

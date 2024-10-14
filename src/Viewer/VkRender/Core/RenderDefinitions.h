@@ -176,6 +176,7 @@ namespace VkRender {
         glm::vec4 baseColor;
         float metallic;
         float roughness;
+        float isDisparity;
         glm::vec4 emissiveFactor;
     };
 

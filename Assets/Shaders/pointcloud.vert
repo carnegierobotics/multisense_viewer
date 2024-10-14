@@ -22,8 +22,8 @@ layout (binding = 1) uniform ModelUBO
 
 layout (set = 1, binding = 0) uniform PointCloudParam {
     mat4 Q;
-    mat4 intrinsics;
-    mat4 extrinsics;
+    mat4 colorIntrinsics;
+    mat4 colorExtrinsics;
     float width;
     float height;
     float disparity;
@@ -41,7 +41,6 @@ layout(location = 0) out vec3 outNormal;
 layout(location = 1) out vec2 outUV;
 layout(location = 2) out vec3 fragPos;
 layout(location = 3) out vec3 outCoords;
-layout(location = 4) out vec2 imageDimmensions;
 
 
 void main()
@@ -51,7 +50,6 @@ void main()
     outUV = inUV;
     float width = matrix.width;
     float height = matrix.height;
-    imageDimmensions = vec2(width, height);
     // When uploaded to GPU, vulkan will scale the texture values to between 0-1. Since we only have 12 bit values of a 16 bit image, we multiply by 64 to scale between [0 - 1]
     float depth = texture(disparityImage, vec2(inUV.x, inUV.y)).r * 64 * 255;//  scaled to inbetween [0, 1] then up to 0 - 255 for disparity
 

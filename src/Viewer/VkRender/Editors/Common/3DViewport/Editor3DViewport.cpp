@@ -53,14 +53,19 @@ namespace VkRender {
         m_activeCamera = m_editorCamera;
         m_activeScene = m_context->activeScene();
         // TODO not clear what this does but it creates render reosurces of the editor was copied as part of a split operation
-        auto view = m_activeScene->getRegistry().view<MeshComponent>();
+        auto view = m_activeScene->getRegistry().view<IDComponent>();
         for (auto e: view) {
             auto entity = Entity(e, m_activeScene.get());
             auto name = entity.getName();
             if (entity.hasComponent<MaterialComponent>()) {
                 onComponentAdded(entity, entity.getComponent<MaterialComponent>());
             }
-            onComponentAdded(entity, entity.getComponent<MeshComponent>());
+            if (entity.hasComponent<PointCloudComponent>()) {
+                onComponentAdded(entity, entity.getComponent<PointCloudComponent>());
+            }
+            if (entity.hasComponent<MeshComponent>()) {
+                onComponentAdded(entity, entity.getComponent<MeshComponent>());
+            }
         }
     }
 
@@ -76,8 +81,58 @@ namespace VkRender {
         // Update
         auto materialview = m_activeScene->getRegistry().view<MaterialComponent>();
         for (auto e: materialview) {
+            Entity entity(e, m_activeScene.get());
+            auto &materialComponent = entity.getComponent<MaterialComponent>();
+            if (materialComponent.usesVideoSource && m_materialInstances.contains(entity.getUUID()) &&
+                materialComponent.videoIndex == -1 && std::filesystem::exists(materialComponent.videoFolderSource)) {
+                MaterialInstance *materialInstance = m_materialInstances[entity.getUUID()].get();
+                VideoSource::ImageType imageType = VideoSource::ImageType::RGB;
+                if (materialComponent.isDisparity)
+                    imageType = VideoSource::ImageType::Disparity16Bit;
+                // Determined based on user input or file inspection
+                float fps = 30.0f;
+                bool loop = true;
+                materialComponent.videoIndex = m_videoPlaybackSystem->addVideoSource(
+                    materialComponent.videoFolderSource, imageType, fps, loop);
+                materialInstance->baseColorTexture = m_videoPlaybackSystem->
+                        getTexture(materialComponent.videoIndex);
+                updateMaterialDescriptors(entity, materialInstance);
+            }
+        }
+        auto pointcloudView = m_activeScene->getRegistry().view<PointCloudComponent>();
+        for (auto e: pointcloudView) {
+            Entity entity(e, m_activeScene.get());
+            auto &pointCloudComponent = entity.getComponent<PointCloudComponent>();
+
+            if (pointCloudComponent.usesVideoSource && m_pointCloudInstances.contains(entity.getUUID()) &&
+                pointCloudComponent.videoIndexDepth == -1 && std::filesystem::exists(
+                    pointCloudComponent.depthVideoFolderSource)&& std::filesystem::exists(
+                    pointCloudComponent.colorVideoFolderSource)) {
+                PointCloudInstance *pointCloudInstance = m_pointCloudInstances[entity.getUUID()].get();
+
+                // Determined based on user input or file inspection
+                float fps = 30.0f;
+                bool loop = true;
+                pointCloudComponent.videoIndexDepth = static_cast<int>(m_videoPlaybackSystem->addVideoSource(
+                    pointCloudComponent.depthVideoFolderSource,  VideoSource::ImageType::Disparity16Bit, fps, loop));
+
+                pointCloudComponent.videoIndexColor = static_cast<int>(m_videoPlaybackSystem->addVideoSource(
+                     pointCloudComponent.colorVideoFolderSource,  VideoSource::ImageType::RGB, fps, loop));
+
+                for (auto &texture: pointCloudInstance->textures) {
+                    texture.depth = m_videoPlaybackSystem->getTexture(pointCloudComponent.videoIndexDepth);
+                    texture.color = m_videoPlaybackSystem->getTexture(pointCloudComponent.videoIndexColor);
+                }
+                updatePointCloudDescriptors(entity, pointCloudInstance);
+            }
         }
 
+        if (imageUI->showVideoControlPanel)
+            m_videoPlaybackSystem->update(m_context->deltaTime());
+
+        if (imageUI->resetPlayback) {
+            m_videoPlaybackSystem->resetAllSourcesPlayback();
+        }
         /*
         // TODO rethink the method for cleaning up resources
         // Retrieve the list of valid entities from the active scene
@@ -107,10 +162,46 @@ namespace VkRender {
 
     void Editor3DViewport::onRender(CommandBuffer &commandBuffer) {
         auto imageUI = std::dynamic_pointer_cast<Editor3DViewportUI>(m_ui);
+        if (imageUI->stopCollectingRenderCommands)
+            return;
+
         std::unordered_map<std::shared_ptr<DefaultGraphicsPipeline>, std::vector<RenderCommand> > renderGroups;
         collectRenderCommands(renderGroups);
+
+        // Separate point cloud render groups
+        std::unordered_map<std::shared_ptr<DefaultGraphicsPipeline>, std::vector<RenderCommand> > pointCloudRenderGroups;
+
+        // Iterate through renderGroups and identify point cloud pipelines
+        for (auto it = renderGroups.begin(); it != renderGroups.end(); ) {
+            const auto& pipeline = it->first;
+
+            // Check if this pipeline is used for point clouds
+            bool isPointCloudPipeline = false;
+            for (const auto &command : it->second) {
+                if (command.pointCloudInstance != nullptr) {
+                    isPointCloudPipeline = true;
+                    break;
+                }
+            }
+
+            // If it's a point cloud pipeline, move it to the separate map
+            if (isPointCloudPipeline) {
+                pointCloudRenderGroups[it->first] = std::move(it->second);
+                it = renderGroups.erase(it); // Remove from original map
+            } else {
+                ++it; // Continue with the next pipeline
+            }
+        }
+
         // Render each group
         for (auto &[pipeline, commands]: renderGroups) {
+            pipeline->bind(commandBuffer);
+            for (auto &command: commands) {
+                // Bind resources and draw
+                bindResourcesAndDraw(commandBuffer, command);
+            }
+        }        // Render each group
+        for (auto &[pipeline, commands]: pointCloudRenderGroups) {
             pipeline->bind(commandBuffer);
             for (auto &command: commands) {
                 // Bind resources and draw
@@ -249,6 +340,8 @@ namespace VkRender {
                 key.vertexShaderName = "pointcloud.vert.spv";
                 key.fragmentShaderName = "pointcloud.frag.spv";
                 key.setLayouts.push_back(m_pointCloudDescriptorSetLayout);
+                key.topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+                key.polygonMode = VK_POLYGON_MODE_POINT;
             }
 
             // Create or retrieve the pipeline
@@ -333,14 +426,7 @@ namespace VkRender {
 
     void Editor3DViewport::onComponentUpdated(Entity entity, MaterialComponent &materialComponent) {
         // add a video source if selected
-        if (materialComponent.usesVideoSource && !materialComponent.videoFolderSource.empty()) {
-            VideoSource::ImageType imageType = VideoSource::ImageType::RGB;
-            // Determined based on user input or file inspection
-            float fps = 30.0f;
-            bool loop = true;
-            materialComponent.videoIndex = m_videoPlaybackSystem->addVideoSource(
-                materialComponent.videoFolderSource, imageType, fps, loop);
-        }
+
         if (materialComponent.reloadShader) {
             if (m_materialInstances.contains(entity.getUUID())) {
                 m_materialInstances.erase(entity.getUUID());
@@ -600,6 +686,7 @@ namespace VkRender {
             matUBO.metallic = material.metallic;
             matUBO.roughness = material.roughness;
             matUBO.emissiveFactor = material.emissiveFactor;
+            matUBO.isDisparity = material.isDisparity;
             void *data;
             vkMapMemory(m_context->vkDevice().m_LogicalDevice,
                         m_entityRenderData[entity.getUUID()].materialBuffer[frameIndex].m_Memory, 0,
@@ -638,10 +725,10 @@ namespace VkRender {
 
             // Set the intrinsics matrix
             glm::mat4 intrinsics = glm::mat4(1.0f); // Identity matrix
-            intrinsics[0][0] = fx; // fx
-            intrinsics[1][1] = fy; // fy
-            intrinsics[0][2] = cx; // cx
-            intrinsics[1][2] = cy; // cy
+            intrinsics[0][0] = 600.0f; // fx from "P"
+            intrinsics[1][1] = 600.0f; // fy from "P"
+            intrinsics[0][2] = 480.0f; // cx from "P"
+            intrinsics[1][2] = 300.0f; // cy from "P"
             pointCloudUBO.intrinsics = intrinsics;
 
             // Hardcode the extrinsics matrix (R) - since the camera is stereo rectified,
@@ -649,15 +736,17 @@ namespace VkRender {
             glm::mat4 extrinsics = glm::mat4(1.0f); // Identity matrix
 
             // Rotation matrix from the JSON (R matrix)
-            extrinsics[0][0] = 0.9999520778656006f; // R00
-            extrinsics[0][1] = -0.009579263627529144f; // R01
-            extrinsics[0][2] = 0.0020164381712675095f; // R02
-            extrinsics[1][0] = 0.009576529264450073f; // R10
-            extrinsics[1][1] = 0.9999532103538513f; // R11
-            extrinsics[1][2] = 0.0013617108343169093f; // R12
-            extrinsics[2][0] = -0.0020293882116675377f; // R20
-            extrinsics[2][1] = -0.0013423351338133216f; // R21
-            extrinsics[2][2] = 0.9999970197677612f; // R22
+            //extrinsics[0][0] = 0.9999923706054688f; // R00
+            //extrinsics[0][1] = 0.002553278347477317f; // R01
+            //extrinsics[0][2] = 0.0029585757292807102f; // R02
+            //extrinsics[1][0] = -0.0025533579755574465f; // R10
+            //extrinsics[1][1] = 0.9999967217445374f; // R11
+            //extrinsics[1][2] = 2.3196893380372785e-05f; // R12
+            //extrinsics[2][0] = -0.0029585070442408323f; // R20
+            //extrinsics[2][1] = -3.075101994909346e-05f; // R21
+            //extrinsics[2][2] = 0.9999956488609314f; // R22
+
+            extrinsics[3][0] = 20.049549102783203f / 600; // Translation along X
 
             // Since this is stereo rectified from the left camera's viewpoint, you might
             // need to apply a small translation to account for the stereo baseline, if required
@@ -669,7 +758,7 @@ namespace VkRender {
             pointCloudUBO.disparity = 255.0f;
             pointCloudUBO.pointSize = pointCloud.pointSize;
             pointCloudUBO.hasSampler = 1.0f;
-            pointCloudUBO.useColor = 1.0f;
+            pointCloudUBO.useColor = 0.0f;
             pointCloudUBO.scale = 1.0f;
             pointCloudUBO.focalLength = -0.27f;
 
@@ -691,9 +780,21 @@ namespace VkRender {
         auto &renderData = m_entityRenderData[entity.getUUID()];
         const auto maxFramesInFlight = static_cast<uint32_t>(m_context->swapChainBuffers().size());
 
-        materialInstance->baseColorTexture = EditorUtils::createTextureFromFile(Utils::getTexturePath() / "moon.png", m_context);
+        materialInstance->baseColorTexture = EditorUtils::createTextureFromFile(
+            Utils::getTexturePath() / "moon.png", m_context);
 
         renderData.materialDescriptorSets.resize(maxFramesInFlight);
+        Log::Logger::getInstance()->info("Created Material for Entity: {}", entity.getName());
+        updateMaterialDescriptors(entity, materialInstance.get());
+        return materialInstance;
+    }
+
+    void Editor3DViewport::updateMaterialDescriptors(
+        Entity entity, MaterialInstance *materialInstance) {
+        // Create a new MaterialInstance
+        auto &renderData = m_entityRenderData[entity.getUUID()];
+        const auto maxFramesInFlight = static_cast<uint32_t>(m_context->swapChainBuffers().size());
+
         for (int frameIndex = 0; frameIndex < maxFramesInFlight; ++frameIndex) {
             // Allocate Descriptor Set
             VkDescriptorSetLayout layouts[] = {m_materialDescriptorSetLayout};
@@ -729,18 +830,16 @@ namespace VkRender {
                                    descriptorWrites.data(), 0, nullptr);
         }
 
-        Log::Logger::getInstance()->info("Created Material for Entity: {}", entity.getName());
-        return materialInstance;
+        Log::Logger::getInstance()->info("Updated Material descriptors for Entity: {}", entity.getName());
     }
 
 
     std::shared_ptr<PointCloudInstance> Editor3DViewport::initializePointCloud(
         Entity entity, PointCloudComponent &pointCloudComponent) {
         // Create a new MaterialInstance
-        auto pointCloudInstance = std::make_shared<PointCloudInstance>();
-        const auto maxFramesInFlight = static_cast<uint32_t>(m_context->swapChainBuffers().size());
         // Initialize point cloud instance textures etc..
-        if (pointCloudComponent.usesVideoSource) {
+        //
+        /*if (pointCloudComponent.usesVideoSource) {
             std::filesystem::path folderPath = pointCloudComponent.videoFolderSource;
             std::vector<std::filesystem::path> files;
             // Check if the folder exists
@@ -816,10 +915,27 @@ namespace VkRender {
         } else {
             return nullptr;
         }
+*/
 
+        auto pointCloudInstance = std::make_shared<PointCloudInstance>();
         auto &renderData = m_entityRenderData[entity.getUUID()];
-
+        const auto maxFramesInFlight = static_cast<uint32_t>(m_context->swapChainBuffers().size());
         renderData.pointCloudDescriptorSets.resize(maxFramesInFlight);
+        Log::Logger::getInstance()->info("Created Point Cloud Instance for Entity: {}", entity.getName());
+        pointCloudInstance->textures.resize(maxFramesInFlight);
+        for (int frameIndex = 0; frameIndex < maxFramesInFlight; ++frameIndex) {
+            pointCloudInstance->textures[frameIndex].depth = EditorUtils::createTextureFromFile("", m_context);
+            pointCloudInstance->textures[frameIndex].color = EditorUtils::createTextureFromFile("", m_context);
+            pointCloudInstance->textures[frameIndex].chromaU = EditorUtils::createTextureFromFile("", m_context);
+            pointCloudInstance->textures[frameIndex].chromaV = EditorUtils::createTextureFromFile("", m_context);
+        }
+        updatePointCloudDescriptors(entity, pointCloudInstance.get());
+        return pointCloudInstance;
+    }
+
+    void Editor3DViewport::updatePointCloudDescriptors(Entity entity, PointCloudInstance *pointCloudInstance) {
+        auto &renderData = m_entityRenderData[entity.getUUID()];
+        const auto maxFramesInFlight = static_cast<uint32_t>(m_context->swapChainBuffers().size());
         for (int frameIndex = 0; frameIndex < maxFramesInFlight; ++frameIndex) {
             // Create a descriptor set allocation info structure
             VkDescriptorSetAllocateInfo allocInfo{};
@@ -827,16 +943,13 @@ namespace VkRender {
             allocInfo.descriptorPool = m_descriptorPool; // Use the descriptor pool created earlier
             allocInfo.descriptorSetCount = 1;
             allocInfo.pSetLayouts = &m_pointCloudDescriptorSetLayout; // Use the pre-created descriptor set layout
-
             // Allocate the descriptor set
             if (vkAllocateDescriptorSets(m_context->vkDevice().m_LogicalDevice, &allocInfo,
                                          &renderData.pointCloudDescriptorSets[frameIndex]) !=
                 VK_SUCCESS) {
                 throw std::runtime_error("Failed to allocate descriptor sets!");
             }
-
             VkDescriptorSet descriptorSet = renderData.pointCloudDescriptorSets[frameIndex];
-
             VkWriteDescriptorSet pointCloudWrite{};
             pointCloudWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             pointCloudWrite.dstSet = descriptorSet;
@@ -893,9 +1006,6 @@ namespace VkRender {
                                    static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
             // Allocate
         }
-
-        Log::Logger::getInstance()->info("Created Point Coud Instance for Entity: {}", entity.getName());
-        return pointCloudInstance;
     }
 
     std::shared_ptr<MeshInstance> Editor3DViewport::initializeMesh(const MeshComponent &meshComponent) {

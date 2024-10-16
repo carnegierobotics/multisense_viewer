@@ -310,8 +310,6 @@ namespace VkRender {
         void clipboard();
 #endif
 
-        void computePipeline();
-
         static bool checkInstanceExtensionSupport(const std::vector<const char *> &checkExtensions);
 
         void createMainRenderPass();

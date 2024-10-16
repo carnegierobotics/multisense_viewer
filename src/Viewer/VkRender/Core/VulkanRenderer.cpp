@@ -560,30 +560,6 @@ namespace VkRender {
         }
     }
 
-
-    void VulkanRenderer::computePipeline() {
-        VkSubmitInfo sInfo{};
-        sInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        // Compute submission
-        // Only wait on the fence if we submitted work last time
-        if (vkWaitForFences(device, 1, &computeInFlightFences[currentFrame], VK_TRUE, UINT64_MAX != VK_SUCCESS))
-            throw std::runtime_error("Failed to wait for compute fence");
-
-
-        vkResetFences(device, 1, &computeInFlightFences[currentFrame]);
-        auto activeBuffer = computeCommand.getActiveBuffer();
-        vkResetCommandBuffer(activeBuffer, /*VkCommandBufferResetFlagBits*/ 0);
-        /** call renderer compute function **/
-        sInfo.commandBufferCount = 1;
-        sInfo.pCommandBuffers = &activeBuffer;
-        sInfo.signalSemaphoreCount = 1;
-        sInfo.pSignalSemaphores = &semaphores[currentFrame].computeComplete;
-        if (vkQueueSubmit(computeQueue, 1, &sInfo, computeInFlightFences[currentFrame]) != VK_SUCCESS) {
-            throw std::runtime_error("failed to submit compute command buffer!");
-        }
-    }
-
-
     void VulkanRenderer::prepareFrame() {
         // Use a fence to wait until the command buffer has finished execution before using it again
         if (vkWaitForFences(device, 1, &waitFences[currentFrame], VK_TRUE, UINT64_MAX) != VK_SUCCESS)

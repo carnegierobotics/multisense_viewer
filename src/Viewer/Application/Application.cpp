@@ -106,8 +106,8 @@ namespace VkRender {
             m_editors.push_back(std::move(editor));
         }
 
-        SceneSerializer serializer(m_activeScene);
-        serializer.deserialize("../"  / Utils::getAssetsPath() / "Scenes" / "Example.multisense");
+        //SceneSerializer serializer(m_activeScene);
+        //serializer.deserialize("../"  / Utils::getAssetsPath() / "Scenes" / "Example.multisense");
 
         m_multiSense = std::make_shared<MultiSense::MultiSenseRendererBridge>();
         m_multiSense->setup();

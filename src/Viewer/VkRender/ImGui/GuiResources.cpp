@@ -322,6 +322,7 @@ namespace VkRender {
         VulkanTexture2DCreateInfo textureCreateInfo(device);
         textureCreateInfo.image = image;
         std::shared_ptr<VulkanTexture2D> texture = std::make_shared<VulkanTexture2D>(textureCreateInfo);
+        texture->loadImage(pixels, texWidth*texHeight*4);
         iconTextures.emplace_back(std::move(texture));
 
         /*

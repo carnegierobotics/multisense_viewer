@@ -4,6 +4,7 @@
 
 
 #include "Viewer/VkRender/Core/VulkanResourceManager.h"
+#include "Viewer/Tools/Logger.h"
 
 namespace VkRender {
     VulkanResourceManager *VulkanResourceManager::instance = nullptr;
@@ -29,17 +30,10 @@ namespace VkRender {
     }
 
     void VulkanResourceManager::submitCommandBuffers() {
-        std::vector<VkSubmitInfo> submitInfos;
         // TODO Its possible to make batch submits, which could speed up a little bit
         // TODO Is m_TransferQueue the correct queue to use? Maybe use graphics queue as we are dealing with render resources
         for (auto &deferred: m_deferredCleanupFunctions) {
             VkCommandBuffer commandBuffer = m_vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-
-            VkSubmitInfo submitInfo = {};
-            submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-            submitInfo.commandBufferCount = 1;
-            submitInfo.pCommandBuffers = &commandBuffer;
-            submitInfos.push_back(submitInfo);
             m_vulkanDevice->flushCommandBuffer(commandBuffer, m_vulkanDevice->m_TransferQueue, m_vulkanDevice->m_CommandPool, true,
                                                deferred.fence);
         }

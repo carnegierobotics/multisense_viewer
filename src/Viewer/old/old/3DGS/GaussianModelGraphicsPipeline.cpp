@@ -530,14 +530,14 @@ namespace VkRender {
                 writeDescriptorSets[0].descriptorCount = 1;
                 writeDescriptorSets[0].dstSet = resource.descriptorSet;
                 writeDescriptorSets[0].dstBinding = 0;
-                writeDescriptorSets[0].pBufferInfo = &resource.mvpBuffer.m_DescriptorBufferInfo;
+                writeDescriptorSets[0].pBufferInfo = &resource.mvpBuffer.m_descriptorBufferInfo;
 
                 writeDescriptorSets[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
                 writeDescriptorSets[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
                 writeDescriptorSets[1].descriptorCount = 1;
                 writeDescriptorSets[1].dstSet = resource.descriptorSet;
                 writeDescriptorSets[1].dstBinding = 1;
-                writeDescriptorSets[1].pBufferInfo = &resource.fragShaderParamsBuffer.m_DescriptorBufferInfo;
+                writeDescriptorSets[1].pBufferInfo = &resource.fragShaderParamsBuffer.m_descriptorBufferInfo;
 
                 writeDescriptorSets[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
                 writeDescriptorSets[2].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;

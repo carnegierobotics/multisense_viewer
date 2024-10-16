@@ -5,7 +5,6 @@
 #ifndef MULTISENSE_VIEWER_GLTFDEFINES_H
 #define MULTISENSE_VIEWER_GLTFDEFINES_H
 
-#include "Viewer/VkRender/Core/Texture.h"
 #include <glm/ext/matrix_float4x4.hpp>
 #include <glm/ext/vector_float3.hpp>
 #include <glm/fwd.hpp>

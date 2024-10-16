@@ -14,7 +14,6 @@
 #include <stb_image.h>
 
 #include "Viewer/VkRender/Core/VulkanDevice.h"
-#include "Viewer/VkRender/Core/Texture.h"
 #include "Viewer/VkRender/Core/RenderDefinitions.h"
 #include "Viewer/VkRender/Core/CommandBuffer.h"
 #include "Viewer/VkRender/Core/UUID.h"
@@ -46,8 +45,8 @@ namespace VkRender {
     };
 
     struct MeshInstance {
-        Buffer vertexBuffer;
-        Buffer indexBuffer;
+        std::unique_ptr<Buffer> vertexBuffer;
+        std::unique_ptr<Buffer> indexBuffer;
         uint32_t vertexCount = 0;
         uint32_t indexCount = 0;
         // Additional data like vertex layout, primitive type, etc.

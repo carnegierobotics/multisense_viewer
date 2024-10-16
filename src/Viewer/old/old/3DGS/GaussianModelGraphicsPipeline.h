@@ -8,10 +8,7 @@
 
 #include "Viewer/VkRender/Core/CommandBuffer.h"
 #include "Viewer/VkRender/Components/GaussianModelComponent.h"
-#include "Viewer/VkRender/RenderPipelines/GraphicsPipeline.h"
-#include "Viewer/VkRender/RenderPipelines/RenderBase.h"
 #include "Viewer/VkRender/Core/Camera.h"
-#include "Viewer/VkRender/Core/Texture.h"
 #ifdef SYCL_ENABLED
 #include <sycl/sycl.hpp>
 #include "Viewer/VkRender/RenderPipelines/3DGS/radixsort/RadixSorter.h"

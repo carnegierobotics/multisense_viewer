@@ -333,6 +333,7 @@ VkCommandPool VulkanDevice::createCommandPool(uint32_t queueFamilyIndex, VkComma
 *
 * @return VK_SUCCESS if buffer handle and memory have been created and (optionally passed) data has been copied
 */
+
 VkResult
 VulkanDevice::createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, VkDeviceSize size,
                            VkBuffer *buffer, VkDeviceMemory *memory, const void *data) const {
@@ -389,6 +390,7 @@ VulkanDevice::createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags 
     return VK_SUCCESS;
 }
 
+
 /**
 * Create a buffer on the m_Device
 *
@@ -401,15 +403,17 @@ VulkanDevice::createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags 
 *
 * @return VK_SUCCESS if buffer handle and memory have been created and (optionally passed) data has been copied
 */
+
 VkResult VulkanDevice::createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags,
-                                    Buffer *buffer, VkDeviceSize size, void *data, const std::string &debugName,
+                                    std::unique_ptr<Buffer>& buffer, VkDeviceSize size, void *data, const std::string &debugName,
                                     const std::function<VkResult(VkDevice, const VkDebugUtilsObjectNameInfoEXT *)>&
                                     debugFunction) {
-    buffer->m_Device = m_LogicalDevice;
+    buffer = std::make_unique<Buffer>(m_LogicalDevice);
+    buffer->m_device = m_LogicalDevice;
 
     // Create the buffer handle
     VkBufferCreateInfo bufferCreateInfo = Populate::bufferCreateInfo(usageFlags, size);
-    VkResult res = vkCreateBuffer(m_LogicalDevice, &bufferCreateInfo, nullptr, &buffer->m_Buffer);
+    VkResult res = vkCreateBuffer(m_LogicalDevice, &bufferCreateInfo, nullptr, &buffer->m_buffer);
     if (res != VK_SUCCESS)
         throw std::runtime_error("Failed to create Buffer");
 #ifdef VKRENDER_MULTISENSE_VIEWER_DEBUG
@@ -418,7 +422,7 @@ VkResult VulkanDevice::createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPrope
         VkDebugUtilsObjectNameInfoEXT nameInfo{};
         nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
         nameInfo.objectType = VK_OBJECT_TYPE_BUFFER;
-        nameInfo.objectHandle = reinterpret_cast<uint64_t>(buffer->m_Buffer);
+        nameInfo.objectHandle = reinterpret_cast<uint64_t>(buffer->m_buffer);
         nameInfo.pObjectName = debugName.c_str();
 
         // Call the function through the function pointer
@@ -432,7 +436,7 @@ VkResult VulkanDevice::createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPrope
     // Create the memory backing up the buffer handle
     VkMemoryRequirements memReqs;
     VkMemoryAllocateInfo memAlloc = Populate::memoryAllocateInfo();
-    vkGetBufferMemoryRequirements(m_LogicalDevice, buffer->m_Buffer, &memReqs);
+    vkGetBufferMemoryRequirements(m_LogicalDevice, buffer->m_buffer, &memReqs);
     memAlloc.allocationSize = memReqs.size;
     // Find a memory type index that fits the m_Properties of the buffer
     memAlloc.memoryTypeIndex = getMemoryType(memReqs.memoryTypeBits, memoryPropertyFlags);
@@ -447,12 +451,28 @@ VkResult VulkanDevice::createBuffer(VkBufferUsageFlags usageFlags, VkMemoryPrope
 #endif
         memAlloc.pNext = &allocFlagsInfo;
     }
-    res = vkAllocateMemory(m_LogicalDevice, &memAlloc, nullptr, &buffer->m_Memory);
+    res = vkAllocateMemory(m_LogicalDevice, &memAlloc, nullptr, &buffer->m_memory);
     if (res != VK_SUCCESS)
         throw std::runtime_error("Failed to allocate memory");
+#ifdef VKRENDER_MULTISENSE_VIEWER_DEBUG
+    // Set the debug name for the buffer if available
+    if (debugFunction) {
+        VkDebugUtilsObjectNameInfoEXT nameInfo{};
+        nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+        nameInfo.objectType = VK_OBJECT_TYPE_DEVICE_MEMORY;
+        nameInfo.objectHandle = reinterpret_cast<uint64_t>(buffer->m_memory);
+        nameInfo.pObjectName = debugName.c_str();
 
+        // Call the function through the function pointer
+        VkResult result = debugFunction(m_LogicalDevice, &nameInfo);
+        if (result != VK_SUCCESS) {
+            // Handle potential errors
+            throw std::runtime_error("Failed to set debug name for buffer");
+        }
+    }
+#endif
     buffer->alignment = memReqs.alignment;
-    buffer->m_Size = size;
+    buffer->m_size = size;
     buffer->usageFlags = usageFlags;
     buffer->memoryPropertyFlags = memoryPropertyFlags;
 

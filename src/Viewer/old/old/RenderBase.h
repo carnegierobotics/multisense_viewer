@@ -8,11 +8,7 @@
 #include "Viewer/VkRender/Core/CommandBuffer.h"
 
 namespace VkRender {
-    struct RenderPassInfo {
-        VkSampleCountFlagBits sampleCount;
-        VkRenderPass renderPass;
-        uint32_t swapchainImageCount = 1;
-    };
+
 
 }
 

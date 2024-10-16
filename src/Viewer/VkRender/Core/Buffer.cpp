@@ -55,7 +55,7 @@
 * @return VkResult of the buffer mapping call
 */
 VkResult Buffer::map(VkDeviceSize size, VkDeviceSize offset) {
-    return vkMapMemory(m_Device, m_Memory, offset, size, 0, &mapped);
+    return vkMapMemory(m_device, m_memory, offset, size, 0, &mapped);
 }
 
 /**
@@ -65,7 +65,7 @@ VkResult Buffer::map(VkDeviceSize size, VkDeviceSize offset) {
 */
 void Buffer::unmap() {
     if (mapped) {
-        vkUnmapMemory(m_Device, m_Memory);
+        vkUnmapMemory(m_device, m_memory);
         mapped = nullptr;
     }
 }
@@ -78,7 +78,7 @@ void Buffer::unmap() {
 * @return VkResult of the bindBufferMemory call
 */
 VkResult Buffer::bind(VkDeviceSize offset) {
-    return vkBindBufferMemory(m_Device, m_Buffer, m_Memory, offset);
+    return vkBindBufferMemory(m_device, m_buffer, m_memory, offset);
 }
 
 /**
@@ -89,9 +89,9 @@ VkResult Buffer::bind(VkDeviceSize offset) {
 *
 */
 void Buffer::setupDescriptor(VkDeviceSize size, VkDeviceSize offset) {
-    m_DescriptorBufferInfo.offset = offset;
-    m_DescriptorBufferInfo.buffer = m_Buffer;
-    m_DescriptorBufferInfo.range = size;
+    m_descriptorBufferInfo.offset = offset;
+    m_descriptorBufferInfo.buffer = m_buffer;
+    m_descriptorBufferInfo.range = size;
 }
 
 /**
@@ -107,7 +107,7 @@ void Buffer::copyTo(void *data, VkDeviceSize size) {
 }
 
 /**
-* Flush a memory range of the buffer to make it visible to the m_Device
+* Flush a memory range of the buffer to make it visible to the m_device
 *
 * @note Only required for non-coherent memory
 *
@@ -119,10 +119,10 @@ void Buffer::copyTo(void *data, VkDeviceSize size) {
 VkResult Buffer::flush(VkDeviceSize size, VkDeviceSize offset) {
     VkMappedMemoryRange mappedRange = {};
     mappedRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
-    mappedRange.memory = m_Memory;
+    mappedRange.memory = m_memory;
     mappedRange.offset = offset;
     mappedRange.size = size;
-    return vkFlushMappedMemoryRanges(m_Device, 1, &mappedRange);
+    return vkFlushMappedMemoryRanges(m_device, 1, &mappedRange);
 }
 
 /**
@@ -138,49 +138,38 @@ VkResult Buffer::flush(VkDeviceSize size, VkDeviceSize offset) {
 VkResult Buffer::invalidate(VkDeviceSize size, VkDeviceSize offset) {
     VkMappedMemoryRange mappedRange = {};
     mappedRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
-    mappedRange.memory = m_Memory;
+    mappedRange.memory = m_memory;
     mappedRange.offset = offset;
     mappedRange.size = size;
-    return vkInvalidateMappedMemoryRanges(m_Device, 1, &mappedRange);
-}
-
-/**
-* Release all Vulkan resources held by this buffer
-*/
-void Buffer::destroy() const {
-    if (m_Buffer) {
-        vkDestroyBuffer(m_Device, m_Buffer, nullptr);
-    }
-    if (m_Memory) {
-        vkFreeMemory(m_Device, m_Memory, nullptr);
-    }
+    return vkInvalidateMappedMemoryRanges(m_device, 1, &mappedRange);
 }
 
 Buffer::~Buffer() {
-    // If we initialized
-    if (m_Device) {
-        VkFence fence{};
-        VkFenceCreateInfo fenceCreateInfo{};
-        fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-        vkCreateFence(m_Device, &fenceCreateInfo, nullptr, &fence);
+    // Ensure we clean up GPU resources via deferred deletion
+    VkFence fence{};
+    VkFenceCreateInfo fenceCreateInfo{};
+    fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    vkCreateFence(m_device, &fenceCreateInfo, nullptr, &fence);
 
-        // Capture all necessary members by value
-        auto logicalDevice = m_Device;
-        auto buffer = m_Buffer;
-        auto memory = m_Memory;
+    auto logicalDevice = m_device;
+    auto buffer = m_buffer;
+    auto memory = m_memory;
 
+    // Schedule deferred deletion
+    VkRender::VulkanResourceManager::getInstance().deferDeletion(
+            [logicalDevice, buffer, memory]() {
+                if (buffer) {
+                    vkDestroyBuffer(logicalDevice, buffer, nullptr);
+                }
+                if (memory) {
+                    vkFreeMemory(logicalDevice, memory, nullptr);
+                }
+            },
+            fence);
 
-        VkRender::VulkanResourceManager::getInstance().deferDeletion(
-                [logicalDevice, buffer, memory]() {
-                    // Cleanup logic with captured values
-                    if (buffer) {
-                        vkDestroyBuffer(logicalDevice, buffer, nullptr);
-                    }
-                    if (memory) {
-                        vkFreeMemory(logicalDevice, memory, nullptr);
-                    }
-                },
-                fence);
-    }
+    // Reset the internal members after scheduling deferred cleanup
+    m_buffer = VK_NULL_HANDLE;
+    m_memory = VK_NULL_HANDLE;
+
 }
 

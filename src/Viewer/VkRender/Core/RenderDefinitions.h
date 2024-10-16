@@ -180,6 +180,11 @@ namespace VkRender {
         glm::vec4 emissiveFactor;
     };
 
+    struct RenderPassInfo { // TODO move somewhere else
+        VkSampleCountFlagBits sampleCount;
+        VkRenderPass renderPass;
+        uint32_t swapchainImageCount = 1;
+    };
 }
 
 

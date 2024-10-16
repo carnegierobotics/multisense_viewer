@@ -6,10 +6,12 @@
 #include "Viewer/VkRender/ImGui/GuiAssets.h"
 #include "Viewer/Tools/Utils.h"
 #include "Viewer/VkRender/ImGui/IconsFontAwesome6.h"
+#include "Viewer/Application/Application.h"
+
 
 namespace VkRender {
 
-    GuiAssets::GuiAssets(VulkanDevice *d) : device(d) {
+    GuiAssets::GuiAssets(Application *context) : device(context->vkDevice()) {
 
         std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings{};
         setLayoutBindings = {
@@ -28,12 +30,12 @@ namespace VkRender {
                 setLayoutBindings.data(),
                 static_cast<uint32_t>(setLayoutBindings.size()));
         CHECK_RESULT(
-                vkCreateDescriptorSetLayout(device->m_LogicalDevice, &layoutCreateInfo, nullptr,
+                vkCreateDescriptorSetLayout(device.m_LogicalDevice, &layoutCreateInfo, nullptr,
                                             &descriptorSetLayout));
 
 
         VkDescriptorPoolCreateInfo poolCreateInfo = Populate::descriptorPoolCreateInfo(poolSizes, setCount);
-        CHECK_RESULT(vkCreateDescriptorPool(device->m_LogicalDevice, &poolCreateInfo, nullptr, &descriptorPool));
+        CHECK_RESULT(vkCreateDescriptorPool(device.m_LogicalDevice, &poolCreateInfo, nullptr, &descriptorPool));
 
 
         /*
@@ -52,13 +54,13 @@ namespace VkRender {
 
         fontTexture.reserve(fontCount);
         fontDescriptors.reserve(fontCount);
-        font13 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 13.0f);
-        font8 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 8.0f);
-        font15 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 15.0f);
-        font18 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 18.0f);
-        font24 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 24.0f);
+        font13 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 13.0f, false, context);
+        font8 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 8.0f, false, context);
+        font15 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 15.0f, false, context);
+        font18 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 18.0f, false, context);
+        font24 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 24.0f, false, context);
 
-        fontIcons = loadFontFromFileName("Assets/Fonts/fa-solid-900.ttf", 18.0f, true);
+        fontIcons = loadFontFromFileName("Assets/Fonts/fa-solid-900.ttf", 18.0f, true, context);
         fontCount = fontDescriptors.size() - 1;
 
 
@@ -75,7 +77,7 @@ namespace VkRender {
                 "icon_nine_layout.png"
         };
         // Reserve space for icon textures
-        iconTextures.reserve(iconFileNames.size());
+        //iconTextures.reserve(iconFileNames.size());
         iconCount = iconFileNames.size() - 1;
         imageIconDescriptors.resize(iconFileNames.size());
         // Base path for the texture files
@@ -83,14 +85,15 @@ namespace VkRender {
         // Load textures using the filenames
         for (std::size_t index = 0; index < iconFileNames.size(); ++index) {
             const auto &filename = iconFileNames[index];
-            loadImGuiTextureFromFileName((texturePath / filename).string(), index);
+            loadImGuiTextureFromFileName((texturePath / filename).string(), index, context);
         }
-        loadAnimatedGif(Utils::getTexturePath().append("spinner.gif").string());
+
+        //loadAnimatedGif(Utils::getTexturePath().append("spinner.gif").string());
 
         // setup graphics pipeline
         VkShaderModule vtxModule{};
         Utils::loadShader((Utils::getShadersPath().append("Scene/imgui/ui.vert.spv")).string().c_str(),
-                          device->m_LogicalDevice, &vtxModule);
+                          device.m_LogicalDevice, &vtxModule);
         VkPipelineShaderStageCreateInfo vtxShaderStage = {};
         vtxShaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         vtxShaderStage.stage = VK_SHADER_STAGE_VERTEX_BIT;
@@ -101,7 +104,7 @@ namespace VkRender {
 
         VkShaderModule frgModule;
         Utils::loadShader((Utils::getShadersPath().append("Scene/imgui/ui.frag.spv")).string().c_str(),
-                          device->m_LogicalDevice, &frgModule);
+                          device.m_LogicalDevice, &frgModule);
         VkPipelineShaderStageCreateInfo fragShaderStage = {};
         fragShaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         fragShaderStage.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -117,7 +120,7 @@ namespace VkRender {
     }
 
 
-    ImFont *GuiAssets::loadFontFromFileName(const std::filesystem::path &file, float fontSize, bool iconFont) {
+    ImFont *GuiAssets::loadFontFromFileName(const std::filesystem::path &file, float fontSize, bool iconFont, Application* context) {
         ImFont *font;
 
         if (iconFont) {
@@ -146,10 +149,43 @@ namespace VkRender {
         fontAtlas.GetTexDataAsRGBA32(&pixels, &width, &height);
         auto uploadSize = width * height * 4 * sizeof(char);
 
-        fontTexture.emplace_back(pixels, uploadSize,
-                                 VK_FORMAT_R8G8B8A8_UNORM,
-                                 width, height, device,
-                                 device->m_TransferQueue);
+        // Setup default texture
+        VkImageCreateInfo imageCI = Populate::imageCreateInfo();
+        imageCI.imageType = VK_IMAGE_TYPE_2D;
+        imageCI.format = VK_FORMAT_R8G8B8A8_UNORM;
+        imageCI.extent = {static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1};
+        imageCI.mipLevels = 1;
+        imageCI.arrayLayers = 1;
+        imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
+        imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
+        imageCI.usage =
+                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+        imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        VkImageViewCreateInfo imageViewCI = Populate::imageViewCreateInfo();
+        imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        imageViewCI.format = VK_FORMAT_R8G8B8A8_UNORM;
+        imageViewCI.subresourceRange.baseMipLevel = 0;
+        imageViewCI.subresourceRange.levelCount = 1;
+        imageViewCI.subresourceRange.baseArrayLayer = 0;
+        imageViewCI.subresourceRange.layerCount = 1;
+        imageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+
+        VulkanImageCreateInfo vulkanImageCreateInfo(device, context->allocator(), imageCI,
+                                                    imageViewCI);
+        vulkanImageCreateInfo.setLayout = true;
+        vulkanImageCreateInfo.srcLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        vulkanImageCreateInfo.dstLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        vulkanImageCreateInfo.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        vulkanImageCreateInfo.debugInfo = "GuiResources:FontTexture";
+        auto image = std::make_shared<VulkanImage>(vulkanImageCreateInfo);
+
+        VulkanTexture2DCreateInfo textureCreateInfo(device);
+        textureCreateInfo.image = image;
+        std::shared_ptr<VulkanTexture2D> texture = std::make_shared<VulkanTexture2D>(textureCreateInfo);
+        texture->loadImage(pixels, width*height * 4);
+        fontTexture.emplace_back(std::move(texture));
+
         VkDescriptorSet descriptor{};
         // descriptors
         // Create Descriptor Set:
@@ -159,7 +195,7 @@ namespace VkRender {
             alloc_info.descriptorPool = descriptorPool;
             alloc_info.descriptorSetCount = 1;
             alloc_info.pSetLayouts = &descriptorSetLayout;
-            VkResult res = vkAllocateDescriptorSets(device->m_LogicalDevice, &alloc_info, &descriptor);
+            VkResult res = vkAllocateDescriptorSets(device.m_LogicalDevice, &alloc_info, &descriptor);
             if (res != VK_SUCCESS) {
                 throw std::runtime_error("Failed to allocate descriptorset");
             }
@@ -171,9 +207,10 @@ namespace VkRender {
             write_desc[0].dstSet = descriptor;
             write_desc[0].descriptorCount = 1;
             write_desc[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            write_desc[0].pImageInfo = &fontTexture.back().m_descriptor;
-            vkUpdateDescriptorSets(device->m_LogicalDevice, 1, write_desc, 0, nullptr);
+            write_desc[0].pImageInfo = &fontTexture.back()->getDescriptorInfo();
+            vkUpdateDescriptorSets(device.m_LogicalDevice, 1, write_desc, 0, nullptr);
         }
+
 
         fontDescriptors.push_back(descriptor);
         return font;
@@ -207,12 +244,13 @@ namespace VkRender {
         gifImageDescriptors.reserve(static_cast<size_t>(depth) + 1);
 
         auto *pixelPointer = pixels; // Store original position in pixels
-
+/*
         for (int i = 0; i < depth; ++i) {
             VkDescriptorSet dSet{};
+
             gifTexture[i] = std::make_unique<Texture2D>(pixelPointer, imageSize, VK_FORMAT_R8G8B8A8_SRGB,
                                                         width, height, device,
-                                                        device->m_TransferQueue, VK_FILTER_LINEAR,
+                                                        device.m_TransferQueue, VK_FILTER_LINEAR,
                                                         VK_IMAGE_USAGE_SAMPLED_BIT,
                                                         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
@@ -223,7 +261,7 @@ namespace VkRender {
             alloc_info.descriptorPool = descriptorPool;
             alloc_info.descriptorSetCount = 1;
             alloc_info.pSetLayouts = &descriptorSetLayout;
-            CHECK_RESULT(vkAllocateDescriptorSets(device->m_LogicalDevice, &alloc_info, &dSet));
+            CHECK_RESULT(vkAllocateDescriptorSets(device.m_LogicalDevice, &alloc_info, &dSet));
 
 
             // Update the Descriptor Set:
@@ -233,15 +271,16 @@ namespace VkRender {
             write_desc[0].descriptorCount = 1;
             write_desc[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
             write_desc[0].pImageInfo = &gifTexture[i]->m_descriptor;
-            vkUpdateDescriptorSets(device->m_LogicalDevice, 1, write_desc, 0, NULL);
+            vkUpdateDescriptorSets(device.m_LogicalDevice, 1, write_desc, 0, NULL);
             pixelPointer += imageSize;
 
             gifImageDescriptors.emplace_back(dSet);
         }
         stbi_image_free(pixels);
+        */
     }
 
-    void GuiAssets::loadImGuiTextureFromFileName(const std::string &file, uint32_t i) {
+    void GuiAssets::loadImGuiTextureFromFileName(const std::string &file, uint32_t i, Application* context) {
         int texWidth, texHeight, texChannels;
         stbi_uc *pixels = stbi_load(file.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
         VkDeviceSize imageSize = static_cast<VkDeviceSize>(texWidth * texHeight * texChannels);
@@ -249,10 +288,49 @@ namespace VkRender {
             throw std::runtime_error("failed to load texture m_Image: " + file);
         }
 
+        // Setup default texture
+        VkImageCreateInfo imageCI = Populate::imageCreateInfo();
+        imageCI.imageType = VK_IMAGE_TYPE_2D;
+        imageCI.format = VK_FORMAT_R8G8B8A8_UNORM;
+        imageCI.extent = {static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight), 1};
+        imageCI.mipLevels = 1;
+        imageCI.arrayLayers = 1;
+        imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
+        imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
+        imageCI.usage =
+                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+        imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        VkImageViewCreateInfo imageViewCI = Populate::imageViewCreateInfo();
+        imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        imageViewCI.format = VK_FORMAT_R8G8B8A8_UNORM;
+        imageViewCI.subresourceRange.baseMipLevel = 0;
+        imageViewCI.subresourceRange.levelCount = 1;
+        imageViewCI.subresourceRange.baseArrayLayer = 0;
+        imageViewCI.subresourceRange.layerCount = 1;
+        imageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+
+        VulkanImageCreateInfo vulkanImageCreateInfo(device, context->allocator(), imageCI,
+                                                    imageViewCI);
+        vulkanImageCreateInfo.setLayout = true;
+        vulkanImageCreateInfo.srcLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        vulkanImageCreateInfo.dstLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        vulkanImageCreateInfo.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        vulkanImageCreateInfo.debugInfo = "GuiResources:IconTexture";
+        auto image = std::make_shared<VulkanImage>(vulkanImageCreateInfo);
+
+        VulkanTexture2DCreateInfo textureCreateInfo(device);
+        textureCreateInfo.image = image;
+        std::shared_ptr<VulkanTexture2D> texture = std::make_shared<VulkanTexture2D>(textureCreateInfo);
+        iconTextures.emplace_back(std::move(texture));
+
+        /*
         iconTextures.emplace_back(pixels, imageSize, VK_FORMAT_R8G8B8A8_SRGB, static_cast<uint32_t>(texWidth),
                                   static_cast<uint32_t>(texHeight), device,
-                                  device->m_TransferQueue, VK_FILTER_LINEAR, VK_IMAGE_USAGE_SAMPLED_BIT,
+                                  device.m_TransferQueue, VK_FILTER_LINEAR, VK_IMAGE_USAGE_SAMPLED_BIT,
                                   VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        */
+
 
         {
             VkDescriptorSetAllocateInfo alloc_info = {};
@@ -260,7 +338,7 @@ namespace VkRender {
             alloc_info.descriptorPool = descriptorPool;
             alloc_info.descriptorSetCount = 1;
             alloc_info.pSetLayouts = &descriptorSetLayout;
-            CHECK_RESULT(vkAllocateDescriptorSets(device->m_LogicalDevice, &alloc_info, &imageIconDescriptors[i]));
+            CHECK_RESULT(vkAllocateDescriptorSets(device.m_LogicalDevice, &alloc_info, &imageIconDescriptors[i]));
         }
         // Update the Descriptor Set:
         {
@@ -270,9 +348,10 @@ namespace VkRender {
             write_desc[0].dstSet = imageIconDescriptors[i];
             write_desc[0].descriptorCount = 1;
             write_desc[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            write_desc[0].pImageInfo = &iconTextures[i].m_descriptor;
-            vkUpdateDescriptorSets(device->m_LogicalDevice, 1, write_desc, 0, NULL);
+            write_desc[0].pImageInfo = &iconTextures[i]->getDescriptorInfo();
+            vkUpdateDescriptorSets(device.m_LogicalDevice, 1, write_desc, 0, NULL);
         }
+
 
     }
 

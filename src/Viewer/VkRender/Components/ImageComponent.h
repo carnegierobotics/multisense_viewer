@@ -7,7 +7,6 @@
 
 #include <stb_image.h>
 
-#include "Viewer/VkRender/Core/Texture.h"
 #include "Viewer/VkRender/Core/RenderDefinitions.h"
 #include "Viewer/Tools/Logger.h"
 

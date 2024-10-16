@@ -69,12 +69,10 @@ set(INSTALL_DIRECTORY ${CMAKE_BINARY_DIR}/multisense_${PROJECT_VERSION}_${CMAKE_
 set(SOURCE_FILES
         src/main.cpp
         src/Viewer/VkRender/Core/Buffer.cpp
-        src/Viewer/VkRender/Core/Texture.cpp
         src/Viewer/VkRender/Core/VulkanDevice.cpp
         src/Viewer/VkRender/Core/VulkanRenderer.cpp
         src/Viewer/VkRender/Core/VulkanSwapchain.cpp
         src/Viewer/VkRender/Core/UUID.cpp
-        src/Viewer/Application/ApplicationConfig.cpp
         src/Viewer/VkRender/Core/ServerConnection.cpp
         src/Viewer/VkRender/Core/CommandBuffer.cpp
         src/Viewer/VkRender/Core/VulkanRenderPass.cpp
@@ -82,29 +80,26 @@ set(SOURCE_FILES
         src/Viewer/VkRender/Core/VulkanGraphicsPipeline.cpp
         src/Viewer/VkRender/Core/VulkanImage.cpp
         src/Viewer/VkRender/Core/VulkanFramebuffer.cpp
+        src/Viewer/VkRender/Core/VulkanTexture.cpp
+        src/Viewer/VkRender/Core/VulkanTexture.h
+        src/Viewer/VkRender/Core/Entity.cpp
 
+        src/Viewer/Application/ApplicationConfig.cpp
         src/Viewer/Application/pch.cpp
         src/Viewer/Application/Application.cpp
         src/Viewer/Application/UsageMonitor.cpp
         src/Viewer/Application/ApplicationUserSetting.h
-        src/Viewer/VkRender/Core/Entity.cpp
 
         src/Viewer/VkRender/RenderPipelines/DefaultGraphicsPipeline.cpp
         src/Viewer/VkRender/RenderPipelines/GraphicsPipeline2D.cpp
-        src/Viewer/VkRender/RenderPipelines/PointCloudGraphicsPipeline.cpp
 
         src/Viewer/Scenes/Scene.cpp
+        src/Viewer/Scenes/SceneSerializer.cpp
 
         src/Viewer/VkRender/Components/MeshComponent.cpp
         src/Viewer/VkRender/Components/GaussianModelComponent.cpp
         src/Viewer/VkRender/Components/ImageComponent.cpp
-        #src/Viewer/VkRender/Components/SkyboxGraphicsPipelineComponent.cpp
-        #src/Viewer/VkRender/Components/DefaultPBRGraphicsPipelineComponent.cpp
-        #src/Viewer/VkRender/Components/GLTFModelComponent.cpp
-        #src/Viewer/VkRender/Components/CustomModels.cpp
-        #src/Viewer/VkRender/Components/GLTFDefines.h
-        #src/Viewer/VkRender/Components/SecondaryCameraComponent.cpp
-        #src/Viewer/VkRender/Components/CameraGraphicsPipelineComponent.h
+        src/Viewer/VkRender/Components/PointCloudComponent.h
 
         src/Viewer/VkRender/ImGui/Widgets.cpp
         src/Viewer/VkRender/ImGui/GuiManager.cpp
@@ -122,6 +117,9 @@ set(SOURCE_FILES
         src/Viewer/VkRender/Editors/Video/VideoPlaybackSystem.cpp
         src/Viewer/VkRender/Editors/Common/SceneRenderer/SceneRenderer.cpp
         src/Viewer/VkRender/Editors/Common/SceneHierarchy/SceneHierarchyLayer.cpp
+        src/Viewer/VkRender/Editors/PipelineKey.cpp
+        src/Viewer/VkRender/Editors/Common/Properties/PropertiesLayer.cpp
+        src/Viewer/VkRender/Editors/PipelineManager.cpp
 
         src/Viewer/Tools/StbInclude.cpp
         src/Viewer/Tools/Logger.cpp
@@ -132,16 +130,6 @@ set(SOURCE_FILES
         src/Viewer/Modules/MultiSense/CommonHeader.h
         src/Viewer/Modules/MultiSense/MultiSenseTaskManager.cpp
         src/Viewer/Modules/MultiSense/LibMultiSense/LibMultiSenseConnector.cpp
-
-        src/Viewer/VkRender/Editors/PipelineKey.cpp
-        src/Viewer/VkRender/Editors/Common/Properties/PropertiesLayer.cpp
-        src/Viewer/VkRender/Editors/PipelineManager.cpp
-
-        src/Viewer/VkRender/Core/VulkanTexture.cpp
-        src/Viewer/VkRender/Core/VulkanTexture.h
-
-        src/Viewer/Scenes/SceneSerializer.cpp
-        src/Viewer/VkRender/Components/PointCloudComponent.h
 )
 
 # Libraries

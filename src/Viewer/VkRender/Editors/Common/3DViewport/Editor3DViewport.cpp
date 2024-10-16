@@ -186,13 +186,13 @@ namespace VkRender {
         UUID entityUUID = command.entity.getUUID();
         auto &renderData = m_entityRenderData[entityUUID];
 
-        if (command.meshInstance) {
-            VkBuffer vertexBuffers[] = {command.meshInstance->vertexBuffer.m_Buffer};
+        if (command.meshInstance->vertexBuffer) {
+            VkBuffer vertexBuffers[] = {command.meshInstance->vertexBuffer->m_buffer};
             VkDeviceSize offsets[] = {0};
             vkCmdBindVertexBuffers(cmdBuffer, 0, 1, vertexBuffers, offsets);
             // Bind index buffer if the mesh has indices
-            if (command.meshInstance->indexBuffer.m_Buffer != VK_NULL_HANDLE) {
-                vkCmdBindIndexBuffer(cmdBuffer, command.meshInstance->indexBuffer.m_Buffer, 0,
+            if (command.meshInstance->indexBuffer) {
+                vkCmdBindIndexBuffer(cmdBuffer, command.meshInstance->indexBuffer->m_buffer, 0,
                                      VK_INDEX_TYPE_UINT32);
             }
         }
@@ -237,9 +237,9 @@ namespace VkRender {
                 nullptr // Dynamic offsets
             );
         }
-        if (command.meshInstance) {
+        if (command.meshInstance->vertexBuffer) {
             // Issue the draw call
-            if (command.meshInstance->indexBuffer.m_Buffer != VK_NULL_HANDLE) {
+            if (command.meshInstance->indexBuffer) {
                 // Indexed draw call
                 vkCmdDrawIndexed(cmdBuffer, command.meshInstance->indexCount, 1, 0, 0, 0);
             } else {
@@ -346,13 +346,15 @@ namespace VkRender {
             m_context->vkDevice().createBuffer(
                 VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                &m_entityRenderData[entity.getUUID()].cameraBuffer[i],
-                sizeof(GlobalUniformBufferObject));
+                m_entityRenderData[entity.getUUID()].cameraBuffer[i],
+                sizeof(GlobalUniformBufferObject), nullptr, "Editor3DViewport:MeshComponent:Camera",
+                m_context->getDebugUtilsObjectNameFunction());
             m_context->vkDevice().createBuffer(
                 VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                &m_entityRenderData[entity.getUUID()].modelBuffer[i],
-                sizeof(glm::mat4));
+                m_entityRenderData[entity.getUUID()].modelBuffer[i],
+                sizeof(glm::mat4), nullptr, "Editor3DViewport:MeshComponent:Model",
+                    m_context->getDebugUtilsObjectNameFunction());
             allocatePerEntityDescriptorSet(i, entity);
         }
     }
@@ -382,8 +384,9 @@ namespace VkRender {
             m_context->vkDevice().createBuffer(
                 VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                &m_entityRenderData[entity.getUUID()].materialBuffer[i],
-                sizeof(MaterialBufferObject));
+                m_entityRenderData[entity.getUUID()].materialBuffer[i],
+                sizeof(MaterialBufferObject), nullptr, "Editor3DViewport:MaterialComponent",
+                m_context->getDebugUtilsObjectNameFunction());;
         }
     }
 
@@ -414,18 +417,20 @@ namespace VkRender {
             m_context->vkDevice().createBuffer(
                 VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                &m_entityRenderData[entity.getUUID()].cameraBuffer[i],
-                sizeof(GlobalUniformBufferObject));
+                m_entityRenderData[entity.getUUID()].cameraBuffer[i],
+                sizeof(GlobalUniformBufferObject), nullptr, "Editor3DViewport:PointCloudComponent:Camera",
+                m_context->getDebugUtilsObjectNameFunction());
             m_context->vkDevice().createBuffer(
                 VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                &m_entityRenderData[entity.getUUID()].modelBuffer[i],
-                sizeof(glm::mat4));
+                m_entityRenderData[entity.getUUID()].modelBuffer[i],
+                sizeof(glm::mat4), nullptr, "Editor3DViewport:PointCloudComponent:Model",
+                    m_context->getDebugUtilsObjectNameFunction());
             m_context->vkDevice().createBuffer(
                 VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                &m_entityRenderData[entity.getUUID()].pointCloudBuffer[i],
-                sizeof(PointCloudUBO), nullptr, "Editor3DViewport:PointCloudUBO",
+                m_entityRenderData[entity.getUUID()].pointCloudBuffer[i],
+                sizeof(PointCloudUBO), nullptr, "Editor3DViewport:PointCloudComponent:PC",
                 m_context->getDebugUtilsObjectNameFunction());
             allocatePerEntityDescriptorSet(i, entity);
         }
@@ -606,7 +611,7 @@ namespace VkRender {
         descriptorWrites[0].dstArrayElement = 0;
         descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         descriptorWrites[0].descriptorCount = 1;
-        descriptorWrites[0].pBufferInfo = &renderData.cameraBuffer[frameIndex].m_DescriptorBufferInfo;
+        descriptorWrites[0].pBufferInfo = &renderData.cameraBuffer[frameIndex]->m_descriptorBufferInfo;
         // Write Model Buffer
         descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[1].dstSet = renderData.descriptorSets[frameIndex];
@@ -614,7 +619,7 @@ namespace VkRender {
         descriptorWrites[1].dstArrayElement = 0;
         descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         descriptorWrites[1].descriptorCount = 1;
-        descriptorWrites[1].pBufferInfo = &renderData.modelBuffer[frameIndex].m_DescriptorBufferInfo;
+        descriptorWrites[1].pBufferInfo = &renderData.modelBuffer[frameIndex]->m_descriptorBufferInfo;
         vkUpdateDescriptorSets(m_context->vkDevice().m_LogicalDevice, descriptorWrites.size(),
                                descriptorWrites.data(), 0, nullptr);
     }
@@ -631,22 +636,22 @@ namespace VkRender {
             // Map and copy data to the global uniform buffer
             void *data;
             vkMapMemory(m_context->vkDevice().m_LogicalDevice,
-                        m_entityRenderData[entity.getUUID()].cameraBuffer[frameIndex].m_Memory, 0, sizeof(globalUBO), 0,
+                        m_entityRenderData[entity.getUUID()].cameraBuffer[frameIndex]->m_memory, 0, sizeof(globalUBO), 0,
                         &data);
             memcpy(data, &globalUBO, sizeof(globalUBO));
             vkUnmapMemory(m_context->vkDevice().m_LogicalDevice,
-                          m_entityRenderData[entity.getUUID()].cameraBuffer[frameIndex].m_Memory);
+                          m_entityRenderData[entity.getUUID()].cameraBuffer[frameIndex]->m_memory);
         }
         if (entity.hasComponent<TransformComponent>() && entity.hasComponent<MeshComponent>()) {
             void *data;
             auto &transformComponent = m_activeScene->getRegistry().get<TransformComponent>(entity);
             vkMapMemory(m_context->vkDevice().m_LogicalDevice,
-                        m_entityRenderData[entity.getUUID()].modelBuffer[frameIndex].m_Memory, 0, VK_WHOLE_SIZE, 0,
+                        m_entityRenderData[entity.getUUID()].modelBuffer[frameIndex]->m_memory, 0, VK_WHOLE_SIZE, 0,
                         &data);
             auto *modelMatrices = reinterpret_cast<glm::mat4 *>(data);
             *modelMatrices = transformComponent.getTransform();
             vkUnmapMemory(m_context->vkDevice().m_LogicalDevice,
-                          m_entityRenderData[entity.getUUID()].modelBuffer[frameIndex].m_Memory);
+                          m_entityRenderData[entity.getUUID()].modelBuffer[frameIndex]->m_memory);
         }
         if (entity.hasComponent<MaterialComponent>() && !m_entityRenderData[entity.getUUID()].materialBuffer.empty()) {
             auto &material = entity.getComponent<MaterialComponent>();
@@ -658,12 +663,12 @@ namespace VkRender {
             matUBO.isDisparity = material.isDisparity;
             void *data;
             vkMapMemory(m_context->vkDevice().m_LogicalDevice,
-                        m_entityRenderData[entity.getUUID()].materialBuffer[frameIndex].m_Memory, 0,
+                        m_entityRenderData[entity.getUUID()].materialBuffer[frameIndex]->m_memory, 0,
                         sizeof(MaterialBufferObject), 0,
                         &data);
             memcpy(data, &matUBO, sizeof(MaterialBufferObject));
             vkUnmapMemory(m_context->vkDevice().m_LogicalDevice,
-                          m_entityRenderData[entity.getUUID()].materialBuffer[frameIndex].m_Memory);
+                          m_entityRenderData[entity.getUUID()].materialBuffer[frameIndex]->m_memory);
         }
 
         if (entity.hasComponent<PointCloudComponent>() && !m_entityRenderData[entity.getUUID()].pointCloudBuffer.
@@ -733,11 +738,11 @@ namespace VkRender {
 
             void *data;
             vkMapMemory(m_context->vkDevice().m_LogicalDevice,
-                        m_entityRenderData[entity.getUUID()].pointCloudBuffer[frameIndex].m_Memory, 0,
+                        m_entityRenderData[entity.getUUID()].pointCloudBuffer[frameIndex]->m_memory, 0,
                         sizeof(PointCloudUBO), 0, &data);
             memcpy(data, &pointCloudUBO, sizeof(PointCloudUBO));
             vkUnmapMemory(m_context->vkDevice().m_LogicalDevice,
-                          m_entityRenderData[entity.getUUID()].pointCloudBuffer[frameIndex].m_Memory);
+                          m_entityRenderData[entity.getUUID()].pointCloudBuffer[frameIndex]->m_memory);
         }
     }
 
@@ -785,7 +790,7 @@ namespace VkRender {
             descriptorWrites[0].dstArrayElement = 0;
             descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
             descriptorWrites[0].descriptorCount = 1;
-            descriptorWrites[0].pBufferInfo = &renderData.materialBuffer[frameIndex].m_DescriptorBufferInfo;
+            descriptorWrites[0].pBufferInfo = &renderData.materialBuffer[frameIndex]->m_descriptorBufferInfo;
 
             descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             descriptorWrites[1].dstSet = renderData.materialDescriptorSets[frameIndex];
@@ -926,8 +931,8 @@ namespace VkRender {
             pointCloudWrite.dstArrayElement = 0;
             pointCloudWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
             pointCloudWrite.descriptorCount = 1;
-            pointCloudWrite.pBufferInfo = &renderData.pointCloudBuffer[frameIndex].
-                    m_DescriptorBufferInfo;
+            pointCloudWrite.pBufferInfo = &renderData.pointCloudBuffer[frameIndex]->
+                    m_descriptorBufferInfo;
 
             VkWriteDescriptorSet depthMapWrite{};
             depthMapWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -998,17 +1003,19 @@ namespace VkRender {
         m_context->vkDevice().createBuffer(
             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            &meshInstance->vertexBuffer,
+            meshInstance->vertexBuffer,
             vertexBufferSize,
-            meshData.vertices.data());
+            meshData.vertices.data(), "Editor3DViewport:InitializeMesh:Vertex",
+                m_context->getDebugUtilsObjectNameFunction());
         // Create index buffer if the mesh has indices
         if (indexBufferSize) {
             m_context->vkDevice().createBuffer(
                 VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                &meshInstance->indexBuffer,
+                meshInstance->indexBuffer,
                 indexBufferSize,
-                meshData.indices.data());
+                meshData.indices.data(), "Editor3DViewport:InitializeMesh:Index",
+                m_context->getDebugUtilsObjectNameFunction());
         }
         return meshInstance;
     }

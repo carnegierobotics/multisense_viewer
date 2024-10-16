@@ -6,6 +6,7 @@
 #define VIDEOSOURCE_H
 
 #include <thread>
+#include <deque>
 
 #include "Viewer/Application/pch.h"
 #include "Viewer/VkRender/Core/VulkanTexture.h"

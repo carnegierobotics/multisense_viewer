@@ -119,12 +119,12 @@ namespace VkRender {
 
     void SceneRenderer::bindResourcesAndDraw(const CommandBuffer &commandBuffer, RenderCommand &command) {
         // Bind vertex buffers
-        VkBuffer vertexBuffers[] = {command.meshInstance->vertexBuffer.m_Buffer};
+        VkBuffer vertexBuffers[] = {command.meshInstance->vertexBuffer->m_buffer};
         VkDeviceSize offsets[] = {0};
         vkCmdBindVertexBuffers(commandBuffer.getActiveBuffer(), 0, 1, vertexBuffers, offsets);
         // Bind index buffer if the mesh has indices
-        if (command.meshInstance->indexBuffer.m_Buffer != VK_NULL_HANDLE) {
-            vkCmdBindIndexBuffer(commandBuffer.getActiveBuffer(), command.meshInstance->indexBuffer.m_Buffer, 0,
+        if (command.meshInstance->indexBuffer->m_buffer != VK_NULL_HANDLE) {
+            vkCmdBindIndexBuffer(commandBuffer.getActiveBuffer(), command.meshInstance->indexBuffer->m_buffer, 0,
                                  VK_INDEX_TYPE_UINT32);
         }
         VkCommandBuffer cmdBuffer = commandBuffer.getActiveBuffer();
@@ -156,7 +156,7 @@ namespace VkRender {
             );
         }
         // Issue the draw call
-        if (command.meshInstance->indexBuffer.m_Buffer != VK_NULL_HANDLE) {
+        if (command.meshInstance->indexBuffer->m_buffer != VK_NULL_HANDLE) {
             // Indexed draw call
             vkCmdDrawIndexed(commandBuffer.getActiveBuffer(), command.meshInstance->indexCount, 1, 0, 0, 0);
         } else {
@@ -228,28 +228,7 @@ namespace VkRender {
     }
 
     void SceneRenderer::onComponentAdded(Entity entity, MeshComponent &meshComponent) {
-        // Check if I readd a meshcomponent then we should destroy the renderresources attached to it:
-        if (m_meshInstances.contains(entity.getUUID())) {
-            m_meshInstances.erase(entity.getUUID());
-        }
-        m_entityRenderData[entity.getUUID()].cameraBuffer.resize(m_context->swapChainBuffers().size());
-        m_entityRenderData[entity.getUUID()].modelBuffer.resize(m_context->swapChainBuffers().size());
-        m_entityRenderData[entity.getUUID()].descriptorSets.resize(m_context->swapChainBuffers().size());
-        // Create attachable UBO buffers and such
-        auto debugFunction = m_context->getDebugUtilsObjectNameFunction();
-        for (int i = 0; i < m_context->swapChainBuffers().size(); ++i) {
-            m_context->vkDevice().createBuffer(
-                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                &m_entityRenderData[entity.getUUID()].cameraBuffer[i],
-                sizeof(GlobalUniformBufferObject), nullptr, ("SceneRenderer:CameraBuffer:" + std::to_string(i)), debugFunction);
-            m_context->vkDevice().createBuffer(
-                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                &m_entityRenderData[entity.getUUID()].modelBuffer[i],
-                sizeof(glm::mat4), nullptr, ("SceneRenderer:ModelBuffer:" + std::to_string(i)), debugFunction);
-            allocatePerEntityDescriptorSet(i, entity);
-        }
+
     }
 
     void SceneRenderer::onComponentRemoved(Entity entity, MeshComponent &meshComponent) {
@@ -268,18 +247,6 @@ namespace VkRender {
 
     void SceneRenderer::onComponentAdded(Entity entity, MaterialComponent &materialComponent) {
         // Check if I readd a meshcomponent then we should destroy the renderresources attached to it:
-        if (m_materialInstances.contains(entity.getUUID())) {
-            m_materialInstances.erase(entity.getUUID());
-        }
-        m_entityRenderData[entity.getUUID()].materialBuffer.resize(m_context->swapChainBuffers().size());
-        // Create attachable UBO buffers and such
-        for (int i = 0; i < m_context->swapChainBuffers().size(); ++i) {
-            m_context->vkDevice().createBuffer(
-                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                &m_entityRenderData[entity.getUUID()].materialBuffer[i],
-                sizeof(MaterialBufferObject), nullptr, ("SceneRenderer:MaterialBuffer:" + std::to_string(i)), m_context->getDebugUtilsObjectNameFunction());
-        }
     }
 
     void SceneRenderer::onComponentRemoved(Entity entity, MaterialComponent &materialComponent) {
@@ -396,7 +363,7 @@ namespace VkRender {
         descriptorWrites[0].dstArrayElement = 0;
         descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         descriptorWrites[0].descriptorCount = 1;
-        descriptorWrites[0].pBufferInfo = &renderData.cameraBuffer[frameIndex].m_DescriptorBufferInfo;
+        descriptorWrites[0].pBufferInfo = &renderData.cameraBuffer[frameIndex].m_descriptorBufferInfo;
         // Write Model Buffer
         descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[1].dstSet = renderData.descriptorSets[frameIndex];
@@ -404,7 +371,7 @@ namespace VkRender {
         descriptorWrites[1].dstArrayElement = 0;
         descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         descriptorWrites[1].descriptorCount = 1;
-        descriptorWrites[1].pBufferInfo = &renderData.modelBuffer[frameIndex].m_DescriptorBufferInfo;
+        descriptorWrites[1].pBufferInfo = &renderData.modelBuffer[frameIndex].m_descriptorBufferInfo;
         vkUpdateDescriptorSets(m_context->vkDevice().m_LogicalDevice, descriptorWrites.size(),
                                descriptorWrites.data(), 0, nullptr);
     }
@@ -421,22 +388,22 @@ namespace VkRender {
             // Map and copy data to the global uniform buffer
             void *data;
             vkMapMemory(m_context->vkDevice().m_LogicalDevice,
-                        m_entityRenderData[entity.getUUID()].cameraBuffer[frameIndex].m_Memory, 0, sizeof(globalUBO), 0,
+                        m_entityRenderData[entity.getUUID()].cameraBuffer[frameIndex].m_memory, 0, sizeof(globalUBO), 0,
                         &data);
             memcpy(data, &globalUBO, sizeof(globalUBO));
             vkUnmapMemory(m_context->vkDevice().m_LogicalDevice,
-                          m_entityRenderData[entity.getUUID()].cameraBuffer[frameIndex].m_Memory);
+                          m_entityRenderData[entity.getUUID()].cameraBuffer[frameIndex].m_memory);
         }
         if (entity.hasComponent<TransformComponent>()) {
             void *data;
             auto &transformComponent = m_activeScene->getRegistry().get<TransformComponent>(entity);
             vkMapMemory(m_context->vkDevice().m_LogicalDevice,
-                        m_entityRenderData[entity.getUUID()].modelBuffer[frameIndex].m_Memory, 0, VK_WHOLE_SIZE, 0,
+                        m_entityRenderData[entity.getUUID()].modelBuffer[frameIndex].m_memory, 0, VK_WHOLE_SIZE, 0,
                         &data);
             auto *modelMatrices = reinterpret_cast<glm::mat4 *>(data);
             *modelMatrices = transformComponent.getTransform();
             vkUnmapMemory(m_context->vkDevice().m_LogicalDevice,
-                          m_entityRenderData[entity.getUUID()].modelBuffer[frameIndex].m_Memory);
+                          m_entityRenderData[entity.getUUID()].modelBuffer[frameIndex].m_memory);
         }
         if (entity.hasComponent<MaterialComponent>() && !m_entityRenderData[entity.getUUID()].materialBuffer.empty()) {
             auto &material = entity.getComponent<MaterialComponent>();
@@ -447,12 +414,12 @@ namespace VkRender {
             matUBO.emissiveFactor = material.emissiveFactor;
             void *data;
             vkMapMemory(m_context->vkDevice().m_LogicalDevice,
-                        m_entityRenderData[entity.getUUID()].materialBuffer[frameIndex].m_Memory, 0,
+                        m_entityRenderData[entity.getUUID()].materialBuffer[frameIndex].m_memory, 0,
                         sizeof(MaterialBufferObject), 0,
                         &data);
             memcpy(data, &matUBO, sizeof(MaterialBufferObject));
             vkUnmapMemory(m_context->vkDevice().m_LogicalDevice,
-                          m_entityRenderData[entity.getUUID()].materialBuffer[frameIndex].m_Memory);
+                          m_entityRenderData[entity.getUUID()].materialBuffer[frameIndex].m_memory);
         }
     }
 
@@ -503,7 +470,7 @@ namespace VkRender {
             descriptorWrites[0].dstArrayElement = 0;
             descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
             descriptorWrites[0].descriptorCount = 1;
-            descriptorWrites[0].pBufferInfo = &renderData.materialBuffer[frameIndex].m_DescriptorBufferInfo;
+            descriptorWrites[0].pBufferInfo = &renderData.materialBuffer[frameIndex].m_descriptorBufferInfo;
             // Write Model Buffer
             descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             descriptorWrites[1].dstSet = renderData.materialDescriptorSets[frameIndex];

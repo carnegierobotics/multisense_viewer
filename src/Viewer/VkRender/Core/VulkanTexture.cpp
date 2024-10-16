@@ -5,6 +5,7 @@
 #include <stb_image.h>
 #include "VulkanTexture.h"
 #include "Viewer/Tools/Utils.h"
+#include "Viewer/VkRender/Core/VulkanResourceManager.h"
 
 namespace VkRender {
 
@@ -63,8 +64,6 @@ namespace VkRender {
                 &stagingBuffer,
                 &stagingBufferMemory,
                 data));
-
-
 
         VkCommandBuffer copyCmd = m_vulkanDevice.createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
         // Transition the image layout to TRANSFER_DST_OPTIMAL

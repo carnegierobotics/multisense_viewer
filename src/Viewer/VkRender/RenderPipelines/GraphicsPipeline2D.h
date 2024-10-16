@@ -6,11 +6,9 @@
 #define MULTISENSE_VIEWER_GRAPHICSPIPELINE2D_H
 
 #include "Viewer/VkRender/Core/CommandBuffer.h"
-#include "Viewer/VkRender/RenderPipelines/RenderBase.h"
 #include "Viewer/VkRender/Core/VulkanDevice.h"
 #include "Viewer/VkRender/Core/RenderDefinitions.h"
 #include "Viewer/VkRender/Components/Components.h"
-#include "Viewer/VkRender/RenderPipelines/GraphicsPipeline.h"
 #include "Viewer/VkRender/Core/VulkanTexture.h"
 
 namespace VkRender {
@@ -61,8 +59,8 @@ namespace VkRender {
         UBOMatrix m_vertexParams; // Non GPU-accessible data, shared across frames
         FragShaderParams m_fragParams; // Non GPU-accessible data, shared across frames
         struct DefaultRenderData {
-            Buffer fragShaderParamsBuffer; // GPU Accessible, triple-buffered
-            Buffer mvpBuffer; // GPU Accessible, triple-buffered
+            std::unique_ptr<Buffer> fragShaderParamsBuffer; // GPU Accessible, triple-buffered
+            std::unique_ptr<Buffer> mvpBuffer; // GPU Accessible, triple-buffered
             VkDescriptorSet descriptorSet; // Triple-buffered
         };
 

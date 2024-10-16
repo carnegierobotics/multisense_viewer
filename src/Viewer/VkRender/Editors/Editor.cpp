@@ -1133,7 +1133,7 @@ namespace VkRender {
             imageCI.arrayLayers = 1;
             imageCI.samples = m_createInfo.pPassCreateInfo.msaaSamples;
             imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
-            imageCI.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+            imageCI.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
             imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
             imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
             VkImageViewCreateInfo imageViewCI = Populate::imageViewCreateInfo();

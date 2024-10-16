@@ -49,7 +49,7 @@ namespace VkRender {
         m_logger = Log::Logger::getInstance();
         VulkanRenderer::initVulkan();
         VulkanRenderer::prepare();
-        m_guiResources = std::make_shared<GuiAssets>(m_vulkanDevice);
+        m_guiResources = std::make_shared<GuiAssets>(this);
         m_logger->info("Initialized Backend");
         config.setGpuDevice(physicalDevice);
         m_usageMonitor = std::make_shared<UsageMonitor>();
@@ -107,7 +107,7 @@ namespace VkRender {
         }
 
         SceneSerializer serializer(m_activeScene);
-        serializer.deserialize(Utils::getAssetsPath() / "Scenes" / "Example.multisense");
+        serializer.deserialize("../"  / Utils::getAssetsPath() / "Scenes" / "Example.multisense");
 
         m_multiSense = std::make_shared<MultiSense::MultiSenseRendererBridge>();
         m_multiSense->setup();

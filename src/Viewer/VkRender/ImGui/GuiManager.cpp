@@ -257,39 +257,55 @@ namespace VkRender {
             return false;
         }
 
+        // Create initial buffers (First frame usually)
+        if (!vertexBuffer[currentFrame]) {
+            if (VK_SUCCESS !=
+                m_vulkanDevice.createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+                                            vertexBuffer[currentFrame], vertexBufferSize))
+                throw std::runtime_error("Failed to create vertex Buffer");
+            vertexCount[currentFrame] = imDrawData->TotalVtxCount;
+            vertexBuffer[currentFrame]->map();
+            updateCommandBuffers = true;
+        }
+        if (!indexBuffer[currentFrame]) {
+            if (VK_SUCCESS !=
+                m_vulkanDevice.createBuffer(VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+                                            indexBuffer[currentFrame], indexBufferSize))
+                throw std::runtime_error("Failed to create index buffer");
+            indexCount[currentFrame] = imDrawData->TotalIdxCount;
+            indexBuffer[currentFrame]->map();
+            updateCommandBuffers = true;
+        }
+
         // Update buffers only if vertex or index count has been changed compared to current buffer size
 
         // Vertex buffer
-        if ((vertexBuffer[currentFrame].m_Buffer == VK_NULL_HANDLE) ||
-            (vertexCount[currentFrame] != imDrawData->TotalVtxCount)) {
-            vertexBuffer[currentFrame].unmap();
-            vertexBuffer[currentFrame].destroy();
+        if (vertexCount[currentFrame] != imDrawData->TotalVtxCount) {
+            vertexBuffer[currentFrame]->unmap();
             if (VK_SUCCESS !=
                 m_vulkanDevice.createBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-                                            &vertexBuffer[currentFrame], vertexBufferSize))
+                                            vertexBuffer[currentFrame], vertexBufferSize))
                 throw std::runtime_error("Failed to create vertex Buffer");
             vertexCount[currentFrame] = imDrawData->TotalVtxCount;
-            vertexBuffer[currentFrame].map();
+            vertexBuffer[currentFrame]->map();
             updateCommandBuffers = true;
         }
 
         // Index buffer
-        if ((indexBuffer[currentFrame].m_Buffer == VK_NULL_HANDLE) ||
-            (indexCount[currentFrame] < imDrawData->TotalIdxCount)) {
-            indexBuffer[currentFrame].unmap();
-            indexBuffer[currentFrame].destroy();
+        if (indexCount[currentFrame] < imDrawData->TotalIdxCount) {
+            indexBuffer[currentFrame]->unmap();
             if (VK_SUCCESS !=
                 m_vulkanDevice.createBuffer(VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-                                            &indexBuffer[currentFrame], indexBufferSize))
+                                            indexBuffer[currentFrame], indexBufferSize))
                 throw std::runtime_error("Failed to create index buffer");
             indexCount[currentFrame] = imDrawData->TotalIdxCount;
-            indexBuffer[currentFrame].map();
+            indexBuffer[currentFrame]->map();
             updateCommandBuffers = true;
         }
 
         // Upload data
-        auto *vtxDst = reinterpret_cast<ImDrawVert *>(vertexBuffer[currentFrame].mapped);
-        auto *idxDst = reinterpret_cast<ImDrawIdx *>(indexBuffer[currentFrame].mapped);
+        auto *vtxDst = reinterpret_cast<ImDrawVert *>(vertexBuffer[currentFrame]->mapped);
+        auto *idxDst = reinterpret_cast<ImDrawIdx *>(indexBuffer[currentFrame]->mapped);
 
         for (int n = 0; n < imDrawData->CmdListsCount; n++) {
             const ImDrawList *cmd_list = imDrawData->CmdLists[n];
@@ -300,8 +316,8 @@ namespace VkRender {
         }
 
         // Flush to make writes visible to GPU
-        vertexBuffer[currentFrame].flush();
-        indexBuffer[currentFrame].flush();
+        vertexBuffer[currentFrame]->flush();
+        indexBuffer[currentFrame]->flush();
 
         return updateCommandBuffers;
     }
@@ -334,8 +350,8 @@ namespace VkRender {
         if (imDrawData->CmdListsCount > 0) {
 
             VkDeviceSize offsets[1] = {0};
-            vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer[currentFrame].m_Buffer, offsets);
-            vkCmdBindIndexBuffer(commandBuffer, indexBuffer[currentFrame].m_Buffer, 0, VK_INDEX_TYPE_UINT16);
+            vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer[currentFrame]->m_buffer, offsets);
+            vkCmdBindIndexBuffer(commandBuffer, indexBuffer[currentFrame]->m_buffer, 0, VK_INDEX_TYPE_UINT16);
 
             for (int32_t i = 0; i < imDrawData->CmdListsCount; ++i) {
                 const ImDrawList *cmd_list = imDrawData->CmdLists[i];

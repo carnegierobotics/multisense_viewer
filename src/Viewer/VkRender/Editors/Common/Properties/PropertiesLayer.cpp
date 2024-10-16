@@ -447,6 +447,7 @@ namespace VkRender {
                     m_selectionContext.addComponent<MeshComponent>(loadFileInfo.path);
                     break;
                 case LayerUtils::PLY_3DGS: {
+                    /*
                     auto &registry = m_context->activeScene()->getRegistry();
                     auto view = registry.view<GaussianModelComponent>();
                     for (auto &entity: view) {
@@ -455,6 +456,7 @@ namespace VkRender {
                     }
                     auto entity = m_context->activeScene()->createEntity(loadFileInfo.path.filename().string());
                     entity.addComponent<GaussianModelComponent>(loadFileInfo.path);
+                    */
                 }
                 break;
                 case LayerUtils::PLY_MESH: {

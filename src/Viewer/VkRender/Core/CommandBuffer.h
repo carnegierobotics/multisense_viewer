@@ -28,7 +28,7 @@ struct CommandBuffer {
     }
 
     // Function to get the active buffer
-    VkCommandBuffer CommandBuffer::getActiveBuffer() const {
+    VkCommandBuffer getActiveBuffer() const {
         if (frameIndex < buffers.size()) {
             return buffers[frameIndex];
         }

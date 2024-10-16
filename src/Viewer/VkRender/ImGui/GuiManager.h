@@ -48,7 +48,6 @@
 #include <imgui_internal.h>
 
 #include "Viewer/Tools/Utils.h"
-#include "Viewer/VkRender/Core/Texture.h"
 #include "Viewer/VkRender/Core/VulkanDevice.h"
 #include "Viewer/VkRender/Core/RenderDefinitions.h"
 #include "Viewer/VkRender/ImGui/Layer.h"
@@ -107,8 +106,8 @@ namespace VkRender {
         GuiResourcesData m_guiResourcesData;
 
         // Vulkan resources for rendering the UI
-        std::vector<Buffer> vertexBuffer;
-        std::vector<Buffer> indexBuffer;
+        std::vector<std::unique_ptr<Buffer>> vertexBuffer;
+        std::vector<std::unique_ptr<Buffer>> indexBuffer;
         std::vector<int32_t> vertexCount{};
         std::vector<int32_t> indexCount{};
 

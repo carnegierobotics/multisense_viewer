@@ -4,7 +4,6 @@
 
 #include "Viewer/VkRender/Editors/Common/ImageEditor/EditorImage.h"
 #include "Viewer/Application/Application.h"
-#include "Viewer/VkRender/RenderPipelines/RenderBase.h"
 #include "Viewer/VkRender/Editors/Common/ImageEditor/EditorImageLayer.h"
 #include "Viewer/VkRender/Editors/Common/CommonEditorFunctions.h"
 
@@ -125,7 +124,7 @@ namespace VkRender {
 
         if (imageUI->playVideoFromFolder) {
 
-            std::filesystem::path folderPath = "C:/Users/mgjer/PycharmProjects/multisense-rgbd/logqs_dataset/test/aux";
+            std::filesystem::path folderPath = "/home/magnus/PycharmProjects/multisense-rgbd/datasets/logqs_dataset/jeep_gravel/aux_rectified";
             std::vector<std::filesystem::path> files;
 
             // Iterate through the folder and collect files

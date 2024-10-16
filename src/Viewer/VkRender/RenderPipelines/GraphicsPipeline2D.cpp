@@ -8,6 +8,7 @@
 
 #include "Viewer/Tools/Utils.h"
 #include "Viewer/VkRender/Components/MeshComponent.h"
+#include "Viewer/VkRender/Core/VulkanResourceManager.h"
 
 
 namespace VkRender {
@@ -297,20 +298,13 @@ namespace VkRender {
                 if (res != VK_SUCCESS)
                     throw std::runtime_error("Failed to allocate descriptor sets");
 
-                std::array<VkWriteDescriptorSet, 2> writeDescriptorSets{};
+                std::array<VkWriteDescriptorSet, 1> writeDescriptorSets{};
                 writeDescriptorSets[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
                 writeDescriptorSets[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
                 writeDescriptorSets[0].descriptorCount = 1;
                 writeDescriptorSets[0].dstSet = resource.descriptorSet;
                 writeDescriptorSets[0].dstBinding = 0;
                 writeDescriptorSets[0].pImageInfo = &texture->getDescriptorInfo();
-
-                writeDescriptorSets[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-                writeDescriptorSets[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-                writeDescriptorSets[1].descriptorCount = 1;
-                writeDescriptorSets[1].dstSet = resource.descriptorSet;
-                writeDescriptorSets[1].dstBinding = 1;
-                writeDescriptorSets[1].pBufferInfo = &resource.mvpBuffer.m_DescriptorBufferInfo;
 
                 vkUpdateDescriptorSets(m_vulkanDevice.m_LogicalDevice,
                                        static_cast<uint32_t>(writeDescriptorSets.size()),

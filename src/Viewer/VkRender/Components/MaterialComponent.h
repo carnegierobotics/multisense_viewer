@@ -9,7 +9,6 @@
 #include <filesystem>
 
 #include "Viewer/VkRender/Editors/PipelineKey.h"
-#include "Viewer/VkRender/Core/Texture.h"
 #include "Viewer/VkRender/Core/VulkanTexture.h"
 
 namespace VkRender {

@@ -197,13 +197,13 @@ namespace VkRender::LayerUtils {
     }
 
 
-    static inline std::filesystem::path selectFolder(std::string openLocation) {
+    static inline LoadFileInfo selectFolder(const std::string& dialogName, const std::string& openLocation, LayerUtils::FileTypeLoadFlow flow) {
         std::string folderPath;
 
         gtk_init(0, nullptr);
 
         GtkWidget *dialog = gtk_file_chooser_dialog_new(
-                "Select Folder",
+                dialogName.c_str(),
                 nullptr,
                 GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER,
                 ("_Cancel"), GTK_RESPONSE_CANCEL,
@@ -224,7 +224,7 @@ namespace VkRender::LayerUtils {
             gtk_main_iteration();
         }
 
-        return folderPath;
+        return {folderPath, flow};
     }
 
     DISABLE_WARNING_POP

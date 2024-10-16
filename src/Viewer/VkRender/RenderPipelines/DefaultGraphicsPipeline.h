@@ -9,8 +9,6 @@
 #include <Viewer/VkRender/Editors/PipelineKey.h>
 
 #include "Viewer/VkRender/Core/RenderDefinitions.h"
-#include "Viewer/VkRender/RenderPipelines/RenderBase.h"
-
 #include "Viewer/VkRender/Components/Components.h"
 
 

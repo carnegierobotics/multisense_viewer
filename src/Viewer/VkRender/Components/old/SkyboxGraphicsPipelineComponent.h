@@ -13,7 +13,6 @@
 #include <vulkan/vulkan_core.h>
 
 #include "Viewer/VkRender/Core/VulkanDevice.h"
-#include "Viewer/VkRender/Core/Texture.h"
 #include "Viewer/VkRender/Core/RenderDefinitions.h"
 #include "Viewer/VkRender/Components/GLTFModelComponent.h"
 #include "Viewer/Tools/Utils.h"

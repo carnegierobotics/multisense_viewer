@@ -8,7 +8,7 @@ Entities:
       Rotation: [1, 0, 0, 0]
       Scale: [1, 1, 1]
     MeshComponent:
-      ModelPath: C:\Users\mgjer\CLionProjects\multisense_viewer\Assets\Models\obj\s30.obj
+      ModelPath: /home/magnus/crl/multisense_viewer/Assets/Models/obj/s30.obj
       MeshDataType: OBJ_FILE
       PolygonMode: Fill
   - Entity: 123123123
@@ -19,7 +19,7 @@ Entities:
       Rotation: [-3.09086197e-08, -3.09086197e-08, 0.707106769, -0.707106769]
       Scale: [1.60000002, 1, 1]
     MeshComponent:
-      ModelPath: C:\Users\mgjer\CLionProjects\multisense_viewer\Assets\Models\obj\quad.obj
+      ModelPath: /home/magnus/crl/multisense_viewer/Assets/Models/obj/quad.obj
       MeshDataType: OBJ_FILE
       PolygonMode: Fill
     MaterialComponent:
@@ -31,7 +31,7 @@ Entities:
       VertexShader: defaultBasic.vert
       FragmentShader: defaultBasic.frag
       UsesVideoSource: true
-      VideoFolderSource: C:\Users\mgjer\PycharmProjects\multisense-rgbd\logqs_dataset\test\disparity
+      VideoFolderSource: /home/magnus/PycharmProjects/multisense-rgbd/datasets/logqs_dataset/jeep_gravel/disparity
       IsDisparity: true
   - Entity: 123123123
     TagComponent:
@@ -47,8 +47,8 @@ Entities:
     PointCloudComponent:
       PointSize: 1
       UsesVideoSource: true
-      DepthVideoFolderSource: C:\Users\mgjer\PycharmProjects\multisense-rgbd\logqs_dataset\test\disparity
-      ColorVideoFolderSource: C:\Users\mgjer\PycharmProjects\multisense-rgbd\logqs_dataset\test\left
+      DepthVideoFolderSource: /home/magnus/PycharmProjects/multisense-rgbd/datasets/logqs_dataset/jeep_gravel/disparity
+      ColorVideoFolderSource: /home/magnus/PycharmProjects/multisense-rgbd/datasets/logqs_dataset/jeep_gravel/left
   - Entity: 123123123
     TagComponent:
       Tag: Right Image
@@ -57,7 +57,7 @@ Entities:
       Rotation: [-3.09086197e-08, -3.09086197e-08, 0.707106769, -0.707106769]
       Scale: [1.5, 1, 1]
     MeshComponent:
-      ModelPath: C:\Users\mgjer\CLionProjects\multisense_viewer\Assets\Models\obj\quad.obj
+      ModelPath: /home/magnus/crl/multisense_viewer/Assets/Models/obj/quad.obj
       MeshDataType: OBJ_FILE
       PolygonMode: Fill
     MaterialComponent:
@@ -69,7 +69,7 @@ Entities:
       VertexShader: defaultBasic.vert
       FragmentShader: defaultBasic.frag
       UsesVideoSource: true
-      VideoFolderSource: C:\Users\mgjer\PycharmProjects\multisense-rgbd\logqs_dataset\test\right
+      VideoFolderSource: /home/magnus/PycharmProjects/multisense-rgbd/datasets/logqs_dataset/jeep_gravel/right
       IsDisparity: false
   - Entity: 123123123
     TagComponent:
@@ -79,7 +79,7 @@ Entities:
       Rotation: [-3.09086197e-08, -3.09086197e-08, 0.707106769, -0.707106769]
       Scale: [1.5, 1, 1]
     MeshComponent:
-      ModelPath: C:\Users\mgjer\CLionProjects\multisense_viewer\Assets\Models\obj\quad.obj
+      ModelPath: /home/magnus/crl/multisense_viewer/Assets/Models/obj/quad.obj
       MeshDataType: OBJ_FILE
       PolygonMode: Fill
     MaterialComponent:
@@ -91,5 +91,5 @@ Entities:
       VertexShader: defaultBasic.vert
       FragmentShader: defaultBasic.frag
       UsesVideoSource: true
-      VideoFolderSource: C:\Users\mgjer\PycharmProjects\multisense-rgbd\logqs_dataset\test\left
+      VideoFolderSource: /home/magnus/PycharmProjects/multisense-rgbd/datasets/logqs_dataset/jeep_gravel/left
       IsDisparity: false

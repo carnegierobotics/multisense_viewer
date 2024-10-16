@@ -143,7 +143,11 @@ namespace VkRender {
 
         VulkanImageCreateInfo
                 vulkanImageCreateInfo(m_context->vkDevice(), m_context->allocator(), imageCI, imageViewCI);
-        vulkanImageCreateInfo.debugInfo = "VideoPlaybackSystem Empty Texture";
+        vulkanImageCreateInfo.debugInfo = "VideoPlaybackSystem:Empty:Texture";
+        vulkanImageCreateInfo.setLayout = true;
+        vulkanImageCreateInfo.srcLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        vulkanImageCreateInfo.dstLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        vulkanImageCreateInfo.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         VulkanTexture2DCreateInfo textureCreateInfo(m_context->vkDevice());
         textureCreateInfo.image = std::make_shared<VulkanImage>(vulkanImageCreateInfo);
 

@@ -46,11 +46,16 @@
 * @note To be filled by an external source like the VulkanDevice
 */
 struct Buffer {
-    VkDevice m_Device = VK_NULL_HANDLE;
-    VkBuffer m_Buffer = VK_NULL_HANDLE;
-    VkDeviceMemory m_Memory = VK_NULL_HANDLE;
-    VkDescriptorBufferInfo m_DescriptorBufferInfo{};
-    VkDeviceSize m_Size = 0;
+
+    Buffer(VkDevice &device) : m_device(device) {
+
+    }
+
+    VkDevice &m_device;
+    VkBuffer m_buffer = VK_NULL_HANDLE;
+    VkDeviceMemory m_memory = VK_NULL_HANDLE;
+    VkDescriptorBufferInfo m_descriptorBufferInfo{};
+    VkDeviceSize m_size = 0;
     VkDeviceSize alignment = 0;
     void *mapped = nullptr;
     /** @brief Usage flags to be filled by external source at buffer creation (to query at some later point) */
@@ -71,8 +76,6 @@ struct Buffer {
     VkResult flush(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
 
     VkResult invalidate(VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
-
-    void destroy() const;
 
     ~Buffer();
 };

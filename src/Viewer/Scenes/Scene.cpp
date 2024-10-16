@@ -86,6 +86,9 @@ namespace VkRender {
             entity.removeComponent<MaterialComponent>();
         }
 
+        if (entity.hasComponent<PointCloudComponent>()) {
+            entity.removeComponent<PointCloudComponent>();
+        }
         // Repeat for other components, adding more checks for each type of component
         // if (entity.hasComponent<OtherComponent>()) {
         //     entity.removeComponent<OtherComponent>();

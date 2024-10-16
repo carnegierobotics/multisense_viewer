@@ -13,7 +13,6 @@
 #include <cfloat>
 
 #include "Viewer/VkRender/Core/VulkanDevice.h"
-#include "Viewer/VkRender/Core/Texture.h"
 #include "Viewer/VkRender/Components/GLTFDefines.h"
 
 

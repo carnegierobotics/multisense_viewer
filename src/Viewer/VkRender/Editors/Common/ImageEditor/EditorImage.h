@@ -7,7 +7,6 @@
 
 #include "Viewer/VkRender/Editors/Editor.h"
 #include "Viewer/Scenes/Scene.h"
-#include "Viewer/VkRender/RenderPipelines/GraphicsPipeline.h"
 #include "Viewer/VkRender/Core/VulkanTexture.h"
 
 namespace VkRender {

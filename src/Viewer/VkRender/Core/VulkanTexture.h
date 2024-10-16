@@ -6,7 +6,6 @@
 #define MULTISENSE_VIEWER_VULKANTEXTURE_H
 
 
-#include "Viewer/VkRender/Core/Texture.h"
 #include "Viewer/VkRender/Core/VulkanImage.h"
 
 namespace VkRender {

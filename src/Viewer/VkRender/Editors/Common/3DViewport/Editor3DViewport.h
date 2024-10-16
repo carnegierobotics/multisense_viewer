@@ -80,15 +80,15 @@ namespace VkRender {
 
         struct EntityRenderData {
             // Mesh rendering and typical shader buffers
-            std::vector<Buffer> cameraBuffer;
-            std::vector<Buffer> modelBuffer;
+            std::vector<std::unique_ptr<Buffer>> cameraBuffer;
+            std::vector<std::unique_ptr<Buffer>> modelBuffer;
             std::vector<VkDescriptorSet> descriptorSets;
 
             // Material stuff
-            std::vector<Buffer> materialBuffer;
+            std::vector<std::unique_ptr<Buffer>> materialBuffer;
             std::vector<VkDescriptorSet> materialDescriptorSets;
             // Pount cloud rendering
-            std::vector<Buffer> pointCloudBuffer;
+            std::vector<std::unique_ptr<Buffer>> pointCloudBuffer;
             std::vector<VkDescriptorSet> pointCloudDescriptorSets;
         };
         std::unordered_map<UUID, EntityRenderData> m_entityRenderData;

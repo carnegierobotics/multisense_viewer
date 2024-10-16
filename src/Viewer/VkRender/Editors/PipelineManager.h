@@ -8,7 +8,6 @@
 #include <Viewer/VkRender/RenderPipelines/DefaultGraphicsPipeline.h>
 
 #include "Viewer/VkRender/Core/Entity.h"
-#include "Viewer/VkRender/RenderPipelines/GraphicsPipeline.h"
 #include "Viewer/VkRender/Components/MaterialComponent.h"
 #include "Viewer/VkRender/Editors/PipelineKey.h"
 

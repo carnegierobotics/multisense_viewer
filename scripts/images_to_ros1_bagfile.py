@@ -59,6 +59,9 @@ def write_bag_file(bag_path, image_paths, left_camera_info, right_camera_info, a
                 ros_image = bridge.cv2_to_imgmsg(image, "passthrough")
                 ros_image.header = header
 
+                if ros_image.encoding == '8UC3':
+                    ros_image.encoding = 'bgr8'
+
                 camera_info_base.header = header
                 camera_info_base.width = ros_image.width
                 camera_info_base.height = ros_image.height

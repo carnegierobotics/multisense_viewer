@@ -38,6 +38,7 @@ namespace VkRender::LayerUtils {
         VIDEO_DISPARITY_COLOR_TEXTURE_FILE,
         VERTEX_SHADER_FILE,
         FRAGMENT_SHADER_FILE,
+        SCENE_FILE,
     } FileTypeLoadFlow;
     struct LoadFileInfo {
         std::filesystem::path path;

@@ -9,6 +9,7 @@
 #include "Viewer/Application/Application.h"
 #include "Viewer/VkRender/Components/PointCloudComponent.h"
 #include "Viewer/VkRender/Core/Entity.h"
+#include "Viewer/VkRender/Editors/Common/CommonEditorFunctions.h"
 
 namespace VkRender {
     /** Called once upon this object creation**/
@@ -209,7 +210,7 @@ namespace VkRender {
             // Load mesh from file here:
             if (ImGui::Button("Load .obj file")) {
                 std::vector<std::string> types{".obj"};
-                openImportFileDialog("Wavefront", types, LayerUtils::OBJ_FILE);
+                EditorUtils::openImportFileDialog("Wavefront", types, LayerUtils::OBJ_FILE, &loadFileFuture);
             }
 
             // Polygon Mode Control
@@ -279,7 +280,7 @@ namespace VkRender {
             // Button to load texture
             if (ImGui::Button("Set Texture Image")) {
                 std::vector<std::string> types{".png", ".jpg", ".bmp"};
-                openImportFileDialog("Load Texture", types, LayerUtils::TEXTURE_FILE);
+                EditorUtils::openImportFileDialog("Load Texture", types, LayerUtils::TEXTURE_FILE, &loadFileFuture);
             }
 
             // Texture Control
@@ -292,7 +293,7 @@ namespace VkRender {
                 // Button to load texture
                 if (ImGui::Button("Set Image Folder")) {
                     std::vector<std::string> types{".png", ".jpg", ".bmp"};
-                    openImportFolderDialog("Set Image Folder", types, LayerUtils::VIDEO_TEXTURE_FILE);
+                    EditorUtils::openImportFolderDialog("Set Image Folder", types, LayerUtils::VIDEO_TEXTURE_FILE, &loadFolderFuture);
                 }
 
                 ImGui::Checkbox("Is Disparity", &component.isDisparity);
@@ -306,14 +307,14 @@ namespace VkRender {
             ImGui::Text("%s", component.vertexShaderName.string().c_str());
             if (ImGui::Button("Load Vertex Shader")) {
                 std::vector<std::string> types{".vert"};
-                openImportFileDialog("Load Vertex Shader", types, LayerUtils::VERTEX_SHADER_FILE);
+                EditorUtils::openImportFileDialog("Load Vertex Shader", types, LayerUtils::VERTEX_SHADER_FILE, &loadFileFuture);
             }
 
             ImGui::Text("Fragment Shader:");
             ImGui::Text("%s", component.fragmentShaderName.string().c_str());
             if (ImGui::Button("Load Fragment Shader")) {
                 std::vector<std::string> types{".frag"};
-                openImportFileDialog("Load Fragment Shader", types, LayerUtils::FRAGMENT_SHADER_FILE);
+                EditorUtils::openImportFileDialog("Load Fragment Shader", types, LayerUtils::FRAGMENT_SHADER_FILE, &loadFileFuture);
             }
             // Notify scene that material component has been updated
         });
@@ -330,14 +331,14 @@ namespace VkRender {
                 // Button to load texture
                 if (ImGui::Button("Set Depth Images")) {
                     std::vector<std::string> types{".png", ".jpg", ".bmp"};
-                    openImportFolderDialog("Set Image Folder", types, LayerUtils::VIDEO_DISPARITY_DEPTH_TEXTURE_FILE);
+                    EditorUtils::openImportFolderDialog("Set Image Folder", types, LayerUtils::VIDEO_DISPARITY_DEPTH_TEXTURE_FILE, &loadFolderFuture);
                 }
                 ImGui::Text("Color Images folder:");
                 ImGui::Text("%s", component.colorVideoFolderSource.string().c_str());
                 // Button to load texture
                 if (ImGui::Button("Set Color Images")) {
                     std::vector<std::string> types{".png", ".jpg", ".bmp"};
-                    openImportFolderDialog("Set Image Folder", types, LayerUtils::VIDEO_DISPARITY_COLOR_TEXTURE_FILE);
+                    EditorUtils::openImportFolderDialog("Set Image Folder", types, LayerUtils::VIDEO_DISPARITY_COLOR_TEXTURE_FILE, &loadFolderFuture);
                 }
 
 
@@ -519,30 +520,4 @@ namespace VkRender {
         }
     }
 
-    void PropertiesLayer::openImportFileDialog(const std::string &fileDescription,
-                                               const std::vector<std::string> &type,
-                                               LayerUtils::FileTypeLoadFlow flow) {
-        if (!loadFileFuture.valid()) {
-            auto &opts = ApplicationConfig::getInstance().getUserSetting();
-            std::string openLoc = Utils::getSystemHomePath().string();
-            if (!opts.lastOpenedImportModelFolderPath.empty()) {
-                openLoc = opts.lastOpenedImportModelFolderPath.remove_filename().string();
-            }
-            loadFileFuture = std::async(VkRender::LayerUtils::selectFile, "Select " + fileDescription + " file",
-                                        type, openLoc, flow);
-        }
-    }
-
-    void PropertiesLayer::openImportFolderDialog(const std::string &fileDescription,
-                                                 const std::vector<std::string> &type,
-                                                 LayerUtils::FileTypeLoadFlow flow) {
-        if (!loadFolderFuture.valid()) {
-            auto &opts = ApplicationConfig::getInstance().getUserSetting();
-            std::string openLoc = Utils::getSystemHomePath().string();
-            if (!opts.lastOpenedImportModelFolderPath.empty()) {
-                openLoc = opts.lastOpenedImportModelFolderPath.remove_filename().string();
-            }
-            loadFolderFuture = std::async(VkRender::LayerUtils::selectFolder, "Select Folder", openLoc, flow);
-        }
-    }
 }

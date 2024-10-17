@@ -17,8 +17,6 @@ namespace VkRender {
         bool usesVideoSource = false;
         std::filesystem::path depthVideoFolderSource = "path/to/images";
         std::filesystem::path colorVideoFolderSource = "path/to/images";
-        int videoIndexDepth = -1;
-        int videoIndexColor = -1;
     };
 
     struct PointCloudInstance {

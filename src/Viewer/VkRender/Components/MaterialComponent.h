@@ -34,7 +34,6 @@ namespace VkRender {
         std::filesystem::path videoFolderSource = "path/to/images";
         bool isDisparity = false;
 
-        int videoIndex = -1; // updated by the application
     };
 
     struct MaterialInstance {

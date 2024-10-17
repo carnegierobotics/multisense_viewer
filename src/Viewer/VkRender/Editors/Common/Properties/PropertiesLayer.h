@@ -48,12 +48,6 @@ namespace VkRender {
 
         void checkFolderImportCompletion();
 
-        void openImportFileDialog(const std::string &fileDescription, const std::vector<std::string> &type,
-                                  LayerUtils::FileTypeLoadFlow flow);
-
-        void openImportFolderDialog(const std::string &fileDescription, const std::vector<std::string> &type,
-                                    LayerUtils::FileTypeLoadFlow flow);
-
         static void
         drawVec3Control(const std::string &label, glm::vec3 &values, float resetValue, float columnWidth, float speed);
 

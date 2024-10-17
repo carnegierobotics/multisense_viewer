@@ -8,6 +8,7 @@
 #include <Viewer/Scenes/SceneSerializer.h>
 
 #include "Viewer/VkRender/ImGui/Layer.h"
+#include "Viewer/VkRender/Editors/Common/CommonEditorFunctions.h"
 
 /** Is attached to the renderer through the GuiManager and instantiated in the GuiManager Constructor through
  *         pushLayer<[LayerName]>();
@@ -77,15 +78,25 @@ namespace VkRender {
                     bool isDefaultScene = m_context->isCurrentScene("Default Scene");
                     bool isMultiSenseScene = m_context->isCurrentScene("MultiSense Viewer Scene");
 
-                    if (ImGui::MenuItem("Serialize", nullptr, isDefaultScene)) {
+                    if (ImGui::MenuItem("Save Scene", nullptr, isDefaultScene)) {
 
-                        SceneSerializer serializer(m_context->activeScene());
-                        serializer.serialize(Utils::getAssetsPath() / "Scenes" / "Example.multisense");
+                        //SceneSerializer serializer(m_context->activeScene());
+                        //serializer.serialize(Utils::getAssetsPath() / "Scenes" / "Example.multisense");
+
 
                     }
-                    if (ImGui::MenuItem("Deserialize", nullptr, isMultiSenseScene)) {
-                        SceneSerializer serializer(m_context->activeScene());
-                        serializer.deserialize(Utils::getAssetsPath() / "Scenes" / "Example.multisense");
+                    if (ImGui::MenuItem("Save Scene As..", nullptr, isDefaultScene)) {
+
+                        //SceneSerializer serializer(m_context->activeScene());
+                        //serializer.serialize(Utils::getAssetsPath() / "Scenes" / "Example.multisense");
+
+
+                    }
+                    if (ImGui::MenuItem("Load Scene file", nullptr, isMultiSenseScene)) {
+
+                        std::vector<std::string> types{".multisense"};
+                        EditorUtils::openImportFileDialog("Load Scene", types, LayerUtils::SCENE_FILE, &loadFileFuture);
+
                     }
                     ImGui::EndMenu();  // End the Scenes submenu
                 }
@@ -105,6 +116,7 @@ namespace VkRender {
 
             ImGui::EndMainMenuBar();
 
+            checkFileImportCompletion();
 
             ImGui::PopStyleVar(3);
             ImGui::PopStyleColor(5);
@@ -112,10 +124,39 @@ namespace VkRender {
 
         }
 
+        void
+        handleSelectedFileOrFolder(const LayerUtils::LoadFileInfo &loadFileInfo) {
+            if (!loadFileInfo.path.empty()) {
+                switch (loadFileInfo.filetype) {
+                    case LayerUtils::SCENE_FILE: {
+                        SceneSerializer serializer(m_context->activeScene());
+                        serializer.deserialize(loadFileInfo.path);
+                    }
+                        break;
+                    default:
+                        break;
+
+                }
+            }
+        }
+
+        void checkFileImportCompletion() {
+            if (loadFileFuture.valid() &&
+                loadFileFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+                LayerUtils::LoadFileInfo loadFileInfo = loadFileFuture.get(); // Get the result from the future
+                handleSelectedFileOrFolder(loadFileInfo);
+            }
+        }
+
         /** Called once upon this object destruction **/
-        void onDetach() override {
+        void onDetach()
+        override {
 
         }
+
+    private:
+        std::future<LayerUtils::LoadFileInfo> loadFileFuture;
+
     };
 
 }

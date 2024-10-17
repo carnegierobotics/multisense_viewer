@@ -15,17 +15,20 @@ namespace VkRender {
     public:
         explicit VideoPlaybackSystem(Application *context);
 
-        size_t addVideoSource(const std::filesystem::path &folderPath, VideoSource::ImageType type, float fps, bool loop);
+        size_t         addVideoSource(const std::filesystem::path &folderPath, VideoSource::ImageType type, float fps, bool loop,
+                                      UUID ownerUUID);
         void update(float deltaTime);
-        std::shared_ptr<VulkanTexture2D> getTexture(size_t index) const;
+        std::shared_ptr<VulkanTexture2D> getTexture(UUID index);
 
         void resetAllSourcesPlayback();
 
     private:
         Application *m_context;
-        std::vector<std::unique_ptr<VideoSource>> m_videoSources;
+        std::unordered_map<UUID, std::unique_ptr<VideoSource>> m_videoSources;
+        std::vector<UUID> subscribers;
 
         std::shared_ptr<VulkanTexture2D> createEmptyTexture(VkFormat format, uint32_t width, uint32_t height) const;
+
     };
 ;
 }

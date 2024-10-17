@@ -6,6 +6,7 @@
 #define COMMONEDITORFUNCTIONS_H
 
 #include "Viewer/Application/Application.h"
+#include "Viewer/VkRender/ImGui/LayerUtils.h"
 
 namespace VkRender::EditorUtils{
 
@@ -60,6 +61,33 @@ static std::shared_ptr<VulkanTexture2D> createTextureFromFile(std::filesystem::p
         // Free the image data
         stbi_image_free(pixels);
         return texture;
+    }
+
+    static void openImportFileDialog(const std::string &fileDescription,
+                                const std::vector<std::string> &type,
+                                LayerUtils::FileTypeLoadFlow flow, std::future<LayerUtils::LoadFileInfo>* loadFileFuture) {
+        if (!loadFileFuture->valid()) {
+            auto &opts = ApplicationConfig::getInstance().getUserSetting();
+            std::string openLoc = Utils::getSystemHomePath().string();
+            if (!opts.lastOpenedImportModelFolderPath.empty()) {
+                openLoc = opts.lastOpenedImportModelFolderPath.remove_filename().string();
+            }
+            *loadFileFuture = std::async(VkRender::LayerUtils::selectFile, "Select " + fileDescription + " file",
+                                         type, openLoc, flow);
+        }
+    }
+
+    static void openImportFolderDialog(const std::string &fileDescription,
+                                       const std::vector<std::string> &type,
+                                       LayerUtils::FileTypeLoadFlow flow, std::future<LayerUtils::LoadFileInfo>* loadFolderFuture) {
+        if (!loadFolderFuture->valid()) {
+            auto &opts = ApplicationConfig::getInstance().getUserSetting();
+            std::string openLoc = Utils::getSystemHomePath().string();
+            if (!opts.lastOpenedImportModelFolderPath.empty()) {
+                openLoc = opts.lastOpenedImportModelFolderPath.remove_filename().string();
+            }
+            *loadFolderFuture = std::async(VkRender::LayerUtils::selectFolder, "Select Folder", openLoc, flow);
+        }
     }
 }
 

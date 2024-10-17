@@ -14,10 +14,10 @@ namespace VkRender {
     }
 
     size_t VideoPlaybackSystem::addVideoSource(
-        const std::filesystem::path &folderPath,
-        VideoSource::ImageType type,
-        float fps,
-        bool loop) {
+            const std::filesystem::path &folderPath,
+            VideoSource::ImageType type,
+            float fps,
+            bool loop, UUID ownerUUID) {
         auto videoSource = std::make_unique<VideoSource>(folderPath, type, fps, loop);
 
         // Determine the Vulkan format based on the image type
@@ -25,16 +25,16 @@ namespace VkRender {
         switch (type) {
             case VideoSource::ImageType::RGB:
                 format = VK_FORMAT_R8G8B8A8_UNORM;
-            break;
+                break;
             case VideoSource::ImageType::Grayscale:
                 format = VK_FORMAT_R8_UNORM;
-            break;
+                break;
             case VideoSource::ImageType::Disparity16Bit:
                 format = VK_FORMAT_R16_UNORM;
-            break;
+                break;
             default:
                 format = VK_FORMAT_R8G8B8A8_UNORM;
-            break;
+                break;
         }
 
         // Wait for the loading thread to load the first frame
@@ -57,14 +57,13 @@ namespace VkRender {
         }
 
         // Add the unique_ptr to the vector
-        m_videoSources.push_back(std::move(videoSource));
-
+        m_videoSources[ownerUUID] = std::move(videoSource);
         return m_videoSources.size() - 1; // Return the index of the added video source
     }
 
     void VideoPlaybackSystem::update(float deltaTime) {
-        for (auto &videoPtr : m_videoSources) {
-            auto &video = *videoPtr;
+        for (auto &videoPtr: m_videoSources) {
+            auto &video = *videoPtr.second;
 
             video.timeAccumulator += deltaTime;
 
@@ -103,21 +102,21 @@ namespace VkRender {
         }
     }
 
-    std::shared_ptr<VulkanTexture2D> VideoPlaybackSystem::getTexture(size_t index) const {
-        if (index < m_videoSources.size()) {
-            return m_videoSources[index]->texture;
-        }
+    std::shared_ptr<VulkanTexture2D> VideoPlaybackSystem::getTexture(UUID id) {
+        if (m_videoSources.contains(id))
+            return m_videoSources[id]->texture;
+
         return nullptr;
     }
 
     void VideoPlaybackSystem::resetAllSourcesPlayback() {
-        for (auto &videoPtr : m_videoSources) {
-            videoPtr->resetPlayback();
+        for (auto &videoPtr: m_videoSources) {
+            videoPtr.second->resetPlayback();
         }
     }
 
     std::shared_ptr<VulkanTexture2D> VideoPlaybackSystem::createEmptyTexture(
-        VkFormat format, uint32_t width, uint32_t height) const {
+            VkFormat format, uint32_t width, uint32_t height) const {
         // Create an empty VulkanTexture2D with the specified format and dimensions
 
         VkImageCreateInfo imageCI = Populate::imageCreateInfo();

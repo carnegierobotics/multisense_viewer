@@ -159,11 +159,114 @@ namespace VkRender::LayerUtils {
 #else
     DISABLE_WARNING_PUSH
     DISABLE_WARNING_ALL
+    // Struct to hold parameters and result
+    // Define the type of dialog action
+    enum class DialogAction {
+        OPEN_FILE,
+        SELECT_FOLDER
+    };
 
-    static inline LoadFileInfo selectFile(const std::string& dialogName, const std::vector<std::string>& filetypes, const std::string& setCurrentFolder, LayerUtils::FileTypeLoadFlow flow) {
+    // Struct to hold parameters and result
+    struct FileDialogData {
+        std::string dialogName;
+        std::vector<std::string> filetypes;
+        std::string setCurrentFolder;
+        LayerUtils::FileTypeLoadFlow flow;
+        std::promise<LoadFileInfo> promise; // Store promise to communicate result
+        DialogAction action; // Specify whether selecting file or folder
+    };
+
+
+    // Function to display file dialog in the main thread
+    // Function to display file or folder dialog in the main thread
+    static gboolean show_dialog(gpointer user_data) {
+        // Cast the user_data back to FileDialogData pointer
+        auto* data = static_cast<FileDialogData*>(user_data);
+
+        // Set the action based on the type of dialog
+        GtkFileChooserAction gtkAction = (data->action == DialogAction::OPEN_FILE)
+                                          ? GTK_FILE_CHOOSER_ACTION_OPEN
+                                          : GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER;
+
+        // File or folder dialog creation
+        GtkWidget *dialog = gtk_file_chooser_dialog_new(
+                data->dialogName.c_str(),
+                nullptr,
+                gtkAction,
+                ("_Cancel"), GTK_RESPONSE_CANCEL,
+                ("_Select"), GTK_RESPONSE_ACCEPT,
+                nullptr
+        );
+
+        if (data->action == DialogAction::OPEN_FILE) {
+            GtkFileFilter *filter = gtk_file_filter_new();
+            gtk_file_filter_set_name(filter, "Select files");
+
+            // Add file types dynamically for file selection
+            for (const auto& filetype : data->filetypes) {
+                gtk_file_filter_add_pattern(filter, ("*" + filetype).c_str());
+            }
+
+            gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+        }
+
+        gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), data->setCurrentFolder.c_str());
+
+        LoadFileInfo fileInfo;
+
+        // Run the dialog and handle the response
+        if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+            char *selected_file = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+            fileInfo.path = selected_file;
+            fileInfo.filetype = data->flow;
+            g_free(selected_file);
+        }
+
+        gtk_widget_destroy(dialog);
+
+        // Set the promise value (fileInfo) when done
+        data->promise.set_value(fileInfo);
+
+        return FALSE;  // Remove idle function after execution
+    }
+
+    // Function to select file from the main thread
+    static LoadFileInfo selectFile(const std::string& dialogName, const std::vector<std::string>& filetypes, const std::string& setCurrentFolder, LayerUtils::FileTypeLoadFlow flow) {
+        // Create a FileDialogData struct to store parameters and promise
+        FileDialogData dialogData = {
+            dialogName, filetypes, setCurrentFolder, flow, std::promise<LoadFileInfo>()
+        };
+
+        std::future<LoadFileInfo> future = dialogData.promise.get_future();
+
+        // Run the dialog in the main thread using g_idle_add
+        g_idle_add(show_dialog, &dialogData);
+
+        // Wait for the future to be fulfilled
+        return future.get();
+    }
+
+    static  LoadFileInfo selectFolder(const std::string& dialogName, const std::string& openLocation, LayerUtils::FileTypeLoadFlow flow) {
+        // Create a FileDialogData struct to store parameters and promise
+        FileDialogData dialogData = {
+            dialogName, {}, openLocation, flow, std::promise<LoadFileInfo>(), DialogAction::SELECT_FOLDER
+        };
+
+        std::future<LoadFileInfo> future = dialogData.promise.get_future();
+
+        // Run the dialog in the main thread using g_idle_add
+        g_idle_add(show_dialog, &dialogData);
+
+        // Wait for the future to be fulfilled
+        return future.get();
+    }
+    /*
+    static LoadFileInfo selectFile(const std::string& dialogName, const std::vector<std::string>& filetypes, const std::string& setCurrentFolder, LayerUtils::FileTypeLoadFlow flow) {
         std::filesystem::path filename;
 
-        gtk_init(0, nullptr);
+        int argc = 0;
+        char **argv = nullptr;
+        gtk_init(&argc, &argv);
 
         GtkWidget *dialog = gtk_file_chooser_dialog_new(
                 dialogName.c_str(),
@@ -196,37 +299,9 @@ namespace VkRender::LayerUtils {
 
         return {filename, flow};
     }
+*/
 
 
-    static inline LoadFileInfo selectFolder(const std::string& dialogName, const std::string& openLocation, LayerUtils::FileTypeLoadFlow flow) {
-        std::string folderPath;
-
-        gtk_init(0, nullptr);
-
-        GtkWidget *dialog = gtk_file_chooser_dialog_new(
-                dialogName.c_str(),
-                nullptr,
-                GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER,
-                ("_Cancel"), GTK_RESPONSE_CANCEL,
-                ("_Open"), GTK_RESPONSE_ACCEPT,
-                nullptr
-        );
-        std::string openLoc = openLocation.empty() ? Utils::getSystemHomePath().string() : openLocation;
-        gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), openLoc.c_str());
-
-        if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
-            char *selected_folder = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
-            folderPath = selected_folder;
-            g_free(selected_folder);
-        }
-
-        gtk_widget_destroy(dialog);
-        while (gtk_events_pending()) {
-            gtk_main_iteration();
-        }
-
-        return {folderPath, flow};
-    }
 
     DISABLE_WARNING_POP
 #endif

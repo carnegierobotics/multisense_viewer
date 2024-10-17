@@ -12,6 +12,7 @@ option(WARNINGS_AS_ERRORS "Treat compiler warnings as errors" FALSE)
 option(ENABLE_SYCL "Compile with SYCL support. Provided that llvm-sycl clang++ is in path" FALSE)
 option(BUILD_DOC "Build documentation" ON)
 option(PROPRIETARY_GIGEVISION_MODULE "Include the proprietary GigE-Vision module" OFF)
+option(SYCL_BACKEND "Select SYCL backend (dpcpp or adaptivecpp)" "adaptivecpp")
 
 # Paths for proprietary module
 set(GIGEVISION_LIB_PATH "" CACHE PATH "Path to the proprietary GigE-Vision module library")
@@ -22,14 +23,33 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+add_executable(MultiSense-Viewer)
+
+# SYCL Backend selection
 if (ENABLE_SYCL)
-    set(CMAKE_CXX_COMPILER "clang++")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -fsycl-targets=nvptx64-nvidia-cuda,spir64 -g")
-    add_compile_definitions(SYCL_ENABLED)
-    message(STATUS "[VkRenderINFO]: SYCL support enabled. Compiler: ${CMAKE_CXX_COMPILER} Flags: ${CMAKE_CXX_FLAGS}")
-else ()
+    if(SYCL_BACKEND STREQUAL "dpcpp")
+        set(CMAKE_CXX_COMPILER "clang++")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -fsycl-targets=spir64 -g")
+        add_compile_definitions(SYCL_ENABLED)
+        message(STATUS "[VkRenderINFO]: SYCL DPC++ support enabled. Compiler: ${CMAKE_CXX_COMPILER} Flags: ${CMAKE_CXX_FLAGS}")
+    elseif(SYCL_BACKEND STREQUAL "adaptivecpp")
+        # Find the AdaptiveCpp package
+        find_package(AdaptiveCpp REQUIRED)
+        # Check if ACPP_TARGETS is passed via command line or environment
+        if(NOT DEFINED ACPP_TARGETS)
+            set(ACPP_TARGETS "generic" CACHE STRING "AdaptiveCpp compilation targets")
+        endif()
+        # Print a message showing which targets are being used
+        message(STATUS "[VkRenderINFO]: Using AdaptiveCpp with targets: ${ACPP_TARGETS} to project name ${PROJECT_NAME}" )
+        # Add sycl to target using AdaptiveCpp's helper
+        add_sycl_to_target(TARGET ${PROJECT_NAME} TARGETS ${ACPP_TARGETS})
+
+    else()
+        message(FATAL_ERROR "[VkRenderERROR]: Unknown SYCL backend. Choose either 'dpcpp' or 'adaptivecpp'.")
+    endif()
+else()
     message(STATUS "[VkRenderINFO]: SYCL support not enabled.")
-endif ()
+endif()
 
 # Set default build type if none was specified
 if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -150,9 +170,9 @@ set(LIBRARIES
 
 # Add SYCL-specific files
 if (ENABLE_SYCL)
-    list(APPEND SOURCE_FILES src/Viewer/VkRender/RenderPipelines/3DGS/GaussianModelGraphicsPipeline.cpp)
+    #list(APPEND SOURCE_FILES src/Viewer/VkRender/RenderPipelines/3DGS/GaussianModelGraphicsPipeline.cpp)
     message(STATUS "[VkRenderINFO]: SYCL: Adding Gaussian Renderer to source")
-    list(APPEND LIBRARIES sycl)
+    #list(APPEND LIBRARIES sycl)
 endif ()
 
 # Add proprietary GigE-Vision module
@@ -190,8 +210,8 @@ if (UNIX)
 
     # Build executable
     set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
-    add_executable(MultiSense-Viewer ${SOURCE_FILES})
-    target_link_libraries(MultiSense-Viewer ${LIBRARIES} ${GTK3_LIBRARIES} fmt::fmt)
+    target_sources(MultiSense-Viewer PRIVATE ${SOURCE_FILES})
+    target_link_libraries(MultiSense-Viewer PRIVATE ${LIBRARIES} ${GTK3_LIBRARIES} fmt::fmt)
     add_dependencies(MultiSense-Viewer copy_assets)
 
     # Set warnings

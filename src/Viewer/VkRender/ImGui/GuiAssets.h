@@ -55,7 +55,6 @@ class Application;
         std::vector<VkShaderModule> shaderModules{};
         VulkanDevice& device;
         explicit GuiAssets(Application *context);
-        GuiAssets() = default;
 
         ImFont *font8{}, *font13{}, *font15, *font18{}, *font24{}, *fontIcons{};
         uint32_t fontCount = 0;

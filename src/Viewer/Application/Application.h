@@ -76,7 +76,7 @@ namespace VkRender {
          */
         explicit Application(const std::string &title);
 
-        ~Application() override;
+        ~Application() override = default;
 
         /**
          * @brief runs the renderer loop

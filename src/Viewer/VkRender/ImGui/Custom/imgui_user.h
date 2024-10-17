@@ -256,7 +256,7 @@ namespace ImGui {
     };
 
 
-    static inline bool isHoverable(ImGuiWindow *window, ImGuiHoveredFlags flags) {
+    static bool isHoverable(ImGuiWindow *window, ImGuiHoveredFlags flags) {
         // An active popup disable hovering on other windows (apart from its own children)
         // FIXME-OPT: This could be cached/stored within the window.
         ImGuiContext &g = *GImGui;

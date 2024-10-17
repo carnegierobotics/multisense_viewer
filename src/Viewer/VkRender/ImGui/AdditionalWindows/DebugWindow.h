@@ -46,6 +46,8 @@
 
 class DebugWindow : public VkRender::Layer {
 public:
+    int itemIdIndex = 0; // Here we store our selection data as an index.
+
 // Usage:
 //  static ExampleAppLog my_log;
 //  my_log.AddLog("Hello %d world\n", 123);
@@ -241,8 +243,6 @@ public:
 
         if (ImGui::Checkbox("Send Logs on exit", &user.sendUsageLogOnExit)) {
             update = true;
-            m_context->usageMonitor()->setSetting("send_usage_log_on_exit",
-                                                  Utils::boolToString(user.sendUsageLogOnExit));
             m_context->usageMonitor()->userClickAction("Send Logs on exit", "Checkbox",
                                                        ImGui::GetCurrentWindow()->Name);
         }
@@ -263,7 +263,6 @@ public:
         }
 
         if (ImGui::Button("Reset consent")) {
-            m_context->usageMonitor()->setSetting("ask_user_consent_to_collect_statistics", "true");
             m_context->usageMonitor()->userClickAction("Reset statistics consent", "Button",
                                                        ImGui::GetCurrentWindow()->Name);
             user.askForUsageLoggingPermissions = true;
@@ -273,23 +272,17 @@ public:
             user.sendUsageLogOnExit = false;
 
         // Set log level
-        const char *items[] = {"LOG_TRACE", "LOG_INFO"};
-        static int itemIdIndex = 1; // Here we store our selection data as an index.
-        if (config.getLogLevel() == Log::LOG_LEVEL::LOG_LEVEL_TRACE) {
-            itemIdIndex = 0;
-        } else
-            itemIdIndex = 1;
+        const auto items = Log::getLogLevelsString();
 
-        const char *previewValue = items[itemIdIndex];  // Pass in the preview value visible before opening the combo (it could be anything)
+        const char *previewValue = Log::logLevelToString(config.getLogLevel()).c_str();  // Pass in the preview value visible before opening the combo (it could be anything)
         ImGui::SetNextItemWidth(100.0f);
         if (ImGui::BeginCombo("Set Log level", previewValue, 0)) {
-            for (int n = 0; n < IM_ARRAYSIZE(items); n++) {
+            for (int n = 0; n < items.size(); n++) {
                 const bool is_selected = (itemIdIndex == n);
-                if (ImGui::Selectable(items[n], is_selected)) {
+                if (ImGui::Selectable(items[n].c_str(), is_selected)) {
                     itemIdIndex = n;
-                    auto level = Utils::getLogLevelEnumFromString(items[n]);
+                    auto level = Log::logLevelFromString(items[n]);
                     user.logLevel = level;
-                    m_context->usageMonitor()->setSetting("log_level", items[n]);
                     update |= true;
                     m_context->usageMonitor()->userClickAction("Set Log level", "combo",
                                                                ImGui::GetCurrentWindow()->Name);

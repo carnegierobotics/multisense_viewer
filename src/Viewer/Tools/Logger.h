@@ -106,6 +106,38 @@ namespace Log {
     } LogType;
 
 
+    // Function to convert LogLevel enum to string
+    static std::string logLevelToString(LogLevel level) {
+        switch (level) {
+        case DISABLE_LOG: return "DISABLE_LOG";
+        case LOG_LEVEL_INFO: return "LOG INFO";
+        case LOG_LEVEL_BUFFER: return "LOG BUFFER";
+        case LOG_LEVEL_TRACE: return "LOG TRACE";
+        case LOG_LEVEL_DEBUG: return "LOG DEBUG";
+        case ENABLE_LOG: return "ENABLE_LOG";
+        default: throw std::invalid_argument("Unknown LogLevel");
+        }
+    }
+
+    // Function to convert string to LogLevel enum
+    static Log::LogLevel logLevelFromString(const std::string& levelStr) {
+        static const std::unordered_map<std::string, Log::LogLevel> stringToLogLevel = {
+            {"DISABLE_LOG", DISABLE_LOG},
+            {"LOG INFO", LOG_LEVEL_INFO},
+            {"LOG BUFFER", LOG_LEVEL_BUFFER},
+            {"LOG TRACE", LOG_LEVEL_TRACE},
+            {"LOG DEBUG", LOG_LEVEL_DEBUG},
+            {"ENABLE_LOG", ENABLE_LOG}
+        };
+        auto it = stringToLogLevel.find(levelStr);
+        if (it != stringToLogLevel.end())
+            return it->second;
+        return LOG_LEVEL_INFO;
+    }
+    static std::array<std::string, 2> getLogLevelsString()
+    {
+     return std::array<std::string, 2>{"LOG INFO", "LOG TRACE"};
+    }
 
     struct FormatString {
         fmt::string_view m_Str;
@@ -296,19 +328,6 @@ namespace Log {
 
     private:
 
-        static inline std::string getLogStringFromEnum(const Log::LOG_LEVEL &logEnum) {
-            switch (logEnum) {
-                case Log::LOG_LEVEL_INFO:
-                    return "LOG_INFO";
-                case Log::LOG_LEVEL_TRACE:
-                    return "LOG_TRACE";
-                case Log::LOG_LEVEL_DEBUG:
-                    return "LOG_DEBUG";
-                default:
-                    return "LOG_INFO";
-            }
-        };
-
         void infoInternal(const char *text) noexcept;
 
         void traceInternal(const char *text) noexcept;
@@ -319,7 +338,7 @@ namespace Log {
 
         static std::string filterFilePath(const std::string &input);
 
-        static inline std::string
+        static std::string
         prepareMessage(const FormatString &format, fmt::format_args args, uint32_t frameNumber,
                        const std::string &tag = "") {
             const auto &loc = format.m_Loc;

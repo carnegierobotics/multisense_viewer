@@ -112,7 +112,7 @@ private:
     }
 
 
-    static inline std::vector<Adapter> listAdapters() {
+    static std::vector<Adapter> listAdapters() {
         // Get list of interfaces
         std::vector<Adapter> adapters;
 

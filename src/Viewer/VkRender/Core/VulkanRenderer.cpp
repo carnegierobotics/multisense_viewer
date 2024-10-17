@@ -119,7 +119,7 @@ namespace VkRender {
         appInfo.pApplicationName = m_name.c_str();
         appInfo.pEngineName = m_name.c_str();
         appInfo.apiVersion = apiVersion;
-        m_logger->info("Setting up vulkan with API Version: {}.{}.{}",
+        Log::Logger::getInstance()->info("Setting up vulkan with API Version: {}.{}.{}",
                        VK_API_VERSION_MAJOR(apiVersion), VK_API_VERSION_MINOR(apiVersion),
                        VK_API_VERSION_PATCH(apiVersion));
         // Get extensions supported by the instance
@@ -160,12 +160,12 @@ namespace VkRender {
             if (Validation::checkValidationLayerSupport(validationLayers)) {
                 instanceCreateInfo.ppEnabledLayerNames = validationLayers.data();
                 instanceCreateInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-                m_logger->info("Enabling Validation Layers");
+                Log::Logger::getInstance()->info("Enabling Validation Layers");
                 m_setDebugUtilsObjectNameEXT = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(vkGetInstanceProcAddr(instance, "vkSetDebugUtilsObjectNameEXT"));
 
             } else {
                 std::cerr << "Validation layer VK_LAYER_KHRONOS_validation not present, validation is disabled\n";
-                m_logger->info("Disabled Validation Layers since it was not found");
+                Log::Logger::getInstance()->info("Disabled Validation Layers since it was not found");
             }
         }
 #endif
@@ -178,7 +178,7 @@ namespace VkRender {
         if (err) {
             throw std::runtime_error("Could not create Vulkan instance");
         }
-        m_logger->info("Vulkan Instance successfully created");
+        Log::Logger::getInstance()->info("Vulkan Instance successfully created");
         // If requested, we flashing the default validation layers for debugging
         // If requested, we flashing the default validation layers for debugging
 #ifdef VKRENDER_MULTISENSE_VIEWER_DEBUG
@@ -238,7 +238,7 @@ namespace VkRender {
             //enabledDeviceExtensions.push_back(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME);
             //VkRender::RendererConfig::getInstance().addEnabledExtension(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME);
         } else {
-            m_logger->error("YCBCR Sampler Extension support not found!");
+            Log::Logger::getInstance()->error("YCBCR Sampler Extension support not found!");
         }
 
         // Vulkan m_Device creation
@@ -443,7 +443,7 @@ namespace VkRender {
 
         createPipelineCache();
 
-        m_logger->info("Initialized Renderer backend");
+        Log::Logger::getInstance()->info("Initialized Renderer backend");
 
         rendererStartTime = std::chrono::system_clock::now();
         VulkanResourceManager::getInstance(m_vulkanDevice, m_allocator);
@@ -495,7 +495,7 @@ namespace VkRender {
                 throw std::runtime_error("Failed to create semaphore");
         }
 
-        m_logger->info("Window Resized. New size is: {} x {}", m_width, m_height);
+        Log::Logger::getInstance()->info("Window Resized. New size is: {} x {}", m_width, m_height);
 
         // Notify derived class
         for (auto &fb: m_frameBuffers) {
@@ -679,7 +679,7 @@ namespace VkRender {
     void VulkanRenderer::keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
         auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
         if ((key == GLFW_KEY_ESCAPE) && action == GLFW_PRESS) {
-            myApp->m_logger->info("Escape key registered");
+            Log::Logger::getInstance()->info("Escape key registered");
             myApp->closeApplication();
         }
 
@@ -810,11 +810,11 @@ namespace VkRender {
             vkGetPhysicalDeviceProperties(d, &properties);
             vkGetPhysicalDeviceFeatures(d, &features);
             vkGetPhysicalDeviceMemoryProperties(d, &memoryProperties);
-            m_logger->info("Found physical d: {}, ", properties.deviceName);
+            Log::Logger::getInstance()->info("Found physical d: {}, ", properties.deviceName);
 
             // Search for a discrete GPU and prefer this one
             if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
-                m_logger->info("Picked Discrete GPU. Name: {}, ", properties.deviceName);
+                Log::Logger::getInstance()->info("Picked Discrete GPU. Name: {}, ", properties.deviceName);
                 return d;
             }
         }
@@ -1141,7 +1141,7 @@ namespace VkRender {
     }
 
     void VulkanRenderer::closeApplication() {
-        m_logger->info("Closing application...");
+        Log::Logger::getInstance()->info("Closing application...");
         glfwSetWindowShouldClose(window, true);
     }
 
@@ -1272,7 +1272,7 @@ namespace VkRender {
                 throw std::runtime_error("Failed to create framebuffer");
             }
         }
-        m_logger->info("Prepared Renderer");
+        Log::Logger::getInstance()->info("Prepared Renderer");
     }
     // Virtual functions
     void VulkanRenderer::updateUniformBuffers() {

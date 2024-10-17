@@ -46,16 +46,16 @@ namespace VkRender {
         ApplicationConfig &config = ApplicationConfig::getInstance();
         this->m_title = title;
         Log::Logger::getInstance()->setLogLevel(config.getLogLevel());
-        m_logger = Log::Logger::getInstance();
         VulkanRenderer::initVulkan();
         VulkanRenderer::prepare();
-        m_guiResources = std::make_shared<GuiAssets>(this);
-        m_logger->info("Initialized Backend");
+        Log::Logger::getInstance()->info("Initialized Backend");
         config.setGpuDevice(physicalDevice);
+
         m_usageMonitor = std::make_shared<UsageMonitor>();
-        m_usageMonitor->loadSettingsFromFile();
         m_usageMonitor->userStartSession(rendererStartTime);
-        // Initialize shared data across editors:
+
+
+        m_guiResources = std::make_shared<GuiAssets>(this);
 
         VulkanRenderPassCreateInfo passCreateInfo(m_vulkanDevice, &m_allocator);
         passCreateInfo.msaaSamples = msaaSamples;
@@ -253,7 +253,7 @@ namespace VkRender {
 
     void Application::updateUniformBuffers() {
         // update imgui io:
-        m_logger->frameNumber = frameID;
+        Log::Logger::getInstance()->frameNumber = frameID;
 
         ImGui::SetCurrentContext(m_mainEditor->guiContext());
         ImGuiIO &mainIO = ImGui::GetIO();
@@ -354,41 +354,10 @@ namespace VkRender {
     }
 
     void Application::cleanUp() {
-        if (std::filesystem::exists(Utils::getRuntimeConfigFilePath())) {
-            std::filesystem::remove(Utils::getRuntimeConfigFilePath());
-            Log::Logger::getInstance()->info("Removed runtime config file before cleanup {}",
-                                             Utils::getRuntimeConfigFilePath().string().c_str());
-        }
-
-        auto startTime = std::chrono::steady_clock::now();
         auto &userSetting = ApplicationConfig::getInstance().getUserSetting();
         userSetting.projectName = m_projectConfig.name;
-        if (m_activeScene)
-            userSetting.sceneName = m_activeScene->getSceneName();
-
         m_usageMonitor->userEndSession();
-        if (m_usageMonitor->hasUserLogCollectionConsent() &&
-            ApplicationConfig::getInstance().getUserSetting().sendUsageLogOnExit)
-            m_usageMonitor->sendUsageLog();
-
-        ApplicationConfig::getInstance().saveSettings(this);
-        auto timeSpan = std::chrono::duration_cast<std::chrono::duration<float> >(
-            std::chrono::steady_clock::now() - startTime);
-        Log::Logger::getInstance()->trace("Sending logs on exit took {}s", timeSpan.count());
-
-        startTime = std::chrono::steady_clock::now();
-        // Shutdown GUI manually since it contains thread. Not strictly necessary but nice to have
-        //m_guiManager.reset();
-        timeSpan = std::chrono::duration_cast<std::chrono::duration<float> >(
-            std::chrono::steady_clock::now() - startTime);
-        Log::Logger::getInstance()->trace("Deleting GUI on exit took {}s", timeSpan.count());
-        startTime = std::chrono::steady_clock::now();
-
-
-        timeSpan = std::chrono::duration_cast<std::chrono::duration<float> >(
-            std::chrono::steady_clock::now() - startTime);
-        Log::Logger::getInstance()->trace("Deleting entities on exit took {}s", timeSpan.count());
-
+        ApplicationConfig::getInstance().saveSettings();
         m_activeScene->deleteAllEntities();
         m_sceneRenderers.clear();
     }

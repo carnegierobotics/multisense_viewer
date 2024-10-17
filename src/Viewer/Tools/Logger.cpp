@@ -100,7 +100,7 @@ namespace Log {
             m_consoleLogQueue = new std::queue<std::string>();
             m_threadPool = new VkRender::ThreadPool(1);
             m_instance = new Logger(fileName);
-            m_instance->info("Initialized logger instance, fileName: {} with log level: {}", fileName, getLogStringFromEnum(m_instance->m_logLevel));
+            m_instance->info("Initialized logger instance, fileName: {} with log level: {}", fileName, logLevelToString(m_instance->m_logLevel));
         }
         return m_instance;
     }

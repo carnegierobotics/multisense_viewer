@@ -36,55 +36,61 @@
 
 #include "Viewer/Tools/Logger.h"
 #include "Viewer/Tools/Utils.h"
-#include "ApplicationUserSetting.h"
+#include "ApplicationUserSettings.h"
 
-namespace VkRender {
+namespace VkRender
+{
     class Application;
 
-    class ApplicationConfig {
+    class ApplicationConfig
+    {
     public:
-        struct CRLServerInfo {
+        struct CRLServerInfo
+        {
             std::string server; // Including prot
             std::string protocol;
             std::string destination;
             std::string versionInfoDestination;
         };
 
-        static ApplicationConfig &getInstance() {
+        static ApplicationConfig& getInstance()
+        {
             static ApplicationConfig instance;
             return instance;
         }
 
-        [[nodiscard]] const std::string &getArchitecture() const;
+        [[nodiscard]] const std::string& getArchitecture() const;
 
-        [[nodiscard]] const std::string &getOsVersion() const;
+        [[nodiscard]] const std::string& getOsVersion() const;
 
-        [[nodiscard]] const std::string &getAppVersion() const;
+        [[nodiscard]] const std::string& getAppVersion() const;
 
-        [[nodiscard]] const std::string &getTimeStamp() const;
+        [[nodiscard]] const std::string& getTimeStamp() const;
 
-        [[nodiscard]] const std::string &getOS() const;
+        [[nodiscard]] const std::string& getOS() const;
 
-        [[nodiscard]] const std::string &getGpuDevice() const;
+        [[nodiscard]] const std::string& getGpuDevice() const;
 
-        [[nodiscard]] const std::string &getAnonymousIdentifier() const;
+        [[nodiscard]] const std::string& getAnonymousIdentifier() const;
 
-        [[nodiscard]] const std::vector<std::string> &getEnabledExtensions() const;
+        [[nodiscard]] const std::vector<std::string>& getEnabledExtensions() const;
 
-        [[nodiscard]] bool hasEnabledExtension(const std::string &extensionName) const;
+        [[nodiscard]] bool hasEnabledExtension(const std::string& extensionName) const;
 
-        void addEnabledExtension(const std::string &extensionName);
+        void addEnabledExtension(const std::string& extensionName);
 
-        void setGpuDevice(const VkPhysicalDevice &physicalDevice);
+        void setGpuDevice(const VkPhysicalDevice& physicalDevice);
 
-        [[nodiscard]]const std::string &getAnonIdentifierString() const;
+        [[nodiscard]] const std::string& getAnonIdentifierString() const;
 
-        [[nodiscard]]const CRLServerInfo &getServerInfo() const {
+        [[nodiscard]] const CRLServerInfo& getServerInfo() const
+        {
             return m_ServerInfo;
         }
 
-        [[nodiscard]] const Log::LogLevel &getLogLevel() const {
-            return m_UserSetting.logLevel;
+        [[nodiscard]] const Log::LogLevel& getLogLevel() const
+        {
+            return m_applicationUserSettings.logLevel;
         }
 
         /**
@@ -98,20 +104,23 @@ namespace VkRender {
          * usageMonitor.setSetting("log_level", items[n]);
          * @param setting
          */
-        void setUserSetting(const AppConfig::ApplicationUserSetting &setting) {
-            m_UserSetting = setting;
+        void setUserSetting(const AppConfig::ApplicationUserSettings& setting)
+        {
+            m_applicationUserSettings = setting;
             Log::Logger::getInstance()->setLogLevel(setting.logLevel);
-
+            // Update log level as well. //TODO the memory of log level is now saved two places. I'm not sure if we should risk using pointers here for this or something else
         }
 
-        AppConfig::ApplicationUserSetting &getUserSetting();
+        AppConfig::ApplicationUserSettings& getUserSetting();
 
-        AppConfig::ApplicationUserSetting *getUserSettingRef();
+        AppConfig::ApplicationUserSettings* getUserSettingRef();
 
 
-        static void removeRuntimeSettingsFile() {
+        static void removeRuntimeSettingsFile()
+        {
             // If the file exists, delete it
-            if (std::filesystem::exists(Utils::getRuntimeConfigFilePath())) {
+            if (std::filesystem::exists(Utils::getRuntimeConfigFilePath()))
+            {
                 std::filesystem::remove(Utils::getRuntimeConfigFilePath());
                 Log::Logger::getInstance()->info("Deleted corrupted application settings file at {}",
                                                  Utils::getRuntimeConfigFilePath().string().c_str());
@@ -122,11 +131,10 @@ namespace VkRender {
         ApplicationConfig();
 
 
-
         ~ApplicationConfig() = default;
 
         CRLServerInfo m_ServerInfo{};
-        AppConfig::ApplicationUserSetting m_UserSetting{};
+        AppConfig::ApplicationUserSettings m_applicationUserSettings{};
         std::string m_Architecture;
         std::string m_OSVersion;
         std::string m_OS;
@@ -139,22 +147,18 @@ namespace VkRender {
         /**@brief holds which extensions are available in this renderer */
         std::vector<std::string> m_EnabledExtensions;
 
-
     public:
-        const std::string &getAppVersionRemote() const;
+        const std::string& getAppVersionRemote() const;
 
-        void setAppVersionRemote(const std::string &mAppVersionRemote);
-        void saveSettings(Application *ctx);
+        void setAppVersionRemote(const std::string& mAppVersionRemote);
+        void saveSettings();
 
     private:
-
         void getOSVersion();
 
         std::string fetchArchitecture();
 
         std::string fetchApplicationVersion();
-
     };
-
 }
 #endif //MULTISENSE_VIEWER_RENDERCONFIG_H

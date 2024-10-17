@@ -108,7 +108,7 @@ set(SOURCE_FILES
         src/Viewer/Application/pch.cpp
         src/Viewer/Application/Application.cpp
         src/Viewer/Application/UsageMonitor.cpp
-        src/Viewer/Application/ApplicationUserSetting.h
+        src/Viewer/Application/ApplicationUserSettings.h
 
         src/Viewer/VkRender/RenderPipelines/DefaultGraphicsPipeline.cpp
         src/Viewer/VkRender/RenderPipelines/GraphicsPipeline2D.cpp
@@ -150,6 +150,8 @@ set(SOURCE_FILES
         src/Viewer/Modules/MultiSense/CommonHeader.h
         src/Viewer/Modules/MultiSense/MultiSenseTaskManager.cpp
         src/Viewer/Modules/MultiSense/LibMultiSense/LibMultiSenseConnector.cpp
+        src/Viewer/Application/ApplicationUserSettingsSerializer.cpp
+        src/Viewer/Application/ApplicationUserSettingsSerializer.h
 )
 
 # Libraries

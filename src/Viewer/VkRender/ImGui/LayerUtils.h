@@ -47,7 +47,7 @@ namespace VkRender::LayerUtils {
 
 #ifdef WIN32
 
-    static inline LoadFileInfo selectFile(const std::string& dialogName, const std::vector<std::string>& filetypes, const std::string& setCurrentFolder, LayerUtils::FileTypeLoadFlow flow) {
+    static LoadFileInfo selectFile(const std::string& dialogName, const std::vector<std::string>& filetypes, const std::string& setCurrentFolder, LayerUtils::FileTypeLoadFlow flow) {
         PWSTR path = nullptr;
         std::string filePath;
         HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
@@ -103,7 +103,7 @@ namespace VkRender::LayerUtils {
         return {filePath, flow};
     }
 
-    static inline LoadFileInfo selectFolder(const std::string& dialogName, const std::string& setCurrentFolder, LayerUtils::FileTypeLoadFlow flow) {
+    static LoadFileInfo selectFolder(const std::string& dialogName, const std::string& setCurrentFolder, LayerUtils::FileTypeLoadFlow flow) {
     PWSTR path = nullptr;
     std::string folderPath;
     HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
@@ -315,7 +315,7 @@ namespace VkRender::LayerUtils {
         float maxElementWidth = 300.0f;
     };
 
-    static inline void
+    static void
     createWidgets(VkRender::GuiObjectHandles &handles, const ScriptWidgetPlacement &area,
                   WidgetPosition pos = WidgetPosition()) {
         for (auto &elem: Widgets::make()->elements[area]) {

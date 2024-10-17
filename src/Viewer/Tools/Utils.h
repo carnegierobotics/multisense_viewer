@@ -374,14 +374,7 @@ namespace Utils {
     }
 
 
-    static inline Log::LogLevel getLogLevelEnumFromString(const std::string &logStr) {
-        if (logStr == "LOG_INFO") return Log::LOG_LEVEL::LOG_LEVEL_INFO;
-        else if (logStr == "LOG_TRACE") return Log::LOG_LEVEL::LOG_LEVEL_TRACE;
-        else if (logStr == "LOG_DEBUG") return Log::LOG_LEVEL::LOG_LEVEL_DEBUG;
-        return Log::LOG_LEVEL::LOG_LEVEL_INFO;
-    }
-
-    static inline bool stringToBool(const std::string &str) {
+    static bool stringToBool(const std::string &str) {
         std::string lowerStr;
         std::transform(str.begin(), str.end(), std::back_inserter(lowerStr),
                        [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
@@ -396,7 +389,7 @@ namespace Utils {
         }
     }
 
-    static inline std::string boolToString(bool value) {
+    static std::string boolToString(bool value) {
         return value ? "true" : "false";
     }
 
@@ -404,7 +397,7 @@ namespace Utils {
  * Returns the systemCache path for Windows/Ubuntu. If it doesn't exist it is created
  * @return path to cache folder
  */
-    static inline std::filesystem::path getSystemCachePath() {
+    static std::filesystem::path getSystemCachePath() {
         // ON windows this file should be places in the user cache folder //
 #ifdef WIN32
         const char *envVarName = "APPDATA";
@@ -433,7 +426,7 @@ namespace Utils {
         return multiSenseCachePath;
     }
 
-    static inline std::filesystem::path getSystemHomePath() {
+    static std::filesystem::path getSystemHomePath() {
 #ifdef WIN32
         char path[MAX_PATH];
         HANDLE hToken;
@@ -461,11 +454,11 @@ namespace Utils {
     }
 
 
-    static inline std::filesystem::path getRuntimeConfigFilePath(){
-        return getSystemCachePath() / "AppRuntimeConfig.json";
+    static std::filesystem::path getRuntimeConfigFilePath(){
+        return getSystemCachePath() / "AppRuntimeConfig.yaml";
     }
 
-    static inline bool checkRegexMatch(const std::string &str, const std::string &expression) {
+    static bool checkRegexMatch(const std::string &str, const std::string &expression) {
         std::string lowered_str = str;
         std::transform(str.begin(), str.end(), lowered_str.begin(),
                        [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
@@ -475,7 +468,7 @@ namespace Utils {
     }
 
 
-    static inline bool isLocalVersionLess(const std::string &localVersion, const std::string &remoteVersion) {
+    static bool isLocalVersionLess(const std::string &localVersion, const std::string &remoteVersion) {
         int localMajor, localMinor, localPatch;
         int remoteMajor, remoteMinor, remotePatch;
 
@@ -510,7 +503,7 @@ namespace Utils {
     }
 
 
-    static inline void
+    static void
     writeTIFFImage(const std::filesystem::path &fileName, uint32_t width, uint32_t height, float *data) {
         int samplesPerPixel = 1;
         TIFF *out = TIFFOpen(fileName.string().c_str(), "w");

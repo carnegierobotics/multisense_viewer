@@ -127,9 +127,6 @@ namespace VkRender {
 
         Input input;
 
-        /** @brief Handle for Logging*/
-        Log::Logger *m_logger = nullptr; // Create the object pointer for Logger Class
-
         /** @brief Handle for UI updates and overlay */
 
         /** @brief (Virtual) Creates the application wide Vulkan instance */

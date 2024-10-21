@@ -51,7 +51,7 @@ namespace VkRender {
         }
 
         if (entityDeleted) {
-            m_scene->destroyEntity(entity);
+            m_context->activeScene()->destroyEntity(entity);
             if (m_editor->ui()->shared->m_selectedEntity == entity) {
                 m_editor->ui()->shared->m_selectedEntity = {};
             }
@@ -61,11 +61,10 @@ namespace VkRender {
     }
 
     void SceneHierarchyLayer::processEntities() {
-        m_scene = m_context->activeScene();
 
-        if (m_scene) {
-            m_scene->getRegistry().view<entt::entity>().each([&](auto entityID) {
-                Entity entity{entityID, m_scene.get()};
+        if (m_context->activeScene()) {
+            m_context->activeScene()->getRegistry().view<entt::entity>().each([&](auto entityID) {
+                Entity entity{entityID, m_context->activeScene().get()};
                 // Perform your operations with the entity
                 drawEntityNode(entity);
             });
@@ -75,7 +74,7 @@ namespace VkRender {
             // Right-click on blank space
             if (ImGui::BeginPopupContextWindow(0, 1)) {
                 if (ImGui::MenuItem("Create Empty Entity"))
-                    m_scene->createEntity("Empty Entity");
+                    m_context->activeScene()->createEntity("Empty Entity");
 
                 ImGui::EndPopup();
             }

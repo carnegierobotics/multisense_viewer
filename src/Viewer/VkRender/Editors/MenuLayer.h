@@ -25,7 +25,7 @@ namespace VkRender {
         void onAttach() override {
 
             int argc = 0;
-            char** argv;
+            char **argv;
             gtk_init(&argc, &argv);  // Initialize GTK
 
         }
@@ -82,24 +82,27 @@ namespace VkRender {
                     bool isDefaultScene = m_context->isCurrentScene("Default Scene");
                     bool isMultiSenseScene = m_context->isCurrentScene("MultiSense Viewer Scene");
 
-                    if (ImGui::MenuItem("Save Scene", nullptr, isDefaultScene)) {
+                    auto &userSetting = ApplicationConfig::getInstance().getUserSetting();
+                    if (std::filesystem::exists(userSetting.lastActiveScenePath)) {
+                        if (ImGui::MenuItem("Save Scene", nullptr, isDefaultScene)) {
 
-                        //SceneSerializer serializer(m_context->activeScene());
-                        //serializer.serialize(Utils::getAssetsPath() / "Scenes" / "Example.multisense");
+                            SceneSerializer serializer(m_context->activeScene());
+                            serializer.serialize(userSetting.lastActiveScenePath);
 
-
+                        }
                     }
                     if (ImGui::MenuItem("Save Scene As..", nullptr, isDefaultScene)) {
+                        auto &userSetting = ApplicationConfig::getInstance().getUserSetting();
 
-                        //SceneSerializer serializer(m_context->activeScene());
-                        //serializer.serialize(Utils::getAssetsPath() / "Scenes" / "Example.multisense");
+                        std::vector<std::string> types{".multisense"};
+                        EditorUtils::saveFileDialog("Save scene as", types, LayerUtils::SAVE_SCENE_AS, &loadFileFuture);
 
 
                     }
                     if (ImGui::MenuItem("Load Scene file", nullptr, isMultiSenseScene)) {
 
                         std::vector<std::string> types{".multisense"};
-                        EditorUtils::openImportFileDialog("Load Scene", types, LayerUtils::SCENE_FILE, &loadFileFuture);
+                        EditorUtils::openImportFileDialog("Load Scene", types, LayerUtils::SAVE_SCENE, &loadFileFuture);
 
                     }
                     ImGui::EndMenu();  // End the Scenes submenu
@@ -134,9 +137,25 @@ namespace VkRender {
         handleSelectedFileOrFolder(const LayerUtils::LoadFileInfo &loadFileInfo) {
             if (!loadFileInfo.path.empty()) {
                 switch (loadFileInfo.filetype) {
-                    case LayerUtils::SCENE_FILE: {
-                        SceneSerializer serializer(m_context->activeScene());
-                        serializer.deserialize(loadFileInfo.path);
+                    case LayerUtils::SAVE_SCENE: {
+                        auto scene = m_context->newScene();
+                        if (scene) {
+                            SceneSerializer serializer(scene);
+                            serializer.deserialize(loadFileInfo.path);
+                            auto &userSetting = ApplicationConfig::getInstance().getUserSetting();
+                            userSetting.lastActiveScenePath = loadFileInfo.path;
+                        }
+                    }
+                        break;
+                    case LayerUtils::SAVE_SCENE_AS: {
+                        auto scene = m_context->activeScene();
+                        if (scene) {
+                            auto &userSetting = ApplicationConfig::getInstance().getUserSetting();
+                            auto path = loadFileInfo.path;
+                            SceneSerializer serializer(scene);
+                            serializer.serialize(path);
+                            userSetting.lastActiveScenePath = path;
+                        }
                     }
                         break;
                     default:

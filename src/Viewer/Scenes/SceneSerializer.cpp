@@ -312,6 +312,7 @@ namespace VkRender {
 
 
     bool SceneSerializer::deserialize(const std::filesystem::path &filePath) {
+        // TODO sanitize input
         std::ifstream stream(filePath);
         std::stringstream stringStream;
         stringStream << stream.rdbuf();

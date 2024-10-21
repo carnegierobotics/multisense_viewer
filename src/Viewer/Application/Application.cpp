@@ -57,6 +57,14 @@ namespace VkRender {
 
         m_guiResources = std::make_shared<GuiAssets>(this);
 
+        auto &userSetting = ApplicationConfig::getInstance().getUserSetting();
+        // Create a scene and load deserialize from file if a file exsits
+        std::shared_ptr<Scene> scene = newScene();
+        if (std::filesystem::exists(userSetting.lastActiveScenePath)) {
+            SceneSerializer serializer(scene);
+            serializer.deserialize(userSetting.lastActiveScenePath);
+        }
+
         VulkanRenderPassCreateInfo passCreateInfo(m_vulkanDevice, &m_allocator);
         passCreateInfo.msaaSamples = msaaSamples;
         passCreateInfo.swapchainImageCount = swapchain->imageCount;
@@ -74,7 +82,6 @@ namespace VkRender {
         mainMenuEditor.width = static_cast<int32_t>(m_width);
         mainMenuEditor.pPassCreateInfo = passCreateInfo;
 
-        m_activeScene = std::make_shared<Scene>("DefaultScene", this);
 
         m_mainEditor = std::make_unique<Editor>(mainMenuEditor);
         m_mainEditor->addUI("DebugWindow");
@@ -105,9 +112,6 @@ namespace VkRender {
             auto editor = createEditor(otherEditorInfo);
             m_editors.push_back(std::move(editor));
         }
-
-        //SceneSerializer serializer(m_activeScene);
-        //serializer.deserialize("../"  / Utils::getAssetsPath() / "Scenes" / "Example.multisense");
 
         m_multiSense = std::make_shared<MultiSense::MultiSenseRendererBridge>();
         m_multiSense->setup();
@@ -186,7 +190,7 @@ namespace VkRender {
                 }
                 createInfo.borderSize = jsonEditor.value("borderSize", 5);
                 createInfo.editorTypeDescription = stringToEditorType(
-                    jsonEditor.value("editorTypeDescription", ""));
+                        jsonEditor.value("editorTypeDescription", ""));
                 createInfo.resizeable = jsonEditor.value("resizeable", true);
                 createInfo.editorIndex = jsonEditor.value("editorIndex", 0);
                 createInfo.uiContext = getMainUIContext();
@@ -206,10 +210,10 @@ namespace VkRender {
                 // Create an Editor object with the createInfo
                 m_editors.push_back(std::move(createEditor(createInfo)));
                 Log::Logger::getInstance()->info(
-                    "Loaded editor {}: type = {}, x = {}, y = {}, width = {}, height = {}",
-                    createInfo.editorIndex,
-                    editorTypeToString(createInfo.editorTypeDescription), createInfo.x,
-                    createInfo.y, createInfo.width, createInfo.height);
+                        "Loaded editor {}: type = {}, x = {}, y = {}, width = {}, height = {}",
+                        createInfo.editorIndex,
+                        editorTypeToString(createInfo.editorTypeDescription), createInfo.x,
+                        createInfo.y, createInfo.width, createInfo.height);
             }
         }
 
@@ -355,6 +359,9 @@ namespace VkRender {
 
     void Application::cleanUp() {
         auto &userSetting = ApplicationConfig::getInstance().getUserSetting();
+        userSetting.lastActiveScenePath;
+        m_activeScene->getSceneName();
+
         userSetting.projectName = m_projectConfig.name;
         m_usageMonitor->userEndSession();
         ApplicationConfig::getInstance().saveSettings();
@@ -570,11 +577,11 @@ namespace VkRender {
         auto editor2UUID = editor2->getUUID();
         // Remove editor2 safely based on UUID
         m_editors.erase(
-            std::remove_if(m_editors.begin(), m_editors.end(),
-                           [editor2UUID](const std::unique_ptr<Editor> &editor) {
-                               return editor->getUUID() == editor2UUID;
-                           }),
-            m_editors.end()
+                std::remove_if(m_editors.begin(), m_editors.end(),
+                               [editor2UUID](const std::unique_ptr<Editor> &editor) {
+                                   return editor->getUUID() == editor2UUID;
+                               }),
+                m_editors.end()
         );
         editor1->resize(ci1);
     }
@@ -601,8 +608,8 @@ namespace VkRender {
                 break;
             default:
                 Log::Logger::getInstance()->trace(
-                    "Resize is somehow active but we have not clicked any borders: {}",
-                    editor->getCreateInfo().editorIndex);
+                        "Resize is somehow active but we have not clicked any borders: {}",
+                        editor->getCreateInfo().editorIndex);
                 break;
         }
         return newEditorCI;
@@ -717,6 +724,18 @@ namespace VkRender {
         return m_activeScene;
     }
 
+    std::shared_ptr<Scene> Application::newScene() {
+        if (m_activeScene) {
+            m_activeScene.reset();
+        }
+        m_activeScene = std::make_shared<Scene>("New Scene", this);
+        for (auto& editors : m_editors) {
+            editors->onSceneLoad(m_activeScene); // Also resets editor camera etc..
+            editors->ui()->shared->m_selectedEntity = Entity(); // Reset seleciton context
+        }
+
+        return m_activeScene;
+    }
 
     void Application::onFileDrop(const std::filesystem::path &path) {
         for (auto &editor: m_editors) {

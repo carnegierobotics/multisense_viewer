@@ -89,6 +89,18 @@ static std::shared_ptr<VulkanTexture2D> createTextureFromFile(std::filesystem::p
             *loadFolderFuture = std::async(VkRender::LayerUtils::selectFolder, "Select Folder", openLoc, flow);
         }
     }
+    static void saveFileDialog(const std::string &fileDescription,
+                                       const std::vector<std::string> &type,
+                                       LayerUtils::FileTypeLoadFlow flow, std::future<LayerUtils::LoadFileInfo>* loadFolderFuture) {
+        if (!loadFolderFuture->valid()) {
+            auto &opts = ApplicationConfig::getInstance().getUserSetting();
+            std::string openLoc = Utils::getSystemHomePath().string();
+            if (!opts.lastOpenedImportModelFolderPath.empty()) {
+                openLoc = opts.lastOpenedImportModelFolderPath.remove_filename().string();
+            }
+            *loadFolderFuture = std::async(VkRender::LayerUtils::saveFile, "Save as", openLoc, flow);
+        }
+    }
 }
 
 #endif //COMMONEDITORFUNCTIONS_H

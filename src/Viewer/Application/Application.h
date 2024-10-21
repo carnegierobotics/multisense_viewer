@@ -94,6 +94,8 @@ namespace VkRender {
             VulkanRenderer::closeApplication();
         }
 
+        std::shared_ptr<Scene> newScene();
+
         std::unique_ptr<Editor> createEditor(EditorCreateInfo &createInfo);
 
         std::unique_ptr<Editor> createEditorWithUUID(UUID uuid, EditorCreateInfo &createInfo);
@@ -195,6 +197,7 @@ namespace VkRender {
         void mergeEditors(const std::array<UUID, 2> &mergeEditorIndices);
 
         std::unique_ptr<Editor> &findEditorByUUID(const UUID &uuid);
+
     };
 }
 

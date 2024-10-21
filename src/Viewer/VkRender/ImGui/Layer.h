@@ -154,14 +154,13 @@ namespace VkRender {
          */
         virtual void onFinishedRender() = 0;
 
-        virtual void setScene(std::shared_ptr<Scene> scene){
-            m_scene = scene;
+        virtual void setScene(std::weak_ptr<Scene> scene){
+            //m_scene = scene;
         }
         virtual void setContext(Application* ctx){
             m_context = ctx;
         }
 
-        std::shared_ptr<Scene> m_scene;
         Application* m_context;
         Editor* m_editor;
     };

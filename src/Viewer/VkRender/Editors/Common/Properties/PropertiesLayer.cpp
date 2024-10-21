@@ -20,7 +20,7 @@ namespace VkRender {
     void PropertiesLayer::onFinishedRender() {
     }
 
-    void PropertiesLayer::setScene(std::shared_ptr<Scene> scene) {
+    void PropertiesLayer::setScene(std::weak_ptr<Scene> scene) {
         Layer::setScene(scene);
 
         // Reset the selection context
@@ -224,7 +224,8 @@ namespace VkRender {
                     component.polygonMode = VK_POLYGON_MODE_FILL;
                 }
                 // notify component updated
-                m_scene->onComponentUpdated(entity, component);
+               // m_scene.onComponentUpdated(entity, component);
+                m_context->activeScene()->onComponentUpdated(entity, component);
             }
         });
         drawComponent<TagComponent>("Tag", entity, [this](auto &component) {
@@ -268,7 +269,7 @@ namespace VkRender {
 
             if (ImGui::Button("Reload Material Shader")) {
                 component.reloadShader = true;
-                m_scene->onComponentUpdated(entity, component);
+                m_context->activeScene()->onComponentUpdated(entity, component);
             }
             ImGui::Dummy(ImVec2(5.0f, 5.0f));
             ImGui::PushFont(m_editor->guiResources().font15);
@@ -354,7 +355,8 @@ namespace VkRender {
 
     /** Called once per frame **/
     void PropertiesLayer::onUIRender() {
-        setSelectedEntity(m_editor->ui()->shared->m_selectedEntity);
+
+        setSelectedEntity(m_editor->ui()->shared->m_selectedEntity); // TODO not a consistent way to set the selected context
 
         ImVec2 window_pos = ImVec2(0.0f, m_editor->ui()->layoutConstants.uiYOffset); // Position (x, y)
         ImVec2 window_size = ImVec2(m_editor->ui()->width, m_editor->ui()->height); // Size (width, height)
@@ -438,7 +440,8 @@ namespace VkRender {
                 case LayerUtils::TEXTURE_FILE: {
                     auto &materialComponent = m_selectionContext.getComponent<MaterialComponent>();
                     materialComponent.albedoTexturePath = loadFileInfo.path;
-                    m_scene->onComponentUpdated(m_selectionContext, materialComponent);
+                    m_context->activeScene()->onComponentUpdated(m_selectionContext, materialComponent);
+
                 }
                 break;
                 case LayerUtils::OBJ_FILE:
@@ -470,7 +473,8 @@ namespace VkRender {
                     if (m_selectionContext.hasComponent<MaterialComponent>()) {
                         auto &materialComponent = m_selectionContext.getComponent<MaterialComponent>();
                         materialComponent.videoFolderSource = loadFileInfo.path;
-                        m_scene->onComponentUpdated(m_selectionContext, materialComponent);
+                        m_context->activeScene()->onComponentUpdated(m_selectionContext, materialComponent);
+
                     }
 
                 }
@@ -479,14 +483,16 @@ namespace VkRender {
                     if (m_selectionContext.hasComponent<PointCloudComponent>()) {
                         auto &pointCloudComponent = m_selectionContext.getComponent<PointCloudComponent>();
                         pointCloudComponent.depthVideoFolderSource = loadFileInfo.path;
-                        m_scene->onComponentUpdated(m_selectionContext, pointCloudComponent);
+                        m_context->activeScene()->onComponentUpdated(m_selectionContext, pointCloudComponent);
+
                     }
                     break;
                 case LayerUtils::VIDEO_DISPARITY_COLOR_TEXTURE_FILE:
                     if (m_selectionContext.hasComponent<PointCloudComponent>()) {
                         auto &pointCloudComponent = m_selectionContext.getComponent<PointCloudComponent>();
                         pointCloudComponent.colorVideoFolderSource = loadFileInfo.path;
-                        m_scene->onComponentUpdated(m_selectionContext, pointCloudComponent);
+                        m_context->activeScene()->onComponentUpdated(m_selectionContext, pointCloudComponent);
+
                     }
                     break;
                 default:

@@ -64,11 +64,11 @@ namespace VkRender {
 
             ImGui::Checkbox("Scene camera", &imageUI->renderFromSceneCamera); ImGui::SameLine();
             if (imageUI->renderFromSceneCamera) {
-                auto view = m_scene->getRegistry().view<CameraComponent>();
+                auto view = m_context->activeScene()->getRegistry().view<CameraComponent>();
                 std::vector<std::string> cameraEntityNames;
                 for (auto entity : view) {
-                    if (m_scene->getRegistry().all_of<TagComponent>(entity)) {
-                        auto& tag = m_scene->getRegistry().get<TagComponent>(entity);
+                    if (m_context->activeScene()->getRegistry().all_of<TagComponent>(entity)) {
+                        auto& tag = m_context->activeScene()->getRegistry().get<TagComponent>(entity);
                         cameraEntityNames.push_back(tag.Tag);  // Assuming TagComponent has a 'name' string member
                     }
                 }

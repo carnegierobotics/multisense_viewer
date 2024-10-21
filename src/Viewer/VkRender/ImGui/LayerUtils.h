@@ -38,7 +38,8 @@ namespace VkRender::LayerUtils {
         VIDEO_DISPARITY_COLOR_TEXTURE_FILE,
         VERTEX_SHADER_FILE,
         FRAGMENT_SHADER_FILE,
-        SCENE_FILE,
+        SAVE_SCENE,
+        SAVE_SCENE_AS,
     } FileTypeLoadFlow;
     struct LoadFileInfo {
         std::filesystem::path path;
@@ -163,7 +164,8 @@ namespace VkRender::LayerUtils {
     // Define the type of dialog action
     enum class DialogAction {
         OPEN_FILE,
-        SELECT_FOLDER
+        SELECT_FOLDER,
+        SAVE_FILE
     };
 
     // Struct to hold parameters and result
@@ -231,6 +233,72 @@ namespace VkRender::LayerUtils {
         return FALSE;  // Remove idle function after execution
     }
 
+    // Function to display the file save dialog in the main thread
+    static gboolean show_save_dialog(gpointer user_data) {
+        // Cast the user_data back to FileDialogData pointer
+        auto* data = static_cast<FileDialogData*>(user_data);
+
+        // Set the action for saving a file
+        GtkWidget *dialog = gtk_file_chooser_dialog_new(
+                data->dialogName.c_str(),
+                nullptr,
+                GTK_FILE_CHOOSER_ACTION_SAVE,   // Save file action
+                ("_Cancel"), GTK_RESPONSE_CANCEL,
+                ("_Save"), GTK_RESPONSE_ACCEPT,
+                nullptr
+        );
+
+        gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), data->setCurrentFolder.c_str());
+        gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(dialog), TRUE);  // Ask for overwrite confirmation
+
+        // Filter for the .multisense file extension
+        GtkFileFilter *filter = gtk_file_filter_new();
+        gtk_file_filter_set_name(filter, "MultiSense Files");
+        gtk_file_filter_add_pattern(filter, "*.multisense");
+        gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+
+        LoadFileInfo fileInfo;
+
+        // Run the dialog and handle the response
+        if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+            char *selected_file = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+            fileInfo.path = selected_file;
+
+            // Ensure the .multisense extension is added if the user didn't include it
+            if (fileInfo.path.string().find(".multisense") == std::string::npos) {
+                fileInfo.path += ".multisense";
+            }
+
+            fileInfo.filetype = data->flow;
+            g_free(selected_file);
+        }
+
+        gtk_widget_destroy(dialog);
+
+        // Set the promise value (fileInfo) when done
+        data->promise.set_value(fileInfo);
+
+        delete data;  // Clean up the dynamically allocated memory
+
+        return FALSE;  // Remove idle function after execution
+    }
+
+// Function to save a file, ensuring it runs on the main thread
+    static LoadFileInfo saveFile(const std::string& dialogName, const std::string& setCurrentFolder, LayerUtils::FileTypeLoadFlow flow) {
+        // Create a new FileDialogData struct dynamically
+        auto* dialogData = new FileDialogData{
+                dialogName, {".multisense"}, setCurrentFolder, flow, std::promise<LoadFileInfo>(), DialogAction::SAVE_FILE
+        };
+
+        std::future<LoadFileInfo> future = dialogData->promise.get_future();
+
+        // Schedule the save dialog to run in the main thread using g_idle_add
+        g_idle_add(show_save_dialog, dialogData);
+
+        // Wait for the future to be fulfilled (blocking until dialog is handled)
+        return future.get();
+    }
+
 // Function to select a file, ensuring it runs on the main thread
     static LoadFileInfo selectFile(const std::string& dialogName, const std::vector<std::string>& filetypes, const std::string& setCurrentFolder, LayerUtils::FileTypeLoadFlow flow) {
         // Create a new FileDialogData struct dynamically
@@ -249,17 +317,15 @@ namespace VkRender::LayerUtils {
     }
 
     static  LoadFileInfo selectFolder(const std::string& dialogName, const std::string& openLocation, LayerUtils::FileTypeLoadFlow flow) {
-        // Create a FileDialogData struct to store parameters and promise
-        FileDialogData dialogData = {
-            dialogName, {}, openLocation, flow, std::promise<LoadFileInfo>(), DialogAction::SELECT_FOLDER
+        std::vector<std::string> filetypes;
+        // Memory is cleaned up in the dialog
+        auto* dialogData = new FileDialogData{
+                dialogName, filetypes, openLocation, flow, std::promise<LoadFileInfo>(), DialogAction::SELECT_FOLDER
         };
-
-        std::future<LoadFileInfo> future = dialogData.promise.get_future();
-
-        // Run the dialog in the main thread using g_idle_add
-        g_idle_add(show_dialog, &dialogData);
-
-        // Wait for the future to be fulfilled
+        std::future<LoadFileInfo> future = dialogData->promise.get_future();
+        // Schedule the dialog to run in the main thread using g_idle_add
+        g_idle_add(show_dialog, dialogData);
+        // Wait for the future to be fulfilled (blocking until dialog is handled)
         return future.get();
     }
     /*

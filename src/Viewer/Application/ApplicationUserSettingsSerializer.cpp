@@ -17,23 +17,25 @@ namespace VkRender {
     // Helper function to convert settings to YAML
     static void to_yaml(YAML::Emitter &out, const AppConfig::ApplicationUserSettings &settings) {
         out << YAML::BeginMap;
-        out << YAML::Key << "logLevel" << YAML::Value << Log::logLevelToString(settings.logLevel);
-        out << YAML::Key << "sendUsageLogOnExit" << YAML::Value << settings.sendUsageLogOnExit;
-        out << YAML::Key << "userConsentToSendLogs" << YAML::Value << settings.userConsentToSendLogs;
-        out << YAML::Key << "askForUsageLoggingPermissions" << YAML::Value << settings.askForUsageLoggingPermissions;
-        out << YAML::Key << "lastOpenedImportModelFolderPath" << YAML::Value << settings.lastOpenedImportModelFolderPath.string();
-        out << YAML::Key << "projectName" << YAML::Value << settings.projectName;
+        out << YAML::Key << "LogLevel" << YAML::Value << Log::logLevelToString(settings.logLevel);
+        out << YAML::Key << "SendUsageLogOnExit" << YAML::Value << settings.sendUsageLogOnExit;
+        out << YAML::Key << "UserConsentToSendLogs" << YAML::Value << settings.userConsentToSendLogs;
+        out << YAML::Key << "AskForUsageLoggingPermissions" << YAML::Value << settings.askForUsageLoggingPermissions;
+        out << YAML::Key << "LastOpenedImportModelFolderPath" << YAML::Value << settings.lastOpenedImportModelFolderPath.string();
+        out << YAML::Key << "ProjectName" << YAML::Value << settings.projectName;
+        out << YAML::Key << "LastActiveScenePath" << YAML::Value << settings.lastActiveScenePath.string();
         out << YAML::EndMap;
     }
 
     // Helper function to load settings from YAML
     static void from_yaml(const YAML::Node &node, AppConfig::ApplicationUserSettings &settings) {
-        settings.logLevel = Log::logLevelFromString(node["logLevel"].as<std::string>());
-        settings.sendUsageLogOnExit = node["sendUsageLogOnExit"].as<bool>();
-        settings.userConsentToSendLogs = node["userConsentToSendLogs"].as<bool>();
-        settings.askForUsageLoggingPermissions = node["askForUsageLoggingPermissions"].as<bool>();
-        settings.lastOpenedImportModelFolderPath = node["lastOpenedImportModelFolderPath"].as<std::string>();
-        settings.projectName = node["projectName"].as<std::string>();
+        settings.logLevel = Log::logLevelFromString(node["LogLevel"].as<std::string>());
+        settings.sendUsageLogOnExit = node["SendUsageLogOnExit"].as<bool>();
+        settings.userConsentToSendLogs = node["UserConsentToSendLogs"].as<bool>();
+        settings.askForUsageLoggingPermissions = node["AskForUsageLoggingPermissions"].as<bool>();
+        settings.lastOpenedImportModelFolderPath = node["LastOpenedImportModelFolderPath"].as<std::string>();
+        settings.projectName = node["ProjectName"].as<std::string>();
+        settings.lastActiveScenePath = node["LastActiveScenePath"].as<std::string>();
     }
 
     // Serialize settings to YAML

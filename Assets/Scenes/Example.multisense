@@ -2,22 +2,11 @@ Scene: Scene name
 Entities:
   - Entity: 123123123
     TagComponent:
-      Tag: MultiSense
+      Tag: Left Image
     TransformComponent:
-      Position: [0, 4.9000001, -2.4000001]
-      Rotation: [1, 0, 0, 0]
-      Scale: [1, 1, 1]
-    MeshComponent:
-      ModelPath: /home/magnus/crl/multisense_viewer/Assets/Models/obj/s30.obj
-      MeshDataType: OBJ_FILE
-      PolygonMode: Fill
-  - Entity: 123123123
-    TagComponent:
-      Tag: Disparity Image
-    TransformComponent:
-      Position: [0, 0, -1.29999995]
+      Position: [3.29999995, 0, 0]
       Rotation: [-3.09086197e-08, -3.09086197e-08, 0.707106769, -0.707106769]
-      Scale: [1.60000002, 1, 1]
+      Scale: [1.5, 1, 1]
     MeshComponent:
       ModelPath: /home/magnus/crl/multisense_viewer/Assets/Models/obj/quad.obj
       MeshDataType: OBJ_FILE
@@ -31,24 +20,8 @@ Entities:
       VertexShader: defaultBasic.vert
       FragmentShader: defaultBasic.frag
       UsesVideoSource: true
-      VideoFolderSource: /home/magnus/PycharmProjects/multisense-rgbd/datasets/logqs_dataset/jeep_gravel/disparity
-      IsDisparity: true
-  - Entity: 123123123
-    TagComponent:
-      Tag: Point Cloud
-    TransformComponent:
-      Position: [0, 0, 0]
-      Rotation: [-3.09086197e-08, -3.09086197e-08, 0.707106769, -0.707106769]
-      Scale: [1, 1, 1]
-    MeshComponent:
-      ModelPath: ""
-      MeshDataType: POINT_CLOUD
-      PolygonMode: Point
-    PointCloudComponent:
-      PointSize: 1
-      UsesVideoSource: true
-      DepthVideoFolderSource: /home/magnus/PycharmProjects/multisense-rgbd/datasets/logqs_dataset/jeep_gravel/disparity
-      ColorVideoFolderSource: /home/magnus/PycharmProjects/multisense-rgbd/datasets/logqs_dataset/jeep_gravel/left
+      VideoFolderSource: /home/magnus/PycharmProjects/multisense-rgbd/datasets/logqs_dataset/jeep_gravel/left
+      IsDisparity: false
   - Entity: 123123123
     TagComponent:
       Tag: Right Image
@@ -73,11 +46,27 @@ Entities:
       IsDisparity: false
   - Entity: 123123123
     TagComponent:
-      Tag: Left Image
+      Tag: Point Cloud
     TransformComponent:
-      Position: [3.29999995, 0, 0]
+      Position: [0, 0, 0]
       Rotation: [-3.09086197e-08, -3.09086197e-08, 0.707106769, -0.707106769]
-      Scale: [1.5, 1, 1]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      ModelPath: ""
+      MeshDataType: POINT_CLOUD
+      PolygonMode: Point
+    PointCloudComponent:
+      PointSize: 1
+      UsesVideoSource: true
+      DepthVideoFolderSource: /home/magnus/PycharmProjects/multisense-rgbd/datasets/logqs_dataset/jeep_gravel/disparity
+      ColorVideoFolderSource: /home/magnus/PycharmProjects/multisense-rgbd/datasets/logqs_dataset/jeep_gravel/left
+  - Entity: 123123123
+    TagComponent:
+      Tag: Disparity Image
+    TransformComponent:
+      Position: [0, 0, -1.29999995]
+      Rotation: [-3.09086197e-08, -3.09086197e-08, 0.707106769, -0.707106769]
+      Scale: [1.60000002, 1, 1]
     MeshComponent:
       ModelPath: /home/magnus/crl/multisense_viewer/Assets/Models/obj/quad.obj
       MeshDataType: OBJ_FILE
@@ -91,5 +80,16 @@ Entities:
       VertexShader: defaultBasic.vert
       FragmentShader: defaultBasic.frag
       UsesVideoSource: true
-      VideoFolderSource: /home/magnus/PycharmProjects/multisense-rgbd/datasets/logqs_dataset/jeep_gravel/left
-      IsDisparity: false
+      VideoFolderSource: /home/magnus/PycharmProjects/multisense-rgbd/datasets/logqs_dataset/jeep_gravel/disparity
+      IsDisparity: true
+  - Entity: 123123123
+    TagComponent:
+      Tag: MultiSense
+    TransformComponent:
+      Position: [0, 4.9000001, -2.4000001]
+      Rotation: [1, 0, 0, 0]
+      Scale: [1, 1, 1]
+    MeshComponent:
+      ModelPath: /home/magnus/crl/multisense_viewer/Assets/Models/obj/s30.obj
+      MeshDataType: OBJ_FILE
+      PolygonMode: Fill

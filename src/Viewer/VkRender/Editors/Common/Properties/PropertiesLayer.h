@@ -23,7 +23,7 @@ namespace VkRender {
 
         void onFinishedRender() override;
 
-        void setScene(std::shared_ptr<Scene> scene) override;
+        void setScene(std::weak_ptr<Scene> scene) override;
 
         void setSelectedEntity(Entity entity);
 

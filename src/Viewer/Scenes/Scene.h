@@ -25,15 +25,8 @@ namespace VkRender {
 
         void deleteAllEntities();
 
-        virtual ~Scene() {
-            // Manually destroy all entities to trigger the on_destroy events
-            auto view = m_registry.view<entt::entity>();
-            for (auto entity: view) {
-                m_registry.destroy(entity);  // This will trigger any registered destroy callbacks
-            }
-
-            // Now clear the registry to clean up any remaining components
-            m_registry.clear<>();
+        ~Scene() {
+            deleteAllEntities();
         }
 
         Entity createEntity(const std::string &name);
@@ -98,6 +91,7 @@ namespace VkRender {
         void notifyEditorsComponentAdded(Entity entity, T &component);
 
         std::string m_sceneName = "Unnamed Scene";
+        std::filesystem::path filePath;
         Application *m_context;
 
     };

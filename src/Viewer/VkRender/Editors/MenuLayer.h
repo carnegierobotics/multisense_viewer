@@ -24,6 +24,10 @@ namespace VkRender {
         /** Called once upon this object creation**/
         void onAttach() override {
 
+            int argc = 0;
+            char** argv;
+            gtk_init(&argc, &argv);  // Initialize GTK
+
         }
 
         /** Called after frame has finished rendered **/
@@ -117,6 +121,8 @@ namespace VkRender {
             ImGui::EndMainMenuBar();
 
             checkFileImportCompletion();
+
+            while (g_main_context_iteration(nullptr, false));
 
             ImGui::PopStyleVar(3);
             ImGui::PopStyleColor(5);

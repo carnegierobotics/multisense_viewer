@@ -177,16 +177,15 @@ namespace VkRender::LayerUtils {
     };
 
 
-    // Function to display file dialog in the main thread
-    // Function to display file or folder dialog in the main thread
+    // Function to display the file dialog in the main thread
     static gboolean show_dialog(gpointer user_data) {
         // Cast the user_data back to FileDialogData pointer
         auto* data = static_cast<FileDialogData*>(user_data);
 
         // Set the action based on the type of dialog
         GtkFileChooserAction gtkAction = (data->action == DialogAction::OPEN_FILE)
-                                          ? GTK_FILE_CHOOSER_ACTION_OPEN
-                                          : GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER;
+                                         ? GTK_FILE_CHOOSER_ACTION_OPEN
+                                         : GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER;
 
         // File or folder dialog creation
         GtkWidget *dialog = gtk_file_chooser_dialog_new(
@@ -227,22 +226,25 @@ namespace VkRender::LayerUtils {
         // Set the promise value (fileInfo) when done
         data->promise.set_value(fileInfo);
 
+        delete data;  // Clean up the dynamically allocated memory
+
         return FALSE;  // Remove idle function after execution
     }
 
-    // Function to select file from the main thread
+// Function to select a file, ensuring it runs on the main thread
     static LoadFileInfo selectFile(const std::string& dialogName, const std::vector<std::string>& filetypes, const std::string& setCurrentFolder, LayerUtils::FileTypeLoadFlow flow) {
-        // Create a FileDialogData struct to store parameters and promise
-        FileDialogData dialogData = {
-            dialogName, filetypes, setCurrentFolder, flow, std::promise<LoadFileInfo>()
+        // Create a new FileDialogData struct dynamically
+        // Memory is cleaned up in the dialog
+        auto* dialogData = new FileDialogData{
+                dialogName, filetypes, setCurrentFolder, flow, std::promise<LoadFileInfo>(), DialogAction::OPEN_FILE
         };
 
-        std::future<LoadFileInfo> future = dialogData.promise.get_future();
+        std::future<LoadFileInfo> future = dialogData->promise.get_future();
 
-        // Run the dialog in the main thread using g_idle_add
-        g_idle_add(show_dialog, &dialogData);
+        // Schedule the dialog to run in the main thread using g_idle_add
+        g_idle_add(show_dialog, dialogData);
 
-        // Wait for the future to be fulfilled
+        // Wait for the future to be fulfilled (blocking until dialog is handled)
         return future.get();
     }
 

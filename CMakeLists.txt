@@ -30,7 +30,6 @@ if (ENABLE_SYCL)
     if(SYCL_BACKEND STREQUAL "dpcpp")
         set(CMAKE_CXX_COMPILER "clang++")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -fsycl-targets=spir64 -g")
-        add_compile_definitions(SYCL_ENABLED)
         message(STATUS "[VkRenderINFO]: SYCL DPC++ support enabled. Compiler: ${CMAKE_CXX_COMPILER} Flags: ${CMAKE_CXX_FLAGS}")
     elseif(SYCL_BACKEND STREQUAL "adaptivecpp")
         # Find the AdaptiveCpp package
@@ -47,6 +46,7 @@ if (ENABLE_SYCL)
     else()
         message(FATAL_ERROR "[VkRenderERROR]: Unknown SYCL backend. Choose either 'dpcpp' or 'adaptivecpp'.")
     endif()
+    add_compile_definitions(SYCL_ENABLED)
 else()
     message(STATUS "[VkRenderINFO]: SYCL support not enabled.")
 endif()
@@ -110,8 +110,8 @@ set(SOURCE_FILES
         src/Viewer/Application/UsageMonitor.cpp
         src/Viewer/Application/ApplicationUserSettings.h
 
-        src/Viewer/VkRender/RenderPipelines/DefaultGraphicsPipeline.cpp
-        src/Viewer/VkRender/RenderPipelines/GraphicsPipeline2D.cpp
+        src/Viewer/VkRender/RenderResources/DefaultGraphicsPipeline.cpp
+        src/Viewer/VkRender/RenderResources/GraphicsPipeline2D.cpp
 
         src/Viewer/Scenes/Scene.cpp
         src/Viewer/Scenes/SceneSerializer.cpp
@@ -172,7 +172,8 @@ set(LIBRARIES
 
 # Add SYCL-specific files
 if (ENABLE_SYCL)
-    #list(APPEND SOURCE_FILES src/Viewer/VkRender/RenderPipelines/3DGS/GaussianModelGraphicsPipeline.cpp)
+    list(APPEND SOURCE_FILES src/Viewer/VkRender/RenderResources/SyclGaussianGFX.cpp)
+    list(APPEND SOURCE_FILES src/Viewer/VkRender/Core/SyclDeviceSelector.h)
     message(STATUS "[VkRenderINFO]: SYCL: Adding Gaussian Renderer to source")
     #list(APPEND LIBRARIES sycl)
 endif ()

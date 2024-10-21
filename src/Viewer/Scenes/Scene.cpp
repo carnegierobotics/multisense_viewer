@@ -6,7 +6,7 @@
 
 #include "Viewer/Scenes/Scene.h"
 #include "Viewer/VkRender/Components/Components.h"
-#include "Viewer/VkRender/RenderPipelines/DefaultGraphicsPipeline.h"
+#include "Viewer/VkRender/RenderResources/DefaultGraphicsPipeline.h"
 #include "Viewer/VkRender/Components/MeshComponent.h"
 #include "Viewer/VkRender/Components/GaussianModelComponent.h"
 #include "Viewer/VkRender/Components/ImageComponent.h"
@@ -40,17 +40,6 @@ namespace VkRender {
         return entity;
     }
 
-    Entity Scene::findEntityByName(std::string_view name) {
-        {
-            auto view = m_registry.view<TagComponent>();
-            for (auto entity: view) {
-                const TagComponent &tc = view.get<TagComponent>(entity);
-                if (tc.Tag == name)
-                    return Entity{entity, this};
-            }
-            return {};
-        }
-    }
 
     Entity Scene::createEntity(const std::string &name) {
         return createEntityWithUUID(UUID(), name);
@@ -93,15 +82,6 @@ namespace VkRender {
         // if (entity.hasComponent<OtherComponent>()) {
         //     entity.removeComponent<OtherComponent>();
         // }
-    }
-
-    Entity Scene::createNewCamera(const std::string &name, uint32_t width, uint32_t height) {
-        auto e = createEntity(name);
-        auto &c = e.addComponent<CameraComponent>(Camera(width, height));
-        c.camera.setType(Camera::flycam);
-        auto &transform = e.getComponent<TransformComponent>();
-        c.camera.pose.pos = transform.getPosition();
-        return e;
     }
 
     void Scene::notifyEditorsComponentAdded(Entity entity, MeshComponent &component) {
@@ -244,6 +224,9 @@ namespace VkRender {
     template<>
     void Scene::onComponentAdded<ImageComponent>(Entity entity, ImageComponent &component) {
     }
+    template<>
+    void Scene::onComponentAdded<GaussianComponent>(Entity entity, GaussianComponent &component) {
+    }
 
     /** COMPONENT REMOVE **/
 
@@ -297,6 +280,9 @@ namespace VkRender {
     template<>
     void Scene::onComponentRemoved<ImageComponent>(Entity entity, ImageComponent &component) {
     }
+    template<>
+    void Scene::onComponentRemoved<GaussianComponent>(Entity entity, GaussianComponent &component) {
+    }
 
 
     /** COMPONENT UPDATE **/
@@ -349,6 +335,9 @@ namespace VkRender {
 
     template<>
     void Scene::onComponentUpdated<ImageComponent>(Entity entity, ImageComponent &component) {
+    }
+    template<>
+    void Scene::onComponentUpdated<GaussianComponent>(Entity entity, GaussianComponent &component) {
     }
 
 

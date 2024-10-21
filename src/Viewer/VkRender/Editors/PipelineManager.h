@@ -5,7 +5,7 @@
 #ifndef PIPELINEMANAGER_H
 #define PIPELINEMANAGER_H
 
-#include <Viewer/VkRender/RenderPipelines/DefaultGraphicsPipeline.h>
+#include <Viewer/VkRender/RenderResources/DefaultGraphicsPipeline.h>
 
 #include "Viewer/VkRender/Core/Entity.h"
 #include "Viewer/VkRender/Components/MaterialComponent.h"

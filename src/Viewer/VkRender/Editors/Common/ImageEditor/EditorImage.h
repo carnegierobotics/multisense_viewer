@@ -8,9 +8,9 @@
 #include "Viewer/VkRender/Editors/Editor.h"
 #include "Viewer/Scenes/Scene.h"
 #include "Viewer/VkRender/Core/VulkanTexture.h"
+#include "Viewer/VkRender/RenderResources/GraphicsPipeline2D.h"
 
 namespace VkRender {
-    class GraphicsPipeline2D;
 
 
     class EditorImage : public Editor {

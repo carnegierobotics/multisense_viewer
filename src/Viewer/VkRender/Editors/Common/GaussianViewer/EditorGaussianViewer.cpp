@@ -9,8 +9,18 @@
 #include "Viewer/Application/Application.h"
 #include "Viewer/VkRender/Core/Entity.h"
 #include "EditorGaussianViewerLayer.h"
+#include "Viewer/VkRender/Core/SyclDeviceSelector.h"
 
 namespace VkRender {
+
+    EditorGaussianViewer::EditorGaussianViewer(EditorCreateInfo &createInfo, UUID uuid) : Editor(createInfo, uuid),
+                                                                                          m_syclGaussianGfx(m_deviceSelector.getQueue()) {
+        addUI("EditorUILayer");
+        addUI("DebugWindow");
+        addUI("EditorGaussianViewerLayer");
+
+    }
+
     void VkRender::EditorGaussianViewer::onSceneLoad(std::shared_ptr<Scene> scene) {
         m_activeScene = m_context->activeScene();
         addUIData<EditorGaussianViewerUI>();
@@ -32,6 +42,8 @@ namespace VkRender {
     }
 
     void VkRender::EditorGaussianViewer::onRender(CommandBuffer &drawCmdBuffers) {
+        auto scene = m_context->activeScene();
+        m_syclGaussianGfx.render(scene);
 
     }
 
@@ -55,5 +67,4 @@ namespace VkRender {
         m_activeCamera->keys.right = input.keys.right;
 
     }
-
 }

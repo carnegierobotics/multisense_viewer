@@ -79,30 +79,30 @@ namespace VkRender {
 
                 // Scenes Menu
                 if (ImGui::BeginMenu("Scenes")) {
-                    bool isDefaultScene = m_context->isCurrentScene("Default Scene");
-                    bool isMultiSenseScene = m_context->isCurrentScene("MultiSense Viewer Scene");
 
                     auto &userSetting = ApplicationConfig::getInstance().getUserSetting();
-                    if (std::filesystem::exists(userSetting.lastActiveScenePath)) {
-                        if (ImGui::MenuItem("Save Scene", nullptr, isDefaultScene)) {
 
+                    if (ImGui::MenuItem("New Scene", nullptr)) {
+                        m_context->newScene();
+                        userSetting.lastActiveScenePath.clear();
+                    }
+
+                    if (std::filesystem::exists(userSetting.lastActiveScenePath)) {
+                        if (ImGui::MenuItem("Save Scene", nullptr)) {
                             SceneSerializer serializer(m_context->activeScene());
                             serializer.serialize(userSetting.lastActiveScenePath);
-
                         }
                     }
-                    if (ImGui::MenuItem("Save Scene As..", nullptr, isDefaultScene)) {
-                        auto &userSetting = ApplicationConfig::getInstance().getUserSetting();
-
+                    if (ImGui::MenuItem("Save Scene As..", nullptr)) {
+                        auto openLocation = std::filesystem::exists(userSetting.lastActiveScenePath.parent_path()) ? userSetting.lastActiveScenePath.parent_path() : Utils::getSystemHomePath();
                         std::vector<std::string> types{".multisense"};
-                        EditorUtils::saveFileDialog("Save scene as", types, LayerUtils::SAVE_SCENE_AS, &loadFileFuture);
-
-
+                        EditorUtils::saveFileDialog("Save scene as", types, LayerUtils::SAVE_SCENE_AS, &loadFileFuture, openLocation);
                     }
-                    if (ImGui::MenuItem("Load Scene file", nullptr, isMultiSenseScene)) {
+                    if (ImGui::MenuItem("Load Scene file", nullptr)) {
+                        auto openLocation = std::filesystem::exists(userSetting.lastActiveScenePath.parent_path()) ? userSetting.lastActiveScenePath.parent_path() : Utils::getSystemHomePath();
 
                         std::vector<std::string> types{".multisense"};
-                        EditorUtils::openImportFileDialog("Load Scene", types, LayerUtils::SAVE_SCENE, &loadFileFuture);
+                        EditorUtils::openImportFileDialog("Load Scene", types, LayerUtils::SAVE_SCENE, &loadFileFuture, openLocation);
 
                     }
                     ImGui::EndMenu();  // End the Scenes submenu

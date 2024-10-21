@@ -8,7 +8,8 @@
 #include "Viewer/VkRender/Editors/Editor.h"
 #include "Viewer/VkRender/Core/Camera.h"
 #include "Viewer/Scenes/Scene.h"
-#include "Viewer/VkRender/RenderPipelines/GraphicsPipeline2D.h"
+#include "Viewer/VkRender/Core/SyclDeviceSelector.h"
+#include "Viewer/VkRender/RenderResources/SyclGaussianGFX.h"
 
 namespace VkRender {
 
@@ -16,11 +17,7 @@ namespace VkRender {
     public:
         EditorGaussianViewer() = delete;
 
-        explicit EditorGaussianViewer(EditorCreateInfo &createInfo, UUID uuid = UUID()) : Editor(createInfo, uuid) {
-            addUI("EditorUILayer");
-            addUI("DebugWindow");
-            addUI("EditorGaussianViewerLayer");
-        }
+        explicit EditorGaussianViewer(EditorCreateInfo &createInfo, UUID uuid = UUID());
 
 
         void onRender(CommandBuffer &drawCmdBuffers) override;
@@ -42,9 +39,9 @@ namespace VkRender {
     private:
         std::shared_ptr<Camera> m_activeCamera;
         std::shared_ptr<Scene> m_activeScene;
-        std::unordered_map<entt::entity, std::unique_ptr<GraphicsPipeline2D>> m_2DRenderPipeline;
 
-        void generatePipelines();
+        SyclDeviceSelector m_deviceSelector = SyclDeviceSelector(SyclDeviceSelector::DeviceType::GPU);
+        SyclGaussianGFX m_syclGaussianGfx;
 
 
     };

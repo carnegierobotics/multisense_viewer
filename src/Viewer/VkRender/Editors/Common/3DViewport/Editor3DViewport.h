@@ -9,7 +9,7 @@
 
 #include "Viewer/VkRender/Editors/PipelineManager.h"
 #include "Viewer/VkRender/Editors/Editor.h"
-#include "Viewer/VkRender/RenderPipelines/DefaultGraphicsPipeline.h"
+#include "Viewer/VkRender/RenderResources/DefaultGraphicsPipeline.h"
 
 namespace VkRender {
 
@@ -48,6 +48,9 @@ namespace VkRender {
 
         void onMouseScroll(float change) override;
 
+        // TODO all of the component notifications should rather be part of a Renderer class
+        // TODO A goal would be to just call Renderer::submit(m_activeScene) which will handle all gpu resources creation and maintenance
+        // TODO This will be necessary for SceneRenderers, i.e. rendering the scene with active cameras and use the rendered image as a texture in the scene (Not editorcameras)
         void onComponentAdded(Entity entity, MeshComponent& meshComponent) override;
         void onComponentRemoved(Entity entity, MeshComponent& meshComponent) override;
         void onComponentUpdated(Entity entity, MeshComponent& meshComponent) override;

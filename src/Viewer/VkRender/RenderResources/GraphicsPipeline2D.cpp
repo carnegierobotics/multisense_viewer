@@ -2,7 +2,7 @@
 // Created by magnus on 8/15/24.
 //
 
-#include "Viewer/VkRender/RenderPipelines/GraphicsPipeline2D.h"
+#include "Viewer/VkRender/RenderResources/GraphicsPipeline2D.h"
 
 #include "Viewer/Application/Application.h"
 

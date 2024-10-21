@@ -359,9 +359,6 @@ namespace VkRender {
 
     void Application::cleanUp() {
         auto &userSetting = ApplicationConfig::getInstance().getUserSetting();
-        userSetting.lastActiveScenePath;
-        m_activeScene->getSceneName();
-
         userSetting.projectName = m_projectConfig.name;
         m_usageMonitor->userEndSession();
         ApplicationConfig::getInstance().saveSettings();
@@ -761,9 +758,6 @@ namespace VkRender {
         io.AddInputCharacter(static_cast<unsigned short>(codepoint));
     }
 
-    bool Application::isCurrentScene(std::string sceneName) {
-        return activeScene()->getSceneName() == sceneName;
-    }
 
     bool Application::isCurrentProject(std::string projectName) {
         return false;

@@ -8,7 +8,7 @@
 #include <Viewer/VkRender/Editors/PipelineManager.h>
 
 #include "Viewer/VkRender/Editors/Editor.h"
-#include "Viewer/VkRender/RenderPipelines/DefaultGraphicsPipeline.h"
+#include "Viewer/VkRender/RenderResources/DefaultGraphicsPipeline.h"
 
 namespace VkRender {
     class SceneRenderer : public Editor {

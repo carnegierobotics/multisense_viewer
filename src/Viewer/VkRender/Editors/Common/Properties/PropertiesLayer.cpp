@@ -182,6 +182,7 @@ namespace VkRender {
             displayAddComponentEntry<MeshComponent>("MeshComponent");
             displayAddComponentEntry<MaterialComponent>("MaterialComponent");
             displayAddComponentEntry<PointCloudComponent>("PointCloudComponent");
+            displayAddComponentEntry<GaussianComponent>("GaussianComponent");
 
             ImGui::EndPopup();
         }
@@ -346,6 +347,72 @@ namespace VkRender {
                 ImGui::EndChild();
             }
         });
+        drawComponent<GaussianComponent>("Gaussian Model", entity, [this](auto &component) {
+            ImGui::Text("Gaussian Model Properties");
+
+            // Display the number of Gaussians
+            ImGui::Text("Number of Gaussians: %zu", component.size());
+
+            ImGui::Separator();
+
+            // Button to add a new Gaussian
+            if (ImGui::Button("Add Gaussian")) {
+                // Default values for a new Gaussian
+                glm::vec3 defaultMean(0.0f, 0.0f, 0.0f);
+                glm::mat3 defaultCovariance(1.0f); // Identity matrix
+                float defaultAmplitude = 1.0f;
+
+                component.addGaussian(defaultMean, defaultCovariance, defaultAmplitude);
+            }
+
+            ImGui::Spacing();
+
+            // Iterate over each Gaussian and provide controls to modify them
+            for (size_t i = 0; i < component.size(); ++i) {
+                ImGui::PushID(static_cast<int>(i)); // Ensure unique ID for ImGui widgets
+                // Collapsible header for each Gaussian
+                if (ImGui::CollapsingHeader(("Gaussian " + std::to_string(i)).c_str())) {
+                    // Mean Position Controls
+                    drawVec3Control("Position", component.means[i], 0.0f);
+                    // Covariance Controls
+                    ImGui::Text("Covariance Matrix");
+                    ImGui::PushItemWidth(80.0f);
+                    for (int row = 0; row < 3; ++row) {
+                        for (int col = 0; col < 3; ++col) {
+                            ImGui::PushID(row * 3 + col);
+                            ImGui::DragFloat("##Cov", &component.covariances[i][row][col], 0.1f);
+                            ImGui::PopID();
+                            if (col < 2) ImGui::SameLine();
+                        }
+                    }
+                    ImGui::PopItemWidth();
+
+                    // Amplitude Control
+                    ImGui::Text("Amplitude");
+                    ImGui::DragFloat("##Amplitude", &component.amplitudes[i], 0.1f, 0.0f, 10.0f);
+
+                    // Recalculate inverse covariance and determinant if covariance changed
+                    if (ImGui::Button("Recompute Inverse Covariance and Determinant")) {
+                        component.invCovariances[i] = glm::inverse(component.covariances[i]);
+                        component.determinants[i] = glm::determinant(component.covariances[i]);
+                    }
+
+                    // Button to remove this Gaussian
+                    ImGui::Spacing();
+                    if (ImGui::Button("Remove Gaussian")) {
+                        component.means.erase(component.means.begin() + i);
+                        component.covariances.erase(component.covariances.begin() + i);
+                        component.amplitudes.erase(component.amplitudes.begin() + i);
+                        component.invCovariances.erase(component.invCovariances.begin() + i);
+                        component.determinants.erase(component.determinants.begin() + i);
+                        --i; // Adjust index after removal
+                    }
+                }
+
+                ImGui::PopID(); // Pop ID for this Gaussian
+            }
+        });
+
     }
 
     void PropertiesLayer::setSelectedEntity(Entity entity) {

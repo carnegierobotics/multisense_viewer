@@ -33,20 +33,15 @@ namespace VkRender {
 
         Entity createEntityWithUUID(UUID uuid, const std::string &name);
 
-        Entity findEntityByName(std::string_view name);
-
         void destroyEntity(Entity entity);
 
         void notifyComponentRemoval(Entity entity);
-
-        Entity createNewCamera(const std::string &name, uint32_t width, uint32_t height);
 
         entt::registry &getRegistry() { return m_registry; };
 
         const entt::registry &getRegistry() const {
             return m_registry;
         }
-        const std::string &getSceneName() { return m_sceneName; }
 
         template<class T>
         void onComponentUpdated(Entity entity, T &component);

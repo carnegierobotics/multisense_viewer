@@ -65,15 +65,14 @@ static std::shared_ptr<VulkanTexture2D> createTextureFromFile(std::filesystem::p
 
     static void openImportFileDialog(const std::string &fileDescription,
                                 const std::vector<std::string> &type,
-                                LayerUtils::FileTypeLoadFlow flow, std::future<LayerUtils::LoadFileInfo>* loadFileFuture) {
+                                LayerUtils::FileTypeLoadFlow flow, std::future<LayerUtils::LoadFileInfo>* loadFileFuture, std::filesystem::path openLocation = Utils::getSystemHomePath()) {
         if (!loadFileFuture->valid()) {
             auto &opts = ApplicationConfig::getInstance().getUserSetting();
-            std::string openLoc = Utils::getSystemHomePath().string();
             if (!opts.lastOpenedImportModelFolderPath.empty()) {
-                openLoc = opts.lastOpenedImportModelFolderPath.remove_filename().string();
+                openLocation = opts.lastOpenedImportModelFolderPath.remove_filename().string();
             }
             *loadFileFuture = std::async(VkRender::LayerUtils::selectFile, "Select " + fileDescription + " file",
-                                         type, openLoc, flow);
+                                         type, openLocation, flow);
         }
     }
 
@@ -91,14 +90,14 @@ static std::shared_ptr<VulkanTexture2D> createTextureFromFile(std::filesystem::p
     }
     static void saveFileDialog(const std::string &fileDescription,
                                        const std::vector<std::string> &type,
-                                       LayerUtils::FileTypeLoadFlow flow, std::future<LayerUtils::LoadFileInfo>* loadFolderFuture) {
+                                       LayerUtils::FileTypeLoadFlow flow, std::future<LayerUtils::LoadFileInfo>* loadFolderFuture, std::filesystem::path openLocation = Utils::getSystemHomePath()) {
         if (!loadFolderFuture->valid()) {
             auto &opts = ApplicationConfig::getInstance().getUserSetting();
-            std::string openLoc = Utils::getSystemHomePath().string();
             if (!opts.lastOpenedImportModelFolderPath.empty()) {
-                openLoc = opts.lastOpenedImportModelFolderPath.remove_filename().string();
+                openLocation = opts.lastOpenedImportModelFolderPath.remove_filename().string();
             }
-            *loadFolderFuture = std::async(VkRender::LayerUtils::saveFile, "Save as", openLoc, flow);
+
+            *loadFolderFuture = std::async(VkRender::LayerUtils::saveFile, "Save as", openLocation, flow);
         }
     }
 }

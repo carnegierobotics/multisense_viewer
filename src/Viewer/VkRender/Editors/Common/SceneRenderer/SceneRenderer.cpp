@@ -6,7 +6,7 @@
 #include "Viewer/VkRender/Editors/Common/SceneRenderer/SceneRenderer.h"
 #include "Viewer/Application/Application.h"
 #include "Viewer/VkRender/Components/Components.h"
-#include "Viewer/VkRender/RenderPipelines/DefaultGraphicsPipeline.h"
+#include "Viewer/VkRender/RenderResources/DefaultGraphicsPipeline.h"
 #include "Viewer/VkRender/Core/Entity.h"
 #include "Viewer/VkRender/Components/MeshComponent.h"
 

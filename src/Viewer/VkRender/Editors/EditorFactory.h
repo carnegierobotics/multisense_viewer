@@ -18,7 +18,7 @@
 #include "Viewer/VkRender/Editors/Common/Properties/EditorProperties.h"
 #include "Viewer/VkRender/Editors/Common/GaussianViewer/EditorGaussianViewer.h"
 #include "Viewer/VkRender/Editors/Common/ImageEditor/EditorImage.h"
-#include "Viewer/VkRender/Editors/Common/SceneRenderer/SceneRenderer.h"
+#include "Viewer/VkRender/Editors/Common/SceneRenderer.h"
 
 namespace VkRender {
 

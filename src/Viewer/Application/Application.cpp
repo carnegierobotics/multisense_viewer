@@ -227,9 +227,11 @@ namespace VkRender {
 
     // TODO make scene objects serializeable and loadable.
     void Application::loadScene(const std::filesystem::path &scenePath) {
+        /*
         for (auto &editor: m_sceneRenderers) {
             editor.second->loadScene(m_activeScene);
         }
+        */
         for (auto &editor: m_editors) {
             editor->loadScene(std::shared_ptr<Scene>(m_activeScene));
         }
@@ -275,6 +277,7 @@ namespace VkRender {
             otherIO.MouseDown[0] = mouse.left;
             otherIO.MouseDown[1] = mouse.right;
         }
+
         for (auto &editor: m_sceneRenderers) {
             editor.second->update();
         }
@@ -323,9 +326,11 @@ namespace VkRender {
 
     void Application::onRender() {
         /** Generate Draw Commands **/
+
         for (auto &editor: m_sceneRenderers) {
             editor.second->render(drawCmdBuffers);
         }
+
         for (auto &editor: m_editors) {
             editor->render(drawCmdBuffers);
         }
@@ -349,10 +354,12 @@ namespace VkRender {
         ci.width = m_width;
         ci.height = m_height;
         ci.frameBuffers = m_frameBuffers.data();
+
         for (auto &editor: m_sceneRenderers) {
             auto &ci = editor.second->getCreateInfo();
             editor.second->resize(ci);
         }
+
 
         m_mainEditor->resize(ci);
     }

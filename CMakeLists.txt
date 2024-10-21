@@ -135,7 +135,7 @@ set(SOURCE_FILES
         src/Viewer/VkRender/Editors/MultiSenseViewer/Layers/LayoutSettingsLayer.h
         src/Viewer/VkRender/Editors/Video/VideoSource.cpp
         src/Viewer/VkRender/Editors/Video/VideoPlaybackSystem.cpp
-        src/Viewer/VkRender/Editors/Common/SceneRenderer/SceneRenderer.cpp
+        src/Viewer/VkRender/Editors/Common/SceneRenderer.cpp
         src/Viewer/VkRender/Editors/Common/SceneHierarchy/SceneHierarchyLayer.cpp
         src/Viewer/VkRender/Editors/PipelineKey.cpp
         src/Viewer/VkRender/Editors/Common/Properties/PropertiesLayer.cpp

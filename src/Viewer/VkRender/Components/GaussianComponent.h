@@ -5,7 +5,9 @@
 #ifndef MULTISENSE_VIEWER_GAUSSIANCOMPONENT_H
 #define MULTISENSE_VIEWER_GAUSSIANCOMPONENT_H
 
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include <vector>
 
 namespace VkRender {
@@ -13,34 +15,27 @@ namespace VkRender {
 
     struct GaussianComponent {
         std::vector<glm::vec3> means;         // Contiguous array for mean positions
-        std::vector<glm::mat3> covariances;   // Contiguous array for covariance matrices
-        std::vector<float> amplitudes;        // Contiguous array for amplitudes
+        std::vector<glm::vec3> scales;   // Contiguous array for covariance matrices
+        std::vector<float> opacities;        // Contiguous array for amplitudes
+        std::vector<glm::quat> rotations;
 
-        // Precomputed values
-        std::vector<glm::mat3> invCovariances;  // Inverse covariance matrices
-        std::vector<float> determinants;        // Determinants of the covariance matrices
+        bool addToRenderer = false;
 
         // Resize to hold n Gaussians
         void resize(size_t n) {
             means.resize(n);
-            covariances.resize(n);
-            amplitudes.resize(n);
-            invCovariances.resize(n);
-            determinants.resize(n);
+            scales.resize(n);
+            opacities.resize(n);
+            rotations.resize(n);
         }
 
         // Add a Gaussian
-        void addGaussian(const glm::vec3& mean, const glm::mat3& covariance, float amplitude) {
+        void addGaussian(const glm::vec3& mean, const glm::vec3& scale, const glm::quat& rotation, float opacity) {
             means.push_back(mean);
-            covariances.push_back(covariance);
-            amplitudes.push_back(amplitude);
+            scales.push_back(scale);
+            opacities.push_back(opacity);
+            rotations.push_back(rotation);
 
-            // Precompute inverse covariance and determinant
-            glm::mat3 invCov = glm::inverse(covariance);
-            float det = glm::determinant(covariance);
-
-            invCovariances.push_back(invCov);
-            determinants.push_back(det);
         }
 
         // Get the number of Gaussians

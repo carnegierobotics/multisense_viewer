@@ -171,7 +171,7 @@ set(LIBRARIES
 
 # Add SYCL-specific files
 if (ENABLE_SYCL)
-    list(APPEND SOURCE_FILES src/Viewer/VkRender/RenderResources/SyclGaussianGFX.cpp)
+    list(APPEND SOURCE_FILES src/Viewer/VkRender/RenderResources/3DGS/SyclGaussianGFX.cpp)
     list(APPEND SOURCE_FILES src/Viewer/VkRender/Core/SyclDeviceSelector.h)
     list(APPEND SOURCE_FILES src/Viewer/VkRender/Editors/Common/GaussianViewer/EditorGaussianViewer.cpp)
     message(STATUS "[VkRenderINFO]: SYCL: Adding Gaussian Renderer to source")

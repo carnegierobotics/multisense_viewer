@@ -98,7 +98,7 @@ public:
             Filter.Draw("Filter", 300.0f);
 
             ImGui::Separator();
-            if (ImGui::BeginChild("scrolling", ImVec2(800.0f - 350.0f, 0),
+            if (ImGui::BeginChild("scrolling", ImVec2(800.0f, 0),
                                   false,
                                   ImGuiWindowFlags_HorizontalScrollbar)) {
                 if (clear)
@@ -178,9 +178,8 @@ public:
         bool update = false;
 
         static bool pOpen = true;
-        ImGuiWindowFlags window_flags = 0;
-        ImGui::SetNextWindowSize(ImVec2(800.0f, 500.0f),
-                                 ImGuiCond_FirstUseEver);
+        ImGuiWindowFlags window_flags = ImGuiWindowFlags_AlwaysAutoResize;
+        ImGui::SetNextWindowSize(ImVec2(1280.0f, 500.0f), ImGuiCond_FirstUseEver);
         ImGui::Begin("Debugger Window", &pOpen, window_flags);
 
         // Make window close on X click. But also close/open on button press

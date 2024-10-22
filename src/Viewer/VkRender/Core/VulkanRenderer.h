@@ -87,7 +87,7 @@ namespace VkRender {
             /** @brief Set to true if fullscreen mode has been requested via command line */
             bool fullscreen = false;
             /** @brief Set to true if v-sync will be forced for the swapchain */
-            bool vsync = false;
+            bool vsync = true;
             /** @brief Enable UI overlay */
             bool overlay = true;
         } m_settings;
@@ -138,7 +138,7 @@ namespace VkRender {
         virtual void updateUniformBuffers();
 
         /** @brief (Virtual) Called after the mouse cursor moved and before internal events (like camera m_Rotation) is firstUpdate */
-        virtual void mouseMoved(float x, float y, bool &handled) = 0;
+        virtual void mouseMoved(float x, float y) = 0;
         /** @brief (Virtual) Called after the mouse cursor moved and before internal events (like camera m_Rotation) is firstUpdate */
         virtual void keyboardCallback(GLFWwindow *window, int key, int scancode, int action, int mods) = 0;
 

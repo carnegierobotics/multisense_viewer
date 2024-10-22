@@ -73,16 +73,18 @@ namespace VkRender {
         glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
         glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);
         glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate);
-        m_width = mode->width;
-        m_height = mode->height;
 
-        Log::Logger::getInstance()->trace("Creating surface with size: ({},{})", m_width, m_height);
 
-        window = glfwCreateWindow(static_cast<int>(m_width), static_cast<int>(m_height), title.c_str(), nullptr, nullptr);
+
+        window = glfwCreateWindow(static_cast<int>(mode->width), static_cast<int>(mode->height), title.c_str(), nullptr, nullptr);
         if (!window){
             throw std::runtime_error("Failed to create glfw surface");
         }
-
+        int windowWidth, windowHeight;
+        glfwGetWindowSize(window, &windowWidth, &windowHeight);
+        m_width = windowWidth;
+        m_height = windowHeight;
+        Log::Logger::getInstance()->info("Created surface with size: ({},{})", m_width, m_height);
 
         glfwMakeContextCurrent(window);
         glfwSetWindowUserPointer(window, this);
@@ -736,21 +738,13 @@ namespace VkRender {
     }
 
     void VulkanRenderer::handleMouseMove(float x, float y) {
-        bool handled = false;
-
-        /*
-        if (m_settings.overlay) {
-            ImGuiIO &io = ImGui::GetIO();
-            io.WantCaptureMouse = true;
-        }
-        */
-
-        mouseMoved(x, y, handled);
+        mouseMoved(x, y);
     }
 
     void VulkanRenderer::cursorPositionCallback(GLFWwindow *window, double xPos, double yPos) {
         auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
         myApp->handleMouseMove(static_cast<float>(xPos), static_cast<float>(yPos));
+
     }
 
     DISABLE_WARNING_PUSH

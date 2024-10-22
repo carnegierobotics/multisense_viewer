@@ -3,6 +3,9 @@
 //
 
 #include "Viewer/VkRender/Editors/Common/GaussianViewer/EditorGaussianViewer.h"
+
+#include <Viewer/VkRender/Editors/Common/CommonEditorFunctions.h>
+
 #include "Viewer/VkRender/Editors/Common/GaussianViewer/EditorGaussianViewerLayer.h"
 
 #include "Viewer/Application/Application.h"
@@ -15,6 +18,17 @@ namespace VkRender {
         addUI("DebugWindow");
         addUI("EditorGaussianViewerLayer");
 
+
+
+        RenderPassInfo renderPassInfo{};
+        renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
+        renderPassInfo.renderPass = m_renderPass->getRenderPass();
+        m_renderPipelines = std::make_unique<GraphicsPipeline2D>(*m_context, renderPassInfo);
+        m_colorTexture = EditorUtils::createEmptyTexture(m_createInfo.width, m_createInfo.height, VK_FORMAT_B8G8R8A8_UNORM, m_context);
+        m_renderPipelines->setTexture(&m_colorTexture->getDescriptorInfo());
+
+        m_activeCamera = Camera(m_createInfo.width, m_createInfo.height);
+
     }
 
     void VkRender::EditorGaussianViewer::onSceneLoad(std::shared_ptr<Scene> scene) {
@@ -25,6 +39,10 @@ namespace VkRender {
 
     void EditorGaussianViewer::onEditorResize() {
 
+        m_activeCamera.setPerspective(static_cast<float>(m_createInfo.width) / static_cast<float>(m_createInfo.height));
+        m_activeCamera = Camera(m_createInfo.width, m_createInfo.height);
+        m_colorTexture = EditorUtils::createEmptyTexture(m_createInfo.width, m_createInfo.height, VK_FORMAT_B8G8R8A8_UNORM, m_context);
+        m_renderPipelines->setTexture(&m_colorTexture->getDescriptorInfo());
 
     }
 
@@ -37,30 +55,30 @@ namespace VkRender {
 
     }
 
-    void VkRender::EditorGaussianViewer::onRender(CommandBuffer &drawCmdBuffers) {
+    void VkRender::EditorGaussianViewer::onRender(CommandBuffer &commandBuffer) {
         auto scene = m_context->activeScene();
-        m_syclGaussianGfx.render(scene);
+        m_syclGaussianGfx.render(scene, m_colorTexture, m_activeCamera);
+
+        m_renderPipelines->draw(commandBuffer);
 
     }
 
-    void VkRender::EditorGaussianViewer::onMouseMove(const VkRender::MouseButtons &mouse) {
-        if (ui()->hovered && mouse.left) {
-            m_activeCamera->rotate(mouse.dx, mouse.dy);
+    void EditorGaussianViewer::onMouseMove(const MouseButtons &mouse) {
+        if (ui()->hovered && mouse.left && !ui()->resizeActive) {
+            m_activeCamera.rotate(mouse.dx, mouse.dy);
         }
-        if (ui()->hovered && mouse.right) {
-        }
     }
 
-    void VkRender::EditorGaussianViewer::onMouseScroll(float change) {
+    void EditorGaussianViewer::onMouseScroll(float change) {
+        if (ui()->hovered)
+            m_activeCamera.setArcBallPosition((change > 0.0f) ? 0.95f : 1.05f);
     }
-
     void EditorGaussianViewer::onKeyCallback(const Input &input) {
-        if (!m_activeCamera)
-            return;
-        m_activeCamera->keys.up = input.keys.up;
-        m_activeCamera->keys.down = input.keys.down;
-        m_activeCamera->keys.left = input.keys.left;
-        m_activeCamera->keys.right = input.keys.right;
+
+        m_activeCamera.keys.up = input.keys.up;
+        m_activeCamera.keys.down = input.keys.down;
+        m_activeCamera.keys.left = input.keys.left;
+        m_activeCamera.keys.right = input.keys.right;
 
     }
 }

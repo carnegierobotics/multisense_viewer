@@ -116,9 +116,9 @@ namespace VkRender {
         // TODO we should collect per frame info like this somewhere
         float deltaTime() { return frameTimer; }
 
-        Editor *getSceneRendererByUUID(const UUID &uuid);
-        Editor* getOrAddSceneRendererByUUID(const UUID& uuid);
-        Editor * addSceneRendererWithUUID(const UUID &uuid);
+        SceneRenderer *getSceneRendererByUUID(const UUID &uuid);
+        SceneRenderer* getOrAddSceneRendererByUUID(const UUID& uuid);
+        SceneRenderer * addSceneRendererWithUUID(const UUID &uuid);
 
         ImGuiContext *getMainUIContext() { return m_mainEditor->guiContext(); }
 
@@ -153,7 +153,7 @@ namespace VkRender {
 
         void addDeviceFeatures() override;
 
-        void mouseMoved(float x, float y, bool &handled) override;
+        void mouseMoved(float x, float y) override;
 
         void mouseScroll(float change) override;
 
@@ -171,7 +171,7 @@ namespace VkRender {
         std::unique_ptr<EditorFactory> m_editorFactory;
 
         std::unique_ptr<Editor> m_mainEditor;
-        std::unordered_map<UUID, std::unique_ptr<Editor> > m_sceneRenderers;
+        std::unordered_map<UUID, std::shared_ptr<SceneRenderer> > m_sceneRenderers;
         std::shared_ptr<GuiAssets> m_guiResources;
         SharedContextData m_sharedContextData;
         SharedEditorData m_sharedEditorData;

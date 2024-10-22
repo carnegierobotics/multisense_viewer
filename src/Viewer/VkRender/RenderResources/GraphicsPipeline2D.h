@@ -21,7 +21,7 @@ namespace VkRender {
 
         ~GraphicsPipeline2D();
 
-        void bindTexture(std::shared_ptr<VulkanTexture> texture);
+        void bindTexture(const std::shared_ptr<VulkanTexture>& texture);
 
         void draw(CommandBuffer &commandBuffer);
 

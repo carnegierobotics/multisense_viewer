@@ -48,10 +48,10 @@ namespace VkRender {
 
         void checkFolderImportCompletion();
 
-        static void
+        static bool
         drawVec3Control(const std::string &label, glm::vec3 &values, float resetValue, float columnWidth, float speed);
 
-        static void drawFloatControl(const std::string &label, float &value, float resetValue, float speed, float columnWidth);
+        static bool drawFloatControl(const std::string &label, float &value, float resetValue, float speed, float columnWidth);
     };
 }
 

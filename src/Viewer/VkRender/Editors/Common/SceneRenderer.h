@@ -84,7 +84,7 @@ namespace VkRender {
         VkDescriptorSetLayout m_materialDescriptorSetLayout = VK_NULL_HANDLE;
         VkDescriptorSetLayout m_pointCloudDescriptorSetLayout = VK_NULL_HANDLE;
 
-    private:
+    public:
 
         void onComponentAdded(Entity entity, MeshComponent& meshComponent) override;
         void onComponentRemoved(Entity entity, MeshComponent& meshComponent) override;

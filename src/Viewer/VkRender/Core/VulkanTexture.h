@@ -41,6 +41,7 @@ namespace VkRender {
         }
 
         void loadImage(void *data, uint32_t size);
+        uint32_t getSize(){return m_image->getImageSizeRBGA();}
     };
 }
 

@@ -61,8 +61,12 @@
 //#define DEFAULT_POSITION glm::vec3(7.35f, -6.9f, 4.9f)
 #define DEFAULT_POSITION glm::vec3(0.0f, 0.0f, 3.0f);
 
+// TODO this class needs a cleanup. It works now but it is not pretty and readable
 namespace VkRender {
     class Camera {
+        uint32_t m_height = 1280;
+        uint32_t m_width = 720;
+
     public:
         enum CameraType {
             arcball, flycam
@@ -83,8 +87,7 @@ namespace VkRender {
         float m_Znear = 0.1f;
         float m_Zfar = 10.0f;
 
-        uint32_t m_height = 1280;
-        uint32_t m_width = 720;
+
 
         Camera() = default;
 
@@ -92,9 +95,10 @@ namespace VkRender {
             setSize(width, height);
             m_type = VkRender::Camera::arcball;
             resetPosition();
-
-
         }
+
+        uint32_t width() const { return m_width; }
+        uint32_t height() const { return m_height; }
 
         void updateViewMatrix() {
             if (m_type == CameraType::flycam) {

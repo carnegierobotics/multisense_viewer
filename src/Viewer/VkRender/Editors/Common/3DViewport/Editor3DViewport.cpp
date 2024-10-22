@@ -20,16 +20,17 @@ namespace VkRender {
         addUI("Editor3DLayer");
         addUIData<Editor3DViewportUI>();
 
-        m_sceneRenderer = reinterpret_cast<SceneRenderer *>(m_context->getOrAddSceneRendererByUUID(uuid));
-
-        RenderPassInfo renderPassInfo{};
-        renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
-        renderPassInfo.renderPass = m_renderPass->getRenderPass();
-        m_renderPipelines = std::make_unique<GraphicsPipeline2D>(*m_context, renderPassInfo);
+        m_sceneRenderer = m_context->getOrAddSceneRendererByUUID(uuid);
 
         VulkanTexture2DCreateInfo textureCreateInfo(m_context->vkDevice());
         textureCreateInfo.image = m_sceneRenderer->getOffscreenFramebuffer().resolvedImage;
         m_colorTexture = std::make_shared<VulkanTexture2D>(textureCreateInfo);
+
+        RenderPassInfo renderPassInfo{};
+        renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
+        renderPassInfo.renderPass = m_renderPass->getRenderPass();
+
+        m_renderPipelines = std::make_unique<GraphicsPipeline2D>(*m_context, renderPassInfo);
         m_renderPipelines->setTexture(&m_colorTexture->getDescriptorInfo());
 
     }
@@ -37,7 +38,7 @@ namespace VkRender {
     void Editor3DViewport::onEditorResize() {
         m_editorCamera.setPerspective(static_cast<float>(m_createInfo.width) / m_createInfo.height);
 
-        m_sceneRenderer = reinterpret_cast<SceneRenderer *>(m_context->getOrAddSceneRendererByUUID(getUUID()));
+        m_sceneRenderer = m_context->getOrAddSceneRendererByUUID(getUUID());
         VulkanTexture2DCreateInfo textureCreateInfo(m_context->vkDevice());
         textureCreateInfo.image = m_sceneRenderer->getOffscreenFramebuffer().resolvedImage;
         m_colorTexture = std::make_shared<VulkanTexture2D>(textureCreateInfo);

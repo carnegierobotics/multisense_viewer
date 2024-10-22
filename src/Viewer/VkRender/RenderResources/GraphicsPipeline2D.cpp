@@ -144,7 +144,7 @@ namespace VkRender {
         bindTexture(m_defaultTexture);
     }
 
-    void GraphicsPipeline2D::bindTexture(std::shared_ptr<VulkanTexture> texture) {
+    void GraphicsPipeline2D::bindTexture(const std::shared_ptr<VulkanTexture>& texture) {
         setupDescriptors(texture);
         setupPipeline();
     }

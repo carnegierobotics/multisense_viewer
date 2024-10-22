@@ -117,19 +117,19 @@ namespace VkRender {
         m_multiSense->setup();
     }
 
-    Editor *Application::getSceneRendererByUUID(const UUID &uuid) {
+    SceneRenderer *Application::getSceneRendererByUUID(const UUID &uuid) {
         if (m_sceneRenderers.contains(uuid))
             return m_sceneRenderers.find(uuid)->second.get();
         return nullptr;
     }
 
-    Editor *Application::getOrAddSceneRendererByUUID(const UUID &uuid) {
+    SceneRenderer *Application::getOrAddSceneRendererByUUID(const UUID &uuid) {
         if (m_sceneRenderers.contains(uuid))
             return m_sceneRenderers.find(uuid)->second.get();
         return addSceneRendererWithUUID(uuid);
     }
 
-    Editor *Application::addSceneRendererWithUUID(const UUID &uuid) {
+    SceneRenderer *Application::addSceneRendererWithUUID(const UUID &uuid) {
         EditorCreateInfo sceneRenderer(m_guiResources, this, &m_sharedContextData, m_vulkanDevice, &m_allocator,
                                        m_frameBuffers.data());
         VulkanRenderPassCreateInfo passCreateInfo(m_vulkanDevice, &m_allocator);
@@ -146,7 +146,9 @@ namespace VkRender {
         sceneRenderer.pPassCreateInfo = passCreateInfo;
         sceneRenderer.editorTypeDescription = EditorType::SceneRenderer;
 
-        m_sceneRenderers[uuid] = createEditorWithUUID(uuid, sceneRenderer);
+        auto editorPtr = std::shared_ptr<Editor>(std::move(createEditorWithUUID(uuid, sceneRenderer)));
+        m_sceneRenderers[uuid] = std::dynamic_pointer_cast<SceneRenderer>(std::move(editorPtr));
+
         m_sceneRenderers[uuid]->loadScene(m_activeScene);
         return m_sceneRenderers[uuid].get();
     }
@@ -214,12 +216,13 @@ namespace VkRender {
                     createInfo.uiLayers.clear();
                 }
                 // Create an Editor object with the createInfo
-                m_editors.push_back(std::move(createEditor(createInfo)));
                 Log::Logger::getInstance()->info(
-                        "Loaded editor {}: type = {}, x = {}, y = {}, width = {}, height = {}",
+                        "Created editor {}: type = {}, x = {}, y = {}, width = {}, height = {}",
                         createInfo.editorIndex,
                         editorTypeToString(createInfo.editorTypeDescription), createInfo.x,
                         createInfo.y, createInfo.width, createInfo.height);
+                m_editors.push_back(std::move(createEditor(createInfo)));
+
             }
         }
 
@@ -625,46 +628,19 @@ namespace VkRender {
         return newEditorCI;
     }
 
-    void Application::mouseMoved(float x, float y, bool &handled) {
+    void Application::mouseMoved(float x, float y) {
         mouse.insideApp = !(x < 0 || x > m_width || y < 0 || y > m_height);
         float dx = x - mouse.x;
         float dy = y - mouse.y;
         mouse.dx += dx;
         mouse.dy += dy;
-        Log::Logger::getInstance()->trace("Cursor velocity: ({},{}), pos: ({},{})", mouse.dx, mouse.dy, mouse.x,
-                                          mouse.y);
-
+        mouse.x = x;
+        mouse.y = y;
+        Log::Logger::getInstance()->trace("Cursor pos: ({},{}), velocity: ({},{})", mouse.x,mouse.y,
+            mouse.dx, mouse.dy);
         for (auto &editor: m_editors) {
             editor->onMouseMove(mouse);
         }
-        // UPdate camera if we have one selected
-        if (!m_selectedCameraTag.empty()) {
-            /*
-            auto it = m_cameras.find(m_selectedCameraTag);
-            if (it != m_cameras.end()) {
-                if (mouse.left) {
-                    // && !mouseButtons.middle) {
-                    m_cameras[m_selectedCameraTag].rotate(dx, dy);
-                }
-                //if (mouseButtons.left && m_guiManager->handles.renderer3D)
-                //    m_cameras[m_selectedCameraTag].rotate(dx, dy);
-                if (mouse.right) {
-                    if (m_cameras[m_selectedCameraTag].m_type == Camera::arcball)
-                        m_cameras[m_selectedCameraTag].translate(glm::vec3(-dx * 0.005f, -dy * 0.005f, 0.0f));
-                    else
-                        m_cameras[m_selectedCameraTag].translate(-dx * 0.01f, -dy * 0.01f);
-                }
-                if (mouse.middle && m_cameras[m_selectedCameraTag].m_type == Camera::flycam) {
-                    m_cameras[m_selectedCameraTag].translate(glm::vec3(-dx * 0.01f, -dy * 0.01f, 0.0f));
-                } else if (mouse.middle && m_cameras[m_selectedCameraTag].m_type == Camera::arcball) {
-                    //camera.orbitPan(static_cast<float>() -dx * 0.01f, static_cast<float>() -dy * 0.01f);
-                }
-            }
-             */
-        }
-        mouse.x = x;
-        mouse.y = y;
-        handled = true;
     }
 
     void Application::mouseScroll(float change) {

@@ -936,8 +936,7 @@ namespace VkRender {
         editor->ui()->hovered = editor->ui()->lastHoveredBorderType != EditorBorderState::None;
 
         if (editor->ui()->hovered) {
-            Log::Logger::getInstance()->trace("Hovering editor: {}. Type: {}", editor->m_createInfo.editorIndex,
-                                              editorTypeToString(editor->getCreateInfo().editorTypeDescription));
+            Log::Logger::getInstance()->traceWithFrequency("hovertag", 300, "Hovering editor: {}. Type: {}", editor->m_createInfo.editorIndex, editorTypeToString(editor->getCreateInfo().editorTypeDescription));
         }
     }
 

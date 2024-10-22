@@ -195,9 +195,9 @@ namespace VkRender {
             out << YAML::Key << "Type";
             out << YAML::Value << Serialize::cameraTypeToString(cameraProps.m_type);
             out << YAML::Key << "Width";
-            out << YAML::Value << cameraProps.m_width;
+            out << YAML::Value << cameraProps.width();
             out << YAML::Key << "Height";
-            out << YAML::Value << cameraProps.m_height;
+            out << YAML::Value << cameraProps.height();
             out << YAML::Key << "ZNear";
             out << YAML::Value << cameraProps.m_Znear;
             out << YAML::Key << "ZFar";
@@ -295,25 +295,24 @@ namespace VkRender {
             }
             out << YAML::EndSeq;
 
-            // Serialize the covariances
-            out << YAML::Key << "Covariances";
+            out << YAML::Key << "Scales";
             out << YAML::Value << YAML::BeginSeq;
-            for (const auto& cov : component.covariances) {
-                out << YAML::Flow << YAML::BeginSeq;
-                // Flatten the 3x3 matrix into a sequence of 9 elements
-                for (int row = 0; row < 3; ++row) {
-                    for (int col = 0; col < 3; ++col) {
-                        out << cov[row][col];
-                    }
-                }
-                out << YAML::EndSeq;
+            for (const auto& scale : component.scales) {
+                out << YAML::Flow << scale;
+            }
+            out << YAML::EndSeq;
+
+            out << YAML::Key << "Rotations";
+            out << YAML::Value << YAML::BeginSeq;
+            for (const auto& rotation : component.rotations) {
+                out << YAML::Flow << rotation;
             }
             out << YAML::EndSeq;
 
             // Serialize the amplitudes
-            out << YAML::Key << "Amplitudes";
+            out << YAML::Key << "Opacities";
             out << YAML::Value << YAML::BeginSeq;
-            for (const auto& amplitude : component.amplitudes) {
+            for (const auto& amplitude : component.opacities) {
                 out << amplitude;
             }
             out << YAML::EndSeq;
@@ -468,35 +467,28 @@ namespace VkRender {
                         }
                     }
 
-                    // Deserialize covariances
-                    auto covariancesNode = gaussianComponentNode["Covariances"];
+                    auto covariancesNode = gaussianComponentNode["Scales"];
                     if (covariancesNode) {
                         for (const auto& covNode : covariancesNode) {
-                            glm::mat3 cov;
-                            for (int idx = 0; idx < 9; ++idx) {
-                                cov[idx / 3][idx % 3] = covNode[idx].as<float>();
-                            }
-                            component.covariances.push_back(cov);
+                            component.scales.push_back(covNode.as<glm::vec3>());
+                        }
+                    }
+                    auto rotationsNode = gaussianComponentNode["Rotations"];
+                    if (rotationsNode) {
+                        for (const auto& rotNode : rotationsNode) {
+                            component.rotations.push_back(rotNode.as<glm::quat>());
                         }
                     }
 
                     // Deserialize amplitudes
-                    auto amplitudesNode = gaussianComponentNode["Amplitudes"];
+                    auto amplitudesNode = gaussianComponentNode["Opacities"];
                     if (amplitudesNode) {
                         for (const auto& amplitudeNode : amplitudesNode) {
                             float amplitude = amplitudeNode.as<float>();
-                            component.amplitudes.push_back(amplitude);
+                            component.opacities.push_back(amplitude);
                         }
                     }
 
-                    // Recompute inverse covariances and determinants
-                    size_t n = component.size();
-                    component.invCovariances.resize(n);
-                    component.determinants.resize(n);
-                    for (size_t i = 0; i < n; ++i) {
-                        component.invCovariances[i] = glm::inverse(component.covariances[i]);
-                        component.determinants[i] = glm::determinant(component.covariances[i]);
-                    }
                 }
 
             }

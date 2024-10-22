@@ -71,7 +71,7 @@ namespace VkRender {
         VkImage& image(){return m_image;}
         uint32_t width(){return m_width;}
         uint32_t height(){return m_height;}
-        uint32_t getImageSizeRBGA(){return m_imageSize;}
+        uint32_t getImageSizeRBGA(){return m_imageSize;} // TODO Calculate image size from format
 
     private:
         VulkanDevice &m_vulkanDevice;

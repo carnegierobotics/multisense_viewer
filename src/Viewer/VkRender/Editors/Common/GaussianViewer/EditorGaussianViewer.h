@@ -5,10 +5,12 @@
 #ifndef MULTISENSE_VIEWER_EDITORGAUSSIANVIEWER_H
 #define MULTISENSE_VIEWER_EDITORGAUSSIANVIEWER_H
 
+#include <Viewer/VkRender/RenderResources/GraphicsPipeline2D.h>
+
 #include "Viewer/VkRender/Editors/Editor.h"
 #include "Viewer/VkRender/Core/Camera.h"
 #include "Viewer/Scenes/Scene.h"
-#include "Viewer/VkRender/RenderResources/SyclGaussianGFX.h"
+#include "Viewer/VkRender/RenderResources/3DGS/SyclGaussianGFX.h"
 #include "Viewer/VkRender/Core/SyclDeviceSelector.h"
 
 namespace VkRender {
@@ -37,12 +39,14 @@ namespace VkRender {
         void onKeyCallback(const Input& input) override;
 
     private:
-        std::shared_ptr<Camera> m_activeCamera;
+        Camera m_activeCamera;
         std::shared_ptr<Scene> m_activeScene;
 
         SyclDeviceSelector m_deviceSelector = SyclDeviceSelector(SyclDeviceSelector::DeviceType::GPU);
         SyclGaussianGFX m_syclGaussianGfx;
 
+        std::unique_ptr<GraphicsPipeline2D> m_renderPipelines;
+        std::shared_ptr<VulkanTexture2D> m_colorTexture;
 
     };
 }

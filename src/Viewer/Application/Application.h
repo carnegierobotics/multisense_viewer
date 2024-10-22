@@ -117,6 +117,7 @@ namespace VkRender {
         float deltaTime() { return frameTimer; }
 
         Editor *getSceneRendererByUUID(const UUID &uuid);
+        Editor* getOrAddSceneRendererByUUID(const UUID& uuid);
         Editor * addSceneRendererWithUUID(const UUID &uuid);
 
         ImGuiContext *getMainUIContext() { return m_mainEditor->guiContext(); }

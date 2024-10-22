@@ -3,6 +3,9 @@
 //
 
 #include "Viewer/VkRender/Editors/Common/Properties/PropertiesLayer.h"
+
+#include <Viewer/VkRender/Components/GaussianComponent.h>
+
 #include "Viewer/VkRender/ImGui/Layer.h"
 #include "Viewer/VkRender/Components/Components.h"
 #include "Viewer/Scenes/Scene.h"

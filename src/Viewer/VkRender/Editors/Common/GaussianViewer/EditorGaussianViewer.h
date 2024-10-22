@@ -8,8 +8,8 @@
 #include "Viewer/VkRender/Editors/Editor.h"
 #include "Viewer/VkRender/Core/Camera.h"
 #include "Viewer/Scenes/Scene.h"
-#include "Viewer/VkRender/Core/SyclDeviceSelector.h"
 #include "Viewer/VkRender/RenderResources/SyclGaussianGFX.h"
+#include "Viewer/VkRender/Core/SyclDeviceSelector.h"
 
 namespace VkRender {
 

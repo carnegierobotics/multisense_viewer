@@ -2,14 +2,10 @@
 // Created by magnus on 8/15/24.
 //
 
-#include "EditorGaussianViewer.h"
+#include "Viewer/VkRender/Editors/Common/GaussianViewer/EditorGaussianViewer.h"
+#include "Viewer/VkRender/Editors/Common/GaussianViewer/EditorGaussianViewerLayer.h"
 
-#include "Viewer/VkRender/Components/GaussianModelComponent.h"
-#include "Viewer/VkRender/Components/MeshComponent.h"
 #include "Viewer/Application/Application.h"
-#include "Viewer/VkRender/Core/Entity.h"
-#include "EditorGaussianViewerLayer.h"
-#include "Viewer/VkRender/Core/SyclDeviceSelector.h"
 
 namespace VkRender {
 

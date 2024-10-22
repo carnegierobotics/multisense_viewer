@@ -19,11 +19,30 @@ namespace VkRender {
         addUI("DebugWindow");
         addUI("Editor3DLayer");
         addUIData<Editor3DViewportUI>();
-        m_sceneRenderer = reinterpret_cast<SceneRenderer *>(m_context->addSceneRendererWithUUID(uuid));
+
+        m_sceneRenderer = reinterpret_cast<SceneRenderer *>(m_context->getOrAddSceneRendererByUUID(uuid));
+
+        RenderPassInfo renderPassInfo{};
+        renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
+        renderPassInfo.renderPass = m_renderPass->getRenderPass();
+        m_renderPipelines = std::make_unique<GraphicsPipeline2D>(*m_context, renderPassInfo);
+
+        VulkanTexture2DCreateInfo textureCreateInfo(m_context->vkDevice());
+        textureCreateInfo.image = m_sceneRenderer->getOffscreenFramebuffer().resolvedImage;
+        m_colorTexture = std::make_shared<VulkanTexture2D>(textureCreateInfo);
+        m_renderPipelines->setTexture(&m_colorTexture->getDescriptorInfo());
+
     }
 
     void Editor3DViewport::onEditorResize() {
         m_editorCamera.setPerspective(static_cast<float>(m_createInfo.width) / m_createInfo.height);
+
+        m_sceneRenderer = reinterpret_cast<SceneRenderer *>(m_context->getOrAddSceneRendererByUUID(getUUID()));
+        VulkanTexture2DCreateInfo textureCreateInfo(m_context->vkDevice());
+        textureCreateInfo.image = m_sceneRenderer->getOffscreenFramebuffer().resolvedImage;
+        m_colorTexture = std::make_shared<VulkanTexture2D>(textureCreateInfo);
+        m_renderPipelines->setTexture(&m_colorTexture->getDescriptorInfo());
+
     }
 
     void Editor3DViewport::onSceneLoad(std::shared_ptr<Scene> scene) {
@@ -45,7 +64,7 @@ namespace VkRender {
 
 
     void Editor3DViewport::onRender(CommandBuffer &commandBuffer) {
-        //m_sceneRenderer->render(commandBuffer);
+        m_renderPipelines->draw(commandBuffer);
     }
 
     void Editor3DViewport::onMouseMove(const MouseButtons &mouse) {

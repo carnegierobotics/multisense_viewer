@@ -123,6 +123,12 @@ namespace VkRender {
         return nullptr;
     }
 
+    Editor *Application::getOrAddSceneRendererByUUID(const UUID &uuid) {
+        if (m_sceneRenderers.contains(uuid))
+            return m_sceneRenderers.find(uuid)->second.get();
+        return addSceneRendererWithUUID(uuid);
+    }
+
     Editor *Application::addSceneRendererWithUUID(const UUID &uuid) {
         EditorCreateInfo sceneRenderer(m_guiResources, this, &m_sharedContextData, m_vulkanDevice, &m_allocator,
                                        m_frameBuffers.data());

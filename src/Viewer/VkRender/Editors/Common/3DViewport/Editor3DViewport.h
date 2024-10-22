@@ -6,6 +6,7 @@
 #define MULTISENSE_VIEWER_EDITOR3DVIEWPORT_H
 
 #include <Viewer/VkRender/Editors/Video/VideoPlaybackSystem.h>
+#include <Viewer/VkRender/RenderResources/GraphicsPipeline2D.h>
 
 #include "Viewer/VkRender/Editors/PipelineManager.h"
 #include "Viewer/VkRender/Editors/Editor.h"
@@ -39,6 +40,8 @@ namespace VkRender {
         std::shared_ptr<Scene> m_activeScene;
 
         SceneRenderer* m_sceneRenderer;
+        std::unique_ptr<GraphicsPipeline2D> m_renderPipelines;
+        std::shared_ptr<VulkanTexture2D> m_colorTexture;
 
     };
 }

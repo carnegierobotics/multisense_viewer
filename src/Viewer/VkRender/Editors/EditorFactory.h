@@ -7,8 +7,6 @@
 
 #include <utility>
 
-#include "Viewer/Application/pch.h"
-
 #include "Viewer/VkRender/Editors/Editor.h"
 #include "Viewer/VkRender/Editors/Common/3DViewport/Editor3DViewport.h"
 #include "Viewer/VkRender/Editors/Common/SceneHierarchy/EditorSceneHierarchy.h"
@@ -16,13 +14,12 @@
 #include "Viewer/VkRender/Editors/MultiSenseViewer/ConfigurationEditor/ConfigurationEditor.h"
 #include "Viewer/VkRender/Editors/Common/Test/EditorTest.h"
 #include "Viewer/VkRender/Editors/Common/Properties/EditorProperties.h"
-#include "Viewer/VkRender/Editors/Common/GaussianViewer/EditorGaussianViewer.h"
 #include "Viewer/VkRender/Editors/Common/ImageEditor/EditorImage.h"
 #include "Viewer/VkRender/Editors/Common/SceneRenderer.h"
-
+#ifdef SYCL_ENABLED
+#include "Viewer/VkRender/Editors/Common/GaussianViewer/EditorGaussianViewer.h"
+#endif
 namespace VkRender {
-
-
 
     // Define the factory class
     class EditorFactory {

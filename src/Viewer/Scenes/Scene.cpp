@@ -5,6 +5,9 @@
 #include "Viewer/VkRender/Core/Entity.h"
 
 #include "Viewer/Scenes/Scene.h"
+
+#include <Viewer/VkRender/Components/GaussianComponent.h>
+
 #include "Viewer/VkRender/Components/Components.h"
 #include "Viewer/VkRender/RenderResources/DefaultGraphicsPipeline.h"
 #include "Viewer/VkRender/Components/MeshComponent.h"

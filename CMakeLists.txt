@@ -27,29 +27,29 @@ add_executable(MultiSense-Viewer)
 
 # SYCL Backend selection
 if (ENABLE_SYCL)
-    if(SYCL_BACKEND STREQUAL "dpcpp")
+    if (SYCL_BACKEND STREQUAL "dpcpp")
         set(CMAKE_CXX_COMPILER "clang++")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -fsycl-targets=spir64 -g")
         message(STATUS "[VkRenderINFO]: SYCL DPC++ support enabled. Compiler: ${CMAKE_CXX_COMPILER} Flags: ${CMAKE_CXX_FLAGS}")
-    elseif(SYCL_BACKEND STREQUAL "adaptivecpp")
+    elseif (SYCL_BACKEND STREQUAL "adaptivecpp")
         # Find the AdaptiveCpp package
         find_package(AdaptiveCpp REQUIRED)
         # Check if ACPP_TARGETS is passed via command line or environment
-        if(NOT DEFINED ACPP_TARGETS)
+        if (NOT DEFINED ACPP_TARGETS)
             set(ACPP_TARGETS "generic" CACHE STRING "AdaptiveCpp compilation targets")
-        endif()
+        endif ()
         # Print a message showing which targets are being used
-        message(STATUS "[VkRenderINFO]: Using AdaptiveCpp with targets: ${ACPP_TARGETS} to project name ${PROJECT_NAME}" )
+        message(STATUS "[VkRenderINFO]: Using AdaptiveCpp with targets: ${ACPP_TARGETS} to project name ${PROJECT_NAME}")
         # Add sycl to target using AdaptiveCpp's helper
         add_sycl_to_target(TARGET ${PROJECT_NAME} TARGETS ${ACPP_TARGETS})
 
-    else()
+    else ()
         message(FATAL_ERROR "[VkRenderERROR]: Unknown SYCL backend. Choose either 'dpcpp' or 'adaptivecpp'.")
-    endif()
+    endif ()
     add_compile_definitions(SYCL_ENABLED)
-else()
+else ()
     message(STATUS "[VkRenderINFO]: SYCL support not enabled.")
-endif()
+endif ()
 
 # Set default build type if none was specified
 if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -129,7 +129,6 @@ set(SOURCE_FILES
 
         src/Viewer/VkRender/Editors/Editor.cpp
         src/Viewer/VkRender/Editors/Common/3DViewport/Editor3DViewport.cpp
-        src/Viewer/VkRender/Editors/Common/GaussianViewer/EditorGaussianViewer.cpp
         src/Viewer/VkRender/Editors/Common/ImageEditor/EditorImage.cpp
         src/Viewer/VkRender/Editors/MainContextLayer.h
         src/Viewer/VkRender/Editors/MultiSenseViewer/Layers/LayoutSettingsLayer.h
@@ -174,8 +173,8 @@ set(LIBRARIES
 if (ENABLE_SYCL)
     list(APPEND SOURCE_FILES src/Viewer/VkRender/RenderResources/SyclGaussianGFX.cpp)
     list(APPEND SOURCE_FILES src/Viewer/VkRender/Core/SyclDeviceSelector.h)
+    list(APPEND SOURCE_FILES src/Viewer/VkRender/Editors/Common/GaussianViewer/EditorGaussianViewer.cpp)
     message(STATUS "[VkRenderINFO]: SYCL: Adding Gaussian Renderer to source")
-    #list(APPEND LIBRARIES sycl)
 endif ()
 
 # Add proprietary GigE-Vision module

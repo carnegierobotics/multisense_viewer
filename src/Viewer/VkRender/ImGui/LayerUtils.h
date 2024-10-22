@@ -41,14 +41,99 @@ namespace VkRender::LayerUtils {
         SAVE_SCENE,
         SAVE_SCENE_AS,
     } FileTypeLoadFlow;
+
     struct LoadFileInfo {
         std::filesystem::path path;
         FileTypeLoadFlow filetype = OBJ_FILE;
     };
 
+    // Struct to hold parameters and result
+    // Define the type of dialog action
+    enum class DialogAction {
+        OPEN_FILE,
+        SELECT_FOLDER,
+        SAVE_FILE
+    };
+
+    // Struct to hold parameters and result
+    struct FileDialogData {
+        std::string dialogName;
+        std::vector<std::string> filetypes;
+        std::string setCurrentFolder;
+        LayerUtils::FileTypeLoadFlow flow;
+        std::promise<LoadFileInfo> promise; // Store promise to communicate result
+        DialogAction action; // Specify whether selecting file or folder
+    };
+
+
 #ifdef WIN32
 
-    static LoadFileInfo selectFile(const std::string& dialogName, const std::vector<std::string>& filetypes, const std::string& setCurrentFolder, LayerUtils::FileTypeLoadFlow flow) {
+    static LoadFileInfo saveFile(const std::string &dialogName, const std::filesystem::path &setCurrentFolder,
+                                 LayerUtils::FileTypeLoadFlow flow) {
+        PWSTR path = nullptr;
+        std::string filePath;
+        HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+        if (SUCCEEDED(hr)) {
+            IFileSaveDialog *pfd;
+            hr = CoCreateInstance(CLSID_FileSaveDialog, nullptr, CLSCTX_ALL, IID_IFileSaveDialog,
+                                  reinterpret_cast<void **>(&pfd));
+            if (SUCCEEDED(hr)) {
+                // Set the file types to display only .multisense files. Notice the double null termination.
+                COMDLG_FILTERSPEC rgSpec[] = {
+                    {L"MultiSense Files", L"*.multisense"},
+                    {L"All Files", L"*.*"}
+                };
+                pfd->SetFileTypes(ARRAYSIZE(rgSpec), rgSpec);
+
+                // Set the default folder
+                if (!setCurrentFolder.empty()) {
+                    IShellItem *psiFolder;
+                    std::string tempFolderStr = setCurrentFolder.string();
+                    std::wstring folderWStr(tempFolderStr.begin(), tempFolderStr.end());
+                    hr = SHCreateItemFromParsingName(folderWStr.c_str(), nullptr, IID_PPV_ARGS(&psiFolder));
+                    if (SUCCEEDED(hr)) {
+                        pfd->SetFolder(psiFolder);
+                        psiFolder->Release();
+                    }
+                }
+
+                // Set the default extension to .multisense
+                pfd->SetDefaultExtension(L"multisense");
+
+                // Show the dialog
+                hr = pfd->Show(nullptr);
+                if (SUCCEEDED(hr)) {
+                    IShellItem *psi;
+                    hr = pfd->GetResult(&psi);
+                    if (SUCCEEDED(hr)) {
+                        hr = psi->GetDisplayName(SIGDN_FILESYSPATH, &path);
+                        psi->Release();
+                        if (SUCCEEDED(hr)) {
+                            // Convert the selected file path to a narrow string
+                            int count = WideCharToMultiByte(CP_UTF8, 0, path, -1, nullptr, 0, nullptr, nullptr);
+                            filePath.resize(count - 1);
+                            WideCharToMultiByte(CP_UTF8, 0, path, -1, &filePath[0], count, nullptr, nullptr);
+
+                            // Ensure the .multisense extension is added if the user didn't include it
+                            if (filePath.find(".multisense") == std::string::npos) {
+                                filePath += ".multisense";
+                            }
+                        }
+                    }
+                }
+                pfd->Release();
+            }
+            CoUninitialize();
+        }
+        if (path) {
+            CoTaskMemFree(path);
+        }
+        return {filePath, flow};
+    }
+
+
+    static LoadFileInfo selectFile(const std::string &dialogName, const std::vector<std::string> &filetypes,
+                                   const std::filesystem::path &setCurrentFolder, LayerUtils::FileTypeLoadFlow flow) {
         PWSTR path = nullptr;
         std::string filePath;
         HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
@@ -58,20 +143,21 @@ namespace VkRender::LayerUtils {
                                   reinterpret_cast<void **>(&pfd));
             if (SUCCEEDED(hr)) {
                 // Set the file types to display only. Notice the double null termination.
-                for (auto& filetype : filetypes){
+                for (auto &filetype: filetypes) {
                     std::string fileWithDot = "*" + filetype;
                     std::wstring wFileType = std::wstring(filetype.begin(), filetype.end());
                     std::wstring fileTypeFilter = std::wstring(fileWithDot.begin(), fileWithDot.end());
                     COMDLG_FILTERSPEC rgSpec[] = {
-                            {wFileType.c_str(), fileTypeFilter.c_str()},
-                            {L"All Files", L"*.*"},
+                        {wFileType.c_str(), fileTypeFilter.c_str()},
+                        {L"All Files", L"*.*"},
                     };
                     pfd->SetFileTypes(ARRAYSIZE(rgSpec), rgSpec);
                 }
                 // Set the default folder
                 if (!setCurrentFolder.empty()) {
                     IShellItem *psiFolder;
-                    std::wstring folderWStr(setCurrentFolder.begin(), setCurrentFolder.end());
+                    std::string tempFolderStr = setCurrentFolder.string();
+                    std::wstring folderWStr(tempFolderStr.begin(), tempFolderStr.end());
                     hr = SHCreateItemFromParsingName(folderWStr.c_str(), nullptr, IID_PPV_ARGS(&psiFolder));
                     if (SUCCEEDED(hr)) {
                         pfd->SetFolder(psiFolder);
@@ -104,79 +190,63 @@ namespace VkRender::LayerUtils {
         return {filePath, flow};
     }
 
-    static LoadFileInfo selectFolder(const std::string& dialogName, const std::string& setCurrentFolder, LayerUtils::FileTypeLoadFlow flow) {
-    PWSTR path = nullptr;
-    std::string folderPath;
-    HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
-    if (SUCCEEDED(hr)) {
-        IFileOpenDialog *pfd;
-        hr = CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_ALL, IID_IFileOpenDialog,
-                              reinterpret_cast<void **>(&pfd));
+    static LoadFileInfo selectFolder(const std::string &dialogName, const std::string &setCurrentFolder,
+                                     LayerUtils::FileTypeLoadFlow flow) {
+        PWSTR path = nullptr;
+        std::string folderPath;
+        HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
         if (SUCCEEDED(hr)) {
-            // Set the options to pick folders instead of files
-            DWORD dwFlags;
-            hr = pfd->GetOptions(&dwFlags);
+            IFileOpenDialog *pfd;
+            hr = CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_ALL, IID_IFileOpenDialog,
+                                  reinterpret_cast<void **>(&pfd));
             if (SUCCEEDED(hr)) {
-                hr = pfd->SetOptions(dwFlags | FOS_PICKFOLDERS);
-            }
-
-            // Set the default folder
-            if (!setCurrentFolder.empty()) {
-                IShellItem *psiFolder;
-                std::wstring folderWStr(setCurrentFolder.begin(), setCurrentFolder.end());
-                hr = SHCreateItemFromParsingName(folderWStr.c_str(), nullptr, IID_PPV_ARGS(&psiFolder));
+                // Set the options to pick folders instead of files
+                DWORD dwFlags;
+                hr = pfd->GetOptions(&dwFlags);
                 if (SUCCEEDED(hr)) {
-                    pfd->SetFolder(psiFolder);
-                    psiFolder->Release();
+                    hr = pfd->SetOptions(dwFlags | FOS_PICKFOLDERS);
                 }
-            }
 
-            // Show the dialog
-            hr = pfd->Show(nullptr);
-            if (SUCCEEDED(hr)) {
-                IShellItem *psi;
-                hr = pfd->GetResult(&psi);
-                if (SUCCEEDED(hr)) {
-                    hr = psi->GetDisplayName(SIGDN_FILESYSPATH, &path);
-                    psi->Release();
+                // Set the default folder
+                if (!setCurrentFolder.empty()) {
+                    IShellItem *psiFolder;
+                    std::wstring folderWStr(setCurrentFolder.begin(), setCurrentFolder.end());
+                    hr = SHCreateItemFromParsingName(folderWStr.c_str(), nullptr, IID_PPV_ARGS(&psiFolder));
                     if (SUCCEEDED(hr)) {
-                        // Convert the selected folder path to a narrow string
-                        int count = WideCharToMultiByte(CP_UTF8, 0, path, -1, nullptr, 0, nullptr, nullptr);
-                        folderPath.resize(count - 1);
-                        WideCharToMultiByte(CP_UTF8, 0, path, -1, &folderPath[0], count, nullptr, nullptr);
+                        pfd->SetFolder(psiFolder);
+                        psiFolder->Release();
                     }
                 }
+
+                // Show the dialog
+                hr = pfd->Show(nullptr);
+                if (SUCCEEDED(hr)) {
+                    IShellItem *psi;
+                    hr = pfd->GetResult(&psi);
+                    if (SUCCEEDED(hr)) {
+                        hr = psi->GetDisplayName(SIGDN_FILESYSPATH, &path);
+                        psi->Release();
+                        if (SUCCEEDED(hr)) {
+                            // Convert the selected folder path to a narrow string
+                            int count = WideCharToMultiByte(CP_UTF8, 0, path, -1, nullptr, 0, nullptr, nullptr);
+                            folderPath.resize(count - 1);
+                            WideCharToMultiByte(CP_UTF8, 0, path, -1, &folderPath[0], count, nullptr, nullptr);
+                        }
+                    }
+                }
+                pfd->Release();
             }
-            pfd->Release();
+            CoUninitialize();
         }
-        CoUninitialize();
+        if (path) {
+            CoTaskMemFree(path);
+        }
+        return {folderPath, flow};
     }
-    if (path) {
-        CoTaskMemFree(path);
-    }
-    return {folderPath, flow};
-}
 
 #else
     DISABLE_WARNING_PUSH
     DISABLE_WARNING_ALL
-    // Struct to hold parameters and result
-    // Define the type of dialog action
-    enum class DialogAction {
-        OPEN_FILE,
-        SELECT_FOLDER,
-        SAVE_FILE
-    };
-
-    // Struct to hold parameters and result
-    struct FileDialogData {
-        std::string dialogName;
-        std::vector<std::string> filetypes;
-        std::string setCurrentFolder;
-        LayerUtils::FileTypeLoadFlow flow;
-        std::promise<LoadFileInfo> promise; // Store promise to communicate result
-        DialogAction action; // Specify whether selecting file or folder
-    };
 
 
     // Function to display the file dialog in the main thread
@@ -374,114 +444,113 @@ namespace VkRender::LayerUtils {
     DISABLE_WARNING_POP
 #endif
 
-/*
-    struct WidgetPosition {
-        float paddingX = -1.0f;
-        ImVec4 textColor = VkRender::Colors::CRLTextWhite;
-        bool sameLine = false;
+    /*
+        struct WidgetPosition {
+            float paddingX = -1.0f;
+            ImVec4 textColor = VkRender::Colors::CRLTextWhite;
+            bool sameLine = false;
 
-        float maxElementWidth = 300.0f;
-    };
+            float maxElementWidth = 300.0f;
+        };
 
-    static void
-    createWidgets(VkRender::GuiObjectHandles &handles, const ScriptWidgetPlacement &area,
-                  WidgetPosition pos = WidgetPosition()) {
-        for (auto &elem: Widgets::make()->elements[area]) {
-            if (pos.paddingX != -1) {
-                ImGui::Dummy(ImVec2(pos.paddingX, 0.0f));
-                ImGui::SameLine();
-            }
+        static void
+        createWidgets(VkRender::GuiObjectHandles &handles, const ScriptWidgetPlacement &area,
+                      WidgetPosition pos = WidgetPosition()) {
+            for (auto &elem: Widgets::make()->elements[area]) {
+                if (pos.paddingX != -1) {
+                    ImGui::Dummy(ImVec2(pos.paddingX, 0.0f));
+                    ImGui::SameLine();
+                }
 
-            switch (elem.type) {
-                case WIDGET_CHECKBOX:
-                    ImGui::PushStyleColor(ImGuiCol_Text, pos.textColor);
-                    if (ImGui::Checkbox(elem.label.c_str(), elem.checkbox) &&
-                        ImGui::IsItemActivated()) {
-                        handles.usageMonitor->userClickAction(elem.label, "WIDGET_CHECKBOX",
-                                                               ImGui::GetCurrentWindow()->Name);
-                    }
-                    ImGui::PopStyleColor();
-                    break;
+                switch (elem.type) {
+                    case WIDGET_CHECKBOX:
+                        ImGui::PushStyleColor(ImGuiCol_Text, pos.textColor);
+                        if (ImGui::Checkbox(elem.label.c_str(), elem.checkbox) &&
+                            ImGui::IsItemActivated()) {
+                            handles.usageMonitor->userClickAction(elem.label, "WIDGET_CHECKBOX",
+                                                                   ImGui::GetCurrentWindow()->Name);
+                        }
+                        ImGui::PopStyleColor();
+                        break;
 
-                case WIDGET_FLOAT_SLIDER:
-                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                    ImGui::SetNextItemWidth(pos.maxElementWidth);
-                    if (ImGui::SliderFloat(elem.label.c_str(), elem.value, elem.minValue, elem.maxValue) &&
-                        ImGui::IsItemActivated()) {
-                        handles.usageMonitor->userClickAction(elem.label, "WIDGET_FLOAT_SLIDER",
-                                                               ImGui::GetCurrentWindow()->Name);
-                    }
-                    ImGui::PopStyleColor();
-                    break;
-                case WIDGET_INT_SLIDER:
-                    ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
-                    ImGui::SetNextItemWidth(pos.maxElementWidth);
-                    if (elem.active)
-                        *elem.active = false;
-                    ImGui::SliderInt(elem.label.c_str(), elem.intValue, elem.intMin, elem.intMax);
-                    if (ImGui::IsItemDeactivatedAfterEdit()) {
-                        handles.usageMonitor->userClickAction(elem.label, "WIDGET_INT_SLIDER",
-                                                               ImGui::GetCurrentWindow()->Name);
+                    case WIDGET_FLOAT_SLIDER:
+                        ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
+                        ImGui::SetNextItemWidth(pos.maxElementWidth);
+                        if (ImGui::SliderFloat(elem.label.c_str(), elem.value, elem.minValue, elem.maxValue) &&
+                            ImGui::IsItemActivated()) {
+                            handles.usageMonitor->userClickAction(elem.label, "WIDGET_FLOAT_SLIDER",
+                                                                   ImGui::GetCurrentWindow()->Name);
+                        }
+                        ImGui::PopStyleColor();
+                        break;
+                    case WIDGET_INT_SLIDER:
+                        ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
+                        ImGui::SetNextItemWidth(pos.maxElementWidth);
                         if (elem.active)
-                            *elem.active = true;
-                    }
-                    ImGui::PopStyleColor();
-                    break;
-                case WIDGET_TEXT:
-                    ImGui::PushStyleColor(ImGuiCol_Text, pos.textColor);
-                    ImGui::Text("%s", elem.label.c_str());
-                    ImGui::PopStyleColor();
+                            *elem.active = false;
+                        ImGui::SliderInt(elem.label.c_str(), elem.intValue, elem.intMin, elem.intMax);
+                        if (ImGui::IsItemDeactivatedAfterEdit()) {
+                            handles.usageMonitor->userClickAction(elem.label, "WIDGET_INT_SLIDER",
+                                                                   ImGui::GetCurrentWindow()->Name);
+                            if (elem.active)
+                                *elem.active = true;
+                        }
+                        ImGui::PopStyleColor();
+                        break;
+                    case WIDGET_TEXT:
+                        ImGui::PushStyleColor(ImGuiCol_Text, pos.textColor);
+                        ImGui::Text("%s", elem.label.c_str());
+                        ImGui::PopStyleColor();
 
-                    break;
-                case WIDGET_INPUT_TEXT:
-                    ImGui::PushStyleColor(ImGuiCol_Text, pos.textColor);
-                    ImGui::SetNextItemWidth(pos.maxElementWidth);
-                    ImGui::InputText(elem.label.c_str(), elem.buf, 1024, 0);
-                    ImGui::PopStyleColor();
-                    break;
-                case WIDGET_BUTTON:
-                    ImGui::PushStyleColor(ImGuiCol_Text, pos.textColor);
-                    *elem.button = ImGui::Button(elem.label.c_str());
-                    ImGui::PopStyleColor();
-                    break;
-                case WIDGET_GLM_VEC_3:
-                    ImGui::PushStyleColor(ImGuiCol_Text, pos.textColor);
-                    ImGui::SetNextItemWidth(35.0f);
-                    ImGui::InputText(("x: " + elem.label).c_str(), elem.glm.xBuf, 16, ImGuiInputTextFlags_CharsDecimal);
-                    ImGui::SetNextItemWidth(35.0f);
-                    ImGui::InputText(("y: " + elem.label).c_str(), elem.glm.yBuf, 16, ImGuiInputTextFlags_CharsDecimal);
-                    ImGui::SetNextItemWidth(35.0f);
-                    ImGui::InputText(("z: " + elem.label).c_str(), elem.glm.zBuf, 16, ImGuiInputTextFlags_CharsDecimal);
-                    try {
-                        elem.glm.vec3->x = std::stof(elem.glm.xBuf);
-                        elem.glm.vec3->y = std::stof(elem.glm.yBuf);
-                        elem.glm.vec3->z = std::stof(elem.glm.zBuf);
-                    }
-                    catch (...) {
-                    }
+                        break;
+                    case WIDGET_INPUT_TEXT:
+                        ImGui::PushStyleColor(ImGuiCol_Text, pos.textColor);
+                        ImGui::SetNextItemWidth(pos.maxElementWidth);
+                        ImGui::InputText(elem.label.c_str(), elem.buf, 1024, 0);
+                        ImGui::PopStyleColor();
+                        break;
+                    case WIDGET_BUTTON:
+                        ImGui::PushStyleColor(ImGuiCol_Text, pos.textColor);
+                        *elem.button = ImGui::Button(elem.label.c_str());
+                        ImGui::PopStyleColor();
+                        break;
+                    case WIDGET_GLM_VEC_3:
+                        ImGui::PushStyleColor(ImGuiCol_Text, pos.textColor);
+                        ImGui::SetNextItemWidth(35.0f);
+                        ImGui::InputText(("x: " + elem.label).c_str(), elem.glm.xBuf, 16, ImGuiInputTextFlags_CharsDecimal);
+                        ImGui::SetNextItemWidth(35.0f);
+                        ImGui::InputText(("y: " + elem.label).c_str(), elem.glm.yBuf, 16, ImGuiInputTextFlags_CharsDecimal);
+                        ImGui::SetNextItemWidth(35.0f);
+                        ImGui::InputText(("z: " + elem.label).c_str(), elem.glm.zBuf, 16, ImGuiInputTextFlags_CharsDecimal);
+                        try {
+                            elem.glm.vec3->x = std::stof(elem.glm.xBuf);
+                            elem.glm.vec3->y = std::stof(elem.glm.yBuf);
+                            elem.glm.vec3->z = std::stof(elem.glm.zBuf);
+                        }
+                        catch (...) {
+                        }
 
-                    ImGui::PopStyleColor();
-                    break;
-                case WIDGET_SELECT_DIR_DIALOG:
-                    ImGui::PushStyleColor(ImGuiCol_Text, pos.textColor);
+                        ImGui::PopStyleColor();
+                        break;
+                    case WIDGET_SELECT_DIR_DIALOG:
+                        ImGui::PushStyleColor(ImGuiCol_Text, pos.textColor);
 
-                    if (ImGui::Button(elem.label.c_str())) {
-                        if (!elem.future->valid())
-                            *elem.future = std::async(selectFolder, "");
-                    }
+                        if (ImGui::Button(elem.label.c_str())) {
+                            if (!elem.future->valid())
+                                *elem.future = std::async(selectFolder, "");
+                        }
 
-                    ImGui::PopStyleColor();
-                    break;
-                default:
-                    break;
+                        ImGui::PopStyleColor();
+                        break;
+                    default:
+                        break;
+                }
+                if (pos.sameLine)
+                    ImGui::SameLine();
             }
-            if (pos.sameLine)
-                ImGui::SameLine();
+            ImGui::Dummy(ImVec2());
         }
-        ImGui::Dummy(ImVec2());
-    }
-    */
-
+        */
 }
 
 

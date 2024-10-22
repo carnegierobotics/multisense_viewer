@@ -237,7 +237,7 @@ elseif (WIN32)
     endif ()
 
     # Build executable
-    add_executable(MultiSense-Viewer WIN32 ${SOURCE_FILES})
+    target_sources(MultiSense-Viewer PRIVATE ${SOURCE_FILES})
     target_link_libraries(MultiSense-Viewer ${LIBRARIES} fmt::fmt userenv.lib)
     add_dependencies(MultiSense-Viewer copy_assets)
 

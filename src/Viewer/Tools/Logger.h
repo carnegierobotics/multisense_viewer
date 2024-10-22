@@ -58,6 +58,7 @@
 
 #include <queue>
 #include <unordered_map>
+#include <array>
 
 #ifndef __has_include
 #error "__has_include not supported"
@@ -74,6 +75,7 @@
 #error "Does not have source location as part of std location or experimental"
 #endif
 #endif
+
 
 #include "Viewer/Tools/ThreadPool.h"
 

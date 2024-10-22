@@ -31,16 +31,11 @@ namespace VkRender {
 
         void drawCameraPanel(Entity &entity);
 
-        void openImportFileDialog(const std::string &fileDescription, const std::vector<std::string> &type,
-                                  LayerUtils::FileTypeLoadFlow flow);
-
         void handleSelectedFile(const LayerUtils::LoadFileInfo &loadFileInfo);
 
         void checkFileImportCompletion();
 
         void processEntities();
-
-        void rightClickPopup();
 
         //Entity m_selectionContext;
 

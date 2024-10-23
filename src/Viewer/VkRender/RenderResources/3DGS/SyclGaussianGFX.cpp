@@ -10,13 +10,14 @@
 #include "Viewer/VkRender/RenderResources/3DGS/Rasterizer.h"
 
 namespace VkRender {
-    void SyclGaussianGFX::render(std::shared_ptr<Scene>& scene, std::shared_ptr<VulkanTexture2D>& outputTexture,
-                                 Camera& camera) {
-        auto* imageMemory = static_cast<uint8_t*>(malloc(outputTexture->getSize()));
-        auto& registry = scene->getRegistry();
+    void SyclGaussianGFX::render(std::shared_ptr<Scene> &scene, std::shared_ptr<VulkanTexture2D> &outputTexture,
+                                 Camera &camera) {
+        auto *imageMemory = static_cast<uint8_t *>(malloc(outputTexture->getSize()));
+        auto &registry = scene->getRegistry();
         // Find all entities with GaussianComponent
-        registry.view<GaussianComponent>().each([&](auto entity, GaussianComponent& gaussianComp) {
-            if (gaussianComp.addToRenderer) {
+        static bool firstRun = true;
+        registry.view<GaussianComponent>().each([&](auto entity, GaussianComponent &gaussianComp) {
+            if (gaussianComp.addToRenderer || firstRun) {
                 std::vector<GaussianPoint> newPoints;
 
                 for (size_t i = 0; i < gaussianComp.size(); ++i) {
@@ -25,10 +26,13 @@ namespace VkRender {
                     point.scale = gaussianComp.scales[i];
                     point.rotation = gaussianComp.rotations[i];
                     point.opacity = gaussianComp.opacities[i];
+                    point.color = gaussianComp.colors[i];
                     newPoints.push_back(point);
                 }
+                if (!newPoints.empty())
+                    updateGaussianPoints(newPoints);
 
-                updateGaussianPoints(newPoints);
+                firstRun = false;
             }
         });
 
@@ -61,7 +65,7 @@ namespace VkRender {
         free(imageMemory);
     }
 
-    void SyclGaussianGFX::updateGaussianPoints(const std::vector<GaussianPoint>& newPoints) {
+    void SyclGaussianGFX::updateGaussianPoints(const std::vector<GaussianPoint> &newPoints) {
         sycl::free(m_gaussianPointsPtr, m_queue);
         m_numGaussians = newPoints.size();
         m_gaussianPointsPtr = sycl::malloc_shared<GaussianPoint>(m_numGaussians, m_queue);
@@ -70,20 +74,20 @@ namespace VkRender {
         m_queue.memcpy(m_gaussianPointsPtr, newPoints.data(), newPoints.size() * sizeof(GaussianPoint)).wait();
     }
 
-    void SyclGaussianGFX::preProcessGaussians(uint8_t* imageMemory) {
+    void SyclGaussianGFX::preProcessGaussians(uint8_t *imageMemory) {
         uint32_t imageWidth = m_preProcessData.camera.width();
         uint32_t imageHeight = m_preProcessData.camera.height();
 
-        m_queue.submit([&](sycl::handler& h) {
+        m_queue.submit([&](sycl::handler &h) {
             h.parallel_for(sycl::range<1>(m_numGaussians),
                            Rasterizer::Preprocess(m_gaussianPointsPtr, m_preProcessDataPtr));
         }).wait();
 
 
-        auto* pointOffsets = sycl::malloc_device<uint32_t>(m_numGaussians, m_queue);
-        m_queue.fill(pointOffsets, static_cast<uint32_t>(0x00), m_numGaussians * sizeof(uint32_t)).wait();
+        auto *pointOffsets = sycl::malloc_device<uint32_t>(m_numGaussians, m_queue);
+        m_queue.memset(pointOffsets, static_cast<uint32_t>(0x00), m_numGaussians * sizeof(uint32_t)).wait();
 
-        m_queue.submit([&](sycl::handler& h) {
+        m_queue.submit([&](sycl::handler &h) {
             h.parallel_for(sycl::range<1>(1),
                            Rasterizer::InclusiveSum(m_gaussianPointsPtr, pointOffsets,
                                                     m_preProcessDataPtr->preProcessSettings.numPoints));
@@ -97,27 +101,34 @@ namespace VkRender {
         Log::Logger::getInstance()->info("3DGS Rendering, Gaussians: {}", numRendered);
         if (numRendered > 0) {
             uint32_t sortBufferSize = (1 << 25);
-            auto* keysBuffer = sycl::malloc_device<uint32_t>(numRendered, m_queue);
-            auto* valuesBuffer = sycl::malloc_device<uint32_t>(numRendered, m_queue);
+
+            auto *keysBuffer = sycl::malloc_device<uint32_t>(numRendered, m_queue);
+            auto *valuesBuffer = sycl::malloc_device<uint32_t>(numRendered, m_queue);
             m_queue.wait();
 
-            m_queue.submit([&](sycl::handler& h) {
+            m_queue.submit([&](sycl::handler &h) {
                 h.parallel_for<class duplicates>(sycl::range<1>(m_numGaussians),
                                                  Rasterizer::DuplicateGaussians(m_gaussianPointsPtr, pointOffsets,
-                                                     keysBuffer,
-                                                     valuesBuffer,
-                                                     numRendered, m_preProcessDataPtr->preProcessSettings.tileGrid));
+                                                                                keysBuffer,
+                                                                                valuesBuffer,
+                                                                                numRendered,
+                                                                                m_preProcessDataPtr->preProcessSettings.tileGrid));
             }).wait();
 
 
-            auto* rangesBuffer = sycl::malloc_device<glm::ivec2>(m_preProcessData.preProcessSettings.numTiles, m_queue);
+            m_sorter->performOneSweep(keysBuffer, valuesBuffer, numRendered);
+            m_sorter->verifySort(keysBuffer, numRendered);
+            m_sorter->resetMemory();
+
+            auto *rangesBuffer = sycl::malloc_device<glm::ivec2>(m_preProcessData.preProcessSettings.numTiles, m_queue);
             m_queue.memset(rangesBuffer, static_cast<int>(0x00),
                            m_preProcessData.preProcessSettings.numTiles * sizeof(int) * 2).wait();
 
-            m_queue.submit([&](sycl::handler& h) {
+
+            m_queue.submit([&](sycl::handler &h) {
                 h.parallel_for<class IdentifyTileRanges>(numRendered,
                                                          Rasterizer::IdentifyTileRanges(rangesBuffer, keysBuffer,
-                                                             numRendered));
+                                                                                        numRendered));
             }).wait();
 
             // Rasterize Gaussians
@@ -129,16 +140,16 @@ namespace VkRender {
             size_t globalHeight = ((imageHeight + localWorkSize[1] - 1) / localWorkSize[1]) * localWorkSize[1];
             sycl::range<2> globalWorkSize(globalHeight, globalWidth);
 
-            auto* imageBuffer = sycl::malloc_device<uint8_t>(imageWidth * imageHeight * 4, m_queue);
-            m_queue.fill(imageBuffer, static_cast<uint8_t>(0x00), imageWidth * imageHeight * 4);
+            auto *imageBuffer = sycl::malloc_device<uint8_t>(imageWidth * imageHeight * 4, m_queue);
+            m_queue.fill(imageBuffer, static_cast<uint8_t>(0x00), imageWidth * imageHeight * 4).wait();
 
-            m_queue.submit([&](sycl::handler& h) {
+            m_queue.submit([&](sycl::handler &h) {
                 auto range = sycl::nd_range<2>(globalWorkSize, localWorkSize);
                 h.parallel_for<class RenderGaussians>(range,
                                                       Rasterizer::RasterizeGaussians(rangesBuffer,
-                                                          valuesBuffer, m_gaussianPointsPtr,
-                                                          imageBuffer, numRendered,
-                                                          imageWidth, imageHeight));
+                                                                                     valuesBuffer, m_gaussianPointsPtr,
+                                                                                     imageBuffer, numRendered,
+                                                                                     imageWidth, imageHeight));
             }).wait();
 
 
@@ -153,6 +164,7 @@ namespace VkRender {
         }
     }
 
-    void SyclGaussianGFX::rasterizeGaussians(const GaussianComponent& gaussianComp) {
+
+    void SyclGaussianGFX::rasterizeGaussians(const GaussianComponent &gaussianComp) {
     }
 }

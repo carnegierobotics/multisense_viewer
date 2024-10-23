@@ -317,6 +317,13 @@ namespace VkRender {
             }
             out << YAML::EndSeq;
 
+            out << YAML::Key << "Colors";
+            out << YAML::Value << YAML::BeginSeq;
+            for (const auto& color : component.colors) {
+                out << YAML::Flow << color;
+            }
+            out << YAML::EndSeq;
+
             out << YAML::EndMap;
         }
 
@@ -486,6 +493,14 @@ namespace VkRender {
                         for (const auto& amplitudeNode : amplitudesNode) {
                             float amplitude = amplitudeNode.as<float>();
                             component.opacities.push_back(amplitude);
+                        }
+                    }
+                    // Deserialize amplitudes
+                    auto colorsNode = gaussianComponentNode["Colors"];
+                    if (colorsNode) {
+                        for (const auto& colorNode : colorsNode) {
+                            auto color = colorNode.as<glm::vec3>();
+                            component.colors.push_back(color);
                         }
                     }
 

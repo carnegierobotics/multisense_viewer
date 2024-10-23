@@ -68,7 +68,8 @@ namespace VkRender::Rasterizer {
                 if ((rect_max.x - rect_min.x) * (rect_max.y - rect_min.y) == 0)
                     return;
 
-                glm::vec3 color(1.0f, 0.0f, 1.0f);
+                //glm::vec3 color(1.0f, 0.0f, 1.0f);
+                //m_points[i].color = color;
 
 
                 auto conic = glm::vec3(cov2D.z * invDeterminant, -cov2D.y * invDeterminant,
@@ -78,7 +79,6 @@ namespace VkRender::Rasterizer {
                 m_points[i].radius = my_radius;
                 m_points[i].conic = conic;
                 m_points[i].screenPos = screenPosPoint;
-                m_points[i].color = color;
 
                 // How many tiles we access
                 // rect_min/max are in tile space
@@ -316,9 +316,9 @@ namespace VkRender::Rasterizer {
                         }
                     }
                 }
-                m_imageBuffer[global_linear_id] = static_cast<uint8_t>((C[0] + T * 0.0f) * 255.0f);
+                m_imageBuffer[global_linear_id] = static_cast<uint8_t>((C[2] + T * 0.0f) * 255.0f);
                 m_imageBuffer[global_linear_id + 1] = static_cast<uint8_t>((C[1] + T * 0.0f) * 255.0f);
-                m_imageBuffer[global_linear_id + 2] = static_cast<uint8_t>((C[2] + T * 0.0f) * 255.0f);
+                m_imageBuffer[global_linear_id + 2] = static_cast<uint8_t>((C[0] + T * 0.0f) * 255.0f);
                 m_imageBuffer[global_linear_id +
                     3] = static_cast<uint8_t>(255.0f); // Assuming full alpha for simplicity
             } // endif

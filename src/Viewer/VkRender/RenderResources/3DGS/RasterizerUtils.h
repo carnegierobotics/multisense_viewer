@@ -14,11 +14,11 @@ namespace VkRender{
         glm::vec3 scale;
         glm::quat rotation;
         float opacity;
+        glm::vec3 color{};
 
         // After preprocessing
         glm::vec3 conic{};
         glm::vec3 screenPos{};
-        glm::vec3 color{};
         glm::ivec2 bbMin{};
         glm::ivec2 bbMax{};
         float depth = 0.0f;

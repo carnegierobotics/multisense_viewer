@@ -23,9 +23,9 @@ namespace VkRender {
     public:
         /** Called once upon this object creation**/
         void onAttach() override {
-#ifdef defined(__linux__)
+#ifdef __linux__
             int argc = 0;
-            char **argv;
+            char **argv = NULL;
             gtk_init(&argc, &argv);  // Initialize GTK
 #endif
         }
@@ -124,8 +124,8 @@ namespace VkRender {
             ImGui::EndMainMenuBar();
 
             checkFileImportCompletion();
-
-#ifdef defined(__linux__)
+// TODO Not the right place to call ubuntu file dialog stuff.
+#ifdef __linux__
             while (g_main_context_iteration(nullptr, false));
 #endif
             ImGui::PopStyleVar(3);

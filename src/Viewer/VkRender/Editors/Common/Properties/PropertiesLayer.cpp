@@ -393,7 +393,8 @@ namespace VkRender {
                 glm::vec3 defaultScale(0.3f); // Identity matrix
                 glm::quat defaultQuat(1.0f, 0.0f, 0.0f, 0.0f); // Identity matrix
                 float defaultOpacity = 1.0f;
-                component.addGaussian(defaultMean, defaultScale, defaultQuat, defaultOpacity);
+                glm::vec3 color(1.0f, 0.0f, 0.0f);
+                component.addGaussian(defaultMean, defaultScale, defaultQuat, defaultOpacity, color);
             }
 
             ImGui::Spacing();
@@ -406,6 +407,7 @@ namespace VkRender {
                     // Mean Position Controls
                     component.addToRenderer |= drawVec3Control("Position", component.means[i], 0.0f);
                     component.addToRenderer |= drawVec3Control("Scale", component.scales[i], 0.0f, 0.1f);
+                    component.addToRenderer |= drawVec3Control("Color", component.colors[i], 0.0f, 0.1f);
                     // Amplitude Control
                     ImGui::Text("Opacity");
 

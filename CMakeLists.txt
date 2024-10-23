@@ -28,8 +28,8 @@ add_executable(MultiSense-Viewer)
 # SYCL Backend selection
 if (ENABLE_SYCL)
     if (SYCL_BACKEND STREQUAL "dpcpp")
-        set(CMAKE_CXX_COMPILER "clang++")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -fsycl-targets=spir64 -g")
+        set(CMAKE_CXX_COMPILER "/home/magnus/sycl_workspace/llvm/build/bin/clang++") ##TODO FUll path to compiler must be set as argument instead
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -fsycl-targets=nvptx64-nvidia-cuda")
         message(STATUS "[VkRenderINFO]: SYCL DPC++ support enabled. Compiler: ${CMAKE_CXX_COMPILER} Flags: ${CMAKE_CXX_FLAGS}")
     elseif (SYCL_BACKEND STREQUAL "adaptivecpp")
         # Find the AdaptiveCpp package

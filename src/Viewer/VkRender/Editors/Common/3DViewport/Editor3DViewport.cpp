@@ -20,6 +20,8 @@ namespace VkRender {
         addUI("Editor3DLayer");
         addUIData<Editor3DViewportUI>();
 
+        m_editorCamera = std::make_shared<Camera>(m_createInfo.width, m_createInfo.height);
+
         m_sceneRenderer = m_context->getOrAddSceneRendererByUUID(uuid);
 
         VulkanTexture2DCreateInfo textureCreateInfo(m_context->vkDevice());
@@ -32,23 +34,24 @@ namespace VkRender {
 
         m_renderPipelines = std::make_unique<GraphicsPipeline2D>(*m_context, renderPassInfo);
         m_renderPipelines->setTexture(&m_colorTexture->getDescriptorInfo());
+        m_sceneRenderer->setActiveCamera(m_editorCamera);
 
     }
 
     void Editor3DViewport::onEditorResize() {
-        m_editorCamera.setPerspective(static_cast<float>(m_createInfo.width) / m_createInfo.height);
+        m_editorCamera->setPerspective(static_cast<float>(m_createInfo.width) / m_createInfo.height);
 
         m_sceneRenderer = m_context->getOrAddSceneRendererByUUID(getUUID());
         VulkanTexture2DCreateInfo textureCreateInfo(m_context->vkDevice());
         textureCreateInfo.image = m_sceneRenderer->getOffscreenFramebuffer().resolvedImage;
         m_colorTexture = std::make_shared<VulkanTexture2D>(textureCreateInfo);
         m_renderPipelines->setTexture(&m_colorTexture->getDescriptorInfo());
+        m_sceneRenderer->setActiveCamera(m_editorCamera);
 
     }
 
     void Editor3DViewport::onSceneLoad(std::shared_ptr<Scene> scene) {
-
-        m_editorCamera = Camera(m_createInfo.width, m_createInfo.height);
+        m_editorCamera = std::make_shared<Camera>(m_createInfo.width, m_createInfo.height);
         m_activeScene = m_context->activeScene();
 
     }
@@ -59,8 +62,6 @@ namespace VkRender {
             return;
 
         m_sceneRenderer->update();
-        auto& camera = m_sceneRenderer->getCamera();
-        camera = m_editorCamera;
     }
 
 
@@ -70,12 +71,30 @@ namespace VkRender {
 
     void Editor3DViewport::onMouseMove(const MouseButtons &mouse) {
         if (ui()->hovered && mouse.left && !ui()->resizeActive) {
-            m_editorCamera.rotate(mouse.dx, mouse.dy);
+            m_editorCamera->rotate(mouse.dx, mouse.dy);
         }
     }
 
     void Editor3DViewport::onMouseScroll(float change) {
         if (ui()->hovered)
-            m_editorCamera.setArcBallPosition((change > 0.0f) ? 0.95f : 1.05f);
+            m_editorCamera->setArcBallPosition((change > 0.0f) ? 0.95f : 1.05f);
+    }
+
+    void Editor3DViewport::onKeyCallback(const Input &input) {
+
+        if (input.lastKeyPress == GLFW_KEY_KP_0 && input.action == GLFW_PRESS) {
+            auto &e = m_context->getSelectedEntity();
+            if (e && e.hasComponent<CameraComponent>()) {
+                auto cameraPtr = e.getComponent<CameraComponent>().camera;
+                if (cameraPtr) {
+                    m_sceneRenderer->setActiveCamera(cameraPtr);
+                }
+            }
+        }
+
+        if (input.lastKeyPress == GLFW_KEY_KP_1 && input.action == GLFW_PRESS) {
+            m_sceneRenderer->setActiveCamera(m_editorCamera);
+
+        }
     }
 };

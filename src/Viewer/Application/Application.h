@@ -121,6 +121,8 @@ namespace VkRender {
         SceneRenderer * addSceneRendererWithUUID(const UUID &uuid);
 
         ImGuiContext *getMainUIContext() { return m_mainEditor->guiContext(); }
+        Entity& getSelectedEntity() {return m_selectedEntity;}
+        void setSelectedEntity(Entity entity){m_selectedEntity = entity;}
 
         uint32_t currentFrameIndex() { return currentFrame; }
         uint32_t getFrameId() { return frameID; }
@@ -173,9 +175,9 @@ namespace VkRender {
         std::unique_ptr<Editor> m_mainEditor;
         std::unordered_map<UUID, std::shared_ptr<SceneRenderer> > m_sceneRenderers;
         std::shared_ptr<GuiAssets> m_guiResources;
-        SharedContextData m_sharedContextData;
         SharedEditorData m_sharedEditorData;
         std::shared_ptr<UsageMonitor> m_usageMonitor;
+        Entity m_selectedEntity;
 
         std::shared_ptr<VkRender::MultiSense::MultiSenseRendererBridge> m_multiSense;
 

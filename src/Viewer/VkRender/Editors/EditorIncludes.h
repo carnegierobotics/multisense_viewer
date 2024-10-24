@@ -32,14 +32,6 @@ namespace VkRender {
         std::vector<std::shared_ptr<VulkanFramebuffer>> depthOnlyFramebuffer;
     } ;
 
-    // TODO Probably not the best way to share data among editors
-    struct SharedContextData {
-        bool openAddDevicePopup = false;
-        Entity m_selectedEntity;
-
-        std::unordered_map<UUID, Entity> selectedEntityMap;
-    };
-
     typedef enum EditorBorderState {
         None = 0,        // Cursor is not on any border
         Left = 1 << 0,   // Cursor is on the left border (1)
@@ -172,8 +164,6 @@ namespace VkRender {
         ImVec4 backgroundColor{};
         ImVec4 backgroundColorHovered{};
         ImVec4 backgroundColorActive{};
-
-        SharedContextData* shared;
 
         EditorUILayoutInfo layoutConstants;
         bool showDebugWindow = false;

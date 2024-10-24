@@ -110,15 +110,6 @@ namespace VkRender {
                 m_colorTexture = std::make_shared<VulkanTexture2D>(textureCreateInfo);
                 m_renderPipelines->setTexture(&m_colorTexture->getDescriptorInfo());
             }
-            auto view = m_activeScene->getRegistry().view<CameraComponent, TagComponent>();
-            std::vector<std::string> cameraEntityNames;
-            cameraEntityNames.reserve(view.size_hint());
-            for (auto entity: view) {
-                auto &tag = view.get<TagComponent>(entity);
-                if (tag.Tag == imageUI->selectedCameraName) {
-                    m_ui->shared->selectedEntityMap[getUUID()] = Entity(entity, m_activeScene.get());
-                }
-            }
             imageUI->update = false;
         }
 

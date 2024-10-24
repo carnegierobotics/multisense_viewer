@@ -25,8 +25,6 @@ namespace VkRender {
 
     void PropertiesLayer::setScene(std::weak_ptr<Scene> scene) {
         Layer::setScene(scene);
-
-        // Reset the selection context
         m_selectionContext = Entity(); // reset selectioncontext
     }
 
@@ -198,13 +196,11 @@ namespace VkRender {
 
         if (ImGui::BeginPopup("AddComponent")) {
             displayAddComponentEntry<CameraComponent>("Camera");
-            displayAddComponentEntry<ScriptComponent>("Script");
-            displayAddComponentEntry<TextComponent>("Text Component");
-            displayAddComponentEntry<TransformComponent>("Transform Component");
-            displayAddComponentEntry<MeshComponent>("MeshComponent");
-            displayAddComponentEntry<MaterialComponent>("MaterialComponent");
-            displayAddComponentEntry<PointCloudComponent>("PointCloudComponent");
-            displayAddComponentEntry<GaussianComponent>("GaussianComponent");
+            displayAddComponentEntry<TransformComponent>("Transform");
+            displayAddComponentEntry<MeshComponent>("Mesh");
+            displayAddComponentEntry<MaterialComponent>("Material");
+            displayAddComponentEntry<PointCloudComponent>("PointCloud");
+            displayAddComponentEntry<GaussianComponent>("3DGS Model");
 
             ImGui::EndPopup();
         }
@@ -216,13 +212,13 @@ namespace VkRender {
             drawVec3Control("Scale", component.getScale(), 1.0f);
         });
         drawComponent<CameraComponent>("Camera", entity, [](auto& component) {
-            drawFloatControl("Field of View", component().fov(), 1.0f);
-            component().updateProjectionMatrix();
+            drawFloatControl("Field of View", component.camera->fov(), 1.0f);
+            component.camera->updateProjectionMatrix();
 
             ImGui::Checkbox("Render scene from viewpoint", &component.renderFromViewpoint());
 
             if (component.renderFromViewpoint())
-                component().setType(Camera::CameraType::flycam);
+                component.camera->setType(Camera::CameraType::flycam);
         });
 
         drawComponent<MeshComponent>("Mesh", entity, [this, entity](auto& component) {
@@ -233,14 +229,14 @@ namespace VkRender {
             // Load mesh from file here:
             if (ImGui::Button("Load .obj mesh")) {
                 std::vector<std::string> types{".obj"};
-                EditorUtils::openImportFileDialog("Wavefront", types, LayerUtils::OBJ_FILE, &loadFileFuture);
+                EditorUtils::openImportFileDialog("Wavefront", types, LayerUtils::OBJ_FILE, &m_loadFileFuture);
             }
 
             ImGui::SameLine();
             // Load mesh from mesh here:
             if (ImGui::Button("Load .ply mesh")) {
                 std::vector<std::string> types{".ply"};
-                EditorUtils::openImportFileDialog("Stanford .PLY", types, LayerUtils::PLY_MESH, &loadFileFuture);
+                EditorUtils::openImportFileDialog("Stanford .PLY", types, LayerUtils::PLY_MESH, &m_loadFileFuture);
             }
 
             // Polygon Mode Control
@@ -312,7 +308,7 @@ namespace VkRender {
             // Button to load texture
             if (ImGui::Button("Set Texture Image")) {
                 std::vector<std::string> types{".png", ".jpg", ".bmp"};
-                EditorUtils::openImportFileDialog("Load Texture", types, LayerUtils::TEXTURE_FILE, &loadFileFuture);
+                EditorUtils::openImportFileDialog("Load Texture", types, LayerUtils::TEXTURE_FILE, &m_loadFileFuture);
             }
 
             // Texture Control
@@ -326,7 +322,7 @@ namespace VkRender {
                 if (ImGui::Button("Set Image Folder")) {
                     std::vector<std::string> types{".png", ".jpg", ".bmp"};
                     EditorUtils::openImportFolderDialog("Set Image Folder", types, LayerUtils::VIDEO_TEXTURE_FILE,
-                                                        &loadFolderFuture);
+                                                        &m_loadFolderFuture);
                 }
 
                 ImGui::Checkbox("Is Disparity", &component.isDisparity);
@@ -341,7 +337,7 @@ namespace VkRender {
             if (ImGui::Button("Load Vertex Shader")) {
                 std::vector<std::string> types{".vert"};
                 EditorUtils::openImportFileDialog("Load Vertex Shader", types, LayerUtils::VERTEX_SHADER_FILE,
-                                                  &loadFileFuture);
+                                                  &m_loadFileFuture);
             }
 
             ImGui::Text("Fragment Shader:");
@@ -349,7 +345,7 @@ namespace VkRender {
             if (ImGui::Button("Load Fragment Shader")) {
                 std::vector<std::string> types{".frag"};
                 EditorUtils::openImportFileDialog("Load Fragment Shader", types, LayerUtils::FRAGMENT_SHADER_FILE,
-                                                  &loadFileFuture);
+                                                  &m_loadFileFuture);
             }
             // Notify scene that material component has been updated
         });
@@ -368,7 +364,7 @@ namespace VkRender {
                     std::vector<std::string> types{".png", ".jpg", ".bmp"};
                     EditorUtils::openImportFolderDialog("Set Image Folder", types,
                                                         LayerUtils::VIDEO_DISPARITY_DEPTH_TEXTURE_FILE,
-                                                        &loadFolderFuture);
+                                                        &m_loadFolderFuture);
                 }
                 ImGui::Text("Color Images folder:");
                 ImGui::Text("%s", component.colorVideoFolderSource.string().c_str());
@@ -377,10 +373,8 @@ namespace VkRender {
                     std::vector<std::string> types{".png", ".jpg", ".bmp"};
                     EditorUtils::openImportFolderDialog("Set Image Folder", types,
                                                         LayerUtils::VIDEO_DISPARITY_COLOR_TEXTURE_FILE,
-                                                        &loadFolderFuture);
+                                                        &m_loadFolderFuture);
                 }
-
-
                 ImGui::EndChild();
             }
         });
@@ -407,7 +401,7 @@ namespace VkRender {
             if(ImGui::Button("Load from file")){
                 std::vector<std::string> types{".ply"};
                 EditorUtils::openImportFileDialog("Load 3DGS .ply file", types, LayerUtils::PLY_3DGS,
-                                                  &loadFileFuture);
+                                                  &m_loadFileFuture);
             }
 
 
@@ -447,16 +441,10 @@ namespace VkRender {
         });
     }
 
-    void PropertiesLayer::setSelectedEntity(Entity entity) {
-        m_selectionContext = entity;
-        m_needsTagUpdate = true; // update tag
-    }
 
     /** Called once per frame **/
     void PropertiesLayer::onUIRender() {
-        setSelectedEntity(m_editor->ui()->shared->m_selectedEntity);
-        // TODO not a consistent way to set the selected context
-
+        m_selectionContext = m_context->getSelectedEntity();
         ImVec2 window_pos = ImVec2(0.0f, m_editor->ui()->layoutConstants.uiYOffset); // Position (x, y)
         ImVec2 window_size = ImVec2(m_editor->ui()->width, m_editor->ui()->height); // Size (width, height)
         // Set window flags to remove decorations
@@ -482,29 +470,6 @@ namespace VkRender {
         checkFileImportCompletion();
         checkFolderImportCompletion();
 
-        /*
-        auto view = scene->getRegistry().view<TransformComponent, TagComponent>();
-        for (auto &entity: view) {
-            auto &transform = view.get<TransformComponent>(entity);
-// Display the entity's ID or some other identifier as a headline
-            ImGui::Text("Entity: %s", view.get<TagComponent>(entity).Tag.c_str());
-
-// Get current position and rotation
-            glm::vec3 &position = transform.getPosition();
-            glm::vec3 euler = transform.getEuler();
-// Input fields for position
-            ImGui::DragFloat3(("Position##" + std::to_string(static_cast<double>(entity))).c_str(),
-                              glm::value_ptr(position), 0.1f);
-
-// Input fields for rotation (quaternion)
-            ImGui::DragFloat3(("Rotation##" + std::to_string(static_cast<double>(entity))).c_str(),
-                              glm::value_ptr(euler), 1.0f);
-
-            transform.setEuler(euler.x, euler.y, euler.z);
-// Add some space between each entity
-            ImGui::Separator();
-            */
-
         ImGui::End();
     }
 
@@ -517,7 +482,6 @@ namespace VkRender {
         if (!m_selectionContext.hasComponent<T>()) {
             if (ImGui::MenuItem(entryName.c_str())) {
                 m_selectionContext.addComponent<T>();
-
                 // Check if the component added is a PointCloudComponent
                 if constexpr (std::is_same_v<T, PointCloudComponent>) {
                     if (!m_selectionContext.hasComponent<MeshComponent>()) {
@@ -526,7 +490,6 @@ namespace VkRender {
                         component.polygonMode = VK_POLYGON_MODE_POINT;
                     }
                 }
-
                 ImGui::CloseCurrentPopup();
             }
         }
@@ -607,17 +570,17 @@ namespace VkRender {
     }
 
     void PropertiesLayer::checkFileImportCompletion() {
-        if (loadFileFuture.valid() &&
-            loadFileFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
-            LayerUtils::LoadFileInfo loadFileInfo = loadFileFuture.get(); // Get the result from the future
+        if (m_loadFileFuture.valid() &&
+            m_loadFileFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+            LayerUtils::LoadFileInfo loadFileInfo = m_loadFileFuture.get(); // Get the result from the future
             handleSelectedFileOrFolder(loadFileInfo);
         }
     }
 
     void PropertiesLayer::checkFolderImportCompletion() {
-        if (loadFolderFuture.valid() &&
-            loadFolderFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
-            LayerUtils::LoadFileInfo loadFileInfo = loadFolderFuture.get(); // Get the result from the future
+        if (m_loadFolderFuture.valid() &&
+            m_loadFolderFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+            LayerUtils::LoadFileInfo loadFileInfo = m_loadFolderFuture.get(); // Get the result from the future
             handleSelectedFileOrFolder(loadFileInfo);
         }
     }

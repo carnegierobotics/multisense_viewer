@@ -62,7 +62,7 @@ namespace VkRender {
 
             imageUI->render3dgsImage = ImGui::Button("Render 3DGS image");
 
-            static bool toggle = false;
+            static bool toggle = true;
             ImGui::SameLine();
             ImGui::Checkbox("Toggle rendering", &toggle);
             if (toggle){

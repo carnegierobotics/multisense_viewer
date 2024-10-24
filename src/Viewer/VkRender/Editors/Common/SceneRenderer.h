@@ -46,14 +46,18 @@ namespace VkRender {
 
         void updateGlobalUniformBuffer(uint32_t frameIndex, Entity entity);
 
+        void setActiveCamera(const std::shared_ptr<Camera>& cameraPtr){
+            m_activeCamera = cameraPtr;
+        }
+
         ~SceneRenderer() override;
 
-        Camera& getCamera(){
-            return m_activeCamera;
+        std::shared_ptr<Camera> getActiveCamera() const {
+            return m_activeCamera.lock();
         }
 
     private:
-        Camera m_activeCamera;
+        std::weak_ptr<Camera> m_activeCamera;
         std::shared_ptr<Scene> m_activeScene;
 
         PipelineManager m_pipelineManager;

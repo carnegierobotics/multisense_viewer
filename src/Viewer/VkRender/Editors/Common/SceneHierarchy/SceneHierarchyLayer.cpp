@@ -25,12 +25,12 @@ namespace VkRender {
         auto &tag = entity.getComponent<TagComponent>().Tag;
         //handles.shared->m_selectedEntity = handles.shared->m_selectedEntity;
 
-        ImGuiTreeNodeFlags flags = ((m_editor->ui()->shared->m_selectedEntity == entity) ? ImGuiTreeNodeFlags_Selected : 0) |
+        ImGuiTreeNodeFlags flags = (( m_context->getSelectedEntity() == entity) ? ImGuiTreeNodeFlags_Selected : 0) |
                                    ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_OpenOnArrow;
         flags |= ImGuiTreeNodeFlags_SpanAvailWidth;
         bool opened = ImGui::TreeNodeEx((void *) (uint64_t) (uint32_t) entity, flags, "%s", tag.c_str());
         if (ImGui::IsItemClicked()) {
-            m_editor->ui()->shared->m_selectedEntity = entity;
+            m_context->setSelectedEntity(entity);
         }
 
         bool entityDeleted = false;
@@ -54,12 +54,10 @@ namespace VkRender {
 
         if (entityDeleted) {
             m_context->activeScene()->destroyEntity(entity);
-            if (m_editor->ui()->shared->m_selectedEntity == entity) {
-                m_editor->ui()->shared->m_selectedEntity = {};
+            if (m_context->getSelectedEntity() == entity) {
+                m_context->setSelectedEntity(Entity{});
             }
         }
-        //m_editor->ui()->shared->m_selectedEntity = m_editor->ui()->shared->m_selectedEntity;
-
     }
 
     void SceneHierarchyLayer::processEntities() {
@@ -70,14 +68,11 @@ namespace VkRender {
                 // Perform your operations with the entity
                 drawEntityNode(entity);
             });
-            //if (ImGui::IsMouseDown(0) && ImGui::IsWindowHovered())
-            //    m_editor->ui()->shared->m_selectedEntity = {};
 
             // Right-click on blank space
             if (ImGui::BeginPopupContextWindow(0, 1)) {
                 if (ImGui::MenuItem("Create Empty Entity"))
                     m_context->activeScene()->createEntity("Empty Entity");
-
                 ImGui::EndPopup();
             }
 

@@ -73,7 +73,7 @@ namespace VkRender {
         passCreateInfo.height = static_cast<int32_t>(m_height);
         passCreateInfo.width = static_cast<int32_t>(m_width);
 
-        EditorCreateInfo mainMenuEditor(m_guiResources, this, &m_sharedContextData, m_vulkanDevice, &m_allocator,
+        EditorCreateInfo mainMenuEditor(m_guiResources, this, m_vulkanDevice, &m_allocator,
                                         m_frameBuffers.data());
         mainMenuEditor.borderSize = 0;
         mainMenuEditor.editorTypeDescription = EditorType::None;
@@ -98,7 +98,7 @@ namespace VkRender {
         if (m_editors.empty()) {
             // add a dummy editor to get started
             auto sizeLimits = m_mainEditor->getSizeLimits();
-            EditorCreateInfo otherEditorInfo(m_guiResources, this, &m_sharedContextData, m_vulkanDevice, &m_allocator,
+            EditorCreateInfo otherEditorInfo(m_guiResources, this, m_vulkanDevice, &m_allocator,
                                              m_frameBuffers.data());
             otherEditorInfo.pPassCreateInfo = passCreateInfo;
             otherEditorInfo.borderSize = 5;
@@ -130,7 +130,7 @@ namespace VkRender {
     }
 
     SceneRenderer *Application::addSceneRendererWithUUID(const UUID &uuid) {
-        EditorCreateInfo sceneRenderer(m_guiResources, this, &m_sharedContextData, m_vulkanDevice, &m_allocator,
+        EditorCreateInfo sceneRenderer(m_guiResources, this, m_vulkanDevice, &m_allocator,
                                        m_frameBuffers.data());
         VulkanRenderPassCreateInfo passCreateInfo(m_vulkanDevice, &m_allocator);
         passCreateInfo.msaaSamples = msaaSamples;
@@ -171,12 +171,12 @@ namespace VkRender {
         if (jsonContent.contains("generalSettings")) {
             const auto &jsonGeneralSettings = jsonContent["generalSettings"];
             m_projectConfig.name = jsonGeneralSettings.value("projectName", "MultiSense Editor");
-            m_projectConfig.editorTypes = getAllEditorTypes();
+            m_projectConfig.editorTypes = getSelectableEditorTypes();
         }
 
         if (jsonContent.contains("editors")) {
             for (const auto &jsonEditor: jsonContent["editors"]) {
-                EditorCreateInfo createInfo(m_guiResources, this, &m_sharedContextData, m_vulkanDevice, &m_allocator,
+                EditorCreateInfo createInfo(m_guiResources, this, m_vulkanDevice, &m_allocator,
                                             m_frameBuffers.data());
 
                 int32_t mainMenuBarOffset = 0;
@@ -516,7 +516,7 @@ namespace VkRender {
     void Application::splitEditor(uint32_t splitEditorIndex) {
         auto &editor = m_editors[splitEditorIndex];
         EditorCreateInfo &editorCreateInfo = editor->getCreateInfo();
-        EditorCreateInfo newEditorCreateInfo(m_guiResources, this, &m_sharedContextData, m_vulkanDevice, &m_allocator,
+        EditorCreateInfo newEditorCreateInfo(m_guiResources, this, m_vulkanDevice, &m_allocator,
                                              m_frameBuffers.data());
 
         EditorCreateInfo::copy(&newEditorCreateInfo, &editorCreateInfo);
@@ -600,7 +600,7 @@ namespace VkRender {
     }
 
     EditorCreateInfo Application::getNewEditorCreateInfo(std::unique_ptr<Editor> &editor) {
-        EditorCreateInfo newEditorCI(m_guiResources, this, &m_sharedContextData, m_vulkanDevice, &m_allocator,
+        EditorCreateInfo newEditorCI(m_guiResources, this, m_vulkanDevice, &m_allocator,
                                      m_frameBuffers.data());
         EditorCreateInfo::copy(&newEditorCI, &editor->getCreateInfo());
 
@@ -683,6 +683,9 @@ namespace VkRender {
            */
 
     void Application::keyboardCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
+        input.lastKeyPress = key;
+        input.action = action;
+
         for (auto &editor: m_editors) {
             ImGui::SetCurrentContext(editor->guiContext());
             ImGuiIO &io = ImGui::GetIO();
@@ -717,7 +720,6 @@ namespace VkRender {
         m_activeScene = std::make_shared<Scene>("New Scene", this);
         for (auto& editors : m_editors) {
             editors->onSceneLoad(m_activeScene); // Also resets editor camera etc..
-            editors->ui()->shared->m_selectedEntity = Entity(); // Reset seleciton context
         }
 
         return m_activeScene;

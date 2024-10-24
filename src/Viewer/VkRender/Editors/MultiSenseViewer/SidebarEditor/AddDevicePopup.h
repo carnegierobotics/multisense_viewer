@@ -219,7 +219,7 @@ namespace VkRender {
             if (btnCancel) {
                 context->usageMonitor()->userClickAction("Cancel", "button",
                                                         ImGui::GetCurrentWindow()->Name);
-                editor->ui()->shared->openAddDevicePopup = false;
+                //editor->ui()->shared->openAddDevicePopup = false;
                 ImGui::CloseCurrentPopup();
             }
 
@@ -229,7 +229,7 @@ namespace VkRender {
                                                         ImGui::GetCurrentWindow()->Name);
 
                 context->multiSense()->addNewProfile(profileInfo);
-                editor->ui()->shared->openAddDevicePopup = false;
+                //editor->ui()->shared->openAddDevicePopup = false;
                 ImGui::CloseCurrentPopup();
             }
 

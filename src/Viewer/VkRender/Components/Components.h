@@ -121,17 +121,15 @@ struct TransformComponent {
 
 
     struct CameraComponent {
-        Camera camera;
+        // we use a shared pointer as storage since most often we need to share this data with the rendering loop.
+        std::shared_ptr<Camera> camera;
         bool render = true;
 
-        CameraComponent() = default;
-
-        explicit CameraComponent(const Camera &cam) : camera(cam) {
+        CameraComponent(){
+            camera = std::make_shared<Camera>();
         }
 
-        // Overload the function call operator
-        Camera &operator()() {
-            return camera;
+        explicit CameraComponent(const Camera &cam) : camera(std::make_shared<Camera>(cam)) {
         }
 
         bool &renderFromViewpoint() { return render; }

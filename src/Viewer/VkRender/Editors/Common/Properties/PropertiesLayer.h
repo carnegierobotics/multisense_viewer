@@ -25,8 +25,6 @@ namespace VkRender {
 
         void setScene(std::weak_ptr<Scene> scene) override;
 
-        void setSelectedEntity(Entity entity);
-
     public:
         template<typename T, typename UIFunction>
         void drawComponent(const std::string &name, Entity entity, UIFunction uiFunction);
@@ -34,8 +32,8 @@ namespace VkRender {
         void drawComponents(Entity entity);
 
         Entity m_selectionContext;
-        std::future<LayerUtils::LoadFileInfo> loadFileFuture;
-        std::future<LayerUtils::LoadFileInfo> loadFolderFuture;
+        std::future<LayerUtils::LoadFileInfo> m_loadFileFuture;
+        std::future<LayerUtils::LoadFileInfo> m_loadFolderFuture;
         char m_tagBuffer[256];  // Adjust size as needed
         bool m_needsTagUpdate = true;
 

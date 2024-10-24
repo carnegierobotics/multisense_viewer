@@ -26,7 +26,6 @@ namespace VkRender {
         m_ui->width = m_createInfo.width;
         m_ui->x = m_createInfo.x;
         m_ui->y = m_createInfo.y;
-        m_ui->shared = m_createInfo.sharedUIContextData;
 
         m_createInfo.pPassCreateInfo.debugInfo = editorTypeToString(m_createInfo.editorTypeDescription);
         m_renderPass = std::make_unique<VulkanRenderPass>(&m_createInfo.pPassCreateInfo);

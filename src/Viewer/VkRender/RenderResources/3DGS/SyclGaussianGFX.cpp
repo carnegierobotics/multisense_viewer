@@ -155,7 +155,7 @@ namespace VkRender {
         m_queue.memcpy(&numRendered, pointOffsets + (m_numGaussians - 1), sizeof(uint32_t)).wait();
         // Inclusive sum complete
 
-        Log::Logger::getInstance()->info("3DGS Rendering, Gaussians: {}", numRendered);
+        Log::Logger::getInstance()->traceWithFrequency("3dgsrendering", 60, "3DGS Rendering, Gaussians: {}", numRendered);
         if (numRendered > 0) {
             uint32_t sortBufferSize = (1 << 25);
 

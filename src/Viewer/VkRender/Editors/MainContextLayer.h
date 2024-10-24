@@ -59,9 +59,11 @@ namespace VkRender {
 
             ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, menuBarHeight));
 
+            /*
             if (m_editor->ui()->shared->openAddDevicePopup) {
                 ImGui::OpenPopup("add_device_modal");
             }
+            */
 
             addPopup(m_context, m_editor);
             ImGui::End();

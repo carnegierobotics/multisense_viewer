@@ -18,12 +18,13 @@ namespace VkRender {
         m_renderToOffscreen = true;
 
         // m_videoPlaybackSystem = std::make_shared<VideoPlaybackSystem>(m_context);
-        m_activeCamera = Camera(m_createInfo.width, m_createInfo.height);
+        m_activeCamera = std::make_shared<Camera>(m_createInfo.width, m_createInfo.height);
 
     }
 
     void SceneRenderer::onEditorResize() {
-        m_activeCamera.setPerspective(static_cast<float>(m_createInfo.width) / m_createInfo.height);
+        auto activeCameraPtr = m_activeCamera.lock(); // Lock to get shared_ptr
+        activeCameraPtr->setPerspective(static_cast<float>(m_createInfo.width) / m_createInfo.height);
     }
 
     SceneRenderer::~SceneRenderer() {
@@ -393,12 +394,10 @@ namespace VkRender {
 
     void SceneRenderer::onComponentUpdated(Entity entity, MaterialComponent &materialComponent) {
         // add a video source if selected
-
-        if (materialComponent.reloadShader) {
-            if (m_materialInstances.contains(entity.getUUID())) {
-                m_materialInstances.erase(entity.getUUID());
-            }
+        if (m_materialInstances.contains(entity.getUUID())) { // TODO look into just replacing what changed instead of erasing, triggering a new pipeline creation. However, the cost for recreating everything in a material is very small
+            m_materialInstances.erase(entity.getUUID());
         }
+
     }
 
     void SceneRenderer::onComponentAdded(Entity entity, PointCloudComponent &pointCloudComponent) {
@@ -625,9 +624,13 @@ namespace VkRender {
         // Compute view and projection matrices
         if (entity.hasComponent<MeshComponent>()) {
             GlobalUniformBufferObject globalUBO = {};
-            globalUBO.view = m_activeCamera.matrices.view;
-            globalUBO.projection = m_activeCamera.matrices.perspective;
-            globalUBO.cameraPosition = m_activeCamera.pose.pos;
+            auto activeCameraPtr = m_activeCamera.lock(); // Lock to get shared_ptr
+            if (activeCameraPtr) {
+                globalUBO.view = activeCameraPtr->matrices.view;
+                globalUBO.projection = activeCameraPtr->matrices.perspective;
+                globalUBO.cameraPosition = activeCameraPtr->pose.pos;
+            }
+
             // Map and copy data to the global uniform buffer
             void *data;
             vkMapMemory(m_context->vkDevice().m_LogicalDevice,
@@ -750,8 +753,8 @@ namespace VkRender {
         auto &renderData = m_entityRenderData[entity.getUUID()];
         const auto maxFramesInFlight = static_cast<uint32_t>(m_context->swapChainBuffers().size());
 
-        materialInstance->baseColorTexture = EditorUtils::createTextureFromFile(
-                Utils::getTexturePath() / "moon.png", m_context);
+        materialInstance->baseColorTexture = EditorUtils::createTextureFromFile(materialComponent.albedoTexturePath,
+                                                                                m_context);
 
         renderData.materialDescriptorSets.resize(maxFramesInFlight);
         Log::Logger::getInstance()->info("Created Material for Entity: {}", entity.getName());
@@ -995,27 +998,6 @@ namespace VkRender {
         VkDeviceSize indexBufferSize = meshData.indices.size() * sizeof(uint32_t);
         if (!vertexBufferSize)
             return nullptr;
-        // Create vertex buffer
-        /*
-        m_context->vkDevice().createBuffer(
-                VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                meshInstance->vertexBuffer,
-                vertexBufferSize,
-                meshData.vertices.data(), "SceneRenderer:InitializeMesh:Vertex",
-                m_context->getDebugUtilsObjectNameFunction());
-        // Create index buffer if the mesh has indices
-        if (indexBufferSize) {
-            m_context->vkDevice().createBuffer(
-                    VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                    meshInstance->indexBuffer,
-                    indexBufferSize,
-                    meshData.indices.data(), "SceneRenderer:InitializeMesh:Index",
-                    m_context->getDebugUtilsObjectNameFunction());
-        }
-
-        */
 
         struct StagingBuffer {
             VkBuffer buffer;

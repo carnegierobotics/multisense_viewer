@@ -88,13 +88,10 @@ namespace VkRender {
         ImGuiContext *uiContext = nullptr;
 
         std::shared_ptr<GuiAssets> guiResources;
-        SharedContextData *sharedUIContextData;
 
         EditorCreateInfo(std::shared_ptr<GuiAssets> guiRes, Application* ctx,
-                         SharedContextData *sharedData,
                          VulkanDevice *dev, VmaAllocator *alloc, VkFramebuffer* fbs)
-                : vulkanDevice(dev), allocator(alloc), guiResources(std::move(guiRes)),
-                  sharedUIContextData(sharedData), context(ctx), frameBuffers(fbs) {
+                : vulkanDevice(dev), allocator(alloc), guiResources(std::move(guiRes)), context(ctx), frameBuffers(fbs) {
         }
 
 
@@ -105,7 +102,6 @@ namespace VkRender {
             dst->frameBuffers = src->frameBuffers;
             dst->width = src->width;
             dst->height = src->height;
-            dst->sharedUIContextData = src->sharedUIContextData;
 
             dst->x = src->x;
             dst->y = src->y;

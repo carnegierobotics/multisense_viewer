@@ -193,17 +193,17 @@ namespace VkRender {
             out << YAML::Value << camera.render;
             auto &cameraProps = camera.camera;
             out << YAML::Key << "Type";
-            out << YAML::Value << Serialize::cameraTypeToString(cameraProps.m_type);
+            out << YAML::Value << Serialize::cameraTypeToString(cameraProps->m_type);
             out << YAML::Key << "Width";
-            out << YAML::Value << cameraProps.width();
+            out << YAML::Value << cameraProps->width();
             out << YAML::Key << "Height";
-            out << YAML::Value << cameraProps.height();
+            out << YAML::Value << cameraProps->height();
             out << YAML::Key << "ZNear";
-            out << YAML::Value << cameraProps.m_Znear;
+            out << YAML::Value << cameraProps->m_Znear;
             out << YAML::Key << "ZFar";
-            out << YAML::Value << cameraProps.m_Zfar;
+            out << YAML::Value << cameraProps->m_Zfar;
             out << YAML::Key << "FOV";
-            out << YAML::Value << cameraProps.m_Fov;
+            out << YAML::Value << cameraProps->m_Fov;
             out << YAML::EndMap;
         }
         if (entity.hasComponent<MaterialComponent>()) {
@@ -394,7 +394,7 @@ namespace VkRender {
                 auto cameraComponent = entity["CameraComponent"];
                 if (cameraComponent) {
                     auto &camera = deserializedEntity.addComponent<CameraComponent>();
-                    camera().setType(Serialize::stringToCameraType(cameraComponent["Type"].as<std::string>()));
+                    camera.camera->setType(Serialize::stringToCameraType(cameraComponent["Type"].as<std::string>()));
                 }
 
                 auto meshComponent = entity["MeshComponent"];

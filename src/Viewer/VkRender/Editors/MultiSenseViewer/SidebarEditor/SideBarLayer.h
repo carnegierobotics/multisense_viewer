@@ -19,7 +19,7 @@ namespace VkRender {
 
             ImGui::PushStyleColor(ImGuiCol_Button, Colors::CRLBlueIsh);
             if (ImGui::Button("ADD DEVICE", ImVec2(m_editor->ui()->width, 35.0f))) {
-                m_editor->ui()->shared->openAddDevicePopup = !m_editor->ui()->shared->openAddDevicePopup;
+                //m_editor->ui()->shared->openAddDevicePopup = !m_editor->ui()->shared->openAddDevicePopup;
 
                 m_context->usageMonitor()->userClickAction("ADD_DEVICE", "button", ImGui::GetCurrentWindow()->Name);
             }

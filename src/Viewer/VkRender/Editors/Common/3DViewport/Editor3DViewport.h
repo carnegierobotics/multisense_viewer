@@ -32,11 +32,12 @@ namespace VkRender {
         void onMouseMove(const MouseButtons &mouse) override;
 
         void onMouseScroll(float change) override;
-
+        void onKeyCallback(const Input &input) override;
 
 
     private:
-        Camera m_editorCamera;
+        std::shared_ptr<Camera> m_editorCamera;
+        bool m_useEditorCamera = true;
         std::shared_ptr<Scene> m_activeScene;
 
         SceneRenderer* m_sceneRenderer;

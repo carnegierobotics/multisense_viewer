@@ -35,6 +35,16 @@ namespace VkRender {
                 EditorType::SceneHierarchy,
                 EditorType::TestWindow};
     };
+    static std::vector<EditorType> getSelectableEditorTypes() {
+        return {
+                EditorType::Viewport3D,
+                EditorType::ImageEditor,
+                EditorType::GaussianViewer,
+                EditorType::Properties,
+                EditorType::SceneHierarchy,
+                EditorType::TestWindow
+        };
+    };
     // Function to convert enum to string
     static std::string editorTypeToString(EditorType type) {
         switch(type) {

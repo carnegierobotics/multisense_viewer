@@ -17,7 +17,7 @@ namespace VkRender {
         createDescriptorPool();
         m_renderToOffscreen = true;
 
-       // m_videoPlaybackSystem = std::make_shared<VideoPlaybackSystem>(m_context);
+        // m_videoPlaybackSystem = std::make_shared<VideoPlaybackSystem>(m_context);
         m_activeCamera = Camera(m_createInfo.width, m_createInfo.height);
 
     }
@@ -980,22 +980,23 @@ namespace VkRender {
 
     std::shared_ptr<MeshInstance> SceneRenderer::initializeMesh(const MeshComponent &meshComponent) {
         // Load mesh data from file or other source
-        MeshData meshData = MeshData(meshComponent.meshDataType, meshComponent.meshPath);
+        MeshData meshData = MeshData(meshComponent.m_type, meshComponent.m_meshPath);
         // TODO use staging buffer for static meshes
         // Create MeshInstance instance
 
         auto meshInstance = std::make_shared<MeshInstance>();
-        meshInstance->topology = meshComponent.meshDataType == OBJ_FILE
+        meshInstance->topology = meshComponent.m_type == OBJ_FILE
                                  ? VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST
                                  : VK_PRIMITIVE_TOPOLOGY_POINT_LIST; // Set topology based on mesh data
 
         meshInstance->vertexCount = meshData.vertices.size();
         meshInstance->indexCount = meshData.indices.size();
-        uint32_t vertexBufferSize = meshData.vertices.size() * sizeof(Vertex);
-        uint32_t indexBufferSize = meshData.indices.size() * sizeof(uint32_t);
+        VkDeviceSize vertexBufferSize = meshData.vertices.size() * sizeof(Vertex);
+        VkDeviceSize indexBufferSize = meshData.indices.size() * sizeof(uint32_t);
         if (!vertexBufferSize)
             return nullptr;
         // Create vertex buffer
+        /*
         m_context->vkDevice().createBuffer(
                 VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -1013,6 +1014,68 @@ namespace VkRender {
                     meshData.indices.data(), "SceneRenderer:InitializeMesh:Index",
                     m_context->getDebugUtilsObjectNameFunction());
         }
+
+        */
+
+        struct StagingBuffer {
+            VkBuffer buffer;
+            VkDeviceMemory memory;
+        } vertexStaging{}, indexStaging{};
+
+        // Create staging buffers
+        // Vertex m_DataPtr
+        CHECK_RESULT(m_context->vkDevice().createBuffer(
+                VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                vertexBufferSize,
+                &vertexStaging.buffer,
+                &vertexStaging.memory,
+                reinterpret_cast<const void *>(meshData.vertices.data())))
+        // Index m_DataPtr
+        if (indexBufferSize > 0) {
+            CHECK_RESULT(m_context->vkDevice().createBuffer(
+                    VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                    indexBufferSize,
+                    &indexStaging.buffer,
+                    &indexStaging.memory,
+                    reinterpret_cast<const void *>(meshData.indices.data())))
+        }
+
+        CHECK_RESULT(m_context->vkDevice().createBuffer(
+                VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                meshInstance->vertexBuffer, vertexBufferSize, nullptr, "SceneRenderer:InitializeMesh:Vertex",
+                m_context->getDebugUtilsObjectNameFunction()));
+        // Index buffer
+        if (indexBufferSize > 0) {
+            CHECK_RESULT(m_context->vkDevice().createBuffer(
+                    VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                    meshInstance->indexBuffer,
+                    indexBufferSize, nullptr, "SceneRenderer:InitializeMesh:Index",
+                    m_context->getDebugUtilsObjectNameFunction()));
+        }
+
+        // Copy from staging buffers
+        VkCommandBuffer copyCmd = m_context->vkDevice().createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+        VkBufferCopy copyRegion = {};
+        copyRegion.size = vertexBufferSize;
+        vkCmdCopyBuffer(copyCmd, vertexStaging.buffer, meshInstance->vertexBuffer->m_buffer, 1, &copyRegion);
+        if (indexBufferSize > 0) {
+            copyRegion.size = indexBufferSize;
+            vkCmdCopyBuffer(copyCmd, indexStaging.buffer, meshInstance->indexBuffer->m_buffer, 1, &copyRegion);
+        }
+        m_context->vkDevice().flushCommandBuffer(copyCmd, m_context->vkDevice().m_TransferQueue, true);
+
+        vkDestroyBuffer(m_context->vkDevice().m_LogicalDevice, vertexStaging.buffer, nullptr);
+        vkFreeMemory(m_context->vkDevice().m_LogicalDevice, vertexStaging.memory, nullptr);
+
+        if (indexBufferSize > 0) {
+            vkDestroyBuffer(m_context->vkDevice().m_LogicalDevice, indexStaging.buffer, nullptr);
+            vkFreeMemory(m_context->vkDevice().m_LogicalDevice, indexStaging.memory, nullptr);
+        }
+
         return meshInstance;
     }
 

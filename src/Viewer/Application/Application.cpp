@@ -355,10 +355,7 @@ namespace VkRender {
         if (dy != 0)
             Editor::windowResizeEditorsVertical(dy, heightScale, m_editors, m_height);
 
-        for (auto &editor: m_editors) {
-            auto &ci = editor->getCreateInfo();
-            editor->resize(ci);
-        }
+
         auto &ci = m_mainEditor->getCreateInfo();
         ci.width = m_width;
         ci.height = m_height;
@@ -369,7 +366,10 @@ namespace VkRender {
             editor.second->resize(ci);
         }
 
-
+        for (auto &editor: m_editors) {
+            auto &ci = editor->getCreateInfo();
+            editor->resize(ci);
+        }
         m_mainEditor->resize(ci);
     }
 

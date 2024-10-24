@@ -13,18 +13,19 @@
 namespace VkRender {
 
     EditorGaussianViewer::EditorGaussianViewer(EditorCreateInfo &createInfo, UUID uuid) : Editor(createInfo, uuid),
-                                                                                          m_syclGaussianGfx(m_deviceSelector.getQueue()) {
+                                                                                          m_syclGaussianGfx(
+                                                                                                  m_deviceSelector.getQueue()) {
         addUI("EditorUILayer");
         addUI("DebugWindow");
         addUI("EditorGaussianViewerLayer");
-
 
 
         RenderPassInfo renderPassInfo{};
         renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
         renderPassInfo.renderPass = m_renderPass->getRenderPass();
         m_renderPipelines = std::make_unique<GraphicsPipeline2D>(*m_context, renderPassInfo);
-        m_colorTexture = EditorUtils::createEmptyTexture(m_createInfo.width, m_createInfo.height, VK_FORMAT_B8G8R8A8_UNORM, m_context);
+        m_colorTexture = EditorUtils::createEmptyTexture(m_createInfo.width, m_createInfo.height,
+                                                         VK_FORMAT_B8G8R8A8_SRGB, m_context);
         m_renderPipelines->setTexture(&m_colorTexture->getDescriptorInfo());
 
         m_activeCamera = Camera(m_createInfo.width, m_createInfo.height);
@@ -41,7 +42,8 @@ namespace VkRender {
 
         m_activeCamera.setPerspective(static_cast<float>(m_createInfo.width) / static_cast<float>(m_createInfo.height));
         m_activeCamera = Camera(m_createInfo.width, m_createInfo.height);
-        m_colorTexture = EditorUtils::createEmptyTexture(m_createInfo.width, m_createInfo.height, VK_FORMAT_B8G8R8A8_UNORM, m_context);
+        m_colorTexture = EditorUtils::createEmptyTexture(m_createInfo.width, m_createInfo.height,
+                                                         VK_FORMAT_B8G8R8A8_SRGB, m_context);
         m_renderPipelines->setTexture(&m_colorTexture->getDescriptorInfo());
 
     }
@@ -49,15 +51,27 @@ namespace VkRender {
 
     void VkRender::EditorGaussianViewer::onUpdate() {
         auto imageUI = std::dynamic_pointer_cast<EditorGaussianViewerUI>(m_ui);
+        if (imageUI->useImageFrom3DViewport) {
 
-
+        }
 
 
     }
 
     void VkRender::EditorGaussianViewer::onRender(CommandBuffer &commandBuffer) {
         auto scene = m_context->activeScene();
-        m_syclGaussianGfx.render(scene, m_colorTexture, m_activeCamera);
+
+        auto imageUI = std::dynamic_pointer_cast<EditorGaussianViewerUI>(m_ui);
+
+        bool updateRender = false;
+        m_activeScene->getRegistry().view<GaussianComponent>().each([&](auto entity, GaussianComponent &gaussianComp) {
+            auto e = Entity(entity, m_activeScene.get());
+            if (e.getComponent<GaussianComponent>().addToRenderer)
+                updateRender = true;
+        });
+
+        if (imageUI->render3dgsImage || updateRender)
+            m_syclGaussianGfx.render(scene, m_colorTexture, m_activeCamera);
 
         m_renderPipelines->draw(commandBuffer);
 
@@ -73,6 +87,7 @@ namespace VkRender {
         if (ui()->hovered)
             m_activeCamera.setArcBallPosition((change > 0.0f) ? 0.95f : 1.05f);
     }
+
     void EditorGaussianViewer::onKeyCallback(const Input &input) {
 
         m_activeCamera.keys.up = input.keys.up;

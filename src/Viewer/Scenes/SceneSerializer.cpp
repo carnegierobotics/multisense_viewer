@@ -178,9 +178,9 @@ namespace VkRender {
             out << YAML::BeginMap;
             auto &mesh = entity.getComponent<MeshComponent>();
             out << YAML::Key << "ModelPath";
-            out << YAML::Value << mesh.meshPath.string();
+            out << YAML::Value << mesh.m_meshPath.string();
             out << YAML::Key << "MeshDataType";
-            out << YAML::Value << Serialize::MeshDataTypeToString(mesh.meshDataType);
+            out << YAML::Value << Serialize::MeshDataTypeToString(mesh.m_type);
             out << YAML::Key << "PolygonMode";
             out << YAML::Value << Serialize::PolygonModeToString(mesh.polygonMode); // Serialize PolygonMode as a string
             out << YAML::EndMap;
@@ -400,11 +400,13 @@ namespace VkRender {
                 auto meshComponent = entity["MeshComponent"];
                 if (meshComponent) {
                     std::filesystem::path path(meshComponent["ModelPath"].as<std::string>());
-                    auto &mesh = deserializedEntity.addComponent<MeshComponent>(path);
+                    MeshDataType meshDataType = Serialize::stringToMeshDataType(
+                            meshComponent["MeshDataType"].as<std::string>());
+
+                    auto &mesh = deserializedEntity.addComponent<MeshComponent>(path, meshDataType);
                     mesh.polygonMode = Serialize::StringToPolygonMode(
                             meshComponent["PolygonMode"].as<std::string>());
-                    mesh.meshDataType = Serialize::stringToMeshDataType(
-                            meshComponent["MeshDataType"].as<std::string>());
+
                 }
 
                 auto materialComponent = entity["MaterialComponent"];

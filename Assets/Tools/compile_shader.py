@@ -33,7 +33,6 @@ def main():
 
     scene_out_dir = os.path.join(project_path, "Assets/Shaders/spv/")
     out_dir = os.path.join(project_path, "cmake-build-debug/Assets/Shaders/spv/")
-    out_dir2 = os.path.join(project_path, "cmake-build-debug-sycl/Assets/Shaders/spv/")
     shader_dir = os.path.join(project_path, "Assets/Shaders")
 
     print(f"glslc path: {glslc}")
@@ -69,14 +68,13 @@ def main():
     else:
         print("No shaders needed recompiling.")
 
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir, exist_ok=True)
+
     print(f"Copying to debug build location: {scene_out_dir}*.spv | to | {out_dir}")
     for file in glob.glob(os.path.join(scene_out_dir, '**', '*.spv'), recursive=True):
         shutil.copy(file, out_dir)
 
-    if os.path.exists(out_dir2):
-        print(f"Copying to debug build location: {scene_out_dir}*.spv | to | {out_dir2}")
-        for file in glob.glob(os.path.join(scene_out_dir, '**', '*.spv'), recursive=True):
-                shutil.copy(file, out_dir2)
 
     print("Exiting...")
 

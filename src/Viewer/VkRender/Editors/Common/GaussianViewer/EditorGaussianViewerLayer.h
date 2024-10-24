@@ -19,6 +19,7 @@ namespace VkRender {
 
     struct EditorGaussianViewerUI : public EditorUI {
         bool render3dgsImage = false;
+        bool useImageFrom3DViewport = false;
 
         // Constructor that copies everything from base EditorUI
         EditorGaussianViewerUI(const EditorUI &baseUI) : EditorUI(baseUI) {}

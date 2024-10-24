@@ -74,6 +74,63 @@ namespace VkRender {
         m_queue.memcpy(m_gaussianPointsPtr, newPoints.data(), newPoints.size() * sizeof(GaussianPoint)).wait();
     }
 
+    void copyAndSortKeysAndValues(sycl::queue &m_queue, uint32_t *keysBuffer, uint32_t *valuesBuffer, size_t numRendered) {
+        // Step 1: Allocate host vectors to hold the keys and values
+        std::vector<std::pair<uint32_t, uint32_t>> hostKeyValuePairs(numRendered);
+
+        // Step 2: Create buffers that wrap the keysBuffer and valuesBuffer on the device
+        {
+            // Create buffers to wrap the raw device pointers
+            sycl::buffer<uint32_t, 1> keysBufferObj(keysBuffer, sycl::range<1>(numRendered));
+            sycl::buffer<uint32_t, 1> valuesBufferObj(valuesBuffer, sycl::range<1>(numRendered));
+            sycl::buffer<std::pair<uint32_t, uint32_t>, 1> hostBuffer(hostKeyValuePairs.data(), sycl::range<1>(numRendered));
+
+            // Submit a command group to the queue for copying data from the device to the host
+            m_queue.submit([&](sycl::handler &h) {
+                // Create accessors to the keys and values buffers on the device
+                auto deviceKeys = keysBufferObj.get_access<sycl::access_mode::read>(h);
+                auto deviceValues = valuesBufferObj.get_access<sycl::access_mode::read>(h);
+
+                // Create a host accessor for writing to the host buffer
+                auto hostAccessor = hostBuffer.get_access<sycl::access::mode::write>(h);
+
+                // Copy the device keys and values to the host as pairs
+                h.parallel_for<class CopyKeysAndValuesToHost>(sycl::range<1>(numRendered), [=](sycl::id<1> idx) {
+                    hostAccessor[idx] = {deviceKeys[idx], deviceValues[idx]};
+                });
+            }).wait();
+        }
+
+        // Step 3: Sort the key-value pairs on the host by keys
+        std::sort(hostKeyValuePairs.begin(), hostKeyValuePairs.end(), [](const auto &a, const auto &b) {
+            return a.first < b.first;
+        });
+
+        // Step 4: Create buffers for the sorted keys and values on the device and copy them back to the GPU
+        {
+            // Create buffers to wrap the raw device pointers
+            sycl::buffer<uint32_t, 1> keysBufferObj(keysBuffer, sycl::range<1>(numRendered));
+            sycl::buffer<uint32_t, 1> valuesBufferObj(valuesBuffer, sycl::range<1>(numRendered));
+            sycl::buffer<std::pair<uint32_t, uint32_t>, 1> hostBuffer(hostKeyValuePairs.data(), sycl::range<1>(numRendered));
+
+            // Submit a command group to the queue for copying data from the host to the device
+            m_queue.submit([&](sycl::handler &h) {
+                // Create accessors to write to the keys and values buffers on the device
+                auto deviceKeys = keysBufferObj.get_access<sycl::access_mode::write>(h);
+                auto deviceValues = valuesBufferObj.get_access<sycl::access_mode::write>(h);
+
+                // Create a host accessor to read the sorted pairs
+                auto hostAccessor = hostBuffer.get_access<sycl::access_mode::read>(h);
+
+                // Copy the sorted keys and values back to the device
+                h.parallel_for<class CopySortedKeysAndValuesToDevice>(sycl::range<1>(numRendered), [=](sycl::id<1> idx) {
+                    deviceKeys[idx] = hostAccessor[idx].first;
+                    deviceValues[idx] = hostAccessor[idx].second;
+                });
+            }).wait();
+        }
+    }
+
     void SyclGaussianGFX::preProcessGaussians(uint8_t *imageMemory) {
         uint32_t imageWidth = m_preProcessData.camera.width();
         uint32_t imageHeight = m_preProcessData.camera.height();
@@ -115,10 +172,20 @@ namespace VkRender {
                                                                                 m_preProcessDataPtr->preProcessSettings.tileGrid));
             }).wait();
 
+            std::vector<uint32_t> keysHost(numRendered);
+            std::vector<std::pair<uint32_t, uint32_t>> hostKeyValuePairs(numRendered);
 
-            m_sorter->performOneSweep(keysBuffer, valuesBuffer, numRendered);
+            m_queue.memcpy(keysHost.data(), keysBuffer, sizeof(uint32_t) * numRendered).wait();
+
+
+
+            //m_sorter->performOneSweep(keysBuffer, valuesBuffer, numRendered);
+            //m_sorter->verifySort(keysBuffer, numRendered);
+            //m_sorter->resetMemory();
+
+
+            copyAndSortKeysAndValues(m_queue, keysBuffer, valuesBuffer, numRendered);
             m_sorter->verifySort(keysBuffer, numRendered);
-            m_sorter->resetMemory();
 
             auto *rangesBuffer = sycl::malloc_device<glm::ivec2>(m_preProcessData.preProcessSettings.numTiles, m_queue);
             m_queue.memset(rangesBuffer, static_cast<int>(0x00),

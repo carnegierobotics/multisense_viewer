@@ -35,8 +35,9 @@ namespace VkRender::Rasterizer {
             glm::vec4 posView = m_camera.matrices.view * glm::vec4(position, 1.0f);
             glm::vec4 posClip = m_camera.matrices.perspective * posView;
             glm::vec3 posNDC = glm::vec3(posClip) / posClip.w;
-
-            if (posView.z >= -0.2f) {
+            int x = position.x, y = position.y, z = position.z;
+            //int zview = posView.z;
+            if (posView.z >= -0.32f) {
                 return;
             }
 
@@ -68,9 +69,11 @@ namespace VkRender::Rasterizer {
                 if ((rect_max.x - rect_min.x) * (rect_max.y - rect_min.y) == 0)
                     return;
 
-                //glm::vec3 color(1.0f, 0.0f, 1.0f);
-                //m_points[i].color = color;
-
+                const float SH_C0 = 0.28209479177387814f;
+                glm::vec3 result = SH_C0 * m_points[i].color;
+                result += 0.5f;
+                result = glm::max(glm::min(result, 1.0f), 0.0f);
+                m_points[i].computedColor = result;
 
                 auto conic = glm::vec3(cov2D.z * invDeterminant, -cov2D.y * invDeterminant,
                                        cov2D.x * invDeterminant);
@@ -310,7 +313,7 @@ namespace VkRender::Rasterizer {
                             }
                             // Eq. (3) from 3D Gaussian splatting paper.
                             for (int ch = 0; ch < 3; ch++) {
-                                C[ch] += point.color[ch] * alpha * T;
+                                C[ch] += point.computedColor[ch] * alpha * T;
                             }
                             T = test_T;
                         }

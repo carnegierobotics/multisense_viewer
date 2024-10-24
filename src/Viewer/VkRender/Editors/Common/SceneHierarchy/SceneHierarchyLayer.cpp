@@ -87,50 +87,7 @@ namespace VkRender {
 
 
 /** Handle the file path after selection is complete **/
-    void
-    SceneHierarchyLayer::handleSelectedFile(const LayerUtils::LoadFileInfo &loadFileInfo) {
-        if (!loadFileInfo.path.empty()) {
-            if (loadFileInfo.filetype == LayerUtils::OBJ_FILE) {
 
-                // Load into the active scene
-                auto entity = m_context->activeScene()->createEntity(loadFileInfo.path.filename().string());
-                entity.addComponent<MeshComponent>(loadFileInfo.path);
-
-            } else if (loadFileInfo.filetype == LayerUtils::PLY_3DGS) {
-                // Load into the active scene
-                auto &registry = m_context->activeScene()->getRegistry();
-                auto view = registry.view<GaussianModelComponent>();
-                for (auto &entity: view) {
-                    m_context->activeScene()->destroyEntity(
-                            Entity(entity, m_context->activeScene().get()));
-                }
-                auto entity = m_context->activeScene()->createEntity(loadFileInfo.path.filename().string());
-                entity.addComponent<GaussianModelComponent>(loadFileInfo.path);
-
-            } else if (loadFileInfo.filetype == LayerUtils::PLY_MESH) {
-                // Load into the active scene
-                auto entity = m_context->activeScene()->createEntity(loadFileInfo.path.filename().string());
-                entity.addComponent<MeshComponent>(loadFileInfo.path);
-
-            }
-            // Copy the selected file path to wherever it's needed
-            auto &opts = ApplicationConfig::getInstance().getUserSetting();
-            opts.lastOpenedImportModelFolderPath = loadFileInfo.path;
-            // Additional processing of the file can be done here
-            Log::Logger::getInstance()->info("File selected: {}", loadFileInfo.path.filename().string());
-        } else {
-            Log::Logger::getInstance()->warning("No file selected.");
-        }
-    }
-
-
-    void SceneHierarchyLayer::checkFileImportCompletion() {
-        if (loadFileFuture.valid() &&
-            loadFileFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
-            LayerUtils::LoadFileInfo loadFileInfo = loadFileFuture.get(); // Get the result from the future
-            handleSelectedFile(loadFileInfo);
-        }
-    }
 
 /** Called once per frame **/
     void SceneHierarchyLayer::onUIRender() {
@@ -175,8 +132,6 @@ namespace VkRender {
 
         // End the parent window
         ImGui::End();
-
-        checkFileImportCompletion();
     }
 
 /** Called once upon this object destruction **/

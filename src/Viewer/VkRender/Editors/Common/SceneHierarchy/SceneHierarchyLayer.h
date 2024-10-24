@@ -27,17 +27,7 @@ namespace VkRender {
         void onFinishedRender() override;
 
     private:
-        std::future<LayerUtils::LoadFileInfo> loadFileFuture;
-
-        void drawCameraPanel(Entity &entity);
-
-        void handleSelectedFile(const LayerUtils::LoadFileInfo &loadFileInfo);
-
-        void checkFileImportCompletion();
-
         void processEntities();
-
-        //Entity m_selectionContext;
 
         void drawEntityNode(Entity entity);
     };

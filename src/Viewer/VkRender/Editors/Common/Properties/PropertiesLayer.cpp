@@ -227,13 +227,20 @@ namespace VkRender {
 
         drawComponent<MeshComponent>("Mesh", entity, [this, entity](auto& component) {
             ImGui::Text("MeshFile:");
-            ImGui::Text("%s", component.meshPath.string().c_str());
+            ImGui::Text("%s", component.m_meshPath.string().c_str());
 
 
             // Load mesh from file here:
-            if (ImGui::Button("Load .obj file")) {
+            if (ImGui::Button("Load .obj mesh")) {
                 std::vector<std::string> types{".obj"};
                 EditorUtils::openImportFileDialog("Wavefront", types, LayerUtils::OBJ_FILE, &loadFileFuture);
+            }
+
+            ImGui::SameLine();
+            // Load mesh from mesh here:
+            if (ImGui::Button("Load .ply mesh")) {
+                std::vector<std::string> types{".ply"};
+                EditorUtils::openImportFileDialog("Stanford .PLY", types, LayerUtils::PLY_MESH, &loadFileFuture);
             }
 
             // Polygon Mode Control
@@ -396,36 +403,46 @@ namespace VkRender {
                 glm::vec3 color(1.0f, 0.0f, 0.0f);
                 component.addGaussian(defaultMean, defaultScale, defaultQuat, defaultOpacity, color);
             }
+            ImGui::SameLine();
+            if(ImGui::Button("Load from file")){
+                std::vector<std::string> types{".ply"};
+                EditorUtils::openImportFileDialog("Load 3DGS .ply file", types, LayerUtils::PLY_3DGS,
+                                                  &loadFileFuture);
+            }
+
 
             ImGui::Spacing();
 
             // Iterate over each Gaussian and provide controls to modify them
-            for (size_t i = 0; i < component.size(); ++i) {
-                ImGui::PushID(static_cast<int>(i)); // Ensure unique ID for ImGui widgets
-                // Collapsible header for each Gaussian
-                if (ImGui::CollapsingHeader(("Gaussian " + std::to_string(i)).c_str())) {
-                    // Mean Position Controls
-                    component.addToRenderer |= drawVec3Control("Position", component.means[i], 0.0f);
-                    component.addToRenderer |= drawVec3Control("Scale", component.scales[i], 0.0f, 0.1f);
-                    component.addToRenderer |= drawVec3Control("Color", component.colors[i], 0.0f, 0.1f);
-                    // Amplitude Control
-                    ImGui::Text("Opacity");
+            if (component.size() < 10) {
+                for (size_t i = 0; i < component.size(); ++i) {
+                    ImGui::PushID(static_cast<int>(i)); // Ensure unique ID for ImGui widgets
+                    // Collapsible header for each Gaussian
+                    if (ImGui::CollapsingHeader(("Gaussian " + std::to_string(i)).c_str())) {
+                        // Mean Position Controls
+                        component.addToRenderer |= drawVec3Control("Position", component.means[i], 0.0f);
+                        component.addToRenderer |= drawVec3Control("Scale", component.scales[i], 0.0f, 0.1f);
+                        component.addToRenderer |= drawVec3Control("Color", component.colors[i], 0.0f, 0.1f);
+                        // Amplitude Control
+                        ImGui::Text("Opacity");
 
-                    component.addToRenderer |= ImGui::DragFloat("##Opacity", &component.opacities[i], 0.1f, 0.0f, 10.0f);
+                        component.addToRenderer |= ImGui::DragFloat("##Opacity", &component.opacities[i], 0.1f, 0.0f,
+                                                                    10.0f);
 
 
-                    // Button to remove this Gaussian
-                    ImGui::Spacing();
-                    if (ImGui::Button("Remove Gaussian")) {
-                        component.means.erase(component.means.begin() + i);
-                        component.scales.erase(component.scales.begin() + i);
-                        component.opacities.erase(component.opacities.begin() + i);
-                        component.rotations.erase(component.rotations.begin() + i);
-                        --i; // Adjust index after removal
+                        // Button to remove this Gaussian
+                        ImGui::Spacing();
+                        if (ImGui::Button("Remove Gaussian")) {
+                            component.means.erase(component.means.begin() + i);
+                            component.scales.erase(component.scales.begin() + i);
+                            component.opacities.erase(component.opacities.begin() + i);
+                            component.rotations.erase(component.rotations.begin() + i);
+                            --i; // Adjust index after removal
+                        }
                     }
-                }
 
-                ImGui::PopID(); // Pop ID for this Gaussian
+                    ImGui::PopID(); // Pop ID for this Gaussian
+                }
             }
         });
     }
@@ -505,7 +522,7 @@ namespace VkRender {
                 if constexpr (std::is_same_v<T, PointCloudComponent>) {
                     if (!m_selectionContext.hasComponent<MeshComponent>()) {
                         auto& component = m_selectionContext.addComponent<MeshComponent>();
-                        component.meshDataType = MeshDataType::POINT_CLOUD;
+                        component.m_type = MeshDataType::POINT_CLOUD;
                         component.polygonMode = VK_POLYGON_MODE_POINT;
                     }
                 }
@@ -530,26 +547,23 @@ namespace VkRender {
                 // Load into the active scene
                 if (m_selectionContext.hasComponent<MeshComponent>())
                     m_selectionContext.removeComponent<MeshComponent>();
-                m_selectionContext.addComponent<MeshComponent>(loadFileInfo.path);
+                m_selectionContext.addComponent<MeshComponent>(loadFileInfo.path, MeshDataType::OBJ_FILE);
                 break;
             case LayerUtils::PLY_3DGS:
                 {
-                    /*
-                    auto &registry = m_context->activeScene()->getRegistry();
-                    auto view = registry.view<GaussianModelComponent>();
-                    for (auto &entity: view) {
-                        m_context->activeScene()->destroyEntity(
-                            Entity(entity, m_context->activeScene().get()));
-                    }
-                    auto entity = m_context->activeScene()->createEntity(loadFileInfo.path.filename().string());
-                    entity.addComponent<GaussianModelComponent>(loadFileInfo.path);
-                    */
+
+                    if (m_selectionContext.hasComponent<GaussianComponent>())
+                        m_selectionContext.removeComponent<GaussianComponent>();
+
+                    auto& comp = m_selectionContext.addComponent<GaussianComponent>(loadFileInfo.path);
+                    comp.addToRenderer = true;
                 }
                 break;
             case LayerUtils::PLY_MESH:
                 {
-                    auto entity = m_context->activeScene()->createEntity(loadFileInfo.path.filename().string());
-                    entity.addComponent<MeshComponent>(loadFileInfo.path);
+                    if (m_selectionContext.hasComponent<MeshComponent>())
+                        m_selectionContext.removeComponent<MeshComponent>();
+                    m_selectionContext.addComponent<MeshComponent>(loadFileInfo.path, MeshDataType::PLY_FILE);
                 }
                 break;
             case LayerUtils::VIDEO_TEXTURE_FILE:

@@ -9,6 +9,7 @@
 #include "MeshComponent.h"
 
 namespace VkRender {
+    /*
     class GaussianModelComponent {
     public:
 
@@ -55,7 +56,7 @@ namespace VkRender {
         GaussianPoints loadFromFile(std::filesystem::path path, int downSampleRate);
 
     };
-
+*/
 
 }
 

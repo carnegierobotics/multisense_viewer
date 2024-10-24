@@ -23,6 +23,7 @@ namespace VkRender {
     enum MeshDataType {
         OBJ_FILE,
         POINT_CLOUD,
+        PLY_FILE,
     };
     struct MeshData {
         std::vector<Vertex> vertices;
@@ -30,17 +31,23 @@ namespace VkRender {
 
         MeshData() = default;
 
-        explicit MeshData(MeshDataType dataType, const std::filesystem::path &string);
+        explicit MeshData(MeshDataType dataType, const std::filesystem::path &fp);
         explicit MeshData(MeshDataType dataType);
+
+    private:
+        std::filesystem::path m_filePath;
+        void meshFromObjFile();
+        void meshFromPointCloud();
+        void meshFromPlyFile();
     };
 
     struct MeshComponent {
         MeshComponent() = default;
 
-        explicit MeshComponent(std::filesystem::path path) : meshPath(std::move(path)) {
+        explicit MeshComponent(std::filesystem::path path, MeshDataType meshDataType) : m_meshPath(std::move(path)), m_type(meshDataType) {
         };
-        std::filesystem::path meshPath; // Path to the mesh file (e.g., OBJ, PLY)
-        MeshDataType meshDataType = MeshDataType::OBJ_FILE;
+        std::filesystem::path m_meshPath; // Path to the mesh file (e.g., OBJ, PLY)
+        MeshDataType m_type;
         VkPolygonMode polygonMode = VK_POLYGON_MODE_FILL;
     };
 

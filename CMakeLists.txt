@@ -13,6 +13,7 @@ option(ENABLE_SYCL "Compile with SYCL support. Provided that llvm-sycl clang++ i
 option(BUILD_DOC "Build documentation" ON)
 option(PROPRIETARY_GIGEVISION_MODULE "Include the proprietary GigE-Vision module" OFF)
 option(SYCL_BACKEND "Select SYCL backend (dpcpp or adaptivecpp)" "adaptivecpp")
+option(DPCPP_COMPILER_PATH "If Intel's DPCPP compiler is selected, the compiler path must be set")
 
 # Paths for proprietary module
 set(GIGEVISION_LIB_PATH "" CACHE PATH "Path to the proprietary GigE-Vision module library")
@@ -28,16 +29,15 @@ add_executable(MultiSense-Viewer)
 # SYCL Backend selection
 if (ENABLE_SYCL)
     if (SYCL_BACKEND STREQUAL "dpcpp")
-        set(CMAKE_CXX_COMPILER "/home/magnus/sycl_workspace/llvm/build/bin/clang++") ##TODO FUll path to compiler must be set as argument instead
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -fsycl-targets=nvptx64-nvidia-cuda")
+        set(CMAKE_CXX_COMPILER ${DPCPP_COMPILER_PATH}) ##TODO FUll path to compiler must be set as argument instead
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -fsycl-targets=nvptx64-nvidia-cuda -Xsycl-target-backend=nvptx64-nvidia-cuda --cuda-gpu-arch=sm_75" )
+        #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -fsycl-targets=spir64 -g -O0")
         message(STATUS "[VkRenderINFO]: SYCL DPC++ support enabled. Compiler: ${CMAKE_CXX_COMPILER} Flags: ${CMAKE_CXX_FLAGS}")
     elseif (SYCL_BACKEND STREQUAL "adaptivecpp")
         # Find the AdaptiveCpp package
         find_package(AdaptiveCpp REQUIRED)
         # Check if ACPP_TARGETS is passed via command line or environment
-        if (NOT DEFINED ACPP_TARGETS)
-            set(ACPP_TARGETS "generic" CACHE STRING "AdaptiveCpp compilation targets")
-        endif ()
+        set(ACPP_TARGETS "generic")
         # Print a message showing which targets are being used
         message(STATUS "[VkRenderINFO]: Using AdaptiveCpp with targets: ${ACPP_TARGETS} to project name ${PROJECT_NAME}")
         # Add sycl to target using AdaptiveCpp's helper
@@ -117,7 +117,6 @@ set(SOURCE_FILES
         src/Viewer/Scenes/SceneSerializer.cpp
 
         src/Viewer/VkRender/Components/MeshComponent.cpp
-        src/Viewer/VkRender/Components/GaussianModelComponent.cpp
         src/Viewer/VkRender/Components/ImageComponent.cpp
         src/Viewer/VkRender/Components/PointCloudComponent.h
 

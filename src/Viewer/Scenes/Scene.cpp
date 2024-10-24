@@ -219,11 +219,6 @@ namespace VkRender {
     template<>
     void Scene::onComponentAdded<TextComponent>(Entity entity, TextComponent &component) {
     }
-
-    template<>
-    void Scene::onComponentAdded<GaussianModelComponent>(Entity entity, GaussianModelComponent &component) {
-    }
-
     template<>
     void Scene::onComponentAdded<ImageComponent>(Entity entity, ImageComponent &component) {
     }
@@ -276,9 +271,6 @@ namespace VkRender {
     void Scene::onComponentRemoved<TextComponent>(Entity entity, TextComponent &component) {
     }
 
-    template<>
-    void Scene::onComponentRemoved<GaussianModelComponent>(Entity entity, GaussianModelComponent &component) {
-    }
 
     template<>
     void Scene::onComponentRemoved<ImageComponent>(Entity entity, ImageComponent &component) {
@@ -330,10 +322,6 @@ namespace VkRender {
 
     template<>
     void Scene::onComponentUpdated<TextComponent>(Entity entity, TextComponent &component) {
-    }
-
-    template<>
-    void Scene::onComponentUpdated<GaussianModelComponent>(Entity entity, GaussianModelComponent &component) {
     }
 
     template<>

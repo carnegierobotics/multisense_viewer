@@ -42,7 +42,7 @@ namespace VkRender {
 
         void createDescriptorPool();
 
-        void allocatePerEntityDescriptorSet(uint32_t frameIndex, Entity entity);
+        void allocateMeshDescriptorSet(uint32_t frameIndex, Entity entity);
 
         void updateGlobalUniformBuffer(uint32_t frameIndex, Entity entity);
 
@@ -73,6 +73,10 @@ namespace VkRender {
             std::vector<std::unique_ptr<Buffer>> modelBuffer;
             std::vector<VkDescriptorSet> descriptorSets;
 
+            // Camera Gizmo
+            std::vector<VkDescriptorSet> dynamicDescriptorSets;
+            std::vector<std::unique_ptr<Buffer>> uboVertexBuffer;
+
             // Material stuff
             std::vector<std::unique_ptr<Buffer>> materialBuffer;
             std::vector<VkDescriptorSet> materialDescriptorSets;
@@ -85,6 +89,7 @@ namespace VkRender {
         VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
         VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
 
+        VkDescriptorSetLayout m_dynamicVertexUBODescriptorSetLayout = VK_NULL_HANDLE;
         VkDescriptorSetLayout m_materialDescriptorSetLayout = VK_NULL_HANDLE;
         VkDescriptorSetLayout m_pointCloudDescriptorSetLayout = VK_NULL_HANDLE;
 

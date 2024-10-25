@@ -24,21 +24,25 @@ namespace VkRender {
         OBJ_FILE,
         POINT_CLOUD,
         PLY_FILE,
+        CAMERA_GIZMO,
     };
     struct MeshData {
         std::vector<Vertex> vertices;
         std::vector<uint32_t> indices;
 
+        std::vector<glm::vec4> cameraGizmoVertices;
+
         MeshData() = default;
 
-        explicit MeshData(MeshDataType dataType, const std::filesystem::path &fp);
-        explicit MeshData(MeshDataType dataType);
+        explicit MeshData(MeshDataType dataType, std::filesystem::path fp);
 
     private:
         std::filesystem::path m_filePath;
         void meshFromObjFile();
         void meshFromPointCloud();
         void meshFromPlyFile();
+
+        void meshFromCameraGizmo();
     };
 
     struct MeshComponent {
@@ -58,6 +62,7 @@ namespace VkRender {
         uint32_t indexCount = 0;
         // Additional data like vertex layout, primitive type, etc.
         VkPrimitiveTopology topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        MeshDataType m_type;
 
         // Other GPU-specific resources
     };

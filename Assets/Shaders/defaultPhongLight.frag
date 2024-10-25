@@ -51,7 +51,7 @@ vec3 calculatePhongLighting(vec3 normal, vec3 fragPos, vec3 viewDir, vec3 lightD
 void main()
 {
 
-    vec3 lightDir = normalize(vec3(-0.5, 0.0, 1.0)); // Fixed sunlight direction
+    vec3 lightDir = normalize(vec3(camera.position)); // Fixed sunlight direction
 
     vec3 norm = normalize(inNormal);
     vec3 viewDir = normalize(camera.position - inFragPos);
@@ -63,6 +63,6 @@ void main()
         float color = texColor.r * 64;
         texColor = vec4(vec3(color), 1.0);
     }
-    //outColor = vec4(phongLighting, 1.0) * texColor * info.baseColor ;
-    outColor = texColor * info.baseColor ;
+    outColor = vec4(phongLighting, 1.0) * info.baseColor ;
+    //outColor = texColor * info.baseColor ;
 }

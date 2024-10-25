@@ -60,7 +60,7 @@ namespace VkRender {
         font18 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 18.0f, false, context);
         font24 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 24.0f, false, context);
 
-        fontIcons = loadFontFromFileName("Assets/Fonts/fa-solid-900.ttf", 18.0f, true, context);
+        fontIcons = loadFontFromFileName("Assets/Fonts/fa-solid-900.ttf", 13.0f, true, context);
         fontCount = fontDescriptors.size() - 1;
 
 
@@ -125,16 +125,15 @@ namespace VkRender {
 
         if (iconFont) {
             float baseFontSize = fontSize; // 13.0f is the size of the default font. Change to the font size you use.
-            float iconFontSize = baseFontSize * 2.0f /
-                                 3.0f; // FontAwesome fonts need to have their sizes reduced by 2.0f/3.0f in order to align correctly
+            float iconFontSize = baseFontSize * 2.0f /3.0f; // FontAwesome fonts need to have their sizes reduced by 2.0f/3.0f in order to align correctly
 
             // merge in icons from Font Awesome
-            static const ImWchar icons_ranges[] = {ICON_MIN_FA, ICON_MAX_16_FA, 0};
+            static const ImWchar icons_ranges[] = {ICON_MIN_FA, ICON_MAX_FA, 0};
             ImFontConfig icons_config;
-            icons_config.MergeMode = true;
-            icons_config.PixelSnapH = true;
-            icons_config.GlyphMinAdvanceX = iconFontSize;
-            font = fontAtlas.AddFontFromFileTTF(file.string().c_str(), iconFontSize, &icons_config, icons_ranges);
+            //icons_config.MergeMode = true;
+            //icons_config.PixelSnapH = true;
+            icons_config.GlyphMinAdvanceX = 13.0f;
+            font = fontAtlas.AddFontFromFileTTF(file.string().c_str(), baseFontSize, &icons_config, icons_ranges);
         } else {
             ImFontConfig config;
             config.OversampleH = 2;

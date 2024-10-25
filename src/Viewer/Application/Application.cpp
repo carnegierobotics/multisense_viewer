@@ -267,6 +267,9 @@ namespace VkRender {
     }
 
     void Application::updateUniformBuffers() {
+
+        if (m_activeScene)
+            m_activeScene->update();
         // update imgui io:
         Log::Logger::getInstance()->frameNumber = frameID;
 
@@ -714,10 +717,11 @@ namespace VkRender {
     }
 
     std::shared_ptr<Scene> Application::newScene() {
+        setSelectedEntity(Entity{});
         if (m_activeScene) {
             m_activeScene.reset();
         }
-        m_activeScene = std::make_shared<Scene>("New Scene", this);
+        m_activeScene = std::make_shared<Scene>(this);
         for (auto& editors : m_editors) {
             editors->onSceneLoad(m_activeScene); // Also resets editor camera etc..
         }

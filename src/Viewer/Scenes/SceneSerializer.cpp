@@ -44,6 +44,10 @@ namespace VkRender::Serialize {
                 return "OBJ_FILE";
             case POINT_CLOUD:
                 return "POINT_CLOUD";
+            case PLY_FILE:
+                return "PLY_FILE";
+            case CAMERA_GIZMO:
+                return "CAMERA_GIZMO";
             default:
                 return "Unknown";
         }
@@ -54,6 +58,10 @@ namespace VkRender::Serialize {
             return OBJ_FILE;
         if (modeStr == "POINT_CLOUD")
             return POINT_CLOUD;
+        if (modeStr == "CAMERA_GIZMO")
+            return CAMERA_GIZMO;
+        if (modeStr == "PLY_FILE")
+            return PLY_FILE;
         // Default case, or handle unknown input
         return OBJ_FILE;
     }
@@ -149,7 +157,14 @@ namespace VkRender {
     static void SerializeEntity(YAML::Emitter &out, Entity entity) {
         out << YAML::BeginMap;
         out << YAML::Key << "Entity";
-        out << YAML::Value << "123123123";
+        out << YAML::Value << entity.getUUID().operator std::string();
+
+        // Serialize Parent UUID if the entity has a ParentComponent
+        if (entity.hasComponent<ParentComponent>()) {
+            auto parentEntity = entity.getParent();
+            out << YAML::Key << "Parent";
+            out << YAML::Value << parentEntity.getUUID().operator std::string();
+        }
 
         if (entity.hasComponent<TagComponent>()) {
             out << YAML::Key << "TagComponent";
@@ -170,6 +185,24 @@ namespace VkRender {
             out << YAML::Value << transform.getRotationQuaternion();
             out << YAML::Key << "Scale";
             out << YAML::Value << transform.getScale();
+            out << YAML::EndMap;
+        }
+
+        // Serialize VisibleComponent
+        if (entity.hasComponent<VisibleComponent>()) {
+            out << YAML::Key << "VisibleComponent";
+            out << YAML::BeginMap;
+            auto &visible = entity.getComponent<VisibleComponent>().visible;
+            out << YAML::Key << "Visible";
+            out << YAML::Value << visible;
+            out << YAML::EndMap;
+        }
+
+        // Serialize GroupComponent
+        if (entity.hasComponent<GroupComponent>()) {
+            out << YAML::Key << "GroupComponent";
+            out << YAML::BeginMap;
+            // Add any group-specific serialization if needed
             out << YAML::EndMap;
         }
 
@@ -326,7 +359,14 @@ namespace VkRender {
 
             out << YAML::EndMap;
         }
-
+        if (entity.hasComponent<GroupComponent>()) {
+            out << YAML::Key << "GroupComponent";
+            out << YAML::BeginMap;
+            auto &groupComponent = entity.getComponent<GroupComponent>();
+            out << YAML::Key << "ColmapPath";
+            out << YAML::Value << groupComponent.colmapPath.string();
+            out << YAML::EndMap;
+        }
 
         out << YAML::EndMap;
     }
@@ -345,8 +385,8 @@ namespace VkRender {
         out << YAML::Value << YAML::BeginSeq;
         for (auto entity: m_scene->m_registry.view<entt::entity>()) {
             Entity e(entity, m_scene.get());
-            if (!e)
-                return;
+            if (!e || e.hasComponent<TemporaryComponent>())
+                continue;
             SerializeEntity(out, e);
         }
         out << YAML::EndSeq;
@@ -375,14 +415,16 @@ namespace VkRender {
         Log::Logger::getInstance()->info("Deserializing scene {}", sceneName);
         auto entities = data["Entities"];
         if (entities) {
+            std::unordered_map<uint64_t, Entity> entityMap;
+
             for (auto entity: entities) {
-                uint64_t entityId = entity["Entity"].as<uint64_t>(); // todo uuid
-                std::string name;
+                auto entityId = UUID(entity["Entity"].as<uint64_t>()); // todo uuid
+                std::string name = "Unnamed";
                 auto tagComponent = entity["TagComponent"];
                 if (tagComponent)
                     name = tagComponent["Tag"].as<std::string>();
 
-                Entity deserializedEntity = m_scene->createEntity(name); // TOdo uuid
+                Entity deserializedEntity = m_scene->createEntityWithUUID(entityId, name); // TOdo uuid
 
                 auto transformComponent = entity["TransformComponent"];
                 if (transformComponent) {
@@ -391,10 +433,42 @@ namespace VkRender {
                     tc.setRotationQuaternion(transformComponent["Rotation"].as<glm::quat>());
                     tc.setScale(transformComponent["Scale"].as<glm::vec3>());
                 }
+
+                // Deserialize VisibleComponent
+                auto visibleComponentNode = entity["VisibleComponent"];
+                if (visibleComponentNode) {
+                    auto &visibleComponent = deserializedEntity.addComponent<VisibleComponent>();
+                    visibleComponent.visible = visibleComponentNode["Visible"].as<bool>();
+                }
+
+                // Store the entity in the map
+                entityMap[entityId] = deserializedEntity;
+
                 auto cameraComponent = entity["CameraComponent"];
                 if (cameraComponent) {
                     auto &camera = deserializedEntity.addComponent<CameraComponent>();
                     camera.camera->setType(Serialize::stringToCameraType(cameraComponent["Type"].as<std::string>()));
+
+                    // Deserialize and set the camera resolution (width and height)
+                    uint32_t width = cameraComponent["Width"].as<uint32_t>();
+                    uint32_t height = cameraComponent["Height"].as<uint32_t>();
+                    camera.camera->setCameraResolution(width, height);
+
+                    // Deserialize and set the near and far plane distances
+                    float zNear = cameraComponent["ZNear"].as<float>();
+                    float zFar = cameraComponent["ZFar"].as<float>();
+                    camera.camera->setPerspective(static_cast<float>(width) / static_cast<float>(height), zNear, zFar);
+
+                    // Deserialize and set the field of view (FOV)
+                    float fov = cameraComponent["FOV"].as<float>();
+                    camera.camera->fov() = fov;
+
+                    // Deserialize the render flag
+                    camera.render = cameraComponent["render"].as<bool>();
+
+                    // Update the projection matrix after all properties are set
+                    camera.camera->updateProjectionMatrix();
+
                 }
 
                 auto meshComponent = entity["MeshComponent"];
@@ -459,15 +533,22 @@ namespace VkRender {
                     component.colorVideoFolderSource = std::filesystem::path(
                             pointCloudComponent["ColorVideoFolderSource"].as<std::string>());
                 }
+                auto groupComponent = entity["GroupComponent"];
+                if (groupComponent) {
+                    auto &component = deserializedEntity.addComponent<GroupComponent>();
+                    auto colmapPathNode =  groupComponent["ColmapPath"];
+                    if (colmapPathNode)
+                        component.colmapPath = colmapPathNode.as<std::string>();
+                }
 
                 auto gaussianComponentNode = entity["GaussianComponent"];
                 if (gaussianComponentNode) {
-                    auto& component = deserializedEntity.addComponent<GaussianComponent>();
+                    auto &component = deserializedEntity.addComponent<GaussianComponent>();
 
                     // Deserialize means
                     auto meansNode = gaussianComponentNode["Means"];
                     if (meansNode) {
-                        for (const auto& meanNode : meansNode) {
+                        for (const auto &meanNode: meansNode) {
                             glm::vec3 mean;
                             mean.x = meanNode[0].as<float>();
                             mean.y = meanNode[1].as<float>();
@@ -478,13 +559,13 @@ namespace VkRender {
 
                     auto covariancesNode = gaussianComponentNode["Scales"];
                     if (covariancesNode) {
-                        for (const auto& covNode : covariancesNode) {
+                        for (const auto &covNode: covariancesNode) {
                             component.scales.push_back(covNode.as<glm::vec3>());
                         }
                     }
                     auto rotationsNode = gaussianComponentNode["Rotations"];
                     if (rotationsNode) {
-                        for (const auto& rotNode : rotationsNode) {
+                        for (const auto &rotNode: rotationsNode) {
                             component.rotations.push_back(rotNode.as<glm::quat>());
                         }
                     }
@@ -492,7 +573,7 @@ namespace VkRender {
                     // Deserialize amplitudes
                     auto amplitudesNode = gaussianComponentNode["Opacities"];
                     if (amplitudesNode) {
-                        for (const auto& amplitudeNode : amplitudesNode) {
+                        for (const auto &amplitudeNode: amplitudesNode) {
                             float amplitude = amplitudeNode.as<float>();
                             component.opacities.push_back(amplitude);
                         }
@@ -500,12 +581,30 @@ namespace VkRender {
                     // Deserialize amplitudes
                     auto colorsNode = gaussianComponentNode["Colors"];
                     if (colorsNode) {
-                        for (const auto& colorNode : colorsNode) {
+                        for (const auto &colorNode: colorsNode) {
                             auto color = colorNode.as<glm::vec3>();
                             component.colors.push_back(color);
                         }
                     }
 
+                }
+
+            }
+
+            for (auto entityNode: entities) {
+                uint64_t uuid = entityNode["Entity"].as<uint64_t>();
+                Entity deserializedEntity = entityMap[uuid];
+
+                // Check if the entity has a parent
+                auto parentUUIDNode = entityNode["Parent"];
+                if (parentUUIDNode) {
+                    uint64_t parentUUID = parentUUIDNode.as<uint64_t>();
+                    if (entityMap.find(parentUUID) != entityMap.end()) {
+                        Entity parentEntity = entityMap[parentUUID];
+                        deserializedEntity.setParent(parentEntity);
+                    } else {
+                        Log::Logger::getInstance()->warning("Parent entity with UUID {} not found.", parentUUID);
+                    }
                 }
 
             }

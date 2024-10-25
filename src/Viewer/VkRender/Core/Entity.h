@@ -6,7 +6,7 @@
 #define MULTISENSE_VIEWER_ENTITY_H
 
 #include <cassert>
-#include <multisense_viewer/external/entt/include/entt/entt.hpp>
+#include <entt/entt.hpp>
 
 #include "Viewer/Tools/Macros.h"
 #include "Viewer/Scenes/Scene.h"
@@ -67,6 +67,76 @@ namespace VkRender {
         const std::string& getName() { return getComponent<TagComponent>().Tag; }
         UUID getUUID() { return getComponent<IDComponent>().ID; }
 
+        // Set this entity's parent
+        void setParent(Entity parent) {
+            // Remove from previous parent's children list
+            if (hasComponent<ParentComponent>()) {
+                Entity previousParent = getParent();
+                if (previousParent) {
+                    previousParent.removeChild(*this);
+                }
+            }
+
+            addOrReplaceComponent<ParentComponent>().parent = parent;
+            parent.addChild(*this);
+        }
+
+        // Get this entity's parent
+        Entity getParent() {
+            if (hasComponent<ParentComponent>()) {
+                entt::entity parentHandle = getComponent<ParentComponent>().parent;
+                return Entity(parentHandle, m_scene);
+            }
+            return Entity(); // Null entity
+        }
+
+        // Add a child to this entity
+        void addChild(Entity child) {
+            if (!hasComponent<ChildrenComponent>()) {
+                addComponent<ChildrenComponent>();
+            }
+            getComponent<ChildrenComponent>().children.push_back((entt::entity)child);
+        }
+
+        // Remove a child from this entity
+        void removeChild(Entity child) {
+            if (hasComponent<ChildrenComponent>()) {
+                auto& children = getComponent<ChildrenComponent>().children;
+                children.erase(std::remove(children.begin(), children.end(), (entt::entity)child), children.end());
+            }
+        }
+
+        // Get this entity's children
+        std::vector<Entity> getChildren() {
+            std::vector<Entity> result;
+            if (hasComponent<ChildrenComponent>()) {
+                auto& childrenHandles = getComponent<ChildrenComponent>().children;
+                for (auto childHandle : childrenHandles) {
+                    result.emplace_back(childHandle, m_scene);
+                }
+            }
+            return result;
+        }
+
+        bool isVisible() {
+            if (!hasComponent<VisibleComponent>())
+                return true; // Default to visible if no component
+
+            bool visible = getComponent<VisibleComponent>().visible;
+            Entity parent = getParent();
+            while (parent) {
+                if (parent.hasComponent<VisibleComponent>()) {
+                    visible = visible && parent.getComponent<VisibleComponent>().visible;
+                }
+                parent = parent.getParent();
+            }
+            return visible;
+        }
+
+        // Check if this entity has children
+        bool hasChildren() {
+            return hasComponent<ChildrenComponent>() && !getComponent<ChildrenComponent>().children.empty();
+        }
 
         bool operator==(const Entity& other) const
         {

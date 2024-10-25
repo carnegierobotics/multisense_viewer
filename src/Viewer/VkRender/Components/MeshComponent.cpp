@@ -17,6 +17,7 @@
 #define GLM_ENABLE_EXPERIMENTAL
 
 #include <glm/gtx/hash.hpp>
+#include <utility>
 
 namespace std {
     template<>
@@ -30,10 +31,8 @@ namespace std {
 };
 
 namespace VkRender {
-    MeshData::MeshData(MeshDataType dataType) {
-    }
 
-    MeshData::MeshData(MeshDataType dataType, const std::filesystem::path &filePath) : m_filePath(filePath){
+    MeshData::MeshData(MeshDataType dataType, std::filesystem::path filePath) : m_filePath(std::move(filePath)){
         switch (dataType) {
 
             case OBJ_FILE:
@@ -45,6 +44,11 @@ namespace VkRender {
             case PLY_FILE:
                 meshFromPlyFile();
                 break;
+            case CAMERA_GIZMO:
+                meshFromCameraGizmo();
+                break;
+            default:
+                Log::Logger::getInstance()->warning("MeshData type is not known");
         }
     }
 
@@ -221,6 +225,49 @@ namespace VkRender {
         }
     }
 
+    void MeshData::meshFromCameraGizmo() {
+        float a = 0.5;
+        float h = 2.0;
+
+        std::vector<glm::vec4> uboVertices = {
+                // Base (CCW from top)
+                glm::vec4(-a, a, 0, 1.0), // D
+                glm::vec4(-a, -a, 0, 1.0), // A
+                glm::vec4(a, -a, 0, 1.0), // B
+
+                glm::vec4(-a, a, 0, 1.0), // D
+                glm::vec4(a, -a, 0, 1.0), // B
+                glm::vec4(a, a, 0, 1.0), // C
+
+                // Side 1
+                glm::vec4(-a, -a, 0, 1.0), // A
+                glm::vec4(0, 0, h, 1.0), // E
+                glm::vec4(a, -a, 0, 1.0f), // B
+
+                // Side 2
+                glm::vec4(a, -a, 0, 1.0), // B
+                glm::vec4(0, 0, h, 1.0), // E
+                glm::vec4(a, a, 0, 1.0), // C
+
+                // Side 3
+                glm::vec4(a, a, 0, 1.0), // C
+                glm::vec4(0, 0, h, 1.0), // E
+                glm::vec4(-a, a, 0, 1.0), // D
+
+                // Side 4
+                glm::vec4(-a, a, 0, 1.0), // D
+                glm::vec4(0, 0, h, 1.0), // E
+                glm::vec4(-a, -a, 0, 1.0), // A
+
+                // Top indicator
+                glm::vec4(-0.4, 0.6, 0, 1.0), // D
+                glm::vec4(0.4, 0.6, 0, 1.0), // E
+                glm::vec4(0, 1.0, 0, 1.0) // A
+
+        };
+        cameraGizmoVertices = uboVertices;
+    }
+
     /*
     void MeshComponent::loadModel(const std::filesystem::path &modelPath) {
 
@@ -318,43 +365,6 @@ namespace VkRender {
     void MeshComponent::loadCameraModelMesh() {
 
 
-        float a = 0.5;
-        float h = 2.0;
-        m_cameraModelVertices.positions = {
-                // Base (CCW from top)
-                glm::vec4(-a, a, 0, 1.0), // D
-                glm::vec4(-a, -a, 0, 1.0), // A
-                glm::vec4(a, -a, 0, 1.0), // B
-                glm::vec4(-a, a, 0, 1.0), // D
-                glm::vec4(a, -a, 0, 1.0), // B
-                glm::vec4(a, a, 0, 1.0), // C
-
-                // Side 1
-                glm::vec4(-a, -a, 0, 1.0), // A
-                glm::vec4(0, 0, h, 1.0), // E
-                glm::vec4(a, -a, 0, 1.0f), // B
-
-                // Side 2
-                glm::vec4(a, -a, 0, 1.0), // B
-                glm::vec4(0, 0, h, 1.0), // E
-                glm::vec4(a, a, 0, 1.0), // C
-
-                // Side 3
-                glm::vec4(a, a, 0, 1.0), // C
-                glm::vec4(0, 0, h, 1.0), // E
-                glm::vec4(-a, a, 0, 1.0), // D
-
-                // Side 4
-                glm::vec4(-a, a, 0, 1.0), // D
-                glm::vec4(0, 0, h, 1.0), // E
-                glm::vec4(-a, -a, 0, 1.0), // A
-
-                // Top indicator
-                glm::vec4(-0.4, 0.6, 0, 1.0), // D
-                glm::vec4(0.4, 0.6, 0, 1.0), // E
-                glm::vec4(0, 1.0, 0, 1.0) // A
-
-        };
 
         m_isCameraModelMesh = true;
     }

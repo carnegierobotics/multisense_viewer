@@ -17,9 +17,54 @@
 #include "Viewer/VkRender/Components/PointCloudComponent.h"
 
 namespace VkRender {
-    Scene::Scene(const std::string &name, VkRender::Application *context) {
-        m_sceneName = name;
+    Scene::Scene(VkRender::Application *context) {
         m_context = context;
+    }
+
+
+    void Scene::update() {
+        auto &selectedEntity = m_context->getSelectedEntity();
+
+        static glm::vec4 previousColor; // Store the previous color here
+
+        if (selectedEntity && selectedEntity.hasComponent<CameraComponent>()) {
+            auto cameraPtr = selectedEntity.getComponent<CameraComponent>().camera;
+            cameraPtr->setType(Camera::flycam);
+            cameraPtr->update(m_context->deltaTime());
+
+            auto &transform = selectedEntity.getComponent<TransformComponent>();
+            cameraPtr->pose.pos = transform.getPosition();
+            cameraPtr->pose.q = transform.getRotationQuaternion();
+            cameraPtr->setPerspective(static_cast<float>(cameraPtr->width()) / cameraPtr->height());
+            cameraPtr->updateViewMatrix();
+            //cameraPtr->matrices.perspective[1] = -cameraPtr->matrices.perspective[1];
+
+        }
+        if (selectedEntity && selectedEntity.hasComponent<MaterialComponent>()){
+            auto& material = selectedEntity.getComponent<MaterialComponent>();
+            // Save the previous color if not already yellow
+            if (material.baseColor != glm::vec4(1.0f, 1.0f, 0.0f, 1.0f)) {
+                previousColor = material.baseColor;
+            }
+            // Set the material color to yellow for selected entities
+            material.baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);
+        }
+
+        auto view = m_registry.view<MaterialComponent>();
+        for (auto e : view) {
+            // Wrap the registry entity in an Entity object for handling
+            Entity entity{e, this};
+
+            if (selectedEntity && selectedEntity != entity && entity.hasComponent<MaterialComponent>()) {
+                auto& material = entity.getComponent<MaterialComponent>();
+                // Restore the previous color if the entity is not selected
+                if (material.baseColor == glm::vec4(1.0f, 1.0f, 0.0f, 1.0f)) {
+                    material.baseColor = previousColor;
+                }
+            }
+        }
+
+
     }
 
     void Scene::deleteAllEntities() {
@@ -63,9 +108,35 @@ namespace VkRender {
             m_registry.destroy(entity);
         } else {
             Log::Logger::getInstance()->warning(
-                "Attempted to delete an invalid or already deleted entity with UUID: {}",
-                entity.getUUID().operator std::string());
+                    "Attempted to delete an invalid or already deleted entity with UUID: {}",
+                    entity.getUUID().operator std::string());
         }
+    }
+
+    void Scene::destroyEntityRecursively(Entity entity) {
+        // Delete children first
+        if (entity.hasChildren()) {
+            for (auto &child: entity.getChildren()) {
+                destroyEntityRecursively(child);
+            }
+        }
+        // Remove from parent
+        if (entity.hasComponent<ParentComponent>()) {
+            Entity parent = entity.getParent();
+            parent.removeChild(entity);
+        }
+        // Destroy the entity
+        m_context->activeScene()->destroyEntity(entity);
+    }
+
+    bool Scene::isDescendantOf(Entity entity, Entity potentialAncestor) {
+        Entity currentParent = entity.getParent();
+        while (currentParent) {
+            if (currentParent == potentialAncestor)
+                return true;
+            currentParent = currentParent.getParent();
+        }
+        return false;
     }
 
     void Scene::notifyComponentRemoval(Entity entity) {
@@ -213,17 +284,35 @@ namespace VkRender {
     }
 
     template<>
-    void Scene::onComponentAdded<Rigidbody2DComponent>(Entity entity, Rigidbody2DComponent &component) {
+    void Scene::onComponentAdded<TextComponent>(Entity entity, TextComponent &component) {
     }
 
     template<>
-    void Scene::onComponentAdded<TextComponent>(Entity entity, TextComponent &component) {
-    }
-    template<>
     void Scene::onComponentAdded<ImageComponent>(Entity entity, ImageComponent &component) {
     }
+
     template<>
     void Scene::onComponentAdded<GaussianComponent>(Entity entity, GaussianComponent &component) {
+    }
+
+    template<>
+    void Scene::onComponentAdded<ParentComponent>(Entity entity, ParentComponent &component) {
+    }
+
+    template<>
+    void Scene::onComponentAdded<ChildrenComponent>(Entity entity, ChildrenComponent &component) {
+    }
+
+    template<>
+    void Scene::onComponentAdded<GroupComponent>(Entity entity, GroupComponent &component) {
+    }
+
+    template<>
+    void Scene::onComponentAdded<VisibleComponent>(Entity entity, VisibleComponent &component) {
+    }
+
+    template<>
+    void Scene::onComponentAdded<TemporaryComponent>(Entity entity, TemporaryComponent &component) {
     }
 
     /** COMPONENT REMOVE **/
@@ -264,19 +353,35 @@ namespace VkRender {
     }
 
     template<>
-    void Scene::onComponentRemoved<Rigidbody2DComponent>(Entity entity, Rigidbody2DComponent &component) {
-    }
-
-    template<>
     void Scene::onComponentRemoved<TextComponent>(Entity entity, TextComponent &component) {
     }
-
 
     template<>
     void Scene::onComponentRemoved<ImageComponent>(Entity entity, ImageComponent &component) {
     }
+
     template<>
     void Scene::onComponentRemoved<GaussianComponent>(Entity entity, GaussianComponent &component) {
+    }
+
+    template<>
+    void Scene::onComponentRemoved<ParentComponent>(Entity entity, ParentComponent &component) {
+    }
+
+    template<>
+    void Scene::onComponentRemoved<ChildrenComponent>(Entity entity, ChildrenComponent &component) {
+    }
+
+    template<>
+    void Scene::onComponentRemoved<GroupComponent>(Entity entity, GroupComponent &component) {
+    }
+
+    template<>
+    void Scene::onComponentRemoved<VisibleComponent>(Entity entity, VisibleComponent &component) {
+    }
+
+    template<>
+    void Scene::onComponentRemoved<TemporaryComponent>(Entity entity, TemporaryComponent &component) {
     }
 
 
@@ -317,20 +422,36 @@ namespace VkRender {
     }
 
     template<>
-    void Scene::onComponentUpdated<Rigidbody2DComponent>(Entity entity, Rigidbody2DComponent &component) {
-    }
-
-    template<>
     void Scene::onComponentUpdated<TextComponent>(Entity entity, TextComponent &component) {
     }
 
     template<>
     void Scene::onComponentUpdated<ImageComponent>(Entity entity, ImageComponent &component) {
     }
+
     template<>
     void Scene::onComponentUpdated<GaussianComponent>(Entity entity, GaussianComponent &component) {
     }
 
+    template<>
+    void Scene::onComponentUpdated<ParentComponent>(Entity entity, ParentComponent &component) {
+    }
+
+    template<>
+    void Scene::onComponentUpdated<ChildrenComponent>(Entity entity, ChildrenComponent &component) {
+    }
+
+    template<>
+    void Scene::onComponentUpdated<GroupComponent>(Entity entity, GroupComponent &component) {
+    }
+
+    template<>
+    void Scene::onComponentUpdated<VisibleComponent>(Entity entity, VisibleComponent &component) {
+    }
+
+    template<>
+    void Scene::onComponentUpdated<TemporaryComponent>(Entity entity, TemporaryComponent &component) {
+    }
 
     DISABLE_WARNING_POP
 }

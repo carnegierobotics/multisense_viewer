@@ -18,7 +18,7 @@ namespace VkRender {
         Blend
     };
     struct MaterialComponent {
-        glm::vec4 baseColor = glm::vec4(1.0f);    // Base color (could be an albedo color)
+        glm::vec4 baseColor = glm::vec4(0.8f, 0.8f, 0.8f, 1.0f);    // Base color (could be an albedo color)
         float metallic = 1.0f;                    // Metallic factor
         float roughness = 1.0f;                   // Roughness factor
         // Emissive properties
@@ -27,7 +27,7 @@ namespace VkRender {
         bool reloadShader = false;
 
         std::filesystem::path vertexShaderName = "defaultBasic.vert";
-        std::filesystem::path fragmentShaderName = "defaultBasic.frag";
+        std::filesystem::path fragmentShaderName = "defaultPhongLight.frag";
         std::filesystem::path albedoTexturePath = "default.png";
 
         bool usesVideoSource = false;

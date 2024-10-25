@@ -37,7 +37,8 @@ namespace VkRender {
 
     private:
         std::shared_ptr<Camera> m_editorCamera;
-        bool m_useEditorCamera = true;
+        CameraComponent* m_lastActiveCamera = nullptr;
+
         std::shared_ptr<Scene> m_activeScene;
 
         SceneRenderer* m_sceneRenderer;

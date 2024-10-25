@@ -12,6 +12,7 @@
 #define GLM_ENABLE_EXPERIMENTAL
 
 #include <glm/gtx/quaternion.hpp>
+#include <entt/entt.hpp>
 #include "Viewer/VkRender/Core/Camera.h"
 #include "Viewer/VkRender/Core/UUID.h"
 #include "MeshComponent.h"
@@ -22,7 +23,9 @@ namespace VkRender {
 
     struct IDComponent {
         UUID ID{};
+
         IDComponent() = default;
+
         explicit IDComponent(const UUID &uuid) : ID(uuid) {
         }
 
@@ -31,101 +34,100 @@ namespace VkRender {
     struct TagComponent {
         std::string Tag;
 
-        std::string& getTag() {return Tag;}
-        void setTag(const std::string &tag) {Tag = tag;}
+        std::string &getTag() { return Tag; }
+
+        void setTag(const std::string &tag) { Tag = tag; }
 
     };
 
-struct TransformComponent {
-    // Flip the up axis option
-    bool m_flipUpAxis = false;
+    struct TransformComponent {
+        // Flip the up axis option
+        bool m_flipUpAxis = false;
 
-    // Transformation components
-    glm::vec3 translation = {0.0f, 0.0f, 0.0f};
-    glm::vec3 rotationEuler = {0.0f, 0.0f, 0.0f}; // Euler angles in degrees
-    glm::quat rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f); // Identity quaternion
-    glm::vec3 scale = {1.0f, 1.0f, 1.0f};
+        // Transformation components
+        glm::vec3 translation = {0.0f, 0.0f, 0.0f};
+        glm::vec3 rotationEuler = {0.0f, 0.0f, 0.0f}; // Euler angles in degrees
+        glm::quat rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f); // Identity quaternion
+        glm::vec3 scale = {1.0f, 1.0f, 1.0f};
 
-    // Constructors
-    TransformComponent() = default;
+        // Constructors
+        TransformComponent() = default;
 
-    // Get the transformation matrix
-    [[nodiscard]] glm::mat4 getTransform() const {
-        glm::mat4 rotMat = glm::toMat4(rotation);
+        // Get the transformation matrix
+        [[nodiscard]] glm::mat4 getTransform() const {
+            glm::mat4 rotMat = glm::toMat4(rotation);
 
-        if (m_flipUpAxis) {
-            glm::mat4 flipUpRotationMatrix = glm::rotate(
-                glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-            rotMat = flipUpRotationMatrix * rotMat;
+            if (m_flipUpAxis) {
+                glm::mat4 flipUpRotationMatrix = glm::rotate(
+                        glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+                rotMat = flipUpRotationMatrix * rotMat;
+            }
+
+            return glm::translate(glm::mat4(1.0f), translation) * rotMat *
+                   glm::scale(glm::mat4(1.0f), scale);
         }
 
-        return glm::translate(glm::mat4(1.0f), translation) * rotMat *
-               glm::scale(glm::mat4(1.0f), scale);
-    }
+        // Set rotation using Euler angles (degrees)
+        void setRotationEuler(const glm::vec3 &eulerAnglesDegrees) {
+            rotationEuler = eulerAnglesDegrees;
+            glm::vec3 radians = glm::radians(rotationEuler);
+            rotation = glm::quat(radians);
+        }
 
-    // Set rotation using Euler angles (degrees)
-    void setRotationEuler(const glm::vec3 &eulerAnglesDegrees) {
-        rotationEuler = eulerAnglesDegrees;
-        glm::vec3 radians = glm::radians(rotationEuler);
-        rotation = glm::quat(radians);
-    }
+        // Get rotation as Euler angles (degrees)
+        glm::vec3 &getRotationEuler() {
+            return rotationEuler;
+        }
 
-    // Get rotation as Euler angles (degrees)
-    glm::vec3& getRotationEuler() {
-        return rotationEuler;
-    }
-    void updateFromEulerRotation() {
-        setRotationEuler(rotationEuler);
-    }
+        void updateFromEulerRotation() {
+            setRotationEuler(rotationEuler);
+        }
 
-    // Set rotation using quaternion
-    void setRotationQuaternion(const glm::quat &q) {
-        rotation = q;
-        rotationEuler = glm::degrees(glm::eulerAngles(rotation));
-    }
+        // Set rotation using quaternion
+        void setRotationQuaternion(const glm::quat &q) {
+            rotation = q;
+            rotationEuler = glm::degrees(glm::eulerAngles(rotation));
+        }
 
-    // Get rotation as quaternion
-    glm::quat& getRotationQuaternion() {
-        return rotation;
-    }
+        // Get rotation as quaternion
+        glm::quat &getRotationQuaternion() {
+            return rotation;
+        }
 
-    // Position setters and getters
-    void setPosition(const glm::vec3 &v) {
-        translation = v;
-    }
+        // Position setters and getters
+        void setPosition(const glm::vec3 &v) {
+            translation = v;
+        }
 
-    glm::vec3 &getPosition() {
-        return translation;
-    }
+        glm::vec3 &getPosition() {
+            return translation;
+        }
 
-    // Scale setters and getters
-    void setScale(const glm::vec3 &s) {
-        scale = s;
-    }
+        // Scale setters and getters
+        void setScale(const glm::vec3 &s) {
+            scale = s;
+        }
 
-    glm::vec3 &getScale() {
-        return scale;
-    }
+        glm::vec3 &getScale() {
+            return scale;
+        }
 
-    // Flip up axis option setters and getters
-    void setFlipUpOption(const bool flipUp) {
-        m_flipUpAxis = flipUp;
-    }
+        // Flip up axis option setters and getters
+        void setFlipUpOption(const bool flipUp) {
+            m_flipUpAxis = flipUp;
+        }
 
-    bool getFlipUpOption() const {
-        return m_flipUpAxis;
-    }
-};
-
-
-
+        bool getFlipUpOption() const {
+            return m_flipUpAxis;
+        }
+    };
 
     struct CameraComponent {
         // we use a shared pointer as storage since most often we need to share this data with the rendering loop.
         std::shared_ptr<Camera> camera;
-        bool render = true;
+        bool render = false;
 
-        CameraComponent(){
+        CameraComponent() {
             camera = std::make_shared<Camera>();
         }
 
@@ -140,22 +142,26 @@ struct TransformComponent {
     };
 
 
-    struct Rigidbody2DComponent {
-        enum class BodyType {
-            Static = 0, Dynamic, Kinematic
-        };
-
-        BodyType Type = BodyType::Static;
-        bool FixedRotation = false;
-
-        // Storage for runtime
-        void *RuntimeBody = nullptr;
-
-        Rigidbody2DComponent() = default;
-
-        Rigidbody2DComponent(const Rigidbody2DComponent &) = default;
+    struct ParentComponent {
+        entt::entity parent = entt::null;
     };
 
+    /** @brief Temporary components are not saved to scene file */
+    struct TemporaryComponent {
+        entt::entity entity;
+    };
+
+    struct ChildrenComponent {
+        std::vector<entt::entity> children{};
+    };
+    struct VisibleComponent {
+        bool visible = true;
+    };
+    struct GroupComponent {
+        std::string placeHolder;
+
+        std::filesystem::path colmapPath;
+    };
 
     struct TextComponent {
         std::string TextString;
@@ -163,16 +169,6 @@ struct TransformComponent {
         float Kerning = 0.0f;
         float LineSpacing = 0.0f;
     };
-
-    template<typename... Component>
-    struct ComponentGroup {
-    };
-
-
-    using AllComponents =
-    ComponentGroup<TransformComponent,
-        CameraComponent, ScriptComponent,
-        Rigidbody2DComponent, TextComponent>;
 
     DISABLE_WARNING_POP
 }

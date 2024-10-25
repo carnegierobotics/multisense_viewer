@@ -34,7 +34,6 @@ namespace VkRender {
 
         m_renderPipelines = std::make_unique<GraphicsPipeline2D>(*m_context, renderPassInfo);
         m_renderPipelines->setTexture(&m_colorTexture->getDescriptorInfo());
-        m_sceneRenderer->setActiveCamera(m_editorCamera);
 
     }
 
@@ -53,6 +52,7 @@ namespace VkRender {
     void Editor3DViewport::onSceneLoad(std::shared_ptr<Scene> scene) {
         m_editorCamera = std::make_shared<Camera>(m_createInfo.width, m_createInfo.height);
         m_activeScene = m_context->activeScene();
+        m_sceneRenderer->setActiveCamera(m_editorCamera);
 
     }
 
@@ -60,6 +60,21 @@ namespace VkRender {
         m_activeScene = m_context->activeScene();
         if (!m_activeScene)
             return;
+        m_sceneRenderer->setActiveCamera(m_editorCamera);
+
+        auto& e = m_context->getSelectedEntity();
+        if (e && e.hasComponent<CameraComponent>()) {
+            auto& camera = e.getComponent<CameraComponent>();
+            if (camera.renderFromViewpoint()) {
+                // If the selected entity has a camera with renderFromViewpoint, use it
+                m_sceneRenderer->setActiveCamera(camera.camera);
+                m_lastActiveCamera = &camera; // Update the last active camera
+            }
+        } else if (m_lastActiveCamera && m_lastActiveCamera->renderFromViewpoint()) {
+            // Use the last active camera if it still has renderFromViewpoint enabled
+            m_sceneRenderer->setActiveCamera(m_lastActiveCamera->camera);
+        }
+
 
         m_sceneRenderer->update();
     }

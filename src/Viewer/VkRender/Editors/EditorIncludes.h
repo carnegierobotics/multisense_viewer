@@ -121,7 +121,7 @@ namespace VkRender {
 
     /** @brief Layout variables for UI Layer and is shared across layers */
     struct EditorUILayoutInfo{
-        float uiHeight = 50.0f;
+        float uiHeight = 25.0f;
         float uiWidth = 50.0f;
         float borderSize = 3.0f;
         float uiYOffset = uiHeight + borderSize;

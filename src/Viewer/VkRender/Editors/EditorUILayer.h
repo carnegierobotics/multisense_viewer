@@ -132,36 +132,27 @@ namespace VkRender {
             }
 
             {
-                ImVec2 window_size = ImVec2(m_editor->ui()->width, m_editor->ui()->height); // Size (width, height)
+                ImVec2 window_pos = ImVec2(0.0f, 0.0f); // Position (x, y)
+                ImVec2 window_size = ImVec2(m_editor->ui()->layoutConstants.uiWidth,  m_editor->ui()->layoutConstants.uiHeight); // Size (width, height)
+
                 // Set window flags to remove decorations
                 ImGuiWindowFlags window_flags =
-                        ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove |
-                        ImGuiWindowFlags_NoBringToFrontOnFocus;
-                ImGui::SetNextWindowPos(ImVec2(borderSize, borderSize), ImGuiCond_Always);
-                ImGui::SetNextWindowSize(
-                        ImVec2(m_editor->ui()->layoutConstants.uiWidth, m_editor->ui()->layoutConstants.uiHeight),
-                        ImGuiCond_Always);
-                // Create the parent window
-                ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 2.0f);
-                ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2.0f, 2.0f));
-                auto bgColor = Colors::CRLDarkGray425;
-                bgColor.w = 0.15;
-                ImGui::PushStyleColor(ImGuiCol_WindowBg, bgColor);
+                        ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBackground| ImGuiWindowFlags_NoBringToFrontOnFocus;
+
+                // Set next window position and size
+                ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always);
+                ImGui::SetNextWindowSize(window_size, ImGuiCond_Always);
+
 
                 ImGui::Begin("EditorSelectorWindow", nullptr, window_flags);
 
                 ImGui::PushFont(m_editor->guiResources().fontIcons);
-                ImVec2 txtSize = ImGui::CalcTextSize(ICON_FA_WINDOW_RESTORE);
-                txtSize.x += 10.0f;
-                if (ImGui::Button(ICON_FA_WINDOW_RESTORE, ImVec2(txtSize))) {
+                if (ImGui::Button(ICON_FA_WINDOW_RESTORE)) {
                     ImGui::OpenPopup("EditorSelectionPopup");
                 }
                 ImGui::PopFont();
                 togglePopup();
 
-                ImGui::PopStyleVar(3);
-                ImGui::PopStyleColor();
                 ImGui::End();
             }
 

@@ -100,6 +100,11 @@ namespace VkRender {
         uint32_t width() const { return m_width; }
         uint32_t height() const { return m_height; }
 
+        void setCameraResolution(uint32_t width, uint32_t height) {
+            m_width = width;
+            m_height = height;
+        }
+
         void updateViewMatrix() {
             if (m_type == CameraType::flycam) {
                 matrices.view = glm::inverse(getFlyCameraTransMat());

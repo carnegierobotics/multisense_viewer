@@ -18,76 +18,55 @@ namespace VkRender {
     class Entity;
 
     class Scene {
-        using DestroyCallback = std::function<void(entt::entity)>;
 
     public:
-        Scene(const std::string &name, Application *context);
+        explicit Scene(Application *context);
 
         void deleteAllEntities();
 
         ~Scene() {
             deleteAllEntities();
         }
-
-        Entity createEntity(const std::string &name);
-
-        Entity createEntityWithUUID(UUID uuid, const std::string &name);
-
-        void destroyEntity(Entity entity);
-
-        void notifyComponentRemoval(Entity entity);
+        void update();
 
         entt::registry &getRegistry() { return m_registry; };
+        const entt::registry &getRegistry() const {return m_registry;}
 
-        const entt::registry &getRegistry() const {
-            return m_registry;
-        }
+        Entity createEntity(const std::string &name);
+        Entity createEntityWithUUID(UUID uuid, const std::string &name);
+        void destroyEntity(Entity entity);
+        void notifyComponentRemoval(Entity entity);
+
+        void destroyEntityRecursively(Entity entity);
+        bool isDescendantOf(Entity entity, Entity potentialAncestor);
 
         template<class T>
         void onComponentUpdated(Entity entity, T &component);
-    protected:
-        entt::registry m_registry;
-        std::unordered_map<void *, std::deque<DestroyCallback>> m_destroyCallbacks;
-
-        friend class Entity;
-        friend class SceneSerializer;
-
         template<typename T>
         void onComponentAdded(Entity entity, T &component);
-
         template<class T>
         void onComponentRemoved(Entity entity, T &component);
 
-
     private:
-        void onEntityDestroyed(entt::registry &registry, entt::entity entity) {
-            for (auto &[owner, callbacks]: m_destroyCallbacks) {
-                for (auto &callback: callbacks) {
-                    callback(entity);
-                }
-            }
-        }
+        entt::registry m_registry;
+        friend class Entity;
+        friend class SceneSerializer;
+        Application *m_context;
 
-        void notifyEditorsComponentAdded(Entity entity, MeshComponent &component);
-        void notifyEditorsComponentUpdated(Entity entity, MeshComponent &component);
-        void notifyEditorsComponentRemoved(Entity entity, MeshComponent &component);
         void notifyEditorsComponentAdded(Entity entity, MaterialComponent &component);
-
         void notifyEditorsComponentAdded(Entity entity, PointCloudComponent &component);
-
+        void notifyEditorsComponentAdded(Entity entity, MeshComponent &component);
         void notifyEditorsComponentUpdated(Entity entity, PointCloudComponent &component);
-
-        void notifyEditorsComponentRemoved(Entity entity, PointCloudComponent &component);
-
         void notifyEditorsComponentUpdated(Entity entity, MaterialComponent &component);
+        void notifyEditorsComponentUpdated(Entity entity, MeshComponent &component);
+        void notifyEditorsComponentRemoved(Entity entity, PointCloudComponent &component);
         void notifyEditorsComponentRemoved(Entity entity, MaterialComponent &component);
+        void notifyEditorsComponentRemoved(Entity entity, MeshComponent &component);
 
         template<class T>
         void notifyEditorsComponentAdded(Entity entity, T &component);
 
-        std::string m_sceneName = "Unnamed Scene";
-        std::filesystem::path filePath;
-        Application *m_context;
+
 
     };
 

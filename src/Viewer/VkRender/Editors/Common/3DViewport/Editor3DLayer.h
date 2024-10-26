@@ -59,12 +59,6 @@ namespace VkRender {
             auto imageUI = std::dynamic_pointer_cast<Editor3DViewportUI>(m_editor->ui());
 
 
-            ImGui::Checkbox("Stop Collecting RenderCommands", &imageUI->stopCollectingRenderCommands); ImGui::SameLine();
-
-            ImGui::Checkbox("Video control panel", &imageUI->showVideoControlPanel); ImGui::SameLine();
-            if (imageUI->showVideoControlPanel) {
-                imageUI->resetPlayback = ImGui::Button("Reset"); ImGui::SameLine();
-            }
             ImGui::End();
 
         }

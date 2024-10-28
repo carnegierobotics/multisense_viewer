@@ -142,7 +142,6 @@ namespace VkRender {
         Log::Logger::getInstance()->traceWithFrequency("3dgsrendering", 60, "3DGS Rendering, Gaussians: {}",
                                                        numRendered);
         if (numRendered > 0) {
-            uint32_t sortBufferSize = (1 << 25);
 
             auto *keysBuffer = sycl::malloc_device<uint32_t>(numRendered, m_queue);
             auto *valuesBuffer = sycl::malloc_device<uint32_t>(numRendered, m_queue);

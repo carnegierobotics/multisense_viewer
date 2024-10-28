@@ -40,13 +40,23 @@ namespace VkRender {
             }
         }
 
-        void render(std::shared_ptr<Scene> &scene, std::shared_ptr<VulkanTexture2D> &outputTexture, Camera &camera);
+        void render(std::shared_ptr<Scene> &scene, std::shared_ptr<VulkanTexture2D> &outputTexture);
 
         void updateGaussianPoints(const std::vector<GaussianPoint> &newPoints);
 
         void preProcessGaussians(uint8_t *imageMemory);
 
+        void setActiveCamera(const std::shared_ptr<Camera>& cameraPtr){
+            m_activeCamera = cameraPtr;
+        }
+        std::shared_ptr<Camera> getActiveCamera() const {
+            return m_activeCamera.lock();
+        }
+
     private:
+
+        std::weak_ptr<Camera> m_activeCamera;
+
         sycl::queue &m_queue;
         PreProcessData m_preProcessData;
 

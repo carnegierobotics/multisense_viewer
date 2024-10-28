@@ -57,6 +57,8 @@ namespace VkRender {
     }
 
     void Editor3DViewport::onUpdate() {
+        auto imageUI = std::dynamic_pointer_cast<Editor3DViewportUI>(m_ui);
+
         m_activeScene = m_context->activeScene();
         if (!m_activeScene)
             return;
@@ -65,7 +67,7 @@ namespace VkRender {
         auto& e = m_context->getSelectedEntity();
         if (e && e.hasComponent<CameraComponent>()) {
             auto& camera = e.getComponent<CameraComponent>();
-            if (camera.renderFromViewpoint()) {
+            if (camera.renderFromViewpoint() && imageUI->renderFromViewpoint) {
                 // If the selected entity has a camera with renderFromViewpoint, use it
                 m_sceneRenderer->setActiveCamera(camera.camera);
                 m_lastActiveCamera = &camera; // Update the last active camera

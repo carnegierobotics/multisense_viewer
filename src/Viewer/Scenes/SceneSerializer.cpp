@@ -412,7 +412,7 @@ namespace VkRender {
         if (!data["Scene"])
             return false;
         std::string sceneName = data["Scene"].as<std::string>();
-        Log::Logger::getInstance()->info("Deserializing scene {}", sceneName);
+        Log::Logger::getInstance()->info("Deserializing scene: {} from: {}", sceneName, filePath.string());
         auto entities = data["Entities"];
         if (entities) {
             std::unordered_map<uint64_t, Entity> entityMap;

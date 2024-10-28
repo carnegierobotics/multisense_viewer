@@ -39,8 +39,9 @@ namespace VkRender {
         void onKeyCallback(const Input& input) override;
 
     private:
-        Camera m_activeCamera;
+        std::shared_ptr<Camera> m_editorCamera;
         std::shared_ptr<Scene> m_activeScene;
+        CameraComponent* m_lastActiveCamera = nullptr;
 
         SyclDeviceSelector m_deviceSelector = SyclDeviceSelector(SyclDeviceSelector::DeviceType::GPU);
         SyclGaussianGFX m_syclGaussianGfx;

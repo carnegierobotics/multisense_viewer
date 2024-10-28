@@ -10,8 +10,9 @@
 #include "Viewer/VkRender/RenderResources/3DGS/Rasterizer.h"
 
 namespace VkRender {
-    void SyclGaussianGFX::render(std::shared_ptr<Scene> &scene, std::shared_ptr<VulkanTexture2D> &outputTexture,
-                                 Camera &camera) {
+    void SyclGaussianGFX::render(std::shared_ptr<Scene> &scene, std::shared_ptr<VulkanTexture2D> &outputTexture) {
+
+
         auto *imageMemory = static_cast<uint8_t *>(malloc(outputTexture->getSize()));
         auto &registry = scene->getRegistry();
         // Find all entities with GaussianComponent
@@ -40,14 +41,17 @@ namespace VkRender {
             free(imageMemory);
             return;
         }
+
+        auto activeCameraPtr = m_activeCamera.lock(); // Lock to get shared_ptr
+
         uint32_t BLOCK_X = 16, BLOCK_Y = 16;
-        glm::vec3 tileGrid((camera.width() + BLOCK_X - 1) / BLOCK_X, (camera.height() + BLOCK_Y - 1) / BLOCK_Y, 1);
+        glm::vec3 tileGrid((activeCameraPtr->width() + BLOCK_X - 1) / BLOCK_X, (activeCameraPtr->height() + BLOCK_Y - 1) / BLOCK_Y, 1);
         uint32_t numTiles = tileGrid.x * tileGrid.y;
 
-        auto params = getHtanfovxyFocal(camera.m_Fov, camera.height(), camera.width());
+        auto params = getHtanfovxyFocal(activeCameraPtr->m_Fov, activeCameraPtr->height(), activeCameraPtr->width());
 
-        m_preProcessData.camera = camera;
-        m_preProcessData.camera.matrices.perspective[1] = -m_preProcessData.camera.matrices.perspective[1];
+        m_preProcessData.camera = *activeCameraPtr;
+        //m_preProcessData.camera.matrices.perspective[1] = -m_preProcessData.camera.matrices.perspective[1];
         m_preProcessData.preProcessSettings.tileGrid = tileGrid;
         m_preProcessData.preProcessSettings.numTiles = numTiles;
         m_preProcessData.preProcessSettings.numPoints = m_numGaussians;

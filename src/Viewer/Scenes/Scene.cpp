@@ -25,8 +25,6 @@ namespace VkRender {
     void Scene::update() {
         auto &selectedEntity = m_context->getSelectedEntity();
 
-        static glm::vec4 previousColor; // Store the previous color here
-
         if (selectedEntity && selectedEntity.hasComponent<CameraComponent>()) {
             auto cameraPtr = selectedEntity.getComponent<CameraComponent>().camera;
             cameraPtr->setType(Camera::flycam);
@@ -40,29 +38,7 @@ namespace VkRender {
             //cameraPtr->matrices.perspective[1] = -cameraPtr->matrices.perspective[1];
 
         }
-        if (selectedEntity && selectedEntity.hasComponent<MaterialComponent>()){
-            auto& material = selectedEntity.getComponent<MaterialComponent>();
-            // Save the previous color if not already yellow
-            if (material.baseColor != glm::vec4(1.0f, 1.0f, 0.0f, 1.0f)) {
-                previousColor = material.baseColor;
-            }
-            // Set the material color to yellow for selected entities
-            material.baseColor = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);
-        }
 
-        auto view = m_registry.view<MaterialComponent>();
-        for (auto e : view) {
-            // Wrap the registry entity in an Entity object for handling
-            Entity entity{e, this};
-
-            if (selectedEntity && selectedEntity != entity && entity.hasComponent<MaterialComponent>()) {
-                auto& material = entity.getComponent<MaterialComponent>();
-                // Restore the previous color if the entity is not selected
-                if (material.baseColor == glm::vec4(1.0f, 1.0f, 0.0f, 1.0f)) {
-                    material.baseColor = previousColor;
-                }
-            }
-        }
 
 
     }

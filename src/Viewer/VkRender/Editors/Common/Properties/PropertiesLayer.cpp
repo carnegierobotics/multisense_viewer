@@ -218,6 +218,7 @@ namespace VkRender {
             glm::quat q(1.0f, 0.0f, 0.0f, 0.0f);
             transformComponent.setPosition(position);
             transformComponent.setRotationQuaternion(q_cw * glm::quat(0.0f, 1.0f, 0.0f, 0.0f));
+            //transformComponent.setRotationQuaternion(q_cw);
             transformComponent.setScale({0.5f, 0.5f, 0.5f});
 
             auto &material = entity.addComponent<MaterialComponent>();

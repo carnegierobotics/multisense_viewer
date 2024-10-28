@@ -26,7 +26,7 @@ namespace VkRender {
         renderPassInfo.renderPass = m_renderPass->getRenderPass();
         m_renderPipelines = std::make_unique<GraphicsPipeline2D>(*m_context, renderPassInfo);
         m_colorTexture = EditorUtils::createEmptyTexture(m_createInfo.width, m_createInfo.height,
-                                                         VK_FORMAT_B8G8R8A8_SRGB, m_context);
+                                                         VK_FORMAT_B8G8R8A8_UNORM, m_context);
         m_renderPipelines->setTexture(&m_colorTexture->getDescriptorInfo());
 
     }
@@ -44,7 +44,7 @@ namespace VkRender {
         m_editorCamera->setPerspective(static_cast<float>(m_createInfo.width) / m_createInfo.height);
 
         m_colorTexture = EditorUtils::createEmptyTexture(m_createInfo.width, m_createInfo.height,
-                                                         VK_FORMAT_B8G8R8A8_SRGB, m_context);
+                                                         VK_FORMAT_B8G8R8A8_UNORM, m_context);
         m_renderPipelines->setTexture(&m_colorTexture->getDescriptorInfo());
         m_syclGaussianGfx.setActiveCamera(m_editorCamera);
 

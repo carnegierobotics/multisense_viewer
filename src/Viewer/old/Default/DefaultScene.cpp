@@ -6,7 +6,6 @@
 
 #include "Viewer/VkRender/Components/MeshComponent.h"
 #include "Viewer/VkRender/RenderResources/DefaultGraphicsPipeline.h"
-#include "Viewer/VkRender/Components/GaussianModelComponent.h"
 
 namespace VkRender {
 

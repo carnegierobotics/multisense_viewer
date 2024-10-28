@@ -9,9 +9,7 @@
 #include <Viewer/VkRender/Components/GaussianComponent.h>
 
 #include "Viewer/VkRender/Components/Components.h"
-#include "Viewer/VkRender/RenderResources/DefaultGraphicsPipeline.h"
 #include "Viewer/VkRender/Components/MeshComponent.h"
-#include "Viewer/VkRender/Components/GaussianModelComponent.h"
 #include "Viewer/VkRender/Components/ImageComponent.h"
 #include "Viewer/Application/Application.h"
 #include "Viewer/VkRender/Components/PointCloudComponent.h"

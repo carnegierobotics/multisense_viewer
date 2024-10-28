@@ -69,10 +69,13 @@ namespace VkRender::Rasterizer {
                 if ((rect_max.x - rect_min.x) * (rect_max.y - rect_min.y) == 0)
                     return;
 
-                const float SH_C0 = 0.28209479177387814f;
-                glm::vec3 result = SH_C0 * m_points[i].color;
-                result += 0.5f;
-                result = glm::max(glm::min(result, 1.0f), 0.0f);
+                std::array<std::array<float, 15>, 3> sh = m_points[i].shCoeffs;
+                glm::vec3 color = m_points[i].color;
+                glm::vec3 cameraPos = m_camera.pose.pos;
+                glm::vec3 gaussianPos = m_points[i].position;
+
+                glm::vec3 result = computeColorFromSH(m_points[i].shCoeffs, color, gaussianPos, cameraPos);
+                //glm::vec3 result(1.0f, 0.0f, 0.0f);
                 m_points[i].computedColor = result;
 
                 auto conic = glm::vec3(cov2D.z * invDeterminant, -cov2D.y * invDeterminant,
@@ -259,10 +262,11 @@ namespace VkRender::Rasterizer {
             uint32_t group_id_x_max = item.get_group_range(1);
             uint32_t group_id_y_max = item.get_group_range(0);
 
-            uint32_t global_linear_id = (global_id_y * (m_imageWidth) + global_id_x) * 4;
             // Calculate the global pixel row and column
-            uint32_t row = global_id_y;
+            uint32_t row = global_id_y; // Calculate the flipped row
+            //uint32_t rowFlipped = m_imageHeight - 1 - global_id_y; // Calculate the flipped row
             uint32_t col = global_id_x;
+            uint32_t global_linear_id = (row * (m_imageWidth) + col) * 4;
 
 
             if (row < m_imageHeight && col < m_imageWidth) {
@@ -322,8 +326,7 @@ namespace VkRender::Rasterizer {
                 m_imageBuffer[global_linear_id] = static_cast<uint8_t>((C[2] + T * 0.0f) * 255.0f);
                 m_imageBuffer[global_linear_id + 1] = static_cast<uint8_t>((C[1] + T * 0.0f) * 255.0f);
                 m_imageBuffer[global_linear_id + 2] = static_cast<uint8_t>((C[0] + T * 0.0f) * 255.0f);
-                m_imageBuffer[global_linear_id +
-                    3] = static_cast<uint8_t>(255.0f); // Assuming full alpha for simplicity
+                m_imageBuffer[global_linear_id + 3] = static_cast<uint8_t>(255.0f); // Assuming full alpha for simplicity
             } // endif
         }
     };

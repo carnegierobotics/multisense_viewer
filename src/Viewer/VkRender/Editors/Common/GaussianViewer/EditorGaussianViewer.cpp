@@ -31,7 +31,7 @@ namespace VkRender {
 
     }
 
-    void VkRender::EditorGaussianViewer::onSceneLoad(std::shared_ptr<Scene> scene) {
+    void EditorGaussianViewer::onSceneLoad(std::shared_ptr<Scene> scene) {
         m_editorCamera = std::make_shared<Camera>(m_createInfo.width, m_createInfo.height);
 
         m_activeScene = m_context->activeScene();
@@ -41,6 +41,7 @@ namespace VkRender {
     }
 
     void EditorGaussianViewer::onEditorResize() {
+        m_editorCamera->setCameraResolution(m_createInfo.width ,m_createInfo.height);
         m_editorCamera->setPerspective(static_cast<float>(m_createInfo.width) / m_createInfo.height);
 
         m_colorTexture = EditorUtils::createEmptyTexture(m_createInfo.width, m_createInfo.height,
@@ -51,7 +52,7 @@ namespace VkRender {
     }
 
 
-    void VkRender::EditorGaussianViewer::onUpdate() {
+    void EditorGaussianViewer::onUpdate() {
         auto imageUI = std::dynamic_pointer_cast<EditorGaussianViewerUI>(m_ui);
         if (imageUI->useImageFrom3DViewport) {
 
@@ -76,7 +77,7 @@ namespace VkRender {
 
     }
 
-    void VkRender::EditorGaussianViewer::onRender(CommandBuffer &commandBuffer) {
+    void EditorGaussianViewer::onRender(CommandBuffer &commandBuffer) {
         auto scene = m_context->activeScene();
 
         auto imageUI = std::dynamic_pointer_cast<EditorGaussianViewerUI>(m_ui);

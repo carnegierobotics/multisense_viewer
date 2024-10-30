@@ -18,9 +18,8 @@ namespace VkRender {
         auto *imageMemory = static_cast<uint8_t *>(malloc(outputTexture->getSize()));
         auto &registry = scene->getRegistry();
         // Find all entities with GaussianComponent
-        static bool firstRun = true;
         registry.view<GaussianComponent>().each([&](auto entity, GaussianComponent &gaussianComp) {
-            if (gaussianComp.addToRenderer || firstRun) {
+            if (gaussianComp.addToRenderer) {
                 std::vector<GaussianPoint> newPoints;
 
                 for (size_t i = 0; i < gaussianComp.size(); ++i) {

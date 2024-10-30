@@ -236,11 +236,11 @@ namespace VkRender {
 
     // TODO make scene objects serializeable and loadable.
     void Application::loadScene(const std::filesystem::path &scenePath) {
-        /*
+
         for (auto &editor: m_sceneRenderers) {
             editor.second->loadScene(m_activeScene);
         }
-        */
+
         for (auto &editor: m_editors) {
             editor->loadScene(std::shared_ptr<Scene>(m_activeScene));
         }

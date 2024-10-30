@@ -28,6 +28,9 @@ namespace VkRender {
         vertexInputStateCI.vertexBindingDescriptionCount = 1;
         vertexInputStateCI.pVertexBindingDescriptions = &vertexInputBinding;
         vertexInputStateCI.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexInputAttributes.size());
+        if (m_vertexShader == "CameraGizmo.vert") // TODO stupid stupid :-)
+            vertexInputStateCI.vertexAttributeDescriptionCount = 0;
+
         vertexInputStateCI.pVertexAttributeDescriptions = vertexInputAttributes.data();
         std::vector<VkPipelineShaderStageCreateInfo> shaderStages(2);
         VkShaderModule vertModule{};

@@ -30,9 +30,14 @@ add_executable(MultiSense-Viewer)
 if (ENABLE_SYCL)
     if (SYCL_BACKEND STREQUAL "dpcpp")
         set(CMAKE_CXX_COMPILER ${DPCPP_COMPILER_PATH}) ##TODO FUll path to compiler must be set as argument instead
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -fsycl-targets=nvptx64-nvidia-cuda -Xsycl-target-backend=nvptx64-nvidia-cuda --cuda-gpu-arch=sm_75" )
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -fsycl-targets=nvptx64-nvidia-cuda" )
         #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -fsycl-targets=spir64 -g -O0")
         message(STATUS "[VkRenderINFO]: SYCL DPC++ support enabled. Compiler: ${CMAKE_CXX_COMPILER} Flags: ${CMAKE_CXX_FLAGS}")
+
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffp-model=precise")
+        add_compile_options(-Wno-overriding-option)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error")
+
     elseif (SYCL_BACKEND STREQUAL "adaptivecpp")
         # Find the AdaptiveCpp package
         find_package(AdaptiveCpp REQUIRED)
@@ -42,6 +47,7 @@ if (ENABLE_SYCL)
         message(STATUS "[VkRenderINFO]: Using AdaptiveCpp with targets: ${ACPP_TARGETS} to project name ${PROJECT_NAME}")
         # Add sycl to target using AdaptiveCpp's helper
         add_sycl_to_target(TARGET ${PROJECT_NAME} TARGETS ${ACPP_TARGETS})
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ltbb")
 
     else ()
         message(FATAL_ERROR "[VkRenderERROR]: Unknown SYCL backend. Choose either 'dpcpp' or 'adaptivecpp'.")

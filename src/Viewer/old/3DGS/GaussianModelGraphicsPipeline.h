@@ -7,7 +7,6 @@
 
 
 #include "Viewer/VkRender/Core/CommandBuffer.h"
-#include "Viewer/VkRender/Components/GaussianModelComponent.h"
 #include "Viewer/VkRender/Core/Camera.h"
 #ifdef SYCL_ENABLED
 #include <sycl/sycl.hpp>

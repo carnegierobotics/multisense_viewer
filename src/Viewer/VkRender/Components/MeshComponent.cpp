@@ -140,7 +140,8 @@ namespace VkRender {
     void MeshData::meshFromPlyFile() {
         std::ifstream ss(m_filePath.string(), std::ios::binary);
         if (ss.fail()) {
-            throw std::runtime_error("Failed to open " + m_filePath.string());
+            Log::Logger::getInstance()->warning("Failed to open {}" , m_filePath.string());
+            return;
         }
 
         tinyply::PlyFile file;

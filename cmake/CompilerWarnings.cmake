@@ -86,7 +86,7 @@ function(set_project_warnings project_name)
         message(AUTHOR_WARNING "[VkRenderINFO]: No compiler warnings set for '${CMAKE_CXX_COMPILER_ID}' compiler.")
     endif()
 
-    message(STATUS "[VkRenderINFO]: Compiler warnings set for '${CMAKE_CXX_COMPILER_ID}' compiler.")
+    message(STATUS "[VkRenderINFO]: Compiler warnings set for '${CMAKE_CXX_COMPILER_ID}' compiler. Treating warnings as errors: ${WARNINGS_AS_ERRORS}")
     target_compile_options(${project_name} INTERFACE ${PROJECT_WARNINGS})
 
 endfunction()

@@ -2,22 +2,24 @@
 // Created by magnus on 10/21/24.
 //
 
-#include <cstdlib>      // For std::rand, std::srand
-#include <ctime>        // For std::time
-#include <cstring>      // For std::memset or std::memcpy
+#include <sycl/sycl.hpp>
+#include <vector>
+#include <algorithm>
+#include <execution>
+#include <utility>
 
 #include "Viewer/VkRender/RenderResources/3DGS/SyclGaussianGFX.h"
 #include "Viewer/VkRender/RenderResources/3DGS/Rasterizer.h"
 
 namespace VkRender {
-    void SyclGaussianGFX::render(std::shared_ptr<Scene> &scene, std::shared_ptr<VulkanTexture2D> &outputTexture,
-                                 Camera &camera) {
+    void SyclGaussianGFX::render(std::shared_ptr<Scene> &scene, std::shared_ptr<VulkanTexture2D> &outputTexture) {
+
+
         auto *imageMemory = static_cast<uint8_t *>(malloc(outputTexture->getSize()));
         auto &registry = scene->getRegistry();
         // Find all entities with GaussianComponent
-        static bool firstRun = true;
         registry.view<GaussianComponent>().each([&](auto entity, GaussianComponent &gaussianComp) {
-            if (gaussianComp.addToRenderer || firstRun) {
+            if (gaussianComp.addToRenderer) {
                 std::vector<GaussianPoint> newPoints;
 
                 for (size_t i = 0; i < gaussianComp.size(); ++i) {
@@ -27,6 +29,9 @@ namespace VkRender {
                     point.rotation = gaussianComp.rotations[i];
                     point.opacity = gaussianComp.opacities[i];
                     point.color = gaussianComp.colors[i];
+                    if (!gaussianComp.shCoeffs.empty())
+                        point.shCoeffs = gaussianComp.shCoeffs[i];
+
                     newPoints.push_back(point);
                 }
                 if (!newPoints.empty())
@@ -40,14 +45,17 @@ namespace VkRender {
             free(imageMemory);
             return;
         }
+
+        auto activeCameraPtr = m_activeCamera.lock(); // Lock to get shared_ptr
+
         uint32_t BLOCK_X = 16, BLOCK_Y = 16;
-        glm::vec3 tileGrid((camera.width() + BLOCK_X - 1) / BLOCK_X, (camera.height() + BLOCK_Y - 1) / BLOCK_Y, 1);
+        glm::vec3 tileGrid((activeCameraPtr->width() + BLOCK_X - 1) / BLOCK_X,
+                           (activeCameraPtr->height() + BLOCK_Y - 1) / BLOCK_Y, 1);
         uint32_t numTiles = tileGrid.x * tileGrid.y;
+        auto params = getHtanfovxyFocal(activeCameraPtr->m_Fov, activeCameraPtr->height(), activeCameraPtr->width());
 
-        auto params = getHtanfovxyFocal(camera.m_Fov, camera.height(), camera.width());
-
-        m_preProcessData.camera = camera;
-        m_preProcessData.camera.matrices.perspective[1] = -m_preProcessData.camera.matrices.perspective[1];
+        m_preProcessData.camera = *activeCameraPtr;
+        //m_preProcessData.camera.matrices.perspective[1] = -m_preProcessData.camera.matrices.perspective[1];
         m_preProcessData.preProcessSettings.tileGrid = tileGrid;
         m_preProcessData.preProcessSettings.numTiles = numTiles;
         m_preProcessData.preProcessSettings.numPoints = m_numGaussians;
@@ -75,60 +83,35 @@ namespace VkRender {
     }
 
     void copyAndSortKeysAndValues(sycl::queue &m_queue, uint32_t *keysBuffer, uint32_t *valuesBuffer, size_t numRendered) {
-        // Step 1: Allocate host vectors to hold the keys and values
-        std::vector<std::pair<uint32_t, uint32_t>> hostKeyValuePairs(numRendered);
+        // Step 1: Allocate Unified Shared Memory (USM) for key-value pairs
+        using KeyValue = std::pair<uint32_t, uint32_t>;
 
-        // Step 2: Create buffers that wrap the keysBuffer and valuesBuffer on the device
-        {
-            // Create buffers to wrap the raw device pointers
-            sycl::buffer<uint32_t, 1> keysBufferObj(keysBuffer, sycl::range<1>(numRendered));
-            sycl::buffer<uint32_t, 1> valuesBufferObj(valuesBuffer, sycl::range<1>(numRendered));
-            sycl::buffer<std::pair<uint32_t, uint32_t>, 1> hostBuffer(hostKeyValuePairs.data(), sycl::range<1>(numRendered));
+        // Allocate USM for the key-value pairs directly
+        KeyValue* keyValuePairs = sycl::malloc_shared<KeyValue>(numRendered, m_queue);
 
-            // Submit a command group to the queue for copying data from the device to the host
-            m_queue.submit([&](sycl::handler &h) {
-                // Create accessors to the keys and values buffers on the device
-                auto deviceKeys = keysBufferObj.get_access<sycl::access_mode::read>(h);
-                auto deviceValues = valuesBufferObj.get_access<sycl::access_mode::read>(h);
+        // Step 2: Initialize the key-value pairs from the provided buffers
+        m_queue.submit([&](sycl::handler &h) {
+            h.parallel_for(sycl::range<1>(numRendered), [=](sycl::id<1> idx) {
+                keyValuePairs[idx[0]].first = keysBuffer[idx[0]];
+                keyValuePairs[idx[0]].second = valuesBuffer[idx[0]];
+            });
+        }).wait();
 
-                // Create a host accessor for writing to the host buffer
-                auto hostAccessor = hostBuffer.get_access<sycl::access::mode::write>(h);
-
-                // Copy the device keys and values to the host as pairs
-                h.parallel_for<class CopyKeysAndValuesToHost>(sycl::range<1>(numRendered), [=](sycl::id<1> idx) {
-                    hostAccessor[idx] = {deviceKeys[idx], deviceValues[idx]};
-                });
-            }).wait();
-        }
-
-        // Step 3: Sort the key-value pairs on the host by keys
-        std::sort(hostKeyValuePairs.begin(), hostKeyValuePairs.end(), [](const auto &a, const auto &b) {
+        // Step 3: Sort the key-value pairs directly using the C++ standard algorithm with offloading
+        std::sort(std::execution::par_unseq, keyValuePairs, keyValuePairs + numRendered, [](const KeyValue &a, const KeyValue &b) {
             return a.first < b.first;
         });
 
-        // Step 4: Create buffers for the sorted keys and values on the device and copy them back to the GPU
-        {
-            // Create buffers to wrap the raw device pointers
-            sycl::buffer<uint32_t, 1> keysBufferObj(keysBuffer, sycl::range<1>(numRendered));
-            sycl::buffer<uint32_t, 1> valuesBufferObj(valuesBuffer, sycl::range<1>(numRendered));
-            sycl::buffer<std::pair<uint32_t, uint32_t>, 1> hostBuffer(hostKeyValuePairs.data(), sycl::range<1>(numRendered));
+        // Step 4: Write the sorted keys and values back to the provided buffers
+        m_queue.submit([&](sycl::handler &h) {
+            h.parallel_for(sycl::range<1>(numRendered), [=](sycl::id<1> idx) {
+                keysBuffer[idx[0]] = keyValuePairs[idx[0]].first;
+                valuesBuffer[idx[0]] = keyValuePairs[idx[0]].second;
+            });
+        }).wait();
 
-            // Submit a command group to the queue for copying data from the host to the device
-            m_queue.submit([&](sycl::handler &h) {
-                // Create accessors to write to the keys and values buffers on the device
-                auto deviceKeys = keysBufferObj.get_access<sycl::access_mode::write>(h);
-                auto deviceValues = valuesBufferObj.get_access<sycl::access_mode::write>(h);
-
-                // Create a host accessor to read the sorted pairs
-                auto hostAccessor = hostBuffer.get_access<sycl::access_mode::read>(h);
-
-                // Copy the sorted keys and values back to the device
-                h.parallel_for<class CopySortedKeysAndValuesToDevice>(sycl::range<1>(numRendered), [=](sycl::id<1> idx) {
-                    deviceKeys[idx] = hostAccessor[idx].first;
-                    deviceValues[idx] = hostAccessor[idx].second;
-                });
-            }).wait();
-        }
+        // Free the USM memory
+        sycl::free(keyValuePairs, m_queue);
     }
 
     void SyclGaussianGFX::preProcessGaussians(uint8_t *imageMemory) {
@@ -155,9 +138,9 @@ namespace VkRender {
         m_queue.memcpy(&numRendered, pointOffsets + (m_numGaussians - 1), sizeof(uint32_t)).wait();
         // Inclusive sum complete
 
-        Log::Logger::getInstance()->traceWithFrequency("3dgsrendering", 60, "3DGS Rendering, Gaussians: {}", numRendered);
+        Log::Logger::getInstance()->traceWithFrequency("3dgsrendering", 60, "3DGS Rendering, Gaussians: {}",
+                                                       numRendered);
         if (numRendered > 0) {
-            uint32_t sortBufferSize = (1 << 25);
 
             auto *keysBuffer = sycl::malloc_device<uint32_t>(numRendered, m_queue);
             auto *valuesBuffer = sycl::malloc_device<uint32_t>(numRendered, m_queue);
@@ -172,12 +155,6 @@ namespace VkRender {
                                                                                 m_preProcessDataPtr->preProcessSettings.tileGrid));
             }).wait();
 
-            std::vector<uint32_t> keysHost(numRendered);
-            std::vector<std::pair<uint32_t, uint32_t>> hostKeyValuePairs(numRendered);
-
-            m_queue.memcpy(keysHost.data(), keysBuffer, sizeof(uint32_t) * numRendered).wait();
-
-
 
             //m_sorter->performOneSweep(keysBuffer, valuesBuffer, numRendered);
             //m_sorter->verifySort(keysBuffer, numRendered);
@@ -185,7 +162,7 @@ namespace VkRender {
 
 
             copyAndSortKeysAndValues(m_queue, keysBuffer, valuesBuffer, numRendered);
-            m_sorter->verifySort(keysBuffer, numRendered);
+            //m_sorter->verifySort(keysBuffer, numRendered);
 
             auto *rangesBuffer = sycl::malloc_device<glm::ivec2>(m_preProcessData.preProcessSettings.numTiles, m_queue);
             m_queue.memset(rangesBuffer, static_cast<int>(0x00),

@@ -4,7 +4,6 @@
 #include <glm/ext/quaternion_float.hpp>
 
 #include "GaussianModelGraphicsPipeline.h"
-#include "Viewer/VkRender/Components/GaussianModelComponent.h"
 #include "Viewer/Tools/Logger.h"
 #include "Viewer/VkRender/RenderResources/3DGS/RasterizerUtils.h"
 #include "Rasterizer.h"

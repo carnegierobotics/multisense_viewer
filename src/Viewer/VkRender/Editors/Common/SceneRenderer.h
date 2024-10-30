@@ -49,12 +49,12 @@ namespace VkRender {
         void setActiveCamera(const std::shared_ptr<Camera>& cameraPtr){
             m_activeCamera = cameraPtr;
         }
-
-        ~SceneRenderer() override;
-
         std::shared_ptr<Camera> getActiveCamera() const {
             return m_activeCamera.lock();
         }
+        ~SceneRenderer() override;
+
+
 
     private:
         std::weak_ptr<Camera> m_activeCamera;

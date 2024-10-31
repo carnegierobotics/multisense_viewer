@@ -1,0 +1,10 @@
+# Use Ubuntu 20.04 as the base image
+FROM ubuntu:20.04
+
+# Install required packages
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    libvulkan1 \
+    policykit-1 \
+    libgtk-3-0 \
+    && rm -rf /var/lib/apt/lists/*

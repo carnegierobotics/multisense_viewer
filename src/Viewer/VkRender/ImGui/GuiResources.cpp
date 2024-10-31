@@ -54,13 +54,13 @@ namespace VkRender {
 
         fontTexture.reserve(fontCount);
         fontDescriptors.reserve(fontCount);
-        font13 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 13.0f, false, context);
-        font8 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 8.0f, false, context);
-        font15 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 15.0f, false, context);
-        font18 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 18.0f, false, context);
-        font24 = loadFontFromFileName("Assets/Fonts/Roboto-Black.ttf", 24.0f, false, context);
+        font13 = loadFontFromFileName(Utils::getFontsPath() / "Roboto-Black.ttf", 13.0f, false, context);
+        font8 = loadFontFromFileName(Utils::getFontsPath() / "Roboto-Black.ttf", 8.0f, false, context);
+        font15 = loadFontFromFileName(Utils::getFontsPath() / "Roboto-Black.ttf", 15.0f, false, context);
+        font18 = loadFontFromFileName(Utils::getFontsPath() / "Roboto-Black.ttf", 18.0f, false, context);
+        font24 = loadFontFromFileName(Utils::getFontsPath() / "Roboto-Black.ttf", 24.0f, false, context);
 
-        fontIcons = loadFontFromFileName("Assets/Fonts/fa-solid-900.ttf", 13.0f, true, context);
+        fontIcons = loadFontFromFileName(Utils::getFontsPath() / "fa-solid-900.ttf", 13.0f, true, context);
         fontCount = fontDescriptors.size() - 1;
 
 

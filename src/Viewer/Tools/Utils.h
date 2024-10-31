@@ -69,30 +69,34 @@ namespace Utils {
     DISABLE_WARNING_UNREFERENCED_FUNCTION
 
     static std::filesystem::path getShadersPath() {
-        return {"./Assets/Shaders"};
+        return {"./Resources/Assets/Shaders"};
+    }
+
+    static std::filesystem::path getFontsPath() {
+        return {"./Resources/Assets/Fonts"};
     }
 
     static std::filesystem::path getAssetsPath() {
-        return {"./Assets/"};
+        return {"./Resources/Assets/"};
     }
 
     static std::filesystem::path getTexturePath() {
-        return {"./Assets/Textures"};
+        return {"./Resources/Assets/Textures"};
     }
 
     static std::filesystem::path getModelsPath() {
-        return {"./Assets/Models"};
+        return {"./Resources/Assets/Models"};
     }
 
     static std::filesystem::path getProjectFileFromName(const std::string& projectName) {
         if (projectName == "MultiSense Viewer"){
-            return {"./Assets/Projects/MultiSenseViewer.json"};
+            return {"./Resources/Assets/Projects/MultiSenseViewer.json"};
         }
         if (projectName == "MultiSense Editor"){
-            return {"./Assets/Projects/MultiSenseEditor.json"};
+            return {"./Resources/Assets/Projects/MultiSenseEditor.json"};
         }
         Log::Logger::getInstance()->warning("Project '{}' not found. Loading default..", projectName);
-        return {"./Assets/Projects/MultiSenseEditor.json"};
+        return {"./Resources/Assets/Projects/MultiSenseEditor.json"};
     }
 
     static std::filesystem::path getScriptsPath() {

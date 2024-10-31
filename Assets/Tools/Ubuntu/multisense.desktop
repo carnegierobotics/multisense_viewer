@@ -1,9 +1,0 @@
-[Desktop Entry]
-Name=MultiSense Viewer
-GenericName=MultiSense Viewer
-Exec=/opt/multisense/start.sh
-Terminal=false
-Icon=/opt/multisense/Assets/Textures/logo.png
-Type=Application
-Categories=Application;Network;2D/3D Viewer;
-Comment=A MultiSense interface application

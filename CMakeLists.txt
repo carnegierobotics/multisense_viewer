@@ -76,7 +76,7 @@ find_package(Vulkan REQUIRED)
 
 # Include directories
 include_directories(src)
-include_directories(Assets)
+include_directories(Resources/Assets)
 include_directories(SYSTEM external/ffmpeg/include)
 include_directories(SYSTEM ${Vulkan_INCLUDE_DIRS})
 include_directories(SYSTEM src/Viewer/VkRender/ImGui/Custom)
@@ -189,15 +189,15 @@ if (PROPRIETARY_GIGEVISION_MODULE)
     target_compile_definitions(MultiSense-Viewer PRIVATE VKRENDER_GIGEVISION_ENABLED)
 endif ()
 
-# Custom command and target to copy assets if they have changed
-file(GLOB ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/Assets/*")
+#Custom command and target to copy assets if they have changed
+file(GLOB ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/Resources/Assets/*")
 add_custom_command(
-        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/Assets
-        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/Assets ${CMAKE_CURRENT_BINARY_DIR}/Assets
+        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/Resources/Assets
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/Resources/Assets ${CMAKE_CURRENT_BINARY_DIR}/Resources/Assets
         DEPENDS ${ASSETS}
         COMMENT "Copying assets..."
 )
-add_custom_target(copy_assets ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/Assets)
+add_custom_target(copy_assets ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/Resources/Assets)
 
 # Build configurations for different platforms
 if (UNIX)
@@ -226,7 +226,7 @@ if (UNIX)
 
     # Install configuration
     install(TARGETS MultiSense-Viewer RUNTIME DESTINATION ${INSTALL_DIRECTORY})
-    install(DIRECTORY ${CMAKE_SOURCE_DIR}/Assets CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
+    install(DIRECTORY ${CMAKE_SOURCE_DIR}/Resources/Assets CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
 
 elseif (WIN32)
     # Windows-specific settings
@@ -260,7 +260,7 @@ elseif (WIN32)
     install(TARGETS MultiSense-Viewer CONFIGURATIONS Release ARCHIVE DESTINATION ${INSTALL_DIRECTORY})
     install(TARGETS MultiSense-Viewer CONFIGURATIONS Release LIBRARY DESTINATION ${INSTALL_DIRECTORY})
     install(FILES ${CMAKE_BINARY_DIR}/MultiSense.dll CONFIGURATIONS Release ARCHIVE DESTINATION ${INSTALL_DIRECTORY})
-    install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Assets CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
+    install(DIRECTORY Resources/Assets CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
 
 endif ()
 

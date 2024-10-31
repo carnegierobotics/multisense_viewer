@@ -36,8 +36,6 @@ namespace VkRender {
                 }
                 if (!newPoints.empty())
                     updateGaussianPoints(newPoints);
-
-                firstRun = false;
             }
         });
 

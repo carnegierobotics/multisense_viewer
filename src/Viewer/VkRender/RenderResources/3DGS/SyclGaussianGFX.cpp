@@ -131,7 +131,7 @@ namespace VkRender {
 
         m_queue.submit([&](sycl::handler &h) {
             uint32_t localSize = 64;  // Number of work-items in each work-group
-            uint32_t globalSize = ((m_preProcessDataPtr->preProcessSettings.numPoints + localSize - 1) / localSize) * localSize;
+            uint32_t globalSize = ((m_numGaussians + localSize - 1) / localSize) * localSize;
             auto localMemory = sycl::local_accessor<uint32_t, 1>(sycl::range<1>(localSize), h); // One entry per work-item
 
             sycl::nd_range<1> kernelRange({sycl::range<1>(globalSize), sycl::range<1>(localSize)});
@@ -272,7 +272,7 @@ namespace VkRender {
 
             // Kernel 3
             auto event5 = m_queue.submit([&](sycl::handler &h) {
-                h.parallel_for<class duplicates>(sycl::range<1>(m_numGaussians),
+                h.parallel_for<>(sycl::range<1>(m_numGaussians),
                                                  Rasterizer::DuplicateGaussians(m_gaussianPointsPtr, pointOffsets,
                                                                                 keysBuffer, valuesBuffer, numRendered,
                                                                                 m_preProcessDataPtr->preProcessSettings.tileGrid));
@@ -290,8 +290,7 @@ namespace VkRender {
 
             // Kernel 4
             auto event7 = m_queue.submit([&](sycl::handler &h) {
-                h.parallel_for<class IdentifyTileRanges>(numRendered,
-                                                         Rasterizer::IdentifyTileRanges(rangesBuffer, keysBuffer, numRendered));
+                h.parallel_for<>(numRendered,Rasterizer::IdentifyTileRanges(rangesBuffer, keysBuffer, numRendered));
             });
             event7.wait();
             profileKernel(event7, "IdentifyTileRanges");
@@ -312,7 +311,7 @@ namespace VkRender {
             // Kernel 5
             auto event9 = m_queue.submit([&](sycl::handler &h) {
                 auto range = sycl::nd_range<2>(globalWorkSize, localWorkSize);
-                h.parallel_for<class RenderGaussians>(range,
+                h.parallel_for<>(range,
                                                       Rasterizer::RasterizeGaussians(rangesBuffer, valuesBuffer,
                                                                                      m_gaussianPointsPtr, imageBuffer,
                                                                                      numRendered, imageWidth, imageHeight));

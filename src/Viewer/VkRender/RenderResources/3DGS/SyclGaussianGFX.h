@@ -67,6 +67,8 @@ namespace VkRender {
         PreProcessData *m_preProcessDataPtr;
 
         std::unique_ptr<Sorter> m_sorter;
+
+        void renderGaussiansWithProfiling(uint8_t *imageMemory, bool enable_profiling);
     };
 }
 

@@ -5,6 +5,7 @@
 #ifndef RASTERIZER_H
 #define RASTERIZER_H
 
+#include <cmath>
 #include <sycl/sycl.hpp>
 
 #include "RasterizerUtils.h"
@@ -101,19 +102,18 @@ namespace VkRender::Rasterizer {
 
     class InclusiveSum {
     public:
-        InclusiveSum(GaussianPoint* points, uint32_t* pointOffsets, uint32_t numPoints) : m_points(points),
-            m_pointOffsets(pointOffsets), m_numPoints(numPoints) {
+        InclusiveSum(GaussianPoint* points, uint32_t* pointOffsets, uint32_t numPoints, sycl::local_accessor<uint32_t> localMem) : m_points(points),
+            m_pointOffsets(pointOffsets), m_numPoints(numPoints), m_localMem(localMem) {
         }
 
 
-        void operator()(sycl::id<1> idx) const {
-            for (int i = 0; i < m_numPoints; ++i) {
-                m_pointOffsets[i] = m_points[i].tilesTouched;
-                if (i > 0) {
-                    m_pointOffsets[i] += m_pointOffsets[i - 1];
-                }
-            }
+        void operator()(sycl::nd_item<1> item) const {
+            size_t globalIdx = item.get_global_id(0);
+            size_t localIdx = item.get_local_id(0);
+            size_t localRange = item.get_local_range(0);
+
         }
+        sycl::local_accessor<uint32_t> m_localMem;
 
         GaussianPoint* m_points;
         uint32_t* m_pointOffsets;

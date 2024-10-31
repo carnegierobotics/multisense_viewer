@@ -38,7 +38,7 @@ namespace VkRender {
         // Function to select the appropriate device
         void selectDevice(DeviceType deviceType) {
             try {
-                sycl::property_list properties{sycl::property::queue::in_order{}};
+                sycl::property_list properties{sycl::property::queue::in_order{}, sycl::property::queue::enable_profiling()};
 
                 if (deviceType == DeviceType::GPU) {
                     // Select GPU if available

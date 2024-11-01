@@ -439,7 +439,9 @@ namespace VkRender {
     }
 
     void SceneRenderer::onComponentUpdated(Entity entity, MeshComponent &meshComponent) {
-
+        if (m_meshInstances.contains(entity.getUUID())) {
+            m_meshInstances.erase(entity.getUUID());
+        }
     }
 
     void SceneRenderer::onComponentAdded(Entity entity, MaterialComponent &materialComponent) {
@@ -1095,6 +1097,9 @@ namespace VkRender {
 
     std::shared_ptr<MeshInstance> SceneRenderer::initializeMesh(const MeshComponent &meshComponent) {
         // Load mesh data from file or other source
+        if (meshComponent.m_meshPath.empty() && meshComponent.m_type != CAMERA_GIZMO)
+            return nullptr;
+
         MeshData meshData = MeshData(meshComponent.m_type, meshComponent.m_meshPath);
         auto meshInstance = std::make_shared<MeshInstance>();
         meshInstance->topology = meshComponent.m_type == OBJ_FILE

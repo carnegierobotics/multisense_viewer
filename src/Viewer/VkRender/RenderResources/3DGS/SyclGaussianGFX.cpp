@@ -34,8 +34,12 @@ namespace VkRender {
 
                     newPoints.push_back(point);
                 }
-                if (!newPoints.empty())
+                if (!newPoints.empty()) {
+                    Log::Logger::getInstance()->info("Updating Gaussians in GPU memory");
                     updateGaussianPoints(newPoints);
+
+                }
+
             }
         });
 
@@ -67,7 +71,7 @@ namespace VkRender {
 
         // Start rendering
         // Copy output to texture
-        outputTexture->loadImage(imageMemory, outputTexture->getSize());
+        outputTexture->loadImage(imageMemory, outputTexture->getSize()); // TODO dont copy to staging buffers. Create a video texture type to be used for this
 
         // Free the allocated memory
         free(imageMemory);
@@ -124,24 +128,46 @@ namespace VkRender {
                            Rasterizer::Preprocess(m_gaussianPointsPtr, m_preProcessDataPtr));
         }).wait();
 
-
         auto *pointOffsets = sycl::malloc_device<uint32_t>(m_numGaussians, m_queue);
         m_queue.memset(pointOffsets, static_cast<uint32_t>(0x00), m_numGaussians * sizeof(uint32_t)).wait();
 
+        uint32_t localSize = 16;  // Number of work-items in each work-group
+        uint32_t globalSize = ((m_numGaussians + localSize - 1) / localSize) * localSize;
+        uint32_t numWorkGroups = globalSize / localSize;
+        sycl::nd_range<1> kernelRange({sycl::range<1>(globalSize), sycl::range<1>(localSize)});
+        auto *groupTotals = sycl::malloc_device<uint32_t>(numWorkGroups, m_queue);
 
+        // Kernel 2
         m_queue.submit([&](sycl::handler &h) {
-            uint32_t localSize = 64;  // Number of work-items in each work-group
-            uint32_t globalSize = ((m_numGaussians + localSize - 1) / localSize) * localSize;
             auto localMemory = sycl::local_accessor<uint32_t, 1>(sycl::range<1>(localSize), h); // One entry per work-item
-
-            sycl::nd_range<1> kernelRange({sycl::range<1>(globalSize), sycl::range<1>(localSize)});
-
             auto caller = Rasterizer::InclusiveSum(m_gaussianPointsPtr, pointOffsets,
-                                                   m_preProcessDataPtr->preProcessSettings.numPoints, localMemory);
+                                                   m_preProcessDataPtr->preProcessSettings.numPoints, localMemory, groupTotals);
             h.parallel_for(kernelRange, caller);
         }).wait();
 
+        m_queue.submit([&](sycl::handler &h) {
+            h.single_task<class GroupTotalsScan>([=]() {
+                // Perform exclusive scan on group totals
+                for (size_t i = 1; i < numWorkGroups; ++i) {
+                    groupTotals[i] += groupTotals[i - 1];
+                }
+            });
+        }).wait();;
+        // Step 4: Adjust local scans
+        m_queue.submit([&](sycl::handler &h) {
+            size_t numPoints = m_numGaussians;
+            h.parallel_for<class AdjustLocalScans>(kernelRange, [=](sycl::nd_item<1> item) {
+                size_t groupId = item.get_group_linear_id();
+                uint32_t offset = (groupId > 0) ? groupTotals[groupId - 1] : 0;
+                size_t globalIdx = item.get_global_id(0);
+                // Adjust local scan result
+                if (globalIdx < numPoints) {
+                    pointOffsets[globalIdx] += offset;
+                }
+            });
+        }).wait();;
 
+        sycl::free(groupTotals, m_queue);
 
         uint32_t numRendered = 0;
         m_queue.memcpy(&numRendered, pointOffsets + (m_numGaussians - 1), sizeof(uint32_t)).wait();
@@ -243,20 +269,83 @@ namespace VkRender {
         event2.wait();
         profileKernel(event2, "Memset Point Offsets");
 
+
+        std::vector<GaussianPoint> hostPoints(m_numGaussians);
+        std::cout << "TilesTouched: ";
+        m_queue.memcpy(hostPoints.data(), m_gaussianPointsPtr, m_numGaussians * sizeof(GaussianPoint)).wait();
+        for (int i = 0; i < 128; ++i){
+            std::cout << hostPoints[i].tilesTouched << " ";
+            if ((i + 1) % 16 == 0)
+                std::cout << "| ";
+        }
+
+        std::cout << std::endl;
+        uint32_t localSize = 16;  // Number of work-items in each work-group
+        uint32_t globalSize = ((m_preProcessDataPtr->preProcessSettings.numPoints + localSize - 1) / localSize) * localSize;
+        uint32_t numWorkGroups = globalSize / localSize;
+        sycl::nd_range<1> kernelRange({sycl::range<1>(globalSize), sycl::range<1>(localSize)});
+
+        auto *groupTotals = sycl::malloc_device<uint32_t>(numWorkGroups, m_queue);
+
         // Kernel 2
         auto event3 = m_queue.submit([&](sycl::handler &h) {
-            uint32_t localSize = 64;  // Number of work-items in each work-group
-            uint32_t globalSize = ((m_preProcessDataPtr->preProcessSettings.numPoints + localSize - 1) / localSize) * localSize;
+
             auto localMemory = sycl::local_accessor<uint32_t, 1>(sycl::range<1>(localSize), h); // One entry per work-item
 
-            sycl::nd_range<1> kernelRange({sycl::range<1>(globalSize), sycl::range<1>(localSize)});
 
             auto caller = Rasterizer::InclusiveSum(m_gaussianPointsPtr, pointOffsets,
-                                                   m_preProcessDataPtr->preProcessSettings.numPoints, localMemory);
+                                                   m_preProcessDataPtr->preProcessSettings.numPoints, localMemory, groupTotals);
             h.parallel_for(kernelRange, caller);
         });
         event3.wait();
         profileKernel(event3, "InclusiveSum");
+
+
+        m_queue.submit([&](sycl::handler &h) {
+
+            h.single_task<class GroupTotalsScan>([=]() {
+                // Perform exclusive scan on group totals
+                for (size_t i = 1; i < numWorkGroups; ++i) {
+                    groupTotals[i] += groupTotals[i - 1];
+                }
+            });
+        });
+
+        std::vector<uint32_t> groupTotalsHost(numWorkGroups);
+        std::cout << "groupTotalsHost: ";
+        m_queue.memcpy(groupTotalsHost.data(), groupTotals, numWorkGroups * sizeof(uint32_t)).wait();
+        for (int i = 0; i < 16; ++i){
+            std::cout << groupTotalsHost[i] << " ";
+            if ((i + 1) % 16 == 0)
+                std::cout << "| ";
+        }
+        std::cout << std::endl;
+
+        // Step 4: Adjust local scans
+        m_queue.submit([&](sycl::handler &h) {
+            size_t numPoints = m_numGaussians;
+            h.parallel_for<class AdjustLocalScans>(kernelRange, [=](sycl::nd_item<1> item) {
+                size_t groupId = item.get_group_linear_id();
+                uint32_t offset = (groupId > 0) ? groupTotals[groupId - 1] : 0;
+                size_t globalIdx = item.get_global_id(0);
+
+                // Adjust local scan result
+                if (globalIdx < numPoints) {
+                    pointOffsets[globalIdx] += offset;
+                }
+            });
+        });
+
+
+        std::vector<uint32_t> inclusiveSum(m_numGaussians);
+        std::cout << "inclusiveSum: ";
+        m_queue.memcpy(inclusiveSum.data(), pointOffsets, m_numGaussians * sizeof(uint32_t)).wait();
+        for (int i = 0; i < 128; ++i){
+            std::cout << inclusiveSum[i] << " ";
+            if ((i + 1) % 16 == 0)
+                std::cout << "| ";
+        }
+        std::cout << std::endl;
 
         uint32_t numRendered = 0;
         auto event4 = m_queue.memcpy(&numRendered, pointOffsets + (m_numGaussians - 1), sizeof(uint32_t));

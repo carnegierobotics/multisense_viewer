@@ -11,7 +11,6 @@
 #include "Viewer/VkRender/Components/GaussianComponent.h"
 #include "Viewer/VkRender/RenderResources/3DGS/RasterizerUtils.h"
 #include "Viewer/Scenes/Scene.h"
-#include "Viewer/VkRender/RenderResources/3DGS/radixsort/RadixSorter.h"
 
 namespace VkRender {
 
@@ -28,9 +27,6 @@ namespace VkRender {
                 throw std::runtime_error("Failed to allocate Gaussian points buffer");
             }
             m_numGaussians = 0;
-
-            m_sorter = std::make_unique<Sorter>(queue, 1 << 24);
-
         }
 
         ~SyclGaussianGFX() {
@@ -65,8 +61,6 @@ namespace VkRender {
         uint32_t m_numGaussians = 1;
         GaussianPoint *m_gaussianPointsPtr;
         PreProcessData *m_preProcessDataPtr;
-
-        std::unique_ptr<Sorter> m_sorter;
 
         void renderGaussiansWithProfiling(uint8_t *imageMemory, bool enable_profiling);
     };

@@ -29,14 +29,11 @@ add_executable(MultiSense-Viewer)
 # SYCL Backend selection
 if (ENABLE_SYCL)
     if (SYCL_BACKEND STREQUAL "dpcpp")
-        set(CMAKE_CXX_COMPILER ${DPCPP_COMPILER_PATH}) ##TODO FUll path to compiler must be set as argument instead
+        set(CMAKE_CXX_COMPILER /opt/intel/oneapi/compiler/2025.0/bin/icpx) ##TODO FUll path to compiler must be set as argument instead
         #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -fsycl-targets=nvptx64-nvidia-cuda" )
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -fsycl-targets=spir64 -g -O0 -ltbb")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -fsycl-targets=spir64 -g -O0 -ffp-model=precise -Wno-overriding-option -ltbb")
         message(STATUS "[VkRenderINFO]: SYCL DPC++ support enabled. Compiler: ${CMAKE_CXX_COMPILER} Flags: ${CMAKE_CXX_FLAGS}")
-
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffp-model=precise")
-        add_compile_options(-Wno-overriding-option)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error")
+        target_link_libraries(${PROJECT_NAME} PRIVATE sycl ur_loader)
 
     elseif (SYCL_BACKEND STREQUAL "adaptivecpp")
         # Find the AdaptiveCpp package

@@ -75,8 +75,8 @@ namespace VkRender::Rasterizer {
                 glm::vec3 cameraPos = m_camera.pose.pos;
                 glm::vec3 gaussianPos = m_points[i].position;
 
-                //glm::vec3 result = computeColorFromSH(m_points[i].shCoeffs, color, gaussianPos, cameraPos);
-                glm::vec3 result = color;
+                glm::vec3 result = computeColorFromSH(m_points[i].shCoeffs, color, gaussianPos, cameraPos);
+                //glm::vec3 result = color;
                 m_points[i].computedColor = result;
 
                 auto conic = glm::vec3(cov2D.z * invDeterminant, -cov2D.y * invDeterminant,
@@ -103,44 +103,50 @@ namespace VkRender::Rasterizer {
     class InclusiveSum {
     public:
         InclusiveSum(GaussianPoint *points, uint32_t *pointOffsets, uint32_t numPoints,
-                     sycl::local_accessor<uint32_t> localMem)
-                : m_points(points), m_output(pointOffsets), m_numPoints(numPoints), m_localMem(localMem) {
+                     sycl::local_accessor<uint32_t> localMem, uint32_t *groupTotals)
+                : m_points(points), m_output(pointOffsets), m_numPoints(numPoints), m_localMem(localMem) , m_groupTotals(groupTotals) {
         }
 
         void operator()(sycl::nd_item<1> item) const {
             size_t localIdx = item.get_local_id(0);
             size_t globalIdx = item.get_global_id(0);
             size_t localRange = item.get_local_range(0);
+            size_t groupLinearId = item.get_group_linear_id();
+            auto subGroup = item.get_sub_group();
+            subGroup.get_group_range();
 
-            // Load input into local memory (inclusive scan)
             if (globalIdx < m_numPoints) {
                 m_localMem[localIdx] = m_points[globalIdx].tilesTouched;
             } else {
                 m_localMem[localIdx] = 0;
             }
-
-            // Synchronize to make sure all threads have loaded their data
-            item.barrier(sycl::access::fence_space::global_and_local);
+            sycl::group_barrier(item.get_group());
 
             // Perform the inclusive scan
             for (size_t offset = 1; offset < localRange; offset *= 2) {
                 uint32_t val = 0;
                 if (localIdx >= offset)
                     val = m_localMem[localIdx - offset];
-                item.barrier(sycl::access::fence_space::global_and_local);
+                sycl::group_barrier(item.get_group());
                 m_localMem[localIdx] += val;
-                item.barrier(sycl::access::fence_space::global_and_local);
+                sycl::group_barrier(item.get_group());
             }
+            sycl::group_barrier(item.get_group());
 
-            // Write the result to the output array
             if (globalIdx < m_numPoints) {
                 m_output[globalIdx] = m_localMem[localIdx];
             }
+
+            if (localIdx == localRange - 1) {
+                m_groupTotals[item.get_group_linear_id()] = m_localMem[localIdx];
+            }
+
         }
 
         sycl::local_accessor<uint32_t> m_localMem;
         GaussianPoint *m_points;
         uint32_t *m_output;
+        uint32_t *m_groupTotals;
         uint32_t m_numPoints;
     };
 
@@ -150,6 +156,7 @@ namespace VkRender::Rasterizer {
                       sycl::local_accessor<uint32_t> localMem) : m_points(points),
                                                                  m_output(pointOffsets), m_numPoints(numPoints),
                                                                  m_localMem(localMem) {
+
         }
 
 
@@ -157,9 +164,12 @@ namespace VkRender::Rasterizer {
             size_t globalIdx = item.get_global_id(0);
             size_t localIdx = item.get_local_id(0);
             size_t localRange = item.get_local_range(0);
-            int arrValue = m_points[localIdx - 1].tilesTouched;
-
-            m_output[localIdx] = arrValue;
+            if (globalIdx == 0){
+                m_output[0] = m_points[0].tilesTouched;
+                for (size_t i = 1; i < m_numPoints; ++i){
+                    m_output[i] =  m_output[i - 1] + m_points[i].tilesTouched;
+                }
+            }
 
         }
 

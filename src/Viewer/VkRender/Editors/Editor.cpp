@@ -31,13 +31,9 @@ namespace VkRender {
         m_renderPass = std::make_unique<VulkanRenderPass>(&m_createInfo.pPassCreateInfo);
         VulkanRenderPassCreateInfo offscreenRenderPassCreateInfo = m_createInfo.pPassCreateInfo;
         offscreenRenderPassCreateInfo.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        offscreenRenderPassCreateInfo.type = DEPTH_RESOLVE_RENDER_PASS;
         m_offscreenRenderPass = std::make_unique<VulkanRenderPass>(&offscreenRenderPassCreateInfo);
 
-        VulkanRenderPassCreateInfo depthRenderPassCreateInfo = m_createInfo.pPassCreateInfo;
-        depthRenderPassCreateInfo.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        depthRenderPassCreateInfo.type = VulkanRenderPassType::DEPTH_ONLY;
-        depthRenderPassCreateInfo.msaaSamples = VK_SAMPLE_COUNT_1_BIT;
-        m_depthRenderPass = std::make_unique<VulkanRenderPass>(&depthRenderPassCreateInfo);
 
         m_guiManager = std::make_unique<GuiManager>(m_context->vkDevice(),
                                                     m_renderPass->getRenderPass(), // TODO verify if this is ok?
@@ -112,14 +108,29 @@ namespace VkRender {
     }
 
     void Editor::render(CommandBuffer &drawCmdBuffers) {
-        /// Off-screen render pass
-        if (m_renderToOffscreen) {
+        if (!m_renderToOffscreen) {
+            /// "Normal" Render pass
+            VkViewport viewport{};
+            viewport.x = static_cast<float>(m_createInfo.x);
+            viewport.y = static_cast<float>(m_createInfo.y);
+            viewport.width = static_cast<float>(m_createInfo.width);
+            viewport.height = static_cast<float>(m_createInfo.height);
+            viewport.minDepth = 0.0f;
+            viewport.maxDepth = 1.0f;
+            VkRect2D scissor{};
+            scissor.offset = {(m_createInfo.x), (m_createInfo.y)};
+            scissor.extent = {static_cast<uint32_t>(m_createInfo.width), static_cast<uint32_t>(m_createInfo.height)};
+            renderScene(drawCmdBuffers, m_renderPass->getRenderPass(), drawCmdBuffers.activeImageIndex,
+                        m_createInfo.frameBuffers, viewport, scissor);
+
+        } else {
+
+
             const uint32_t clearValueCount = 3;
             VkClearValue clearValues[clearValueCount];
             clearValues[0].color = {{0.33f, 0.33f, 0.5f, 1.0f}}; // Clear color to black (or any other color)
             clearValues[1].depthStencil = {1.0f, 0}; // Clear depth to 1.0 and stencil to 0
             clearValues[2].color = {{0.33f, 0.33f, 0.5f, 1.0f}}; // Clear depth to 1.0 and stencil to 0
-
             /// "Normal" Render pass
             VkViewport viewport{};
             viewport.x = 0.0f;
@@ -136,34 +147,40 @@ namespace VkRender {
             subresourceRange.levelCount = 1;
             subresourceRange.layerCount = 1;
 
-            Utils::setImageLayout(drawCmdBuffers.getActiveBuffer(), m_offscreenFramebuffer.resolvedImage->image(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, subresourceRange, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+            VkImageSubresourceRange depthSubresourceRange = {};
+            depthSubresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+            depthSubresourceRange.levelCount = 1;
+            depthSubresourceRange.layerCount = 1;
+
+            Utils::setImageLayout(drawCmdBuffers.getActiveBuffer(), m_offscreenFramebuffer.resolvedImage->image(),
+                                  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                  VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, subresourceRange,
+                                  VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+
+            Utils::setImageLayout(drawCmdBuffers.getActiveBuffer(), m_offscreenFramebuffer.resolvedDepthImage->image(),
+                                  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                  VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, depthSubresourceRange,
+                                  VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT);
 
 
-            renderScene(drawCmdBuffers, m_offscreenRenderPass->getRenderPass(), 0, &m_offscreenFramebuffer.framebuffer->framebuffer() , viewport, scissor, false,
+            renderScene(drawCmdBuffers, m_offscreenRenderPass->getRenderPass(), 0,
+                        &m_offscreenFramebuffer.framebuffer->framebuffer(), viewport, scissor, false,
                         clearValueCount, clearValues);
             // Transition image to be in shader read mode
 
-            Utils::setImageLayout(drawCmdBuffers.getActiveBuffer(), m_offscreenFramebuffer.resolvedImage->image(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, subresourceRange, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+            Utils::setImageLayout(drawCmdBuffers.getActiveBuffer(), m_offscreenFramebuffer.resolvedImage->image(),
+                                  VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                                  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, subresourceRange,
+                                  VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 
+            Utils::setImageLayout(drawCmdBuffers.getActiveBuffer(), m_offscreenFramebuffer.resolvedDepthImage->image(),
+                                  VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+                                  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, depthSubresourceRange,
+                                  VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 
-        } else if (m_renderDepthOnly) {
-            renderDepthPass(drawCmdBuffers);
-        } else {
-            /// "Normal" Render pass
-            VkViewport viewport{};
-            viewport.x = static_cast<float>(m_createInfo.x);
-            viewport.y = static_cast<float>(m_createInfo.y);
-            viewport.width = static_cast<float>(m_createInfo.width);
-            viewport.height = static_cast<float>(m_createInfo.height);
-            viewport.minDepth = 0.0f;
-            viewport.maxDepth = 1.0f;
-            VkRect2D scissor{};
-            scissor.offset = {(m_createInfo.x), (m_createInfo.y)};
-            scissor.extent = {static_cast<uint32_t>(m_createInfo.width), static_cast<uint32_t>(m_createInfo.height)};
-            renderScene(drawCmdBuffers, m_renderPass->getRenderPass(), drawCmdBuffers.activeImageIndex, m_createInfo.frameBuffers, viewport, scissor);
         }
+
+
 
 
 
@@ -296,39 +313,6 @@ namespace VkRender {
         const uint32_t &currentFrame = drawCmdBuffers.frameIndex;
         const uint32_t &imageIndex = drawCmdBuffers.activeImageIndex;
 
-        VkViewport viewport{};
-        viewport.x = static_cast<float>(0);
-        viewport.y = static_cast<float>(0);
-        viewport.width = static_cast<float>(m_createInfo.width);
-        viewport.height = static_cast<float>(m_createInfo.height);
-        viewport.minDepth = 0.0f;
-        viewport.maxDepth = 1.0f;
-
-        VkRect2D scissor{};
-        scissor.offset = {0, 0};
-        scissor.extent = {static_cast<uint32_t>(m_createInfo.width), static_cast<uint32_t>(m_createInfo.height)};
-        /// *** Color render pass *** ///
-        VkRenderPassBeginInfo renderPassBeginInfo = Populate::renderPassBeginInfo();
-        renderPassBeginInfo.renderPass = m_depthRenderPass->getRenderPass(); // Increase reference count by 1 here?
-        renderPassBeginInfo.renderArea.offset.x = 0;
-        renderPassBeginInfo.renderArea.offset.y = 0;
-        renderPassBeginInfo.renderArea.extent.width = m_createInfo.width;
-        renderPassBeginInfo.renderArea.extent.height = m_createInfo.height;
-
-        VkClearValue clearValues[1];
-        clearValues[0].depthStencil = {1.0f, 0}; // Clear depth to 1.0 and stencil to 0
-
-        renderPassBeginInfo.clearValueCount = 1;
-        renderPassBeginInfo.pClearValues = clearValues;
-
-        renderPassBeginInfo.framebuffer = m_depthOnlyFramebuffer.depthOnlyFramebuffer[imageIndex]->framebuffer();
-        vkCmdBeginRenderPass(drawCmdBuffers.getActiveBuffer(), &renderPassBeginInfo,
-                             VK_SUBPASS_CONTENTS_INLINE);
-        vkCmdSetViewport(drawCmdBuffers.getActiveBuffer(), 0, 1, &viewport);
-        vkCmdSetScissor(drawCmdBuffers.getActiveBuffer(), 0, 1, &scissor);
-
-        onRenderDepthOnly(drawCmdBuffers);
-        vkCmdEndRenderPass(drawCmdBuffers.getActiveBuffer());
 
 
         /*
@@ -506,15 +490,6 @@ namespace VkRender {
         }
         */
 
-        Utils::setImageLayout(
-            drawCmdBuffers.getActiveBuffer(),
-            m_depthOnlyFramebuffer.depthImage->image(),
-            VK_IMAGE_ASPECT_DEPTH_BIT,
-            VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
-            VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT
-        );
     }
 
     void Editor::update() {
@@ -935,7 +910,9 @@ namespace VkRender {
         editor->ui()->hovered = editor->ui()->lastHoveredBorderType != EditorBorderState::None;
 
         if (editor->ui()->hovered) {
-            Log::Logger::getInstance()->traceWithFrequency("hovertag", 300, "Hovering editor: {}. Type: {}", editor->m_createInfo.editorIndex, editorTypeToString(editor->getCreateInfo().editorTypeDescription));
+            Log::Logger::getInstance()->traceWithFrequency("hovertag", 300, "Hovering editor: {}. Type: {}",
+                                                           editor->m_createInfo.editorIndex, editorTypeToString(
+                            editor->getCreateInfo().editorTypeDescription));
         }
     }
 
@@ -1006,11 +983,11 @@ namespace VkRender {
             editor->ui()->lastClickedBorderType = editor->checkLineBorderState(mouse.pos, true);
 
             Log::Logger::getInstance()->info(
-                "Indirect access from Editor {} to Editor {}' border: {}. Our editor resize {} {}",
-                editor->m_createInfo.editorIndex,
-                otherEditor->m_createInfo.editorIndex,
-                otherEditor->ui()->lastClickedBorderType, editor->ui()->resizeActive,
-                editor->ui()->lastClickedBorderType);
+                    "Indirect access from Editor {} to Editor {}' border: {}. Our editor resize {} {}",
+                    editor->m_createInfo.editorIndex,
+                    otherEditor->m_createInfo.editorIndex,
+                    otherEditor->ui()->lastClickedBorderType, editor->ui()->resizeActive,
+                    editor->ui()->lastClickedBorderType);
         }
         otherBorder = otherEditor->checkLineBorderState(mouse.pos, false);
         if (otherBorder & EditorBorderState::VerticalBorders) {
@@ -1021,11 +998,11 @@ namespace VkRender {
             otherEditor->ui()->lastHoveredBorderType = otherBorder;
             editor->ui()->lastClickedBorderType = editor->checkLineBorderState(mouse.pos, false);
             Log::Logger::getInstance()->info(
-                "Indirect access from Editor {} to Editor {}' border: {}. Our editor resize {} {}",
-                editor->m_createInfo.editorIndex,
-                otherEditor->m_createInfo.editorIndex,
-                otherEditor->ui()->lastClickedBorderType, editor->ui()->resizeActive,
-                editor->ui()->lastClickedBorderType);
+                    "Indirect access from Editor {} to Editor {}' border: {}. Our editor resize {} {}",
+                    editor->m_createInfo.editorIndex,
+                    otherEditor->m_createInfo.editorIndex,
+                    otherEditor->ui()->lastClickedBorderType, editor->ui()->resizeActive,
+                    editor->ui()->lastClickedBorderType);
         }
     }
 
@@ -1092,7 +1069,8 @@ namespace VkRender {
         return editor->validateEditorSize(newEditorCI);
     }
 
-    void Editor::createOffscreenFramebuffer() { {
+    void Editor::createOffscreenFramebuffer() {
+        {
             VkImageCreateInfo imageCI = Populate::imageCreateInfo();
             imageCI.imageType = VK_IMAGE_TYPE_2D;
             imageCI.format = m_createInfo.pPassCreateInfo.depthFormat;
@@ -1121,8 +1099,41 @@ namespace VkRender {
             createInfo.srcLayout = VK_IMAGE_LAYOUT_UNDEFINED;
             createInfo.dstLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
             createInfo.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+
             m_offscreenFramebuffer.depthStencil = std::make_shared<VulkanImage>(createInfo);
-        } {
+
+            imageCI.imageType = VK_IMAGE_TYPE_2D;
+            imageCI.format = m_createInfo.pPassCreateInfo.depthFormat;
+            imageCI.extent = {static_cast<uint32_t>(m_createInfo.width), static_cast<uint32_t>(m_createInfo.height), 1};
+            imageCI.mipLevels = 1;
+            imageCI.arrayLayers = 1;
+            imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
+            imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
+            imageCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+                            VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+
+            imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
+            imageViewCI.format = m_createInfo.pPassCreateInfo.depthFormat;
+            imageViewCI.subresourceRange.baseMipLevel = 0;
+            imageViewCI.subresourceRange.levelCount = 1;
+            imageViewCI.subresourceRange.baseArrayLayer = 0;
+            imageViewCI.subresourceRange.layerCount = 1;
+            imageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+            if (m_createInfo.pPassCreateInfo.depthFormat >= VK_FORMAT_D16_UNORM_S8_UINT) {
+                imageViewCI.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+            }
+            VulkanImageCreateInfo createInfoResolved(m_context->vkDevice(), m_context->allocator(), imageCI,
+                                                     imageViewCI);
+            createInfoResolved.debugInfo =
+                    "OffScreenFrameBufferDepthImage: " + editorTypeToString(m_createInfo.editorTypeDescription);
+            createInfoResolved.setLayout = true;
+            createInfoResolved.srcLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            createInfoResolved.dstLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+            createInfoResolved.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+            m_offscreenFramebuffer.resolvedDepthImage = std::make_shared<VulkanImage>(createInfoResolved);
+        }
+        {
             VkImageCreateInfo imageCI = Populate::imageCreateInfo();
             imageCI.imageType = VK_IMAGE_TYPE_2D;
             imageCI.format = m_createInfo.pPassCreateInfo.swapchainColorFormat;
@@ -1131,7 +1142,8 @@ namespace VkRender {
             imageCI.arrayLayers = 1;
             imageCI.samples = m_createInfo.pPassCreateInfo.msaaSamples;
             imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
-            imageCI.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
+            imageCI.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+                            VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
             imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
             imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
             VkImageViewCreateInfo imageViewCI = Populate::imageViewCreateInfo();
@@ -1150,7 +1162,8 @@ namespace VkRender {
             createInfo.dstLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             createInfo.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
             m_offscreenFramebuffer.colorImage = std::make_shared<VulkanImage>(createInfo);
-        } {
+        }
+        {
             VkImageCreateInfo imageCI = Populate::imageCreateInfo();
             imageCI.imageType = VK_IMAGE_TYPE_2D;
             imageCI.format = m_createInfo.pPassCreateInfo.swapchainColorFormat;
@@ -1159,7 +1172,8 @@ namespace VkRender {
             imageCI.arrayLayers = 1;
             imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
             imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
-            imageCI.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+            imageCI.usage =
+                    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
             imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
             imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
             VkImageViewCreateInfo imageViewCI = Populate::imageViewCreateInfo();
@@ -1178,71 +1192,19 @@ namespace VkRender {
             createInfo.dstLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             createInfo.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
             m_offscreenFramebuffer.resolvedImage = std::make_shared<VulkanImage>(createInfo);
-        } {
+        }
+        {
             VulkanFramebufferCreateInfo fbCreateInfo(m_context->vkDevice());
             fbCreateInfo.width = m_createInfo.width;
             fbCreateInfo.height = m_createInfo.height;
-            fbCreateInfo.renderPass = m_renderPass->getRenderPass();
-            std::vector<VkImageView> attachments(3);
+            fbCreateInfo.renderPass = m_offscreenRenderPass->getRenderPass();
+            std::vector<VkImageView> attachments(4);
             attachments[0] = m_offscreenFramebuffer.colorImage->view();
             attachments[1] = m_offscreenFramebuffer.depthStencil->view();
             attachments[2] = m_offscreenFramebuffer.resolvedImage->view();
+            attachments[3] = m_offscreenFramebuffer.resolvedDepthImage->view();
             fbCreateInfo.frameBufferAttachments = attachments;
             m_offscreenFramebuffer.framebuffer = std::make_unique<VulkanFramebuffer>(fbCreateInfo);
-        }
-
-        //////////// DEPTH ONLY FRAMEBUFFER
-
-        {
-            VkImageCreateInfo imageCI = Populate::imageCreateInfo();
-            imageCI.imageType = VK_IMAGE_TYPE_2D;
-            imageCI.format = m_createInfo.pPassCreateInfo.depthFormat;
-            imageCI.extent = {static_cast<uint32_t>(m_createInfo.width), static_cast<uint32_t>(m_createInfo.height), 1};
-            imageCI.mipLevels = 1;
-            imageCI.arrayLayers = 1;
-            imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
-            imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
-            imageCI.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
-                            VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-            imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-            imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            VkImageViewCreateInfo imageViewCI = Populate::imageViewCreateInfo();
-            imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
-            imageViewCI.format = m_createInfo.pPassCreateInfo.depthFormat;
-            imageViewCI.subresourceRange.baseMipLevel = 0;
-            imageViewCI.subresourceRange.levelCount = 1;
-            imageViewCI.subresourceRange.baseArrayLayer = 0;
-            imageViewCI.subresourceRange.layerCount = 1;
-            imageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-            VulkanImageCreateInfo createInfo(m_context->vkDevice(), m_context->allocator(), imageCI, imageViewCI);
-            createInfo.debugInfo =
-                    "DepthOnlyFramebufferDepthImage: " + editorTypeToString(m_createInfo.editorTypeDescription);
-            createInfo.setLayout = true;
-            createInfo.srcLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            createInfo.dstLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-            createInfo.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-            m_depthOnlyFramebuffer.depthImage = std::make_unique<VulkanImage>(createInfo);
-        } {
-            // Create a framebuffer specifically for the depth-only render pass
-
-
-            VulkanFramebufferCreateInfo fbCreateInfo(m_context->vkDevice());
-            fbCreateInfo.width = m_createInfo.width;
-            fbCreateInfo.height = m_createInfo.height;
-            fbCreateInfo.renderPass = m_depthRenderPass->getRenderPass(); // Use the depth-only render pass
-
-            // Only include the depth image in the attachments
-            std::vector<VkImageView> attachments(1);
-            attachments[0] = m_depthOnlyFramebuffer.depthImage->view(); // Depth image view
-
-            fbCreateInfo.frameBufferAttachments = attachments;
-
-            // Create the framebuffer for the depth-only pass
-            m_depthOnlyFramebuffer.depthOnlyFramebuffer.resize(m_createInfo.pPassCreateInfo.swapchainImageCount);
-            for (auto &fb: m_depthOnlyFramebuffer.depthOnlyFramebuffer)
-                fb = std::make_shared<VulkanFramebuffer>(fbCreateInfo);
-
-            m_context->sharedEditorData().depthFrameBuffer[m_uuid] = m_depthOnlyFramebuffer;
         }
     }
 }

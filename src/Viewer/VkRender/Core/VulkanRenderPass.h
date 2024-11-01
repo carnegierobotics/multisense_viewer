@@ -19,7 +19,7 @@ namespace VkRender {
 
     typedef enum VulkanRenderPassType{
         DEFAULT,
-        DEPTH_ONLY,
+        DEPTH_RESOLVE_RENDER_PASS,
     }VulkanRenderPassType;
     /**@brief Very early iteration of a editor create info which also includes renderpass create info. TODO They should be separated into EditorCreateInfo and RenderPass even though they share a lot of information*/
     struct VulkanRenderPassCreateInfo {

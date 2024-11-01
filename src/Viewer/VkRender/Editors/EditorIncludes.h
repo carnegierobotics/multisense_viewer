@@ -23,6 +23,7 @@ namespace VkRender {
         std::shared_ptr<VulkanImage> colorImage;
         std::shared_ptr<VulkanImage> resolvedImage;
         std::shared_ptr<VulkanImage> depthStencil;
+        std::shared_ptr<VulkanImage> resolvedDepthImage;
         std::unique_ptr<VulkanFramebuffer> framebuffer;
     };
 

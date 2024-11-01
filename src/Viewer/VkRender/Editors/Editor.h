@@ -185,7 +185,6 @@ namespace VkRender {
     protected:
         Application* m_context;
         std::unique_ptr<VulkanRenderPass> m_renderPass;
-        std::unique_ptr<VulkanRenderPass> m_depthRenderPass;
         std::unique_ptr<VulkanRenderPass> m_offscreenRenderPass;
         EditorCreateInfo m_createInfo;
 
@@ -193,7 +192,6 @@ namespace VkRender {
 
         OffscreenFramebuffer m_offscreenFramebuffer;
 
-        DepthFramebuffer m_depthOnlyFramebuffer;
         UUID m_uuid;
         std::shared_ptr<EditorUI> m_ui;
 

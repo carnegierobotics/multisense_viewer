@@ -104,9 +104,9 @@ namespace VkRender {
         std::string m_title = "-1";
         std::string m_name = "VulkanRenderer";
         /** @brief This application is written against Vulkan API v.1.1+ **/
-        uint32_t apiVersion = VK_API_VERSION_1_1;
-        uint32_t m_width;      // Default values - Actual values set in constructor
-        uint32_t m_height;     // Default values - Actual values set in constructor
+        uint32_t apiVersion = VK_API_VERSION_1_2;
+        uint32_t m_width  = 400;      // Default values - Actual values set in constructor
+        uint32_t m_height = 400;     // Default values - Actual values set in constructor
 
         /** @brief Encapsulated physical and logical vulkan m_Device */
         VulkanDevice* m_vulkanDevice{};

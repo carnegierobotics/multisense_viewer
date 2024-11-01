@@ -25,7 +25,7 @@ namespace VkRender {
         m_sceneRenderer = m_context->getOrAddSceneRendererByUUID(uuid);
 
         VulkanTexture2DCreateInfo textureCreateInfo(m_context->vkDevice());
-        textureCreateInfo.image = m_sceneRenderer->getOffscreenFramebuffer().resolvedImage;
+        textureCreateInfo.image = m_sceneRenderer->getOffscreenFramebuffer().resolvedDepthImage;
         m_colorTexture = std::make_shared<VulkanTexture2D>(textureCreateInfo);
 
         RenderPassInfo renderPassInfo{};

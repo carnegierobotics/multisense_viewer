@@ -6,6 +6,8 @@
 #define MULTISENSE_VIEWER_COMMANDBUFFER_H
 
 
+#include <Viewer/Tools/Logger.h>
+
 #include "Viewer/Application/pch.h"
 
 #include <vulkan/vulkan_core.h>
@@ -38,8 +40,57 @@ struct CommandBuffer {
     std::vector<VkCommandBuffer>& getBuffers() {
         return buffers;
     }
+
+    // Function to create or get an event by tag
+    void createEvent(const std::string& tag, VkDevice device) {
+        if (m_eventMap.find(tag) == m_eventMap.end()) {
+            // Create a new event if it does not exist
+            VkEventCreateInfo eventInfo = {};
+            eventInfo.sType = VK_STRUCTURE_TYPE_EVENT_CREATE_INFO;
+
+            VkEvent newEvent;
+            VkResult result = vkCreateEvent(device, &eventInfo, nullptr, &newEvent);
+            if (result != VK_SUCCESS) {
+                throw std::runtime_error("Failed to create event!");
+            }
+            m_eventMap[tag] = newEvent; // Store the created event in the map
+        }
+    }
+
+    // Function to set an event by tag
+    void setEvent(const std::string& tag, VkDevice device) {
+        if (m_eventMap.find(tag) != m_eventMap.end()) {
+            vkSetEvent(device, m_eventMap[tag]);
+        }
+    }
+
+    // Function to set all events
+    void setAllEvents(VkDevice device) {
+        for (auto& [tag, event] : m_eventMap) {
+            vkSetEvent(device, event);
+        }
+    }
+    // Function to reset an event by tag
+    void resetEvent(const std::string& tag, VkDevice device) {
+        if (m_eventMap.find(tag) != m_eventMap.end()) {
+            vkResetEvent(device, m_eventMap[tag]);
+            m_eventMap.erase(tag);
+        }
+    }
+
+    // Function to check the status of an event by tag
+    bool isEventSet(const std::string& tag, VkDevice device) const {
+        auto it = m_eventMap.find(tag);
+        if (it != m_eventMap.end()) {
+            VkResult status = vkGetEventStatus(device, it->second);
+            return status == VK_EVENT_SET;
+        }
+        return false;
+    }
 private:
     std::vector<VkCommandBuffer> buffers;
+    std::unordered_map<std::string, VkEvent> m_eventMap;
+
 };
 
 

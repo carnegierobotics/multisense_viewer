@@ -46,6 +46,7 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
 #include <ranges>
+#include <utility>
 #include "Viewer/VkRender/ImGui/GuiManager.h"
 #include "Viewer/Application/Application.h"
 
@@ -392,7 +393,7 @@ namespace VkRender {
         }
     }
 
-    void GuiManager::pushLayer(const std::string &layerName, Editor *editorContext) {
+    void GuiManager::pushLayer(const std::string &layerName, Editor* editorContext) {
         auto layer = LayerFactory::createLayer(layerName);
         layer->setContext(m_context);
         layer->setScene(m_context->activeScene());

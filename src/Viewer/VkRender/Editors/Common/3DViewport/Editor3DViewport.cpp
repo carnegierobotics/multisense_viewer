@@ -22,10 +22,10 @@ namespace VkRender {
 
         m_editorCamera = std::make_shared<Camera>(m_createInfo.width, m_createInfo.height);
 
-        m_sceneRenderer = m_context->getOrAddSceneRendererByUUID(uuid);
+        m_sceneRenderer = m_context->getOrAddSceneRendererByUUID(uuid, m_createInfo.width, m_createInfo.height);
 
         VulkanTexture2DCreateInfo textureCreateInfo(m_context->vkDevice());
-        textureCreateInfo.image = m_sceneRenderer->getOffscreenFramebuffer().resolvedDepthImage;
+        textureCreateInfo.image = m_sceneRenderer->getOffscreenFramebuffer().resolvedImage;
         m_colorTexture = std::make_shared<VulkanTexture2D>(textureCreateInfo);
 
         RenderPassInfo renderPassInfo{};
@@ -34,18 +34,44 @@ namespace VkRender {
 
         m_renderPipelines = std::make_unique<GraphicsPipeline2D>(*m_context, renderPassInfo);
         m_renderPipelines->setTexture(&m_colorTexture->getDescriptorInfo());
-
     }
 
     void Editor3DViewport::onEditorResize() {
         m_editorCamera->setPerspective(static_cast<float>(m_createInfo.width) / m_createInfo.height);
+        m_sceneRenderer->setActiveCamera(m_editorCamera);
+        auto& ci = m_sceneRenderer->getCreateInfo();
+        ci.width = m_createInfo.width;
+        ci.height = m_createInfo.height;
+        m_sceneRenderer->resize(ci);
+        onRenderSettingsChanged();
 
-        m_sceneRenderer = m_context->getOrAddSceneRendererByUUID(getUUID());
+    }
+
+    void Editor3DViewport::onRenderSettingsChanged() {
+        auto imageUI = std::dynamic_pointer_cast<Editor3DViewportUI>(m_ui);
+        m_sceneRenderer = m_context->getOrAddSceneRendererByUUID(getUUID(), m_createInfo.width, m_createInfo.height);
         VulkanTexture2DCreateInfo textureCreateInfo(m_context->vkDevice());
-        textureCreateInfo.image = m_sceneRenderer->getOffscreenFramebuffer().resolvedImage;
+
+        if (imageUI->selectedImageType == OutputTextureImageType::Color) {
+            textureCreateInfo.image = m_sceneRenderer->getOffscreenFramebuffer().resolvedImage;
+        } else if (imageUI->selectedImageType == OutputTextureImageType::Depth) {
+            textureCreateInfo.image = m_sceneRenderer->getOffscreenFramebuffer().resolvedDepthImage;
+
+            switch (imageUI->depthColorOption) {
+                case DepthColorOption::Invert:
+                    break;
+                case DepthColorOption::Normalize:
+                    break;
+                case DepthColorOption::JetColormap:
+                    break;
+                case DepthColorOption::ViridisColormap:
+                    break;
+            }
+
+        }
+
         m_colorTexture = std::make_shared<VulkanTexture2D>(textureCreateInfo);
         m_renderPipelines->setTexture(&m_colorTexture->getDescriptorInfo());
-        m_sceneRenderer->setActiveCamera(m_editorCamera);
 
     }
 
@@ -53,7 +79,6 @@ namespace VkRender {
         m_editorCamera = std::make_shared<Camera>(m_createInfo.width, m_createInfo.height);
         m_activeScene = m_context->activeScene();
         m_sceneRenderer->setActiveCamera(m_editorCamera);
-
     }
 
     void Editor3DViewport::onUpdate() {
@@ -77,6 +102,7 @@ namespace VkRender {
             m_sceneRenderer->setActiveCamera(m_lastActiveCamera->camera);
         }
 
+        m_sceneRenderer->m_saveNextFrame = imageUI->saveNextFrame;
 
         m_sceneRenderer->update();
     }
@@ -98,9 +124,7 @@ namespace VkRender {
     }
 
     void Editor3DViewport::onKeyCallback(const Input &input) {
-
         if (input.lastKeyPress == GLFW_KEY_KP_0 && input.action == GLFW_PRESS) {
-
             auto &e = m_context->getSelectedEntity();
             if (e && e.hasComponent<CameraComponent>()) {
                 auto &camera = e.getComponent<CameraComponent>();
@@ -110,7 +134,6 @@ namespace VkRender {
 
         if (input.lastKeyPress == GLFW_KEY_KP_1 && input.action == GLFW_PRESS) {
             m_sceneRenderer->setActiveCamera(m_editorCamera);
-
         }
     }
 };

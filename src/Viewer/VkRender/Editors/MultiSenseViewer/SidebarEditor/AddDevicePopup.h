@@ -8,14 +8,13 @@
 #include "Viewer/VkRender/ImGui/Layer.h"
 
 namespace VkRender {
-
     enum {
         MANUAL_CONNECT = 1,
         AUTO_CONNECT = 2
     };
 
 
-    static void addPopup(Application *context, Editor* editor) {
+    static void addPopup(Application *context, Editor *editor) {
         const GuiResourcesData &guiResources = editor->guiResources();
         float popupWidth = 550.0f;
         float popupHeight = 600.0f;
@@ -105,10 +104,10 @@ namespace VkRender {
                                        uv1,
                                        tint_col)) {
                 Log::Logger::getInstance()->info(
-                        "User clicked AUTO_CONNECT. Tab is {}, 0 = none, 1 = AutoConnect, 2 = ManualConnect",
-                        connectMethodSelector);
+                    "User clicked AUTO_CONNECT. Tab is {}, 0 = none, 1 = AutoConnect, 2 = ManualConnect",
+                    connectMethodSelector);
                 context->usageMonitor()->userClickAction("Automatic", "ImageButtonText",
-                                                        ImGui::GetCurrentWindow()->Name);
+                                                         ImGui::GetCurrentWindow()->Name);
             }
             ImGui::SameLine(0, 30.0f);
             if (ImGui::ImageButtonText("Manual", &connectMethodSelector, MANUAL_CONNECT, imageButtonSize,
@@ -116,10 +115,10 @@ namespace VkRender {
                                        uv1,
                                        tint_col)) {
                 Log::Logger::getInstance()->info(
-                        "User clicked MANUAL_CONNECT. Tab is {}, 0 = none, 1 = AutoConnect, 2 = ManualConnect",
-                        connectMethodSelector);
+                    "User clicked MANUAL_CONNECT. Tab is {}, 0 = none, 1 = AutoConnect, 2 = ManualConnect",
+                    connectMethodSelector);
                 context->usageMonitor()->userClickAction("Manual", "ImageButtonText",
-                                                        ImGui::GetCurrentWindow()->Name);
+                                                         ImGui::GetCurrentWindow()->Name);
             }
             ImGui::PopFont();
             ImGui::PopStyleVar(3); // RadioButton
@@ -193,14 +192,12 @@ namespace VkRender {
                profileInfo.ifName = interfaceNameList[interfaceIndex]; // interfaceIndex is static variable so will always reflect latest set value
                */
             } else if (connectMethodSelector == AUTO_CONNECT) {
-
                 // Search with gigevision
                 ImGui::Dummy(ImVec2(0.0f, 30.0f));
                 ImGui::Dummy(ImVec2(20.0f, 0.0f));
                 ImGui::SameLine();
 
                 if (ImGui::Button("Enumerate")) {
-
                 }
             }
 
@@ -218,7 +215,7 @@ namespace VkRender {
 
             if (btnCancel) {
                 context->usageMonitor()->userClickAction("Cancel", "button",
-                                                        ImGui::GetCurrentWindow()->Name);
+                                                         ImGui::GetCurrentWindow()->Name);
                 //editor->ui()->shared->openAddDevicePopup = false;
                 ImGui::CloseCurrentPopup();
             }
@@ -226,7 +223,7 @@ namespace VkRender {
             if (btnConnect) {
                 profileInfo.connectionType = MultiSense::MULTISENSE_CONNECTION_TYPE_LIBMULTISENSE;
                 context->usageMonitor()->userClickAction("Connect", "button",
-                                                        ImGui::GetCurrentWindow()->Name);
+                                                         ImGui::GetCurrentWindow()->Name);
 
                 context->multiSense()->addNewProfile(profileInfo);
                 //editor->ui()->shared->openAddDevicePopup = false;

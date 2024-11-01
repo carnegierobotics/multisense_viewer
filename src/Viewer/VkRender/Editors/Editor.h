@@ -5,9 +5,7 @@
 #ifndef MULTISENSE_VIEWER_EDITOR_H
 #define MULTISENSE_VIEWER_EDITOR_H
 
-#include <vk_mem_alloc.h>
 
-#include <iostream>
 #include <string>
 #include <Viewer/VkRender/Components/MaterialComponent.h>
 
@@ -16,8 +14,7 @@
 #include "Viewer/VkRender/Core/VulkanRenderPass.h"
 #include "Viewer/VkRender/ImGui/GuiManager.h"
 #include "Viewer/VkRender/Core/UUID.h"
-#include "Viewer/VkRender/Core/VulkanImage.h"
-#include "Viewer/VkRender/Core/VulkanFramebuffer.h"
+
 
 namespace VkRender {
     class Application;
@@ -176,6 +173,7 @@ namespace VkRender {
         static void handleHoverState(std::unique_ptr<Editor> &editor, const MouseButtons &mouse);
 
         static void handleDragState(std::unique_ptr<Editor> &editor, const MouseButtons &mouse);
+        bool m_saveNextFrame = false;
 
     private:
         EditorSizeLimits m_sizeLimits;
@@ -197,6 +195,12 @@ namespace VkRender {
 
         bool m_renderDepthOnly = false;
         bool m_renderToOffscreen = false;
+
+        struct StagingBuffer {
+            VkBuffer buffer;
+            VkDeviceMemory memory;
+        };
+        StagingBuffer m_copyDataBuffer;
     };
 }
 

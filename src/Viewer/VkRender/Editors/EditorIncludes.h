@@ -28,11 +28,6 @@ namespace VkRender {
     };
 
 
-    struct DepthFramebuffer {
-        std::shared_ptr<VulkanImage> depthImage;
-        std::vector<std::shared_ptr<VulkanFramebuffer>> depthOnlyFramebuffer;
-    } ;
-
     typedef enum EditorBorderState {
         None = 0,        // Cursor is not on any border
         Left = 1 << 0,   // Cursor is on the left border (1)

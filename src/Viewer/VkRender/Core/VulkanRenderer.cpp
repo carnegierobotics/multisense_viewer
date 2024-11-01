@@ -596,7 +596,10 @@ namespace VkRender {
         result = vkResetFences(device, 1, &waitFences[currentFrame]);
         if (result != VK_SUCCESS)
             throw std::runtime_error("Failed to reset fence");
-        
+
+        // Also signal subsequent fences by various rendering operations
+        drawCmdBuffers.setAllEvents(m_vulkanDevice->m_LogicalDevice);
+
         drawCmdBuffers.activeImageIndex = imageIndex;
         vkResetCommandBuffer(drawCmdBuffers.getActiveBuffer(), /*VkCommandBufferResetFlagBits*/ 0);
     }
@@ -629,8 +632,7 @@ namespace VkRender {
         submitInfo.pCommandBuffers = &activeBuffer;
         vkQueueSubmit(graphicsQueue, 1, &submitInfo, waitFences[currentFrame]);
 
-        VkResult result = swapchain->queuePresent(graphicsQueue, imageIndex,
-                                                  semaphores[currentFrame].renderComplete);
+        VkResult result = swapchain->queuePresent(graphicsQueue, imageIndex, semaphores[currentFrame].renderComplete);
         if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR) {
             // Swap chain is no longer compatible with the surface and needs to be recreated
             Log::Logger::getInstance()->warning(

@@ -82,7 +82,6 @@ namespace VkRender {
                             imageUI->previewID = n;
                             imageUI->selectedCameraName = cameraEntityNames[n];
                             imageUI->update = true;
-                            auto* editor = reinterpret_cast<EditorImage *>(m_editor);
                         }
 
                         // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)

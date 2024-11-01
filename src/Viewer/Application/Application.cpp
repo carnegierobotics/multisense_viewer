@@ -123,30 +123,31 @@ namespace VkRender {
         return nullptr;
     }
 
-    SceneRenderer *Application::getOrAddSceneRendererByUUID(const UUID &uuid) {
+    SceneRenderer *Application::getOrAddSceneRendererByUUID(const UUID &uuid, uint32_t width, uint32_t height) {
         if (m_sceneRenderers.contains(uuid))
             return m_sceneRenderers.find(uuid)->second.get();
-        return addSceneRendererWithUUID(uuid);
+        return addSceneRendererWithUUID(uuid, width, height);
     }
 
-    SceneRenderer *Application::addSceneRendererWithUUID(const UUID &uuid) {
-        EditorCreateInfo sceneRenderer(m_guiResources, this, m_vulkanDevice, &m_allocator,
+    SceneRenderer *Application::addSceneRendererWithUUID(const UUID &uuid, uint32_t width, uint32_t height) {
+        EditorCreateInfo sceneRendererCreateInfo(m_guiResources, this, m_vulkanDevice, &m_allocator,
                                        m_frameBuffers.data());
         VulkanRenderPassCreateInfo passCreateInfo(m_vulkanDevice, &m_allocator);
         passCreateInfo.msaaSamples = msaaSamples;
         passCreateInfo.swapchainImageCount = swapchain->imageCount;
         passCreateInfo.swapchainColorFormat = swapchain->colorFormat;
         passCreateInfo.depthFormat = depthFormat;
-        passCreateInfo.height = static_cast<int32_t>(m_height);
-        passCreateInfo.width = static_cast<int32_t>(m_width);
-        sceneRenderer.borderSize = 0;
-        sceneRenderer.resizeable = false;
-        sceneRenderer.height = static_cast<int32_t>(m_height);
-        sceneRenderer.width = static_cast<int32_t>(m_width);
-        sceneRenderer.pPassCreateInfo = passCreateInfo;
-        sceneRenderer.editorTypeDescription = EditorType::SceneRenderer;
+        passCreateInfo.height = static_cast<int32_t>(width);
+        passCreateInfo.width = static_cast<int32_t>(height);
 
-        auto editorPtr = std::shared_ptr<Editor>(std::move(createEditorWithUUID(uuid, sceneRenderer)));
+        sceneRendererCreateInfo.borderSize = 0;
+        sceneRendererCreateInfo.resizeable = false;
+        sceneRendererCreateInfo.height = static_cast<int32_t>(width);
+        sceneRendererCreateInfo.width = static_cast<int32_t>(height);
+        sceneRendererCreateInfo.pPassCreateInfo = passCreateInfo;
+        sceneRendererCreateInfo.editorTypeDescription = EditorType::SceneRenderer;
+
+        auto editorPtr = std::shared_ptr<Editor>(std::move(createEditorWithUUID(uuid, sceneRendererCreateInfo)));
         m_sceneRenderers[uuid] = std::dynamic_pointer_cast<SceneRenderer>(std::move(editorPtr));
 
         m_sceneRenderers[uuid]->loadScene(m_activeScene);
@@ -330,10 +331,6 @@ namespace VkRender {
         }
         handleEditorResize();
 
-        // Update shared data
-        for (auto &editor: m_editors) {
-            m_sharedEditorData.selectedUUIDContext = std::make_shared<UUID>(editor->getUUID());
-        }
     }
 
     void Application::onRender() {

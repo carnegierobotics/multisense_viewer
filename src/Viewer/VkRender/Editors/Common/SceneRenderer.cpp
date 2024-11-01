@@ -23,8 +23,8 @@ namespace VkRender {
     }
 
     void SceneRenderer::onEditorResize() {
-        auto activeCameraPtr = m_activeCamera.lock(); // Lock to get shared_ptr
-        activeCameraPtr->setPerspective(static_cast<float>(m_createInfo.width) / m_createInfo.height);
+
+
     }
 
     SceneRenderer::~SceneRenderer() {

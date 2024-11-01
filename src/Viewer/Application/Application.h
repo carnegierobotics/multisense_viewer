@@ -57,11 +57,6 @@
 namespace VkRender {
     class Entity;
 
-    struct SharedEditorData {
-        std::unordered_map<UUID, DepthFramebuffer> depthFrameBuffer;
-        std::shared_ptr<UUID> selectedUUIDContext; // Ref to active uuid. 
-    };
-
     struct ProjectConfig {
         std::string name;
         std::vector<EditorType> editorTypes;
@@ -106,8 +101,6 @@ namespace VkRender {
 
         VulkanDevice &vkDevice() { return *m_vulkanDevice; }
 
-        SharedEditorData &sharedEditorData() { return m_sharedEditorData; }
-
         const ProjectConfig &getProjectConfig() { return m_projectConfig; }
 
         std::shared_ptr<MultiSense::MultiSenseRendererBridge> multiSense() { return m_multiSense; }
@@ -117,8 +110,8 @@ namespace VkRender {
         float deltaTime() { return frameTimer; }
 
         SceneRenderer *getSceneRendererByUUID(const UUID &uuid);
-        SceneRenderer* getOrAddSceneRendererByUUID(const UUID& uuid);
-        SceneRenderer * addSceneRendererWithUUID(const UUID &uuid);
+        SceneRenderer* getOrAddSceneRendererByUUID(const UUID &uuid, uint32_t width, uint32_t height);
+        SceneRenderer * addSceneRendererWithUUID(const UUID &uuid, uint32_t width, uint32_t height);
 
         ImGuiContext *getMainUIContext() { return m_mainEditor->guiContext(); }
         Entity& getSelectedEntity() {return m_selectedEntity;}
@@ -175,12 +168,11 @@ namespace VkRender {
         std::unique_ptr<Editor> m_mainEditor;
         std::unordered_map<UUID, std::shared_ptr<SceneRenderer> > m_sceneRenderers;
         std::shared_ptr<GuiAssets> m_guiResources;
-        SharedEditorData m_sharedEditorData;
+
         std::shared_ptr<UsageMonitor> m_usageMonitor;
         Entity m_selectedEntity;
 
         std::shared_ptr<VkRender::MultiSense::MultiSenseRendererBridge> m_multiSense;
-
 
         friend class ApplicationConfig;
         friend class Scene;

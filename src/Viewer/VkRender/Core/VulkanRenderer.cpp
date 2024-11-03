@@ -287,6 +287,10 @@ namespace VkRender {
         swapchain->cleanup();
         VulkanResourceManager::destroyInstance();
 
+        for (auto& entry : drawCmdBuffers.events()) {
+            vkDestroyEvent(device, entry.second, nullptr);
+        }
+
         vkDestroyCommandPool(device, cmdPool, nullptr);
         vkDestroyCommandPool(device, cmdPoolCompute, nullptr);
         for (auto& fence : waitFences) {
@@ -449,6 +453,7 @@ namespace VkRender {
 
 
     void VulkanRenderer::destroyCommandBuffers() {
+
         vkFreeCommandBuffers(device, cmdPool, static_cast<uint32_t>(drawCmdBuffers.getBuffers().size()),
                              drawCmdBuffers.getBuffers().data());
         vkFreeCommandBuffers(device, cmdPoolCompute, static_cast<uint32_t>(computeCommand.getBuffers().size()),

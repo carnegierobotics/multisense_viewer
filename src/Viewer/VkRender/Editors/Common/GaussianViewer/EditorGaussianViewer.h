@@ -46,7 +46,6 @@ namespace VkRender {
         SyclDeviceSelector m_deviceSelector = SyclDeviceSelector(SyclDeviceSelector::DeviceType::GPU);
         SyclGaussianGFX m_syclGaussianGfx;
 
-        std::unique_ptr<GraphicsPipeline2D> m_renderPipelines;
         std::shared_ptr<VulkanTexture2D> m_colorTexture;
 
     };

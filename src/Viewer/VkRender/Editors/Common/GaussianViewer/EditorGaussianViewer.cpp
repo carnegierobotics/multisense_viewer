@@ -24,10 +24,8 @@ namespace VkRender {
         RenderPassInfo renderPassInfo{};
         renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
         renderPassInfo.renderPass = m_renderPass->getRenderPass();
-        m_renderPipelines = std::make_unique<GraphicsPipeline2D>(*m_context, renderPassInfo);
-        m_colorTexture = EditorUtils::createEmptyTexture(m_createInfo.width, m_createInfo.height,
-                                                         VK_FORMAT_B8G8R8A8_UNORM, m_context);
-        m_renderPipelines->setTexture(&m_colorTexture->getDescriptorInfo());
+
+        m_colorTexture = EditorUtils::createEmptyTexture(m_createInfo.width, m_createInfo.height, VK_FORMAT_B8G8R8A8_UNORM, m_context);
 
     }
 
@@ -44,9 +42,8 @@ namespace VkRender {
         m_editorCamera->setCameraResolution(m_createInfo.width ,m_createInfo.height);
         m_editorCamera->setPerspective(static_cast<float>(m_createInfo.width) / m_createInfo.height);
 
-        m_colorTexture = EditorUtils::createEmptyTexture(m_createInfo.width, m_createInfo.height,
-                                                         VK_FORMAT_B8G8R8A8_UNORM, m_context);
-        m_renderPipelines->setTexture(&m_colorTexture->getDescriptorInfo());
+        m_colorTexture = EditorUtils::createEmptyTexture(m_createInfo.width, m_createInfo.height,VK_FORMAT_B8G8R8A8_UNORM, m_context);
+
         m_syclGaussianGfx.setActiveCamera(m_editorCamera);
 
     }
@@ -91,8 +88,6 @@ namespace VkRender {
 
         if (imageUI->render3dgsImage || updateRender)
             m_syclGaussianGfx.render(scene, m_colorTexture);
-
-        m_renderPipelines->draw(commandBuffer);
 
     }
 

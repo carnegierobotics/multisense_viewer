@@ -145,6 +145,7 @@ set(SOURCE_FILES
         src/Viewer/VkRender/Editors/PipelineKey.cpp
         src/Viewer/VkRender/Editors/Common/Properties/PropertiesLayer.cpp
         src/Viewer/VkRender/Editors/PipelineManager.cpp
+        src/Viewer/VkRender/Editors/DescriptorSetManager.cpp
 
         src/Viewer/Tools/StbInclude.cpp
         src/Viewer/Tools/Logger.cpp

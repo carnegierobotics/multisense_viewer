@@ -18,8 +18,13 @@
 namespace VkRender {
     enum class OutputTextureImageType { Color, Depth };
 
-    enum class DepthColorOption { Invert, Normalize, JetColormap, ViridisColormap };
-
+    enum class DepthColorOption : int32_t {
+        None,
+        Invert,
+        Normalize,
+        JetColormap,
+        ViridisColormap
+    };
 
     struct Editor3DViewportUI : public EditorUI {
         bool renderFromViewpoint = true;
@@ -27,7 +32,7 @@ namespace VkRender {
         // Image type selection
         OutputTextureImageType selectedImageType = OutputTextureImageType::Color;
         // Depth color option selection (only relevant if Depth is selected)
-        DepthColorOption depthColorOption = DepthColorOption::Invert;
+        DepthColorOption depthColorOption = DepthColorOption::None;
         // Constructor that copies everything from base EditorUI
         explicit Editor3DViewportUI(const EditorUI &baseUI) : EditorUI(baseUI) {
         }
@@ -81,6 +86,7 @@ namespace VkRender {
                     if (imageUI->selectedImageType != OutputTextureImageType::Depth) {
                         imageUI->selectedImageType = OutputTextureImageType::Depth;
                         editor->onRenderSettingsChanged();
+                        imageUI->depthColorOption = DepthColorOption::Invert;
                     }
                 }
                 ImGui::EndCombo();
@@ -94,7 +100,8 @@ namespace VkRender {
 
                 ImGui::SetNextItemWidth(100.0f);
                 if (ImGui::BeginCombo("Color Option",
-                                      imageUI->depthColorOption == DepthColorOption::Invert
+                                      imageUI->depthColorOption == DepthColorOption::None
+                                          ? "None" : imageUI->depthColorOption == DepthColorOption::Invert
                                           ? "Invert"
                                           : imageUI->depthColorOption == DepthColorOption::Normalize
                                                 ? "Normalize"
@@ -129,6 +136,8 @@ namespace VkRender {
                     }
                     ImGui::EndCombo();
                 }
+            } else {
+                imageUI->depthColorOption = DepthColorOption::None;
             }
 
             ImGui::End();

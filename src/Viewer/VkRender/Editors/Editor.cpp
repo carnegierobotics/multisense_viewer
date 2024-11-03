@@ -125,9 +125,9 @@ namespace VkRender {
         } else {
             const uint32_t clearValueCount = 3;
             VkClearValue clearValues[clearValueCount];
-            clearValues[0].color = {{0.33f, 0.33f, 0.5f, 1.0f}}; // Clear color to black (or any other color)
+            clearValues[0].color = {{0.1f, 0.1f, 0.1f, 1.0f}}; // Clear color to black (or any other color)
             clearValues[1].depthStencil = {1.0f, 0}; // Clear depth to 1.0 and stencil to 0
-            clearValues[2].color = {{0.33f, 0.33f, 0.5f, 1.0f}}; // Clear depth to 1.0 and stencil to 0
+            clearValues[2].color = {{0.1f, 0.1f, 0.1f, 1.0f}}; // Clear depth to 1.0 and stencil to 0
             /// "Normal" Render pass
             VkViewport viewport{};
             viewport.x = 0.0f;
@@ -165,42 +165,19 @@ namespace VkRender {
                         clearValueCount, clearValues);
             // Transition image to be in shader read mode
 
-            Utils::setImageLayout(drawCmdBuffers.getActiveBuffer(), m_offscreenFramebuffer.resolvedImage->image(),
-                                  VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                                  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, subresourceRange,
-                                  VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
-
-            Utils::setImageLayout(drawCmdBuffers.getActiveBuffer(), m_offscreenFramebuffer.resolvedDepthImage->image(),
-                                  VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-                                  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, depthSubresourceRange,
-                                  VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
-
 
             if (m_saveNextFrame) {
+
                 /// *** Copy Image Data to CPU Buffer *** ///
-                VkImageMemoryBarrier barrier = {};
-                barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-                barrier.oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-                barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-                barrier.image = m_offscreenFramebuffer.resolvedImage->image(); // Use the offscreen image
-                barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-                barrier.subresourceRange.baseMipLevel = 0;
-                barrier.subresourceRange.levelCount = 1;
-                barrier.subresourceRange.baseArrayLayer = 0;
-                barrier.subresourceRange.layerCount = 1;
-
-                vkCmdPipelineBarrier(drawCmdBuffers.getActiveBuffer(), VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-                                     VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
-                                     0, nullptr, 0, nullptr, 1, &barrier);
-
-
+                Utils::setImageLayout(drawCmdBuffers.getActiveBuffer(), m_offscreenFramebuffer.resolvedDepthImage->image(),
+                                      VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+                                      VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, depthSubresourceRange,
+                                      VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
 
                 CHECK_RESULT(m_context->vkDevice().createBuffer(
                     VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                    m_offscreenFramebuffer.resolvedImage->getImageSizeRBGA(),
+                    m_offscreenFramebuffer.resolvedDepthImage->getImageSizeRBGA(),
                     &m_copyDataBuffer.buffer,
                     &m_copyDataBuffer.memory));
 
@@ -209,7 +186,7 @@ namespace VkRender {
                 region.bufferOffset = 0;
                 region.bufferRowLength = 0;
                 region.bufferImageHeight = 0;
-                region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
                 region.imageSubresource.mipLevel = 0;
                 region.imageSubresource.baseArrayLayer = 0;
                 region.imageSubresource.layerCount = 1;
@@ -219,27 +196,40 @@ namespace VkRender {
                     1
                 };
 
-                vkCmdCopyImageToBuffer(drawCmdBuffers.getActiveBuffer(), m_offscreenFramebuffer.resolvedImage->image(),
+                vkCmdCopyImageToBuffer(drawCmdBuffers.getActiveBuffer(), m_offscreenFramebuffer.resolvedDepthImage->image(),
                                        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, m_copyDataBuffer.buffer, 1, &region);
 
                 drawCmdBuffers.createEvent("CopyBufferEvent", m_context->vkDevice().m_LogicalDevice);
 
                 Utils::setImageLayout(
                     drawCmdBuffers.getActiveBuffer(),
-                    m_offscreenFramebuffer.resolvedImage->image(),
-                    VK_IMAGE_ASPECT_COLOR_BIT,
+                    m_offscreenFramebuffer.resolvedDepthImage->image(),
+                    VK_IMAGE_ASPECT_DEPTH_BIT,
                     VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                    VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
                     VK_PIPELINE_STAGE_TRANSFER_BIT,
-                    VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+                    VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT);
 
             }
 
+            Utils::setImageLayout(drawCmdBuffers.getActiveBuffer(), m_offscreenFramebuffer.resolvedImage->image(),
+                      VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, subresourceRange,
+                      VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+
+            Utils::setImageLayout(drawCmdBuffers.getActiveBuffer(), m_offscreenFramebuffer.resolvedDepthImage->image(),
+                                  VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+                                  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, depthSubresourceRange,
+                                  VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+
+
+
             if (drawCmdBuffers.isEventSet("CopyBufferEvent", m_context->vkDevice().m_LogicalDevice)) {
                 // Map memory and save image to a file
+                /*
                 void *data;
                 vkMapMemory(m_context->vkDevice().m_LogicalDevice, m_copyDataBuffer.memory, 0,
-                            m_offscreenFramebuffer.resolvedImage->getImageSizeRBGA(), 0, &data);
+                            m_offscreenFramebuffer.resolvedDepthImage->getImageSizeRBGA(), 0, &data);
                 // Assuming the image is in RGBA format (4 channels) and that data is a pointer to the pixel data
                 int width = m_createInfo.width;
                 int height = m_createInfo.height;
@@ -261,12 +251,39 @@ namespace VkRender {
                     }
                 }
                 stbi_write_png(filePath.string().c_str(), width, height, channels, rgbData, width * channels);
-                Log::Logger::getInstance()->info("Writing png image to: {}", filePath.string().c_str());
+                */
+                void *data;
+                vkMapMemory(m_context->vkDevice().m_LogicalDevice, m_copyDataBuffer.memory, 0,
+                            m_offscreenFramebuffer.resolvedDepthImage->getImageSizeRBGA(), 0, &data);
 
-                // Clean up
-                delete[] rgbData;
+                int width = m_createInfo.width;
+                int height = m_createInfo.height;
+                int channels = 1; // Grayscale, single-channel
+                float *depthData = static_cast<float *>(data);
+
+                // Optional: Normalize depth data to fit into an 8-bit format for visualization
+                uint8_t *grayscaleData = new uint8_t[width * height];
+                for (int i = 0; i < width * height; i++) {
+                    auto depthValue = static_cast<float>(depthData[i]);
+                    grayscaleData[i] = static_cast<uint8_t>(depthValue * 255.0f); // Scale to 0-255
+                }
+
+                std::filesystem::path filePath = "output_depth.png";
+                if (!exists(filePath.parent_path())) {
+                    try {
+                        create_directories(filePath.parent_path());
+                    } catch (std::exception &e) {
+                        // Handle the error (e.g., log it)
+                    }
+                }
+                // Save as a grayscale PNG
+                stbi_write_png(filePath.string().c_str(), width, height, channels, grayscaleData, width * channels);
+                Log::Logger::getInstance()->info("Writing png image to: {}", filePath.string().c_str());
                 vkUnmapMemory(m_context->vkDevice().m_LogicalDevice, m_copyDataBuffer.memory);
                 drawCmdBuffers.resetEvent("CopyBufferEvent", m_context->vkDevice().m_LogicalDevice);
+
+                vkDestroyBuffer(m_context->vkDevice().m_LogicalDevice, m_copyDataBuffer.buffer, nullptr);
+                vkFreeMemory(m_context->vkDevice().m_LogicalDevice, m_copyDataBuffer.memory, nullptr);
 
             }
         }

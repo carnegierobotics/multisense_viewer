@@ -41,6 +41,7 @@ struct CommandBuffer {
         return buffers;
     }
 
+    // TODO destroy events during runtime if not in use anymore
     // Function to create or get an event by tag
     void createEvent(const std::string& tag, VkDevice device) {
         if (m_eventMap.find(tag) == m_eventMap.end()) {
@@ -73,7 +74,7 @@ struct CommandBuffer {
     // Function to reset an event by tag
     void resetEvent(const std::string& tag, VkDevice device) {
         if (m_eventMap.find(tag) != m_eventMap.end()) {
-            vkResetEvent(device, m_eventMap[tag]);
+            vkDestroyEvent(device, m_eventMap[tag], nullptr);
             m_eventMap.erase(tag);
         }
     }
@@ -87,6 +88,8 @@ struct CommandBuffer {
         }
         return false;
     }
+
+    std::unordered_map<std::string, VkEvent>& events(){return m_eventMap;}
 private:
     std::vector<VkCommandBuffer> buffers;
     std::unordered_map<std::string, VkEvent> m_eventMap;

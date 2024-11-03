@@ -19,13 +19,32 @@ namespace VkRender {
         addUI("DebugWindow");
         addUI("Editor3DLayer");
         addUIData<Editor3DViewportUI>();
-        setupDescriptors();
+
+        std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
+            {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+            {
+                1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT |
+                VK_SHADER_STAGE_FRAGMENT_BIT,
+                nullptr
+            },
+        };
+        m_descriptorSetManager = std::make_unique<DescriptorSetManager>(m_context->vkDevice(), setLayoutBindings);
+
         m_editorCamera = std::make_shared<Camera>(m_createInfo.width, m_createInfo.height);
         m_sceneRenderer = m_context->getOrAddSceneRendererByUUID(uuid, m_createInfo);
         VulkanTexture2DCreateInfo textureCreateInfo(m_context->vkDevice());
         textureCreateInfo.image = m_sceneRenderer->getOffscreenFramebuffer().resolvedImage;
         m_colorTexture = std::make_shared<VulkanTexture2D>(textureCreateInfo);
-        updateDescriptor(m_colorTexture->getDescriptorInfo());
+
+        m_shaderSelectionBuffer.resize(m_context->swapChainBuffers().size());
+        for (auto& frameIndex : m_shaderSelectionBuffer) {
+            m_context->vkDevice().createBuffer(
+                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                frameIndex,
+                sizeof(int32_t), nullptr, "Editor3DViewport:ShaderSelectionBuffer",
+                m_context->getDebugUtilsObjectNameFunction());
+        }
     }
 
     void Editor3DViewport::onEditorResize() {
@@ -48,22 +67,9 @@ namespace VkRender {
         }
         else if (imageUI->selectedImageType == OutputTextureImageType::Depth) {
             textureCreateInfo.image = m_sceneRenderer->getOffscreenFramebuffer().resolvedDepthImage;
-
-            switch (imageUI->depthColorOption) {
-            case DepthColorOption::Invert:
-                break;
-            case DepthColorOption::Normalize:
-                break;
-            case DepthColorOption::JetColormap:
-                break;
-            case DepthColorOption::ViridisColormap:
-                break;
-            }
         }
 
         m_colorTexture = std::make_shared<VulkanTexture2D>(textureCreateInfo);
-        updateDescriptor(m_colorTexture->getDescriptorInfo());
-
     }
 
     void Editor3DViewport::onSceneLoad(std::shared_ptr<Scene> scene) {
@@ -96,13 +102,23 @@ namespace VkRender {
 
         m_sceneRenderer->m_saveNextFrame = imageUI->saveNextFrame;
 
+
+        auto frameIndex = m_context->currentFrameIndex();
+        // Map and copy data to the global uniform buffer
+
+        void* data;
+        vkMapMemory(m_context->vkDevice().m_LogicalDevice,
+                    m_shaderSelectionBuffer[frameIndex]->m_memory, 0, sizeof(int32_t), 0, &data);
+        memcpy(data, &imageUI->depthColorOption, sizeof(int32_t));
+        vkUnmapMemory(m_context->vkDevice().m_LogicalDevice, m_shaderSelectionBuffer[frameIndex]->m_memory);
+
         m_sceneRenderer->update();
     }
 
 
     void Editor3DViewport::onRender(CommandBuffer& commandBuffer) {
         std::unordered_map<std::shared_ptr<DefaultGraphicsPipeline>, std::vector<RenderCommand>> renderGroups;
-        collectRenderCommands(renderGroups);
+        collectRenderCommands(renderGroups, commandBuffer.frameIndex);
 
         // Render each group
         for (auto& [pipeline, commands] : renderGroups) {
@@ -115,8 +131,8 @@ namespace VkRender {
     }
 
     void Editor3DViewport::collectRenderCommands(
-        std::unordered_map<std::shared_ptr<DefaultGraphicsPipeline>, std::vector<RenderCommand>>& renderGroups) {
-
+        std::unordered_map<std::shared_ptr<DefaultGraphicsPipeline>, std::vector<RenderCommand>>& renderGroups,
+        uint32_t frameIndex) {
         if (!m_meshInstances) {
             m_meshInstances = setupMesh();
             Log::Logger::getInstance()->info("Created MeshInstance for 3DViewport");
@@ -125,20 +141,30 @@ namespace VkRender {
             return;
 
         PipelineKey key = {};
-        key.setLayouts.push_back(m_descriptorSetLayout); // Use default descriptor set layout
+
+        // Prepare descriptor writes based on your texture or other resources
+        std::array<VkWriteDescriptorSet, 2> writeDescriptors{};
+        writeDescriptors[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        writeDescriptors[0].dstBinding = 0; // Binding index
+        writeDescriptors[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        writeDescriptors[0].descriptorCount = 1;
+        writeDescriptors[0].pImageInfo = &m_colorTexture->getDescriptorInfo();
+        writeDescriptors[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        writeDescriptors[1].dstBinding = 1; // Binding index
+        writeDescriptors[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        writeDescriptors[1].descriptorCount = 1;
+        writeDescriptors[1].pBufferInfo = &m_shaderSelectionBuffer[frameIndex]->m_descriptorBufferInfo;
+
+        std::vector<VkWriteDescriptorSet> descriptorWrites = {writeDescriptors[0], writeDescriptors[1]};
+        // Get or create the descriptor set using the DescriptorSetManager
+        VkDescriptorSet descriptorSet = m_descriptorSetManager->getOrCreateDescriptorSet(descriptorWrites);
+
+        key.setLayouts.emplace_back(m_descriptorSetManager->getDescriptorSetLayout());
+        // Use default descriptor set layout
         key.vertexShaderName = "default2D.vert";
-        std::string shadername;
-        auto imageUI = std::dynamic_pointer_cast<Editor3DViewportUI>(m_ui);
-        if (imageUI->selectedImageType == OutputTextureImageType::Color) {
-            shadername = "default2D.frag";
-        }
-        else if (imageUI->selectedImageType == OutputTextureImageType::Depth) {
-            shadername = "default2DGray.frag";
-        }
-        key.fragmentShaderName = shadername;
+        key.fragmentShaderName = "default2D.frag";
         key.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         key.polygonMode = VK_POLYGON_MODE_FILL;
-
 
         VkVertexInputBindingDescription vertexInputBinding = {0, sizeof(ImageVertex), VK_VERTEX_INPUT_RATE_VERTEX};
         std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
@@ -157,6 +183,8 @@ namespace VkRender {
         RenderCommand command;
         command.pipeline = pipeline;
         command.meshInstance = m_meshInstances.get();
+        command.descriptorSets = descriptorSet; // Assign the descriptor set
+
         // Add to render group
         renderGroups[pipeline].push_back(command);
     }
@@ -177,7 +205,7 @@ namespace VkRender {
         }
 
         vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                           command.pipeline->pipeline()->getPipeline());
+                          command.pipeline->pipeline()->getPipeline());
 
         vkCmdBindDescriptorSets(
             cmdBuffer,
@@ -185,7 +213,7 @@ namespace VkRender {
             command.pipeline->pipeline()->getPipelineLayout(),
             0, // Set 0 (entity descriptor set)
             1,
-            &m_descriptorSets[frameIndex],
+            &command.descriptorSets,
             0,
             nullptr
         );
@@ -220,71 +248,6 @@ namespace VkRender {
         }
     }
 
-    void Editor3DViewport::setupDescriptors() {
-        uint32_t numSwapchainImages = m_context->swapChainBuffers().size();
-
-        std::vector<VkDescriptorPoolSize> poolSizes = {
-            {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, numSwapchainImages * 2},
-            {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, numSwapchainImages * 2},
-        };
-
-        VkDescriptorPoolCreateInfo descriptorPoolCI{};
-        descriptorPoolCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        descriptorPoolCI.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-        descriptorPoolCI.pPoolSizes = poolSizes.data();
-        descriptorPoolCI.maxSets = numSwapchainImages * static_cast<uint32_t>(poolSizes.size());
-        CHECK_RESULT(
-            vkCreateDescriptorPool(m_context->vkDevice().m_LogicalDevice, &descriptorPoolCI, nullptr, &m_descriptorPool
-            ));
-
-
-        // Scene (matrices and environment maps)
-        {
-            std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
-                {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-                {
-                    1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT |
-                    VK_SHADER_STAGE_FRAGMENT_BIT,
-                    nullptr
-                },
-            };
-            VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCI{};
-            descriptorSetLayoutCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-            descriptorSetLayoutCI.pBindings = setLayoutBindings.data();
-            descriptorSetLayoutCI.bindingCount = static_cast<uint32_t>(setLayoutBindings.size());
-            CHECK_RESULT(
-                vkCreateDescriptorSetLayout(m_context->vkDevice().m_LogicalDevice, &descriptorSetLayoutCI,
-                    nullptr,
-                    &m_descriptorSetLayout));
-
-            m_descriptorSets.resize(numSwapchainImages);
-            for (size_t i = 0; i < numSwapchainImages; i++) {
-                VkDescriptorSetAllocateInfo descriptorSetAllocInfo{};
-                descriptorSetAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-                descriptorSetAllocInfo.descriptorPool = m_descriptorPool;
-                descriptorSetAllocInfo.pSetLayouts = &m_descriptorSetLayout;
-                descriptorSetAllocInfo.descriptorSetCount = 1;
-                VkResult res = vkAllocateDescriptorSets(m_context->vkDevice().m_LogicalDevice, &descriptorSetAllocInfo,
-                                                        &m_descriptorSets[i]);
-                if (res != VK_SUCCESS)
-                    throw std::runtime_error("Failed to allocate descriptor sets");
-
-            }
-        }
-    }
-
-    void Editor3DViewport::updateDescriptor(const VkDescriptorImageInfo &info) {
-        VkWriteDescriptorSet writeDescriptorSets{};
-        for (const auto &descriptor: m_descriptorSets) {
-            writeDescriptorSets.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            writeDescriptorSets.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            writeDescriptorSets.descriptorCount = 1;
-            writeDescriptorSets.dstSet = descriptor;
-            writeDescriptorSets.dstBinding = 0;
-            writeDescriptorSets.pImageInfo = &info;
-            vkUpdateDescriptorSets(m_context->vkDevice().m_LogicalDevice, 1, &writeDescriptorSets, 0, nullptr);
-        }
-    }
 
     std::shared_ptr<MeshInstance> Editor3DViewport::setupMesh() {
         std::vector<VkRender::ImageVertex> vertices = {

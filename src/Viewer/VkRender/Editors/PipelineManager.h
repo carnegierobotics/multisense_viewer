@@ -19,6 +19,8 @@ namespace VkRender {
         MeshInstance* meshInstance = nullptr;             // GPU-specific mesh data
         MaterialInstance* materialInstance = nullptr;  // GPU-specific material data
         PointCloudInstance* pointCloudInstance = nullptr;  // GPU-specific material data
+        VkDescriptorSet descriptorSets; // Add the descriptor set here
+
     };
 
     class PipelineManager {

@@ -91,6 +91,7 @@ namespace VkRender {
                         if (ImGui::MenuItem("Save Scene", nullptr)) {
                             SceneSerializer serializer(m_context->activeScene());
                             serializer.serialize(userSetting.lastActiveScenePath);
+                            userSetting.assetsPath = userSetting.lastActiveScenePath.parent_path();
                         }
                     }
                     if (ImGui::MenuItem("Save Scene As..", nullptr)) {
@@ -145,6 +146,7 @@ namespace VkRender {
                             serializer.deserialize(loadFileInfo.path);
                             auto &userSetting = ApplicationConfig::getInstance().getUserSetting();
                             userSetting.lastActiveScenePath = loadFileInfo.path;
+                            userSetting.assetsPath = loadFileInfo.path.parent_path();
                         }
                     }
                         break;
@@ -156,6 +158,7 @@ namespace VkRender {
                             SceneSerializer serializer(scene);
                             serializer.serialize(path);
                             userSetting.lastActiveScenePath = path;
+                            userSetting.assetsPath = path.parent_path();
                         }
                     }
                         break;

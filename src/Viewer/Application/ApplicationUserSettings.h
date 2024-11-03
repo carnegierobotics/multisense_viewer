@@ -22,6 +22,7 @@ namespace VkRender::AppConfig {
         std::filesystem::path lastOpenedImportModelFolderPath;
         std::string projectName;
         std::filesystem::path lastActiveScenePath;
+        std::filesystem::path assetsPath;
 
     };
 }

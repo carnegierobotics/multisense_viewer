@@ -19,7 +19,6 @@ namespace VkRender {
         MeshInstance* meshInstance = nullptr;             // GPU-specific mesh data
         MaterialInstance* materialInstance = nullptr;  // GPU-specific material data
         PointCloudInstance* pointCloudInstance = nullptr;  // GPU-specific material data
-        TransformComponent* transform = nullptr; // ECS component with world transform
     };
 
     class PipelineManager {

@@ -313,11 +313,8 @@ void VulkanSwapchain::cleanup()
 }
 
 VulkanSwapchain::VulkanSwapchain(VkRender::SwapChainCreateInfo info, uint32_t *width, uint32_t *height) {
-    VkResult res = glfwCreateWindowSurface(info.instance, info.pWindow, nullptr, &surface);
-    if (res != VK_SUCCESS) {
-        throw std::runtime_error("failed to create window surface!");
+    CHECK_RESULT(glfwCreateWindowSurface(info.instance, info.pWindow, nullptr, &surface));
 
-    }
 
     // Get avilable queue familty m_Properties
     uint32_t queueCount;

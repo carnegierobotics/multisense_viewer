@@ -6,6 +6,7 @@
 
 #include "Viewer/Scenes/SceneSerializer.h"
 
+#include <Viewer/Application/ApplicationConfig.h>
 #include <Viewer/VkRender/Components/MaterialComponent.h>
 
 #include "Viewer/VkRender/Core/Entity.h"
@@ -470,10 +471,10 @@ namespace VkRender {
                     camera.camera->updateProjectionMatrix();
 
                 }
-
                 auto meshComponent = entity["MeshComponent"];
                 if (meshComponent) {
                     std::filesystem::path path(meshComponent["ModelPath"].as<std::string>());
+
                     MeshDataType meshDataType = Serialize::stringToMeshDataType(
                             meshComponent["MeshDataType"].as<std::string>());
 

@@ -26,6 +26,10 @@ namespace VkRender {
         VkPrimitiveTopology topology = VK_PRIMITIVE_TOPOLOGY_MAX_ENUM;
         VkPolygonMode polygonMode = VK_POLYGON_MODE_MAX_ENUM;
         uint64_t* materialPtr = nullptr;
+
+        VkVertexInputBindingDescription vertexInputBindingDescriptions = {}; // TODO include in hash
+        std::vector<VkVertexInputAttributeDescription> vertexInputAttributes; // TODO include in hash
+        bool useCustomVertexInputBindings = false;
         bool operator==(const PipelineKey& other) const;
     };
 

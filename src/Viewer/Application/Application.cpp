@@ -63,6 +63,7 @@ namespace VkRender {
         if (std::filesystem::exists(userSetting.lastActiveScenePath)) {
             SceneSerializer serializer(scene);
             serializer.deserialize(userSetting.lastActiveScenePath);
+            userSetting.assetsPath = userSetting.lastActiveScenePath.parent_path();
         }
 
         VulkanRenderPassCreateInfo passCreateInfo(m_vulkanDevice, &m_allocator);

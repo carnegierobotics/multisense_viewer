@@ -51,7 +51,7 @@
 #endif
 
 namespace VkRender {
-    VulkanRenderer::VulkanRenderer(const std::string &title) {
+    VulkanRenderer::VulkanRenderer(const std::string& title) {
 #ifdef VKRENDER_MULTISENSE_VIEWER_PRODUCTION
         m_settings.validation = false;
 #else
@@ -63,8 +63,8 @@ namespace VkRender {
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
         glfwWindowHint(GLFW_DECORATED, GLFW_TRUE);
-        glfwWindowHint(GLFW_VISIBLE , GLFW_TRUE);
-        glfwWindowHint(GLFW_MAXIMIZED  , GLFW_TRUE);
+        glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
+        glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
 
         const auto& monitor = glfwGetPrimaryMonitor();
         const GLFWvidmode* mode = glfwGetVideoMode(monitor);
@@ -75,9 +75,9 @@ namespace VkRender {
         glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate);
 
 
-
-        window = glfwCreateWindow(static_cast<int>(mode->width), static_cast<int>(mode->height), title.c_str(), nullptr, nullptr);
-        if (!window){
+        window = glfwCreateWindow(static_cast<int>(mode->width), static_cast<int>(mode->height), title.c_str(), nullptr,
+                                  nullptr);
+        if (!window) {
             throw std::runtime_error("Failed to create glfw surface");
         }
         int windowWidth, windowHeight;
@@ -110,8 +110,6 @@ namespace VkRender {
         }
         glfwSetWindowIcon(window, 1, images);
         stbi_image_free(images[0].pixels);
-
-
     }
 
     VkResult VulkanRenderer::createInstance(bool enableValidation) {
@@ -122,26 +120,19 @@ namespace VkRender {
         appInfo.pEngineName = m_name.c_str();
         appInfo.apiVersion = apiVersion;
         Log::Logger::getInstance()->info("Setting up vulkan with API Version: {}.{}.{}",
-                       VK_API_VERSION_MAJOR(apiVersion), VK_API_VERSION_MINOR(apiVersion),
-                       VK_API_VERSION_PATCH(apiVersion));
+                                         VK_API_VERSION_MAJOR(apiVersion), VK_API_VERSION_MINOR(apiVersion),
+                                         VK_API_VERSION_PATCH(apiVersion));
         // Get extensions supported by the instance
         uint32_t glfwExtensionCount = 0;
-        const char **glfwExtensions;
+        const char** glfwExtensions;
         glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-        std::vector<const char *> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+        std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
         if (m_settings.validation) {
             extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
         }
+        extensions.emplace_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+        extensions.emplace_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
         enabledInstanceExtensions = extensions;
-
-
-        std::vector<const char *> instanceExtensions = {
-                VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
-                VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME
-        };
-        enabledInstanceExtensions.insert(enabledInstanceExtensions.end(), instanceExtensions.begin(),
-                                         instanceExtensions.end());
-
         // Check if extensions are supported
         if (!checkInstanceExtensionSupport(enabledInstanceExtensions))
             throw std::runtime_error("Instance Extensions not supported");
@@ -154,7 +145,7 @@ namespace VkRender {
             instanceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(enabledInstanceExtensions.size());
             instanceCreateInfo.ppEnabledExtensionNames = enabledInstanceExtensions.data();
         }
-        const std::vector<const char *> validationLayers = {"VK_LAYER_KHRONOS_validation"};
+        const std::vector<const char*> validationLayers = {"VK_LAYER_KHRONOS_validation"};
         // The VK_LAYER_KHRONOS_validation contains all current validation functionality.
 #ifdef VKRENDER_MULTISENSE_VIEWER_DEBUG
         if (m_settings.validation) {
@@ -163,9 +154,10 @@ namespace VkRender {
                 instanceCreateInfo.ppEnabledLayerNames = validationLayers.data();
                 instanceCreateInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
                 Log::Logger::getInstance()->info("Enabling Validation Layers");
-                m_setDebugUtilsObjectNameEXT = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(vkGetInstanceProcAddr(instance, "vkSetDebugUtilsObjectNameEXT"));
-
-            } else {
+                m_setDebugUtilsObjectNameEXT = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(vkGetInstanceProcAddr(
+                    instance, "vkSetDebugUtilsObjectNameEXT"));
+            }
+            else {
                 std::cerr << "Validation layer VK_LAYER_KHRONOS_validation not present, validation is disabled\n";
                 Log::Logger::getInstance()->info("Disabled Validation Layers since it was not found");
             }
@@ -194,8 +186,8 @@ namespace VkRender {
                 VK_SUCCESS) {
                 throw std::runtime_error("failed to set up debug messenger!");
             }
-            m_setDebugUtilsObjectNameEXT = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(vkGetInstanceProcAddr(instance, "vkSetDebugUtilsObjectNameEXT"));
-
+            m_setDebugUtilsObjectNameEXT = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(vkGetInstanceProcAddr(
+                instance, "vkSetDebugUtilsObjectNameEXT"));
         }
 
 #endif
@@ -239,7 +231,8 @@ namespace VkRender {
         if (features.samplerYcbcrConversion) {
             //enabledDeviceExtensions.push_back(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME);
             //VkRender::RendererConfig::getInstance().addEnabledExtension(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME);
-        } else {
+        }
+        else {
             Log::Logger::getInstance()->error("YCBCR Sampler Extension support not found!");
         }
 
@@ -266,14 +259,14 @@ namespace VkRender {
 
         VmaAllocatorCreateInfo allocatorCreateInfo = {};
         allocatorCreateInfo.flags = VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT;
-        allocatorCreateInfo.vulkanApiVersion = VK_API_VERSION_1_1;
+        allocatorCreateInfo.vulkanApiVersion = apiVersion;
         allocatorCreateInfo.physicalDevice = physicalDevice;
         allocatorCreateInfo.device = device;
         allocatorCreateInfo.instance = instance;
         allocatorCreateInfo.pVulkanFunctions = &vulkanFunctions;
 
         allocatorCreateInfo.flags =
-                VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT | VMA_ALLOCATOR_CREATE_KHR_DEDICATED_ALLOCATION_BIT;
+            VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT | VMA_ALLOCATOR_CREATE_KHR_DEDICATED_ALLOCATION_BIT;
 
         VkResult result = vmaCreateAllocator(&allocatorCreateInfo, &m_allocator);
         if (result != VK_SUCCESS) {
@@ -283,9 +276,7 @@ namespace VkRender {
     }
 
     VulkanRenderer::~VulkanRenderer() {
-
-
-        for (auto &fb: m_frameBuffers) {
+        for (auto& fb : m_frameBuffers) {
             vkDestroyFramebuffer(device, fb, nullptr);
         }
 
@@ -298,15 +289,15 @@ namespace VkRender {
 
         vkDestroyCommandPool(device, cmdPool, nullptr);
         vkDestroyCommandPool(device, cmdPoolCompute, nullptr);
-        for (auto &fence: waitFences) {
+        for (auto& fence : waitFences) {
             vkDestroyFence(device, fence, nullptr);
         }
-        for (auto &fence: computeInFlightFences) {
+        for (auto& fence : computeInFlightFences) {
             vkDestroyFence(device, fence, nullptr);
         }
 
         vkDestroyPipelineCache(device, pipelineCache, nullptr);
-        for (auto &semaphore: semaphores) {
+        for (auto& semaphore : semaphores) {
             vkDestroySemaphore(device, semaphore.presentComplete, nullptr);
             vkDestroySemaphore(device, semaphore.renderComplete, nullptr);
             vkDestroySemaphore(device, semaphore.computeComplete, nullptr);
@@ -316,14 +307,15 @@ namespace VkRender {
         if (m_settings.validation)
             Validation::DestroyDebugUtilsMessengerEXT(instance, debugUtilsMessenger, nullptr);
         // Write to file
-        char *statsString;
+        char* statsString;
         vmaBuildStatsString(m_allocator, &statsString, VK_TRUE);
         std::string filePath = "./vma_stats.json";
         std::ofstream file(filePath);
         if (!file) {
             Log::Logger::getInstance()->error("Failed to open file for writing VMA stats: {}", filePath);
             vmaFreeStatsString(m_allocator, statsString);
-        } else {
+        }
+        else {
             file << statsString;
             file.close();
         }
@@ -374,10 +366,10 @@ namespace VkRender {
         drawCmdBuffers = CommandBuffer(swapchain->imageCount);;
 
         VkCommandBufferAllocateInfo cmdBufAllocateInfo =
-                Populate::commandBufferAllocateInfo(
-                        cmdPool,
-                        VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-                        static_cast<uint32_t>(drawCmdBuffers.getBuffers().size()));
+            Populate::commandBufferAllocateInfo(
+                cmdPool,
+                VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+                static_cast<uint32_t>(drawCmdBuffers.getBuffers().size()));
 
         VkResult result = vkAllocateCommandBuffers(device, &cmdBufAllocateInfo, drawCmdBuffers.getBuffers().data());
         if (result != VK_SUCCESS) throw std::runtime_error("Failed to allocate command buffers");
@@ -387,9 +379,9 @@ namespace VkRender {
         computeCommand = CommandBuffer(swapchain->imageCount);;
 
         VkCommandBufferAllocateInfo cmdBufAllocateComputeInfo = Populate::commandBufferAllocateInfo(
-                cmdPoolCompute,
-                VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-                static_cast<uint32_t>(computeCommand.getBuffers().size()));
+            cmdPoolCompute,
+            VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+            static_cast<uint32_t>(computeCommand.getBuffers().size()));
 
         result = vkAllocateCommandBuffers(device, &cmdBufAllocateComputeInfo, computeCommand.getBuffers().data());
         if (result != VK_SUCCESS) throw std::runtime_error("Failed to allocate command buffers");
@@ -418,7 +410,6 @@ namespace VkRender {
                 vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphores[i].computeComplete) != VK_SUCCESS)
                 throw std::runtime_error("Failed to create compute synchronization fence");
         }
-
     }
 
 
@@ -454,7 +445,6 @@ namespace VkRender {
         createDepthStencil();
 
         createMainRenderPass();
-
     }
 
 
@@ -468,7 +458,7 @@ namespace VkRender {
     void VulkanRenderer::windowResize() {
         int32_t prevWidth = static_cast<int32_t>(m_width);
         int32_t prevHeight = static_cast<int32_t>(m_height);
-        glfwGetFramebufferSize(window, reinterpret_cast<int *>(&m_width), reinterpret_cast<int *>(&m_height));
+        glfwGetFramebufferSize(window, reinterpret_cast<int*>(&m_width), reinterpret_cast<int*>(&m_height));
         int32_t widthChanged = static_cast<int32_t>(m_width) - prevWidth;
         int32_t heightChanged = static_cast<int32_t>(m_height) - prevHeight;
         double widthScale = static_cast<double>(m_width) / static_cast<double>(prevWidth);
@@ -477,7 +467,7 @@ namespace VkRender {
         // Suspend application while it is in minimized state
         // Also unsignal semaphore for presentation because we are recreating the swapchain
         while (m_width == 0 || m_height == 0) {
-            glfwGetFramebufferSize(window, reinterpret_cast<int *>(&m_width), reinterpret_cast<int *>(&m_height));
+            glfwGetFramebufferSize(window, reinterpret_cast<int*>(&m_width), reinterpret_cast<int*>(&m_height));
             glfwWaitEvents();
         }
         // Ensure all operations on the m_Device have been finished before destroying resources
@@ -490,7 +480,7 @@ namespace VkRender {
         VkSemaphoreCreateInfo semaphoreCreateInfo = Populate::semaphoreCreateInfo();
         // Create a semaphore used to synchronize m_Image presentation
         // Ensures that the m_Image is displayed before we start submitting new commands to the queue
-        for (auto &semaphore: semaphores) {
+        for (auto& semaphore : semaphores) {
             vkDestroySemaphore(device, semaphore.presentComplete, nullptr);
             VkResult err = vkCreateSemaphore(device, &semaphoreCreateInfo, nullptr, &semaphore.presentComplete);
             if (err != VK_SUCCESS)
@@ -500,7 +490,7 @@ namespace VkRender {
         Log::Logger::getInstance()->info("Window Resized. New size is: {} x {}", m_width, m_height);
 
         // Notify derived class
-        for (auto &fb: m_frameBuffers) {
+        for (auto& fb : m_frameBuffers) {
             vkDestroyFramebuffer(device, fb, nullptr);
         }
 
@@ -520,7 +510,6 @@ namespace VkRender {
     void VulkanRenderer::renderLoop() {
         auto graphLastTimestamp = std::chrono::high_resolution_clock::now();
         while (!glfwWindowShouldClose(window)) {
-
             auto tStart = std::chrono::high_resolution_clock::now();
             frameID++; // First frame will have id 1.
             glfwPollEvents();
@@ -548,7 +537,7 @@ namespace VkRender {
                 graphLastTimestamp = tEnd;
             }
             auto tDiff = std::chrono::duration<double, std::milli>(
-                    std::chrono::high_resolution_clock::now() - tStart).count();
+                std::chrono::high_resolution_clock::now() - tStart).count();
             frameTimer = static_cast<float>(tDiff) / 1000.0f;
 
             postRenderActions();
@@ -586,12 +575,13 @@ namespace VkRender {
             VkResult res = swapchain->acquireNextImage(semaphores[currentFrame].presentComplete, &imageIndex);
             if (res != VK_SUCCESS) {
                 throw std::runtime_error(
-                        "Failed to acquire next m_Image in prepareFrame after windowresize. VkResult: " +
-                        std::to_string(result));
+                    "Failed to acquire next m_Image in prepareFrame after windowresize. VkResult: " +
+                    std::to_string(result));
             }
-        } else if (result != VK_SUCCESS)
+        }
+        else if (result != VK_SUCCESS)
             throw std::runtime_error(
-                    "Failed to acquire next m_Image in prepareFrame. VkResult: " + std::to_string(result));
+                "Failed to acquire next m_Image in prepareFrame. VkResult: " + std::to_string(result));
 
         result = vkResetFences(device, 1, &waitFences[currentFrame]);
         if (result != VK_SUCCESS)
@@ -605,19 +595,18 @@ namespace VkRender {
     }
 
     void VulkanRenderer::submitFrame() {
-
         std::unique_lock<std::mutex> lock(queueSubmitMutex);
         VkSemaphore waitSemaphores[] = {
-                //semaphores[currentFrame].computeComplete,
-                semaphores[currentFrame].presentComplete,
-                //updateVulkan
+            //semaphores[currentFrame].computeComplete,
+            semaphores[currentFrame].presentComplete,
+            //updateVulkan
         };
         VkPipelineStageFlags waitStages[] = {
-                VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
-                VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+            VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
         };
         VkSemaphore signalSemaphores[] = {
-                semaphores[currentFrame].renderComplete,
+            semaphores[currentFrame].renderComplete,
         };
 
         auto activeBuffer = drawCmdBuffers.getActiveBuffer();
@@ -636,9 +625,10 @@ namespace VkRender {
         if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR) {
             // Swap chain is no longer compatible with the surface and needs to be recreated
             Log::Logger::getInstance()->warning(
-                    "SwapChain no longer compatible on graphicsQueue present. Will recreate on next frame");
+                "SwapChain no longer compatible on graphicsQueue present. Will recreate on next frame");
             recreateResourcesNextFrame = true;
-        } else if (result != VK_SUCCESS) {
+        }
+        else if (result != VK_SUCCESS) {
             Log::Logger::getInstance()->error("Suboptimal Surface: Failed to acquire next m_Image. VkResult: {}",
                                               std::to_string(result));
         }
@@ -646,7 +636,6 @@ namespace VkRender {
 
         currentFrame = (currentFrame + 1) % swapchain->imageCount;
         drawCmdBuffers.frameIndex = currentFrame;
-
     }
 
     /** CALLBACKS **/
@@ -657,31 +646,30 @@ namespace VkRender {
         }
     }
 
-    void VulkanRenderer::resizeCallback(GLFWwindow *window, int width, int height) {
-        auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
+    void VulkanRenderer::resizeCallback(GLFWwindow* window, int width, int height) {
+        auto* myApp = static_cast<VulkanRenderer*>(glfwGetWindowUserPointer(window));
         if (width > 0 || height > 0) {
             if (myApp->m_width != width || myApp->m_height != height)
                 myApp->setWindowSize(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
         }
     }
 
-    void VulkanRenderer::charCallback(GLFWwindow *window, unsigned int codepoint) {
-        auto *ctx = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
+    void VulkanRenderer::charCallback(GLFWwindow* window, unsigned int codepoint) {
+        auto* ctx = static_cast<VulkanRenderer*>(glfwGetWindowUserPointer(window));
         ctx->onCharInput(codepoint);
     }
 
     void VulkanRenderer::dropCallback(GLFWwindow* window, int count, const char** paths) {
-        auto *ctx = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
-        for (int i = 0; i < count; i++)
-        {
+        auto* ctx = static_cast<VulkanRenderer*>(glfwGetWindowUserPointer(window));
+        for (int i = 0; i < count; i++) {
             std::string path = paths[i];
             Log::Logger::getInstance()->info("File dropped: {}", path);
             ctx->onFileDrop(path);
         }
     }
 
-    void VulkanRenderer::keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
-        auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
+    void VulkanRenderer::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+        auto* myApp = static_cast<VulkanRenderer*>(glfwGetWindowUserPointer(window));
         if ((key == GLFW_KEY_ESCAPE) && action == GLFW_PRESS) {
             Log::Logger::getInstance()->info("Escape key registered");
             myApp->closeApplication();
@@ -695,44 +683,44 @@ namespace VkRender {
 
         if (action == GLFW_PRESS) {
             switch (key) {
-                case GLFW_KEY_W:
-                case GLFW_KEY_UP:
-                    myApp->input.keys.up = true;
-                    break;
-                case GLFW_KEY_S:
-                case GLFW_KEY_DOWN:
-                    myApp->input.keys.down = true;
-                    break;
-                case GLFW_KEY_A:
-                case GLFW_KEY_LEFT:
-                    myApp->input.keys.left = true;
-                    break;
-                case GLFW_KEY_D:
-                case GLFW_KEY_RIGHT:
-                    myApp->input.keys.right = true;
-                default:
-                    break;
+            case GLFW_KEY_W:
+            case GLFW_KEY_UP:
+                myApp->input.keys.up = true;
+                break;
+            case GLFW_KEY_S:
+            case GLFW_KEY_DOWN:
+                myApp->input.keys.down = true;
+                break;
+            case GLFW_KEY_A:
+            case GLFW_KEY_LEFT:
+                myApp->input.keys.left = true;
+                break;
+            case GLFW_KEY_D:
+            case GLFW_KEY_RIGHT:
+                myApp->input.keys.right = true;
+            default:
+                break;
             }
         }
         if (action == GLFW_RELEASE) {
             switch (key) {
-                case GLFW_KEY_W:
-                case GLFW_KEY_UP:
-                    myApp->input.keys.up = false;
-                    break;
-                case GLFW_KEY_S:
-                case GLFW_KEY_DOWN:
-                    myApp->input.keys.down = false;
-                    break;
-                case GLFW_KEY_A:
-                case GLFW_KEY_LEFT:
-                    myApp->input.keys.left = false;
-                    break;
-                case GLFW_KEY_D:
-                case GLFW_KEY_RIGHT:
-                    myApp->input.keys.right = false;
-                default:
-                    break;
+            case GLFW_KEY_W:
+            case GLFW_KEY_UP:
+                myApp->input.keys.up = false;
+                break;
+            case GLFW_KEY_S:
+            case GLFW_KEY_DOWN:
+                myApp->input.keys.down = false;
+                break;
+            case GLFW_KEY_A:
+            case GLFW_KEY_LEFT:
+                myApp->input.keys.left = false;
+                break;
+            case GLFW_KEY_D:
+            case GLFW_KEY_RIGHT:
+                myApp->input.keys.right = false;
+            default:
+                break;
             }
         }
 
@@ -743,54 +731,52 @@ namespace VkRender {
         mouseMoved(x, y);
     }
 
-    void VulkanRenderer::cursorPositionCallback(GLFWwindow *window, double xPos, double yPos) {
-        auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
+    void VulkanRenderer::cursorPositionCallback(GLFWwindow* window, double xPos, double yPos) {
+        auto* myApp = static_cast<VulkanRenderer*>(glfwGetWindowUserPointer(window));
         myApp->handleMouseMove(static_cast<float>(xPos), static_cast<float>(yPos));
-
     }
 
     DISABLE_WARNING_PUSH
     DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER
 
-    void VulkanRenderer::mouseButtonCallback(GLFWwindow *window, int button, int action, int mods) {
-        auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
+    void VulkanRenderer::mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
+        auto* myApp = static_cast<VulkanRenderer*>(glfwGetWindowUserPointer(window));
 
         if (action == GLFW_PRESS) {
             switch (button) {
-                case GLFW_MOUSE_BUTTON_RIGHT:
-                    myApp->mouse.right = true;
-                    break;
-                case GLFW_MOUSE_BUTTON_MIDDLE:
-                    myApp->mouse.middle = true;
-                    break;
-                case GLFW_MOUSE_BUTTON_LEFT:
-                    myApp->mouse.left = true;
-                    break;
-                default:
-                    break;
+            case GLFW_MOUSE_BUTTON_RIGHT:
+                myApp->mouse.right = true;
+                break;
+            case GLFW_MOUSE_BUTTON_MIDDLE:
+                myApp->mouse.middle = true;
+                break;
+            case GLFW_MOUSE_BUTTON_LEFT:
+                myApp->mouse.left = true;
+                break;
+            default:
+                break;
             }
         }
         if (action == GLFW_RELEASE) {
             switch (button) {
-                case GLFW_MOUSE_BUTTON_RIGHT:
-                    myApp->mouse.right = false;
-                    break;
-                case GLFW_MOUSE_BUTTON_MIDDLE:
-                    myApp->mouse.middle = false;
-                    break;
-                case GLFW_MOUSE_BUTTON_LEFT:
-                    myApp->mouse.left = false;
-                    break;
-                default:
-                    break;
+            case GLFW_MOUSE_BUTTON_RIGHT:
+                myApp->mouse.right = false;
+                break;
+            case GLFW_MOUSE_BUTTON_MIDDLE:
+                myApp->mouse.middle = false;
+                break;
+            case GLFW_MOUSE_BUTTON_LEFT:
+                myApp->mouse.left = false;
+                break;
+            default:
+                break;
             }
         }
         myApp->mouse.action = action;
-
     }
 
-    void VulkanRenderer::mouseScrollCallback(GLFWwindow *window, double xoffset, double yoffset) {
-        auto *myApp = static_cast<VulkanRenderer *>(glfwGetWindowUserPointer(window));
+    void VulkanRenderer::mouseScrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
+        auto* myApp = static_cast<VulkanRenderer*>(glfwGetWindowUserPointer(window));
         myApp->mouseScroll(static_cast<float>(yoffset));
     }
 
@@ -799,7 +785,7 @@ namespace VkRender {
     VkPhysicalDevice VulkanRenderer::pickPhysicalDevice(std::vector<VkPhysicalDevice> devices) const {
         if (devices.empty())
             throw std::runtime_error("No physical devices available");
-        for (auto &d: devices) {
+        for (auto& d : devices) {
             VkPhysicalDeviceProperties properties{};
             VkPhysicalDeviceFeatures features{};
             VkPhysicalDeviceMemoryProperties memoryProperties{};
@@ -823,7 +809,7 @@ namespace VkRender {
         vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
 
         VkSampleCountFlags counts = physicalDeviceProperties.limits.framebufferColorSampleCounts &
-                                    physicalDeviceProperties.limits.framebufferDepthSampleCounts;
+            physicalDeviceProperties.limits.framebufferDepthSampleCounts;
         if (counts & VK_SAMPLE_COUNT_64_BIT) { return VK_SAMPLE_COUNT_64_BIT; }
         if (counts & VK_SAMPLE_COUNT_32_BIT) { return VK_SAMPLE_COUNT_32_BIT; }
         if (counts & VK_SAMPLE_COUNT_16_BIT) { return VK_SAMPLE_COUNT_16_BIT; }
@@ -862,218 +848,218 @@ namespace VkRender {
 
     ImGuiKey VulkanRenderer::ImGui_ImplGlfw_KeyToImGuiKey(int key) {
         switch (key) {
-            case GLFW_KEY_TAB:
-                return ImGuiKey_Tab;
-            case GLFW_KEY_LEFT:
-                return ImGuiKey_LeftArrow;
-            case GLFW_KEY_RIGHT:
-                return ImGuiKey_RightArrow;
-            case GLFW_KEY_UP:
-                return ImGuiKey_UpArrow;
-            case GLFW_KEY_DOWN:
-                return ImGuiKey_DownArrow;
-            case GLFW_KEY_PAGE_UP:
-                return ImGuiKey_PageUp;
-            case GLFW_KEY_PAGE_DOWN:
-                return ImGuiKey_PageDown;
-            case GLFW_KEY_HOME:
-                return ImGuiKey_Home;
-            case GLFW_KEY_END:
-                return ImGuiKey_End;
-            case GLFW_KEY_INSERT:
-                return ImGuiKey_Insert;
-            case GLFW_KEY_DELETE:
-                return ImGuiKey_Delete;
-            case GLFW_KEY_BACKSPACE:
-                return ImGuiKey_Backspace;
-            case GLFW_KEY_SPACE:
-                return ImGuiKey_Space;
-            case GLFW_KEY_ENTER:
-                return ImGuiKey_Enter;
-            case GLFW_KEY_ESCAPE:
-                return ImGuiKey_Escape;
-            case GLFW_KEY_APOSTROPHE:
-                return ImGuiKey_Apostrophe;
-            case GLFW_KEY_COMMA:
-                return ImGuiKey_Comma;
-            case GLFW_KEY_MINUS:
-                return ImGuiKey_Minus;
-            case GLFW_KEY_PERIOD:
-                return ImGuiKey_Period;
-            case GLFW_KEY_SLASH:
-                return ImGuiKey_Slash;
-            case GLFW_KEY_SEMICOLON:
-                return ImGuiKey_Semicolon;
-            case GLFW_KEY_EQUAL:
-                return ImGuiKey_Equal;
-            case GLFW_KEY_LEFT_BRACKET:
-                return ImGuiKey_LeftBracket;
-            case GLFW_KEY_BACKSLASH:
-                return ImGuiKey_Backslash;
-            case GLFW_KEY_RIGHT_BRACKET:
-                return ImGuiKey_RightBracket;
-            case GLFW_KEY_GRAVE_ACCENT:
-                return ImGuiKey_GraveAccent;
-            case GLFW_KEY_CAPS_LOCK:
-                return ImGuiKey_CapsLock;
-            case GLFW_KEY_SCROLL_LOCK:
-                return ImGuiKey_ScrollLock;
-            case GLFW_KEY_NUM_LOCK:
-                return ImGuiKey_NumLock;
-            case GLFW_KEY_PRINT_SCREEN:
-                return ImGuiKey_PrintScreen;
-            case GLFW_KEY_PAUSE:
-                return ImGuiKey_Pause;
-            case GLFW_KEY_KP_0:
-                return ImGuiKey_Keypad0;
-            case GLFW_KEY_KP_1:
-                return ImGuiKey_Keypad1;
-            case GLFW_KEY_KP_2:
-                return ImGuiKey_Keypad2;
-            case GLFW_KEY_KP_3:
-                return ImGuiKey_Keypad3;
-            case GLFW_KEY_KP_4:
-                return ImGuiKey_Keypad4;
-            case GLFW_KEY_KP_5:
-                return ImGuiKey_Keypad5;
-            case GLFW_KEY_KP_6:
-                return ImGuiKey_Keypad6;
-            case GLFW_KEY_KP_7:
-                return ImGuiKey_Keypad7;
-            case GLFW_KEY_KP_8:
-                return ImGuiKey_Keypad8;
-            case GLFW_KEY_KP_9:
-                return ImGuiKey_Keypad9;
-            case GLFW_KEY_KP_DECIMAL:
-                return ImGuiKey_KeypadDecimal;
-            case GLFW_KEY_KP_DIVIDE:
-                return ImGuiKey_KeypadDivide;
-            case GLFW_KEY_KP_MULTIPLY:
-                return ImGuiKey_KeypadMultiply;
-            case GLFW_KEY_KP_SUBTRACT:
-                return ImGuiKey_KeypadSubtract;
-            case GLFW_KEY_KP_ADD:
-                return ImGuiKey_KeypadAdd;
-            case GLFW_KEY_KP_ENTER:
-                return ImGuiKey_KeypadEnter;
-            case GLFW_KEY_KP_EQUAL:
-                return ImGuiKey_KeypadEqual;
-            case GLFW_KEY_LEFT_SHIFT:
-                return ImGuiKey_LeftShift;
-            case GLFW_KEY_LEFT_CONTROL:
-                return ImGuiKey_ModCtrl;
-            case GLFW_KEY_LEFT_ALT:
-                return ImGuiKey_LeftAlt;
-            case GLFW_KEY_LEFT_SUPER:
-                return ImGuiKey_LeftSuper;
-            case GLFW_KEY_RIGHT_SHIFT:
-                return ImGuiKey_RightShift;
-            case GLFW_KEY_RIGHT_CONTROL:
-                return ImGuiKey_RightCtrl;
-            case GLFW_KEY_RIGHT_ALT:
-                return ImGuiKey_RightAlt;
-            case GLFW_KEY_RIGHT_SUPER:
-                return ImGuiKey_RightSuper;
-            case GLFW_KEY_MENU:
-                return ImGuiKey_Menu;
-            case GLFW_KEY_0:
-                return ImGuiKey_0;
-            case GLFW_KEY_1:
-                return ImGuiKey_1;
-            case GLFW_KEY_2:
-                return ImGuiKey_2;
-            case GLFW_KEY_3:
-                return ImGuiKey_3;
-            case GLFW_KEY_4:
-                return ImGuiKey_4;
-            case GLFW_KEY_5:
-                return ImGuiKey_5;
-            case GLFW_KEY_6:
-                return ImGuiKey_6;
-            case GLFW_KEY_7:
-                return ImGuiKey_7;
-            case GLFW_KEY_8:
-                return ImGuiKey_8;
-            case GLFW_KEY_9:
-                return ImGuiKey_9;
-            case GLFW_KEY_A:
-                return ImGuiKey_A;
-            case GLFW_KEY_B:
-                return ImGuiKey_B;
-            case GLFW_KEY_C:
-                return ImGuiKey_C;
-            case GLFW_KEY_D:
-                return ImGuiKey_D;
-            case GLFW_KEY_E:
-                return ImGuiKey_E;
-            case GLFW_KEY_F:
-                return ImGuiKey_F;
-            case GLFW_KEY_G:
-                return ImGuiKey_G;
-            case GLFW_KEY_H:
-                return ImGuiKey_H;
-            case GLFW_KEY_I:
-                return ImGuiKey_I;
-            case GLFW_KEY_J:
-                return ImGuiKey_J;
-            case GLFW_KEY_K:
-                return ImGuiKey_K;
-            case GLFW_KEY_L:
-                return ImGuiKey_L;
-            case GLFW_KEY_M:
-                return ImGuiKey_M;
-            case GLFW_KEY_N:
-                return ImGuiKey_N;
-            case GLFW_KEY_O:
-                return ImGuiKey_O;
-            case GLFW_KEY_P:
-                return ImGuiKey_P;
-            case GLFW_KEY_Q:
-                return ImGuiKey_Q;
-            case GLFW_KEY_R:
-                return ImGuiKey_R;
-            case GLFW_KEY_S:
-                return ImGuiKey_S;
-            case GLFW_KEY_T:
-                return ImGuiKey_T;
-            case GLFW_KEY_U:
-                return ImGuiKey_U;
-            case GLFW_KEY_V:
-                return ImGuiKey_V;
-            case GLFW_KEY_W:
-                return ImGuiKey_W;
-            case GLFW_KEY_X:
-                return ImGuiKey_X;
-            case GLFW_KEY_Y:
-                return ImGuiKey_Y;
-            case GLFW_KEY_Z:
-                return ImGuiKey_Z;
-            case GLFW_KEY_F1:
-                return ImGuiKey_F1;
-            case GLFW_KEY_F2:
-                return ImGuiKey_F2;
-            case GLFW_KEY_F3:
-                return ImGuiKey_F3;
-            case GLFW_KEY_F4:
-                return ImGuiKey_F4;
-            case GLFW_KEY_F5:
-                return ImGuiKey_F5;
-            case GLFW_KEY_F6:
-                return ImGuiKey_F6;
-            case GLFW_KEY_F7:
-                return ImGuiKey_F7;
-            case GLFW_KEY_F8:
-                return ImGuiKey_F8;
-            case GLFW_KEY_F9:
-                return ImGuiKey_F9;
-            case GLFW_KEY_F10:
-                return ImGuiKey_F10;
-            case GLFW_KEY_F11:
-                return ImGuiKey_F11;
-            case GLFW_KEY_F12:
-                return ImGuiKey_F12;
-            default:
-                return ImGuiKey_None;
+        case GLFW_KEY_TAB:
+            return ImGuiKey_Tab;
+        case GLFW_KEY_LEFT:
+            return ImGuiKey_LeftArrow;
+        case GLFW_KEY_RIGHT:
+            return ImGuiKey_RightArrow;
+        case GLFW_KEY_UP:
+            return ImGuiKey_UpArrow;
+        case GLFW_KEY_DOWN:
+            return ImGuiKey_DownArrow;
+        case GLFW_KEY_PAGE_UP:
+            return ImGuiKey_PageUp;
+        case GLFW_KEY_PAGE_DOWN:
+            return ImGuiKey_PageDown;
+        case GLFW_KEY_HOME:
+            return ImGuiKey_Home;
+        case GLFW_KEY_END:
+            return ImGuiKey_End;
+        case GLFW_KEY_INSERT:
+            return ImGuiKey_Insert;
+        case GLFW_KEY_DELETE:
+            return ImGuiKey_Delete;
+        case GLFW_KEY_BACKSPACE:
+            return ImGuiKey_Backspace;
+        case GLFW_KEY_SPACE:
+            return ImGuiKey_Space;
+        case GLFW_KEY_ENTER:
+            return ImGuiKey_Enter;
+        case GLFW_KEY_ESCAPE:
+            return ImGuiKey_Escape;
+        case GLFW_KEY_APOSTROPHE:
+            return ImGuiKey_Apostrophe;
+        case GLFW_KEY_COMMA:
+            return ImGuiKey_Comma;
+        case GLFW_KEY_MINUS:
+            return ImGuiKey_Minus;
+        case GLFW_KEY_PERIOD:
+            return ImGuiKey_Period;
+        case GLFW_KEY_SLASH:
+            return ImGuiKey_Slash;
+        case GLFW_KEY_SEMICOLON:
+            return ImGuiKey_Semicolon;
+        case GLFW_KEY_EQUAL:
+            return ImGuiKey_Equal;
+        case GLFW_KEY_LEFT_BRACKET:
+            return ImGuiKey_LeftBracket;
+        case GLFW_KEY_BACKSLASH:
+            return ImGuiKey_Backslash;
+        case GLFW_KEY_RIGHT_BRACKET:
+            return ImGuiKey_RightBracket;
+        case GLFW_KEY_GRAVE_ACCENT:
+            return ImGuiKey_GraveAccent;
+        case GLFW_KEY_CAPS_LOCK:
+            return ImGuiKey_CapsLock;
+        case GLFW_KEY_SCROLL_LOCK:
+            return ImGuiKey_ScrollLock;
+        case GLFW_KEY_NUM_LOCK:
+            return ImGuiKey_NumLock;
+        case GLFW_KEY_PRINT_SCREEN:
+            return ImGuiKey_PrintScreen;
+        case GLFW_KEY_PAUSE:
+            return ImGuiKey_Pause;
+        case GLFW_KEY_KP_0:
+            return ImGuiKey_Keypad0;
+        case GLFW_KEY_KP_1:
+            return ImGuiKey_Keypad1;
+        case GLFW_KEY_KP_2:
+            return ImGuiKey_Keypad2;
+        case GLFW_KEY_KP_3:
+            return ImGuiKey_Keypad3;
+        case GLFW_KEY_KP_4:
+            return ImGuiKey_Keypad4;
+        case GLFW_KEY_KP_5:
+            return ImGuiKey_Keypad5;
+        case GLFW_KEY_KP_6:
+            return ImGuiKey_Keypad6;
+        case GLFW_KEY_KP_7:
+            return ImGuiKey_Keypad7;
+        case GLFW_KEY_KP_8:
+            return ImGuiKey_Keypad8;
+        case GLFW_KEY_KP_9:
+            return ImGuiKey_Keypad9;
+        case GLFW_KEY_KP_DECIMAL:
+            return ImGuiKey_KeypadDecimal;
+        case GLFW_KEY_KP_DIVIDE:
+            return ImGuiKey_KeypadDivide;
+        case GLFW_KEY_KP_MULTIPLY:
+            return ImGuiKey_KeypadMultiply;
+        case GLFW_KEY_KP_SUBTRACT:
+            return ImGuiKey_KeypadSubtract;
+        case GLFW_KEY_KP_ADD:
+            return ImGuiKey_KeypadAdd;
+        case GLFW_KEY_KP_ENTER:
+            return ImGuiKey_KeypadEnter;
+        case GLFW_KEY_KP_EQUAL:
+            return ImGuiKey_KeypadEqual;
+        case GLFW_KEY_LEFT_SHIFT:
+            return ImGuiKey_LeftShift;
+        case GLFW_KEY_LEFT_CONTROL:
+            return ImGuiKey_ModCtrl;
+        case GLFW_KEY_LEFT_ALT:
+            return ImGuiKey_LeftAlt;
+        case GLFW_KEY_LEFT_SUPER:
+            return ImGuiKey_LeftSuper;
+        case GLFW_KEY_RIGHT_SHIFT:
+            return ImGuiKey_RightShift;
+        case GLFW_KEY_RIGHT_CONTROL:
+            return ImGuiKey_RightCtrl;
+        case GLFW_KEY_RIGHT_ALT:
+            return ImGuiKey_RightAlt;
+        case GLFW_KEY_RIGHT_SUPER:
+            return ImGuiKey_RightSuper;
+        case GLFW_KEY_MENU:
+            return ImGuiKey_Menu;
+        case GLFW_KEY_0:
+            return ImGuiKey_0;
+        case GLFW_KEY_1:
+            return ImGuiKey_1;
+        case GLFW_KEY_2:
+            return ImGuiKey_2;
+        case GLFW_KEY_3:
+            return ImGuiKey_3;
+        case GLFW_KEY_4:
+            return ImGuiKey_4;
+        case GLFW_KEY_5:
+            return ImGuiKey_5;
+        case GLFW_KEY_6:
+            return ImGuiKey_6;
+        case GLFW_KEY_7:
+            return ImGuiKey_7;
+        case GLFW_KEY_8:
+            return ImGuiKey_8;
+        case GLFW_KEY_9:
+            return ImGuiKey_9;
+        case GLFW_KEY_A:
+            return ImGuiKey_A;
+        case GLFW_KEY_B:
+            return ImGuiKey_B;
+        case GLFW_KEY_C:
+            return ImGuiKey_C;
+        case GLFW_KEY_D:
+            return ImGuiKey_D;
+        case GLFW_KEY_E:
+            return ImGuiKey_E;
+        case GLFW_KEY_F:
+            return ImGuiKey_F;
+        case GLFW_KEY_G:
+            return ImGuiKey_G;
+        case GLFW_KEY_H:
+            return ImGuiKey_H;
+        case GLFW_KEY_I:
+            return ImGuiKey_I;
+        case GLFW_KEY_J:
+            return ImGuiKey_J;
+        case GLFW_KEY_K:
+            return ImGuiKey_K;
+        case GLFW_KEY_L:
+            return ImGuiKey_L;
+        case GLFW_KEY_M:
+            return ImGuiKey_M;
+        case GLFW_KEY_N:
+            return ImGuiKey_N;
+        case GLFW_KEY_O:
+            return ImGuiKey_O;
+        case GLFW_KEY_P:
+            return ImGuiKey_P;
+        case GLFW_KEY_Q:
+            return ImGuiKey_Q;
+        case GLFW_KEY_R:
+            return ImGuiKey_R;
+        case GLFW_KEY_S:
+            return ImGuiKey_S;
+        case GLFW_KEY_T:
+            return ImGuiKey_T;
+        case GLFW_KEY_U:
+            return ImGuiKey_U;
+        case GLFW_KEY_V:
+            return ImGuiKey_V;
+        case GLFW_KEY_W:
+            return ImGuiKey_W;
+        case GLFW_KEY_X:
+            return ImGuiKey_X;
+        case GLFW_KEY_Y:
+            return ImGuiKey_Y;
+        case GLFW_KEY_Z:
+            return ImGuiKey_Z;
+        case GLFW_KEY_F1:
+            return ImGuiKey_F1;
+        case GLFW_KEY_F2:
+            return ImGuiKey_F2;
+        case GLFW_KEY_F3:
+            return ImGuiKey_F3;
+        case GLFW_KEY_F4:
+            return ImGuiKey_F4;
+        case GLFW_KEY_F5:
+            return ImGuiKey_F5;
+        case GLFW_KEY_F6:
+            return ImGuiKey_F6;
+        case GLFW_KEY_F7:
+            return ImGuiKey_F7;
+        case GLFW_KEY_F8:
+            return ImGuiKey_F8;
+        case GLFW_KEY_F9:
+            return ImGuiKey_F9;
+        case GLFW_KEY_F10:
+            return ImGuiKey_F10;
+        case GLFW_KEY_F11:
+            return ImGuiKey_F11;
+        case GLFW_KEY_F12:
+            return ImGuiKey_F12;
+        default:
+            return ImGuiKey_None;
         }
     }
 
@@ -1111,7 +1097,7 @@ namespace VkRender {
     }
 #endif
 
-    bool VulkanRenderer::checkInstanceExtensionSupport(const std::vector<const char *> &checkExtensions) {
+    bool VulkanRenderer::checkInstanceExtensionSupport(const std::vector<const char*>& checkExtensions) {
         //Need to get number of extensions to create array of correct size to hold extensions.
         uint32_t extensionCount = 0;
         vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
@@ -1121,9 +1107,9 @@ namespace VkRender {
         vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
 
         //Check if given extensions are in list of available extensions
-        for (const auto &checkExtension: checkExtensions) {
+        for (const auto& checkExtension : checkExtensions) {
             bool hasExtensions = false;
-            for (const auto &extension: extensions) {
+            for (const auto& extension : extensions) {
                 if (strcmp(checkExtension, extension.extensionName) == 0) {
                     hasExtensions = true;
                     break;
@@ -1201,7 +1187,7 @@ namespace VkRender {
         VulkanImageCreateInfo createInfo(*m_vulkanDevice, m_allocator, imageCI, imageViewCI);
         createInfo.debugInfo = "MainFrameBufferDepthImage";
         createInfo.setLayout = true;
-        createInfo.srcLayout =VK_IMAGE_LAYOUT_UNDEFINED;
+        createInfo.srcLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         createInfo.dstLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
         createInfo.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
         m_depthStencil = std::make_unique<VulkanImage>(createInfo);
@@ -1253,10 +1239,10 @@ namespace VkRender {
         frameBufferAttachments[0] = m_colorImage->view();
         frameBufferAttachments[1] = m_depthStencil->view();
         VkFramebufferCreateInfo frameBufferCreateInfo = Populate::framebufferCreateInfo(m_width,
-                                                                                        m_height,
-                                                                                        frameBufferAttachments.data(),
-                                                                                        frameBufferAttachments.size(),
-                                                                                        m_mainRenderPass->getRenderPass());
+            m_height,
+            frameBufferAttachments.data(),
+            frameBufferAttachments.size(),
+            m_mainRenderPass->getRenderPass());
         // TODO verify if this is ok?
         m_frameBuffers.resize(swapchain->imageCount);
         for (uint32_t i = 0; i < m_frameBuffers.size(); i++) {
@@ -1270,12 +1256,11 @@ namespace VkRender {
         }
         Log::Logger::getInstance()->info("Prepared Renderer");
     }
+
     // Virtual functions
     void VulkanRenderer::updateUniformBuffers() {
-
     }
 
     void VulkanRenderer::onRender() {
-
     }
 }

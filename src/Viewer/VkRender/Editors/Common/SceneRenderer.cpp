@@ -278,7 +278,6 @@ namespace VkRender {
             std::string tag = entity.getName();
             UUID uuid = entity.getUUID();
             auto &meshComponent = entity.getComponent<MeshComponent>();
-            auto &transformComponent = entity.getComponent<TransformComponent>();
             // Create the pipeline key based on whether the material exists or not
             PipelineKey key = {};
             key.setLayouts.push_back(m_descriptorSetLayout); // Use default descriptor set layout
@@ -345,6 +344,18 @@ namespace VkRender {
             RenderPassInfo renderPassInfo{};
             renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
             renderPassInfo.renderPass = m_renderPass->getRenderPass();
+
+            VkVertexInputBindingDescription vertexInputBinding = {
+                0, sizeof(VkRender::Vertex), VK_VERTEX_INPUT_RATE_VERTEX
+            };
+            std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
+                {0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0},
+                {1, 0, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3},
+                {2, 0, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 6},
+            };
+            key.vertexInputBindingDescriptions = vertexInputBinding;
+            key.vertexInputAttributes = vertexInputAttributes;
+
             auto pipeline = m_pipelineManager.getOrCreatePipeline(key, renderPassInfo, m_context);
             // Create the render command
             RenderCommand command;
@@ -353,7 +364,6 @@ namespace VkRender {
             command.meshInstance = meshInstance.get();
             command.materialInstance = materialInstance.get(); // May be null if no material is attached
             command.pointCloudInstance = pointCloudInstance.get(); // May be null if no pointcloud is attached
-            command.transform = &transformComponent;
             // Add to render group
             renderGroups[pipeline].push_back(command);
         }
@@ -1132,7 +1142,7 @@ namespace VkRender {
                 vertexBufferSize,
                 &vertexStaging.buffer,
                 &vertexStaging.memory,
-                reinterpret_cast<const void *>(meshData.vertices.data())))
+                meshData.vertices.data()))
         // Index m_DataPtr
         if (indexBufferSize > 0) {
             CHECK_RESULT(m_context->vkDevice().createBuffer(
@@ -1141,7 +1151,7 @@ namespace VkRender {
                     indexBufferSize,
                     &indexStaging.buffer,
                     &indexStaging.memory,
-                    reinterpret_cast<const void *>(meshData.indices.data())))
+                    meshData.indices.data()))
         }
 
         CHECK_RESULT(m_context->vkDevice().createBuffer(

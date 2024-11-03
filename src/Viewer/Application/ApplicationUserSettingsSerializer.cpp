@@ -24,6 +24,7 @@ namespace VkRender {
         out << YAML::Key << "LastOpenedImportModelFolderPath" << YAML::Value << settings.lastOpenedImportModelFolderPath.string();
         out << YAML::Key << "ProjectName" << YAML::Value << settings.projectName;
         out << YAML::Key << "LastActiveScenePath" << YAML::Value << settings.lastActiveScenePath.string();
+        out << YAML::Key << "AssetsPath" << YAML::Value << settings.assetsPath.string();
         out << YAML::EndMap;
     }
 
@@ -36,6 +37,7 @@ namespace VkRender {
         settings.lastOpenedImportModelFolderPath = node["LastOpenedImportModelFolderPath"].as<std::string>();
         settings.projectName = node["ProjectName"].as<std::string>();
         settings.lastActiveScenePath = node["LastActiveScenePath"].as<std::string>();
+        settings.assetsPath = node["AssetsPath"].as<std::string>();
     }
 
     // Serialize settings to YAML

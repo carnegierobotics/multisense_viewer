@@ -33,9 +33,16 @@ namespace VkRender {
 
         void onMouseScroll(float change) override;
         void onKeyCallback(const Input &input) override;
+        void setupDescriptors();
+        void updateDescriptor(const VkDescriptorImageInfo& info);
+        std::shared_ptr<MeshInstance> setupMesh();
 
         void onRenderSettingsChanged();
 
+        void bindResourcesAndDraw(const CommandBuffer& commandBuffer, RenderCommand &command);
+
+        void collectRenderCommands(
+                std::unordered_map<std::shared_ptr<DefaultGraphicsPipeline>, std::vector<RenderCommand>> &renderGroups);
 
     private:
         std::shared_ptr<Camera> m_editorCamera;
@@ -46,6 +53,14 @@ namespace VkRender {
         SceneRenderer* m_sceneRenderer;
         std::unique_ptr<GraphicsPipeline2D> m_renderPipelines;
         std::shared_ptr<VulkanTexture2D> m_colorTexture;
+
+        // Quad and descriptor setup
+        std::vector<VkDescriptorSet> m_descriptorSets;
+        VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
+        VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
+
+        PipelineManager m_pipelineManager;
+        std::shared_ptr<MeshInstance> m_meshInstances;
 
     };
 }

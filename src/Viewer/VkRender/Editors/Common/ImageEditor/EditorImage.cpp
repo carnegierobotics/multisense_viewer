@@ -103,7 +103,7 @@ namespace VkRender {
             // Get offscreen rendered image
             auto sceneRenderer = m_context->getSceneRendererByUUID(getUUID());
             if (!sceneRenderer) {
-                sceneRenderer = m_context->addSceneRendererWithUUID(getUUID(), m_createInfo.width, m_createInfo.height);
+                sceneRenderer = m_context->addSceneRendererWithUUID(getUUID(), m_createInfo);
                 auto &image = sceneRenderer->getOffscreenFramebuffer().resolvedImage;
                 VulkanTexture2DCreateInfo textureCreateInfo(m_context->vkDevice());
                 textureCreateInfo.image = image;

@@ -123,13 +123,13 @@ namespace VkRender {
         return nullptr;
     }
 
-    SceneRenderer *Application::getOrAddSceneRendererByUUID(const UUID &uuid, uint32_t width, uint32_t height) {
+    SceneRenderer *Application::getOrAddSceneRendererByUUID(const UUID &uuid,const EditorCreateInfo& ownerCreateInfo) {
         if (m_sceneRenderers.contains(uuid))
             return m_sceneRenderers.find(uuid)->second.get();
-        return addSceneRendererWithUUID(uuid, width, height);
+        return addSceneRendererWithUUID(uuid, ownerCreateInfo);
     }
 
-    SceneRenderer *Application::addSceneRendererWithUUID(const UUID &uuid, uint32_t width, uint32_t height) {
+    SceneRenderer *Application::addSceneRendererWithUUID(const UUID &uuid,const EditorCreateInfo& ownerCreateInfo) {
         EditorCreateInfo sceneRendererCreateInfo(m_guiResources, this, m_vulkanDevice, &m_allocator,
                                        m_frameBuffers.data());
         VulkanRenderPassCreateInfo passCreateInfo(m_vulkanDevice, &m_allocator);
@@ -137,13 +137,14 @@ namespace VkRender {
         passCreateInfo.swapchainImageCount = swapchain->imageCount;
         passCreateInfo.swapchainColorFormat = swapchain->colorFormat;
         passCreateInfo.depthFormat = depthFormat;
-        passCreateInfo.height = static_cast<int32_t>(width);
-        passCreateInfo.width = static_cast<int32_t>(height);
+        passCreateInfo.width = static_cast<int32_t>(ownerCreateInfo.width);
+        passCreateInfo.height = static_cast<int32_t>(ownerCreateInfo.height);
 
         sceneRendererCreateInfo.borderSize = 0;
         sceneRendererCreateInfo.resizeable = false;
-        sceneRendererCreateInfo.height = static_cast<int32_t>(width);
-        sceneRendererCreateInfo.width = static_cast<int32_t>(height);
+        sceneRendererCreateInfo.width = static_cast<int32_t>(ownerCreateInfo.width);
+        sceneRendererCreateInfo.height = static_cast<int32_t>(ownerCreateInfo.height);
+
         sceneRendererCreateInfo.pPassCreateInfo = passCreateInfo;
         sceneRendererCreateInfo.editorTypeDescription = EditorType::SceneRenderer;
 

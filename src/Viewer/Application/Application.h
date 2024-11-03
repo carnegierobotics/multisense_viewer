@@ -110,8 +110,8 @@ namespace VkRender {
         float deltaTime() { return frameTimer; }
 
         SceneRenderer *getSceneRendererByUUID(const UUID &uuid);
-        SceneRenderer* getOrAddSceneRendererByUUID(const UUID &uuid, uint32_t width, uint32_t height);
-        SceneRenderer * addSceneRendererWithUUID(const UUID &uuid, uint32_t width, uint32_t height);
+        SceneRenderer* getOrAddSceneRendererByUUID(const UUID &uuid,const EditorCreateInfo& ownerCreateInfo);
+        SceneRenderer * addSceneRendererWithUUID(const UUID &uuid, const EditorCreateInfo& ownerCreateInfo);
 
         ImGuiContext *getMainUIContext() { return m_mainEditor->guiContext(); }
         Entity& getSelectedEntity() {return m_selectedEntity;}

@@ -22,7 +22,7 @@ namespace VkRender {
 
         m_editorCamera = std::make_shared<Camera>(m_createInfo.width, m_createInfo.height);
 
-        m_sceneRenderer = m_context->getOrAddSceneRendererByUUID(uuid, m_createInfo.width, m_createInfo.height);
+        m_sceneRenderer = m_context->getOrAddSceneRendererByUUID(uuid, m_createInfo);
 
         VulkanTexture2DCreateInfo textureCreateInfo(m_context->vkDevice());
         textureCreateInfo.image = m_sceneRenderer->getOffscreenFramebuffer().resolvedImage;
@@ -49,7 +49,7 @@ namespace VkRender {
 
     void Editor3DViewport::onRenderSettingsChanged() {
         auto imageUI = std::dynamic_pointer_cast<Editor3DViewportUI>(m_ui);
-        m_sceneRenderer = m_context->getOrAddSceneRendererByUUID(getUUID(), m_createInfo.width, m_createInfo.height);
+        m_sceneRenderer =m_context->getOrAddSceneRendererByUUID(getUUID(), m_createInfo);
         VulkanTexture2DCreateInfo textureCreateInfo(m_context->vkDevice());
 
         if (imageUI->selectedImageType == OutputTextureImageType::Color) {

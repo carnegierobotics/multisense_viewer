@@ -1142,7 +1142,7 @@ namespace VkRender {
                     "OffScreenFrameBufferDepthImage: " + editorTypeToString(m_createInfo.editorTypeDescription);
             createInfoResolved.setLayout = true;
             createInfoResolved.srcLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            createInfoResolved.dstLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+            createInfoResolved.dstLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             createInfoResolved.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
 
             m_offscreenFramebuffer.resolvedDepthImage = std::make_shared<VulkanImage>(createInfoResolved);
@@ -1172,7 +1172,7 @@ namespace VkRender {
                     "OffScreenFrameBufferColorImage: " + editorTypeToString(m_createInfo.editorTypeDescription);
             createInfo.setLayout = true;
             createInfo.srcLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            createInfo.dstLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            createInfo.dstLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
             createInfo.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
             m_offscreenFramebuffer.colorImage = std::make_shared<VulkanImage>(createInfo);
         } {

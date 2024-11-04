@@ -63,6 +63,7 @@ namespace VkRender {
         PreProcessData *m_preProcessDataPtr;
 
         void renderGaussiansWithProfiling(uint8_t *imageMemory, bool enable_profiling);
+        std::vector<unsigned long> m_durations;
     };
 }
 

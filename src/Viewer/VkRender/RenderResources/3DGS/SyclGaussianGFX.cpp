@@ -66,8 +66,8 @@ namespace VkRender {
 
         m_queue.memcpy(m_preProcessDataPtr, &m_preProcessData, sizeof(PreProcessData)).wait();
 
-        preProcessGaussians(imageMemory);
-        //renderGaussiansWithProfiling(imageMemory, true);
+        //preProcessGaussians(imageMemory);
+        renderGaussiansWithProfiling(imageMemory, true);
 
         // Start rendering
         // Copy output to texture
@@ -253,6 +253,7 @@ namespace VkRender {
                 auto end = event.get_profiling_info<sycl::info::event_profiling::command_end>();
                 auto duration_ns = end - start;
                 std::cout << kernel_name << " kernel time: " << duration_ns * 1e-6 << " ms\n";
+                m_durations.emplace_back(duration_ns * 1e-6 );
             }
         };
 
@@ -270,6 +271,7 @@ namespace VkRender {
         profileKernel(event2, "Memset Point Offsets");
 
 
+        /*
         std::vector<GaussianPoint> hostPoints(m_numGaussians);
         std::cout << "TilesTouched: ";
         m_queue.memcpy(hostPoints.data(), m_gaussianPointsPtr, m_numGaussians * sizeof(GaussianPoint)).wait();
@@ -279,14 +281,14 @@ namespace VkRender {
                 std::cout << "| ";
         }
 
+
         std::cout << std::endl;
+        */
         uint32_t localSize = 16;  // Number of work-items in each work-group
         uint32_t globalSize = ((m_preProcessDataPtr->preProcessSettings.numPoints + localSize - 1) / localSize) * localSize;
         uint32_t numWorkGroups = globalSize / localSize;
         sycl::nd_range<1> kernelRange({sycl::range<1>(globalSize), sycl::range<1>(localSize)});
-
         auto *groupTotals = sycl::malloc_device<uint32_t>(numWorkGroups, m_queue);
-
         // Kernel 2
         auto event3 = m_queue.submit([&](sycl::handler &h) {
 
@@ -301,8 +303,7 @@ namespace VkRender {
         profileKernel(event3, "InclusiveSum");
 
 
-        m_queue.submit([&](sycl::handler &h) {
-
+        auto event4 = m_queue.submit([&](sycl::handler &h) {
             h.single_task<class GroupTotalsScan>([=]() {
                 // Perform exclusive scan on group totals
                 for (size_t i = 1; i < numWorkGroups; ++i) {
@@ -310,7 +311,10 @@ namespace VkRender {
                 }
             });
         });
+        event4.wait();
+        profileKernel(event4, "SumGroupTotals");
 
+        /*
         std::vector<uint32_t> groupTotalsHost(numWorkGroups);
         std::cout << "groupTotalsHost: ";
         m_queue.memcpy(groupTotalsHost.data(), groupTotals, numWorkGroups * sizeof(uint32_t)).wait();
@@ -320,9 +324,10 @@ namespace VkRender {
                 std::cout << "| ";
         }
         std::cout << std::endl;
+        */
 
         // Step 4: Adjust local scans
-        m_queue.submit([&](sycl::handler &h) {
+       auto event5 = m_queue.submit([&](sycl::handler &h) {
             size_t numPoints = m_numGaussians;
             h.parallel_for<class AdjustLocalScans>(kernelRange, [=](sycl::nd_item<1> item) {
                 size_t groupId = item.get_group_linear_id();
@@ -335,8 +340,10 @@ namespace VkRender {
                 }
             });
         });
+        event5.wait();
+        profileKernel(event5, "InclusiveSumGlobalOffsets");
 
-
+        /*
         std::vector<uint32_t> inclusiveSum(m_numGaussians);
         std::cout << "inclusiveSum: ";
         m_queue.memcpy(inclusiveSum.data(), pointOffsets, m_numGaussians * sizeof(uint32_t)).wait();
@@ -346,11 +353,12 @@ namespace VkRender {
                 std::cout << "| ";
         }
         std::cout << std::endl;
+        */
 
         uint32_t numRendered = 0;
-        auto event4 = m_queue.memcpy(&numRendered, pointOffsets + (m_numGaussians - 1), sizeof(uint32_t));
-        event4.wait();
-        profileKernel(event4, "Memcpy numRendered");
+        auto event6 = m_queue.memcpy(&numRendered, pointOffsets + (m_numGaussians - 1), sizeof(uint32_t));
+        event6.wait();
+        profileKernel(event6, "Memcpy numRendered");
 
         Log::Logger::getInstance()->traceWithFrequency("3dgsrendering", 60, "3DGS Rendering, Gaussians: {}", numRendered);
 
@@ -360,29 +368,29 @@ namespace VkRender {
             m_queue.wait();
 
             // Kernel 3
-            auto event5 = m_queue.submit([&](sycl::handler &h) {
+            auto event7 = m_queue.submit([&](sycl::handler &h) {
                 h.parallel_for<>(sycl::range<1>(m_numGaussians),
                                                  Rasterizer::DuplicateGaussians(m_gaussianPointsPtr, pointOffsets,
                                                                                 keysBuffer, valuesBuffer, numRendered,
                                                                                 m_preProcessDataPtr->preProcessSettings.tileGrid));
             });
-            event5.wait();
-            profileKernel(event5, "DuplicateGaussians");
+            event7.wait();
+            profileKernel(event7, "DuplicateGaussians");
 
             copyAndSortKeysAndValues(m_queue, keysBuffer, valuesBuffer, numRendered);
 
             auto *rangesBuffer = sycl::malloc_device<glm::ivec2>(m_preProcessData.preProcessSettings.numTiles, m_queue);
-            auto event6 = m_queue.memset(rangesBuffer, static_cast<int>(0x00),
+            auto event8 = m_queue.memset(rangesBuffer, static_cast<int>(0x00),
                                          m_preProcessData.preProcessSettings.numTiles * sizeof(int) * 2);
-            event6.wait();
-            profileKernel(event6, "Memset Ranges Buffer");
+            event8.wait();
+            profileKernel(event8, "Memset Ranges Buffer");
 
             // Kernel 4
-            auto event7 = m_queue.submit([&](sycl::handler &h) {
+            auto event9 = m_queue.submit([&](sycl::handler &h) {
                 h.parallel_for<>(numRendered,Rasterizer::IdentifyTileRanges(rangesBuffer, keysBuffer, numRendered));
             });
-            event7.wait();
-            profileKernel(event7, "IdentifyTileRanges");
+            event9.wait();
+            profileKernel(event9, "IdentifyTileRanges");
 
             const uint32_t tileWidth = 16;
             const uint32_t tileHeight = 16;
@@ -393,25 +401,24 @@ namespace VkRender {
             sycl::range<2> globalWorkSize(globalHeight, globalWidth);
 
             auto *imageBuffer = sycl::malloc_device<uint8_t>(imageWidth * imageHeight * 4, m_queue);
-            auto event8 = m_queue.fill(imageBuffer, static_cast<uint8_t>(0x00), imageWidth * imageHeight * 4);
-            event8.wait();
-            profileKernel(event8, "Fill Image Buffer");
+            auto event10 = m_queue.fill(imageBuffer, static_cast<uint8_t>(0x00), imageWidth * imageHeight * 4);
+            event10.wait();
+            profileKernel(event10, "Fill Image Buffer");
 
             // Kernel 5
-            auto event9 = m_queue.submit([&](sycl::handler &h) {
+            auto event11 = m_queue.submit([&](sycl::handler &h) {
                 auto range = sycl::nd_range<2>(globalWorkSize, localWorkSize);
                 h.parallel_for<>(range,
                                                       Rasterizer::RasterizeGaussians(rangesBuffer, valuesBuffer,
                                                                                      m_gaussianPointsPtr, imageBuffer,
                                                                                      numRendered, imageWidth, imageHeight));
             });
-            event9.wait();
-            profileKernel(event9, "RenderGaussians");
+            event11.wait();
+            profileKernel(event11, "RenderGaussians");
 
-            auto event10 = m_queue.memcpy(imageMemory, imageBuffer, imageWidth * imageHeight * 4);
-            event10.wait();
-            profileKernel(event10, "Memcpy Image Memory");
-            std::cout << "\n\n\n";
+            auto event12 = m_queue.memcpy(imageMemory, imageBuffer, imageWidth * imageHeight * 4);
+            event12.wait();
+            profileKernel(event12, "Memcpy Image Memory");
 
             sycl::free(imageBuffer, m_queue);
             sycl::free(rangesBuffer, m_queue);
@@ -419,6 +426,13 @@ namespace VkRender {
             sycl::free(keysBuffer, m_queue);
             sycl::free(valuesBuffer, m_queue);
         }
+        unsigned long sum = 0;
+        for (unsigned long m_duration : m_durations) {
+            sum += m_duration;
+        }
+        std::cout << "Total rendering time: " << sum  << " ms" <<std::endl;
+        std::cout << "\n\n\n";
+        m_durations.clear();
     }
 
 

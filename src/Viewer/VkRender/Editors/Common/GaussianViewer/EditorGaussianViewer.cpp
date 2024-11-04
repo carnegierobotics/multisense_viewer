@@ -139,6 +139,9 @@ namespace VkRender {
 
         PipelineKey key = {};
 
+        if (m_ui->resizeActive) {
+            m_descriptorSetManager->freeDescriptorSets();
+        }
         // Prepare descriptor writes based on your texture or other resources
         std::array<VkWriteDescriptorSet, 2> writeDescriptors{};
         writeDescriptors[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;

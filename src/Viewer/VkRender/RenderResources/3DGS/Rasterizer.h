@@ -307,23 +307,14 @@ namespace VkRender::Rasterizer {
     public:
         void operator()(sycl::nd_item<2> item) const {
             uint32_t gridDim = item.get_group_range(0);
-            auto block = item.get_group();
-            // Get the global IDs
             uint32_t global_id_x = item.get_global_id(1); // x-coordinate (column)
             uint32_t global_id_y = item.get_global_id(0); // y-coordinate (row)
-            // Get the local IDs within the tile
-            uint32_t local_id_x = item.get_local_id(1);
-            uint32_t local_id_y = item.get_local_id(0);
-            // Get the group (tile) IDs
             uint32_t group_id_x = item.get_group(1);
             uint32_t group_id_y = item.get_group(0);
-
             uint32_t group_id_x_max = item.get_group_range(1);
-            uint32_t group_id_y_max = item.get_group_range(0);
 
             // Calculate the global pixel row and column
             uint32_t row = global_id_y; // Calculate the flipped row
-            //uint32_t rowFlipped = m_imageHeight - 1 - global_id_y; // Calculate the flipped row
             uint32_t col = global_id_x;
             uint32_t global_linear_id = (row * (m_imageWidth) + col) * 4;
 
@@ -331,17 +322,14 @@ namespace VkRender::Rasterizer {
             if (row < m_imageHeight && col < m_imageWidth) {
                 uint32_t tileId = group_id_y * group_id_x_max + group_id_x;
 
-
                 glm::ivec2 range = m_ranges[tileId];
                 uint32_t BLOCK_SIZE = 16 * 16;
                 const int rounds = ((range.y - range.x + BLOCK_SIZE - 1) / BLOCK_SIZE);
                 int toDo = range.y - range.x;
 
-
                 // Initialize helper variables
                 float T = 1.0f;
                 float C[3] = {0};
-                //if (group_id_x == 40 && group_id_y == 22)
                 {
                     if (range.x >= 0 && range.y >= 0) {
                         for (int listIndex = range.x; listIndex < range.y; ++listIndex) {
@@ -350,20 +338,13 @@ namespace VkRender::Rasterizer {
                                 continue;
                             }
                             const GaussianPoint &point = m_gaussianPoints[index];
-                            //sycl::ext::oneapi::experimental::printf("ListIndex: %u index: %u\n", listIndex, index);
                             // Perform processing on the point and update the image
-                            // Example: Set the pixel to a specific value
                             glm::vec2 pos = point.screenPos;
                             // Calculate the exponent term
-                            //glm::vec2 d = glm::vec2(col, row) - pos;
-                            //glm::vec3 c = point.conic;
-                            //float power = -0.5f * (c.x * d.x * d.x + c.z * d.y * d.y) - c.y * d.x * d.y;
-
                             glm::vec2 diff = glm::vec2(col, row) - pos;
                             glm::vec3 c = point.conic;
                             glm::mat2 V(c.x, c.y, c.y, c.z);
                             float power = -0.5f * glm::dot(diff, V * diff);
-
                             if (power > 0.0f) {
                                 continue;
                             }

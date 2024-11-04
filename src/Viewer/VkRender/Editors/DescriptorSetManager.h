@@ -21,6 +21,7 @@ namespace VkRender{
 
         VkDescriptorSet getOrCreateDescriptorSet(const std::vector<VkWriteDescriptorSet>& descriptorWrites);
 
+        void freeDescriptorSets();
 
     private:
         VulkanDevice& m_device;

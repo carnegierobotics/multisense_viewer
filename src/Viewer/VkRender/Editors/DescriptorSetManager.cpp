@@ -6,18 +6,18 @@
 
 namespace VkRender {
     DescriptorSetManager::DescriptorSetManager(
-    VulkanDevice& device,
-    const std::vector<VkDescriptorSetLayoutBinding>& bindings,
-    const uint32_t maxDescriptorSets)
-    : m_device(device)
-    {
+        VulkanDevice& device,
+        const std::vector<VkDescriptorSetLayoutBinding>& bindings,
+        const uint32_t maxDescriptorSets)
+        : m_device(device) {
         // Create the descriptor set layout
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
         layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
         layoutInfo.pBindings = bindings.data();
 
-        VkResult result = vkCreateDescriptorSetLayout(m_device.m_LogicalDevice, &layoutInfo, nullptr, &m_descriptorSetLayout);
+        VkResult result = vkCreateDescriptorSetLayout(m_device.m_LogicalDevice, &layoutInfo, nullptr,
+                                                      &m_descriptorSetLayout);
         if (result != VK_SUCCESS) {
             throw std::runtime_error("Failed to create descriptor set layout");
         }
@@ -42,7 +42,7 @@ namespace VkRender {
         poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
         poolInfo.pPoolSizes = poolSizes.data();
         poolInfo.maxSets = maxDescriptorSets;
-        poolInfo.flags = 0; // Optional flags, e.g., VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT
+        poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT; // Optional flags, e.g., VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT
 
         result = vkCreateDescriptorPool(m_device.m_LogicalDevice, &poolInfo, nullptr, &m_descriptorPool);
         if (result != VK_SUCCESS) {
@@ -62,7 +62,8 @@ namespace VkRender {
     }
 
 
-    VkDescriptorSet DescriptorSetManager::getOrCreateDescriptorSet(const std::vector<VkWriteDescriptorSet>& descriptorWrites) {
+    VkDescriptorSet DescriptorSetManager::getOrCreateDescriptorSet(
+        const std::vector<VkWriteDescriptorSet>& descriptorWrites) {
         // Generate a unique key based on the descriptor writes (you may need a custom hash function)
         size_t hashKey = hashDescriptorWrites(descriptorWrites);
 
@@ -90,7 +91,8 @@ namespace VkRender {
             write.dstSet = descriptorSet;
         }
 
-        vkUpdateDescriptorSets(m_device.m_LogicalDevice, static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
+        vkUpdateDescriptorSets(m_device.m_LogicalDevice, static_cast<uint32_t>(writes.size()), writes.data(), 0,
+                               nullptr);
 
         // Cache the descriptor set
         m_descriptorSetCache[hashKey] = descriptorSet;
@@ -98,6 +100,25 @@ namespace VkRender {
         return descriptorSet;
     }
 
+    void DescriptorSetManager::freeDescriptorSets() {
+        // Collect all descriptor sets from the cache
+        std::vector<VkDescriptorSet> descriptorSets;
+        descriptorSets.reserve(m_descriptorSetCache.size());
+
+        for (const auto& [key, descriptorSet] : m_descriptorSetCache) {
+            descriptorSets.push_back(descriptorSet);
+        }
+
+        // Free all descriptor sets in a single call
+        if (!descriptorSets.empty()) {
+            vkFreeDescriptorSets(m_device.m_LogicalDevice, m_descriptorPool,
+                                 static_cast<uint32_t>(descriptorSets.size()),
+                                 descriptorSets.data());
+        }
+
+        // Clear the cache after freeing
+        m_descriptorSetCache.clear();
+    }
 
     size_t DescriptorSetManager::hashDescriptorImageInfo(const VkDescriptorImageInfo& imageInfo) {
         size_t hash = 0;
@@ -109,6 +130,7 @@ namespace VkRender {
         hash ^= std::hash<VkImageLayout>()(imageInfo.imageLayout) + 0x9e3779b9 + (hash << 6) + (hash >> 2);
         return hash;
     }
+
     size_t DescriptorSetManager::hashDescriptorBufferInfo(const VkDescriptorBufferInfo& bufferInfo) {
         size_t hash = 0;
         // Hash the buffer handle

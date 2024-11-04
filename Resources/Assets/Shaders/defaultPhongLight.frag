@@ -4,6 +4,7 @@ layout (location = 0) in vec2 inUV;
 layout (location = 1) in vec4 fragPos;
 layout (location = 2) in vec3 inNormal;
 layout (location = 3) in vec3 inFragPos; // World space position
+layout (location = 4) in vec4 vertexColor; // World space position
 
 
 layout (binding = 0) uniform CameraUBO
@@ -63,6 +64,7 @@ void main()
         float color = texColor.r * 64;
         texColor = vec4(vec3(color), 1.0);
     }
-    outColor = vec4(phongLighting, 1.0) * info.baseColor ;
+    //outColor = vec4(phongLighting, 1.0) * info.baseColor ;
+    outColor = vec4(phongLighting, 1.0) * vertexColor ;
     //outColor = texColor * info.baseColor ;
 }

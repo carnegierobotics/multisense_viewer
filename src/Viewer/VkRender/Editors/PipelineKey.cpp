@@ -13,11 +13,11 @@
 namespace VkRender {
     bool PipelineKey::operator==(const PipelineKey &other) const {
         return renderMode == other.renderMode &&
-               vertexShaderName == other.vertexShaderName &&
-               fragmentShaderName == other.fragmentShaderName &&
-               setLayouts == other.setLayouts &&
-               topology == other.topology &&
-               materialPtr == other.materialPtr &&
-               polygonMode == other.polygonMode;
+                vertexShaderName == other.vertexShaderName &&
+                fragmentShaderName == other.fragmentShaderName &&
+                materialPtr == other.materialPtr &&
+                setLayouts == other.setLayouts &&
+                topology == other.topology &&
+                polygonMode == other.polygonMode;
     }
 }

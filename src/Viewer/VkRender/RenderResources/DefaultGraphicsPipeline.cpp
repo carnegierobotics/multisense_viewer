@@ -19,14 +19,12 @@ namespace VkRender {
         // Vertex bindings an attributes
 
         VkPipelineVertexInputStateCreateInfo vertexInputStateCI{};
-
-        vertexInputStateCI.pVertexBindingDescriptions = &key.vertexInputBindingDescriptions;
-        vertexInputStateCI.pVertexAttributeDescriptions = key.vertexInputAttributes.data();
-        vertexInputStateCI.vertexAttributeDescriptionCount = static_cast<uint32_t>(key.vertexInputAttributes.
-            size());
-
         vertexInputStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-        vertexInputStateCI.vertexBindingDescriptionCount = 1;
+
+        vertexInputStateCI.pVertexBindingDescriptions = key.vertexInputBindingDescriptions.data();
+        vertexInputStateCI.pVertexAttributeDescriptions = key.vertexInputAttributes.data();
+        vertexInputStateCI.vertexAttributeDescriptionCount = static_cast<uint32_t>(key.vertexInputAttributes.size());
+        vertexInputStateCI.vertexBindingDescriptionCount = static_cast<uint32_t>(key.vertexInputBindingDescriptions.size());
 
 
         std::vector<VkPipelineShaderStageCreateInfo> shaderStages(2);

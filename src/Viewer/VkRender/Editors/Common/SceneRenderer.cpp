@@ -200,6 +200,8 @@ namespace VkRender {
             }
         }
 
+        vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, command.pipeline->pipeline()->getPipeline());
+
         // Bind the entity's descriptor set (which includes both camera and model data)
         if (command.entity.hasComponent<MeshComponent>()) {
             vkCmdBindDescriptorSets(
@@ -334,27 +336,33 @@ namespace VkRender {
                 key.polygonMode = VK_POLYGON_MODE_POINT;
             }
 
-            if (meshComponent.m_type == CAMERA_GIZMO) {
-                key.setLayouts.push_back(m_dynamicVertexUBODescriptorSetLayout); // Use default descriptor set layout
-                key.vertexShaderName = "CameraGizmo.vert";
-                key.fragmentShaderName = "defaultTexture.frag";
-            }
+
 
             // Create or retrieve the pipeline
             RenderPassInfo renderPassInfo{};
             renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
             renderPassInfo.renderPass = m_renderPass->getRenderPass();
 
-            VkVertexInputBindingDescription vertexInputBinding = {
-                0, sizeof(VkRender::Vertex), VK_VERTEX_INPUT_RATE_VERTEX
+            std::vector<VkVertexInputBindingDescription> vertexInputBinding = {
+                    {0, sizeof(VkRender::Vertex), VK_VERTEX_INPUT_RATE_VERTEX}
             };
             std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
                 {0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0},
                 {1, 0, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3},
                 {2, 0, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 6},
+                {3, 0, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 8},
+                {4, 0, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 10},
             };
             key.vertexInputBindingDescriptions = vertexInputBinding;
             key.vertexInputAttributes = vertexInputAttributes;
+
+            if (meshComponent.m_type == CAMERA_GIZMO) {
+                key.setLayouts.push_back(m_dynamicVertexUBODescriptorSetLayout); // Use default descriptor set layout
+                key.vertexShaderName = "CameraGizmo.vert";
+                key.fragmentShaderName = "defaultTexture.frag";
+                key.vertexInputBindingDescriptions.clear();
+                key.vertexInputAttributes.clear();
+            }
 
             auto pipeline = m_pipelineManager.getOrCreatePipeline(key, renderPassInfo, m_context);
             // Create the render command

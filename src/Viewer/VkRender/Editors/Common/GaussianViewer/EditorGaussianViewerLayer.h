@@ -21,6 +21,8 @@ namespace VkRender {
         bool render3dgsImage = false;
         bool useImageFrom3DViewport = false;
 
+        int32_t colorOption = 0;
+
         // Constructor that copies everything from base EditorUI
         EditorGaussianViewerUI(const EditorUI &baseUI) : EditorUI(baseUI) {}
     };

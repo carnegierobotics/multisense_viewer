@@ -6,8 +6,8 @@
       "editorTypeDescription": "3D Viewport",
       "resizeable": true,
       "uiLayers": [],
-      "width": 80,
-      "height": 50,
+      "width": 40,
+      "height": 100,
       "x": 0,
       "y": 0
     },{
@@ -16,10 +16,10 @@
       "editorTypeDescription": "Gaussian Viewer",
       "resizeable": true,
       "uiLayers": [],
-      "width": 80,
-      "height": 50,
-      "x": 0,
-      "y": 50
+      "width": 40,
+      "height": 100,
+      "x": 40,
+      "y": 0
     },
     {
       "borderSize": 5,

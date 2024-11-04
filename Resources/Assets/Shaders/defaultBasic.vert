@@ -3,6 +3,8 @@
 layout (location = 0) in vec3 inPos;
 layout (location = 1) in vec3 inNormal;
 layout (location = 2) in vec2 inUV0;
+layout (location = 3) in vec2 inUV1;
+layout (location = 4) in vec4 color;
 
 // Camera uniform block
 layout (binding = 0) uniform CameraUBO
@@ -22,6 +24,7 @@ layout(location = 0) out vec2 outUV;
 layout(location = 1) out vec4 fragPos;
 layout(location = 2) out vec3 outNormal;
 layout(location = 3) out vec3 outFragPos; // Pass the world position to fragment shader
+layout(location = 4) out vec4 vertexColorOut;
 
 void main() {
 	// Transform the vertex position to world space
@@ -36,7 +39,7 @@ void main() {
 
 	// Calculate final position in clip space
 	gl_Position = camera.projection * camera.view * worldPos;
-
+	vertexColorOut = color;
 	// Pass UV coordinates to fragment shader
 	outUV = inUV0;
 }

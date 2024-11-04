@@ -140,6 +140,106 @@ namespace VkRender {
     void MeshData::meshFromPlyFile() {
         std::ifstream ss(m_filePath.string(), std::ios::binary);
         if (ss.fail()) {
+            Log::Logger::getInstance()->warning("Failed to open {}", m_filePath.string());
+            return;
+        }
+
+        tinyply::PlyFile file;
+        file.parse_header(ss);
+
+        std::shared_ptr<tinyply::PlyData> positionData, colorData, facesData;
+
+        try {
+            // Request position data (double type)
+            positionData = file.request_properties_from_element("vertex", {"x", "y", "z"});
+        } catch (const std::exception &e) {
+            throw std::runtime_error("tinyply exception: " + std::string(e.what()));
+        }
+
+        try {
+            // Request color data (uchar type)
+            colorData = file.request_properties_from_element("vertex", {"red", "green", "blue"});
+        } catch (const std::exception &e) {
+            throw std::runtime_error("tinyply exception: " + std::string(e.what()));
+        }
+
+        try {
+            facesData = file.request_properties_from_element("face", {"vertex_indices"});
+        } catch (const std::exception &e) {
+            throw std::runtime_error("tinyply exception: " + std::string(e.what()));
+        }
+
+        file.read(ss);
+
+        const size_t numVertices = positionData->count;
+        const size_t numFaces = facesData->count;
+
+        // Load position data (double precision)
+        std::vector<double> positions(numVertices * 3);
+        std::memcpy(positions.data(), positionData->buffer.get(), positionData->buffer.size_bytes());
+
+        // Load color data (unsigned char precision)
+        std::vector<uint8_t> colors(numVertices * 3);
+        std::memcpy(colors.data(), colorData->buffer.get(), colorData->buffer.size_bytes());
+
+        std::vector<uint32_t> faces(numFaces * 3);
+        std::memcpy(faces.data(), facesData->buffer.get(), facesData->buffer.size_bytes());
+
+        // Populate vertices
+        for (size_t i = 0; i < numVertices; ++i) {
+            Vertex vertex{};
+            vertex.pos = {
+                    static_cast<float>(positions[3 * i + 0]),
+                    static_cast<float>(positions[3 * i + 1]),
+                    static_cast<float>(positions[3 * i + 2])
+            };
+
+            // Convert color values from uint8 to float [0, 1]
+            vertex.color = {
+                    colors[3 * i + 0] / 255.0f,
+                    colors[3 * i + 1] / 255.0f,
+                    colors[3 * i + 2] / 255.0f,
+                    1.0f  // Alpha channel set to 1.0
+            };
+
+            vertex.normal = glm::vec3(0.0f);
+            vertices.push_back(vertex);
+        }
+
+        // Populate indices
+        for (size_t i = 0; i < numFaces; ++i) {
+            indices.push_back(faces[3 * i + 0]);
+            indices.push_back(faces[3 * i + 1]);
+            indices.push_back(faces[3 * i + 2]);
+        }
+
+        // Compute face normals and accumulate them in each vertex normal
+        for (size_t i = 0; i < indices.size(); i += 3) {
+            uint32_t i0 = indices[i + 0];
+            uint32_t i1 = indices[i + 1];
+            uint32_t i2 = indices[i + 2];
+
+            glm::vec3 v0 = vertices[i0].pos;
+            glm::vec3 v1 = vertices[i1].pos;
+            glm::vec3 v2 = vertices[i2].pos;
+
+            glm::vec3 edge1 = v1 - v0;
+            glm::vec3 edge2 = v2 - v0;
+            glm::vec3 faceNormal = glm::normalize(glm::cross(edge1, edge2));
+
+            vertices[i0].normal += faceNormal;
+            vertices[i1].normal += faceNormal;
+            vertices[i2].normal += faceNormal;
+        }
+
+        // Normalize all the vertex normals
+        for (auto &vertex : vertices) {
+            vertex.normal = glm::normalize(vertex.normal);
+        }
+
+        /*
+        std::ifstream ss(m_filePath.string(), std::ios::binary);
+        if (ss.fail()) {
             Log::Logger::getInstance()->warning("Failed to open {}" , m_filePath.string());
             return;
         }
@@ -224,6 +324,7 @@ namespace VkRender {
         for (size_t i = 0; i < vertices.size(); ++i) {
             vertices[i].normal = glm::normalize(vertices[i].normal);
         }
+         */
     }
 
     void MeshData::meshFromCameraGizmo() {

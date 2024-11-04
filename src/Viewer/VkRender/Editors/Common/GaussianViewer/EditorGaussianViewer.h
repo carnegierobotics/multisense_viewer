@@ -12,6 +12,8 @@
 #include "Viewer/Scenes/Scene.h"
 #include "Viewer/VkRender/RenderResources/3DGS/SyclGaussianGFX.h"
 #include "Viewer/VkRender/Core/SyclDeviceSelector.h"
+#include "Viewer/VkRender/Editors/DescriptorSetManager.h"
+#include "Viewer/VkRender/Editors/PipelineManager.h"
 
 namespace VkRender {
 
@@ -46,8 +48,20 @@ namespace VkRender {
         SyclDeviceSelector m_deviceSelector = SyclDeviceSelector(SyclDeviceSelector::DeviceType::GPU);
         SyclGaussianGFX m_syclGaussianGfx;
 
-        std::shared_ptr<VulkanTexture2D> m_colorTexture;
+        std::vector<std::unique_ptr<Buffer>> m_shaderSelectionBuffer;
 
+        std::shared_ptr<VulkanTexture2D> m_colorTexture;
+        PipelineManager m_pipelineManager;
+        std::unique_ptr<DescriptorSetManager> m_descriptorSetManager;
+        std::shared_ptr<MeshInstance> m_meshInstances;
+
+        void bindResourcesAndDraw(const CommandBuffer &commandBuffer, RenderCommand &command);
+
+        void collectRenderCommands(
+                std::unordered_map<std::shared_ptr<DefaultGraphicsPipeline>, std::vector<RenderCommand>> &renderGroups,
+                uint32_t frameIndex);
+
+        std::shared_ptr<MeshInstance> setupMesh();
     };
 }
 

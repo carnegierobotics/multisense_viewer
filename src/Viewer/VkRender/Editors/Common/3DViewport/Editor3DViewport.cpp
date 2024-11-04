@@ -166,8 +166,9 @@ namespace VkRender {
         key.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         key.polygonMode = VK_POLYGON_MODE_FILL;
 
-        VkVertexInputBindingDescription vertexInputBinding = {0, sizeof(ImageVertex), VK_VERTEX_INPUT_RATE_VERTEX};
-        std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
+        std::vector<VkVertexInputBindingDescription> vertexInputBinding = {
+                {0, sizeof(VkRender::ImageVertex), VK_VERTEX_INPUT_RATE_VERTEX}
+        };        std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
             {0, 0, VK_FORMAT_R32G32_SFLOAT, 0},
             {1, 0, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 2},
         };

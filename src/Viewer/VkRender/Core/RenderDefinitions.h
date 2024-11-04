@@ -76,9 +76,9 @@ namespace VkRender {
         glm::vec3 normal{};
         glm::vec2 uv0{};
         glm::vec2 uv1{};
+        glm::vec4 color{};
         glm::vec4 joint0{};
         glm::vec4 weight0{};
-        glm::vec4 color{};
 
         bool operator==(const Vertex &other) const {
             return pos == other.pos && color == other.color && uv0 == other.uv0;

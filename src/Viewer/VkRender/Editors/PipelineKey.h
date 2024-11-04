@@ -27,7 +27,7 @@ namespace VkRender {
         VkPolygonMode polygonMode = VK_POLYGON_MODE_MAX_ENUM;
         uint64_t* materialPtr = nullptr;
 
-        VkVertexInputBindingDescription vertexInputBindingDescriptions = {}; // TODO include in hash
+        std::vector<VkVertexInputBindingDescription> vertexInputBindingDescriptions = {}; // TODO include in hash
         std::vector<VkVertexInputAttributeDescription> vertexInputAttributes; // TODO include in hash
         bool useCustomVertexInputBindings = false;
         bool operator==(const PipelineKey& other) const;
@@ -48,13 +48,28 @@ struct std::hash<VkRender::PipelineKey> {
         };
 
         // Hash each member of PipelineKey
-        hash_combine(static_cast<int>(key.renderMode)); // Assuming RenderMode is an enum
+        hash_combine(static_cast<int>(key.renderMode));
         hash_combine(key.vertexShaderName);
         hash_combine(key.fragmentShaderName);
         hash_combine(key.materialPtr);
         hash_combine(key.setLayouts.size());
-        hash_combine(static_cast<int>(key.topology)); // Assuming topology is an enum
-        hash_combine(static_cast<int>(key.polygonMode)); // Assuming polygonMode is an enum
+        hash_combine(static_cast<int>(key.topology));
+        hash_combine(static_cast<int>(key.polygonMode));
+
+        // Hash each attribute in vertexInputBindingDescriptions
+        for (const auto& attr : key.vertexInputBindingDescriptions) {
+            hash_combine(attr.binding);
+            hash_combine(attr.stride);
+            hash_combine(attr.inputRate);
+        }
+
+        // Hash each attribute in vertexInputAttributes
+        for (const auto& attr : key.vertexInputAttributes) {
+            hash_combine(attr.binding);
+            hash_combine(attr.location);
+            hash_combine(attr.format);
+            hash_combine(attr.offset);
+        }
 
         return seed;
     }

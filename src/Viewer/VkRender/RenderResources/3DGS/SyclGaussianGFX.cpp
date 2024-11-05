@@ -66,8 +66,8 @@ namespace VkRender {
 
         m_queue.memcpy(m_preProcessDataPtr, &m_preProcessData, sizeof(PreProcessData)).wait();
 
-        //preProcessGaussians(imageMemory);
-        renderGaussiansWithProfiling(imageMemory, true);
+        preProcessGaussians(imageMemory);
+        //renderGaussiansWithProfiling(imageMemory, true);
 
         // Start rendering
         // Copy output to texture
@@ -87,6 +87,7 @@ namespace VkRender {
     }
 
     void copyAndSortKeysAndValues(sycl::queue &m_queue, uint32_t *keysBuffer, uint32_t *valuesBuffer, size_t numRendered) {
+        // TODO this function creates a memory leak on host ram
         // Step 1: Allocate Unified Shared Memory (USM) for key-value pairs
         using KeyValue = std::pair<uint32_t, uint32_t>;
 
@@ -102,9 +103,11 @@ namespace VkRender {
         }).wait();
 
         // Step 3: Sort the key-value pairs directly using the C++ standard algorithm with offloading
-        std::sort(std::execution::par_unseq, keyValuePairs, keyValuePairs + numRendered, [](const KeyValue &a, const KeyValue &b) {
+        std::sort(std::execution::par, keyValuePairs, keyValuePairs + numRendered, [](const KeyValue &a, const KeyValue &b) {
             return a.first < b.first;
         });
+
+        m_queue.wait();
 
         // Step 4: Write the sorted keys and values back to the provided buffers
         m_queue.submit([&](sycl::handler &h) {
@@ -191,13 +194,7 @@ namespace VkRender {
             }).wait();
 
 
-            //m_sorter->performOneSweep(keysBuffer, valuesBuffer, numRendered);
-            //m_sorter->verifySort(keysBuffer, numRendered);
-            //m_sorter->resetMemory();
-
-
             copyAndSortKeysAndValues(m_queue, keysBuffer, valuesBuffer, numRendered);
-            //m_sorter->verifySort(keysBuffer, numRendered);
 
             auto *rangesBuffer = sycl::malloc_device<glm::ivec2>(m_preProcessData.preProcessSettings.numTiles, m_queue);
             m_queue.memset(rangesBuffer, static_cast<int>(0x00),
@@ -237,10 +234,11 @@ namespace VkRender {
 
             sycl::free(imageBuffer, m_queue);
             sycl::free(rangesBuffer, m_queue);
-            sycl::free(pointOffsets, m_queue);
             sycl::free(keysBuffer, m_queue);
             sycl::free(valuesBuffer, m_queue);
         }
+        sycl::free(pointOffsets, m_queue);
+
     }
 
     void SyclGaussianGFX::renderGaussiansWithProfiling(uint8_t *imageMemory, bool enable_profiling) {

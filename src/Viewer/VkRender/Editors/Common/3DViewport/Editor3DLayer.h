@@ -33,6 +33,7 @@ namespace VkRender {
         OutputTextureImageType selectedImageType = OutputTextureImageType::Color;
         // Depth color option selection (only relevant if Depth is selected)
         DepthColorOption depthColorOption = DepthColorOption::None;
+        bool reloadViewportShader = false;
         // Constructor that copies everything from base EditorUI
         explicit Editor3DViewportUI(const EditorUI &baseUI) : EditorUI(baseUI) {
         }
@@ -72,6 +73,8 @@ namespace VkRender {
             ImGui::Checkbox("Active camera", &imageUI->renderFromViewpoint);
             ImGui::SameLine();
             imageUI->saveNextFrame = ImGui::Button("Save");
+            ImGui::SameLine();
+            imageUI->reloadViewportShader = ImGui::Button("Reload Shader");
             ImGui::SameLine();
             ImGui::SetNextItemWidth(100.0f);
             if (ImGui::BeginCombo("Image Type",

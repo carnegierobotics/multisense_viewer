@@ -17,4 +17,11 @@ namespace VkRender {
         m_pipelineCache[key] = pipeline;
         return pipeline;
     }
+
+    void PipelineManager::removePipeline(const PipelineKey &key)  {
+        auto it = m_pipelineCache.find(key);
+        if (it != m_pipelineCache.end()) {
+            m_pipelineCache.erase(it);
+        }
+    }
 }

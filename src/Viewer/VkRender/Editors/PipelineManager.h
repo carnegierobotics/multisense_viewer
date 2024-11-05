@@ -28,6 +28,9 @@ namespace VkRender {
         PipelineManager() = default;
         std::shared_ptr<DefaultGraphicsPipeline> getOrCreatePipeline(const PipelineKey &key, const RenderPassInfo &renderPassInfo, Application *context);
 
+        // Function to remove a pipeline by key
+        void removePipeline(const PipelineKey &key);
+
     private:
         std::unordered_map<PipelineKey, std::shared_ptr<DefaultGraphicsPipeline>> m_pipelineCache;
     };

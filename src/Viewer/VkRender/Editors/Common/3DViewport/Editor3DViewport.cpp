@@ -181,6 +181,10 @@ namespace VkRender {
         key.vertexInputBindingDescriptions = vertexInputBinding;
         key.vertexInputAttributes = vertexInputAttributes;
 
+        auto imageUI = std::dynamic_pointer_cast<Editor3DViewportUI>(m_ui);
+        if (imageUI->reloadViewportShader){
+            m_pipelineManager.removePipeline(key);
+        }
         // Create or retrieve the pipeline
         RenderPassInfo renderPassInfo{};
         renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;

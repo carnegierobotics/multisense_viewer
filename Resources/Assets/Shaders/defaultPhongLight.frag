@@ -59,12 +59,14 @@ void main()
 
     vec3 phongLighting = calculatePhongLighting(norm, inFragPos, viewDir, lightDir);
 
-    vec4 texColor = texture(samplerColorMap, inUV);
+    vec3 texColor = texture(samplerColorMap, inUV).rgb;
+   /*
     if (info.isDisparity == 1){
         float color = texColor.r * 64;
         texColor = vec4(vec3(color), 1.0);
     }
-    outColor = vec4(phongLighting, 1.0) * info.baseColor ;
-    //outColor = vec4(phongLighting, 1.0) * vertexColor ;
+    */
+    //outColor = vec4(phongLighting, 1.0) * info.baseColor * vec4(texColor, 1.0);
+    outColor = vec4(phongLighting, 1.0) * vertexColor ;
     //outColor = texColor * info.baseColor ;
 }

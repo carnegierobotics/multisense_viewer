@@ -10,6 +10,7 @@ project(MultiSense-Viewer
 # Options
 option(WARNINGS_AS_ERRORS "Treat compiler warnings as errors" FALSE)
 option(ENABLE_SYCL "Compile with SYCL support. Provided that llvm-sycl clang++ is in path" FALSE)
+option(ENABLE_PYTORCH "Compile with PyTorch" FALSE)
 option(BUILD_DOC "Build documentation" ON)
 option(PROPRIETARY_GIGEVISION_MODULE "Include the proprietary GigE-Vision module" OFF)
 option(SYCL_BACKEND "Select SYCL backend (dpcpp or adaptivecpp)" "adaptivecpp")
@@ -26,6 +27,23 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_executable(MultiSense-Viewer)
 
+# Enable CUDA language support and set CUDA standard
+# Conditional setup for PyTorch and CUDA
+if (ENABLE_PYTORCH)
+    # Enable CUDA only if PyTorch is enabled
+    enable_language(CUDA)  # Enable CUDA compiler
+    set(CMAKE_CUDA_STANDARD 20)
+    set(CMAKE_CUDA_ARCHITECTURES "80")  # Replace "80" with your GPU architecture if different
+    target_include_directories(MultiSense-Viewer PRIVATE ${TORCH_INCLUDE_DIRS})
+
+    # Find the Torch package
+    find_package(Torch REQUIRED HINTS /home/magnus/libraries/libtorch-cxx11-abi-shared-with-deps-2.5.1+cu124/libtorch)
+
+    # Link Torch libraries and enable C++20 for the target
+    target_link_libraries(MultiSense-Viewer PRIVATE ${TORCH_LIBRARIES})
+    target_compile_features(MultiSense-Viewer PRIVATE cxx_std_20)
+endif ()
+
 # SYCL Backend selection
 if (ENABLE_SYCL)
     if (SYCL_BACKEND STREQUAL "dpcpp")
@@ -34,7 +52,6 @@ if (ENABLE_SYCL)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -fsycl-targets=spir64 -g -O0 -ffp-model=precise -Wno-overriding-option -ltbb")
         message(STATUS "[VkRenderINFO]: SYCL DPC++ support enabled. Compiler: ${CMAKE_CXX_COMPILER} Flags: ${CMAKE_CXX_FLAGS}")
         target_link_libraries(${PROJECT_NAME} PRIVATE sycl ur_loader)
-
     elseif (SYCL_BACKEND STREQUAL "adaptivecpp")
         # Find the AdaptiveCpp package
         find_package(AdaptiveCpp REQUIRED)
@@ -49,7 +66,6 @@ if (ENABLE_SYCL)
             target_compile_options(${PROJECT_NAME} PRIVATE -O0 -g)
             message(STATUS "[VkRenderINFO]: Compiling using AdaptiveCpp without optimization")
         endif()
-
     else ()
         message(FATAL_ERROR "[VkRenderERROR]: Unknown SYCL backend. Choose either 'dpcpp' or 'adaptivecpp'.")
     endif ()
@@ -182,7 +198,7 @@ if (ENABLE_SYCL)
     list(APPEND SOURCE_FILES src/Viewer/VkRender/Core/SyclDeviceSelector.h)
     list(APPEND SOURCE_FILES src/Viewer/VkRender/Editors/Common/GaussianViewer/EditorGaussianViewer.cpp)
     message(STATUS "[VkRenderINFO]: SYCL: Adding Gaussian Renderer to source")
-endif ()
+endif ()# Add SYCL-specific files
 
 # Add proprietary GigE-Vision module
 if (PROPRIETARY_GIGEVISION_MODULE)

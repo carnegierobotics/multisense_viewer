@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <execution>
 #include <utility>
+#include <torch/torch.h>
 
 #include "Viewer/VkRender/RenderResources/3DGS/SyclGaussianGFX.h"
 #include "Viewer/VkRender/RenderResources/3DGS/Rasterizer.h"

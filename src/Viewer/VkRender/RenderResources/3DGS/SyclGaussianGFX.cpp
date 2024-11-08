@@ -81,7 +81,7 @@ namespace VkRender {
     void SyclGaussianGFX::updateGaussianPoints(const std::vector<GaussianPoint> &newPoints) {
         sycl::free(m_gaussianPointsPtr, m_queue);
         m_numGaussians = newPoints.size();
-        m_gaussianPointsPtr = sycl::malloc_shared<GaussianPoint>(m_numGaussians, m_queue);
+        m_gaussianPointsPtr = sycl::malloc_device<GaussianPoint>(m_numGaussians, m_queue);
 
 
         m_queue.memcpy(m_gaussianPointsPtr, newPoints.data(), newPoints.size() * sizeof(GaussianPoint)).wait();
@@ -104,7 +104,7 @@ namespace VkRender {
         }).wait();
 
         // Step 3: Sort the key-value pairs directly using the C++ standard algorithm with offloading
-        std::sort(std::execution::par, keyValuePairs, keyValuePairs + numRendered, [](const KeyValue &a, const KeyValue &b) {
+        std::sort(std::execution::par_unseq, keyValuePairs, keyValuePairs + numRendered, [](const KeyValue &a, const KeyValue &b) {
             return a.first < b.first;
         });
 

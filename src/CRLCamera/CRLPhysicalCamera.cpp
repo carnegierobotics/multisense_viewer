@@ -323,9 +323,12 @@ namespace VkRender::MultiSense {
                                      "devInfo");
         if (dev->interruptConnection) return false;
         allSucceeded &= updateAndLog([&](auto &data) { return channelPtr->getMtu(data); }, info.sensorMTU, "sensorMTU");
-        if (dev->interruptConnection) return false;
-        allSucceeded &= updateAndLog([&](auto &data) { return channelPtr->getLightingConfig(data); }, info.lightConf,
-                                     "lightConf");
+
+        if (info.devInfo.lightingType != 0) {
+            if (dev->interruptConnection) return false;
+            allSucceeded &= updateAndLog([&](auto &data) { return channelPtr->getLightingConfig(data); }, info.lightConf,
+                                         "lightConf");
+        }
         if (dev->interruptConnection) return false;
         allSucceeded &= updateAndLog([&](auto &data) { return channelPtr->getImageCalibration(data); },
                                      info.calibration, "calibration");

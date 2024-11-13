@@ -57,10 +57,11 @@ void PointCloud::setup() {
 
 void PointCloud::update() {
 
-
     if (prepareTexFuture.valid() && prepareTexFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
         if (prepareTexFuture.get())
+        {
             model->m_Draw = true;
+        }
     }
 
     if (model->m_Draw && selectedPreviewTab == VkRender::CRL_TAB_3D_POINT_CLOUD) {
@@ -104,8 +105,6 @@ void PointCloud::update() {
 
         auto *buf = ubo[0].pointCloudData.get();
         buf->pointSize = pointSize;
-
-
     }
 }
 

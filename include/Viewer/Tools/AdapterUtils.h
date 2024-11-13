@@ -242,35 +242,36 @@ public:
         }
         auto fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
         for (auto i = ifn; i->if_name; ++i) {
-            struct {
-                __u32 link_mode_data[3 * 127]{};
-                struct ethtool_link_settings req{};
 
-            } ecmd{};
+            struct ethtool_link_settings *req;
+            req = reinterpret_cast<ethtool_link_settings*>(malloc(sizeof(ethtool_link_settings) + 3*127));
+
             Adapter adapter(i->if_name, i->if_index);
 
             auto ifr = ifreq{};
             std::strncpy(ifr.ifr_name, i->if_name, IF_NAMESIZE);
             ifr.ifr_name[IF_NAMESIZE - 1] = '\0';
-            ecmd.req.cmd = ETHTOOL_GLINKSETTINGS;
-            ifr.ifr_data = reinterpret_cast<char *>(&ecmd);
+            req->cmd = ETHTOOL_GLINKSETTINGS;
+            ifr.ifr_data = reinterpret_cast<char *>(req);
 
             // Check if interface is of type ethernet
             if (ioctl(fd, SIOCETHTOOL, &ifr) == -1) {
                 adapter.supports = false;
             }
             // More ethernet checking
-            if (ecmd.req.link_mode_masks_nwords >= 0 || ecmd.req.cmd != ETHTOOL_GLINKSETTINGS) {
+            if (req->link_mode_masks_nwords >= 0 || req->cmd != ETHTOOL_GLINKSETTINGS) {
                 adapter.supports = false;
             }
             // Even more ethernet checking
-            ecmd.req.link_mode_masks_nwords = -ecmd.req.link_mode_masks_nwords;
+            req->link_mode_masks_nwords = -req->link_mode_masks_nwords;
             if (ioctl(fd, SIOCETHTOOL, &ifr) == -1) {
                 adapter.supports = false;
             }
 
             if (adapter.supports)
                 adapters.emplace_back(adapter);
+
+            free(req);
         }
         if_freenameindex(ifn);
         close(fd);

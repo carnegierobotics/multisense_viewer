@@ -842,7 +842,7 @@ public:
                     bool btnClick = ImGui::Button("Set");
                     if (btnClick) {
                         ImGui::CloseCurrentPopup();
-                        d.parameters.stereo.mtu = (float) customMTU;  // Update the MTU with the custom value
+                        d.parameters.stereo.mtu = static_cast<float>(customMTU);  // Update the MTU with the custom value
                         d.parameters.stereo.update |= btnClick;
                     }
                     ImGui::EndPopup();

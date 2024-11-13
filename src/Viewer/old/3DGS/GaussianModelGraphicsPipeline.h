@@ -10,8 +10,8 @@
 #include "Viewer/VkRender/Core/Camera.h"
 #ifdef SYCL_ENABLED
 #include <sycl/sycl.hpp>
-#include "Viewer/VkRender/RenderResources/3DGS/radixsort/RadixSorter.h"
-#include "Viewer/VkRender/RenderResources/3DGS/RasterizerUtils.h"
+#include "Viewer/VkRender/RenderResources/2DGS/radixsort/RadixSorter.h"
+#include "Viewer/VkRender/RenderResources/2DGS/RasterizerUtils.h"
 #endif
 
 namespace VkRender {

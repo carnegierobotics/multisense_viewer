@@ -10,7 +10,7 @@
 #include "Viewer/VkRender/Editors/Editor.h"
 #include "Viewer/VkRender/Core/Camera.h"
 #include "Viewer/Scenes/Scene.h"
-#include "Viewer/VkRender/RenderResources/3DGS/SyclGaussianGFX.h"
+#include "Viewer/VkRender/RenderResources/2DGS/SyclGaussianGFX.h"
 #include "Viewer/VkRender/Core/SyclDeviceSelector.h"
 #include "Viewer/VkRender/Editors/DescriptorSetManager.h"
 #include "Viewer/VkRender/Editors/PipelineManager.h"

@@ -5,7 +5,7 @@
 
 #include "GaussianModelGraphicsPipeline.h"
 #include "Viewer/Tools/Logger.h"
-#include "Viewer/VkRender/RenderResources/3DGS/RasterizerUtils.h"
+#include "Viewer/VkRender/RenderResources/2DGS/RasterizerUtils.h"
 #include "Rasterizer.h"
 
 namespace VkRender {

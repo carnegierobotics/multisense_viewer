@@ -243,11 +243,9 @@ public:
         auto fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
         for (auto i = ifn; i->if_name; ++i) {
             struct {
-                DISABLE_WARNING_PUSH
-                DISABLE_WARNING_PEDANTIC
-                struct ethtool_link_settings req{};
-                DISABLE_WARNING_POP
                 __u32 link_mode_data[3 * 127]{};
+                struct ethtool_link_settings req{};
+
             } ecmd{};
             Adapter adapter(i->if_name, i->if_index);
 

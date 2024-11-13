@@ -14,7 +14,11 @@
 #include <locale>
 #include <codecvt>
 
+
 #else
+
+DISABLE_WARNING_PUSH
+DISABLE_WARNING_ALL
 #include <gtk/gtk.h>
 #endif
 
@@ -279,5 +283,6 @@ namespace VkRender::LayerUtils {
 
 }
 
+DISABLE_WARNING_POP
 
 #endif //MULTISENSE_VIEWER_LAYERUTILS_H

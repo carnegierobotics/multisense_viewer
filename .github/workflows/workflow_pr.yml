@@ -17,68 +17,93 @@ jobs:
     name: "Set Version"
     runs-on: ubuntu-latest
     outputs:
-      install_path: ${{  steps.install_path_id.outputs.install_path  }}
-      install_path_ubuntu: ${{  steps.install_path_id.outputs.install_path  }}
+      install_path: ${{ steps.install_path_id.outputs.install_path }}
+      install_path_ubuntu: ${{ steps.install_path_id_ubuntu.outputs.install_path_ubuntu }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Mandatory to use the extract version from tag action
+          fetch-depth: 0 # Fetch full history to access tags
+          fetch-tags: true
+
+      - name: Fetch tags explicitly
+        run: git fetch --tags
+
       - name: Extract version from tag
-        uses: damienaicheh/extract-version-from-tag-action@v1.1.0
+        id: extract_version
+        run: |
+          # Get the latest tag (e.g., v1.1.5) and remove the 'v' prefix if needed
+          TAG=$(git describe --tags `git rev-list --tags --max-count=1`)
+          VERSION=${TAG#v}
+          
+          # Split VERSION into MAJOR, MINOR, and PATCH
+          MAJOR=$(echo "$VERSION" | cut -d. -f1)
+          MINOR=$(echo "$VERSION" | cut -d. -f2)
+          PATCH=$(echo "$VERSION" | cut -d. -f3)
+          
+          # Export the version numbers as environment variables
+          echo "MAJOR=$MAJOR" >> $GITHUB_ENV
+          echo "MINOR=$MINOR" >> $GITHUB_ENV
+          echo "PATCH=$PATCH" >> $GITHUB_ENV
+
       - name: Print version
-        run: echo "The version is ${{  env.MAJOR }}.${{  env.MINOR }}-${{  env.PATCH }}"
+        run: echo "The version is ${{ env.MAJOR }}.${{ env.MINOR }}.${{ env.PATCH }}"
+
       - name: Set Output
         id: install_path_id
-        run: echo "install_path=multisense_${{  env.MAJOR }}.${{  env.MINOR }}-${{  env.PATCH }}_amd64" >> $GITHUB_OUTPUT
+        run: echo "install_path=multisense_${{ env.MAJOR }}.${{ env.MINOR }}-${{ env.PATCH }}_amd64" >> $GITHUB_OUTPUT
+
       - name: Set Output Ubuntu
         id: install_path_id_ubuntu
-        run: echo "install_path_ubuntu=multisense_${{  env.MAJOR }}.${{  env.MINOR }}-${{  env.PATCH }}_amd64/opt/multisense" >> $GITHUB_OUTPUT
+        run: echo "install_path_ubuntu=multisense_${{ env.MAJOR }}.${{ env.MINOR }}-${{ env.PATCH }}_amd64/opt/multisense" >> $GITHUB_OUTPUT
+
+
 
 
   BuildWindows:
-    name: Build For Windows
+    name: Build and Create Installer for Windows
     needs: [VersionJob]
-    # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
-    # You can convert this to a matrix build if you need cross-platform coverage.
-    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
     runs-on: windows-2022
-
     steps:
-    - uses: actions/checkout@v3
-      with:
-        submodules: 'true'
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: 'true'
 
+      - name: Prepare Vulkan SDK
+        uses: humbletim/setup-vulkan-sdk@v1.2.0
+        with:
+          vulkan-query-version: 1.3.204.0
+          vulkan-components: Vulkan-Headers, Vulkan-Loader
+          vulkan-use-cache: true
 
-    - name: Prepare Vulkan SDK
-      uses: humbletim/setup-vulkan-sdk@v1.2.0
-      with:
-        vulkan-query-version: 1.3.204.0
-        vulkan-components: Vulkan-Headers, Vulkan-Loader
-        vulkan-use-cache: true
+      - name: Configure CMake
+        run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DGIT_SUBMODULE=OFF -DWARNINGS_AS_ERRORS=FALSE
 
-    - name: Configure CMake
-      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
-      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DGIT_SUBMODULE=OFF -DWARNINGS_AS_ERRORS=FALSE #-D CMAKE_C_COMPILER=gcc-11 -D CMAKE_CXX_COMPILER=g++-11
+      - name: Build project
+        run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --target install -- /m:10
 
-    - name: Build project
-      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
-      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --target install -- /m:10
-
-    - name: zipFiles
-      uses: vimtor/action-zip@v1
-      with:
-        files: ./build/${{ needs.VersionJob.outputs.install_path  }}
-        dest:  MultiSense_viewer.zip
-
-
-    - name: "Create Artifact"
-      uses: actions/upload-artifact@v2
-      with:
-        name: multisense-zip
-        path: ${{github.workspace}}/MultiSense_viewer.zip
+#      - name: Prepare Installer Files
+#        shell: powershell
+#        run: |
+#          # Move Inno Setup script and necessary tools into the build directory
+#          Move-Item -Path "$($env.GITHUB_WORKSPACE)\Assets\Tools\Windows\inno_setup_script.iss" -Destination "$($env.GITHUB_WORKSPACE)\build"
+#          Move-Item -Path "$($env.GITHUB_WORKSPACE)\Assets\Tools\Windows\build_installer.ps1" -Destination "$($env.GITHUB_WORKSPACE)\build"
+#          Move-Item -Path "$($env.GITHUB_WORKSPACE)\Assets\Tools\compile.sh" -Destination "$($env.GITHUB_WORKSPACE)\build"
+#          Move-Item -Path "$($env.GITHUB_WORKSPACE)\Assets\Tools\install_spirv_compiler.sh" -Destination "$($env.GITHUB_WORKSPACE)\build"
+#          Move-Item -Path "$($env.GITHUB_WORKSPACE)\Assets\Tools\monitor_memory_usage.py" -Destination "$($env.GITHUB_WORKSPACE)\build"
+#          Move-Item -Path "$($env.GITHUB_WORKSPACE)\Assets\Tools\how_to_release" -Destination "$($env.GITHUB_WORKSPACE)\build"
+#
+#          # Clean up unnecessary directories
+#          Remove-Item -Recurse -Force "$($env.GITHUB_WORKSPACE)\build\Assets\Tools\Ubuntu"
+#          Remove-Item -Recurse -Force "$($env.GITHUB_WORKSPACE)\build\bin"
+#          Remove-Item -Recurse -Force "$($env.GITHUB_WORKSPACE)\build\include"
+#          Remove-Item -Recurse -Force "$($env.GITHUB_WORKSPACE)\build\lib"
+#
+#      - name: Building the installer
+#        run: |
+#          "%programfiles(x86)%\Inno Setup 6\iscc.exe" "$env.GITHUB_WORKSPACE\build\inno_setup_script.iss"
+#        shell: cmd
 
   BuildUbuntu20:
     name: Build and package for Ubuntu 20_04
@@ -91,7 +116,7 @@ jobs:
     steps:
     - name: print install location
       run: echo "My output is ${{ needs.VersionJob.outputs.install_path  }}"
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         submodules: 'true'
 
@@ -146,7 +171,7 @@ jobs:
     steps:
       - name: print install location
         run: echo "My output is ${{ needs.VersionJob.outputs.install_path  }}"
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: 'true'
 
@@ -189,39 +214,3 @@ jobs:
       - name: Package
         working-directory: ${{github.workspace}}/build
         run: dpkg-deb --build --root-owner-group ${{ needs.VersionJob.outputs.install_path  }}
-
-  build:
-    name: Create Windows Installer
-    needs: [BuildWindows]
-    runs-on: windows-2022
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Get Artifacts
-        uses: actions/download-artifact@v2
-        with:
-          name: multisense-zip
-
-      - name: Extract some files
-        run: |
-          mkdir files
-          tar -xf .\MultiSense_viewer.zip -C .\files\
-          mv .\files\Assets\Tools\windows\inno_setup_script.iss .\
-          mv .\files\Assets\Tools\compile.sh .\
-          mv .\files\Assets\Tools\install_spirv_compiler.sh .\
-          mv .\files\Assets\Tools\monitor_memory_usage.py .\
-          mv .\files\Assets\Tools\Windows\build_installer.ps1 .\
-          mv .\files\Assets\Tools\how_to_release .\
-          rm  -R .\files\Assets\Tools\Ubuntu
-          rm  -R .\files\bin
-          rm  -R .\files\include
-          rm  -R .\files\lib
-
-        shell: cmd
-      - name: Building the installer
-        run: |
-          "%programfiles(x86)%\inno Setup 6\iscc.exe" "inno_setup_script.iss"
-        shell: cmd
-

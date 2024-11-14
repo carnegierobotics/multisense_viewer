@@ -18,23 +18,45 @@ jobs:
     name: "Set Version"
     runs-on: ubuntu-latest
     outputs:
-      install_path: ${{  steps.install_path_id.outputs.install_path  }}
-      install_path_ubuntu: ${{  steps.install_path_id.outputs.install_path  }}
+      install_path: ${{ steps.install_path_id.outputs.install_path }}
+      install_path_ubuntu: ${{ steps.install_path_id_ubuntu.outputs.install_path_ubuntu }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Mandatory to use the extract version from tag action
+          fetch-depth: 0 # Fetch full history to access tags
+          fetch-tags: true
+
+      - name: Fetch tags explicitly
+        run: git fetch --tags
+
       - name: Extract version from tag
-        uses: damienaicheh/extract-version-from-tag-action@v1.1.0
+        id: extract_version
+        run: |
+          # Get the latest tag (e.g., v1.1.5) and remove the 'v' prefix if needed
+          TAG=$(git describe --tags `git rev-list --tags --max-count=1`)
+          VERSION=${TAG#v}
+          
+          # Split VERSION into MAJOR, MINOR, and PATCH
+          MAJOR=$(echo "$VERSION" | cut -d. -f1)
+          MINOR=$(echo "$VERSION" | cut -d. -f2)
+          PATCH=$(echo "$VERSION" | cut -d. -f3)
+          
+          # Export the version numbers as environment variables
+          echo "MAJOR=$MAJOR" >> $GITHUB_ENV
+          echo "MINOR=$MINOR" >> $GITHUB_ENV
+          echo "PATCH=$PATCH" >> $GITHUB_ENV
+
       - name: Print version
-        run: echo "The version is ${{  env.MAJOR }}.${{  env.MINOR }}-${{  env.PATCH }}"
+        run: echo "The version is ${{ env.MAJOR }}.${{ env.MINOR }}.${{ env.PATCH }}"
+
       - name: Set Output
         id: install_path_id
-        run: echo "install_path=multisense_${{  env.MAJOR }}.${{  env.MINOR }}-${{  env.PATCH }}_amd64" >> $GITHUB_OUTPUT
+        run: echo "install_path=multisense_${{ env.MAJOR }}.${{ env.MINOR }}-${{ env.PATCH }}_amd64" >> $GITHUB_OUTPUT
+
       - name: Set Output Ubuntu
         id: install_path_id_ubuntu
-        run: echo "install_path_ubuntu=multisense_${{  env.MAJOR }}.${{  env.MINOR }}-${{  env.PATCH }}_amd64/opt/multisense" >> $GITHUB_OUTPUT
+        run: echo "install_path_ubuntu=multisense_${{ env.MAJOR }}.${{ env.MINOR }}-${{ env.PATCH }}_amd64/opt/multisense" >> $GITHUB_OUTPUT
 
 
   ReleaseJob:
@@ -97,7 +119,7 @@ jobs:
     runs-on: windows-2022
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         submodules: 'true'
 
@@ -148,7 +170,7 @@ jobs:
         asset_content_type: application/zip
 
     - name: "Create Artifact"
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: multisense-zip
         path: ${{github.workspace}}/MultiSense_viewer.zip
@@ -164,7 +186,7 @@ jobs:
     steps:
     - name: print install location
       run: echo "My output is ${{ needs.VersionJob.outputs.install_path  }}"
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         submodules: 'true'
 
@@ -230,7 +252,7 @@ jobs:
     steps:
       - name: print install location
         run: echo "My output is ${{ needs.VersionJob.outputs.install_path  }}"
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: 'true'
 
@@ -285,50 +307,4 @@ jobs:
           asset_name: ${{ needs.VersionJob.outputs.install_path  }}_ubuntu22_04.deb
           asset_content_type: application/zip
 
-
-  build:
-    name: Create Windows Installer
-    needs: [BuildWindows, ReleaseJob]
-    runs-on: windows-2022
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Get Artifacts
-        uses: actions/download-artifact@v2
-        with:
-          name: multisense-zip
-
-      - name: Extract some files
-        run: |
-          mkdir files
-          tar -xf .\MultiSense_viewer.zip -C .\files\
-          mv .\files\Assets\Tools\windows\inno_setup_script.iss .\
-          mv .\files\Assets\Tools\compile.sh .\
-          mv .\files\Assets\Tools\install_spirv_compiler.sh .\
-          mv .\files\Assets\Tools\monitor_memory_usage.py .\
-          mv .\files\Assets\Tools\Windows\build_installer.ps1 .\
-          mv .\files\Assets\Tools\how_to_release .\
-          rm  -R .\files\Assets\Tools\Ubuntu
-          rm  -R .\files\bin
-          rm  -R .\files\include
-          rm  -R .\files\lib
-
-        shell: cmd
-      - name: Building the installer
-        run: |
-          "%programfiles(x86)%\inno Setup 6\iscc.exe" "inno_setup_script.iss"
-        shell: cmd
-
-      - name: Upload Release Asset
-        id: upload-release-asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.ReleaseJob.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
-          asset_path: ./Output/MultiSenseSetup.exe
-          asset_name: MultiSenseSetup.exe
-          asset_content_type: application/zip
 

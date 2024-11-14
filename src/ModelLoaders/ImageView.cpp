@@ -148,7 +148,9 @@ void ImageView::Model::createEmptyTexture(uint32_t width, uint32_t height) {
 }
 
 void ImageView::updateTexture(uint32_t currentFrame, void *data, uint32_t size) {
-
+    (void) currentFrame;
+    (void) data;
+    (void) size;
     //auto *dataPtr = m_model->m_texture[currentFrame]->m_DataPtr;
     //std::memcpy(dataPtr, data, size);
     //m_model->m_texture[currentFrame]->updateTextureFromBuffer();

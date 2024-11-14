@@ -137,12 +137,8 @@ void MultiSenseCamera::update() {
                                         &MultiSenseCamera::setIMUSampleRate, this);
     }
 
-    if (imuEnabled && selectedPreviewTab == VkRender::CRL_TAB_3D_POINT_CLOUD) {
-        handleIMUUpdate();
-    } else {
-        d->model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f));
-        d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    }
+    d->model = glm::rotate(d->model, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+
     d->projection = renderData.camera->matrices.perspective;
     d->view = renderData.camera->matrices.view;
     d->camPos = glm::vec3(

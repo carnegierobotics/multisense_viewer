@@ -23,30 +23,36 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Fetch full history for tag extraction
+          fetch-depth: 0 # Fetch full history to access tags
 
       - name: Extract version from tag
-        id: version
-        uses: damienaicheh/extract-version-from-tag-action@v1.1.0
+        id: extract_version
+        run: |
+          # Get the latest tag (e.g., v1.2.3) and remove the 'v' prefix
+          TAG=$(git describe --tags `git rev-list --tags --max-count=1`)
+          VERSION=${TAG#v}
+          
+          # Split VERSION into MAJOR, MINOR, and PATCH
+          MAJOR=$(echo "$VERSION" | cut -d. -f1)
+          MINOR=$(echo "$VERSION" | cut -d. -f2)
+          PATCH=$(echo "$VERSION" | cut -d. -f3)
+          
+          # Export the version numbers as environment variables
+          echo "MAJOR=$MAJOR" >> $GITHUB_ENV
+          echo "MINOR=$MINOR" >> $GITHUB_ENV
+          echo "PATCH=$PATCH" >> $GITHUB_ENV
 
       - name: Print version
         run: echo "The version is ${{ env.MAJOR }}.${{ env.MINOR }}.${{ env.PATCH }}"
 
       - name: Set Output
         id: install_path_id
-        env:
-          MAJOR: ${{ env.MAJOR }}
-          MINOR: ${{ env.MINOR }}
-          PATCH: ${{ env.PATCH }}
-        run: echo "install_path=multisense_${MAJOR}.${MINOR}-${PATCH}_amd64" >> $GITHUB_OUTPUT
+        run: echo "install_path=multisense_${{ env.MAJOR }}.${{ env.MINOR }}-${{ env.PATCH }}_amd64" >> $GITHUB_OUTPUT
 
       - name: Set Output Ubuntu
         id: install_path_id_ubuntu
-        env:
-          MAJOR: ${{ env.MAJOR }}
-          MINOR: ${{ env.MINOR }}
-          PATCH: ${{ env.PATCH }}
-        run: echo "install_path_ubuntu=multisense_${MAJOR}.${MINOR}-${PATCH}_amd64/opt/multisense" >> $GITHUB_OUTPUT
+        run: echo "install_path_ubuntu=multisense_${{ env.MAJOR }}.${{ env.MINOR }}-${{ env.PATCH }}_amd64/opt/multisense" >> $GITHUB_OUTPUT
+
 
 
   BuildWindows:

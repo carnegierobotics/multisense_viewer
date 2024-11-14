@@ -55,6 +55,7 @@ public:
     ~MultiSenseCamera()= default;
 
     void onDestroy() override{
+        /*
         cancelLoadModels = true;
         // Wait for async models to finish loading before destorying script.
         // So we dont rush cleaning up vulkan resources for old window before this script finished loading
@@ -63,6 +64,7 @@ public:
         S30.reset();
         KS21.reset();
         delete deviceCopy;
+        */
     }
 
     /** @brief Static method to create class, returns a unique ptr of Terrain **/
@@ -85,7 +87,7 @@ public:
 
     /** @brief public string to determine if this script should be attaced to an object,
      * create a new object or do nothing. Types: Render | None | Name of object in object folder **/
-    VkRender::ScriptTypeFlags type = VkRender::CRL_SCRIPT_TYPE_DEFAULT;
+    VkRender::ScriptTypeFlags type = VkRender::CRL_SCRIPT_TYPE_DISABLED;
     VkRender::CRL_SCRIPT_DRAW_METHOD drawMethod = VkRender::CRL_SCRIPT_DONT_DRAW;
     std::unique_ptr<GLTFModel::Model> S27;
     std::unique_ptr<GLTFModel::Model> S30;

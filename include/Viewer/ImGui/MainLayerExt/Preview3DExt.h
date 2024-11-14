@@ -49,8 +49,8 @@ public:
             ImGui::PushStyleColor(ImGuiCol_HeaderHovered, VkRender::Colors::CRLRedHover);
             ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, 10.0f);
 
-            createIMUHeader(handles, dev);
-            ImGui::Dummy(ImVec2());
+            //createIMUHeader(handles, dev);
+            //ImGui::Dummy(ImVec2());
             createPointCloudHeader(handles, dev);
 
 
@@ -185,6 +185,7 @@ public:
 
                 ImGui::BeginDisabled();
             }
+
 
             // IMU
             ImGui::Dummy(ImVec2(0.0f, 15.0));

@@ -17,23 +17,36 @@ jobs:
     name: "Set Version"
     runs-on: ubuntu-latest
     outputs:
-      install_path: ${{  steps.install_path_id.outputs.install_path  }}
-      install_path_ubuntu: ${{  steps.install_path_id.outputs.install_path  }}
+      install_path: ${{ steps.install_path_id.outputs.install_path }}
+      install_path_ubuntu: ${{ steps.install_path_id_ubuntu.outputs.install_path_ubuntu }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Mandatory to use the extract version from tag action
+          fetch-depth: 0 # Fetch full history for tag extraction
+
       - name: Extract version from tag
+        id: version
         uses: damienaicheh/extract-version-from-tag-action@v1.1.0
+
       - name: Print version
-        run: echo "The version is ${{  env.MAJOR }}.${{  env.MINOR }}-${{  env.PATCH }}"
+        run: echo "The version is ${{ env.MAJOR }}.${{ env.MINOR }}.${{ env.PATCH }}"
+
       - name: Set Output
         id: install_path_id
-        run: echo "install_path=multisense_${{  env.MAJOR }}.${{  env.MINOR }}-${{  env.PATCH }}_amd64" >> $GITHUB_OUTPUT
+        env:
+          MAJOR: ${{ env.MAJOR }}
+          MINOR: ${{ env.MINOR }}
+          PATCH: ${{ env.PATCH }}
+        run: echo "install_path=multisense_${MAJOR}.${MINOR}-${PATCH}_amd64" >> $GITHUB_OUTPUT
+
       - name: Set Output Ubuntu
         id: install_path_id_ubuntu
-        run: echo "install_path_ubuntu=multisense_${{  env.MAJOR }}.${{  env.MINOR }}-${{  env.PATCH }}_amd64/opt/multisense" >> $GITHUB_OUTPUT
+        env:
+          MAJOR: ${{ env.MAJOR }}
+          MINOR: ${{ env.MINOR }}
+          PATCH: ${{ env.PATCH }}
+        run: echo "install_path_ubuntu=multisense_${MAJOR}.${MINOR}-${PATCH}_amd64/opt/multisense" >> $GITHUB_OUTPUT
 
 
   BuildWindows:

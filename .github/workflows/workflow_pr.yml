@@ -21,7 +21,7 @@ jobs:
       install_path_ubuntu: ${{  steps.install_path_id.outputs.install_path  }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0 # Mandatory to use the extract version from tag action
       - name: Extract version from tag
@@ -45,7 +45,7 @@ jobs:
     runs-on: windows-2022
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         submodules: 'true'
 
@@ -91,7 +91,7 @@ jobs:
     steps:
     - name: print install location
       run: echo "My output is ${{ needs.VersionJob.outputs.install_path  }}"
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         submodules: 'true'
 
@@ -146,7 +146,7 @@ jobs:
     steps:
       - name: print install location
         run: echo "My output is ${{ needs.VersionJob.outputs.install_path  }}"
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: 'true'
 
@@ -197,7 +197,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Get Artifacts
         uses: actions/download-artifact@v2

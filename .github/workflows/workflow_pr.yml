@@ -25,10 +25,13 @@ jobs:
         with:
           fetch-depth: 0 # Fetch full history to access tags
 
+      - name: Fetch tags explicitly
+        run: git fetch --tags
+
       - name: Extract version from tag
         id: extract_version
         run: |
-          # Get the latest tag (e.g., v1.2.3) and remove the 'v' prefix
+          # Get the latest tag (e.g., v1.1.5) and remove the 'v' prefix if needed
           TAG=$(git describe --tags `git rev-list --tags --max-count=1`)
           VERSION=${TAG#v}
           
@@ -52,6 +55,7 @@ jobs:
       - name: Set Output Ubuntu
         id: install_path_id_ubuntu
         run: echo "install_path_ubuntu=multisense_${{ env.MAJOR }}.${{ env.MINOR }}-${{ env.PATCH }}_amd64/opt/multisense" >> $GITHUB_OUTPUT
+
 
 
 

@@ -8,13 +8,13 @@
 #include <cmath>
 #include <sycl/sycl.hpp>
 
-#include "RasterizerUtils.h"
+#include "RasterizerUtils2DGS.h"
 
 
-namespace VkRender::Rasterizer {
+namespace VkRender::Rasterizer2D {
     class Preprocess {
     public:
-        Preprocess(GaussianPoint *points, PreProcessData *preProcessData)
+        Preprocess(Rasterizer2DUtils::GaussianPoint *points, Rasterizer2DUtils::PreProcessData *preProcessData)
                 : m_points(points),
                   m_camera(preProcessData->camera),
                   m_settings(preProcessData->preProcessSettings) {
@@ -30,7 +30,7 @@ namespace VkRender::Rasterizer {
             m_points[i].screenPos = glm::vec3(0);
 
             glm::vec3 scale = m_points[i].scale;
-            glm::quat q = m_points[i].rotation;
+            glm::quat quat = m_points[i].rotation;
             glm::vec3 position = m_points[i].position;
 
             glm::vec4 posView = m_camera.matrices.view * glm::vec4(position, 1.0f);
@@ -46,9 +46,12 @@ namespace VkRender::Rasterizer {
             float pixPosY = ((posNDC.y + 1.0f) * static_cast<float>(m_camera.height()) - 1.0f) * 0.5f;
             auto screenPosPoint = glm::vec3(pixPosX, pixPosY, posNDC.z);
 
-            glm::mat3 cov3D = computeCov3D(scale, q);
-            glm::vec3 cov2D = computeCov2D(posView, cov3D, m_camera.matrices.view, m_settings.params, false);
+            glm::mat4 H = glm::translate(glm::mat4(1.0f), position) * glm::mat4_cast(quat) * glm::scale(glm::mat4(1.0f), scale);
+            const glm::mat4 W = m_camera.matrices.view;
+            glm::mat4 T = glm::transpose(W * H);
 
+
+            /*
             // Invert covariance (EWA)
             float determinant = cov2D.x * cov2D.z - (cov2D.y * cov2D.y);
             if (determinant != 0) {
@@ -93,16 +96,17 @@ namespace VkRender::Rasterizer {
                                                              (rect_max.x - rect_min.x));
                 m_points[i].tilesTouched = numTilesTouched;
             }
+            */
         }
 
-        GaussianPoint *m_points;
+        Rasterizer2DUtils::GaussianPoint *m_points;
         Camera m_camera;
-        PreProcessSettings m_settings;
+        Rasterizer2DUtils::PreProcessSettings m_settings;
     };
 
     class InclusiveSum {
     public:
-        InclusiveSum(GaussianPoint *points, uint32_t *pointOffsets, uint32_t numPoints,
+        InclusiveSum(Rasterizer2DUtils::GaussianPoint *points, uint32_t *pointOffsets, uint32_t numPoints,
                      sycl::local_accessor<uint32_t> localMem, uint32_t *groupTotals)
                 : m_points(points), m_output(pointOffsets), m_numPoints(numPoints), m_localMem(localMem) , m_groupTotals(groupTotals) {
         }
@@ -144,7 +148,7 @@ namespace VkRender::Rasterizer {
         }
 
         sycl::local_accessor<uint32_t> m_localMem;
-        GaussianPoint *m_points;
+        Rasterizer2DUtils::GaussianPoint *m_points;
         uint32_t *m_output;
         uint32_t *m_groupTotals;
         uint32_t m_numPoints;
@@ -152,7 +156,7 @@ namespace VkRender::Rasterizer {
 
     class InclusiveSum2 {
     public:
-        InclusiveSum2(GaussianPoint *points, uint32_t *pointOffsets, uint32_t numPoints,
+        InclusiveSum2(Rasterizer2DUtils::GaussianPoint *points, uint32_t *pointOffsets, uint32_t numPoints,
                       sycl::local_accessor<uint32_t> localMem) : m_points(points),
                                                                  m_output(pointOffsets), m_numPoints(numPoints),
                                                                  m_localMem(localMem) {
@@ -175,7 +179,7 @@ namespace VkRender::Rasterizer {
 
         sycl::local_accessor<uint32_t> m_localMem;
 
-        GaussianPoint *m_points;
+        Rasterizer2DUtils::GaussianPoint *m_points;
         uint32_t *m_output;
         uint32_t m_numPoints;
     };
@@ -200,7 +204,7 @@ namespace VkRender::Rasterizer {
         }
 
     public:
-        DuplicateGaussians(GaussianPoint *gaussianPoints,
+        DuplicateGaussians(Rasterizer2DUtils::GaussianPoint *gaussianPoints,
                            uint32_t *pointsOffsets,
                            uint32_t *keys,
                            uint32_t *values,
@@ -215,7 +219,7 @@ namespace VkRender::Rasterizer {
         }
 
     private:
-        GaussianPoint *m_gaussianPoints;
+        Rasterizer2DUtils::GaussianPoint *m_gaussianPoints;
         uint32_t *m_pointsOffsets;
         uint32_t *m_keys;
         uint32_t *m_values;
@@ -230,7 +234,7 @@ namespace VkRender::Rasterizer {
             if (gaussian.radius > 0) {
                 uint32_t off = (i == 0) ? 0 : m_pointsOffsets[i - 1];
                 glm::ivec2 rect_min, rect_max;
-                getRect(gaussian.screenPos, gaussian.radius, rect_min, rect_max, m_tileGrid);
+                Rasterizer2DUtils::getRect(gaussian.screenPos, gaussian.radius, rect_min, rect_max, m_tileGrid);
                 for (int y = rect_min.y; y < rect_max.y; ++y) {
                     for (int x = rect_min.x; x < rect_max.x; ++x) {
                         if (off >= m_numRendered) {
@@ -287,7 +291,7 @@ namespace VkRender::Rasterizer {
 
     class RasterizeGaussians {
     public:
-        RasterizeGaussians(glm::ivec2 *ranges, uint32_t *values, GaussianPoint *gaussianPoints,
+        RasterizeGaussians(glm::ivec2 *ranges, uint32_t *values, Rasterizer2DUtils::GaussianPoint *gaussianPoints,
                            uint8_t *imageBuffer, size_t size, uint32_t m_imageWidth, uint32_t imageHeight)
                 : m_ranges(ranges), m_values(values), m_gaussianPoints(gaussianPoints),
                   m_imageBuffer(imageBuffer), m_size(size),
@@ -297,7 +301,7 @@ namespace VkRender::Rasterizer {
     private:
         uint32_t *m_values;
         glm::ivec2 *m_ranges;
-        GaussianPoint *m_gaussianPoints;
+        Rasterizer2DUtils::GaussianPoint *m_gaussianPoints;
         uint8_t *m_imageBuffer;
 
         uint32_t m_size;
@@ -337,7 +341,7 @@ namespace VkRender::Rasterizer {
                             if (index > m_size || listIndex > m_size) {
                                 continue;
                             }
-                            const GaussianPoint &point = m_gaussianPoints[index];
+                            const Rasterizer2DUtils::GaussianPoint &point = m_gaussianPoints[index];
                             // Perform processing on the point and update the image
                             glm::vec2 pos = point.screenPos;
                             // Calculate the exponent term

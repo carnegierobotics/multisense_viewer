@@ -22,6 +22,7 @@ namespace VkRender {
         bool useImageFrom3DViewport = false;
 
         int32_t colorOption = 0;
+        int radioButton = 0;
 
         // Constructor that copies everything from base EditorUI
         EditorGaussianViewerUI(const EditorUI &baseUI) : EditorUI(baseUI) {}
@@ -61,6 +62,11 @@ namespace VkRender {
             // Create the parent window
             ImGui::Begin("EditorGaussianViewerLayer", nullptr, window_flags);
             auto imageUI = std::dynamic_pointer_cast<EditorGaussianViewerUI>(m_editor->ui());
+
+            ImGui::RadioButton("3DGS", &imageUI->radioButton, 0);
+            ImGui::SameLine();
+            ImGui::RadioButton("2DGS", &imageUI->radioButton, 1);
+            ImGui::SameLine();
 
             imageUI->render3dgsImage = ImGui::Button("Render 3DGS image");
 

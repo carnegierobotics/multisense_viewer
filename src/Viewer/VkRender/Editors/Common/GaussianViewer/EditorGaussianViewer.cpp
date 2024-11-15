@@ -13,7 +13,9 @@
 namespace VkRender {
 
     EditorGaussianViewer::EditorGaussianViewer(EditorCreateInfo &createInfo, UUID uuid) : Editor(createInfo, uuid),
-                                                                                          m_syclGaussianGfx(
+                                                                                          gaussianRenderer2D(
+                                                                                                  m_deviceSelector.getQueue()),
+                                                                                          gaussianRenderer3D(
                                                                                                   m_deviceSelector.getQueue()) {
         addUI("EditorUILayer");
         addUI("DebugWindow");
@@ -23,8 +25,8 @@ namespace VkRender {
         std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
                 {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
                 {
-                 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT |
-                                                          VK_SHADER_STAGE_FRAGMENT_BIT,
+                 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_VERTEX_BIT |
+                                                                  VK_SHADER_STAGE_FRAGMENT_BIT,
                                                                                                 nullptr
                 },
         };
@@ -35,10 +37,11 @@ namespace VkRender {
         RenderPassInfo renderPassInfo{};
         renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
         renderPassInfo.renderPass = m_renderPass->getRenderPass();
-        m_colorTexture = EditorUtils::createEmptyTexture(m_createInfo.width, m_createInfo.height, VK_FORMAT_B8G8R8A8_UNORM, m_context);
+        m_colorTexture = EditorUtils::createEmptyTexture(m_createInfo.width, m_createInfo.height,
+                                                         VK_FORMAT_B8G8R8A8_UNORM, m_context);
 
         m_shaderSelectionBuffer.resize(m_context->swapChainBuffers().size());
-        for (auto& frameIndex : m_shaderSelectionBuffer) {
+        for (auto &frameIndex: m_shaderSelectionBuffer) {
             m_context->vkDevice().createBuffer(
                     VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -52,17 +55,20 @@ namespace VkRender {
         m_editorCamera = std::make_shared<Camera>(m_createInfo.width, m_createInfo.height);
 
         m_activeScene = m_context->activeScene();
-        m_syclGaussianGfx.setActiveCamera(m_editorCamera);
+        //gaussianRenderer2D.setActiveCamera(m_editorCamera);
+        gaussianRenderer3D.setActiveCamera(m_editorCamera);
 
     }
 
     void EditorGaussianViewer::onEditorResize() {
-        m_editorCamera->setCameraResolution(m_createInfo.width ,m_createInfo.height);
+        m_editorCamera->setCameraResolution(m_createInfo.width, m_createInfo.height);
         m_editorCamera->setPerspective(static_cast<float>(m_createInfo.width) / m_createInfo.height);
 
-        m_colorTexture = EditorUtils::createEmptyTexture(m_createInfo.width, m_createInfo.height,VK_FORMAT_B8G8R8A8_UNORM, m_context);
+        m_colorTexture = EditorUtils::createEmptyTexture(m_createInfo.width, m_createInfo.height,
+                                                         VK_FORMAT_B8G8R8A8_UNORM, m_context);
 
-        m_syclGaussianGfx.setActiveCamera(m_editorCamera);
+        //gaussianRenderer2D.setActiveCamera(m_editorCamera);
+        gaussianRenderer3D.setActiveCamera(m_editorCamera);
 
     }
 
@@ -72,25 +78,28 @@ namespace VkRender {
         if (imageUI->useImageFrom3DViewport) {
 
         }
-        m_syclGaussianGfx.setActiveCamera(m_editorCamera);
+        //gaussianRenderer2D.setActiveCamera(m_editorCamera);
+        gaussianRenderer3D.setActiveCamera(m_editorCamera);
 
 
-        auto& e = m_context->getSelectedEntity();
+        auto &e = m_context->getSelectedEntity();
         if (e && e.hasComponent<CameraComponent>()) {
-            auto& camera = e.getComponent<CameraComponent>();
-            if (camera.renderFromViewpoint() ) {
+            auto &camera = e.getComponent<CameraComponent>();
+            if (camera.renderFromViewpoint()) {
                 // If the selected entity has a camera with renderFromViewpoint, use it
-                camera.camera->setCameraResolution(m_createInfo.width ,m_createInfo.height);
-                m_syclGaussianGfx.setActiveCamera(camera.camera);
+                camera.camera->setCameraResolution(m_createInfo.width, m_createInfo.height);
+                //gaussianRenderer2D.setActiveCamera(camera.camera);
+                gaussianRenderer3D.setActiveCamera(camera.camera);
                 m_lastActiveCamera = &camera; // Update the last active camera
             }
         } else if (m_lastActiveCamera && m_lastActiveCamera->renderFromViewpoint()) {
             // Use the last active camera if it still has renderFromViewpoint enabled
-            m_syclGaussianGfx.setActiveCamera(m_lastActiveCamera->camera);
+            //gaussianRenderer2D.setActiveCamera(m_lastActiveCamera->camera);
+            gaussianRenderer3D.setActiveCamera(m_lastActiveCamera->camera);
         }
 
         auto frameIndex = m_context->currentFrameIndex();
-        void* data;
+        void *data;
         vkMapMemory(m_context->vkDevice().m_LogicalDevice,
                     m_shaderSelectionBuffer[frameIndex]->m_memory, 0, sizeof(int32_t), 0, &data);
         memcpy(data, &imageUI->colorOption, sizeof(int32_t));
@@ -110,16 +119,22 @@ namespace VkRender {
                 updateRender = true;
         });
 
-        if (imageUI->render3dgsImage || updateRender)
-            m_syclGaussianGfx.render(scene, m_colorTexture);
+        if (imageUI->render3dgsImage || updateRender) {
+            if (imageUI->radioButton == 0) {
+                gaussianRenderer3D.render(scene, m_colorTexture);
 
+            } else {
+                //gaussianRenderer2D.render(scene, m_colorTexture);
+
+            }
+        }
         std::unordered_map<std::shared_ptr<DefaultGraphicsPipeline>, std::vector<RenderCommand>> renderGroups;
         collectRenderCommands(renderGroups, commandBuffer.frameIndex);
 
         // Render each group
-        for (auto& [pipeline, commands] : renderGroups) {
+        for (auto &[pipeline, commands]: renderGroups) {
             pipeline->bind(commandBuffer);
-            for (auto& command : commands) {
+            for (auto &command: commands) {
                 // Bind resources and draw
                 bindResourcesAndDraw(commandBuffer, command);
             }
@@ -128,7 +143,7 @@ namespace VkRender {
     }
 
     void EditorGaussianViewer::collectRenderCommands(
-            std::unordered_map<std::shared_ptr<DefaultGraphicsPipeline>, std::vector<RenderCommand>>& renderGroups,
+            std::unordered_map<std::shared_ptr<DefaultGraphicsPipeline>, std::vector<RenderCommand>> &renderGroups,
             uint32_t frameIndex) {
         if (!m_meshInstances) {
             m_meshInstances = setupMesh();
@@ -168,7 +183,8 @@ namespace VkRender {
 
         std::vector<VkVertexInputBindingDescription> vertexInputBinding = {
                 {0, sizeof(VkRender::ImageVertex), VK_VERTEX_INPUT_RATE_VERTEX}
-        };        std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
+        };
+        std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
                 {0, 0, VK_FORMAT_R32G32_SFLOAT, 0},
                 {1, 0, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 2},
         };
@@ -190,7 +206,7 @@ namespace VkRender {
         renderGroups[pipeline].push_back(command);
     }
 
-    void EditorGaussianViewer::bindResourcesAndDraw(const CommandBuffer& commandBuffer, RenderCommand& command) {
+    void EditorGaussianViewer::bindResourcesAndDraw(const CommandBuffer &commandBuffer, RenderCommand &command) {
         VkCommandBuffer cmdBuffer = commandBuffer.getActiveBuffer();
         uint32_t frameIndex = commandBuffer.frameIndex;
 
@@ -249,11 +265,11 @@ namespace VkRender {
                 // Bottom-left corner
                 {glm::vec2{-1.0f, -1.0f}, glm::vec2{0.0f, 0.0f}},
                 // Bottom-right corner
-                {glm::vec2{1.0f, -1.0f}, glm::vec2{1.0f, 0.0f}},
+                {glm::vec2{1.0f, -1.0f},  glm::vec2{1.0f, 0.0f}},
                 // Top-right corner
-                {glm::vec2{1.0f, 1.0f}, glm::vec2{1.0f, 1.0f}},
+                {glm::vec2{1.0f, 1.0f},   glm::vec2{1.0f, 1.0f}},
                 // Top-left corner
-                {glm::vec2{-1.0f, 1.0f}, glm::vec2{0.0f, 1.0f}}
+                {glm::vec2{-1.0f, 1.0f},  glm::vec2{0.0f, 1.0f}}
         };
         // Define the indices for two triangles that make up the quad
         std::vector<uint32_t> indices = {

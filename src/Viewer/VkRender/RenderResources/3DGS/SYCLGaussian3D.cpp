@@ -7,13 +7,12 @@
 #include <algorithm>
 #include <execution>
 #include <utility>
-#include <torch/torch.h>
 
-#include "Viewer/VkRender/RenderResources/3DGS/SyclGaussianGFX.h"
-#include "Viewer/VkRender/RenderResources/3DGS/Rasterizer.h"
+#include "Viewer/VkRender/RenderResources/3DGS/SYCLGaussian3D.h"
+#include "Viewer/VkRender/RenderResources/3DGS/Rasterizer3DGS.h"
 
 namespace VkRender {
-    void SyclGaussianGFX::render(std::shared_ptr<Scene> &scene, std::shared_ptr<VulkanTexture2D> &outputTexture) {
+    void SYCLGaussian3D::render(std::shared_ptr<Scene> &scene, std::shared_ptr<VulkanTexture2D> &outputTexture) {
 
 
         auto *imageMemory = static_cast<uint8_t *>(malloc(outputTexture->getSize()));
@@ -58,7 +57,6 @@ namespace VkRender {
         auto params = getHtanfovxyFocal(activeCameraPtr->m_Fov, activeCameraPtr->height(), activeCameraPtr->width());
 
         m_preProcessData.camera = *activeCameraPtr;
-        //m_preProcessData.camera.matrices.perspective[1] = -m_preProcessData.camera.matrices.perspective[1];
         m_preProcessData.preProcessSettings.tileGrid = tileGrid;
         m_preProcessData.preProcessSettings.numTiles = numTiles;
         m_preProcessData.preProcessSettings.numPoints = m_numGaussians;
@@ -78,7 +76,7 @@ namespace VkRender {
         free(imageMemory);
     }
 
-    void SyclGaussianGFX::updateGaussianPoints(const std::vector<GaussianPoint> &newPoints) {
+    void SYCLGaussian3D::updateGaussianPoints(const std::vector<GaussianPoint> &newPoints) {
         sycl::free(m_gaussianPointsPtr, m_queue);
         m_numGaussians = newPoints.size();
         m_gaussianPointsPtr = sycl::malloc_device<GaussianPoint>(m_numGaussians, m_queue);
@@ -87,7 +85,7 @@ namespace VkRender {
         m_queue.memcpy(m_gaussianPointsPtr, newPoints.data(), newPoints.size() * sizeof(GaussianPoint)).wait();
     }
 
-    void copyAndSortKeysAndValues(sycl::queue &m_queue, uint32_t *keysBuffer, uint32_t *valuesBuffer, size_t numRendered) {
+    void SYCLGaussian3D::copyAndSortKeysAndValues(uint32_t *keysBuffer, uint32_t *valuesBuffer, size_t numRendered) {
         // TODO this function creates a memory leak on host ram
         // Step 1: Allocate Unified Shared Memory (USM) for key-value pairs
         using KeyValue = std::pair<uint32_t, uint32_t>;
@@ -122,7 +120,7 @@ namespace VkRender {
         sycl::free(keyValuePairs, m_queue);
     }
 
-    void SyclGaussianGFX::preProcessGaussians(uint8_t *imageMemory) {
+    void SYCLGaussian3D::preProcessGaussians(uint8_t *imageMemory) {
 
         uint32_t imageWidth = m_preProcessData.camera.width();
         uint32_t imageHeight = m_preProcessData.camera.height();
@@ -195,7 +193,7 @@ namespace VkRender {
             }).wait();
 
 
-            copyAndSortKeysAndValues(m_queue, keysBuffer, valuesBuffer, numRendered);
+            copyAndSortKeysAndValues(keysBuffer, valuesBuffer, numRendered);
 
             auto *rangesBuffer = sycl::malloc_device<glm::ivec2>(m_preProcessData.preProcessSettings.numTiles, m_queue);
             m_queue.memset(rangesBuffer, static_cast<int>(0x00),
@@ -242,7 +240,7 @@ namespace VkRender {
 
     }
 
-    void SyclGaussianGFX::renderGaussiansWithProfiling(uint8_t *imageMemory, bool enable_profiling) {
+    void SYCLGaussian3D::renderGaussiansWithProfiling(uint8_t *imageMemory, bool enable_profiling) {
         uint32_t imageWidth = m_preProcessData.camera.width();
         uint32_t imageHeight = m_preProcessData.camera.height();
 
@@ -264,17 +262,20 @@ namespace VkRender {
         event1.wait();
         profileKernel(event1, "Preprocess");
 
+        std::vector<GaussianPoint> hostPointsProcessed(m_numGaussians);
+        m_queue.memcpy(hostPointsProcessed.data(), m_gaussianPointsPtr, m_numGaussians * sizeof(GaussianPoint)).wait();
+
         auto *pointOffsets = sycl::malloc_device<uint32_t>(m_numGaussians, m_queue);
         auto event2 = m_queue.memset(pointOffsets, static_cast<uint32_t>(0x00), m_numGaussians * sizeof(uint32_t));
         event2.wait();
         profileKernel(event2, "Memset Point Offsets");
 
 
-        /*
+
         std::vector<GaussianPoint> hostPoints(m_numGaussians);
         std::cout << "TilesTouched: ";
         m_queue.memcpy(hostPoints.data(), m_gaussianPointsPtr, m_numGaussians * sizeof(GaussianPoint)).wait();
-        for (int i = 0; i < 128; ++i){
+        for (int i = 0; i < m_numGaussians && i < 128; ++i){
             std::cout << hostPoints[i].tilesTouched << " ";
             if ((i + 1) % 16 == 0)
                 std::cout << "| ";
@@ -282,7 +283,7 @@ namespace VkRender {
 
 
         std::cout << std::endl;
-        */
+
         uint32_t localSize = 16;  // Number of work-items in each work-group
         uint32_t globalSize = ((m_preProcessDataPtr->preProcessSettings.numPoints + localSize - 1) / localSize) * localSize;
         uint32_t numWorkGroups = globalSize / localSize;
@@ -313,7 +314,7 @@ namespace VkRender {
         event4.wait();
         profileKernel(event4, "SumGroupTotals");
 
-        /*
+
         std::vector<uint32_t> groupTotalsHost(numWorkGroups);
         std::cout << "groupTotalsHost: ";
         m_queue.memcpy(groupTotalsHost.data(), groupTotals, numWorkGroups * sizeof(uint32_t)).wait();
@@ -323,7 +324,7 @@ namespace VkRender {
                 std::cout << "| ";
         }
         std::cout << std::endl;
-        */
+
 
         // Step 4: Adjust local scans
        auto event5 = m_queue.submit([&](sycl::handler &h) {
@@ -376,7 +377,7 @@ namespace VkRender {
             event7.wait();
             profileKernel(event7, "DuplicateGaussians");
 
-            copyAndSortKeysAndValues(m_queue, keysBuffer, valuesBuffer, numRendered);
+            copyAndSortKeysAndValues(keysBuffer, valuesBuffer, numRendered);
 
             auto *rangesBuffer = sycl::malloc_device<glm::ivec2>(m_preProcessData.preProcessSettings.numTiles, m_queue);
             auto event8 = m_queue.memset(rangesBuffer, static_cast<int>(0x00),
@@ -435,6 +436,6 @@ namespace VkRender {
     }
 
 
-    void SyclGaussianGFX::rasterizeGaussians(const GaussianComponent &gaussianComp) {
+    void SYCLGaussian3D::rasterizeGaussians(const GaussianComponent &gaussianComp) {
     }
 }

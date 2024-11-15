@@ -2,13 +2,13 @@
 // Created by magnus-desktop on 10/22/24.
 //
 
-#ifndef RASTERIZER_H
-#define RASTERIZER_H
+#ifndef RASTERIZER3D_H
+#define RASTERIZER3D_H
 
 #include <cmath>
 #include <sycl/sycl.hpp>
 
-#include "RasterizerUtils.h"
+#include "RasterizerUtils3DGS.h"
 
 
 namespace VkRender::Rasterizer {
@@ -30,9 +30,8 @@ namespace VkRender::Rasterizer {
             m_points[i].screenPos = glm::vec3(0);
 
             glm::vec3 scale = m_points[i].scale;
-            glm::quat quat = m_points[i].rotation;
+            glm::quat q = m_points[i].rotation;
             glm::vec3 position = m_points[i].position;
-
             glm::vec4 posView = m_camera.matrices.view * glm::vec4(position, 1.0f);
             glm::vec4 posClip = m_camera.matrices.perspective * posView;
             glm::vec3 posNDC = glm::vec3(posClip) / posClip.w;
@@ -46,10 +45,8 @@ namespace VkRender::Rasterizer {
             float pixPosY = ((posNDC.y + 1.0f) * static_cast<float>(m_camera.height()) - 1.0f) * 0.5f;
             auto screenPosPoint = glm::vec3(pixPosX, pixPosY, posNDC.z);
 
-            glm::mat4 H = glm::translate(glm::mat4(1.0f), position) * glm::mat4_cast(quat) * glm::scale(glm::mat4(1.0f), scale);
-            const glm::mat4 W = m_camera.matrices.view;
-            glm::mat4 T = glm::transpose(W * H);
-
+            glm::mat3 cov3D = computeCov3D(scale, q);
+            glm::vec3 cov2D = computeCov2D(posView, cov3D, m_camera.matrices.view, m_settings.params, false);
 
             // Invert covariance (EWA)
             float determinant = cov2D.x * cov2D.z - (cov2D.y * cov2D.y);

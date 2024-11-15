@@ -9,15 +9,15 @@
 #include <sycl/sycl.hpp>
 
 #include "Viewer/VkRender/Components/GaussianComponent.h"
-#include "Viewer/VkRender/RenderResources/3DGS/RasterizerUtils.h"
+#include "Viewer/VkRender/RenderResources/3DGS/RasterizerUtils3DGS.h"
 #include "Viewer/Scenes/Scene.h"
 
 namespace VkRender {
 
 
-    class SyclGaussianGFX {
+    class SYCLGaussian3D {
     public:
-        explicit SyclGaussianGFX(sycl::queue &queue)
+        explicit SYCLGaussian3D(sycl::queue &queue)
                 : m_queue(queue) {
             uint32_t initialSize = 1;
 
@@ -29,7 +29,7 @@ namespace VkRender {
             m_numGaussians = 0;
         }
 
-        ~SyclGaussianGFX() {
+        ~SYCLGaussian3D() {
             // Clean up manually allocated memory
             if (m_gaussianPointsPtr) {
                 sycl::free(m_gaussianPointsPtr, m_queue);
@@ -64,6 +64,8 @@ namespace VkRender {
 
         void renderGaussiansWithProfiling(uint8_t *imageMemory, bool enable_profiling);
         std::vector<unsigned long> m_durations;
+
+        void copyAndSortKeysAndValues(uint32_t *keysBuffer, uint32_t *valuesBuffer, size_t numRendered);
     };
 }
 

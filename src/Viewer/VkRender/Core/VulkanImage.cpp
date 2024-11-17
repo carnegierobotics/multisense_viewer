@@ -20,14 +20,14 @@ namespace VkRender {
         vmaSetAllocationName(m_allocator, m_allocation, (description + "Image").c_str());
         VALIDATION_DEBUG_NAME(m_vulkanDevice.m_LogicalDevice,
                               reinterpret_cast<uint64_t>(m_image), VK_OBJECT_TYPE_IMAGE,
-                              (description + "Image").c_str());
+                              description + "Image");
         createInfo.imageViewCreateInfo.image = m_image;
         result = vkCreateImageView(m_vulkanDevice.m_LogicalDevice, &createInfo.imageViewCreateInfo, nullptr,
                                    &m_view);
         if (result != VK_SUCCESS) throw std::runtime_error("Failed to create image view");
         VALIDATION_DEBUG_NAME(m_vulkanDevice.m_LogicalDevice,
                               reinterpret_cast<uint64_t>(m_view), VK_OBJECT_TYPE_IMAGE_VIEW,
-                              (description + "View").c_str());
+                              description + "View");
 
         if (createInfo.setLayout) {
             VkCommandBuffer copyCmd = m_vulkanDevice.createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);

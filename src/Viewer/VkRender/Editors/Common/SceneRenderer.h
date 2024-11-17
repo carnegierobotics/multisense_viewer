@@ -6,10 +6,10 @@
 #define MULTISENSE_SCENERENDERER_H
 
 #include <multisense_viewer/src/Viewer/VkRender/Editors/PipelineManager.h>
+#include <Viewer/VkRender/Editors/DescriptorSetManager.h>
 
 #include "Viewer/VkRender/Editors/Editor.h"
-#include "Viewer/VkRender/RenderResources/DefaultGraphicsPipeline.h"
-#include "Viewer/VkRender/Editors/Video/VideoPlaybackSystem.h"
+#include "Viewer/VkRender/Editors/DescriptorRegistry.h"
 
 namespace VkRender {
     class SceneRenderer : public Editor {
@@ -26,23 +26,13 @@ namespace VkRender {
 
         std::shared_ptr<MeshInstance> initializeMesh(const MeshComponent &meshComponent);
 
-        std::shared_ptr<MaterialInstance> initializeMaterial(Entity entity, MaterialComponent & materialComponent);
-
-        void updateMaterialDescriptors(Entity entity, MaterialInstance *materialInstance);
-
-        std::shared_ptr<PointCloudInstance> initializePointCloud(Entity entity, PointCloudComponent &pointCloudComponent);
-
-        void updatePointCloudDescriptors(Entity entity, PointCloudInstance *pointCloudInstance);
+        std::shared_ptr<MaterialInstance> initializeMaterial(Entity entity, const MaterialComponent & materialComponent);
 
         void collectRenderCommands(
-                std::unordered_map<std::shared_ptr<DefaultGraphicsPipeline>, std::vector<RenderCommand>> &renderGroups);
+            std::vector<RenderCommand>& renderGroups, uint32_t frameIndex);
 
         void onSceneLoad(std::shared_ptr<Scene> scene) override;
         void onEditorResize() override;
-
-        void createDescriptorPool();
-
-        void allocateMeshDescriptorSet(uint32_t frameIndex, Entity entity);
 
         void updateGlobalUniformBuffer(uint32_t frameIndex, Entity entity);
 
@@ -61,7 +51,6 @@ namespace VkRender {
         std::shared_ptr<Scene> m_activeScene;
 
         PipelineManager m_pipelineManager;
-        //std::shared_ptr<VideoPlaybackSystem> m_videoPlaybackSystem;
 
         std::unordered_map<UUID, std::shared_ptr<MaterialInstance>> m_materialInstances;
         std::unordered_map<UUID, std::shared_ptr<MeshInstance>> m_meshInstances;
@@ -71,28 +60,15 @@ namespace VkRender {
             // Mesh rendering and typical shader buffers
             std::vector<std::unique_ptr<Buffer>> cameraBuffer;
             std::vector<std::unique_ptr<Buffer>> modelBuffer;
-            std::vector<VkDescriptorSet> descriptorSets;
-
             // Camera Gizmo
-            std::vector<VkDescriptorSet> dynamicDescriptorSets;
             std::vector<std::unique_ptr<Buffer>> uboVertexBuffer;
-
             // Material stuff
             std::vector<std::unique_ptr<Buffer>> materialBuffer;
-            std::vector<VkDescriptorSet> materialDescriptorSets;
             // Pount cloud rendering
             std::vector<std::unique_ptr<Buffer>> pointCloudBuffer;
-            std::vector<VkDescriptorSet> pointCloudDescriptorSets;
         };
         std::unordered_map<UUID, EntityRenderData> m_entityRenderData;
-
-        VkDescriptorPool m_descriptorPool = VK_NULL_HANDLE;
-        VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
-
-        VkDescriptorSetLayout m_dynamicVertexUBODescriptorSetLayout = VK_NULL_HANDLE;
-        VkDescriptorSetLayout m_materialDescriptorSetLayout = VK_NULL_HANDLE;
-        VkDescriptorSetLayout m_pointCloudDescriptorSetLayout = VK_NULL_HANDLE;
-
+        DescriptorRegistry descriptorRegistry;
     public:
 
         void onComponentAdded(Entity entity, MeshComponent& meshComponent) override;

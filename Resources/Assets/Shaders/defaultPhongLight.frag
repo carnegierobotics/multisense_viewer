@@ -66,7 +66,7 @@ void main()
         texColor = vec4(vec3(color), 1.0);
     }
     */
-    //outColor = vec4(phongLighting, 1.0) * info.baseColor * vec4(texColor, 1.0);
-    outColor = vec4(phongLighting, 1.0) * vertexColor ;
+    outColor = vec4(phongLighting, 1.0) * info.baseColor * vec4(texColor, 1.0);
+    //outColor = vec4(phongLighting, 1.0) * vertexColor ;
     //outColor = texColor * info.baseColor ;
 }

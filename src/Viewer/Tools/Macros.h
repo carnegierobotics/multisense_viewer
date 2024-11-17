@@ -148,13 +148,13 @@
 namespace VkRender {
 
 #ifdef VKRENDER_MULTISENSE_VIEWER_DEBUG
-    static void setDebugName(VkDevice device, uint64_t object, VkObjectType objectType, const char* name) {
+    static void setDebugName(VkDevice device, uint64_t object, VkObjectType objectType, const std::string& name) {
         VkDebugUtilsObjectNameInfoEXT nameInfo = {};
         nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
         nameInfo.pNext = nullptr;
         nameInfo.objectType = objectType;
         nameInfo.objectHandle = object;
-        nameInfo.pObjectName = name;
+        nameInfo.pObjectName = name.c_str();
 
         auto func = (PFN_vkSetDebugUtilsObjectNameEXT) vkGetDeviceProcAddr(device, "vkSetDebugUtilsObjectNameEXT");
         if (func != nullptr) {

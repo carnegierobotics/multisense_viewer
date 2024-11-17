@@ -253,6 +253,6 @@ namespace VkRender {
         }
         VALIDATION_DEBUG_NAME(m_logicalDevice,
                               reinterpret_cast<uint64_t>(m_renderPass), VK_OBJECT_TYPE_RENDER_PASS,
-                              (createInfo->debugInfo + ":UIRenderPass").c_str());
+                              createInfo->debugInfo + ":UIRenderPass");
     }
 }

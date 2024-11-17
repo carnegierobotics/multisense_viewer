@@ -184,6 +184,7 @@ namespace VkRender {
         VkSampleCountFlagBits sampleCount;
         VkRenderPass renderPass;
         uint32_t swapchainImageCount = 1;
+        std::string debugName;
     };
 }
 

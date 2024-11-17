@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 #include <filesystem>
+#include <array>  // Required for std::array
 #include <vulkan/vulkan.h> // For Vulkan types
 
 namespace VkRender {
@@ -22,7 +23,7 @@ namespace VkRender {
         RenderMode renderMode = RenderMode::Opaque;
         std::filesystem::path vertexShaderName = "default.vert";
         std::filesystem::path fragmentShaderName = "default.frag";
-        std::vector<VkDescriptorSetLayout> setLayouts; // Include the descriptor set layout
+        std::vector<VkDescriptorSetLayout> setLayouts = {}; // Include the descriptor set layout, fixed size as we need to map to pre-compiled shaders
         VkPrimitiveTopology topology = VK_PRIMITIVE_TOPOLOGY_MAX_ENUM;
         VkPolygonMode polygonMode = VK_POLYGON_MODE_MAX_ENUM;
         uint64_t* materialPtr = nullptr;

@@ -25,8 +25,8 @@ namespace VkRender{
 
     private:
         VulkanDevice& m_device;
-        VkDescriptorPool m_descriptorPool;
-        VkDescriptorSetLayout m_descriptorSetLayout;
+        VkDescriptorPool m_descriptorPool{};
+        VkDescriptorSetLayout m_descriptorSetLayout{};
         std::unordered_map<size_t, VkDescriptorSet> m_descriptorSetCache;
 
         size_t hashDescriptorImageInfo(const VkDescriptorImageInfo& imageInfo);

@@ -21,11 +21,6 @@ layout(set = 2, binding = 0) uniform VertexData {
 } vertexData;
 
 
-layout(location = 0) out vec2 outUV;
-layout(location = 1) out vec4 fragPos;
-layout(location = 2) out vec3 outNormal;
-layout(location = 3) out vec3 outFragPos; // Pass the world position to fragment shader
-
 void main() {
 	int idx = gl_VertexIndex;
 	// Transform the vertex position to world space

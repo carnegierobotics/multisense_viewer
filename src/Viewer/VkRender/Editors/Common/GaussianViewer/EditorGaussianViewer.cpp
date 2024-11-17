@@ -128,6 +128,8 @@ namespace VkRender {
 
             }
         }
+
+        /*
         std::unordered_map<std::shared_ptr<DefaultGraphicsPipeline>, std::vector<RenderCommand>> renderGroups;
         collectRenderCommands(renderGroups, commandBuffer.frameIndex);
 
@@ -140,6 +142,7 @@ namespace VkRender {
             }
         }
 
+*/
     }
 
     void EditorGaussianViewer::collectRenderCommands(
@@ -174,7 +177,7 @@ namespace VkRender {
         // Get or create the descriptor set using the DescriptorSetManager
         VkDescriptorSet descriptorSet = m_descriptorSetManager->getOrCreateDescriptorSet(descriptorWrites);
 
-        key.setLayouts.emplace_back(m_descriptorSetManager->getDescriptorSetLayout());
+        key.setLayouts[0] = m_descriptorSetManager->getDescriptorSetLayout();
         // Use default descriptor set layout
         key.vertexShaderName = "default2D.vert";
         key.fragmentShaderName = "default2D.frag";
@@ -200,7 +203,7 @@ namespace VkRender {
         RenderCommand command;
         command.pipeline = pipeline;
         command.meshInstance = m_meshInstances.get();
-        command.descriptorSets = descriptorSet; // Assign the descriptor set
+        //command.descriptorSets = descriptorSet; // Assign the descriptor set
 
         // Add to render group
         renderGroups[pipeline].push_back(command);
@@ -224,6 +227,7 @@ namespace VkRender {
         vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                           command.pipeline->pipeline()->getPipeline());
 
+        /*
         vkCmdBindDescriptorSets(
                 cmdBuffer,
                 VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -234,7 +238,7 @@ namespace VkRender {
                 0,
                 nullptr
         );
-
+*/
         if (command.meshInstance->indexCount > 0) {
             vkCmdDrawIndexed(cmdBuffer, command.meshInstance->indexCount, 1, 0, 0, 0);
         }

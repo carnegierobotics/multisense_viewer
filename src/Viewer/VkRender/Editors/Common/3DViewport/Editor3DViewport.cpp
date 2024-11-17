@@ -37,6 +37,7 @@ namespace VkRender {
         m_colorTexture = std::make_shared<VulkanTexture2D>(textureCreateInfo);
 
         m_shaderSelectionBuffer.resize(m_context->swapChainBuffers().size());
+
         for (auto& frameIndex : m_shaderSelectionBuffer) {
             m_context->vkDevice().createBuffer(
                 VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
@@ -141,6 +142,7 @@ namespace VkRender {
             return;
 
         PipelineKey key = {};
+        key.setLayouts.resize(1);
 
         if (m_ui->resizeActive) {
             m_descriptorSetManager->freeDescriptorSets();
@@ -158,14 +160,9 @@ namespace VkRender {
         writeDescriptors[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         writeDescriptors[1].descriptorCount = 1;
         writeDescriptors[1].pBufferInfo = &m_shaderSelectionBuffer[frameIndex]->m_descriptorBufferInfo;
-
-        std::vector<VkWriteDescriptorSet> descriptorWrites = {writeDescriptors[0], writeDescriptors[1]};
-        // Get or create the descriptor set using the DescriptorSetManager
+        std::vector descriptorWrites = {writeDescriptors[0], writeDescriptors[1]};
         VkDescriptorSet descriptorSet = m_descriptorSetManager->getOrCreateDescriptorSet(descriptorWrites);
-
-
-
-        key.setLayouts.emplace_back(m_descriptorSetManager->getDescriptorSetLayout());
+        key.setLayouts[0] = m_descriptorSetManager->getDescriptorSetLayout();
         // Use default descriptor set layout
         key.vertexShaderName = "default2D.vert";
         key.fragmentShaderName = "default2D.frag";
@@ -189,12 +186,13 @@ namespace VkRender {
         RenderPassInfo renderPassInfo{};
         renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
         renderPassInfo.renderPass = m_renderPass->getRenderPass();
+        renderPassInfo.debugName = "Editor3DViewport::";
         auto pipeline = m_pipelineManager.getOrCreatePipeline(key, renderPassInfo, m_context);
         // Create the render command
         RenderCommand command;
         command.pipeline = pipeline;
         command.meshInstance = m_meshInstances.get();
-        command.descriptorSets = descriptorSet; // Assign the descriptor set
+        command.descriptorSets[0] = descriptorSet; // Assign the descriptor set
 
         // Add to render group
         renderGroups[pipeline].push_back(command);
@@ -218,16 +216,19 @@ namespace VkRender {
         vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                           command.pipeline->pipeline()->getPipeline());
 
-        vkCmdBindDescriptorSets(
-            cmdBuffer,
-            VK_PIPELINE_BIND_POINT_GRAPHICS,
-            command.pipeline->pipeline()->getPipelineLayout(),
-            0, // Set 0 (entity descriptor set)
-            1,
-            &command.descriptorSets,
-            0,
-            nullptr
-        );
+
+        for (auto& [index, descriptorSet] : command.descriptorSets) {
+            vkCmdBindDescriptorSets(
+                cmdBuffer,
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                command.pipeline->pipeline()->getPipelineLayout(),
+                index,
+                1,
+                &descriptorSet,
+                0,
+                nullptr
+            );
+        }
 
         if (command.meshInstance->indexCount > 0) {
             vkCmdDrawIndexed(cmdBuffer, command.meshInstance->indexCount, 1, 0, 0, 0);

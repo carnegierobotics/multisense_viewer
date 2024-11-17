@@ -1023,7 +1023,6 @@ namespace VkRender {
 
 
     void Editor::checkIfEditorsShouldMerge(std::vector<std::unique_ptr<Editor> > &editors) {
-        int debug = 1;
 
         for (size_t i = 0; i < editors.size(); ++i) {
             if (editors[i]->ui()->shouldMerge)

@@ -42,10 +42,6 @@ namespace VkRender::Rasterizer2D {
                 return;
             }
 
-            float pixPosX = ((posNDC.x + 1.0f) * static_cast<float>(m_camera.width()) - 1.0f) * 0.5f;
-            float pixPosY = ((posNDC.y + 1.0f) * static_cast<float>(m_camera.height()) - 1.0f) * 0.5f;
-            auto screenPosPoint = glm::vec3(pixPosX, pixPosY, posNDC.z);
-
             glm::mat4 H = glm::translate(glm::mat4(1.0f), position) * glm::mat4_cast(quat) * glm::scale(glm::mat4(1.0f), scale);
             const glm::mat4 W = m_camera.matrices.view;
             glm::mat4 T = glm::transpose(W * H);

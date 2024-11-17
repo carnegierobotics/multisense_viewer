@@ -37,6 +37,11 @@ struct CommandBuffer {
         throw std::runtime_error("Invalid frame index for command buffer!");
     } // Function to get the active buffer
 
+    // Function to get the active buffer
+    uint32_t getActiveFrameIndex() const {
+            return frameIndex;
+    } // Function to get the active buffer
+
     std::vector<VkCommandBuffer>& getBuffers() {
         return buffers;
     }

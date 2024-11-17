@@ -41,8 +41,11 @@ namespace VkRender {
             VK_FRONT_FACE_COUNTER_CLOCKWISE);
         createInfo.msaaSamples = m_renderPassInfo.sampleCount;
         createInfo.shaders = shaderStages;
-        createInfo.descriptorSetLayouts = key.setLayouts;
+        for (auto& setLayout : key.setLayouts) {
+            createInfo.descriptorSetLayouts.emplace_back(setLayout);
+        }
         createInfo.vertexInputState = vertexInputStateCI;
+        createInfo.debugInfo = renderPassInfo.debugName +  key.vertexShaderName.string() + "|" + key.fragmentShaderName.string();
 
         m_graphicsPipeline = std::make_unique<VulkanGraphicsPipeline>(createInfo);
 

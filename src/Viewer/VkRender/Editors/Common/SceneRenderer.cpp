@@ -395,11 +395,51 @@ namespace VkRender {
 
             if (entity.getComponent<MeshComponent>().m_type == CAMERA_GIZMO) {
                 void* data;
+                auto f = entity.getComponent<MeshComponent>().focalPoint;
                 vkMapMemory(m_context->vkDevice().m_LogicalDevice,
                             m_entityRenderData[entity.getUUID()].uboVertexBuffer[frameIndex]->m_memory, 0,
                             sizeof(glm::vec4) * 21, 0, &data);
-                MeshData meshData(CAMERA_GIZMO, "");
-                memcpy(data, meshData.cameraGizmoVertices.data(), sizeof(glm::vec4) * 21);
+                float a = 0.5;
+                float h = f;
+
+                std::vector<glm::vec4> uboVertices = {
+                    // Base (CCW from top)
+                    glm::vec4(-a, a, 0, 1.0), // D
+                    glm::vec4(-a, -a, 0, 1.0), // A
+                    glm::vec4(a, -a, 0, 1.0), // B
+
+                    glm::vec4(-a, a, 0, 1.0), // D
+                    glm::vec4(a, -a, 0, 1.0), // B
+                    glm::vec4(a, a, 0, 1.0), // C
+
+                    // Side 1
+                    glm::vec4(-a, -a, 0, 1.0), // A
+                    glm::vec4(0, 0, h, 1.0), // E
+                    glm::vec4(a, -a, 0, 1.0f), // B
+
+                    // Side 2
+                    glm::vec4(a, -a, 0, 1.0), // B
+                    glm::vec4(0, 0, h, 1.0), // E
+                    glm::vec4(a, a, 0, 1.0), // C
+
+                    // Side 3
+                    glm::vec4(a, a, 0, 1.0), // C
+                    glm::vec4(0, 0, h, 1.0), // E
+                    glm::vec4(-a, a, 0, 1.0), // D
+
+                    // Side 4
+                    glm::vec4(-a, a, 0, 1.0), // D
+                    glm::vec4(0, 0, h, 1.0), // E
+                    glm::vec4(-a, -a, 0, 1.0), // A
+
+                    // Top indicator
+                    glm::vec4(-0.4, 0.6, 0, 1.0), // D
+                    glm::vec4(0.4, 0.6, 0, 1.0), // E
+                    glm::vec4(0, 1.0, 0, 1.0) // A
+
+            };
+
+                memcpy(data, uboVertices.data(), sizeof(glm::vec4) * 21);
                 vkUnmapMemory(m_context->vkDevice().m_LogicalDevice,
                               m_entityRenderData[entity.getUUID()].uboVertexBuffer[frameIndex]->m_memory);
             }

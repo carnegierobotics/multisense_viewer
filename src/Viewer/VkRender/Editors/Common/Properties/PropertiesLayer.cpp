@@ -440,14 +440,14 @@ namespace VkRender {
             // Controls for Camera Resolution (Width and Height)
             int width = static_cast<int>(component.camera->width());
             int height = static_cast<int>(component.camera->height());
-
+            ImGui::SetNextItemWidth(100.0f);
             if (ImGui::InputInt("Width", &width)) {
                 if (width > 0) {
                     component.camera->setCameraResolution(static_cast<uint32_t>(width), component.camera->height());
                     component.camera->updateProjectionMatrix();
                 }
             }
-
+            ImGui::SetNextItemWidth(100.0f);
             if (ImGui::InputInt("Height", &height)) {
                 if (height > 0) {
                     component.camera->setCameraResolution(component.camera->width(), static_cast<uint32_t>(height));
@@ -496,9 +496,13 @@ namespace VkRender {
                 } else {
                     component.polygonMode = VK_POLYGON_MODE_FILL;
                 }
-                // notify component updated
-                // m_scene.onComponentUpdated(entity, component);
                 m_context->activeScene()->onComponentUpdated(entity, component);
+            }
+
+            if (component.m_type == CAMERA_GIZMO) {
+                ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x - 100.0f);
+                ImGui::SliderFloat("Focal point", &component.focalPoint, 0.0f, 10.0f);
+                ImGui::PopItemWidth();
             }
         });
         drawComponent<TagComponent>("Tag", entity, [this](auto &component) {
@@ -748,14 +752,6 @@ namespace VkRender {
         if (!m_selectionContext.hasComponent<T>()) {
             if (ImGui::MenuItem(entryName.c_str())) {
                 m_selectionContext.addComponent<T>();
-                // Check if the component added is a PointCloudComponent
-                if constexpr (std::is_same_v<T, PointCloudComponent>) {
-                    if (!m_selectionContext.hasComponent<MeshComponent>()) {
-                        auto &component = m_selectionContext.addComponent<MeshComponent>();
-                        component.m_type = MeshDataType::POINT_CLOUD;
-                        component.polygonMode = VK_POLYGON_MODE_POINT;
-                    }
-                }
                 ImGui::CloseCurrentPopup();
             }
         }

@@ -53,6 +53,8 @@ namespace VkRender {
         std::filesystem::path m_meshPath; // Path to the mesh file (e.g., OBJ, PLY)
         MeshDataType m_type;
         VkPolygonMode polygonMode = VK_POLYGON_MODE_FILL;
+
+        float focalPoint = 1.0f;
     };
 
     struct MeshInstance {

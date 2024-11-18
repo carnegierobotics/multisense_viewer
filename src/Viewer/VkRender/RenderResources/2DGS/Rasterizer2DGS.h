@@ -7,6 +7,7 @@
 
 #include <cmath>
 #include <sycl/sycl.hpp>
+#include <glm/gtc/matrix_transform.hpp> // For glm::scale and other matrix transformations
 
 #include "RasterizerUtils2DGS.h"
 
@@ -42,10 +43,96 @@ namespace VkRender::Rasterizer2D {
                 return;
             }
 
-            glm::mat4 H = glm::translate(glm::mat4(1.0f), position) * glm::mat4_cast(quat) * glm::scale(glm::mat4(1.0f), scale);
-            const glm::mat4 W = m_camera.matrices.view;
-            glm::mat4 T = glm::transpose(W * H);
+            /*
+            glm::mat3 R = glm::mat3_cast(quat);
+            glm::mat3 S = glm::mat3(
+                    glm::vec3(scale.x, 0.0f, 0.0f),  // First column
+                    glm::vec3(0.0f, scale.y, 0.0f),  // Second column
+                    glm::vec3(0.0f, 0.0f, 1.0f)   // Third column
+            );
 
+            glm::mat3 L = R * S;
+
+            glm::mat4 splat2world = glm::mat4(
+                    glm::vec4(L[0], 0.0f),
+                    glm::vec4(L[1], 0.0f),
+                    glm::vec4(position.x, position.y, position.z, 1.0f),
+                    glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)
+            );
+
+            glm::mat4 world2ndc = m_camera.matrices.perspective;
+
+            glm::mat4 ndc2pix = glm::mat4(
+                    glm::vec4(float(m_camera.width()) / 2.0, 0.0, 0.0, float(m_camera.width()-1) / 2.0),
+                    glm::vec4(0.0, float(m_camera.height()) / 2.0, 0.0, float(m_camera.height()-1) / 2.0),
+                    glm::vec4(0.0, 0.0, 0.0, 1.0),
+                    glm::vec4(0.0, 0.0, 0.0, 1.0)
+            );
+            */
+
+            glm::mat4 H = glm::mat4(
+                    glm::vec4(1.0f, 0.0f, 0.0f, 0.0f),
+                    glm::vec4(0.0f, 1.0f, 0.0f, 0.0f),
+                    glm::vec4(0.0f, 0.0f, 1.0f, 0.0f),
+                    glm::vec4(x, y, z, 0.0f)
+            );
+            glm::vec4 point_world = glm::vec4(H[3]);
+
+            glm::mat4 world2ndc = m_camera.matrices.perspective;
+
+
+            glm::vec4 point_ndc = world2ndc * point_world;
+            glm::vec3 point_screen = glm::vec3(point_ndc) / point_ndc.w;
+            glm::vec3 point_viewport;
+            point_viewport.x = (point_screen.x + 1.0f) * 0.5f * m_camera.width();
+            point_viewport.y = (1.0f - (point_screen.y + 1.0f) * 0.5f) * m_camera.height();
+            point_viewport.z = point_screen.z; // Depth remains unchanged
+
+
+            std::cout << "point_screen: " << glm::to_string(point_screen) << std::endl;
+            std::cout << "point_viewport: " << glm::to_string(point_viewport) << std::endl;
+            std::cout << "H: " << glm::to_string(H) << std::endl;
+            std::cout << "world2ndc: " << glm::to_string(world2ndc) << std::endl;
+
+            auto WHt = (H * world2ndc);
+
+            std::cout << "WHt: " << glm::to_string(WHt) << std::endl;
+
+            glm::mat4 T = WHt;
+            std::cout << "Transmat: " << glm::to_string(T) << std::endl;
+
+            T[2] = glm::vec4(point_viewport, 0.0f);
+            // Compute center and radius
+
+            // compute_aabb
+            float filterSize = 2.0f;
+            float cutoff = 3.0f;
+            float radius = 0;
+            glm::vec2 pointImage;
+            glm::vec2 extent;
+            if (Rasterizer2DUtils::compute_aabb(T, cutoff, pointImage, extent)) {
+                radius = ceil(std::max(std::max(extent.x, extent.y), cutoff * filterSize));
+
+            }
+
+            glm::ivec2 rect_min, rect_max;
+            Rasterizer2DUtils::getRect(pointImage, radius, rect_min, rect_max, m_settings.tileGrid);
+            if ((rect_max.x - rect_min.x) * (rect_max.y - rect_min.y) == 0)
+                return;
+            std::array<std::array<float, 15>, 3> sh = m_points[i].shCoeffs;
+            glm::vec3 result = m_points[i].color;
+            m_points[i].depth = posNDC.z;
+            m_points[i].radius = radius;
+            m_points[i].screenPos = glm::vec3(pointImage, 0.0f);
+            // How many tiles we access
+            // rect_min/max are in tile space
+            auto numTilesTouched = static_cast<uint32_t>((rect_max.y - rect_min.y) *
+                                                         (rect_max.x - rect_min.x));
+            m_points[i].tilesTouched = numTilesTouched;
+            m_points[i].T = T;
+            //glm::vec3 cameraPos = m_camera.pose.pos;
+            //glm::vec3 gaussianPos = m_points[i].position;
+            //glm::vec3 result = Rasterizer2DUtils::computeColorFromSH(m_points[i].shCoeffs, color, gaussianPos, cameraPos);
 
             /*
             // Invert covariance (EWA)
@@ -104,7 +191,8 @@ namespace VkRender::Rasterizer2D {
     public:
         InclusiveSum(Rasterizer2DUtils::GaussianPoint *points, uint32_t *pointOffsets, uint32_t numPoints,
                      sycl::local_accessor<uint32_t> localMem, uint32_t *groupTotals)
-                : m_points(points), m_output(pointOffsets), m_numPoints(numPoints), m_localMem(localMem) , m_groupTotals(groupTotals) {
+                : m_points(points), m_output(pointOffsets), m_numPoints(numPoints), m_localMem(localMem),
+                  m_groupTotals(groupTotals) {
         }
 
         void operator()(sycl::nd_item<1> item) const {
@@ -164,10 +252,10 @@ namespace VkRender::Rasterizer2D {
             size_t globalIdx = item.get_global_id(0);
             size_t localIdx = item.get_local_id(0);
             size_t localRange = item.get_local_range(0);
-            if (globalIdx == 0){
+            if (globalIdx == 0) {
                 m_output[0] = m_points[0].tilesTouched;
-                for (size_t i = 1; i < m_numPoints; ++i){
-                    m_output[i] =  m_output[i - 1] + m_points[i].tilesTouched;
+                for (size_t i = 1; i < m_numPoints; ++i) {
+                    m_output[i] = m_output[i - 1] + m_points[i].tilesTouched;
                 }
             }
 
@@ -318,6 +406,7 @@ namespace VkRender::Rasterizer2D {
             uint32_t col = global_id_x;
             uint32_t global_linear_id = (row * (m_imageWidth) + col) * 4;
 
+            float filterInvSquare = 2.0f;
 
             if (row < m_imageHeight && col < m_imageWidth) {
                 uint32_t tileId = group_id_y * group_id_x_max + group_id_x;
@@ -338,13 +427,31 @@ namespace VkRender::Rasterizer2D {
                                 continue;
                             }
                             const Rasterizer2DUtils::GaussianPoint &point = m_gaussianPoints[index];
-                            // Perform processing on the point and update the image
-                            glm::vec2 pos = point.screenPos;
-                            // Calculate the exponent term
-                            glm::vec2 diff = glm::vec2(col, row) - pos;
-                            glm::vec3 c = point.conic;
-                            glm::mat2 V(c.x, c.y, c.y, c.z);
-                            float power = -0.5f * glm::dot(diff, V * diff);
+                            const auto &TM = point.T;
+                            glm::vec2 xy = point.screenPos;
+                            glm::vec2 pix = glm::vec2(static_cast<float>(col),
+                                                      static_cast<float>(row));
+
+                            glm::vec3 Tu = glm::vec3(TM[0][0], TM[0][1], TM[0][2]);
+                            glm::vec3 Tv = glm::vec3(TM[1][0], TM[1][1], TM[1][2]);
+                            glm::vec3 Tw = glm::vec3(TM[2][0], TM[2][1], TM[2][2]);
+
+                            glm::vec3 k = pix.x * Tw - Tu;
+                            glm::vec3 l = pix.y * Tw - Tu;
+                            glm::vec3 p = glm::cross(k, l);
+                            if (p.z == 0) return;
+
+                            glm::vec2 s = {p.x / p.z, p.y / p.z};
+                            float rho3d = (s.x * s.x + s.y * s.y);
+                            glm::vec2 d = {xy.x - pix.x, xy.y - pix.y};
+                            float rho2d = filterInvSquare * (d.x * d.x + d.y * d.y);
+
+                            // compute intersection and depth
+                            float rho = std::min(rho3d, rho2d);
+                            float depth = (rho3d <= rho2d) ? (s.x * Tw.x + s.y * Tw.y) + Tw.z : Tw.z;
+                            if (depth < 0.2) continue;
+
+                            float power = -0.5f * rho;
                             if (power > 0.0f) {
                                 continue;
                             }

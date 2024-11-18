@@ -22,7 +22,7 @@ namespace VkRender {
         bool useImageFrom3DViewport = false;
 
         int32_t colorOption = 0;
-        int radioButton = 0;
+        int radioButton = 1;
 
         // Constructor that copies everything from base EditorUI
         EditorGaussianViewerUI(const EditorUI &baseUI) : EditorUI(baseUI) {}

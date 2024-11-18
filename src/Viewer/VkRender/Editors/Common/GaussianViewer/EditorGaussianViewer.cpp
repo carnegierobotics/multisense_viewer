@@ -22,15 +22,8 @@ namespace VkRender {
         addUI("EditorGaussianViewerLayer");
         addUIData<EditorGaussianViewerUI>();
 
-        std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
-                {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-                {
-                 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_VERTEX_BIT |
-                                                                  VK_SHADER_STAGE_FRAGMENT_BIT,
-                                                                                                nullptr
-                },
-        };
-        m_descriptorSetManager = std::make_unique<DescriptorSetManager>(m_context->vkDevice(), setLayoutBindings);
+        m_descriptorRegistry.createManager(DescriptorType::Viewport3DTexture, m_context->vkDevice());
+
 
         m_editorCamera = std::make_shared<Camera>(m_createInfo.width, m_createInfo.height);
 
@@ -55,7 +48,7 @@ namespace VkRender {
         m_editorCamera = std::make_shared<Camera>(m_createInfo.width, m_createInfo.height);
 
         m_activeScene = m_context->activeScene();
-        //gaussianRenderer2D.setActiveCamera(m_editorCamera);
+        gaussianRenderer2D.setActiveCamera(m_editorCamera);
         gaussianRenderer3D.setActiveCamera(m_editorCamera);
 
     }
@@ -67,7 +60,7 @@ namespace VkRender {
         m_colorTexture = EditorUtils::createEmptyTexture(m_createInfo.width, m_createInfo.height,
                                                          VK_FORMAT_B8G8R8A8_UNORM, m_context);
 
-        //gaussianRenderer2D.setActiveCamera(m_editorCamera);
+        gaussianRenderer2D.setActiveCamera(m_editorCamera);
         gaussianRenderer3D.setActiveCamera(m_editorCamera);
 
     }
@@ -78,7 +71,7 @@ namespace VkRender {
         if (imageUI->useImageFrom3DViewport) {
 
         }
-        //gaussianRenderer2D.setActiveCamera(m_editorCamera);
+        gaussianRenderer2D.setActiveCamera(m_editorCamera);
         gaussianRenderer3D.setActiveCamera(m_editorCamera);
 
 
@@ -88,13 +81,13 @@ namespace VkRender {
             if (camera.renderFromViewpoint()) {
                 // If the selected entity has a camera with renderFromViewpoint, use it
                 camera.camera->setCameraResolution(m_createInfo.width, m_createInfo.height);
-                //gaussianRenderer2D.setActiveCamera(camera.camera);
+                gaussianRenderer2D.setActiveCamera(camera.camera);
                 gaussianRenderer3D.setActiveCamera(camera.camera);
                 m_lastActiveCamera = &camera; // Update the last active camera
             }
         } else if (m_lastActiveCamera && m_lastActiveCamera->renderFromViewpoint()) {
             // Use the last active camera if it still has renderFromViewpoint enabled
-            //gaussianRenderer2D.setActiveCamera(m_lastActiveCamera->camera);
+            gaussianRenderer2D.setActiveCamera(m_lastActiveCamera->camera);
             gaussianRenderer3D.setActiveCamera(m_lastActiveCamera->camera);
         }
 
@@ -124,12 +117,12 @@ namespace VkRender {
                 gaussianRenderer3D.render(scene, m_colorTexture);
 
             } else {
-                //gaussianRenderer2D.render(scene, m_colorTexture);
+                gaussianRenderer2D.render(scene, m_colorTexture);
 
             }
         }
 
-        /*
+
         std::unordered_map<std::shared_ptr<DefaultGraphicsPipeline>, std::vector<RenderCommand>> renderGroups;
         collectRenderCommands(renderGroups, commandBuffer.frameIndex);
 
@@ -142,7 +135,7 @@ namespace VkRender {
             }
         }
 
-*/
+
     }
 
     void EditorGaussianViewer::collectRenderCommands(
@@ -156,9 +149,9 @@ namespace VkRender {
             return;
 
         PipelineKey key = {};
-
+        key.setLayouts.resize(1);
         if (m_ui->resizeActive) {
-            m_descriptorSetManager->freeDescriptorSets();
+            m_descriptorRegistry.getManager(DescriptorType::Viewport3DTexture).freeDescriptorSets();
         }
         // Prepare descriptor writes based on your texture or other resources
         std::array<VkWriteDescriptorSet, 2> writeDescriptors{};
@@ -175,9 +168,8 @@ namespace VkRender {
 
         std::vector<VkWriteDescriptorSet> descriptorWrites = {writeDescriptors[0], writeDescriptors[1]};
         // Get or create the descriptor set using the DescriptorSetManager
-        VkDescriptorSet descriptorSet = m_descriptorSetManager->getOrCreateDescriptorSet(descriptorWrites);
-
-        key.setLayouts[0] = m_descriptorSetManager->getDescriptorSetLayout();
+        VkDescriptorSet descriptorSet = m_descriptorRegistry.getManager(DescriptorType::Viewport3DTexture).getOrCreateDescriptorSet(descriptorWrites);
+        key.setLayouts[0] = m_descriptorRegistry.getManager(DescriptorType::Viewport3DTexture).getDescriptorSetLayout();
         // Use default descriptor set layout
         key.vertexShaderName = "default2D.vert";
         key.fragmentShaderName = "default2D.frag";
@@ -203,7 +195,7 @@ namespace VkRender {
         RenderCommand command;
         command.pipeline = pipeline;
         command.meshInstance = m_meshInstances.get();
-        //command.descriptorSets = descriptorSet; // Assign the descriptor set
+        command.descriptorSets[0] = descriptorSet; // Assign the descriptor set
 
         // Add to render group
         renderGroups[pipeline].push_back(command);
@@ -227,18 +219,18 @@ namespace VkRender {
         vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                           command.pipeline->pipeline()->getPipeline());
 
-        /*
-        vkCmdBindDescriptorSets(
-                cmdBuffer,
-                VK_PIPELINE_BIND_POINT_GRAPHICS,
-                command.pipeline->pipeline()->getPipelineLayout(),
-                0, // Set 0 (entity descriptor set)
-                1,
-                &command.descriptorSets,
-                0,
-                nullptr
-        );
-*/
+        for (auto& [index, descriptorSet] : command.descriptorSets) {
+            vkCmdBindDescriptorSets(
+                    cmdBuffer,
+                    VK_PIPELINE_BIND_POINT_GRAPHICS,
+                    command.pipeline->pipeline()->getPipelineLayout(),
+                    index,
+                    1,
+                    &descriptorSet,
+                    0,
+                    nullptr
+            );
+        }
         if (command.meshInstance->indexCount > 0) {
             vkCmdDrawIndexed(cmdBuffer, command.meshInstance->indexCount, 1, 0, 0, 0);
         }

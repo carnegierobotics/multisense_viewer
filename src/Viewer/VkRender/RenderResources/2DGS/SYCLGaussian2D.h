@@ -5,7 +5,6 @@
 #ifndef MULTISENSE_VIEWER_SYCLGAUSSIAN2D_H
 #define MULTISENSE_VIEWER_SYCLGAUSSIAN2D_H
 
-#include <glm/glm.hpp>
 #include <sycl/sycl.hpp>
 
 #include "Viewer/VkRender/Components/GaussianComponent.h"

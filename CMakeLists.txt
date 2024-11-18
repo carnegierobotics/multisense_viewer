@@ -25,7 +25,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-add_executable(MultiSense-Viewer)
+add_executable(${PROJECT_NAME})
 
 # Enable CUDA language support and set CUDA standard
 # Conditional setup for PyTorch and CUDA
@@ -34,42 +34,50 @@ if (ENABLE_PYTORCH)
     enable_language(CUDA)  # Enable CUDA compiler
     set(CMAKE_CUDA_STANDARD 20)
     set(CMAKE_CUDA_ARCHITECTURES "80")  # Replace "80" with your GPU architecture if different
-    target_include_directories(MultiSense-Viewer PRIVATE ${TORCH_INCLUDE_DIRS})
+    target_include_directories(${PROJECT_NAME} PRIVATE ${TORCH_INCLUDE_DIRS})
 
     # Find the Torch package
     find_package(Torch REQUIRED HINTS /home/magnus/libraries/libtorch-cxx11-abi-shared-with-deps-2.5.1+cu124/libtorch)
 
     # Link Torch libraries and enable C++20 for the target
-    target_link_libraries(MultiSense-Viewer PRIVATE ${TORCH_LIBRARIES})
-    target_compile_features(MultiSense-Viewer PRIVATE cxx_std_20)
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${TORCH_LIBRARIES})
+    target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
 endif ()
 
 # SYCL Backend selection
 if (ENABLE_SYCL)
     if (SYCL_BACKEND STREQUAL "dpcpp")
+        #set(CMAKE_CXX_COMPILER "/home/magnus/sycl_workspace/llvm/build/bin/clang++")
         set(CMAKE_CXX_COMPILER /opt/intel/oneapi/compiler/2025.0/bin/icpx) ##TODO FUll path to compiler must be set as argument instead
-        #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -fsycl-targets=nvptx64-nvidia-cuda" )
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -fsycl-targets=spir64 -g -O0 -ffp-model=precise -Wno-overriding-option -ltbb")
+
+        #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -fsycl-targets=nvptx64-nvidia-cuda -g -O0" )
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -g -O0 -ltbb -lur_loader ")
+        #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -fsycl-targets=spir64 -ltbb")
+
         message(STATUS "[VkRenderINFO]: SYCL DPC++ support enabled. Compiler: ${CMAKE_CXX_COMPILER} Flags: ${CMAKE_CXX_FLAGS}")
-        target_link_libraries(${PROJECT_NAME} PRIVATE sycl ur_loader)
+        #target_link_libraries(${PROJECT_NAME} PRIVATE sycl ur_loader)
+
     elseif (SYCL_BACKEND STREQUAL "adaptivecpp")
         # Find the AdaptiveCpp package
         find_package(AdaptiveCpp REQUIRED)
         # Check if ACPP_TARGETS is passed via command line or environment
-        set(ACPP_TARGETS "generic")
+        #set(ACPP_TARGETS "omp")
         # Print a message showing which targets are being used
         message(STATUS "[VkRenderINFO]: Using AdaptiveCpp with targets: ${ACPP_TARGETS} to project name ${PROJECT_NAME}")
+        add_sycl_to_target(TARGET ${PROJECT_NAME})
+
         # Add sycl to target using AdaptiveCpp's helper
-        add_sycl_to_target(TARGET ${PROJECT_NAME} TARGETS ${ACPP_TARGETS})
-        target_link_libraries(${PROJECT_NAME} PRIVATE -ltbb)
-        if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-            target_compile_options(${PROJECT_NAME} PRIVATE -O0 -g)
+        target_link_libraries(${PROJECT_NAME} PRIVATE -ltbb -fopenmp -lfmt)
+        if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+            target_compile_options(${PROJECT_NAME} PRIVATE -g --acpp-targets=omp)
             message(STATUS "[VkRenderINFO]: Compiling using AdaptiveCpp without optimization")
-        endif()
+        endif ()
     else ()
         message(FATAL_ERROR "[VkRenderERROR]: Unknown SYCL backend. Choose either 'dpcpp' or 'adaptivecpp'.")
     endif ()
-    add_compile_definitions(SYCL_ENABLED)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE SYCL_ENABLED)
+    message(STATUS "[VkRenderINFO] Added definition: SYCL_ENABLED")
+
 else ()
     message(STATUS "[VkRenderINFO]: SYCL support not enabled.")
 endif ()
@@ -182,7 +190,6 @@ set(LIBRARIES
         glfw
         imgui
         tiff
-        ktx
         nlohmann_json::nlohmann_json
         httplib::httplib
         tinyobjloader
@@ -190,14 +197,18 @@ set(LIBRARIES
         tinyply
         MultiSense
         yaml-cpp
+        fmt::fmt
 )
 
 # Add SYCL-specific files
 if (ENABLE_SYCL)
-    list(APPEND SOURCE_FILES src/Viewer/VkRender/RenderResources/2DGS/SYCLGaussian2D.cpp)
-    list(APPEND SOURCE_FILES src/Viewer/VkRender/RenderResources/3DGS/SYCLGaussian3D.cpp)
-    list(APPEND SOURCE_FILES src/Viewer/VkRender/Core/SyclDeviceSelector.h)
-    list(APPEND SOURCE_FILES src/Viewer/VkRender/Editors/Common/GaussianViewer/EditorGaussianViewer.cpp)
+    set(SYCL_SOURCES
+            src/Viewer/VkRender/RenderResources/2DGS/SYCLGaussian2D.cpp
+            src/Viewer/VkRender/RenderResources/3DGS/SYCLGaussian3D.cpp
+            src/Viewer/VkRender/Core/SyclDeviceSelector.h
+            src/Viewer/VkRender/Editors/Common/GaussianViewer/EditorGaussianViewer.cpp
+    )
+    list(APPEND SOURCE_FILES ${SYCL_SOURCES})
     message(STATUS "[VkRenderINFO]: SYCL: Adding Gaussian Renderer to source")
 endif ()# Add SYCL-specific files
 
@@ -205,7 +216,7 @@ endif ()# Add SYCL-specific files
 if (PROPRIETARY_GIGEVISION_MODULE)
     list(APPEND SOURCE_FILES src/Viewer/Modules/MultiSense/GigE-Vision/GigEVisionConnector.cpp)
     list(APPEND LIBRARIES ${GIGEVISION_LIB})
-    target_compile_definitions(MultiSense-Viewer PRIVATE VKRENDER_GIGEVISION_ENABLED)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE VKRENDER_GIGEVISION_ENABLED)
 endif ()
 
 #Custom command and target to copy assets if they have changed
@@ -236,15 +247,15 @@ if (UNIX)
 
     # Build executable
     set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
-    target_sources(MultiSense-Viewer PRIVATE ${SOURCE_FILES})
-    target_link_libraries(MultiSense-Viewer PRIVATE ${LIBRARIES} ${GTK3_LIBRARIES} fmt::fmt)
-    add_dependencies(MultiSense-Viewer copy_assets)
+    target_sources(${PROJECT_NAME} PRIVATE ${SOURCE_FILES})
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${LIBRARIES} ${GTK3_LIBRARIES} fmt::fmt)
+    add_dependencies(${PROJECT_NAME} copy_assets)
 
     # Set warnings
-    set_project_warnings(MultiSense-Viewer)
+    set_project_warnings(${PROJECT_NAME})
 
     # Install configuration
-    install(TARGETS MultiSense-Viewer RUNTIME DESTINATION ${INSTALL_DIRECTORY})
+    install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION ${INSTALL_DIRECTORY})
     install(DIRECTORY ${CMAKE_SOURCE_DIR}/Resources/Assets CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
 
 elseif (WIN32)
@@ -261,23 +272,23 @@ elseif (WIN32)
     endif ()
 
     # Build executable
-    target_sources(MultiSense-Viewer PRIVATE ${SOURCE_FILES})
-    target_link_libraries(MultiSense-Viewer ${LIBRARIES} fmt::fmt userenv.lib)
-    add_dependencies(MultiSense-Viewer copy_assets)
+    target_sources(${PROJECT_NAME} PRIVATE ${SOURCE_FILES})
+    target_link_libraries(${PROJECT_NAME} ${LIBRARIES} fmt::fmt userenv.lib)
+    add_dependencies(${PROJECT_NAME} copy_assets)
 
     # Set warnings
-    set_project_warnings(MultiSense-Viewer)
+    set_project_warnings(${PROJECT_NAME})
 
     # Set runtime output directory
-    set_target_properties(MultiSense-Viewer PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
-    set_target_properties(MultiSense-Viewer PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR})
-    set_target_properties(MultiSense-Viewer PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR})
+    set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+    set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR})
+    set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR})
     set_target_properties(MultiSense PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
     # Install configuration
-    install(TARGETS MultiSense-Viewer CONFIGURATIONS Release RUNTIME DESTINATION ${INSTALL_DIRECTORY})
-    install(TARGETS MultiSense-Viewer CONFIGURATIONS Release ARCHIVE DESTINATION ${INSTALL_DIRECTORY})
-    install(TARGETS MultiSense-Viewer CONFIGURATIONS Release LIBRARY DESTINATION ${INSTALL_DIRECTORY})
+    install(TARGETS ${PROJECT_NAME} CONFIGURATIONS Release RUNTIME DESTINATION ${INSTALL_DIRECTORY})
+    install(TARGETS ${PROJECT_NAME} CONFIGURATIONS Release ARCHIVE DESTINATION ${INSTALL_DIRECTORY})
+    install(TARGETS ${PROJECT_NAME} CONFIGURATIONS Release LIBRARY DESTINATION ${INSTALL_DIRECTORY})
     install(FILES ${CMAKE_BINARY_DIR}/MultiSense.dll CONFIGURATIONS Release ARCHIVE DESTINATION ${INSTALL_DIRECTORY})
     install(DIRECTORY Resources/Assets CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
 
@@ -285,7 +296,7 @@ endif ()
 
 # Compile definitions for different build types
 if (CMAKE_BUILD_TYPE MATCHES "Release")
-    target_compile_definitions(MultiSense-Viewer PRIVATE VKRENDER_MULTISENSE_VIEWER_PRODUCTION)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE VKRENDER_MULTISENSE_VIEWER_PRODUCTION)
 else ()
-    target_compile_definitions(MultiSense-Viewer PRIVATE VKRENDER_MULTISENSE_VIEWER_DEBUG)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE VKRENDER_MULTISENSE_VIEWER_DEBUG)
 endif ()

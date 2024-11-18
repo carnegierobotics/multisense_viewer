@@ -20,16 +20,8 @@ namespace VkRender {
         addUI("Editor3DLayer");
         addUIData<Editor3DViewportUI>();
 
-        std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
-            {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-            {
-                1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT |
-                VK_SHADER_STAGE_FRAGMENT_BIT,
-                nullptr
-            },
-        };
-        m_descriptorSetManager = std::make_unique<DescriptorSetManager>(m_context->vkDevice(), setLayoutBindings);
 
+        m_descriptorRegistry.createManager(DescriptorType::Viewport3DTexture, m_context->vkDevice());
         m_editorCamera = std::make_shared<Camera>(m_createInfo.width, m_createInfo.height);
         m_sceneRenderer = m_context->getOrAddSceneRendererByUUID(uuid, m_createInfo);
         VulkanTexture2DCreateInfo textureCreateInfo(m_context->vkDevice());
@@ -145,7 +137,7 @@ namespace VkRender {
         key.setLayouts.resize(1);
 
         if (m_ui->resizeActive) {
-            m_descriptorSetManager->freeDescriptorSets();
+            m_descriptorRegistry.getManager(DescriptorType::Viewport3DTexture).freeDescriptorSets();
         }
 
         // Prepare descriptor writes based on your texture or other resources
@@ -161,8 +153,8 @@ namespace VkRender {
         writeDescriptors[1].descriptorCount = 1;
         writeDescriptors[1].pBufferInfo = &m_shaderSelectionBuffer[frameIndex]->m_descriptorBufferInfo;
         std::vector descriptorWrites = {writeDescriptors[0], writeDescriptors[1]};
-        VkDescriptorSet descriptorSet = m_descriptorSetManager->getOrCreateDescriptorSet(descriptorWrites);
-        key.setLayouts[0] = m_descriptorSetManager->getDescriptorSetLayout();
+        VkDescriptorSet descriptorSet = m_descriptorRegistry.getManager(DescriptorType::Viewport3DTexture).getOrCreateDescriptorSet(descriptorWrites);
+        key.setLayouts[0] = m_descriptorRegistry.getManager(DescriptorType::Viewport3DTexture).getDescriptorSetLayout();
         // Use default descriptor set layout
         key.vertexShaderName = "default2D.vert";
         key.fragmentShaderName = "default2D.frag";

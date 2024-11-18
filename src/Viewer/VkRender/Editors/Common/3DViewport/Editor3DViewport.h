@@ -56,7 +56,7 @@ namespace VkRender {
         std::vector<std::unique_ptr<Buffer>> m_shaderSelectionBuffer;
         // Quad and descriptor setup
         PipelineManager m_pipelineManager;
-        std::unique_ptr<DescriptorSetManager> m_descriptorSetManager;
+        DescriptorRegistry m_descriptorRegistry;
         std::shared_ptr<MeshInstance> m_meshInstances;
 
     };

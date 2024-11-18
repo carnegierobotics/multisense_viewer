@@ -304,7 +304,7 @@ namespace VkRender {
 
 
         auto event4 = m_queue.submit([&](sycl::handler &h) {
-            h.single_task<class GroupTotalsScan>([=]() {
+            h.single_task<class GroupTotalsScan2>([=]() {
                 // Perform exclusive scan on group totals
                 for (size_t i = 1; i < numWorkGroups; ++i) {
                     groupTotals[i] += groupTotals[i - 1];
@@ -329,7 +329,7 @@ namespace VkRender {
         // Step 4: Adjust local scans
        auto event5 = m_queue.submit([&](sycl::handler &h) {
             size_t numPoints = m_numGaussians;
-            h.parallel_for<class AdjustLocalScans>(kernelRange, [=](sycl::nd_item<1> item) {
+            h.parallel_for<class AdjustLocalScans2>(kernelRange, [=](sycl::nd_item<1> item) {
                 size_t groupId = item.get_group_linear_id();
                 uint32_t offset = (groupId > 0) ? groupTotals[groupId - 1] : 0;
                 size_t globalIdx = item.get_global_id(0);

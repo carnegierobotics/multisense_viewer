@@ -6,12 +6,13 @@
 #define MULTISENSE_VIEWER_GAUSSIANCOMPONENT_H
 
 #include <tinyply.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/quaternion.hpp>
 #include <vector>
 #include <filesystem>
 #include <iostream>
 #include <fstream>
+
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 namespace VkRender {
 

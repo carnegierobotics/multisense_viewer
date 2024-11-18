@@ -66,8 +66,8 @@ namespace VkRender {
 
         m_queue.memcpy(m_preProcessDataPtr, &m_preProcessData, sizeof(Rasterizer2DUtils::PreProcessData)).wait();
 
-        preProcessGaussians(imageMemory);
-        //renderGaussiansWithProfiling(imageMemory, true);
+        //preProcessGaussians(imageMemory);
+        renderGaussiansWithProfiling(imageMemory, true);
 
         // Start rendering
         // Copy output to texture
@@ -263,17 +263,20 @@ namespace VkRender {
         event1.wait();
         profileKernel(event1, "Preprocess");
 
+        std::vector<Rasterizer2DUtils::GaussianPoint> hostPointsProcessed(m_numGaussians);
+        m_queue.memcpy(hostPointsProcessed.data(), m_gaussianPointsPtr, m_numGaussians * sizeof(Rasterizer2DUtils::GaussianPoint)).wait();
+
         auto *pointOffsets = sycl::malloc_device<uint32_t>(m_numGaussians, m_queue);
         auto event2 = m_queue.memset(pointOffsets, static_cast<uint32_t>(0x00), m_numGaussians * sizeof(uint32_t));
         event2.wait();
         profileKernel(event2, "Memset Point Offsets");
 
 
-        /*
+
         std::vector<Rasterizer2DUtils::GaussianPoint> hostPoints(m_numGaussians);
         std::cout << "TilesTouched: ";
         m_queue.memcpy(hostPoints.data(), m_gaussianPointsPtr, m_numGaussians * sizeof(Rasterizer2DUtils::GaussianPoint)).wait();
-        for (int i = 0; i < 128; ++i){
+        for (int i = 0; i < m_numGaussians && i < 128; ++i){
             std::cout << hostPoints[i].tilesTouched << " ";
             if ((i + 1) % 16 == 0)
                 std::cout << "| ";
@@ -281,7 +284,7 @@ namespace VkRender {
 
 
         std::cout << std::endl;
-        */
+
         uint32_t localSize = 16;  // Number of work-items in each work-group
         uint32_t globalSize = ((m_preProcessDataPtr->preProcessSettings.numPoints + localSize - 1) / localSize) * localSize;
         uint32_t numWorkGroups = globalSize / localSize;
@@ -302,7 +305,7 @@ namespace VkRender {
 
 
         auto event4 = m_queue.submit([&](sycl::handler &h) {
-            h.single_task<class GroupTotalsScan>([=]() {
+            h.single_task<class GroupTotalsScan2>([=]() {
                 // Perform exclusive scan on group totals
                 for (size_t i = 1; i < numWorkGroups; ++i) {
                     groupTotals[i] += groupTotals[i - 1];
@@ -312,7 +315,7 @@ namespace VkRender {
         event4.wait();
         profileKernel(event4, "SumGroupTotals");
 
-        /*
+
         std::vector<uint32_t> groupTotalsHost(numWorkGroups);
         std::cout << "groupTotalsHost: ";
         m_queue.memcpy(groupTotalsHost.data(), groupTotals, numWorkGroups * sizeof(uint32_t)).wait();
@@ -322,12 +325,12 @@ namespace VkRender {
                 std::cout << "| ";
         }
         std::cout << std::endl;
-        */
+
 
         // Step 4: Adjust local scans
-       auto event5 = m_queue.submit([&](sycl::handler &h) {
+        auto event5 = m_queue.submit([&](sycl::handler &h) {
             size_t numPoints = m_numGaussians;
-            h.parallel_for<class AdjustLocalScans>(kernelRange, [=](sycl::nd_item<1> item) {
+            h.parallel_for<class AdjustLocalScans2>(kernelRange, [=](sycl::nd_item<1> item) {
                 size_t groupId = item.get_group_linear_id();
                 uint32_t offset = (groupId > 0) ? groupTotals[groupId - 1] : 0;
                 size_t globalIdx = item.get_global_id(0);
@@ -341,7 +344,7 @@ namespace VkRender {
         event5.wait();
         profileKernel(event5, "InclusiveSumGlobalOffsets");
 
-        /*
+
         std::vector<uint32_t> inclusiveSum(m_numGaussians);
         std::cout << "inclusiveSum: ";
         m_queue.memcpy(inclusiveSum.data(), pointOffsets, m_numGaussians * sizeof(uint32_t)).wait();
@@ -351,12 +354,13 @@ namespace VkRender {
                 std::cout << "| ";
         }
         std::cout << std::endl;
-        */
+
 
         uint32_t numRendered = 0;
         auto event6 = m_queue.memcpy(&numRendered, pointOffsets + (m_numGaussians - 1), sizeof(uint32_t));
         event6.wait();
         profileKernel(event6, "Memcpy numRendered");
+
 
         Log::Logger::getInstance()->traceWithFrequency("3dgsrendering", 60, "3DGS Rendering, Gaussians: {}", numRendered);
 

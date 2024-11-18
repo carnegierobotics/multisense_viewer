@@ -2,8 +2,8 @@
 // Created by magnus-desktop on 10/22/24.
 //
 
-#ifndef RASTERIZERUTILS_H
-#define RASTERIZERUTILS_H
+#ifndef RASTERIZERUTILS2D_H
+#define RASTERIZERUTILS2D_H
 #include <Viewer/VkRender/Core/Camera.h>
 
 namespace VkRender::Rasterizer2DUtils {
@@ -24,6 +24,7 @@ namespace VkRender::Rasterizer2DUtils {
         float depth = 0.0f;
         int radius = 0;
         uint32_t tilesTouched = 0;
+        glm::mat3 T;
     };
 
     // TODO remove and replace with something more intuitive
@@ -48,56 +49,33 @@ namespace VkRender::Rasterizer2DUtils {
         PreProcessSettings preProcessSettings;
     };
 
-    static glm::mat3 computeCov3D(const glm::vec3& scale, const glm::quat& q) {
-        glm::mat3 S(0.f);
-        S[0][0] = scale.x;
-        S[1][1] = scale.y;
-        S[2][2] = scale.z;
 
-        glm::mat3 R = glm::mat3_cast(q);
-        glm::mat3 St = glm::transpose(S);
-        glm::mat3 Rt = glm::transpose(R);
-        glm::mat3 Sigma = R * S * St * Rt;
-        return Sigma;
-    }
+    static bool compute_aabb(
+            glm::mat3 T,
+            float cutoff,
+            glm::vec2& point_image,
+            glm::vec2& extent
+    ) {
+        glm::vec3 t = glm::vec3(cutoff * cutoff, cutoff * cutoff, -1.0f);
+        float d = glm::dot(t, T[2] * T[2]);
+        if (d == 0.0) return false;
+        glm::vec3 f = (1 / d) * t;
 
-    static void projectGaussians(const glm::vec3& point, const glm::vec3& scale, const glm::quat& rotation,
-                                 const glm::mat4& viewMatrix,
-                                 glm::mat3& trans, glm::vec3& normal) {
+        glm::vec2 p = glm::vec2(
+                glm::dot(f, T[0] * T[2]),
+                glm::dot(f, T[1] * T[2])
+        );
 
-        glm::mat4 H = glm::translate(glm::mat4(1.0f), point) * glm::mat4_cast(rotation) * glm::scale(glm::mat4(1.0f), scale);
-        const glm::mat4 W = viewMatrix;
+        glm::vec2 h0 = p * p -
+                       glm::vec2(
+                               glm::dot(f, T[0] * T[0]),
+                               glm::dot(f, T[1] * T[1])
+                       );
 
-        //glm::transpose(W * H);
-
-    }
-
-    static glm::vec3 computeCov2D(const glm::vec4& pView,
-                                  const glm::mat3& cov3D, const glm::mat4& viewMat,
-                                  const CameraParams& camera,
-                                  bool debug = false) {
-        /*
-        const float limx = 1.3f * camera.tanFovX;
-        const float limy = 1.3f * camera.tanFovY;
-        const float txtz = t.x / t.z;
-        const float tytz = t.y / t.z;
-        t.x = std::min(limx, std::max(-limx, txtz)) * t.z;
-        t.y = std::min(limy, std::max(-limy, tytz)) * t.z;
-        */
-
-        float l = glm::length(pView);
-        glm::mat3 J = glm::mat3(camera.focalY / pView.z, 0.0f, 0.0f,
-                                0.0f, -camera.focalY / pView.z, 0.0f,
-                                -(camera.focalY * pView.x) / (pView.z * pView.z),
-                                -(camera.focalY * pView.y) / (pView.z * pView.z), 0.0f);
-
-        auto W = glm::mat3(viewMat);
-        glm::mat3 T = J * W;
-        glm::mat3 cov = T * cov3D * glm::transpose(T);
-
-        cov[0][0] += 0.3f;
-        cov[1][1] += 0.3f;
-        return {cov[0][0], cov[1][0], cov[1][1]};
+        glm::vec2 h = sqrt(max(glm::vec2(1e-4, 1e-4), h0));
+        point_image = {p.x, p.y};
+        extent = {h.x, h.y};
+        return true;
     }
 
     static void getRect(const glm::vec2 p, int max_radius, glm::ivec2& rect_min, glm::ivec2& rect_max,

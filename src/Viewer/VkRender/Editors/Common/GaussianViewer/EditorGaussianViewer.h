@@ -15,6 +15,7 @@
 #include "Viewer/VkRender/Editors/DescriptorSetManager.h"
 #include "Viewer/VkRender/Editors/PipelineManager.h"
 #include "Viewer/VkRender/RenderResources/3DGS/SYCLGaussian3D.h"
+#include "Viewer/VkRender/Editors/DescriptorRegistry.h"
 
 namespace VkRender {
 
@@ -46,7 +47,7 @@ namespace VkRender {
         std::shared_ptr<Scene> m_activeScene;
         CameraComponent* m_lastActiveCamera = nullptr;
 
-        SyclDeviceSelector m_deviceSelector = SyclDeviceSelector(SyclDeviceSelector::DeviceType::GPU);
+        SyclDeviceSelector m_deviceSelector = SyclDeviceSelector(SyclDeviceSelector::DeviceType::CPU);
         SYCLGaussian2D gaussianRenderer2D;
         SYCLGaussian3D gaussianRenderer3D;
 
@@ -54,7 +55,7 @@ namespace VkRender {
 
         std::shared_ptr<VulkanTexture2D> m_colorTexture;
         PipelineManager m_pipelineManager;
-        std::unique_ptr<DescriptorSetManager> m_descriptorSetManager;
+        DescriptorRegistry m_descriptorRegistry;
         std::shared_ptr<MeshInstance> m_meshInstances;
 
         void bindResourcesAndDraw(const CommandBuffer &commandBuffer, RenderCommand &command);

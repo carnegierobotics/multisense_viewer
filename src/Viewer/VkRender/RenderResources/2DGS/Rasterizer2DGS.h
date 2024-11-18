@@ -74,14 +74,16 @@ namespace VkRender::Rasterizer2D {
                     glm::vec4(1.0f, 0.0f, 0.0f, 0.0f),
                     glm::vec4(0.0f, 1.0f, 0.0f, 0.0f),
                     glm::vec4(0.0f, 0.0f, 1.0f, 0.0f),
-                    glm::vec4(x, y, z, 0.0f)
+                    glm::vec4(x, y, z, 1.0f)
             );
             glm::vec4 point_world = glm::vec4(H[3]);
 
-            glm::mat4 world2ndc = m_camera.matrices.perspective;
+            glm::mat4 projection = m_camera.matrices.perspective;
+            glm::mat4 view = m_camera.matrices.view;
+            std::cout << "projection: " << glm::to_string(projection) << std::endl;
 
 
-            glm::vec4 point_ndc = world2ndc * point_world;
+            glm::vec4 point_ndc = projection * view * point_world;
             glm::vec3 point_screen = glm::vec3(point_ndc) / point_ndc.w;
             glm::vec3 point_viewport;
             point_viewport.x = (point_screen.x + 1.0f) * 0.5f * m_camera.width();
@@ -89,19 +91,32 @@ namespace VkRender::Rasterizer2D {
             point_viewport.z = point_screen.z; // Depth remains unchanged
 
 
+            std::cout << "camera: " << glm::to_string(glm::inverse(view)[3]) << std::endl;
+            std::cout << "point_world: " << glm::to_string(point_world) << std::endl;
+            std::cout << "point_ndc: " << glm::to_string(point_ndc) << std::endl;
             std::cout << "point_screen: " << glm::to_string(point_screen) << std::endl;
             std::cout << "point_viewport: " << glm::to_string(point_viewport) << std::endl;
-            std::cout << "H: " << glm::to_string(H) << std::endl;
-            std::cout << "world2ndc: " << glm::to_string(world2ndc) << std::endl;
 
-            auto WHt = (H * world2ndc);
+            auto WH = (projection * view * H);
+            std::cout << "WH: " << glm::to_string(WH) << std::endl;
 
-            std::cout << "WHt: " << glm::to_string(WHt) << std::endl;
+            glm::mat4 points_ndc = projection * view * H;
+            // Perform perspective division for each column
+            glm::mat3 points_ndc_norm;
+            for (int i = 0; i < 3; ++i) {
+                glm::vec4 column = points_ndc[i];  // Get column as vec4
+                if (column.w != 0.0f) {
+                    column /= column.w;  // Perspective division
+                } else {
+                    std::cerr << "Warning: Division by zero for column " << i << "!" << std::endl;
+                }
+                points_ndc_norm[i] = glm::vec3(column);  // Store as vec3
+            }
+            glm::mat4 T = points_ndc_norm;
 
-            glm::mat4 T = WHt;
-            std::cout << "Transmat: " << glm::to_string(T) << std::endl;
+            std::cout << "points_ndc: " << glm::to_string(points_ndc) << std::endl;
+            std::cout << "points_ndc_norm: " << glm::to_string(points_ndc_norm) << std::endl;
 
-            T[2] = glm::vec4(point_viewport, 0.0f);
             // Compute center and radius
 
             // compute_aabb

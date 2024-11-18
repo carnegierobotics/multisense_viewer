@@ -16,10 +16,6 @@
 [submodule "external/libtiff"]
 	path = external/libtiff
 	url = https://gitlab.com/libtiff/libtiff
-[submodule "external/KTX-Software"]
-	path = external/KTX-Software
-	url = https://github.com/M-Gjerde/KTX-Software
-	branch = main
 [submodule "external/json"]
 	path = external/json
 	url = https://github.com/nlohmann/json

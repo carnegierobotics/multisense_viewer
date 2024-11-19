@@ -36,12 +36,12 @@ jobs:
           # Get the latest tag (e.g., v1.1.5) and remove the 'v' prefix if needed
           TAG=$(git describe --tags `git rev-list --tags --max-count=1`)
           VERSION=${TAG#v}
-          
+
           # Split VERSION into MAJOR, MINOR, and PATCH
           MAJOR=$(echo "$VERSION" | cut -d. -f1)
           MINOR=$(echo "$VERSION" | cut -d. -f2)
           PATCH=$(echo "$VERSION" | cut -d. -f3)
-          
+
           # Export the version numbers as environment variables
           echo "MAJOR=$MAJOR" >> $GITHUB_ENV
           echo "MINOR=$MINOR" >> $GITHUB_ENV
@@ -97,11 +97,9 @@ jobs:
             2.  Download and run the Windows installer: MultiSenseSetup.exe
 
             ### Ubuntu users:
-            1. Make sure you have updated graphics drivers, ffmpeg and policykit installed. Can be installed via apt pacakge manager:
-            $ apt install ffmpeg libvulkan1 policykit-1
-            2. Download and install the multisense_1.1-0_amd64.deb package using your default package manager or type in terminal:
+            1. Download and install the multisense_1.1-0_amd64.deb package using your default package manager or type in terminal:
             $ dpkg --install ~/Downloads/multisense_1.1-0_amd64.deb
-            3. Launch through start menu or run a start script at
+            2. Launch through start menu or run a start script at
             $ /opt/multisense/start.sh
             - Uninstall application:
             1. Windows: Run 000-uninstall.exe in the installation folder
@@ -200,13 +198,13 @@ jobs:
     - name: Install dependencies
       run: sudo apt-get install -y cmake libx11-dev build-essential xorg-dev libtbb-dev libavformat-dev libavcodec-dev libavutil-dev libswscale-dev libssl-dev libgtk-3-dev libsystemd-dev
 
-    #- name: update gcc11
-      #run: sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test && sudo apt update && sudo apt install -y gcc-11 g++-11
+    - name: update gcc11
+      run: sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test && sudo apt update && sudo apt install -y gcc-11 g++-11
 
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
       # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DGIT_SUBMODULE=OFF -DWARNINGS_AS_ERRORS=FALSE #-D CMAKE_C_COMPILER=gcc-11 -D CMAKE_CXX_COMPILER=g++-11
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DGIT_SUBMODULE=OFF -DWARNINGS_AS_ERRORS=FALSE -D CMAKE_C_COMPILER=gcc-11 -D CMAKE_CXX_COMPILER=g++-11
 
     - name: Build
       # Build your program with the given configuration
@@ -266,13 +264,10 @@ jobs:
       - name: Install dependencies
         run: sudo apt-get install -y cmake libx11-dev build-essential xorg-dev libtbb-dev libavformat-dev libavcodec-dev libavutil-dev libswscale-dev libssl-dev libgtk-3-dev libsystemd-dev libwebp-dev
 
-        #- name: update gcc11
-        #run: sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test && sudo apt update && sudo apt install -y gcc-11 g++-11
-
       - name: Configure CMake
         # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
         # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-        run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DGIT_SUBMODULE=OFF -DWARNINGS_AS_ERRORS=FALSE #-D CMAKE_C_COMPILER=gcc-11 -D CMAKE_CXX_COMPILER=g++-11
+        run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DGIT_SUBMODULE=OFF -DWARNINGS_AS_ERRORS=FALSE
 
       - name: Build
         # Build your program with the given configuration

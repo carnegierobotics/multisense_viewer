@@ -174,7 +174,7 @@ jobs:
         path: ${{github.workspace}}/MultiSense_viewer.zip
 
   BuildUbuntu20:
-    name: Build and package for Ubuntu
+    name: Build and package for Ubuntu 20_04
     needs: [ReleaseJob, VersionJob]
     # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
     # You can convert this to a matrix build if you need cross-platform coverage.
@@ -191,7 +191,7 @@ jobs:
     - name: Prepare Vulkan SDK
       uses: humbletim/setup-vulkan-sdk@v1.2.0
       with:
-        vulkan-query-version: 1.3.204.0
+        vulkan-query-version: 1.2.198.1
         vulkan-components: Vulkan-Headers, Vulkan-Loader
         vulkan-use-cache: true
 
@@ -240,7 +240,7 @@ jobs:
         asset_content_type: application/zip
 
   BuildUbuntu22:
-    name: Build and package for Ubuntu
+    name: Build and package for Ubuntu 22_04
     needs: [ReleaseJob, VersionJob]
     # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
     # You can convert this to a matrix build if you need cross-platform coverage.

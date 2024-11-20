@@ -864,7 +864,8 @@ namespace VkRender::MultiSense {
                     info.hardwareRevision ==
                     crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_C6S2_S27 ||
                     info.hardwareRevision == crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_S30 ||
-                    info.hardwareRevision == crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_MONOCAM;
+                    info.hardwareRevision == crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_MONOCAM ||
+                    info.hardwareRevision == crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_KS21i;
 
             app->m_FailedGetStatusCount = 0;
             app->queryStatusTimer = std::chrono::steady_clock::now();

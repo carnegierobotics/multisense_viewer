@@ -336,9 +336,8 @@ namespace VkRender::MultiSense {
 
         // TODO I want to update most info on startup but this function varies. On KS21 this will always fail.
         //  This also assumes that getDeviceInfo above also succeeded
-        if (infoMap[channelID].devInfo.hardwareRevision !=
-            crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_KS21 || infoMap[channelID].devInfo.hardwareRevision !=
-                                                                                 crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_KS21i) {
+        if (infoMap[channelID].devInfo.hardwareRevision != crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_KS21)
+        {
             allSucceeded &= updateAndLog([&](auto &data) { return channelPtr->getAuxImageConfig(data); },
                                          info.auxImgConf, "auxImageConfig");
         }

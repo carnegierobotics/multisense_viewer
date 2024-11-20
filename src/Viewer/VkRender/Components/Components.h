@@ -125,7 +125,7 @@ namespace VkRender {
     struct CameraComponent {
         // we use a shared pointer as storage since most often we need to share this data with the rendering loop.
         std::shared_ptr<Camera> camera;
-        bool render = false;
+        bool render = true;
 
         CameraComponent() {
             camera = std::make_shared<Camera>();

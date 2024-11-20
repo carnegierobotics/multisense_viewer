@@ -43,37 +43,10 @@ namespace VkRender::Rasterizer2D {
                 return;
             }
 
-            /*
-            glm::mat3 R = glm::mat3_cast(quat);
-            glm::mat3 S = glm::mat3(
-                    glm::vec3(scale.x, 0.0f, 0.0f),  // First column
-                    glm::vec3(0.0f, scale.y, 0.0f),  // Second column
-                    glm::vec3(0.0f, 0.0f, 1.0f)   // Third column
-            );
-
-            glm::mat3 L = R * S;
-
-            glm::mat4 splat2world = glm::mat4(
-                    glm::vec4(L[0], 0.0f),
-                    glm::vec4(L[1], 0.0f),
-                    glm::vec4(position.x, position.y, position.z, 1.0f),
-                    glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)
-            );
-
-            glm::mat4 world2ndc = m_camera.matrices.perspective;
-
-            glm::mat4 ndc2pix = glm::mat4(
-                    glm::vec4(float(m_camera.width()) / 2.0, 0.0, 0.0, float(m_camera.width()-1) / 2.0),
-                    glm::vec4(0.0, float(m_camera.height()) / 2.0, 0.0, float(m_camera.height()-1) / 2.0),
-                    glm::vec4(0.0, 0.0, 0.0, 1.0),
-                    glm::vec4(0.0, 0.0, 0.0, 1.0)
-            );
-            */
-
             glm::mat4 H = glm::mat4(
-                    glm::vec4(1.0f, 0.0f, 0.0f, 0.0f),
-                    glm::vec4(0.0f, 1.0f, 0.0f, 0.0f),
-                    glm::vec4(0.0f, 0.0f, 1.0f, 0.0f),
+                    glm::vec4(1.0f, 0.0f, 0.0f, 1.0f),
+                    glm::vec4(0.0f, 1.0f, 0.0f, 1.0f),
+                    glm::vec4(0.0f, 0.0f, 1.0f, 1.0f),
                     glm::vec4(x, y, z, 1.0f)
             );
             glm::vec4 point_world = glm::vec4(H[3]);
@@ -97,28 +70,33 @@ namespace VkRender::Rasterizer2D {
             std::cout << "point_screen: " << glm::to_string(point_screen) << std::endl;
             std::cout << "point_viewport: " << glm::to_string(point_viewport) << std::endl;
 
-            auto WH = (projection * view * H);
-            std::cout << "WH: " << glm::to_string(WH) << std::endl;
-
             glm::mat4 points_ndc = projection * view * H;
             // Perform perspective division for each column
-            glm::mat3 points_ndc_norm;
-            for (int i = 0; i < 3; ++i) {
+            glm::mat4 points_ndc_norm;
+            for (int i = 0; i < 4; ++i) {
                 glm::vec4 column = points_ndc[i];  // Get column as vec4
                 if (column.w != 0.0f) {
                     column /= column.w;  // Perspective division
                 } else {
                     std::cerr << "Warning: Division by zero for column " << i << "!" << std::endl;
                 }
-                points_ndc_norm[i] = glm::vec3(column);  // Store as vec3
+                points_ndc_norm[i] = glm::vec4(column);
             }
-            glm::mat4 T = points_ndc_norm;
-
             std::cout << "points_ndc: " << glm::to_string(points_ndc) << std::endl;
             std::cout << "points_ndc_norm: " << glm::to_string(points_ndc_norm) << std::endl;
 
-            // Compute center and radius
+            glm::mat4 ndc2pix = glm::transpose(glm::mat4(
+                glm::vec4(float(m_camera.width()) / 2.0, 0.0, 0.0, float(m_camera.width()-1) / 2.0),
+                glm::vec4(0.0, float(m_camera.height()) / 2.0, 0.0, float(m_camera.height()-1) / 2.0),
+                glm::vec4(0.0, 0.0, 1.0, 0.0),
+                glm::vec4(0.0, 0.0, 0.0, 1.0)
+            ));
 
+            glm::mat4 T = points_ndc_norm * ndc2pix;
+            std::cout << "T: " << glm::to_string(T) << std::endl;
+
+
+            // Compute center and radius
             // compute_aabb
             float filterSize = 2.0f;
             float cutoff = 3.0f;
@@ -135,7 +113,6 @@ namespace VkRender::Rasterizer2D {
             if ((rect_max.x - rect_min.x) * (rect_max.y - rect_min.y) == 0)
                 return;
             std::array<std::array<float, 15>, 3> sh = m_points[i].shCoeffs;
-            glm::vec3 result = m_points[i].color;
             m_points[i].depth = posNDC.z;
             m_points[i].radius = radius;
             m_points[i].screenPos = glm::vec3(pointImage, 0.0f);
@@ -145,6 +122,10 @@ namespace VkRender::Rasterizer2D {
                                                          (rect_max.x - rect_min.x));
             m_points[i].tilesTouched = numTilesTouched;
             m_points[i].T = T;
+
+            glm::vec3 result = m_points[i].color;
+            m_points[i].computedColor = result;
+
             //glm::vec3 cameraPos = m_camera.pose.pos;
             //glm::vec3 gaussianPos = m_points[i].position;
             //glm::vec3 result = Rasterizer2DUtils::computeColorFromSH(m_points[i].shCoeffs, color, gaussianPos, cameraPos);
@@ -452,8 +433,14 @@ namespace VkRender::Rasterizer2D {
                             glm::vec3 Tw = glm::vec3(TM[2][0], TM[2][1], TM[2][2]);
 
                             glm::vec3 k = pix.x * Tw - Tu;
-                            glm::vec3 l = pix.y * Tw - Tu;
-                            glm::vec3 p = glm::cross(k, l);
+                            glm::vec3 l = pix.y * Tw - Tv;
+                            glm::vec3 p = glm::cross(l, k);
+                            if (col == m_imageHeight / 2 && row == m_imageHeight / 2) {
+                                std::cout << "l: " << glm::to_string(l) << std::endl;
+                                std::cout << "k: " << glm::to_string(k) << std::endl;
+                                std::cout << "p: " << glm::to_string(p) << std::endl;
+                                Tu = glm::cross(k, p);
+                            }
                             if (p.z == 0) return;
 
                             glm::vec2 s = {p.x / p.z, p.y / p.z};

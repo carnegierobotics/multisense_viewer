@@ -577,9 +577,7 @@ namespace VkRender::MultiSense {
                     std::string mode = ini.GetValue(cameraSerialNumber.c_str(),
                                                     ("Mode" + std::to_string(ch)).c_str(), "1");
                     std::string layout = ini.GetValue(cameraSerialNumber.c_str(), "Layout", "1");
-
                     Log::Logger::getInstance()->info("Using Layout {} and camera resolution {}", layout, mode);
-
                     dev.layout = static_cast<PreviewLayout>(std::stoi(layout));
                     dev.channelInfo.at(ch).selectedResolutionMode = static_cast<CRLCameraResolution>(std::stoi(mode));
                     dev.channelInfo.at(ch).selectedModeIndex = std::stoi(mode);

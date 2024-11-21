@@ -30,17 +30,20 @@ add_executable(${PROJECT_NAME})
 # Enable CUDA language support and set CUDA standard
 # Conditional setup for PyTorch and CUDA
 if (ENABLE_PYTORCH)
+
     # Enable CUDA only if PyTorch is enabled
     enable_language(CUDA)  # Enable CUDA compiler
     set(CMAKE_CUDA_STANDARD 20)
-    set(CMAKE_CUDA_ARCHITECTURES "80")  # Replace "80" with your GPU architecture if different
     target_include_directories(${PROJECT_NAME} PRIVATE ${TORCH_INCLUDE_DIRS})
 
     # Find the Torch package
     find_package(Torch REQUIRED HINTS /home/magnus/libraries/libtorch-cxx11-abi-shared-with-deps-2.5.1+cu124/libtorch)
 
+    list(APPEND CUDA_LIBRARIES ${CUDA_TOOLKIT_ROOT_DIR}/targets/x86_64-linux/lib/libcupti.so)
+
     # Link Torch libraries and enable C++20 for the target
-    target_link_libraries(${PROJECT_NAME} PRIVATE ${TORCH_LIBRARIES})
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${TORCH_LIBRARIES}     ${CUDA_LIBRARIES}
+    )
     target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
 endif ()
 
@@ -210,6 +213,17 @@ if (ENABLE_SYCL)
     )
     list(APPEND SOURCE_FILES ${SYCL_SOURCES})
     message(STATUS "[VkRenderINFO]: SYCL: Adding Gaussian Renderer to source")
+
+    if (${ENABLE_PYTORCH})
+        set (DIFF_RENDER_PYTORCH         src/Viewer/VkRender/RenderResources/DifferentiableRenderer/RenderGaussianFunction.cpp
+                src/Viewer/VkRender/RenderResources/DifferentiableRenderer/RenderGaussian.cpp)
+        list(APPEND SOURCE_FILES ${DIFF_RENDER_PYTORCH})
+        message(STATUS "[VkRenderINFO]: SYCL: Adding Pytorch differential Renderer to source")
+
+    endif()
+else()
+    message(STATUS "[VkRenderINFO]: Skipped Adding SYCL Sources")
+
 endif ()# Add SYCL-specific files
 
 # Add proprietary GigE-Vision module

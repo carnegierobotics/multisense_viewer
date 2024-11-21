@@ -15,7 +15,7 @@
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application. Do not use the same AppId value in installers for other applications.
 ; (To generate a new GUID, click Tools | Generate GUID inside the IDE.)
-AppId={{AD217912-696A-4087-ACD9-5D396FF870A4}
+AppId={{AD217912-696A-4087-ACD9-5D396FF870A4}}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 ;AppVerName={#MyAppName} {#MyAppVersion}
@@ -32,8 +32,8 @@ OutputBaseFilename=MultiSenseSetup
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
-SetupIconFile=files\Assets\Tools\windows\{#MyAppSetupIcoName}
-UninstallDisplayIcon=files\Assets\Tools\windows\{#MyAppSetupIcoName}
+SetupIconFile=.\MultiSense_viewer\Assets\Tools\Windows\{#MyAppSetupIcoName}
+UninstallDisplayIcon=.\MultiSense_viewer\Assets\Tools\Windows\{#MyAppSetupIcoName}
 UsePreviousAppDir=no
 
 [Languages]
@@ -43,9 +43,10 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "files\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "files\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-; NOTE: Don't use "Flags: ignoreversion" on any shared system files
+Source: "MultiSense_viewer\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "MultiSense_viewer\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "MultiSense_viewer\AutoConnect.exe"; DestDir: "{app}"; Flags: ignoreversion
+; NOTE: Don't use "Flags: ignoreversion" on any shared system MultiSense_viewer
 
 [Registry]
 Root: HKA; Subkey: "Software\Classes\{#MyAppAssocExt}\OpenWithProgids"; ValueType: string; ValueName: "{#MyAppAssocKey}"; ValueData: ""; Flags: uninsdeletevalue
@@ -62,3 +63,10 @@ Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChang
 Filename: "{sys}\netsh.exe"; Parameters: "firewall add allowedprogram ""{app}\{#MyAppExeName}"" ""MultiSense-Viewer"" ENABLE ALL"; StatusMsg: "MultiSense-Viewer Firewall"; Flags: runhidden; MinVersion: 0,5.01.2600sp2;
 Filename: "{sys}\netsh.exe"; Parameters: "firewall add allowedprogram ""{app}\AutoConnect.exe"" ""AutoConnect"" ENABLE ALL"; StatusMsg: "AutoConnect Firewall"; Flags: runhidden; MinVersion: 0,5.01.2600sp2;
 
+; For Windows Vista and later
+Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""MultiSense-Viewer"" dir=in action=allow program=""{app}\{#MyAppExeName}"" enable=yes"; Flags: runhidden; MinVersion: 0,6.0;
+Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""AutoConnect"" dir=in action=allow program=""{app}\AutoConnect.exe"" enable=yes"; Flags: runhidden; MinVersion: 0,6.0;
+
+; For Windows XP SP2 and SP3
+Filename: "{sys}\netsh.exe"; Parameters: "firewall add allowedprogram ""{app}\{#MyAppExeName}"" ""MultiSense-Viewer"" ENABLE"; Flags: runhidden; OnlyBelowVersion: 0,6.0;
+Filename: "{sys}\netsh.exe"; Parameters: "firewall add allowedprogram ""{app}\AutoConnect.exe"" ""AutoConnect"" ENABLE"; Flags: runhidden; OnlyBelowVersion: 0,6.0;

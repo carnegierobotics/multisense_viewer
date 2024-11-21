@@ -53,7 +53,6 @@
 
 namespace VkRender::MultiSense {
     void CameraConnection::updateActiveDevice(VkRender::Device *dev) {
-
         activeDeviceCameraStreams(dev);
 
         auto *p = &dev->parameters;
@@ -113,7 +112,8 @@ namespace VkRender::MultiSense {
             Log::Logger::getInstance()->trace("Pushing {} to threadpool", "setAdditionalParametersTask");
             pool->Push(CameraConnection::setAdditionalParametersTask, this, p->stereo.fps, p->stereo.gain,
                        p->stereo.gamma,
-                       p->stereo.stereoPostFilterStrength, p->stereo.hdrEnabled, p->stereo.mtu, dev, dev->configRemoteHead);
+                       p->stereo.stereoPostFilterStrength, p->stereo.hdrEnabled, p->stereo.mtu, dev,
+                       dev->configRemoteHead);
         }
 
         if (dev->parameters.stereo.ep.update && pool->getTaskListSize() < MAX_TASK_STACK_SIZE) {
@@ -191,25 +191,23 @@ namespace VkRender::MultiSense {
         }
 
         // Query for status
-            queryDevice(CameraConnection::getStatusTask, dev, &queryStatusTimer, INTERVAL_1_SECOND);
+        queryDevice(CameraConnection::getStatusTask, dev, &queryStatusTimer, INTERVAL_1_SECOND);
 
         // Query for camera configs
         if (!dev->updateDeviceConfigsSucceeded)
             queryDevice(CameraConnection::getCameraConfigsTask, dev, &queryDeviceConfigTimer, INTERVAL_5_SECONDS);
 
 
-
         // Read exposure setting around once a second if auto exposure is enabled Also put it into GUI structure
         auto time = std::chrono::steady_clock::now();
         auto elapsedTime =
-                std::chrono::duration_cast<std::chrono::duration<float >>(time - queryExposureTimer);
+                std::chrono::duration_cast<std::chrono::duration<float> >(time - queryExposureTimer);
         if (dev->parameters.stereo.ep.autoExposure && elapsedTime.count() > INTERVAL_1_SECOND &&
             pool->getTaskListSize() < MAX_TASK_STACK_SIZE) {
             queryExposureTimer = std::chrono::steady_clock::now();
             // We also want to make sure that we can query all the device info. Otherwise pinging the camera for updates especially auxImageConfig may not results in any usefull information
             Log::Logger::getInstance()->trace("Pushing {} to threadpool", "getExposureTask");
             pool->Push(CameraConnection::getExposureTask, this, dev, dev->configRemoteHead);
-
         }
 
         Log::Logger::getLogMetrics()->device.dev = dev;
@@ -218,24 +216,28 @@ namespace VkRender::MultiSense {
 
     // Existing queryDevice function
     void CameraConnection::queryDevice(
-            std::function<void(void *, crl::multisense::RemoteHeadChannel, VkRender::Device *)> taskFunction,
-            VkRender::Device *dev,
-            std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>> *queryTimer,
-            float updateFreqSec) {
+        std::function<void(void *, crl::multisense::RemoteHeadChannel, VkRender::Device *)> taskFunction,
+        VkRender::Device *dev,
+        std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float> > *queryTimer,
+        float updateFreqSec) {
         for (auto &ch: dev->channelInfo) {
             if (ch.state != CRL_STATE_ACTIVE)
                 continue;
 
             auto time = std::chrono::steady_clock::now();
             auto timeSpan =
-                    std::chrono::duration_cast<std::chrono::duration<float>>(time - *queryTimer);
+                    std::chrono::duration_cast<std::chrono::duration<float> >(time - *queryTimer);
 
             if (pool->getTaskListSize() < MAX_TASK_STACK_SIZE && timeSpan.count() > updateFreqSec) {
                 *queryTimer = std::chrono::steady_clock::now();
                 Log::Logger::getInstance()->trace("Pushing {} to threadpool",
-                                                  (updateFreqSec == INTERVAL_1_SECOND ? "getStatusTask"
-                                                                                      : "getCameraConfigsTask"));
-                pool->Push(taskFunction, this, dev->isRemoteHead ? crl::multisense::Remote_Head_VPB : static_cast<crl::multisense::RemoteHeadChannel>(0), dev);
+                                                  (updateFreqSec == INTERVAL_1_SECOND
+                                                       ? "getStatusTask"
+                                                       : "getCameraConfigsTask"));
+                pool->Push(taskFunction, this,
+                           dev->isRemoteHead
+                               ? crl::multisense::Remote_Head_VPB
+                               : static_cast<crl::multisense::RemoteHeadChannel>(0), dev);
             }
         }
     }
@@ -243,7 +245,6 @@ namespace VkRender::MultiSense {
     void CameraConnection::activeDeviceCameraStreams(VkRender::Device *dev) {
         // If we are in 3D mode automatically enable disparity and color streams.
         if (dev->selectedPreviewTab == CRL_TAB_3D_POINT_CLOUD) {
-
             if (dev->enableIMU) {
                 if (!Utils::isInVector(dev->channelInfo[0].requestedStreams, "IMU"))
                     dev->channelInfo[0].requestedStreams.emplace_back("IMU");
@@ -275,7 +276,6 @@ namespace VkRender::MultiSense {
                 if (!inUse) {
                     Utils::removeFromVector(&chInfo.requestedStreams, "Luma Rectified Left");
                 }
-
             } else {
                 if (!Utils::isInVector(chInfo.requestedStreams, "Luma Rectified Left")) {
                     chInfo.requestedStreams.emplace_back("Luma Rectified Left");
@@ -303,7 +303,6 @@ namespace VkRender::MultiSense {
                 } else if (auxLumaActive && !auxColorActive) {
                     Utils::removeFromVector(&cInfo.requestedStreams, colorRectified);
                 }
-
             }
         } else {
             // Remember to stop streams if we exit 3D view and our color streams are not in use
@@ -330,8 +329,6 @@ namespace VkRender::MultiSense {
             }
 
             Utils::removeFromVector(&dev->channelInfo[0].requestedStreams, "IMU");
-
-
         }
     }
 
@@ -379,10 +376,9 @@ namespace VkRender::MultiSense {
         // Normalize disparity values if it is running
         if (shouldNormalize && dev.selectedPreviewTab == CRL_TAB_2D_PREVIEW &&
             Utils::isStreamRunning(dev, "Disparity Left")) {
-
             auto time = std::chrono::steady_clock::now();
             auto timeSpan =
-                    std::chrono::duration_cast<std::chrono::duration<float >>(time - calcDisparityNormValuesTimer);
+                    std::chrono::duration_cast<std::chrono::duration<float> >(time - calcDisparityNormValuesTimer);
 
             // Check if previous future is finished
             if (disparityNormFuture.valid() &&
@@ -406,11 +402,8 @@ namespace VkRender::MultiSense {
                                                                "Pushing new disparity normalizer calculation to pool");
                 disparityNormFuture = pool->Push(CameraConnection::findUpperAndLowerDisparityBounds, this, &dev);
                 calcDisparityNormValuesTimer = std::chrono::steady_clock::now();
-
             }
         }
-
-
     }
 
     void
@@ -419,7 +412,6 @@ namespace VkRender::MultiSense {
             return;
 
         for (auto &dev: devices) {
-
             if (dev.state == CRL_STATE_INTERRUPT_CONNECTION) {
                 Log::Logger::getInstance()->info("Profile {} set to CRL_STATE_INTERRUPT_CONNECTION", dev.name);
                 dev.record.frame = false;
@@ -433,8 +425,8 @@ namespace VkRender::MultiSense {
             if (dev.state == CRL_STATE_RESET || dev.state == CRL_STATE_DISCONNECT_AND_FORGET ||
                 dev.state == CRL_STATE_LOST_CONNECTION) {
                 Log::Logger::getInstance()->info(
-                        "Profile {} set to CRL_STATE_RESET | CRL_STATE_LOST_CONNECTION | CRL_STATE_DISCONNECT_AND_FORGET",
-                        dev.name);
+                    "Profile {} set to CRL_STATE_RESET | CRL_STATE_LOST_CONNECTION | CRL_STATE_DISCONNECT_AND_FORGET",
+                    dev.name);
                 dev.selectedPreviewTab = CRL_TAB_2D_PREVIEW; // Note: Weird place to reset a UI element
                 dev.record.frame = false;
                 saveProfileAndDisconnect(&dev);
@@ -471,8 +463,8 @@ namespace VkRender::MultiSense {
                 auto startTime = std::chrono::steady_clock::now();
                 pool = std::make_unique<VkRender::ThreadPool>(3);
                 std::chrono::duration<float> timeSpan =
-                        std::chrono::duration_cast<std::chrono::duration<float >>(
-                                std::chrono::steady_clock::now() - startTime);
+                        std::chrono::duration_cast<std::chrono::duration<float> >(
+                            std::chrono::steady_clock::now() - startTime);
                 Log::Logger::getInstance()->trace("Creating cameraconnection threadpool took {}ms",
                                                   timeSpan.count() * 1000);
                 // Perform connection by pushing a connect task.
@@ -515,7 +507,6 @@ namespace VkRender::MultiSense {
                                                  dev.name);
                 dev.state = CRL_STATE_LOST_CONNECTION;
                 Log::Logger::getInstance()->info("Set dev {}'s state to CRL_STATE_LOST_CONNECTION ", dev.name);
-
             }
         }
     }
@@ -565,7 +556,6 @@ namespace VkRender::MultiSense {
         info.hardwareMagic = cInfo.sensorHardwareMagic;
         info.hardwareVersion = cInfo.sensorHardwareVersion;
         info.sensorFpgaDna = cInfo.sensorFpgaDna;
-
     }
 
     void CameraConnection::getProfileFromIni(VkRender::Device &dev) const {
@@ -575,7 +565,8 @@ namespace VkRender::MultiSense {
             auto filePath = (Utils::getSystemCachePath() / "crl.ini");
 
             SI_Error rc = ini.LoadFile(filePath.c_str());
-            if (rc < 0) {} // Handle error
+            if (rc < 0) {
+            } // Handle error
             else {
                 // A serial number is the section identifier of a profile. I can have three following states
                 // - Not Exist
@@ -584,37 +575,31 @@ namespace VkRender::MultiSense {
                 if (ini.SectionExists(cameraSerialNumber.c_str())) {
                     std::string profileName = ini.GetValue(cameraSerialNumber.c_str(), "ProfileName", "default");
                     std::string mode = ini.GetValue(cameraSerialNumber.c_str(),
-                                                    ("Mode" + std::to_string(ch)).c_str(), "default");
-                    std::string layout = ini.GetValue(cameraSerialNumber.c_str(), "Layout", "default");
-                    std::string enabledSources = ini.GetValue(cameraSerialNumber.c_str(), "EnabledSources",
-                                                              "default");
-                    std::string previewOne = ini.GetValue(cameraSerialNumber.c_str(), "Preview1", "Idle");
-                    std::string previewTwo = ini.GetValue(cameraSerialNumber.c_str(), "Preview2", "Idle");
+                                                    ("Mode" + std::to_string(ch)).c_str(), "1");
+                    std::string layout = ini.GetValue(cameraSerialNumber.c_str(), "Layout", "1");
+
                     Log::Logger::getInstance()->info("Using Layout {} and camera resolution {}", layout, mode);
 
                     dev.layout = static_cast<PreviewLayout>(std::stoi(layout));
-                    dev.channelInfo.at(ch).selectedResolutionMode = static_cast<CRLCameraResolution>(std::stoi(
-                            mode));
+                    dev.channelInfo.at(ch).selectedResolutionMode = static_cast<CRLCameraResolution>(std::stoi(mode));
                     dev.channelInfo.at(ch).selectedModeIndex = std::stoi(mode);
                     // Create previews
                     for (int i = 0; i <= CRL_PREVIEW_FOUR; ++i) {
                         std::string key = "Preview" + std::to_string(i + 1);
                         std::string source = std::string(ini.GetValue(cameraSerialNumber.c_str(), key.c_str(), ""));
-                        std::string remoteHeadIndex = source.substr(source.find_last_of(':') + 1, source.length());
-                        if (!source.empty() && source != "Source:" + remoteHeadIndex) {
+                        if (!source.empty()) {
                             dev.win[static_cast<StreamWindowIndex>(i)].selectedSource = source.substr(0,
-                                                                                                      source.find_last_of(
-                                                                                                              ':'));
-                            dev.win[static_cast<StreamWindowIndex>(i)].selectedRemoteHeadIndex = static_cast<crl::multisense::RemoteHeadChannel>( std::stoi(
-                                    remoteHeadIndex));
+                                source.find_last_of(
+                                    ':'));
+                            dev.win[static_cast<StreamWindowIndex>(i)].selectedRemoteHeadIndex = static_cast<
+                                crl::multisense::RemoteHeadChannel>(0);
                             Log::Logger::getInstance()->info(
-                                    ".ini file: found source '{}' for preview {} at head {}, Adding to requested source",
-                                    source.substr(0, source.find_last_of(':')),
-                                    i + 1, ch);
+                                ".ini file: found source '{}' for preview {} at head {}, Adding to requested source",
+                                source.substr(0, source.find_last_of(':')),
+                                i + 1, ch);
                             std::string requestSource = dev.win[static_cast<StreamWindowIndex>(i)].selectedSource;
                             if (requestSource == "Color Rectified Aux") {
                                 dev.channelInfo.at(ch).requestedStreams.emplace_back("Luma Rectified Aux");
-
                             } else if (requestSource == "Color Aux") {
                                 dev.channelInfo.at(ch).requestedStreams.emplace_back("Luma Aux");
                             }
@@ -643,8 +628,6 @@ namespace VkRender::MultiSense {
                                              const std::vector<uint32_t> &maskVec,
                                              crl::multisense::RemoteHeadChannel idx,
                                              CRLPhysicalCamera &camPtr) {
-
-
         uint32_t bits = camPtr.getCameraInfo(idx).supportedSources;
         for (auto mask: maskVec) {
             bool enabled = (bits & mask);
@@ -663,11 +646,10 @@ namespace VkRender::MultiSense {
         try {
             std::string last_element(hostAddress.substr(hostAddress.rfind('.')));
             hostAddress.replace(hostAddress.rfind('.'), last_element.length(), ".2");
-        }
-        catch (std::out_of_range &exception) {
+        } catch (std::out_of_range &exception) {
             Log::Logger::getInstance()->error(
-                    "Trying to configure adapter '{}' with source IP: '{}', but address does not seem like an ipv4 address",
-                    dev.interfaceName, dev.IP);
+                "Trying to configure adapter '{}' with source IP: '{}', but address does not seem like an ipv4 address",
+                dev.interfaceName, dev.IP);
             Log::Logger::getInstance()->error("Exception message: '{}'", exception.what());
             return false;
         }
@@ -777,7 +759,6 @@ namespace VkRender::MultiSense {
             Log::Logger::getInstance()->error("Section: {} Updated {} to {}", section, key, value);
         else
             Log::Logger::getInstance()->info("Section: {} Updated {} to {}", section, key, value);
-
     }
 
     void
@@ -788,7 +769,6 @@ namespace VkRender::MultiSense {
             Log::Logger::getInstance()->error("Section: {} deleted {}", section, key, value);
         else
             Log::Logger::getInstance()->info("Section: {} deleted {}", section, key, value);
-
     }
 
     CameraConnection::~CameraConnection() {
@@ -805,8 +785,8 @@ namespace VkRender::MultiSense {
             close(m_FD);
 #endif // !WIN32
 
-        auto timeSpan = std::chrono::duration_cast<std::chrono::duration<float >>(
-                std::chrono::steady_clock::now() - startTime);
+        auto timeSpan = std::chrono::duration_cast<std::chrono::duration<float> >(
+            std::chrono::steady_clock::now() - startTime);
         Log::Logger::getInstance()->trace("Cameraconnection destructor stopping threadpool took {}s", timeSpan.count());
     }
 
@@ -819,13 +799,13 @@ namespace VkRender::MultiSense {
             auto startTime = std::chrono::steady_clock::now();
             auto time = std::chrono::steady_clock::now();
             std::chrono::duration<float> timeSpan =
-                    std::chrono::duration_cast<std::chrono::duration<float >>(time - startTime);
+                    std::chrono::duration_cast<std::chrono::duration<float> >(time - startTime);
 
             Log::Logger::getInstance()->info("Delay connection with 10 seconds on Windows to propagate IP changes");
 
             while (timeSpan.count() < 10.0f && !dev->interruptConnection) {
                 time = std::chrono::steady_clock::now();
-                timeSpan = std::chrono::duration_cast<std::chrono::duration<float >>(time - startTime);
+                timeSpan = std::chrono::duration_cast<std::chrono::duration<float> >(time - startTime);
                 std::this_thread::sleep_for(std::chrono::milliseconds(50));
             }
         }
@@ -839,22 +819,26 @@ namespace VkRender::MultiSense {
         if (!dev->channelConnections.empty() && dev->state == CRL_STATE_CONNECTING) {
             // Check if we actually connected to a RemoteHead or not
             auto hwRev = app->camPtr.getCameraInfo(dev->channelConnections.front()).devInfo.hardwareRevision;
-            for (std::vector v{crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_REMOTE_HEAD_VPB,
-                               crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_REMOTE_HEAD_STEREO,
-                               crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_REMOTE_HEAD_MONOCAM};
-                 auto &e : v){
+            for (std::vector v{
+                     crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_REMOTE_HEAD_VPB,
+                     crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_REMOTE_HEAD_STEREO,
+                     crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_REMOTE_HEAD_MONOCAM
+                 };
+                 auto &e: v) {
                 if (hwRev == e && !isRemoteHead) {
                     dev->state = CRL_STATE_UNAVAILABLE;
                     Log::Logger::getInstance()->error(
-                            "User connected to a remote head but didn't check the remote head box");
+                        "User connected to a remote head but didn't check the remote head box");
                     return;
                 }
             }
 
             app->updateUIDataBlock(*dev, app->camPtr);
 
+            Log::Logger::getInstance()->info("Attempting to restore last session from .ini runtime config file");
             if (!isRemoteHead)
                 app->getProfileFromIni(*dev);
+
             // Set the resolution read from config file
             const auto &info = app->camPtr.getCameraInfo(dev->channelConnections.front()).devInfo;
             dev->cameraName = info.name;
@@ -867,6 +851,8 @@ namespace VkRender::MultiSense {
                     info.hardwareRevision == crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_MONOCAM ||
                     info.hardwareRevision == crl::multisense::system::DeviceInfo::HARDWARE_REV_MULTISENSE_KS21i;
 
+            Log::Logger::getInstance()->info("Has color camera? {}", dev->hasColorCamera);
+
             app->m_FailedGetStatusCount = 0;
             app->queryStatusTimer = std::chrono::steady_clock::now();
             app->queryDeviceConfigTimer = std::chrono::steady_clock::now();
@@ -877,28 +863,34 @@ namespace VkRender::MultiSense {
             dev->hasColorCamera ? dev->useAuxForPointCloudColor = 1 : dev->useAuxForPointCloudColor = 0;
             dev->hasImuSensor = app->camPtr.getCameraInfo(0).hasIMUSensor;
             dev->enableIMU = dev->hasImuSensor;
-            if (dev->hasImuSensor)
+
+            if (dev->hasImuSensor) {
+                Log::Logger::getInstance()->info("Found IMU Sensor");
                 dev->rateTableIndex = app->camPtr.getCameraInfo(0).imuSensorConfigs.front().rateTableIndex;
+            } else {
+                Log::Logger::getInstance()->info("No IMU Sensor");
+            }
 
             const auto &cInfo = app->camPtr.getCameraInfo(0).versionInfo;
             Log::Logger::getInstance()->info(
-                    "Connected to {}, FW version: {}, FW Build date: {}, LibMultiSense API: {} LibMultiSense API Date: {}",
-                    dev->cameraName, cInfo.sensorFirmwareVersion, cInfo.sensorFirmwareBuildDate, cInfo.apiVersion,
-                    cInfo.apiBuildDate);
+                "Connected to {}, FW version: {}, FW Build date: {}, LibMultiSense API: {} LibMultiSense API Date: {}",
+                dev->cameraName, cInfo.sensorFirmwareVersion, cInfo.sensorFirmwareBuildDate, cInfo.apiVersion,
+                cInfo.apiBuildDate);
 
             Log::Logger::getInstance()->info("Set dev {}'s state to CRL_STATE_ACTIVE ", dev->name);
         } else {
             dev->state = CRL_STATE_UNAVAILABLE;
             Log::Logger::getInstance()->info("Set dev {}'s state to CRL_STATE_UNAVAILABLE ", dev->name);
+            Log::Logger::getInstance()->info("Failed to Connect to Ip: {}, ifName {}", dev->IP,
+                                             dev->interfaceDescription);
         }
-
-
     }
 
     void CameraConnection::connectFakeCameraTask(void *context, VkRender::Device *dev) {
         auto *app = reinterpret_cast<CameraConnection *>(context);
 
-        Log::Logger::getInstance()->info("Creating Fake connection to camera. Ip: {}, ifName {}, devInfo.name: {}", dev->IP,
+        Log::Logger::getInstance()->info("Creating Fake connection to camera. Ip: {}, ifName {}, devInfo.name: {}",
+                                         dev->IP,
                                          dev->interfaceDescription, app->camPtr.getCameraInfo(0).devInfo.name);
         // If we successfully connect
         //dev->channelConnections = app->camPtr.connect(dev, dev->interfaceName);
@@ -953,10 +945,9 @@ namespace VkRender::MultiSense {
                             ));
                 addIniEntry(&ini, CRLSerialNumber, "Layout", std::to_string(static_cast<int>(dev->layout)));
                 for (int i = 0; i <= CRL_PREVIEW_FOUR; ++i) {
-
                     std::string source = dev->win[static_cast<StreamWindowIndex>(i)].selectedSource;
                     std::string remoteHead = std::to_string(
-                            dev->win[static_cast<StreamWindowIndex>(i)].selectedRemoteHeadIndex);
+                        dev->win[static_cast<StreamWindowIndex>(i)].selectedRemoteHeadIndex);
                     std::string key = "Preview" + std::to_string(i + 1);
                     std::string value = (source.append(":" + remoteHead));
                     addIniEntry(&ini, CRLSerialNumber, key, value);
@@ -971,7 +962,6 @@ namespace VkRender::MultiSense {
             dev->state = CRL_STATE_REMOVE_FROM_LIST;
             Log::Logger::getInstance()->info("Set dev {}'s state to CRL_STATE_REMOVE_FROM_LIST ", dev->name);
             Log::Logger::getInstance()->info("Deleted saved profile for serial: {}", CRLSerialNumber);
-
         } else {
             dev->state = CRL_STATE_DISCONNECTED;
             Log::Logger::getInstance()->info("Set dev {}'s state to CRL_STATE_DISCONNECTED ", dev->name);
@@ -1034,7 +1024,6 @@ namespace VkRender::MultiSense {
         if (app->camPtr.setResolution(arg1, idx)) {
             app->updateFromCameraParameters(dev, idx);
         }
-
     }
 
     void CameraConnection::startStreamTask(void *context, std::string src,
@@ -1094,7 +1083,6 @@ namespace VkRender::MultiSense {
         p->aux.gamma = auxConf.gamma();
 
         dev->parameters.updateGuiParams = false;
-
     }
 
     void CameraConnection::getStatusTask(void *context, crl::multisense::RemoteHeadChannel remoteHeadIndex,
@@ -1113,7 +1101,6 @@ namespace VkRender::MultiSense {
             app->m_FailedGetStatusCount++;
         }
         // Increment a counter
-
     }
 
     void CameraConnection::getCameraConfigsTask(void *context, crl::multisense::RemoteHeadChannel remoteHeadIndex,
@@ -1154,8 +1141,5 @@ namespace VkRender::MultiSense {
         auto *app = reinterpret_cast<CameraConnection *>(context);
         std::scoped_lock lock(app->writeParametersMtx);
         *success = app->camPtr.setSensorCalibration(intrinsicFilePath, extrinsicFilePath, index);
-
     }
-
-
 }

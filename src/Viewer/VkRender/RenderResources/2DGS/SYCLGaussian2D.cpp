@@ -57,7 +57,6 @@ namespace VkRender {
         auto params = Rasterizer2DUtils::getHtanfovxyFocal(activeCameraPtr->m_Fov, activeCameraPtr->height(), activeCameraPtr->width());
 
         m_preProcessData.camera = *activeCameraPtr;
-        //m_preProcessData.camera.matrices.perspective[1] = -m_preProcessData.camera.matrices.perspective[1];
         m_preProcessData.preProcessSettings.tileGrid = tileGrid;
         m_preProcessData.preProcessSettings.numTiles = numTiles;
         m_preProcessData.preProcessSettings.numPoints = m_numGaussians;
@@ -319,7 +318,7 @@ namespace VkRender {
         std::vector<uint32_t> groupTotalsHost(numWorkGroups);
         std::cout << "groupTotalsHost: ";
         m_queue.memcpy(groupTotalsHost.data(), groupTotals, numWorkGroups * sizeof(uint32_t)).wait();
-        for (int i = 0; i < 16; ++i){
+        for (int i = 0; i < m_numGaussians && i < 16; ++i){
             std::cout << groupTotalsHost[i] << " ";
             if ((i + 1) % 16 == 0)
                 std::cout << "| ";
@@ -348,7 +347,7 @@ namespace VkRender {
         std::vector<uint32_t> inclusiveSum(m_numGaussians);
         std::cout << "inclusiveSum: ";
         m_queue.memcpy(inclusiveSum.data(), pointOffsets, m_numGaussians * sizeof(uint32_t)).wait();
-        for (int i = 0; i < 128; ++i){
+        for (int i = 0; i < m_numGaussians && i < 128; ++i){
             std::cout << inclusiveSum[i] << " ";
             if ((i + 1) % 16 == 0)
                 std::cout << "| ";

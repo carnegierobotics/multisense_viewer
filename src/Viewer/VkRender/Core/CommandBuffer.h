@@ -5,10 +5,8 @@
 #ifndef MULTISENSE_VIEWER_COMMANDBUFFER_H
 #define MULTISENSE_VIEWER_COMMANDBUFFER_H
 
-
-#include <Viewer/Tools/Logger.h>
-
 #include "Viewer/Application/pch.h"
+#include "Viewer/Tools/Logger.h"
 
 #include <vulkan/vulkan_core.h>
 

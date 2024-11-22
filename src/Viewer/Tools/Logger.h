@@ -39,42 +39,21 @@
 // C++ Header File(s)
 #include <iostream>
 #include <fstream>
-#include <sstream>
 #include <string>
-#include <string_view>
-#include <fmt/core.h>
 #include <mutex>
 #include <map>
-
-#ifdef _WIN32
-
-#include <process.h>
-
-#else
-// POSIX Socket Header File(s)
-#include <cerrno>
-#include <pthread.h>
-#endif
-
+#include <fmt/core.h>
 #include <queue>
 #include <unordered_map>
 #include <array>
-
-#ifndef __has_include
-#error "__has_include not supported"
-#else
-#if __has_include(<source_location>)
-
 #include <source_location>
-
-#define HAS_SOURCE_LOCATION
-#elif __has_include(<experimental/source_location>)
-#include <experimental/source_location>
-#define EXPERIMENTAL_SOURCE_LOCATION
+#ifdef _WIN32
+#include <process.h>
 #else
-#error "Does not have source location as part of std location or experimental"
+// POSIX Socket Header File(s)
 #endif
-#endif
+
+
 
 
 #include "Viewer/Tools/ThreadPool.h"
@@ -143,18 +122,11 @@ namespace Log {
 
     struct FormatString {
         fmt::string_view m_Str;
-#ifdef HAS_SOURCE_LOCATION
         std::source_location m_Loc;
 
         FormatString(const char *str, const std::source_location &loc = std::source_location::current()) : m_Str(str),
                                                                                                            m_Loc(loc) {}
 
-#endif
-#ifdef EXPERIMENTAL_SOURCE_LOCATION
-        std::experimental::source_location m_Loc;
-
-        FormatString(const char *str, const std::experimental::source_location &loc = std::experimental::source_location::current()) : m_Str(str), m_Loc(loc) {}
-#endif
     };
 
 

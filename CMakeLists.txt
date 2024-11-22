@@ -27,24 +27,63 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_executable(${PROJECT_NAME})
 
-# Enable CUDA language support and set CUDA standard
-# Conditional setup for PyTorch and CUDA
+# Check if PyTorch is available with ROCm or CUDA
+set(PYTORCH_AVAILABLE FALSE)
+set(USE_CUDA FALSE)
+set(USE_ROCM FALSE)
+
 if (ENABLE_PYTORCH)
-
-    # Enable CUDA only if PyTorch is enabled
-    enable_language(CUDA)  # Enable CUDA compiler
-    set(CMAKE_CUDA_STANDARD 20)
-    target_include_directories(${PROJECT_NAME} PRIVATE ${TORCH_INCLUDE_DIRS})
-
-    # Find the Torch package
-    find_package(Torch REQUIRED HINTS /home/magnus/libraries/libtorch-cxx11-abi-shared-with-deps-2.5.1+cu124/libtorch)
-
-    list(APPEND CUDA_LIBRARIES ${CUDA_TOOLKIT_ROOT_DIR}/targets/x86_64-linux/lib/libcupti.so)
-
-    # Link Torch libraries and enable C++20 for the target
-    target_link_libraries(${PROJECT_NAME} PRIVATE ${TORCH_LIBRARIES}     ${CUDA_LIBRARIES}
+    # Find PyTorch
+    find_package(Torch QUIET HINTS /home/magnus/libraries/libtorch-cxx11-abi-shared-with-deps-2.5.1+cu124/libtorch
+            /home/magnus-desktop/libraries/libtorch-cxx11-abi-shared-with-deps-2.5.1+rocm6.2/libtorch
     )
-    target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
+
+
+    if (Torch_FOUND)
+        message(STATUS "[VkRenderINFO]: PyTorch found at ${TORCH_INSTALL_PREFIX}")
+        # Check if PyTorch is built for CUDA
+        if (DEFINED TORCH_CUDA_ARCH_LIST)
+            set(PYTORCH_AVAILABLE TRUE)
+            set(USE_CUDA TRUE)
+            message(STATUS "[VkRenderINFO]: PyTorch is configured with CUDA.")
+        endif ()
+
+        # Check if PyTorch is built for ROCm
+        if (DEFINED TORCH_HIP_VERSION)
+            set(PYTORCH_AVAILABLE TRUE)
+            set(USE_ROCM TRUE)
+            message(STATUS "[VkRenderINFO]: PyTorch is configured with ROCm.")
+        endif ()
+
+        if (NOT USE_CUDA AND NOT USE_ROCM)
+            message(FATAL_ERROR "PyTorch is not configured with CUDA or ROCm. Skipping PyTorch integration.")
+        endif ()
+    else ()
+        message(FATAL_ERROR "PyTorch not found. Skipping PyTorch integration.")
+    endif ()
+endif ()
+
+if (PYTORCH_AVAILABLE)
+    if (USE_CUDA)
+        enable_language(CUDA)  # Enable CUDA compiler for CUDA
+        set(CMAKE_CUDA_STANDARD 20)
+        set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+        set(CMAKE_CUDA_EXTENSIONS OFF)
+        message(STATUS "[VkRenderINFO]: CUDA language support enabled.")
+    elseif (USE_ROCM)
+        enable_language(HIP)
+        message(STATUS "[VkRenderINFO]: HIP language support enabled.")
+        set(CMAKE_HIP_STANDARD 20)
+        set(CMAKE_HIP_STANDARD_REQUIRED ON)
+        set(CMAKE_HIP_EXTENSIONS OFF)
+        # Add any ROCm-specific setup if necessary (e.g., include ROCm libraries or headers)
+        message(STATUS "[VkRenderINFO]: ROCm-specific setup would go here if needed.")
+    endif ()
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${TORCH_LIBRARIES})
+    target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE ${TORCH_INCLUDE_DIRS})
+    message(STATUS "[VkRenderINFO]: PyTorch libraries successfully linked.")
+else ()
+    message(STATUS "[VkRenderINFO]: Skipping PyTorch setup as it is not available.")
 endif ()
 
 # SYCL Backend selection
@@ -68,7 +107,6 @@ if (ENABLE_SYCL)
         # Print a message showing which targets are being used
         message(STATUS "[VkRenderINFO]: Using AdaptiveCpp with targets: ${ACPP_TARGETS} to project name ${PROJECT_NAME}")
         add_sycl_to_target(TARGET ${PROJECT_NAME})
-
         # Add sycl to target using AdaptiveCpp's helper
         target_link_libraries(${PROJECT_NAME} PRIVATE -ltbb -fopenmp -lfmt)
         if (CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -213,18 +251,19 @@ if (ENABLE_SYCL)
     )
     list(APPEND SOURCE_FILES ${SYCL_SOURCES})
     message(STATUS "[VkRenderINFO]: SYCL: Adding Gaussian Renderer to source")
-
-    if (${ENABLE_PYTORCH})
-        set (DIFF_RENDER_PYTORCH         src/Viewer/VkRender/RenderResources/DifferentiableRenderer/RenderGaussianFunction.cpp
-                src/Viewer/VkRender/RenderResources/DifferentiableRenderer/RenderGaussian.cpp)
-        list(APPEND SOURCE_FILES ${DIFF_RENDER_PYTORCH})
-        message(STATUS "[VkRenderINFO]: SYCL: Adding Pytorch differential Renderer to source")
-
-    endif()
 else()
     message(STATUS "[VkRenderINFO]: Skipped Adding SYCL Sources")
-
 endif ()# Add SYCL-specific files
+
+if (${ENABLE_PYTORCH})
+    set (DIFF_RENDER_SOURCES
+            src/Viewer/VkRender/RenderResources/DifferentiableRenderer/RenderGaussianFunction.cpp
+            src/Viewer/VkRender/RenderResources/DifferentiableRenderer/RenderGaussian.cpp
+            src/Viewer/VkRender/RenderResources/DifferentiableRenderer/DiffRenderEntry.cpp
+    )
+    list(APPEND SOURCE_FILES ${DIFF_RENDER_SOURCES})
+    message(STATUS "[VkRenderINFO]: SYCL: Adding Pytorch differential Renderer to source")
+endif()
 
 # Add proprietary GigE-Vision module
 if (PROPRIETARY_GIGEVISION_MODULE)

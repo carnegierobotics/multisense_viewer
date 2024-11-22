@@ -43,11 +43,8 @@
 
 
 #include "Viewer/VkRender/Core/VulkanRenderer.h"
-#include "Viewer/Tools/Macros.h"
 #include "Viewer/Scenes/Scene.h"
-#include "Viewer/Application/ApplicationConfig.h"
 #include "Viewer/Application/UsageMonitor.h"
-#include "Viewer/VkRender/Core/Camera.h"
 #include "Viewer/VkRender/Core/UUID.h"
 #include "Viewer/VkRender/Editors/Editor.h"
 #include "Viewer/VkRender/Editors/EditorFactory.h"
@@ -172,7 +169,7 @@ namespace VkRender {
         std::shared_ptr<UsageMonitor> m_usageMonitor;
         Entity m_selectedEntity;
 
-        std::shared_ptr<VkRender::MultiSense::MultiSenseRendererBridge> m_multiSense;
+        std::shared_ptr<MultiSense::MultiSenseRendererBridge> m_multiSense;
 
         friend class ApplicationConfig;
         friend class Scene;

@@ -679,7 +679,7 @@ CRLCameraModels::createPipeline(VkRenderPass pT, std::vector<VkPipelineShaderSta
     VkResult res = vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, VK_NULL_HANDLE, 1, &pipelineCI, nullptr,
                                              pPipelineT);
     if (res != VK_SUCCESS)
-        throw std::runtime_error("Failed to create graphics m_Pipeline");
+        throw std::runtime_error("Failed to create graphics pipeline: CRLCameraModels");
 
 
 }

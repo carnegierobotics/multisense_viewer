@@ -294,6 +294,9 @@ VulkanDevice::createLogicalDevice(VkPhysicalDeviceFeatures enabled, std::vector<
 	* @return True if the extension is supported (present in the list read at m_Device creation time)
 	*/
 bool VulkanDevice::extensionSupported(std::string extension) const {
+    if (VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME == extension)
+        return false;
+
     return (std::find(m_SupportedExtensions.begin(), m_SupportedExtensions.end(), extension) !=
             m_SupportedExtensions.end());
 }

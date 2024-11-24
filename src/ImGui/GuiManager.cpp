@@ -305,7 +305,7 @@ namespace VkRender {
 
         if (vkCreateGraphicsPipelines(device->m_LogicalDevice, pipelineCache, 1, &pipelineCreateInfo, nullptr,
                                       &pipeline) != VK_SUCCESS)
-            throw std::runtime_error("Failed to create graphics m_Pipeline");
+            throw std::runtime_error("Failed to create graphics pipeline: GuiManager");
 
     }
 

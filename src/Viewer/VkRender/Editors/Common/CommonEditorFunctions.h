@@ -177,6 +177,92 @@ namespace VkRender::EditorUtils {
             *loadFolderFuture = std::async(VkRender::LayerUtils::saveFile, "Save as", openLocation, flow);
         }
     }
+
+    static std::shared_ptr<MeshInstance> setupMesh(Application* ctx) {
+        std::vector<VkRender::ImageVertex> vertices = {
+            // Bottom-left corner
+            {glm::vec2{-1.0f, -1.0f}, glm::vec2{0.0f, 0.0f}},
+            // Bottom-right corner
+            {glm::vec2{1.0f, -1.0f}, glm::vec2{1.0f, 0.0f}},
+            // Top-right corner
+            {glm::vec2{1.0f, 1.0f}, glm::vec2{1.0f, 1.0f}},
+            // Top-left corner
+            {glm::vec2{-1.0f, 1.0f}, glm::vec2{0.0f, 1.0f}}
+        };
+        // Define the indices for two triangles that make up the quad
+        std::vector<uint32_t> indices = {
+            0, 1, 2, // First triangle (bottom-left to top-right)
+            2, 3, 0 // Second triangle (top-right to bottom-left)
+        };
+
+        auto meshInstance = std::make_shared<MeshInstance>();
+
+        meshInstance->vertexCount = vertices.size();
+        meshInstance->indexCount = indices.size();
+        VkDeviceSize vertexBufferSize = vertices.size() * sizeof(VkRender::ImageVertex);
+        VkDeviceSize indexBufferSize = indices.size() * sizeof(uint32_t);
+
+        struct StagingBuffer {
+            VkBuffer buffer;
+            VkDeviceMemory memory;
+        } vertexStaging{}, indexStaging{};
+
+        // Create staging buffers
+        // Vertex m_DataPtr
+        CHECK_RESULT(ctx->vkDevice().createBuffer(
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            vertexBufferSize,
+            &vertexStaging.buffer,
+            &vertexStaging.memory,
+            vertices.data()))
+        // Index m_DataPtr
+        if (indexBufferSize > 0) {
+            CHECK_RESULT(ctx->vkDevice().createBuffer(
+                VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                indexBufferSize,
+                &indexStaging.buffer,
+                &indexStaging.memory,
+                indices.data()))
+        }
+
+        CHECK_RESULT(ctx->vkDevice().createBuffer(
+            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            meshInstance->vertexBuffer, vertexBufferSize, nullptr, "SceneRenderer:InitializeMesh:Vertex",
+            ctx->getDebugUtilsObjectNameFunction()));
+        // Index buffer
+        if (indexBufferSize > 0) {
+            CHECK_RESULT(ctx->vkDevice().createBuffer(
+                VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                meshInstance->indexBuffer,
+                indexBufferSize, nullptr, "SceneRenderer:InitializeMesh:Index",
+                ctx->getDebugUtilsObjectNameFunction()));
+        }
+
+        // Copy from staging buffers
+        VkCommandBuffer copyCmd = ctx->vkDevice().createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+        VkBufferCopy copyRegion = {};
+        copyRegion.size = vertexBufferSize;
+        vkCmdCopyBuffer(copyCmd, vertexStaging.buffer, meshInstance->vertexBuffer->m_buffer, 1, &copyRegion);
+        if (indexBufferSize > 0) {
+            copyRegion.size = indexBufferSize;
+            vkCmdCopyBuffer(copyCmd, indexStaging.buffer, meshInstance->indexBuffer->m_buffer, 1, &copyRegion);
+        }
+        ctx->vkDevice().flushCommandBuffer(copyCmd, ctx->vkDevice().m_TransferQueue, true);
+
+        vkDestroyBuffer(ctx->vkDevice().m_LogicalDevice, vertexStaging.buffer, nullptr);
+        vkFreeMemory(ctx->vkDevice().m_LogicalDevice, vertexStaging.memory, nullptr);
+
+        if (indexBufferSize > 0) {
+            vkDestroyBuffer(ctx->vkDevice().m_LogicalDevice, indexStaging.buffer, nullptr);
+            vkFreeMemory(ctx->vkDevice().m_LogicalDevice, indexStaging.memory, nullptr);
+        }
+
+        return meshInstance;
+    }
 }
 
 #endif //COMMONEDITORFUNCTIONS_H

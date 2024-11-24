@@ -40,7 +40,6 @@ namespace VkRender {
             try {
                 sycl::property_list properties{sycl::property::queue::in_order{}, sycl::property::queue::enable_profiling()};
 
-                /*
                 if (deviceType == DeviceType::GPU) {
                     // Select GPU if available
                     m_queue = sycl::queue(sycl::gpu_selector{}, properties);
@@ -57,9 +56,8 @@ namespace VkRender {
                     Log::Logger::getInstance()->info("Using default device: {}",
                                                      m_queue.get_device().get_info<sycl::info::device::name>());
                 }
-                */
 
-                m_queue = sycl::queue(sycl::cpu_selector{}, properties);
+
                 Log::Logger::getInstance()->info("Using host device: {}",m_queue.get_device().get_info<sycl::info::device::name>());
 
             } catch (const sycl::exception &e) {

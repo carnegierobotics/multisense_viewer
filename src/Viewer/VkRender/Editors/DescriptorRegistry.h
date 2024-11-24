@@ -5,6 +5,8 @@
 #ifndef DESCRIPTORMANAGERREGISTRY_H
 #define DESCRIPTORMANAGERREGISTRY_H
 
+#include "Viewer/VkRender/Editors/DescriptorSetManager.h"
+
 
 namespace VkRender {
     enum class DescriptorType {

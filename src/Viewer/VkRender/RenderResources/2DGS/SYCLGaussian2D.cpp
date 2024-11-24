@@ -65,8 +65,8 @@ namespace VkRender {
 
         m_queue.memcpy(m_preProcessDataPtr, &m_preProcessData, sizeof(Rasterizer2DUtils::PreProcessData)).wait();
 
-        //preProcessGaussians(imageMemory);
-        renderGaussiansWithProfiling(imageMemory, true);
+        preProcessGaussians(imageMemory);
+        //renderGaussiansWithProfiling(imageMemory, true);
 
         // Start rendering
         // Copy output to texture

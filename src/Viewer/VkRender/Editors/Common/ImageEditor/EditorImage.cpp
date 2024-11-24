@@ -14,50 +14,21 @@ namespace VkRender {
         addUI("DebugWindow");
         addUIData<EditorImageUI>();
 
-        /*
-        RenderPassInfo renderPassInfo{};
-        renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
-        renderPassInfo.renderPass = m_renderPass->getRenderPass();
+        diffRenderEntry = std::make_unique<VkRender::DR::DiffRenderEntry>();
+        diffRenderEntry->setup();
 
-        VkImageCreateInfo imageCI = Populate::imageCreateInfo();
-        imageCI.imageType = VK_IMAGE_TYPE_2D;
-        imageCI.format = VK_FORMAT_R8_UNORM;
-        imageCI.extent = {static_cast<uint32_t>(960), static_cast<uint32_t>(600), 1};
-        imageCI.mipLevels = 1;
-        imageCI.arrayLayers = 1;
-        imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
-        imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
-        imageCI.usage =
-                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-        imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        VkImageViewCreateInfo imageViewCI = Populate::imageViewCreateInfo();
-        imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        imageViewCI.format = VK_FORMAT_R8_UNORM;
-        imageViewCI.subresourceRange.baseMipLevel = 0;
-        imageViewCI.subresourceRange.levelCount = 1;
-        imageViewCI.subresourceRange.baseArrayLayer = 0;
-        imageViewCI.subresourceRange.layerCount = 1;
-        imageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        m_descriptorRegistry.createManager(DescriptorType::Viewport3DTexture, m_context->vkDevice());
 
-        VulkanImageCreateInfo vulkanImageCreateInfo(m_context->vkDevice(), m_context->allocator(), imageCI,
-                                                    imageViewCI);
-        vulkanImageCreateInfo.debugInfo = "Color texture: Image Editor";
-        m_multiSenseImage = std::make_shared<VulkanImage>(vulkanImageCreateInfo);
-
-        VulkanTexture2DCreateInfo textureCreateInfo(m_context->vkDevice());
-        textureCreateInfo.image = m_multiSenseImage;
-        m_multiSenseTexture = std::make_shared<VulkanTexture2D>(textureCreateInfo);
-
-
-        m_renderPipelines = std::make_unique<GraphicsPipeline2D>(*m_context, renderPassInfo);
-        m_renderPipelines->bindTexture(m_multiSenseTexture);
-        */
-
-        RenderPassInfo renderPassInfo{};
-        renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
-        renderPassInfo.renderPass = m_renderPass->getRenderPass();
-        m_renderPipelines = std::make_unique<GraphicsPipeline2D>(*m_context, renderPassInfo);
+        m_colorTexture = EditorUtils::createEmptyTexture(1280, 720, VK_FORMAT_R8G8B8A8_UNORM, m_context, true);
+        m_shaderSelectionBuffer.resize(m_context->swapChainBuffers().size());
+        for (auto& frameIndex : m_shaderSelectionBuffer) {
+            m_context->vkDevice().createBuffer(
+                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                frameIndex,
+                sizeof(int32_t), nullptr, "EditorImage:ShaderSelectionBuffer",
+                m_context->getDebugUtilsObjectNameFunction());
+        }
     }
 
     void EditorImage::onEditorResize() {
@@ -68,13 +39,12 @@ namespace VkRender {
         std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
         if (extension == ".png" || extension == ".jpg") {
             m_colorTexture = EditorUtils::createTextureFromFile(path, m_context);
-            m_renderPipelines->setTexture(&m_colorTexture->getDescriptorInfo());
         }
     }
 
 
     void EditorImage::onSceneLoad(std::shared_ptr<Scene> scene) {
-        m_activeScene = m_context->activeScene();
+
     }
 
 
@@ -83,66 +53,12 @@ namespace VkRender {
 
     void EditorImage::onUpdate() {
         auto imageUI = std::dynamic_pointer_cast<EditorImageUI>(m_ui);
-        m_activeScene = m_context->activeScene();
-        if (!m_activeScene)
-            return;
-        if (imageUI->renderMultiSense) {
-            // get image from multisense
-            MultiSense::MultiSenseStreamData data;
-            data.imagePtr = static_cast<uint8_t *>(malloc(960 * 600));
-            data.width = 960;
-            data.height = 600;
-            data.dataSource = "Luma Left";
-            m_context->multiSense()->getImage(&data); {
-                m_multiSenseTexture->loadImage(data.imagePtr, 960 * 600);
-            }
-            free(data.imagePtr);
-        }
-
-        if (imageUI->update) {
-            // Get offscreen rendered image
-            auto sceneRenderer = m_context->getSceneRendererByUUID(getUUID());
-            if (!sceneRenderer) {
-                sceneRenderer = m_context->addSceneRendererWithUUID(getUUID(), m_createInfo);
-                auto &image = sceneRenderer->getOffscreenFramebuffer().resolvedImage;
-                VulkanTexture2DCreateInfo textureCreateInfo(m_context->vkDevice());
-                textureCreateInfo.image = image;
-                m_colorTexture = std::make_shared<VulkanTexture2D>(textureCreateInfo);
-                m_renderPipelines->setTexture(&m_colorTexture->getDescriptorInfo());
-            }
-            imageUI->update = false;
-        }
 
         if (imageUI->playVideoFromFolder) {
+            diffRenderEntry->update();
 
-            std::filesystem::path folderPath = "/home/magnus/PycharmProjects/multisense-rgbd/datasets/logqs_dataset/jeep_gravel/aux_rectified";
-            std::vector<std::filesystem::path> files;
-
-            // Iterate through the folder and collect files
-            for (const auto& entry : std::filesystem::directory_iterator(folderPath)) {
-                if (entry.is_regular_file()) {
-                    files.push_back(entry.path());
-                }
-            }
-
-            // Sort files by filename assuming filenames are timestamps in nanoseconds
-            std::sort(files.begin(), files.end(), [](const std::filesystem::path& a, const std::filesystem::path& b) {
-                return a.filename().string() < b.filename().string();
-            });
-
-            std::filesystem::path imagePath = files[m_playVideoFrameIndex];
-            m_colorTexture = EditorUtils::createTextureFromFile(imagePath, m_context);
-            m_renderPipelines->setTexture(&m_colorTexture->getDescriptorInfo());
-            m_playVideoFrameIndex++;
-
-            if (m_playVideoFrameIndex >= files.size()) {
-                m_playVideoFrameIndex = 0;
-            }
         }
-    }
 
-    void EditorImage::onRender(CommandBuffer &drawCmdBuffers) {
-        m_renderPipelines->draw(drawCmdBuffers);
     }
 
     void EditorImage::onMouseMove(const MouseButtons &mouse) {
@@ -151,6 +67,113 @@ namespace VkRender {
     void EditorImage::onMouseScroll(float change) {
     }
 
+    void EditorImage::onRender(CommandBuffer& commandBuffer) {
+        std::unordered_map<std::shared_ptr<DefaultGraphicsPipeline>, std::vector<RenderCommand>> renderGroups;
+        collectRenderCommands(renderGroups, commandBuffer.frameIndex);
 
+        // Render each group
+        for (auto& [pipeline, commands] : renderGroups) {
+            pipeline->bind(commandBuffer);
+            for (auto& command : commands) {
+                // Bind resources and draw
+                bindResourcesAndDraw(commandBuffer, command);
+            }
+        }
+    }
+
+    void EditorImage::collectRenderCommands(
+        std::unordered_map<std::shared_ptr<DefaultGraphicsPipeline>, std::vector<RenderCommand>>& renderGroups,
+        uint32_t frameIndex) {
+        if (!m_meshInstances) {
+            m_meshInstances = EditorUtils::setupMesh(m_context);
+            Log::Logger::getInstance()->info("Created MeshInstance for 3DViewport");
+        }
+        if (!m_meshInstances)
+            return;
+        PipelineKey key = {};
+        key.setLayouts.resize(1);
+        if (m_ui->resizeActive) {
+            m_descriptorRegistry.getManager(DescriptorType::Viewport3DTexture).freeDescriptorSets();
+        }
+        // Prepare descriptor writes based on your texture or other resources
+        std::array<VkWriteDescriptorSet, 2> writeDescriptors{};
+        writeDescriptors[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        writeDescriptors[0].dstBinding = 0; // Binding index
+        writeDescriptors[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        writeDescriptors[0].descriptorCount = 1;
+        writeDescriptors[0].pImageInfo = &m_colorTexture->getDescriptorInfo();
+        writeDescriptors[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        writeDescriptors[1].dstBinding = 1; // Binding index
+        writeDescriptors[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        writeDescriptors[1].descriptorCount = 1;
+        writeDescriptors[1].pBufferInfo = &m_shaderSelectionBuffer[frameIndex]->m_descriptorBufferInfo;
+        std::vector descriptorWrites = {writeDescriptors[0], writeDescriptors[1]};
+        VkDescriptorSet descriptorSet = m_descriptorRegistry.getManager(DescriptorType::Viewport3DTexture).getOrCreateDescriptorSet(descriptorWrites);
+        key.setLayouts[0] = m_descriptorRegistry.getManager(DescriptorType::Viewport3DTexture).getDescriptorSetLayout();
+        // Use default descriptor set layout
+        key.vertexShaderName = "default2D.vert";
+        key.fragmentShaderName = "default2D.frag";
+        key.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        key.polygonMode = VK_POLYGON_MODE_FILL;
+        std::vector<VkVertexInputBindingDescription> vertexInputBinding = {
+                {0, sizeof(VkRender::ImageVertex), VK_VERTEX_INPUT_RATE_VERTEX}
+        };        std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
+            {0, 0, VK_FORMAT_R32G32_SFLOAT, 0},
+            {1, 0, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 2},
+        };
+        key.vertexInputBindingDescriptions = vertexInputBinding;
+        key.vertexInputAttributes = vertexInputAttributes;
+
+        // Create or retrieve the pipeline
+        RenderPassInfo renderPassInfo{};
+        renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
+        renderPassInfo.renderPass = m_renderPass->getRenderPass();
+        renderPassInfo.debugName = "EditorImage::";
+        auto pipeline = m_pipelineManager.getOrCreatePipeline(key, renderPassInfo, m_context);
+        // Create the render command
+        RenderCommand command;
+        command.pipeline = pipeline;
+        command.meshInstance = m_meshInstances.get();
+        command.descriptorSets[0] = descriptorSet; // Assign the descriptor set
+        // Add to render group
+        renderGroups[pipeline].push_back(command);
+    }
+
+    void EditorImage::bindResourcesAndDraw(const CommandBuffer& commandBuffer, RenderCommand& command) {
+        VkCommandBuffer cmdBuffer = commandBuffer.getActiveBuffer();
+        uint32_t frameIndex = commandBuffer.frameIndex;
+
+        if (command.meshInstance->vertexBuffer) {
+            VkBuffer vertexBuffers[] = {command.meshInstance->vertexBuffer->m_buffer};
+            VkDeviceSize offsets[] = {0};
+            vkCmdBindVertexBuffers(cmdBuffer, 0, 1, vertexBuffers, offsets);
+            // Bind index buffer if the mesh has indices
+            if (command.meshInstance->indexBuffer) {
+                vkCmdBindIndexBuffer(cmdBuffer, command.meshInstance->indexBuffer->m_buffer, 0,
+                                     VK_INDEX_TYPE_UINT32);
+            }
+        }
+
+        vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                          command.pipeline->pipeline()->getPipeline());
+
+
+        for (auto& [index, descriptorSet] : command.descriptorSets) {
+            vkCmdBindDescriptorSets(
+                cmdBuffer,
+                VK_PIPELINE_BIND_POINT_GRAPHICS,
+                command.pipeline->pipeline()->getPipelineLayout(),
+                index,
+                1,
+                &descriptorSet,
+                0,
+                nullptr
+            );
+        }
+
+        if (command.meshInstance->indexCount > 0) {
+            vkCmdDrawIndexed(cmdBuffer, command.meshInstance->indexCount, 1, 0, 0, 0);
+        }
+    }
 
 }

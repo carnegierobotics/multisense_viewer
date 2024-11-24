@@ -20,16 +20,13 @@ namespace VkRender {
         addUI("Editor3DLayer");
         addUIData<Editor3DViewportUI>();
 
-
         m_descriptorRegistry.createManager(DescriptorType::Viewport3DTexture, m_context->vkDevice());
         m_editorCamera = std::make_shared<Camera>(m_createInfo.width, m_createInfo.height);
         m_sceneRenderer = m_context->getOrAddSceneRendererByUUID(uuid, m_createInfo);
         VulkanTexture2DCreateInfo textureCreateInfo(m_context->vkDevice());
         textureCreateInfo.image = m_sceneRenderer->getOffscreenFramebuffer().resolvedImage;
         m_colorTexture = std::make_shared<VulkanTexture2D>(textureCreateInfo);
-
         m_shaderSelectionBuffer.resize(m_context->swapChainBuffers().size());
-
         for (auto& frameIndex : m_shaderSelectionBuffer) {
             m_context->vkDevice().createBuffer(
                 VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
@@ -127,19 +124,16 @@ namespace VkRender {
         std::unordered_map<std::shared_ptr<DefaultGraphicsPipeline>, std::vector<RenderCommand>>& renderGroups,
         uint32_t frameIndex) {
         if (!m_meshInstances) {
-            m_meshInstances = setupMesh();
+            m_meshInstances = EditorUtils::setupMesh(m_context);
             Log::Logger::getInstance()->info("Created MeshInstance for 3DViewport");
         }
         if (!m_meshInstances)
             return;
-
         PipelineKey key = {};
         key.setLayouts.resize(1);
-
         if (m_ui->resizeActive) {
             m_descriptorRegistry.getManager(DescriptorType::Viewport3DTexture).freeDescriptorSets();
         }
-
         // Prepare descriptor writes based on your texture or other resources
         std::array<VkWriteDescriptorSet, 2> writeDescriptors{};
         writeDescriptors[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -160,7 +154,6 @@ namespace VkRender {
         key.fragmentShaderName = "default2D.frag";
         key.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         key.polygonMode = VK_POLYGON_MODE_FILL;
-
         std::vector<VkVertexInputBindingDescription> vertexInputBinding = {
                 {0, sizeof(VkRender::ImageVertex), VK_VERTEX_INPUT_RATE_VERTEX}
         };        std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
@@ -169,7 +162,6 @@ namespace VkRender {
         };
         key.vertexInputBindingDescriptions = vertexInputBinding;
         key.vertexInputAttributes = vertexInputAttributes;
-
         auto imageUI = std::dynamic_pointer_cast<Editor3DViewportUI>(m_ui);
         if (imageUI->reloadViewportShader){
             m_pipelineManager.removePipeline(key);
@@ -185,7 +177,6 @@ namespace VkRender {
         command.pipeline = pipeline;
         command.meshInstance = m_meshInstances.get();
         command.descriptorSets[0] = descriptorSet; // Assign the descriptor set
-
         // Add to render group
         renderGroups[pipeline].push_back(command);
     }
@@ -252,90 +243,4 @@ namespace VkRender {
         }
     }
 
-
-    std::shared_ptr<MeshInstance> Editor3DViewport::setupMesh() {
-        std::vector<VkRender::ImageVertex> vertices = {
-            // Bottom-left corner
-            {glm::vec2{-1.0f, -1.0f}, glm::vec2{0.0f, 0.0f}},
-            // Bottom-right corner
-            {glm::vec2{1.0f, -1.0f}, glm::vec2{1.0f, 0.0f}},
-            // Top-right corner
-            {glm::vec2{1.0f, 1.0f}, glm::vec2{1.0f, 1.0f}},
-            // Top-left corner
-            {glm::vec2{-1.0f, 1.0f}, glm::vec2{0.0f, 1.0f}}
-        };
-        // Define the indices for two triangles that make up the quad
-        std::vector<uint32_t> indices = {
-            0, 1, 2, // First triangle (bottom-left to top-right)
-            2, 3, 0 // Second triangle (top-right to bottom-left)
-        };
-
-        auto meshInstance = std::make_shared<MeshInstance>();
-
-        meshInstance->vertexCount = vertices.size();
-        meshInstance->indexCount = indices.size();
-        VkDeviceSize vertexBufferSize = vertices.size() * sizeof(VkRender::ImageVertex);
-        VkDeviceSize indexBufferSize = indices.size() * sizeof(uint32_t);
-
-        struct StagingBuffer {
-            VkBuffer buffer;
-            VkDeviceMemory memory;
-        } vertexStaging{}, indexStaging{};
-
-        // Create staging buffers
-        // Vertex m_DataPtr
-        CHECK_RESULT(m_context->vkDevice().createBuffer(
-            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            vertexBufferSize,
-            &vertexStaging.buffer,
-            &vertexStaging.memory,
-            vertices.data()))
-        // Index m_DataPtr
-        if (indexBufferSize > 0) {
-            CHECK_RESULT(m_context->vkDevice().createBuffer(
-                VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                indexBufferSize,
-                &indexStaging.buffer,
-                &indexStaging.memory,
-                indices.data()))
-        }
-
-        CHECK_RESULT(m_context->vkDevice().createBuffer(
-            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            meshInstance->vertexBuffer, vertexBufferSize, nullptr, "SceneRenderer:InitializeMesh:Vertex",
-            m_context->getDebugUtilsObjectNameFunction()));
-        // Index buffer
-        if (indexBufferSize > 0) {
-            CHECK_RESULT(m_context->vkDevice().createBuffer(
-                VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                meshInstance->indexBuffer,
-                indexBufferSize, nullptr, "SceneRenderer:InitializeMesh:Index",
-                m_context->getDebugUtilsObjectNameFunction()));
-        }
-
-        // Copy from staging buffers
-        VkCommandBuffer copyCmd = m_context->vkDevice().createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-        VkBufferCopy copyRegion = {};
-        copyRegion.size = vertexBufferSize;
-        vkCmdCopyBuffer(copyCmd, vertexStaging.buffer, meshInstance->vertexBuffer->m_buffer, 1, &copyRegion);
-        if (indexBufferSize > 0) {
-            copyRegion.size = indexBufferSize;
-            vkCmdCopyBuffer(copyCmd, indexStaging.buffer, meshInstance->indexBuffer->m_buffer, 1, &copyRegion);
-        }
-        m_context->vkDevice().flushCommandBuffer(copyCmd, m_context->vkDevice().m_TransferQueue, true);
-
-        vkDestroyBuffer(m_context->vkDevice().m_LogicalDevice, vertexStaging.buffer, nullptr);
-        vkFreeMemory(m_context->vkDevice().m_LogicalDevice, vertexStaging.memory, nullptr);
-
-        if (indexBufferSize > 0) {
-            vkDestroyBuffer(m_context->vkDevice().m_LogicalDevice, indexStaging.buffer, nullptr);
-            vkFreeMemory(m_context->vkDevice().m_LogicalDevice, indexStaging.memory, nullptr);
-        }
-
-        return meshInstance;
-    }
 };

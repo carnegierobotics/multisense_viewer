@@ -21,6 +21,8 @@ namespace VkRender {
         addUI("DebugWindow");
         addUI("EditorGaussianViewerLayer");
         addUIData<EditorGaussianViewerUI>();
+        diffRenderEntry = std::make_unique<DR::DiffRenderEntry>();
+        diffRenderEntry->setup();
 
         m_descriptorRegistry.createManager(DescriptorType::Viewport3DTexture, m_context->vkDevice());
 
@@ -69,6 +71,7 @@ namespace VkRender {
     void EditorGaussianViewer::onUpdate() {
         auto imageUI = std::dynamic_pointer_cast<EditorGaussianViewerUI>(m_ui);
         if (imageUI->useImageFrom3DViewport) {
+            diffRenderEntry->update();
 
         }
         gaussianRenderer2D.setActiveCamera(m_editorCamera);

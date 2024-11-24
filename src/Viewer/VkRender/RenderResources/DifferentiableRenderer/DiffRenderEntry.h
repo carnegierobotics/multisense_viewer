@@ -1,71 +1,72 @@
-//
-// Created by magnus-desktop on 11/22/24.
-//
-
 #ifndef DIFFRENDERENTRY_H
 #define DIFFRENDERENTRY_H
 
+#include <torch/torch.h>
 #include "Viewer/VkRender/RenderResources/DifferentiableRenderer/RenderGaussian.h"
 #include "Viewer/VkRender/RenderResources/DifferentiableRenderer/Utils.h"
 
-namespace VkRender::DR{
+namespace VkRender::DR {
+
     class DiffRenderEntry {
+    public:
+        DiffRenderEntry();
 
-      DiffRenderEntry();
+        // Setup method to initialize the renderer and optimizer
+        void setup();
 
-      void setup();
-      void update();
+        // Update method to perform updates per frame or as needed
+        void update();
 
-        RenderGaussian renderer = RenderGaussian(256);
-        torch::Device device = torch::Device(torch::kCPU);
+        // Iterate method to perform an optimization step
+        void iterate();
+
+        // Method to access the gradient of the parameters
+        torch::Tensor getGradient() const;
+
+        // Set new parameters for optimization
+        void setParameters(const torch::Tensor& center, const torch::Tensor& variance);
+
+        // Get current parameters
+        std::pair<torch::Tensor, torch::Tensor> getParameters() const;
+
+        // Enable or disable iteration on update
+        void setIterateOnUpdate(bool iterate);
+
+    private:
+        RenderGaussian renderer;
+        torch::Device device;
 
         bool iterateOnUpdate = true;
 
         struct OptimizerPackage {
-            torch::Tensor initialCenter = torch::tensor({32.0, 32.0});
-            torch::Tensor initialVariance = torch::tensor({2.0, 5.0});
+            // Initial parameters
+            torch::Tensor initialCenter;
+            torch::Tensor initialVariance;
 
             // Parameters with requires_grad = true
-            torch::Tensor center = torch::tensor({32.0, 32.0}, torch::requires_grad());
-            torch::Tensor variance = torch::tensor({2.0, 5.0}, torch::requires_grad());
+            torch::Tensor center;
+            torch::Tensor variance;
 
-            // Target position
-            torch::Tensor targetCenter = torch::tensor({42.0, 48.0});
-            torch::Tensor targetVariance = torch::tensor({25.0, 4.0});
+            // Target parameters
+            torch::Tensor targetCenter;
+            torch::Tensor targetVariance;
 
+            // Rendered images
             torch::Tensor targetImage;
             torch::Tensor initialImage;
 
+            // Optimizer
             std::unique_ptr<torch::optim::Adam> optimizer;
-            OptimizerPackage(RenderGaussian& renderer) {
-                targetImage = renderer.forward(targetCenter, targetVariance);
-                initialImage = renderer.forward(initialCenter, initialVariance);
 
-                // Initialize optimizer with center and variance
-                optimizer = std::make_unique<torch::optim::Adam>(
-                    torch::optim::Adam(std::vector<torch::Tensor>{center, variance})
-                );
+            OptimizerPackage(RenderGaussian& renderer, torch::Device device = torch::kCPU);
 
-                // Set learning rates for each parameter group
-                {
-                    // Get reference to the parameter groups
-                    auto& param_groups = optimizer->param_groups();
+            // Move tensors to the specified device
+            void to(torch::Device device = torch::kCPU);
+        } ;
 
-                    // Set learning rate for 'center' parameter group (index 0)
-                    auto& group0_options = static_cast<torch::optim::AdamOptions&>(param_groups[0].options());
-                    group0_options.lr() = 0.25;
-
-                    // Set learning rate for 'variance' parameter group (index 1)
-                    auto& group1_options = static_cast<torch::optim::AdamOptions&>(param_groups[1].options());
-                    group1_options.lr() = 0.1;
-                }
-            }
-
-        }m_package;
+        std::unique_ptr<OptimizerPackage> m_package;
     };
 
-}
+} // namespace VkRender::DR
 
-
-
-#endif //DIFFRENDERENTRY_H
+#endif // DIFFRENDERENTRY_H

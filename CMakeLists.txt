@@ -110,7 +110,6 @@ if (ENABLE_SYCL)
         # Add sycl to target using AdaptiveCpp's helper
         target_link_libraries(${PROJECT_NAME} PRIVATE -ltbb -fopenmp -lfmt)
         if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-            target_compile_options(${PROJECT_NAME} PRIVATE -g --acpp-targets=omp)
             message(STATUS "[VkRenderINFO]: Compiling using AdaptiveCpp without optimization")
         endif ()
     else ()

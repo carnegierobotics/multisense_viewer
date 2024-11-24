@@ -5,19 +5,20 @@
 #ifndef MULTISENSE_VIEWER_EDITORGAUSSIANVIEWER_H
 #define MULTISENSE_VIEWER_EDITORGAUSSIANVIEWER_H
 
-#include <Viewer/VkRender/RenderResources/GraphicsPipeline2D.h>
-
 #include "Viewer/VkRender/Editors/Editor.h"
 #include "Viewer/VkRender/Core/Camera.h"
 #include "Viewer/Scenes/Scene.h"
-#include "Viewer/VkRender/RenderResources/2DGS/SYCLGaussian2D.h"
 #include "Viewer/VkRender/Core/SyclDeviceSelector.h"
 #include "Viewer/VkRender/Editors/DescriptorSetManager.h"
 #include "Viewer/VkRender/Editors/PipelineManager.h"
-#include "Viewer/VkRender/RenderResources/3DGS/SYCLGaussian3D.h"
 #include "Viewer/VkRender/Editors/DescriptorRegistry.h"
 
+#include "Viewer/VkRender/RenderResources/2DGS/SYCLGaussian2D.h"
+#include "Viewer/VkRender/RenderResources/3DGS/SYCLGaussian3D.h"
+#include "Viewer/VkRender/RenderResources/DifferentiableRenderer/DiffRenderEntry.h"
+
 namespace VkRender {
+
 
     class EditorGaussianViewer : public Editor {
     public:
@@ -47,9 +48,10 @@ namespace VkRender {
         std::shared_ptr<Scene> m_activeScene;
         CameraComponent* m_lastActiveCamera = nullptr;
 
-        SyclDeviceSelector m_deviceSelector = SyclDeviceSelector(SyclDeviceSelector::DeviceType::CPU);
+        SyclDeviceSelector m_deviceSelector = SyclDeviceSelector(SyclDeviceSelector::DeviceType::GPU);
         SYCLGaussian2D gaussianRenderer2D;
         SYCLGaussian3D gaussianRenderer3D;
+        std::unique_ptr<DR::DiffRenderEntry> diffRenderEntry;
 
         std::vector<std::unique_ptr<Buffer>> m_shaderSelectionBuffer;
 

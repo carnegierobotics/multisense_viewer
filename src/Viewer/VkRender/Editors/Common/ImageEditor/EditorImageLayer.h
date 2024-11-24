@@ -19,8 +19,8 @@ namespace VkRender {
         int previewID = 0;
         std::string selectedCameraName = "";
 
-        bool playVideoFromFolder = false;
-        bool iterate = false;
+        bool iterateOptimizer = false;
+        bool updateImage = false;
 
         // Constructor that copies everything from base EditorUI
         EditorImageUI(const EditorUI &baseUI) : EditorUI(baseUI) {}
@@ -127,15 +127,21 @@ namespace VkRender {
                 }
             }
             ImGui::SameLine();
-            ImGui::Checkbox("Play video from folder", &imageUI->playVideoFromFolder);
+            imageUI->iterateOptimizer = ImGui::Button("Optimize");
+            static bool toggleOptimize = false;
             ImGui::SameLine();
-            imageUI->iterate = ImGui::Button("Render 3DGS image");
+            ImGui::Checkbox("Toggle Optimize Update", &toggleOptimize);
+            if (toggleOptimize){
+                imageUI->iterateOptimizer = true;
+            }
+            ImGui::SameLine();
 
-            static bool toggle = true;
+            imageUI->updateImage = ImGui::Button("Update Image");
+            static bool togleImageUpdate = true;
             ImGui::SameLine();
-            ImGui::Checkbox("Toggle rendering", &toggle);
-            if (toggle){
-                imageUI->iterate = true;
+            ImGui::Checkbox("Toggle Image Update", &togleImageUpdate);
+            if (togleImageUpdate){
+                imageUI->updateImage = true;
             }
 
             ImGui::SameLine();

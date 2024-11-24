@@ -54,13 +54,13 @@ namespace VkRender {
     void EditorImage::onUpdate() {
         auto imageUI = std::dynamic_pointer_cast<EditorImageUI>(m_ui);
 
-        if (imageUI->playVideoFromFolder) {
+        if (imageUI->iterateOptimizer) {
             diffRenderEntry->update();
 
         }
 
 
-        if (imageUI->iterate){
+        if (imageUI->updateImage){
             torch::Tensor image = diffRenderEntry->getImage().contiguous().to(torch::kFloat32);;
             m_colorTexture = EditorUtils::createEmptyTexture(diffRenderEntry->getImageSize(), diffRenderEntry->getImageSize(), VK_FORMAT_R32_SFLOAT, m_context);
             size_t dataSize = diffRenderEntry->getImageSize() * diffRenderEntry->getImageSize() * sizeof(float);
@@ -103,7 +103,7 @@ namespace VkRender {
         key.setLayouts.resize(1);
         auto imageUI = std::dynamic_pointer_cast<EditorImageUI>(m_ui);
 
-        if (imageUI->iterate) {
+        if (imageUI->updateImage) {
             m_descriptorRegistry.getManager(DescriptorType::Viewport3DTexture).freeDescriptorSets();
         }
         // Prepare descriptor writes based on your texture or other resources

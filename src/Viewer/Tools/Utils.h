@@ -87,20 +87,12 @@ namespace Utils {
     static std::filesystem::path getModelsPath() {
         return {"./Resources/Assets/Models"};
     }
-
-    static std::filesystem::path getProjectFileFromName(const std::string& projectName) {
-        if (projectName == "MultiSense Viewer"){
-            return {"./Resources/Assets/Projects/MultiSenseViewer.json"};
-        }
-        if (projectName == "MultiSense Editor"){
-            return {"./Resources/Assets/Projects/MultiSenseEditor.json"};
-        }
-        Log::Logger::getInstance()->warning("Project '{}' not found. Loading default..", projectName);
-        return {"./Resources/Assets/Projects/MultiSenseEditor.json"};
+    static std::filesystem::path getProjectsPath() {
+        return {"./Resources/Assets/Projects"};
     }
 
-    static std::filesystem::path getScriptsPath() {
-        return {"Scripts/"};
+    static std::filesystem::path getEditorProjectPath() {
+        return {"./Resources/Assets/Projects/Editor.project"};
     }
 
     DISABLE_WARNING_POP

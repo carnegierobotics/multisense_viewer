@@ -40,6 +40,7 @@ namespace VkRender::LayerUtils {
         FRAGMENT_SHADER_FILE,
         SAVE_SCENE,
         SAVE_SCENE_AS,
+        SAVE_PROJECT_AS,
         COLMAP_FOLDER,
     } FileTypeLoadFlow;
 
@@ -323,9 +324,14 @@ namespace VkRender::LayerUtils {
         gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(dialog), TRUE);  // Ask for overwrite confirmation
 
         // Filter for the .multisense file extension
+        data->filetypes;
         GtkFileFilter *filter = gtk_file_filter_new();
-        gtk_file_filter_set_name(filter, "MultiSense Files");
-        gtk_file_filter_add_pattern(filter, "*.multisense");
+        gtk_file_filter_set_name(filter, "Supported Files");
+        // Add patterns for each filetype in data->filetypes
+        for (const auto& filetype : data->filetypes) {
+            std::string pattern = "*." + filetype;
+            gtk_file_filter_add_pattern(filter, pattern.c_str());
+        }
         gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
 
         LoadFileInfo fileInfo;
@@ -335,9 +341,16 @@ namespace VkRender::LayerUtils {
             char *selected_file = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
             fileInfo.path = selected_file;
 
-            // Ensure the .multisense extension is added if the user didn't include it
-            if (fileInfo.path.string().find(".multisense") == std::string::npos) {
-                fileInfo.path += ".multisense";
+            // Check if the selected file has a valid extension; add the first one if missing
+            bool hasValidExtension = false;
+            for (const auto& filetype : data->filetypes) {
+                if (fileInfo.path.string().ends_with("." + filetype)) {
+                    hasValidExtension = true;
+                    break;
+                }
+            }
+            if (!hasValidExtension && !data->filetypes.empty()) {
+                fileInfo.path += "." + data->filetypes.front();
             }
 
             fileInfo.filetype = data->flow;
@@ -355,10 +368,10 @@ namespace VkRender::LayerUtils {
     }
 
 // Function to save a file, ensuring it runs on the main thread
-    static LoadFileInfo saveFile(const std::string& dialogName, const std::string& setCurrentFolder, LayerUtils::FileTypeLoadFlow flow) {
+    static LoadFileInfo saveFile(const std::string& dialogName,  const std::vector<std::string>& type, const std::string& setCurrentFolder, LayerUtils::FileTypeLoadFlow flow) {
         // Create a new FileDialogData struct dynamically
         auto* dialogData = new FileDialogData{
-                dialogName, {".multisense"}, setCurrentFolder, flow, std::promise<LoadFileInfo>(), DialogAction::SAVE_FILE
+                dialogName, type, setCurrentFolder, flow, std::promise<LoadFileInfo>(), DialogAction::SAVE_FILE
         };
 
         std::future<LoadFileInfo> future = dialogData->promise.get_future();

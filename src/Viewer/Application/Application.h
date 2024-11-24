@@ -42,23 +42,17 @@
 #include <multisense_viewer/external/entt/include/entt/entt.hpp>
 
 
-#include "Viewer/VkRender/Core/VulkanRenderer.h"
-#include "Viewer/Scenes/Scene.h"
+#include "Viewer/Application/Project.h"
 #include "Viewer/Application/UsageMonitor.h"
+#include "Viewer/VkRender/Core/VulkanRenderer.h"
 #include "Viewer/VkRender/Core/UUID.h"
 #include "Viewer/VkRender/Editors/Editor.h"
 #include "Viewer/VkRender/Editors/EditorFactory.h"
-
+#include "Viewer/Scenes/Scene.h"
 #include "Viewer/Modules/MultiSense/MultiSenseRendererBridge.h"
 
 namespace VkRender {
     class Entity;
-
-    struct ProjectConfig {
-        std::string name;
-        std::vector<EditorType> editorTypes;
-    };
-
 
     class Application : VulkanRenderer {
     public:
@@ -98,8 +92,6 @@ namespace VkRender {
 
         VulkanDevice &vkDevice() { return *m_vulkanDevice; }
 
-        const ProjectConfig &getProjectConfig() { return m_projectConfig; }
-
         std::shared_ptr<MultiSense::MultiSenseRendererBridge> multiSense() { return m_multiSense; }
         std::shared_ptr<UsageMonitor> usageMonitor() { return m_usageMonitor; }
 
@@ -119,7 +111,8 @@ namespace VkRender {
 
         void loadScene(const std::filesystem::path &string);
 
-        void loadProject(const std::filesystem::path &string);
+        void loadProject(const Project& project);
+        Project getCurrentProject();
 
         bool isCurrentProject(std::string projectName);
 
@@ -156,7 +149,6 @@ namespace VkRender {
         void onCharInput(unsigned int codepoint) override;
 
         std::vector<std::unique_ptr<Editor> > m_editors;
-        ProjectConfig m_projectConfig;
 
         std::shared_ptr<Scene> m_activeScene;
         std::string m_selectedCameraTag = "Default Camera";

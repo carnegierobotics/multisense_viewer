@@ -61,11 +61,11 @@ namespace VkRender {
 
 
         if (imageUI->iterate){
-            torch::Tensor image = diffRenderEntry->getImage().contiguous().to(torch::kFloat32);;
+            void* image = diffRenderEntry->getImage();
             m_colorTexture = EditorUtils::createEmptyTexture(diffRenderEntry->getImageSize(), diffRenderEntry->getImageSize(), VK_FORMAT_R32_SFLOAT, m_context);
             size_t dataSize = diffRenderEntry->getImageSize() * diffRenderEntry->getImageSize() * sizeof(float);
 
-            m_colorTexture->loadImage(image.data_ptr(), dataSize);
+            m_colorTexture->loadImage(image, dataSize);
         }
 
     }

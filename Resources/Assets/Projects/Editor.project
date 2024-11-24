@@ -1,0 +1,23 @@
+sceneName: "Default Scene"
+projectName: "Editor"
+logLevel: 2
+editors:
+  - borderSize: 5
+    editorTypeDescription: "3D Viewport"
+    width: 80
+    height: 100
+    x: 0
+    y: 0
+  - borderSize: 5
+    editorTypeDescription: "Properties"
+    width: 20
+    height: 75
+    x: 80
+    y: 25
+  - borderSize: 5
+    editorTypeDescription: "Scene Hierarchy"
+    width: 20
+    height: 25
+    x: 80
+    y: 0
+

@@ -131,7 +131,7 @@ namespace VkRender {
             ImGui::SameLine();
             imageUI->iterate = ImGui::Button("Render 3DGS image");
 
-            static bool toggle = true;
+            static bool toggle = false;
             ImGui::SameLine();
             ImGui::Checkbox("Toggle rendering", &toggle);
             if (toggle){

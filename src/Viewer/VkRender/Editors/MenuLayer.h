@@ -5,6 +5,7 @@
 #ifndef MULTISENSE_VIEWER_MENULAYER_H
 #define MULTISENSE_VIEWER_MENULAYER_H
 
+#include <Viewer/Application/ProjectSerializer.h>
 #include <Viewer/Scenes/SceneSerializer.h>
 
 #include "Viewer/VkRender/ImGui/Layer.h"
@@ -58,21 +59,38 @@ namespace VkRender {
             if (ImGui::BeginMenu("File")) {
                 // Projects Menu
                 if (ImGui::BeginMenu("Projects")) {
-                    bool isDefaultProject = m_context->isCurrentProject("MultiSense Editor");
-                    bool isMultiSenseProject = m_context->isCurrentProject("MultiSense Viewer");
-
-                    if (ImGui::MenuItem("MultiSense Viewer", nullptr, isMultiSenseProject)) {
-                        if (!isMultiSenseProject) {
-                            m_context->loadProject(Utils::getProjectFileFromName("MultiSense Viewer"));
-                            ImGui::SetCurrentContext(m_context->getMainUIContext());
+                    auto projectDir = Utils::getProjectsPath(); // This should return a vector of project file paths
+                    std::vector<std::filesystem::path> projectFiles;
+                    if (std::filesystem::exists(projectDir) && std::filesystem::is_directory(projectDir)) {
+                        for (const auto& entry : std::filesystem::directory_iterator(projectDir)) {
+                            if (entry.is_regular_file() && entry.path().extension() == ".project") { // Use your project file extension
+                                projectFiles.push_back(entry.path());
+                            }
                         }
                     }
 
-                    if (ImGui::MenuItem("MultiSense Editor", nullptr, isDefaultProject)) {
-                        if (!isDefaultProject) {
-                            m_context->loadProject(Utils::getProjectFileFromName("MultiSense Editor"));
-                            ImGui::SetCurrentContext(m_context->getMainUIContext());
+                    for (const auto& projectFile : projectFiles) {
+                        bool isCurrentProject = m_context->isCurrentProject(projectFile.filename().replace_extension().string());
+
+                        if (ImGui::MenuItem(projectFile.filename().replace_extension().c_str(), nullptr, isCurrentProject)) {
+                            if (!isCurrentProject) {
+                                Project project;
+                                ProjectSerializer serializer(project);
+                                if (serializer.deserialize(projectFile)) {
+                                    m_context->loadProject(project);
+                                    ImGui::SetCurrentContext(m_context->getMainUIContext());
+                                }
+
+                            }
                         }
+
+                    }
+
+                    if (ImGui::MenuItem("Save current layout as Project..", nullptr)) {
+                        auto &userSetting = ApplicationConfig::getInstance().getUserSetting();
+                        auto openLocation = std::filesystem::exists(userSetting.lastActiveScenePath.parent_path()) ? userSetting.lastActiveScenePath.parent_path() : Utils::getSystemHomePath();
+                        std::vector<std::string> types{"project"};
+                        EditorUtils::saveFileDialog("Save scene as", types, LayerUtils::SAVE_PROJECT_AS, &loadFileFuture, openLocation);
                     }
                     ImGui::EndMenu();  // End the Projects submenu
                 }
@@ -96,13 +114,13 @@ namespace VkRender {
                     }
                     if (ImGui::MenuItem("Save Scene As..", nullptr)) {
                         auto openLocation = std::filesystem::exists(userSetting.lastActiveScenePath.parent_path()) ? userSetting.lastActiveScenePath.parent_path() : Utils::getSystemHomePath();
-                        std::vector<std::string> types{".multisense"};
+                        std::vector<std::string> types{"multisense"};
                         EditorUtils::saveFileDialog("Save scene as", types, LayerUtils::SAVE_SCENE_AS, &loadFileFuture, openLocation);
                     }
                     if (ImGui::MenuItem("Load Scene file", nullptr)) {
                         auto openLocation = std::filesystem::exists(userSetting.lastActiveScenePath.parent_path()) ? userSetting.lastActiveScenePath.parent_path() : Utils::getSystemHomePath();
 
-                        std::vector<std::string> types{".multisense"};
+                        std::vector<std::string> types{"multisense"};
                         EditorUtils::openImportFileDialog("Load Scene", types, LayerUtils::SAVE_SCENE, &loadFileFuture, openLocation);
 
                     }
@@ -160,6 +178,15 @@ namespace VkRender {
                             userSetting.lastActiveScenePath = path;
                             userSetting.assetsPath = path.parent_path();
                         }
+                    }
+                        break;
+                    case LayerUtils::SAVE_PROJECT_AS: {
+                            auto project = m_context->getCurrentProject();
+                            project.projectName = loadFileInfo.path.filename().replace_extension();
+                            ProjectSerializer serializer(project);
+                            serializer.serialize(loadFileInfo.path);
+                            serializer.serialize(Utils::getProjectsPath() / loadFileInfo.path.filename());
+                            ApplicationConfig::getInstance().getUserSetting().projectName = project.projectName;
                     }
                         break;
                     default:

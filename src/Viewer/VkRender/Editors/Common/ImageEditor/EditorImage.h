@@ -13,6 +13,7 @@
 #include "Viewer/Scenes/Scene.h"
 #include "Viewer/VkRender/Core/VulkanTexture.h"
 #include "Viewer/VkRender/RenderResources/GraphicsPipeline2D.h"
+
 #include "Viewer/VkRender/RenderResources/DifferentiableRenderer/DiffRenderEntry.h"
 
 namespace VkRender {

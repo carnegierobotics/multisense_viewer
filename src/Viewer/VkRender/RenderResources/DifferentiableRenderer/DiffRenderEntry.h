@@ -24,7 +24,7 @@ namespace VkRender::DR {
         torch::Tensor getGradient() const;
 
         // Set new parameters for optimization
-        void setParameters(const torch::Tensor& center, const torch::Tensor& variance);
+        void setParameters(const torch::Tensor &center, const torch::Tensor &variance);
 
         // Get current parameters
         std::pair<torch::Tensor, torch::Tensor> getParameters() const;
@@ -32,11 +32,22 @@ namespace VkRender::DR {
         // Enable or disable iteration on update
         void setIterateOnUpdate(bool iterate);
 
+        torch::Tensor getImage() {
+            if (renderer.getLastRenderedImage().defined())
+                return renderer.getLastRenderedImage().clone().detach().contiguous().cpu();
+            return torch::zeros(renderer.imageSize());
+        }
+
+        uint32_t getImageSize(){
+            return renderer.imageSize();
+        }
+
     private:
         RenderGaussian renderer;
         torch::Device device;
 
         bool iterateOnUpdate = true;
+        uint32_t m_iteration = 0;
 
         struct OptimizerPackage {
             // Initial parameters
@@ -58,11 +69,11 @@ namespace VkRender::DR {
             // Optimizer
             std::unique_ptr<torch::optim::Adam> optimizer;
 
-            OptimizerPackage(RenderGaussian& renderer, torch::Device device = torch::kCPU);
+            OptimizerPackage(RenderGaussian &renderer, torch::Device device = torch::kCPU);
 
             // Move tensors to the specified device
             void to(torch::Device device = torch::kCPU);
-        } ;
+        };
 
         std::unique_ptr<OptimizerPackage> m_package;
     };

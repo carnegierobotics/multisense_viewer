@@ -16,13 +16,16 @@ namespace VkRender::DR{
 
         torch::Tensor forward(torch::Tensor center, torch::Tensor variance);
 
-        torch::Tensor get_rendered_image();
+        torch::Tensor getLastRenderedImage();
+        uint32_t imageSize() const{
+            return m_imageSize;
+        }
 
     private:
-        int64_t image_size;
+        int64_t m_imageSize;
         torch::Tensor xv;
         torch::Tensor yv;
-        torch::Tensor last_rendered_image;  // Store the last rendered image
+        torch::Tensor m_lastRenderedImage;  // Store the last rendered image
     };
 
 }

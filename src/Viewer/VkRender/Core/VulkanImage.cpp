@@ -42,7 +42,7 @@ namespace VkRender {
         }
 
         // Image Size:
-        m_imageSize = createInfo.imageCreateInfo.extent.width * createInfo.imageCreateInfo.extent.height * 4;
+        m_imageSize = createInfo.imageCreateInfo.extent.width * createInfo.imageCreateInfo.extent.height * Utils::getBytesPerPixelFromVkFormat(createInfo.imageCreateInfo.format);
         m_width = createInfo.imageCreateInfo.extent.width;
         m_height = createInfo.imageCreateInfo.extent.height;
 

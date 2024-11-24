@@ -542,6 +542,34 @@ namespace Utils {
         }
         TIFFClose(out);
     }
+
+    // TODO dont know where to put this utility function
+    static uint32_t getBytesPerPixelFromVkFormat(VkFormat format) {
+        switch (format) {
+            case VK_FORMAT_R8G8B8A8_UNORM:
+            case VK_FORMAT_R8G8B8A8_SRGB:
+            case VK_FORMAT_B8G8R8A8_UNORM:
+            case VK_FORMAT_B8G8R8A8_SRGB:
+                return 4; // 4 bytes per pixel (8 bits per channel, 4 channels)
+            case VK_FORMAT_R8G8B8_UNORM:
+            case VK_FORMAT_R8G8B8_SRGB:
+                return 3; // 3 bytes per pixel (8 bits per channel, 3 channels)
+            case VK_FORMAT_R8_UNORM:
+                return 1; // 1 byte per pixel (8 bits per channel)
+            case VK_FORMAT_R16G16B16A16_SFLOAT:
+                return 8; // 8 bytes per pixel (16 bits per channel, 4 channels)
+            case VK_FORMAT_R32G32B32A32_SFLOAT:
+                return 16; // 16 bytes per pixel (32 bits per channel, 4 channels)
+            case VK_FORMAT_D32_SFLOAT:
+            case VK_FORMAT_R32_SFLOAT:
+            case VK_FORMAT_R32_UINT:
+                return 4; // 4 bytes per pixel for depth
+            case VK_FORMAT_D24_UNORM_S8_UINT:
+                return 4; // Approximation: 24 bits depth + 8 bits stencil = 4 bytes
+            default:
+                throw std::runtime_error("Unsupported VkFormat for size calculation");
+        }
+    }
 }
 
 #endif //MULTISENSE_VIEWER_UTILS_H

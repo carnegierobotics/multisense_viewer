@@ -34,6 +34,11 @@ set(USE_ROCM FALSE)
 
 if (ENABLE_PYTORCH)
     # Find PyTorch
+
+    set(CMAKE_CUDA_STANDARD 20)
+    set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+    set(CMAKE_CUDA_EXTENSIONS OFF)
+
     find_package(Torch QUIET HINTS /home/magnus/libraries/libtorch-cxx11-abi-shared-with-deps-2.5.1+cu124/libtorch
             /home/magnus-desktop/libraries/libtorch-cxx11-abi-shared-with-deps-2.5.1+rocm6.2/libtorch
     )
@@ -42,7 +47,7 @@ if (ENABLE_PYTORCH)
     if (Torch_FOUND)
         message(STATUS "[VkRenderINFO]: PyTorch found at ${TORCH_INSTALL_PREFIX}")
         # Check if PyTorch is built for CUDA
-        if (DEFINED TORCH_CUDA_ARCH_LIST)
+        if (DEFINED TORCH_CUDA_LIBRARIES)
             set(PYTORCH_AVAILABLE TRUE)
             set(USE_CUDA TRUE)
             message(STATUS "[VkRenderINFO]: PyTorch is configured with CUDA.")
@@ -65,11 +70,12 @@ endif ()
 
 if (PYTORCH_AVAILABLE)
     if (USE_CUDA)
-        enable_language(CUDA)  # Enable CUDA compiler for CUDA
         set(CMAKE_CUDA_STANDARD 20)
         set(CMAKE_CUDA_STANDARD_REQUIRED ON)
         set(CMAKE_CUDA_EXTENSIONS OFF)
         message(STATUS "[VkRenderINFO]: CUDA language support enabled.")
+        target_link_libraries(${PROJECT_NAME} PRIVATE )
+
     elseif (USE_ROCM)
         enable_language(HIP)
         message(STATUS "[VkRenderINFO]: HIP language support enabled.")
@@ -79,7 +85,9 @@ if (PYTORCH_AVAILABLE)
         # Add any ROCm-specific setup if necessary (e.g., include ROCm libraries or headers)
         message(STATUS "[VkRenderINFO]: ROCm-specific setup would go here if needed.")
     endif ()
-    target_link_libraries(${PROJECT_NAME} PRIVATE ${TORCH_LIBRARIES})
+
+
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${TORCH_LIBRARIES} cuda cudart cupti)
     target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE ${TORCH_INCLUDE_DIRS})
     message(STATUS "[VkRenderINFO]: PyTorch libraries successfully linked.")
 else ()
@@ -261,6 +269,7 @@ if (${ENABLE_PYTORCH})
             src/Viewer/VkRender/RenderResources/DifferentiableRenderer/DiffRenderEntry.cpp
     )
     list(APPEND SOURCE_FILES ${DIFF_RENDER_SOURCES})
+
     message(STATUS "[VkRenderINFO]: SYCL: Adding Pytorch differential Renderer to source")
 endif()
 

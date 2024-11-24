@@ -20,6 +20,7 @@ namespace VkRender {
         std::string selectedCameraName = "";
 
         bool playVideoFromFolder = false;
+        bool iterate = false;
 
         // Constructor that copies everything from base EditorUI
         EditorImageUI(const EditorUI &baseUI) : EditorUI(baseUI) {}
@@ -127,6 +128,16 @@ namespace VkRender {
             }
             ImGui::SameLine();
             ImGui::Checkbox("Play video from folder", &imageUI->playVideoFromFolder);
+            ImGui::SameLine();
+            imageUI->iterate = ImGui::Button("Render 3DGS image");
+
+            static bool toggle = true;
+            ImGui::SameLine();
+            ImGui::Checkbox("Toggle rendering", &toggle);
+            if (toggle){
+                imageUI->iterate = true;
+            }
+
             ImGui::SameLine();
             ImGui::End();
 

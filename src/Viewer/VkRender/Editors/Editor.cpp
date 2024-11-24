@@ -165,7 +165,6 @@ namespace VkRender {
                         clearValueCount, clearValues);
             // Transition image to be in shader read mode
 
-
             if (m_saveNextFrame) {
 
                 /// *** Copy Image Data to CPU Buffer *** ///
@@ -177,7 +176,7 @@ namespace VkRender {
                 CHECK_RESULT(m_context->vkDevice().createBuffer(
                     VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                    m_offscreenFramebuffer.resolvedDepthImage->getImageSizeRBGA(),
+                    m_offscreenFramebuffer.resolvedDepthImage->getImageSize(),
                     &m_copyDataBuffer.buffer,
                     &m_copyDataBuffer.memory));
 
@@ -254,7 +253,7 @@ namespace VkRender {
                 */
                 void *data;
                 vkMapMemory(m_context->vkDevice().m_LogicalDevice, m_copyDataBuffer.memory, 0,
-                            m_offscreenFramebuffer.resolvedDepthImage->getImageSizeRBGA(), 0, &data);
+                            m_offscreenFramebuffer.resolvedDepthImage->getImageSize(), 0, &data);
 
                 int width = m_createInfo.width;
                 int height = m_createInfo.height;
@@ -288,223 +287,6 @@ namespace VkRender {
             }
         }
 
-
-        // Render to offscreen framebuffer
-        // Transition and copy framebuffer to cpu
-        // Write to file
-        /*
-        if (ui()->saveRenderToFile) {
-
-            CommandBuffer copyCmd = m_context->vkDevice().createVulkanCommandBuffer(
-                VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-            uint32_t frameIndexValue = 0;
-            uint32_t activeImageIndexValue = 0;
-            copyCmd.frameIndex = &frameIndexValue;
-            copyCmd.activeImageIndex = &activeImageIndexValue;
-            const uint32_t clearValueCount = 3;
-            VkClearValue clearValues[clearValueCount];
-            clearValues[0].color = {{0.33f, 0.33f, 0.5f, 1.0f}}; // Clear color to black (or any other color)
-            clearValues[1].depthStencil = {1.0f, 0}; // Clear depth to 1.0 and stencil to 0
-            clearValues[2].color = {{0.33f, 0.33f, 0.5f, 1.0f}}; // Clear depth to 1.0 and stencil to 0
-            /// "Normal" Render pass
-            VkViewport viewport{};
-            viewport.x = 0.0f;
-            viewport.y = 0.0f;
-            viewport.width = static_cast<float>(m_createInfo.width);
-            viewport.height = static_cast<float>(m_createInfo.height);
-            viewport.minDepth = 0.0f;
-            viewport.maxDepth = 1.0f;
-            VkRect2D scissor{};
-            scissor.offset = VkOffset2D(0, 0);
-            scissor.extent = {static_cast<uint32_t>(m_createInfo.width), static_cast<uint32_t>(m_createInfo.height)};
-            renderScene(copyCmd, m_offscreenRenderPass->getRenderPass(), 0, &m_offscreenFramebuffer.framebuffer->framebuffer() , viewport, scissor, false,
-                        clearValueCount, clearValues);
-
-
-
-        }*/
-    }
-
-
-    void Editor::renderDepthPass(CommandBuffer &drawCmdBuffers) {
-        const uint32_t &currentFrame = drawCmdBuffers.frameIndex;
-        const uint32_t &imageIndex = drawCmdBuffers.activeImageIndex;
-
-
-        /*
-        if (ui()->saveRenderToFile) {
-            CommandBuffer copyCmd = m_context->vkDevice().createVulkanCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-                true);
-            uint32_t frameIndexValue = 0;
-            uint32_t activeImageIndexValue = 0;
-            copyCmd.frameIndex = &frameIndexValue;
-            copyCmd.activeImageIndex = &activeImageIndexValue;
-            /// *** Render to Offscreen Framebuffer *** ///
-            VkRenderPassBeginInfo renderPassBeginInfo = Populate::renderPassBeginInfo();
-            renderPassBeginInfo.renderPass = m_depthRenderPass->getRenderPass(); // Increase reference count by 1 here?
-            renderPassBeginInfo.renderArea.offset.x = 0;
-            renderPassBeginInfo.renderArea.offset.y = 0;
-            renderPassBeginInfo.renderArea.extent.width = m_createInfo.width;
-            renderPassBeginInfo.renderArea.extent.height = m_createInfo.height;
-            VkClearValue clearValues[1];
-            clearValues[0].depthStencil = {1.0f, 0}; // Clear depth to 1.0 and stencil to 0
-            renderPassBeginInfo.clearValueCount = 1;
-            renderPassBeginInfo.pClearValues = clearValues;
-            renderPassBeginInfo.framebuffer = m_depthOnlyFramebuffer.depthOnlyFramebuffer[imageIndex]->framebuffer();
-
-            scissor.offset = {0, 0};
-            viewport.x = static_cast<float>(0);
-            viewport.y = static_cast<float>(0);
-            vkCmdBeginRenderPass(copyCmd.buffers.front(), &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-            vkCmdSetViewport(copyCmd.buffers.front(), 0, 1, &viewport);
-            vkCmdSetScissor(copyCmd.buffers.front(), 0, 1, &scissor);
-            onRenderDepthOnly(copyCmd);
-            vkCmdEndRenderPass(copyCmd.buffers.front());
-
-            /// *** Copy Image Data to CPU Buffer *** ///
-            VkImageMemoryBarrier barrier = {};
-            barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-            barrier.oldLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-            barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-            barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            barrier.image = m_depthOnlyFramebuffer.depthImage->image(); // Use the offscreen image
-            barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-            barrier.subresourceRange.baseMipLevel = 0;
-            barrier.subresourceRange.levelCount = 1;
-            barrier.subresourceRange.baseArrayLayer = 0;
-            barrier.subresourceRange.layerCount = 1;
-            barrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT; // Previous access
-            barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT; // Next access
-
-            vkCmdPipelineBarrier(copyCmd.buffers.front(), VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
-                                 VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
-                                 0, nullptr, 0, nullptr, 1, &barrier);
-
-
-            struct StagingBuffer {
-                VkBuffer buffer;
-                VkDeviceMemory memory;
-            } stagingBuffer{};
-
-
-            CHECK_RESULT(m_context->vkDevice().createBuffer(
-                VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                m_depthOnlyFramebuffer.depthImage->getImageSizeRBGA(),
-                &stagingBuffer.buffer,
-                &stagingBuffer.memory));
-
-            // Copy the image to the buffer
-            VkBufferImageCopy region = {};
-            region.bufferOffset = 0;
-            region.bufferRowLength = 0;
-            region.bufferImageHeight = 0;
-            region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-            region.imageSubresource.mipLevel = 0;
-            region.imageSubresource.baseArrayLayer = 0;
-            region.imageSubresource.layerCount = 1;
-            region.imageOffset = {0, 0, 0};
-            region.imageExtent = {
-                static_cast<uint32_t>(m_createInfo.width), static_cast<uint32_t>(m_createInfo.height),
-                1
-            };
-
-            vkCmdCopyImageToBuffer(copyCmd.buffers.front(), m_depthOnlyFramebuffer.depthImage->image(),
-                                   VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, stagingBuffer.buffer, 1, &region);
-
-            Utils::setImageLayout(
-                copyCmd.buffers.front(),
-                m_depthOnlyFramebuffer.depthImage->image(),
-                VK_IMAGE_ASPECT_DEPTH_BIT,
-                VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-                VK_PIPELINE_STAGE_TRANSFER_BIT,
-                VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT);
-            m_context->vkDevice().flushCommandBuffer(copyCmd.buffers.front(), m_context->vkDevice().m_TransferQueue,
-                                                     true);
-            // Map memory and save image to a file
-            void *data;
-            vkMapMemory(m_context->vkDevice().m_LogicalDevice, stagingBuffer.memory, 0,
-                        m_depthOnlyFramebuffer.depthImage->getImageSizeRBGA(), 0, &data);
-            // Assuming the image is in RGBA format (4 channels) and that data is a pointer to the pixel data
-            int width = m_createInfo.width;
-            int height = m_createInfo.height;
-            // Save the image
-            std::filesystem::path filePath; // = m_ui->renderToFileName;
-
-            // Convert the path to a string
-            std::string filePathStr = filePath.string();
-
-            // Replace "viewport" with "depth"
-            size_t pos = filePathStr.find("viewport");
-            if (pos != std::string::npos) {
-                filePathStr.replace(pos, std::string("viewport").length(), "depth");
-            }
-
-            // Convert the modified string back to a filesystem path
-            filePath = std::filesystem::path(filePathStr).replace_extension(".tiff");
-            if (!std::filesystem::exists(filePath.parent_path())) {
-                try {
-                    std::filesystem::create_directories(filePath.parent_path());
-                } catch (std::exception &e) {
-                }
-            }
-            TIFF *out = TIFFOpen(filePath.string().c_str(), "w");
-            if (!out) {
-                Log::Logger::getInstance()->error("Could not open TIFF file for writing: {}",
-                                                  filePath.string().c_str());
-                return;
-            }
-            float *depthData = static_cast<float *>(data);
-            const float nearPlane = 0.1f;
-            const float farPlane = 100.0f;
-
-            // Define your baseline and focal length
-            const float baseline = 0.5f; // example baseline value
-            const float focalLength = 800.0f; // example focal length in pixels
-            // Calculate disparity for each pixel
-            for (int i = 0; i < width * height; i++) {
-                // Depth value from 0 to 1
-                float depthNDC = depthData[i];
-
-                // Convert normalized depth to world space depth
-                float depthWorld = (2.0f * nearPlane * farPlane) /
-                                   (farPlane + nearPlane - depthNDC * (farPlane - nearPlane));
-
-                // Calculate disparity
-                float disparity = (baseline * focalLength) / depthWorld;
-
-                // Store the disparity value or use it as needed
-                depthData[i] = disparity;
-            }
-
-
-            TIFFSetField(out, TIFFTAG_IMAGEWIDTH, width);
-            TIFFSetField(out, TIFFTAG_IMAGELENGTH, height);
-            TIFFSetField(out, TIFFTAG_SAMPLESPERPIXEL, 1);
-            TIFFSetField(out, TIFFTAG_BITSPERSAMPLE, 32);
-            TIFFSetField(out, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);
-            TIFFSetField(out, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
-            TIFFSetField(out, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
-            TIFFSetField(out, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_IEEEFP);
-
-            TIFFSetField(out, TIFFTAG_ROWSPERSTRIP, TIFFDefaultStripSize(out, width));
-
-            // Write the data
-            for (uint32_t row = 0; row < height; row++) {
-                if (TIFFWriteScanline(out, &depthData[row * width], row, 0) < 0) {
-                    Log::Logger::getInstance()->error("Failed to write TIFF scanline for row {}", row);
-                    break;
-                }
-            }
-
-            TIFFClose(out);
-            Log::Logger::getInstance()->info("Depth image saved as TIFF to: {}", filePath.string().c_str());
-
-            vkUnmapMemory(m_context->vkDevice().m_LogicalDevice, stagingBuffer.memory);
-        }
-        */
     }
 
     void Editor::update() {

@@ -59,6 +59,15 @@ namespace VkRender {
 
         }
 
+
+        if (imageUI->iterate){
+            torch::Tensor image = diffRenderEntry->getImage().contiguous().to(torch::kFloat32);;
+            m_colorTexture = EditorUtils::createEmptyTexture(diffRenderEntry->getImageSize(), diffRenderEntry->getImageSize(), VK_FORMAT_R32_SFLOAT, m_context);
+            size_t dataSize = diffRenderEntry->getImageSize() * diffRenderEntry->getImageSize() * sizeof(float);
+
+            m_colorTexture->loadImage(image.data_ptr(), dataSize);
+        }
+
     }
 
     void EditorImage::onMouseMove(const MouseButtons &mouse) {
@@ -92,7 +101,9 @@ namespace VkRender {
             return;
         PipelineKey key = {};
         key.setLayouts.resize(1);
-        if (m_ui->resizeActive) {
+        auto imageUI = std::dynamic_pointer_cast<EditorImageUI>(m_ui);
+
+        if (imageUI->iterate) {
             m_descriptorRegistry.getManager(DescriptorType::Viewport3DTexture).freeDescriptorSets();
         }
         // Prepare descriptor writes based on your texture or other resources
@@ -112,7 +123,7 @@ namespace VkRender {
         key.setLayouts[0] = m_descriptorRegistry.getManager(DescriptorType::Viewport3DTexture).getDescriptorSetLayout();
         // Use default descriptor set layout
         key.vertexShaderName = "default2D.vert";
-        key.fragmentShaderName = "default2D.frag";
+        key.fragmentShaderName = "EditorImageViewportTexture.frag";
         key.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         key.polygonMode = VK_POLYGON_MODE_FILL;
         std::vector<VkVertexInputBindingDescription> vertexInputBinding = {

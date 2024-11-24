@@ -6,11 +6,20 @@
 
 
 namespace VkRender::DR {
-    RenderGaussian::RenderGaussian(int64_t image_size_) : image_size(image_size_) {
+    RenderGaussian::RenderGaussian(int64_t image_size_) : m_imageSize(image_size_) {
         torch::TensorOptions options = torch::TensorOptions().dtype(torch::kFloat32);
 
-        torch::Tensor xv_, yv_;
+        // Create 1D tensors for x and y coordinates
+        torch::Tensor x = torch::arange(0, image_size_, options); // [0, 1, ..., image_size - 1]
+        torch::Tensor y = torch::arange(0, image_size_, options);
 
+        // Create 2D tensors using meshgrid
+        auto meshgrid = torch::meshgrid({x, y}, /*indexing=*/"ij");
+        xv = meshgrid[0];
+        yv = meshgrid[1];
+
+        xv = xv.to(torch::kCUDA);
+        yv = yv.to(torch::kCUDA);
 
     }
 
@@ -19,17 +28,17 @@ namespace VkRender::DR {
 
         variance = torch::nn::functional::softplus(variance) + min_variance;
 
-        last_rendered_image = RenderGaussianFunction::apply(
+        m_lastRenderedImage = RenderGaussianFunction::apply(
                 center,
                 variance,
                 xv,
                 yv
         );
 
-        return last_rendered_image;
+        return m_lastRenderedImage.clone();
     }
 
-    torch::Tensor RenderGaussian::get_rendered_image() {
-        return last_rendered_image;
+    torch::Tensor RenderGaussian::getLastRenderedImage() {
+        return m_lastRenderedImage;
     }
 }

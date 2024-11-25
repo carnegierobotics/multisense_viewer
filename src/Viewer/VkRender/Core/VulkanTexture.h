@@ -42,6 +42,8 @@ namespace VkRender {
 
         void loadImage(void *data, uint32_t size);
         uint32_t getSize(){return m_image->getImageSize();}
+        uint32_t width(){return m_image->width();}
+        uint32_t height(){return m_image->height();}
     };
 }
 

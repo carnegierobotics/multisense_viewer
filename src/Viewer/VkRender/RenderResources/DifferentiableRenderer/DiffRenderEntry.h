@@ -2,14 +2,16 @@
 #define DIFFRENDERENTRY_H
 #include <memory>
 
-
-namespace VkRender::DR {
-
 #ifdef PYTORCH_ENABLED
 
 #include <torch/torch.h>
 #include "Viewer/VkRender/RenderResources/DifferentiableRenderer/RenderGaussian.h"
 #include "Viewer/VkRender/RenderResources/DifferentiableRenderer/Utils.h"
+#endif
+
+namespace VkRender::DR {
+
+#ifdef PYTORCH_ENABLED
 
     class DiffRenderEntry {
     public:
@@ -36,10 +38,10 @@ namespace VkRender::DR {
         // Enable or disable iteration on update
         void setIterateOnUpdate(bool iterate);
 
-        torch::Tensor getImage() {
+        void* getImage() {
             if (renderer.getLastRenderedImage().defined())
-                return renderer.getLastRenderedImage().clone().detach().contiguous().cpu().to(torch::kFloat32);
-            return torch::zeros(renderer.imageSize());
+                return renderer.getLastRenderedImage().clone().detach().contiguous().cpu().to(torch::kFloat32).data_ptr();
+            return nullptr;
         }
 
         uint32_t getImageSize(){

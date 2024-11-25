@@ -74,7 +74,7 @@ if (PYTORCH_AVAILABLE)
         set(CMAKE_CUDA_STANDARD_REQUIRED ON)
         set(CMAKE_CUDA_EXTENSIONS OFF)
         message(STATUS "[VkRenderINFO]: CUDA language support enabled.")
-        target_link_libraries(${PROJECT_NAME} PRIVATE )
+        target_link_libraries(${PROJECT_NAME} PRIVATE ${TORCH_LIBRARIES} cuda cudart cupti)
 
     elseif (USE_ROCM)
         enable_language(HIP)
@@ -85,11 +85,11 @@ if (PYTORCH_AVAILABLE)
         # Add any ROCm-specific setup if necessary (e.g., include ROCm libraries or headers)
         message(STATUS "[VkRenderINFO]: ROCm-specific setup would go here if needed.")
     endif ()
-
-
-    target_link_libraries(${PROJECT_NAME} PRIVATE ${TORCH_LIBRARIES} cuda cudart cupti)
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${TORCH_LIBRARIES})
     target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE ${TORCH_INCLUDE_DIRS})
     message(STATUS "[VkRenderINFO]: PyTorch libraries successfully linked.")
+    target_compile_definitions(${PROJECT_NAME} PRIVATE PYTORCH_ENABLED)
+
 else ()
     message(STATUS "[VkRenderINFO]: Skipping PyTorch setup as it is not available.")
 endif ()
@@ -188,6 +188,7 @@ set(SOURCE_FILES
         src/Viewer/Application/Application.cpp
         src/Viewer/Application/UsageMonitor.cpp
         src/Viewer/Application/ApplicationUserSettings.h
+        src/Viewer/Application/ProjectSerializer.cpp
 
         src/Viewer/VkRender/RenderResources/DefaultGraphicsPipeline.cpp
         src/Viewer/VkRender/RenderResources/GraphicsPipeline2D.cpp

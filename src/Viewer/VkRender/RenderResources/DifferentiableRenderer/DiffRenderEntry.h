@@ -1,11 +1,15 @@
 #ifndef DIFFRENDERENTRY_H
 #define DIFFRENDERENTRY_H
+#include <memory>
+
+
+namespace VkRender::DR {
+
+#ifdef PYTORCH_ENABLED
 
 #include <torch/torch.h>
 #include "Viewer/VkRender/RenderResources/DifferentiableRenderer/RenderGaussian.h"
 #include "Viewer/VkRender/RenderResources/DifferentiableRenderer/Utils.h"
-
-namespace VkRender::DR {
 
     class DiffRenderEntry {
     public:
@@ -34,7 +38,7 @@ namespace VkRender::DR {
 
         torch::Tensor getImage() {
             if (renderer.getLastRenderedImage().defined())
-                return renderer.getLastRenderedImage().clone().detach().contiguous().cpu();
+                return renderer.getLastRenderedImage().clone().detach().contiguous().cpu().to(torch::kFloat32);
             return torch::zeros(renderer.imageSize());
         }
 
@@ -77,7 +81,40 @@ namespace VkRender::DR {
 
         std::unique_ptr<OptimizerPackage> m_package;
     };
+#else // PYTORCH_ENABLED
+    /**@brief Empty class in case we are not enabling differentiable renderer **/
+  class DiffRenderEntry {
+    public:
+        DiffRenderEntry() = default;
 
+        // Setup method to initialize the renderer and optimizer
+        void setup() {}
+
+        // Update method to perform updates per frame or as needed
+        void update() {}
+
+        // Iterate method to perform an optimization step
+        void iterate() {}
+
+        // Enable or disable iteration on update
+        void setIterateOnUpdate(bool iterate) {}
+
+        void* getImage() {
+
+            return nullptr;
+        }
+
+        uint32_t getImageSize(){
+            return 256;
+        }
+
+    private:
+
+        bool iterateOnUpdate = true;
+        uint32_t m_iteration = 0;
+
+    };
+#endif // PYTORCH_ENABLED
 } // namespace VkRender::DR
 
 #endif // DIFFRENDERENTRY_H

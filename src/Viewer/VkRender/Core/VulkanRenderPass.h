@@ -68,55 +68,8 @@ namespace VkRender {
 
     };
 
-    struct EditorCreateInfo {
-        VulkanRenderPassCreateInfo pPassCreateInfo{};
-        VulkanDevice *vulkanDevice = nullptr;
-        VmaAllocator *allocator = nullptr;
-        Application* context;
-        VkFramebuffer *frameBuffers{};
-
-        int32_t x = 0;
-        int32_t y = 0;
-        int32_t borderSize = 5;
-        int32_t width = 10;
-        int32_t height = 10;
-
-        EditorType editorTypeDescription = EditorType::TestWindow;
-        bool resizeable = true;
-        size_t editorIndex = 0;
-        std::vector<std::string> uiLayers;
-        ImGuiContext *uiContext = nullptr;
-
-        std::shared_ptr<GuiAssets> guiResources;
-
-        EditorCreateInfo(std::shared_ptr<GuiAssets> guiRes, Application* ctx,
-                         VulkanDevice *dev, VmaAllocator *alloc, VkFramebuffer* fbs)
-                : vulkanDevice(dev), allocator(alloc), guiResources(std::move(guiRes)), context(ctx), frameBuffers(fbs) {
-        }
-
-
-        static void copy(EditorCreateInfo *dst, EditorCreateInfo *src) {
-            dst->pPassCreateInfo = src->pPassCreateInfo;
-            dst->vulkanDevice = src->vulkanDevice;
-            dst->allocator = src->allocator;
-            dst->frameBuffers = src->frameBuffers;
-            dst->width = src->width;
-            dst->height = src->height;
-
-            dst->x = src->x;
-            dst->y = src->y;
-            dst->borderSize = src->borderSize;
-            dst->editorTypeDescription = src->editorTypeDescription;
-            dst->resizeable = src->resizeable;
-            dst->editorIndex = src->editorIndex;
-            dst->uiContext = src->uiContext;
-            dst->uiLayers = src->uiLayers;
-        };
-    };
 
     struct VulkanRenderPass {
-    public:
-
         VulkanRenderPass() = delete;
 
         explicit VulkanRenderPass(const VulkanRenderPassCreateInfo *createInfo);

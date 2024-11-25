@@ -15,7 +15,7 @@ namespace VkRender::EditorUtils {
         VkImageCreateInfo imageCI = Populate::imageCreateInfo();
         imageCI.imageType = VK_IMAGE_TYPE_2D;
         imageCI.format = format;
-        imageCI.extent = {static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1};
+        imageCI.extent = {width, height, 1};
         imageCI.mipLevels = 1;
         imageCI.arrayLayers = 1;
         imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -150,7 +150,7 @@ namespace VkRender::EditorUtils {
                 openLocation = opts.lastOpenedImportModelFolderPath.remove_filename().string();
             }
 
-            *loadFolderFuture = std::async(VkRender::LayerUtils::saveFile, "Save as", openLocation, flow);
+            *loadFolderFuture = std::async(VkRender::LayerUtils::saveFile, "Save as", type, openLocation, flow);
         }
     }
 

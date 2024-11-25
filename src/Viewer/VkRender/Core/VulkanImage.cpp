@@ -10,13 +10,14 @@
 namespace VkRender {
     VulkanImage::VulkanImage(VkRender::VulkanImageCreateInfo &createInfo) : m_vulkanDevice(
             createInfo.vulkanDevice), m_allocator(createInfo.allocator) {
-
+        // TODO add warning about adding a image with size of zero. Maybe
         std::string description = createInfo.debugInfo;
         VmaAllocationCreateInfo allocInfo = {};
         allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
         VkResult result = vmaCreateImage(m_allocator, &createInfo.imageCreateInfo, &allocInfo, &m_image,
                                          &m_allocation, nullptr);
-        if (result != VK_SUCCESS) throw std::runtime_error("Failed to create image");
+        if (result != VK_SUCCESS)
+            throw std::runtime_error("Failed to create image");
         vmaSetAllocationName(m_allocator, m_allocation, (description + "Image").c_str());
         VALIDATION_DEBUG_NAME(m_vulkanDevice.m_LogicalDevice,
                               reinterpret_cast<uint64_t>(m_image), VK_OBJECT_TYPE_IMAGE,

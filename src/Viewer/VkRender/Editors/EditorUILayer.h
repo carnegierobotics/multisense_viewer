@@ -35,6 +35,7 @@ namespace VkRender {
         void togglePopup() {
             static bool toggles[] = {true, false, false, false, false};
             // Options for the combo box
+            /*
             auto items = m_context->getProjectConfig().editorTypes;
             static int item_current_idx = 0; // Here we store our current item index
             m_editor->ui()->changed = false;
@@ -52,6 +53,7 @@ namespace VkRender {
                 ImGui::MenuItem("Console", nullptr, &m_editor->ui()->showDebugWindow);
                 ImGui::EndPopup();
             }
+            */
         }
 
         /** Called once per frame **/

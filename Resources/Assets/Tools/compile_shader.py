@@ -77,7 +77,7 @@ def main():
         for file in glob.glob(os.path.join(scene_out_dir, '**', '*.spv'), recursive=True):
             try:
                 if not os.path.exists(os.path.join(out_dir, os.path.relpath(file, scene_out_dir))):
-                    os.makedirs(os.path.join(out_dir, os.path.relpath(file, scene_out_dir)), exist_ok=True)
+                    os.makedirs(os.path.join(out_dir), exist_ok=True)
                 shutil.copy(file, os.path.join(out_dir, os.path.relpath(file, scene_out_dir)))
             except Exception as e:
                 print(e)

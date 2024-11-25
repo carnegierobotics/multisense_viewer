@@ -1,0 +1,35 @@
+sceneName: "Default Scene"
+projectName: "DifferentiableRenderer"
+logLevel: 2
+editors:
+  - borderSize: 5
+    editorTypeDescription: "3D Viewport"
+    width: 40
+    height: 100
+    x: 0
+    y: 0
+  - borderSize: 5
+    editorTypeDescription: "Image Editor"
+    width: 40
+    height: 50
+    x: 40
+    y: 0
+  - borderSize: 5
+    editorTypeDescription: "Image Editor"
+    width: 40
+    height: 50
+    x: 40
+    y: 50
+  - borderSize: 5
+    editorTypeDescription: "Properties"
+    width: 20
+    height: 75
+    x: 80
+    y: 25
+  - borderSize: 5
+    editorTypeDescription: "Scene Hierarchy"
+    width: 20
+    height: 25
+    x: 80
+    y: 0
+

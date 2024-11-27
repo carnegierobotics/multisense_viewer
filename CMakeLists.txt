@@ -111,15 +111,16 @@ if (ENABLE_SYCL)
         # Find the AdaptiveCpp package
         find_package(AdaptiveCpp REQUIRED)
         # Check if ACPP_TARGETS is passed via command line or environment
-        #set(ACPP_TARGETS "omp")
+        set(ACPP_TARGETS "generic")
         # Print a message showing which targets are being used
         message(STATUS "[VkRenderINFO]: Using AdaptiveCpp with targets: ${ACPP_TARGETS} to project name ${PROJECT_NAME}")
-        add_sycl_to_target(TARGET ${PROJECT_NAME})
         # Add sycl to target using AdaptiveCpp's helper
-        target_link_libraries(${PROJECT_NAME} PRIVATE -ltbb -fopenmp -lfmt)
-        if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+        add_sycl_to_target(TARGET ${PROJECT_NAME} TARGETS ${ACPP_TARGETS})
+        target_link_libraries(${PROJECT_NAME} PRIVATE -ltbb)
+        if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+            target_compile_options(${PROJECT_NAME} PRIVATE -O0 -g)
             message(STATUS "[VkRenderINFO]: Compiling using AdaptiveCpp without optimization")
-        endif ()
+        endif()
     else ()
         message(FATAL_ERROR "[VkRenderERROR]: Unknown SYCL backend. Choose either 'dpcpp' or 'adaptivecpp'.")
     endif ()
@@ -152,7 +153,7 @@ include_directories(src)
 include_directories(Resources/Assets)
 include_directories(SYSTEM external/ffmpeg/include)
 include_directories(SYSTEM ${Vulkan_INCLUDE_DIRS})
-include_directories(SYSTEM src/Viewer/VkRender/ImGui/Custom)
+include_directories(SYSTEM src/Viewer/Rendering/ImGui/Custom)
 
 # Find Doxygen for documentation
 find_package(Doxygen)
@@ -167,21 +168,21 @@ set(INSTALL_DIRECTORY ${CMAKE_BINARY_DIR}/multisense_${PROJECT_VERSION}_${CMAKE_
 
 set(SOURCE_FILES
         src/main.cpp
-        src/Viewer/VkRender/Core/Buffer.cpp
-        src/Viewer/VkRender/Core/VulkanDevice.cpp
-        src/Viewer/VkRender/Core/VulkanRenderer.cpp
-        src/Viewer/VkRender/Core/VulkanSwapchain.cpp
-        src/Viewer/VkRender/Core/UUID.cpp
-        src/Viewer/VkRender/Core/ServerConnection.cpp
-        src/Viewer/VkRender/Core/CommandBuffer.cpp
-        src/Viewer/VkRender/Core/VulkanRenderPass.cpp
-        src/Viewer/VkRender/Core/VulkanResourceManager.cpp
-        src/Viewer/VkRender/Core/VulkanGraphicsPipeline.cpp
-        src/Viewer/VkRender/Core/VulkanImage.cpp
-        src/Viewer/VkRender/Core/VulkanFramebuffer.cpp
-        src/Viewer/VkRender/Core/VulkanTexture.cpp
-        src/Viewer/VkRender/Core/VulkanTexture.h
-        src/Viewer/VkRender/Core/Entity.cpp
+        src/Viewer/Rendering/Core/Buffer.cpp
+        src/Viewer/Rendering/Core/VulkanDevice.cpp
+        src/Viewer/Rendering/Core/VulkanRenderer.cpp
+        src/Viewer/Rendering/Core/VulkanSwapchain.cpp
+        src/Viewer/Rendering/Core/UUID.cpp
+        src/Viewer/Rendering/Core/ServerConnection.cpp
+        src/Viewer/Rendering/Core/CommandBuffer.cpp
+        src/Viewer/Rendering/Core/VulkanRenderPass.cpp
+        src/Viewer/Rendering/Core/VulkanResourceManager.cpp
+        src/Viewer/Rendering/Core/VulkanGraphicsPipeline.cpp
+        src/Viewer/Rendering/Core/VulkanImage.cpp
+        src/Viewer/Rendering/Core/VulkanFramebuffer.cpp
+        src/Viewer/Rendering/Core/VulkanTexture.cpp
+        src/Viewer/Rendering/Core/VulkanTexture.h
+        src/Viewer/Scenes/Entity.cpp
 
         src/Viewer/Application/ApplicationConfig.cpp
         src/Viewer/Application/pch.cpp
@@ -190,35 +191,35 @@ set(SOURCE_FILES
         src/Viewer/Application/ApplicationUserSettings.h
         src/Viewer/Application/ProjectSerializer.cpp
 
-        src/Viewer/VkRender/RenderResources/DefaultGraphicsPipeline.cpp
-        src/Viewer/VkRender/RenderResources/GraphicsPipeline2D.cpp
+        src/Viewer/Rendering/RenderResources/DefaultGraphicsPipeline.cpp
+        src/Viewer/Rendering/RenderResources/GraphicsPipeline2D.cpp
 
         src/Viewer/Scenes/Scene.cpp
         src/Viewer/Scenes/SceneSerializer.cpp
 
-        src/Viewer/VkRender/Components/MeshComponent.cpp
-        src/Viewer/VkRender/Components/ImageComponent.cpp
-        src/Viewer/VkRender/Components/PointCloudComponent.h
+        src/Viewer/Rendering/Components/MeshComponent.cpp
+        src/Viewer/Rendering/Components/ImageComponent.cpp
+        src/Viewer/Rendering/Components/PointCloudComponent.h
 
-        src/Viewer/VkRender/ImGui/Widgets.cpp
-        src/Viewer/VkRender/ImGui/GuiManager.cpp
-        src/Viewer/VkRender/ImGui/AdditionalWindows/DebugWindow.h
-        src/Viewer/VkRender/ImGui/LayerFactory.cpp
-        src/Viewer/VkRender/ImGui/GuiResources.cpp
+        src/Viewer/Rendering/ImGui/Widgets.cpp
+        src/Viewer/Rendering/ImGui/GuiManager.cpp
+        src/Viewer/Rendering/ImGui/AdditionalWindows/DebugWindow.h
+        src/Viewer/Rendering/ImGui/LayerFactory.cpp
+        src/Viewer/Rendering/ImGui/GuiResources.cpp
 
-        src/Viewer/VkRender/Editors/Editor.cpp
-        src/Viewer/VkRender/Editors/Common/3DViewport/Editor3DViewport.cpp
-        src/Viewer/VkRender/Editors/Common/ImageEditor/EditorImage.cpp
-        src/Viewer/VkRender/Editors/MainContextLayer.h
-        src/Viewer/VkRender/Editors/MultiSenseViewer/Layers/LayoutSettingsLayer.h
-        src/Viewer/VkRender/Editors/Video/VideoSource.cpp
-        src/Viewer/VkRender/Editors/Video/VideoPlaybackSystem.cpp
-        src/Viewer/VkRender/Editors/Common/SceneRenderer.cpp
-        src/Viewer/VkRender/Editors/Common/SceneHierarchy/SceneHierarchyLayer.cpp
-        src/Viewer/VkRender/Editors/PipelineKey.cpp
-        src/Viewer/VkRender/Editors/Common/Properties/PropertiesLayer.cpp
-        src/Viewer/VkRender/Editors/PipelineManager.cpp
-        src/Viewer/VkRender/Editors/DescriptorSetManager.cpp
+        src/Viewer/Rendering/Editors/Editor.cpp
+        src/Viewer/Rendering/Editors/Common/3DViewport/Editor3DViewport.cpp
+        src/Viewer/Rendering/Editors/Common/ImageEditor/EditorImage.cpp
+        src/Viewer/Rendering/Editors/MainContextLayer.h
+        src/Viewer/Rendering/Editors/MultiSenseViewer/Layers/LayoutSettingsLayer.h
+        src/Viewer/Rendering/Editors/Video/VideoSource.cpp
+        src/Viewer/Rendering/Editors/Video/VideoPlaybackSystem.cpp
+        src/Viewer/Rendering/Editors/Common/SceneRenderer.cpp
+        src/Viewer/Rendering/Editors/Common/SceneHierarchy/SceneHierarchyLayer.cpp
+        src/Viewer/Rendering/Editors/PipelineKey.cpp
+        src/Viewer/Rendering/Editors/Common/Properties/PropertiesLayer.cpp
+        src/Viewer/Rendering/Editors/PipelineManager.cpp
+        src/Viewer/Rendering/Editors/DescriptorSetManager.cpp
 
         src/Viewer/Tools/StbInclude.cpp
         src/Viewer/Tools/Logger.cpp
@@ -252,10 +253,13 @@ set(LIBRARIES
 # Add SYCL-specific files
 if (ENABLE_SYCL)
     set(SYCL_SOURCES
-            src/Viewer/VkRender/RenderResources/2DGS/SYCLGaussian2D.cpp
-            src/Viewer/VkRender/RenderResources/3DGS/SYCLGaussian3D.cpp
-            src/Viewer/VkRender/Core/SyclDeviceSelector.h
-            src/Viewer/VkRender/Editors/Common/GaussianViewer/EditorGaussianViewer.cpp
+            src/Viewer/Rendering/RenderResources/2DGS/SYCLGaussian2D.cpp
+            src/Viewer/Rendering/RenderResources/3DGS/SYCLGaussian3D.cpp
+            src/Viewer/Tools/SyclDeviceSelector.h
+            src/Viewer/Rendering/Editors/Common/GaussianViewer/EditorGaussianViewer.cpp
+            src/Viewer/Rendering/RenderResources/Raytracer/RayTracer.cpp
+            src/Viewer/Rendering/RenderResources/Raytracer/RayTracerKernels.cpp
+
     )
     list(APPEND SOURCE_FILES ${SYCL_SOURCES})
     message(STATUS "[VkRenderINFO]: SYCL: Adding Gaussian Renderer to source")
@@ -265,9 +269,9 @@ endif ()# Add SYCL-specific files
 
 if (${ENABLE_PYTORCH})
     set (DIFF_RENDER_SOURCES
-            src/Viewer/VkRender/RenderResources/DifferentiableRenderer/RenderGaussianFunction.cpp
-            src/Viewer/VkRender/RenderResources/DifferentiableRenderer/RenderGaussian.cpp
-            src/Viewer/VkRender/RenderResources/DifferentiableRenderer/DiffRenderEntry.cpp
+            src/Viewer/Rendering/RenderResources/DifferentiableRenderer/RenderGaussianFunction.cpp
+            src/Viewer/Rendering/RenderResources/DifferentiableRenderer/RenderGaussian.cpp
+            src/Viewer/Rendering/RenderResources/DifferentiableRenderer/DiffRenderEntry.cpp
     )
     list(APPEND SOURCE_FILES ${DIFF_RENDER_SOURCES})
 

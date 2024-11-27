@@ -7,11 +7,11 @@
 #include "Viewer/Scenes/SceneSerializer.h"
 
 #include <Viewer/Application/ApplicationConfig.h>
-#include <Viewer/VkRender/Components/MaterialComponent.h>
+#include <Viewer/Rendering/Components/MaterialComponent.h>
 
-#include "Viewer/VkRender/Core/Entity.h"
-#include "Viewer/VkRender/Components/Components.h"
-#include "Viewer/VkRender/Components/GaussianComponent.h"
+#include "Viewer/Scenes/Entity.h"
+#include "Viewer/Rendering/Components/Components.h"
+#include "Viewer/Rendering/Components/GaussianComponent.h"
 
 namespace VkRender::Serialize {
     static std::string PolygonModeToString(VkPolygonMode mode) {

@@ -38,9 +38,9 @@
 
 #include "ProjectSerializer.h"
 #include "Viewer/Scenes/SceneSerializer.h"
-#include "Viewer/VkRender/Core/UUID.h"
+#include "Viewer/Rendering/Core/UUID.h"
 #include "Viewer/Tools/Utils.h"
-#include "Viewer/VkRender/Editors/EditorDefinitions.h"
+#include "Viewer/Rendering/Editors/EditorDefinitions.h"
 
 namespace VkRender {
     Application::Application(const std::string& title) : VulkanRenderer(title) {

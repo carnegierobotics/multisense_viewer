@@ -2,17 +2,17 @@
 // Created by magnus on 8/13/24.
 //
 
-#include "Viewer/VkRender/Core/Entity.h"
+#include "Viewer/Scenes/Entity.h"
 
 #include "Viewer/Scenes/Scene.h"
 
-#include <Viewer/VkRender/Components/GaussianComponent.h>
+#include <Viewer/Rendering/Components/GaussianComponent.h>
 
-#include "Viewer/VkRender/Components/Components.h"
-#include "Viewer/VkRender/Components/MeshComponent.h"
-#include "Viewer/VkRender/Components/ImageComponent.h"
+#include "Viewer/Rendering/Components/Components.h"
+#include "Viewer/Rendering/Components/MeshComponent.h"
+#include "Viewer/Rendering/Components/ImageComponent.h"
 #include "Viewer/Application/Application.h"
-#include "Viewer/VkRender/Components/PointCloudComponent.h"
+#include "Viewer/Rendering/Components/PointCloudComponent.h"
 
 namespace VkRender {
     Scene::Scene(VkRender::Application *context) {

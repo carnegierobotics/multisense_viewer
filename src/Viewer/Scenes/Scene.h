@@ -6,12 +6,12 @@
 #define MULTISENSE_VIEWER_SCENE_H
 
 #include <entt/entt.hpp>
-#include <Viewer/VkRender/Components/MaterialComponent.h>
+#include <Viewer/Rendering/Components/MaterialComponent.h>
 
-#include "Viewer/VkRender/Core/CommandBuffer.h"
-#include "Viewer/VkRender/Core/UUID.h"
-#include "Viewer/VkRender/Components/Components.h"
-#include "Viewer/VkRender/Components/PointCloudComponent.h"
+#include "Viewer/Rendering/Core/CommandBuffer.h"
+#include "Viewer/Rendering/Core/UUID.h"
+#include "Viewer/Rendering/Components/Components.h"
+#include "Viewer/Rendering/Components/PointCloudComponent.h"
 
 namespace VkRender {
     class Application;

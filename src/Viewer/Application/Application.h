@@ -1,5 +1,5 @@
 /**
- * @file: MultiSense-Viewer/include/Viewer/VkRender/Renderer.h
+ * @file: MultiSense-Viewer/include/Viewer/Rendering/Renderer.h
  *
  * Copyright 2022
  * Carnegie Robotics, LLC
@@ -44,10 +44,10 @@
 
 #include "Viewer/Application/Project.h"
 #include "Viewer/Application/UsageMonitor.h"
-#include "Viewer/VkRender/Core/VulkanRenderer.h"
-#include "Viewer/VkRender/Core/UUID.h"
-#include "Viewer/VkRender/Editors/Editor.h"
-#include "Viewer/VkRender/Editors/EditorFactory.h"
+#include "Viewer/Rendering/Core/VulkanRenderer.h"
+#include "Viewer/Rendering/Core/UUID.h"
+#include "Viewer/Rendering/Editors/Editor.h"
+#include "Viewer/Rendering/Editors/EditorFactory.h"
 #include "Viewer/Scenes/Scene.h"
 #include "Viewer/Modules/MultiSense/MultiSenseRendererBridge.h"
 

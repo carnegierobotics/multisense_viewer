@@ -5,7 +5,7 @@
 #ifndef EDITORLAYOUTSERIALIZER_H
 #define EDITORLAYOUTSERIALIZER_H
 
-#include "Viewer/VkRender/Editors/Editor.h"
+#include "Viewer/Rendering/Editors/Editor.h"
 #include "Viewer/Application/Project.h"
 
 

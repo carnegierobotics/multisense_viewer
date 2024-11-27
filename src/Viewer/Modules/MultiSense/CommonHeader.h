@@ -8,7 +8,7 @@
 #include <ranges>
 
 #include "Viewer/Application/pch.h"
-#include "Viewer/VkRender/Core/UUID.h"
+#include "Viewer/Rendering/Core/UUID.h"
 
 namespace VkRender::MultiSense {
 

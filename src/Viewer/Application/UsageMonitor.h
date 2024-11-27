@@ -8,7 +8,7 @@
 #include <filesystem>
 #include <json.hpp>
 
-#include "Viewer/VkRender/Core/ServerConnection.h"
+#include "Viewer/Rendering/Core/ServerConnection.h"
 
 class UsageMonitor {
 public:

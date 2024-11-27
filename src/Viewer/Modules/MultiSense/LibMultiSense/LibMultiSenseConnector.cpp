@@ -43,7 +43,7 @@
 
 #include "Viewer/Modules/MultiSense/LibMultiSense/LibMultiSenseConnector.h"
 #include "Viewer/Modules/MultiSense/LibMultiSense/MultiSenseUtils.h"
-#include "Viewer/VkRender/Core/RenderDefinitions.h"
+#include "Viewer/Rendering/Core/RenderDefinitions.h"
 #include "Viewer/Tools/Utils.h"
 
 namespace VkRender::MultiSense {

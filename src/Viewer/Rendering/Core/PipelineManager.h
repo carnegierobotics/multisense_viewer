@@ -5,23 +5,14 @@
 #ifndef PIPELINEMANAGER_H
 #define PIPELINEMANAGER_H
 
-#include <multisense_viewer/src/Viewer/Rendering/RenderResources/DefaultGraphicsPipeline.h>
-
 #include "Viewer/Scenes/Entity.h"
 #include "Viewer/Rendering/Components/MaterialComponent.h"
-#include "PipelineKey.h"
+#include "Viewer/Rendering/Core/PipelineKey.h"
+#include "Viewer/Rendering/MeshInstance.h"
+#include "Viewer/Rendering/RenderResources/DefaultGraphicsPipeline.h"
 
 namespace VkRender {
 
-    struct RenderCommand {
-        Entity entity;
-        std::shared_ptr<DefaultGraphicsPipeline> pipeline = nullptr;
-        MeshInstance* meshInstance = nullptr;             // GPU-specific mesh data
-        MaterialInstance* materialInstance = nullptr;  // GPU-specific material data
-        PointCloudInstance* pointCloudInstance = nullptr;  // GPU-specific material data
-        std::unordered_map<uint32_t, VkDescriptorSet> descriptorSets; // Add the descriptor set here
-
-    };
 
     class PipelineManager {
     public:

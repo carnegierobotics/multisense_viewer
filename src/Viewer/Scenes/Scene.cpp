@@ -289,6 +289,10 @@ namespace VkRender {
     void Scene::onComponentAdded<TemporaryComponent>(Entity entity, TemporaryComponent &component) {
     }
 
+    template<>
+    void Scene::onComponentAdded<VectorComponent>(Entity entity, VectorComponent &component) {
+    }
+
     /** COMPONENT REMOVE **/
 
     template<>
@@ -357,7 +361,9 @@ namespace VkRender {
     template<>
     void Scene::onComponentRemoved<TemporaryComponent>(Entity entity, TemporaryComponent &component) {
     }
-
+    template<>
+    void Scene::onComponentRemoved<VectorComponent>(Entity entity, VectorComponent &component) {
+    }
 
     /** COMPONENT UPDATE **/
     template<>
@@ -426,6 +432,8 @@ namespace VkRender {
     template<>
     void Scene::onComponentUpdated<TemporaryComponent>(Entity entity, TemporaryComponent &component) {
     }
-
+    template<>
+    void Scene::onComponentUpdated<VectorComponent>(Entity entity, VectorComponent &component) {
+    }
     DISABLE_WARNING_POP
 }

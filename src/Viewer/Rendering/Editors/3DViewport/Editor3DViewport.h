@@ -6,6 +6,7 @@
 #define MULTISENSE_VIEWER_EDITOR3DVIEWPORT_H
 
 #include <multisense_viewer/src/Viewer/Rendering/Core/DescriptorSetManager.h>
+#include <multisense_viewer/src/Viewer/Rendering/Core/DescriptorRegistry.h>
 #include <multisense_viewer/src/Viewer/Rendering/Editors/Video/VideoPlaybackSystem.h>
 #include <multisense_viewer/src/Viewer/Rendering/RenderResources/GraphicsPipeline2D.h>
 
@@ -13,6 +14,8 @@
 #include "Viewer/Rendering/Editors/Editor.h"
 #include "Viewer/Rendering/RenderResources/DefaultGraphicsPipeline.h"
 #include "Viewer/Rendering/Editors/SceneRenderer.h"
+
+#include "Viewer/Rendering/Editors/RenderCommand.h"
 
 namespace VkRender {
 

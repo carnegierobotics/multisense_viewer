@@ -52,8 +52,9 @@
 #endif
 
 #include <GLFW/glfw3.h>
-
+#include <glm/glm.hpp>
 #include "VulkanGraphicsPipeline.h"
+
 
 namespace VkRender {
 
@@ -71,15 +72,12 @@ namespace VkRender {
     /**
      * @brief Default Vertex information
      */
-    struct Vertex {
-        glm::vec3 pos{};
-        glm::vec3 normal{};
-        glm::vec2 uv0{};
-        glm::vec2 uv1{};
-        glm::vec4 color{};
-        glm::vec4 joint0{};
-        glm::vec4 weight0{};
-
+    struct alignas(16) Vertex {
+        glm::vec3 pos;      // 12 bytes + 4 bytes padding
+        glm::vec3 normal;   // 12 bytes + 4 bytes padding
+        glm::vec2 uv0;      // 8 bytes + 8 bytes padding
+        glm::vec2 uv1;      // 8 bytes + 8 bytes padding
+        glm::vec4 color;    // 16 bytes
         bool operator==(const Vertex &other) const {
             return pos == other.pos && color == other.color && uv0 == other.uv0;
         }
@@ -188,5 +186,34 @@ namespace VkRender {
     };
 }
 
+namespace std {
+    template <>
+    struct hash<glm::vec3> {
+        size_t operator()(const glm::vec3& v) const noexcept {
+            size_t h1 = std::hash<float>{}(v.x);
+            size_t h2 = std::hash<float>{}(v.y);
+            size_t h3 = std::hash<float>{}(v.z);
+            return h1 ^ (h2 << 1) ^ (h3 << 2); // Combine the hashes
+        }
+    };
+
+    template <>
+    struct hash<glm::vec2> {
+        size_t operator()(const glm::vec2& v) const noexcept {
+            size_t h1 = std::hash<float>{}(v.x);
+            size_t h2 = std::hash<float>{}(v.y);
+            return h1 ^ (h2 << 1); // Combine the hashes
+        }
+    };
+
+    template<>
+    struct hash<VkRender::Vertex> {
+        size_t operator()(VkRender::Vertex const &vertex) const {
+            return ((hash<glm::vec3>()(vertex.pos) ^
+                     (hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^
+                   (hash<glm::vec2>()(vertex.uv0) << 1);
+        }
+    };
+};
 
 #endif //MULTISENSE_DEFINITIONS_H

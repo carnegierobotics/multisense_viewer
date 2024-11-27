@@ -8,6 +8,8 @@
 #include "Viewer/Application/Application.h"
 #include "Viewer/Rendering/ImGui/LayerUtils.h"
 
+#include <stb_image.h>
+
 namespace VkRender::EditorUtils {
 
     static std::shared_ptr<VulkanTexture2D> createEmptyTexture(uint32_t width, uint32_t height, VkFormat format,

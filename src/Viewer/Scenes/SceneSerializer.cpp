@@ -212,11 +212,11 @@ namespace VkRender {
             out << YAML::BeginMap;
             auto &mesh = entity.getComponent<MeshComponent>();
             out << YAML::Key << "ModelPath";
-            out << YAML::Value << mesh.m_meshPath.string();
+            out << YAML::Value << mesh.modelPath().string();
             out << YAML::Key << "MeshDataType";
-            out << YAML::Value << Serialize::MeshDataTypeToString(mesh.m_type);
+            out << YAML::Value << Serialize::MeshDataTypeToString(mesh.meshDataType());
             out << YAML::Key << "PolygonMode";
-            out << YAML::Value << Serialize::PolygonModeToString(mesh.polygonMode); // Serialize PolygonMode as a string
+            out << YAML::Value << Serialize::PolygonModeToString(mesh.polygonMode()); // Serialize PolygonMode as a string
             out << YAML::EndMap;
         }
         if (entity.hasComponent<CameraComponent>()) {
@@ -478,8 +478,8 @@ namespace VkRender {
                     MeshDataType meshDataType = Serialize::stringToMeshDataType(
                             meshComponent["MeshDataType"].as<std::string>());
 
-                    auto &mesh = deserializedEntity.addComponent<MeshComponent>(path, meshDataType);
-                    mesh.polygonMode = Serialize::StringToPolygonMode(
+                    auto &mesh = deserializedEntity.addComponent<MeshComponent>(meshDataType, path);
+                    mesh.polygonMode() = Serialize::StringToPolygonMode(
                             meshComponent["PolygonMode"].as<std::string>());
 
                 }

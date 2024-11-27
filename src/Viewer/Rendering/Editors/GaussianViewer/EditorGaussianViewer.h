@@ -16,6 +16,7 @@
 #include "Viewer/Rendering/RenderResources/2DGS/SYCLGaussian2D.h"
 #include "Viewer/Rendering/RenderResources/3DGS/SYCLGaussian3D.h"
 #include "Viewer/Rendering/RenderResources/DifferentiableRenderer/DiffRenderEntry.h"
+#include "Viewer/Rendering/Editors/RenderCommand.h"
 
 namespace VkRender {
 

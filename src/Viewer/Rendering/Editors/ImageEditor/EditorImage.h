@@ -16,6 +16,7 @@
 
 #include "Viewer/Rendering/RenderResources/DifferentiableRenderer/DiffRenderEntry.h"
 #include "Viewer/Rendering/RenderResources/Raytracer/RayTracer.h"
+#include "Viewer/Rendering/Editors/RenderCommand.h"
 
 namespace VkRender {
 

@@ -226,11 +226,6 @@ namespace VkRender {
             material.fragmentShaderName = "defaultTexture.frag";
             material.albedoTexturePath = "";
 
-            auto &mesh = entity.addComponent<MeshComponent>("",
-                                                            MeshDataType::CAMERA_GIZMO);
-            auto &c = entity.addComponent<TemporaryComponent>();
-
-            mesh.polygonMode = VK_POLYGON_MODE_LINE;
 
             entity.setParent(m_selectionContext);
             m_selectionContext.getComponent<GroupComponent>().colmapPath = colmapFolderPath;
@@ -423,6 +418,7 @@ namespace VkRender {
             displayAddComponentEntry<MaterialComponent>("Material");
             displayAddComponentEntry<PointCloudComponent>("PointCloud");
             displayAddComponentEntry<GaussianComponent>("3DGS Model");
+            displayAddComponentEntry<VectorComponent>("VectorComponent");
 
             ImGui::EndPopup();
         }
@@ -462,7 +458,7 @@ namespace VkRender {
 
         drawComponent<MeshComponent>("Mesh", entity, [this, entity](auto &component) {
             ImGui::Text("MeshFile:");
-            ImGui::Text("%s", component.m_meshPath.string().c_str());
+            ImGui::Text("%s", component.modelPath().string().c_str());
 
 
             // Load mesh from file here:
@@ -481,35 +477,24 @@ namespace VkRender {
             ImGui::SameLine();
             // Load mesh from mesh here:
             if (ImGui::Button("Camera gizmo")) {
-                component.m_type = CAMERA_GIZMO;
+                component.meshDataType() = CAMERA_GIZMO;
                 if (m_selectionContext.hasComponent<MeshComponent>())
                     m_selectionContext.removeComponent<MeshComponent>();
-                m_selectionContext.addComponent<MeshComponent>("", MeshDataType::CAMERA_GIZMO);
+                m_selectionContext.addComponent<MeshComponent>(MeshDataType::CAMERA_GIZMO);
             }
 
             // Polygon Mode Control
             ImGui::Text("Polygon Mode:");
             const char *polygonModes[] = {"Line", "Fill"};
-            int currentMode = (component.polygonMode == VK_POLYGON_MODE_LINE) ? 0 : 1;
+            int currentMode = (component.polygonMode() == VK_POLYGON_MODE_LINE) ? 0 : 1;
             if (ImGui::Combo("Polygon Mode", &currentMode, polygonModes, IM_ARRAYSIZE(polygonModes))) {
                 if (currentMode == 0) {
-                    component.polygonMode = VK_POLYGON_MODE_LINE;
+                    component.polygonMode() = VK_POLYGON_MODE_LINE;
                 } else {
-                    component.polygonMode = VK_POLYGON_MODE_FILL;
+                    component.polygonMode() = VK_POLYGON_MODE_FILL;
                 }
                 m_context->activeScene()->onComponentUpdated(entity, component);
             }
-
-            ImGui::Dummy(ImVec2(10.0f, 10.0f));
-            ImGui::Text("Camera Gizmo properties:");
-            if (component.m_type == CAMERA_GIZMO) {
-                ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x - 100.0f);
-                ImGui::SliderFloat("Focal point", &component.focalPoint, 0.0f, 10.0f);
-                ImGui::PopItemWidth();
-            }
-
-            // Add additional vectors:
-
 
 
         });
@@ -608,6 +593,7 @@ namespace VkRender {
             // Notify scene that material component has been updated
         });
 
+        /*
         drawComponent<PointCloudComponent>("PointCloud", entity, [this](auto &component) {
             ImGui::Text("Point Size");
             ImGui::SliderFloat("##PointSize", &component.pointSize, 0.0f, 10.0f);
@@ -636,6 +622,7 @@ namespace VkRender {
                 ImGui::EndChild();
             }
         });
+        */
         drawComponent<GaussianComponent>("Gaussian Model", entity, [this](auto &component) {
             ImGui::Text("Gaussian Model Properties");
 
@@ -714,6 +701,98 @@ namespace VkRender {
                     addEntitiesFromColmap(component.colmapPath);
             }
         });
+
+        drawComponent<VectorComponent>("VectorComponent", entity, [this](auto &component) {
+            ImGui::Text("Vector:");
+
+            bool update = false;
+
+            update |= drawVec3Control("Origin", component.origin);
+            update |= drawVec3Control("Direction", component.direction);
+            update |= ImGui::SliderFloat("Magnitude", &component.magnitude, 0.0f, 100.0f);
+
+            if (update){
+                // Normalize the direction to ensure consistent scaling
+                component.direction = glm::normalize(component.direction);
+
+                // Calculate the endpoint of the vector
+                glm::vec3 endpoint = component.origin + component.direction * component.magnitude;
+
+                // Cylinder parameters
+                const int segments = 16; // Number of segments for the circular caps
+                float radius = 0.05f * component.magnitude; // Cylinder radius
+
+                // Base and top centers
+                glm::vec3 baseCenter = component.origin;
+                glm::vec3 topCenter = endpoint;
+
+                // Compute orthogonal vectors for the circular base
+                glm::vec3 up = glm::vec3(0, 1, 0); // Arbitrary perpendicular vector
+                if (glm::abs(glm::dot(up, component.direction)) > 0.9f) {
+                    up = glm::vec3(1, 0, 0); // Switch to another perpendicular vector if needed
+                }
+                glm::vec3 right = glm::normalize(glm::cross(component.direction, up));
+                up = glm::normalize(glm::cross(right, component.direction));
+
+                std::vector<Vertex> vertices;
+                std::vector<uint32_t> indices;
+
+                // Generate vertices for the bottom and top circles
+                for (int i = 0; i < segments; ++i) {
+                    float theta = (2.0f * M_PI * i) / segments; // Angle around the circle
+
+                    // Circular offset
+                    glm::vec3 offset = right * cos(theta) * radius + up * sin(theta) * radius;
+
+                    // Bottom circle vertex
+                    vertices.push_back({ baseCenter + offset });
+
+                    // Top circle vertex
+                    vertices.push_back({ topCenter + offset });
+                }
+
+                // Add center vertices for the caps
+                uint32_t baseCenterIndex = static_cast<uint32_t>(vertices.size());
+                vertices.push_back({ baseCenter }); // Bottom center
+                uint32_t topCenterIndex = static_cast<uint32_t>(vertices.size());
+                vertices.push_back({ topCenter });  // Top center
+
+                // Generate indices for the side faces
+                for (int i = 0; i < segments; ++i) {
+                    uint32_t next = (i + 1) % segments;
+
+                    // First triangle of quad
+                    indices.push_back(i);               // Bottom circle vertex
+                    indices.push_back(segments + i);    // Top circle vertex
+                    indices.push_back(segments + next); // Next top circle vertex
+
+                    // Second triangle of quad
+                    indices.push_back(i);           // Bottom circle vertex
+                    indices.push_back(segments + next); // Next top circle vertex
+                    indices.push_back(next);        // Next bottom circle vertex
+                }
+
+                // Generate indices for the bottom cap
+                for (int i = 0; i < segments; ++i) {
+                    uint32_t next = (i + 1) % segments;
+
+                    indices.push_back(baseCenterIndex); // Bottom center
+                    indices.push_back(i);               // Current bottom circle vertex
+                    indices.push_back(next);            // Next bottom circle vertex
+                }
+
+                // Generate indices for the top cap
+                for (int i = 0; i < segments; ++i) {
+                    uint32_t next = (i + 1) % segments;
+
+                    indices.push_back(topCenterIndex);  // Top center
+                    indices.push_back(segments + next); // Next top circle vertex
+                    indices.push_back(segments + i);    // Current top circle vertex
+                }
+
+
+            }
+        });
     }
 
 
@@ -779,7 +858,7 @@ namespace VkRender {
                     // Load into the active scene
                     if (m_selectionContext.hasComponent<MeshComponent>())
                         m_selectionContext.removeComponent<MeshComponent>();
-                    m_selectionContext.addComponent<MeshComponent>(loadFileInfo.path, MeshDataType::OBJ_FILE);
+                    m_selectionContext.addComponent<MeshComponent>(MeshDataType::OBJ_FILE, loadFileInfo.path);
                     break;
                 case LayerUtils::PLY_3DGS: {
 
@@ -793,7 +872,7 @@ namespace VkRender {
                 case LayerUtils::PLY_MESH: {
                     if (m_selectionContext.hasComponent<MeshComponent>())
                         m_selectionContext.removeComponent<MeshComponent>();
-                    m_selectionContext.addComponent<MeshComponent>(loadFileInfo.path, MeshDataType::PLY_FILE);
+                    m_selectionContext.addComponent<MeshComponent>(MeshDataType::PLY_FILE, loadFileInfo.path);
                 }
                     break;
                 case LayerUtils::VIDEO_TEXTURE_FILE: {

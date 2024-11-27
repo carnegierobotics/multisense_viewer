@@ -50,22 +50,7 @@ namespace VkRender::RT {
             auto& meshComponent = entity.getComponent<MeshComponent>();
             auto& transformComponent = entity.getComponent<TransformComponent>();
             // Load mesh data
-            MeshData meshData(meshComponent.m_type, meshComponent.m_meshPath);
-            // Store the starting index and count for this mesh
-            Kernels::MeshInfo meshInfo{};
-            meshInfo.indexOffset = static_cast<uint32_t>(allIndices.size());
-            meshInfo.indexCount = static_cast<uint32_t>(meshData.indices.size());
-            meshInfo.transform = transformComponent.getTransform(); // Assuming it's a 4x4 matrix
-            meshInfos.push_back(meshInfo);
 
-            // Append vertices and indices
-            size_t vertexOffset = allVertices.size();
-            allVertices.insert(allVertices.end(), meshData.vertices.begin(), meshData.vertices.end());
-
-            // Adjust indices for the vertex offset
-            for (auto index : meshData.indices) {
-                allIndices.push_back(static_cast<uint32_t>(index + vertexOffset));
-            }
         }
 
 

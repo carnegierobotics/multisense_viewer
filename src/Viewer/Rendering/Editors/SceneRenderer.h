@@ -5,11 +5,14 @@
 #ifndef MULTISENSE_SCENERENDERER_H
 #define MULTISENSE_SCENERENDERER_H
 
-#include <multisense_viewer/src/Viewer/Rendering/Core/PipelineManager.h>
-#include <multisense_viewer/src/Viewer/Rendering/Core/DescriptorSetManager.h>
+#include "Viewer/Rendering/Core/PipelineManager.h"
+#include "Viewer/Rendering/Core/DescriptorSetManager.h"
+#include "Viewer/Rendering/VulkanMeshResourceManager.h"
+#include "Viewer/Rendering/MeshManager.h"
 
 #include "Viewer/Rendering/Editors/Editor.h"
 #include "Viewer/Rendering/Core/DescriptorRegistry.h"
+#include "Viewer/Rendering/Editors/RenderCommand.h"
 
 namespace VkRender {
     class SceneRenderer : public Editor {
@@ -51,24 +54,22 @@ namespace VkRender {
         std::shared_ptr<Scene> m_activeScene;
 
         PipelineManager m_pipelineManager;
+        DescriptorRegistry descriptorRegistry;
 
         std::unordered_map<UUID, std::shared_ptr<MaterialInstance>> m_materialInstances;
-        std::unordered_map<UUID, std::shared_ptr<MeshInstance>> m_meshInstances;
+        //std::unordered_map<UUID, std::shared_ptr<MeshInstance>> m_meshInstances;
         std::unordered_map<UUID, std::shared_ptr<PointCloudInstance>> m_pointCloudInstances;
 
+        std::unique_ptr<MeshResourceManager> m_meshResourceManager;
+        MeshManager m_meshManager;
+
         struct EntityRenderData {
-            // Mesh rendering and typical shader buffers
             std::vector<std::unique_ptr<Buffer>> cameraBuffer;
             std::vector<std::unique_ptr<Buffer>> modelBuffer;
-            // Camera Gizmo
-            std::vector<std::unique_ptr<Buffer>> uboVertexBuffer;
-            // Material stuff
             std::vector<std::unique_ptr<Buffer>> materialBuffer;
-            // Pount cloud rendering
             std::vector<std::unique_ptr<Buffer>> pointCloudBuffer;
         };
         std::unordered_map<UUID, EntityRenderData> m_entityRenderData;
-        DescriptorRegistry descriptorRegistry;
     public:
 
         void onComponentAdded(Entity entity, MeshComponent& meshComponent) override;

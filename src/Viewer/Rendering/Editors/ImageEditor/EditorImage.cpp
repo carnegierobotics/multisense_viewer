@@ -14,7 +14,7 @@ namespace VkRender {
         addUI("DebugWindow");
         addUIData<EditorImageUI>();
 
-        m_rayTracer = std::make_unique<VkRender::RT::RayTracer>();
+        //m_rayTracer = std::make_unique<VkRender::RT::RayTracer>();
         diffRenderEntry = std::make_unique<VkRender::DR::DiffRenderEntry>();
         diffRenderEntry->setup();
 
@@ -45,7 +45,7 @@ namespace VkRender {
 
 
     void EditorImage::onSceneLoad(std::shared_ptr<Scene> scene) {
-        m_rayTracer->setup(scene);
+       // m_rayTracer->setup(scene);
     }
 
 
@@ -71,7 +71,7 @@ namespace VkRender {
                 m_colorTexture->loadImage(image, dataSize);
             }
 
-            m_rayTracer->update(m_createInfo.width, m_createInfo.height);
+            //m_rayTracer->update(m_createInfo.width, m_createInfo.height);
 
             m_colorTexture = EditorUtils::createEmptyTexture(diffRenderEntry->getImageSize(), diffRenderEntry->getImageSize(), VK_FORMAT_R32_SFLOAT, m_context);
             m_colorTexture->loadImage(m_rayTracer->getImage(), m_createInfo.width * m_createInfo.height * 4);

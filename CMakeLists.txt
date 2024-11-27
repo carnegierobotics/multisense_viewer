@@ -194,10 +194,13 @@ set(SOURCE_FILES
         src/Viewer/Rendering/RenderResources/DefaultGraphicsPipeline.cpp
         src/Viewer/Rendering/RenderResources/GraphicsPipeline2D.cpp
 
+        src/Viewer/Rendering/MeshData.cpp
+        src/Viewer/Rendering/VulkanMeshResourceManager.cpp
+        src/Viewer/Rendering/MeshManager.cpp
+
         src/Viewer/Scenes/Scene.cpp
         src/Viewer/Scenes/SceneSerializer.cpp
 
-        src/Viewer/Rendering/Components/MeshComponent.cpp
         src/Viewer/Rendering/Components/ImageComponent.cpp
         src/Viewer/Rendering/Components/PointCloudComponent.h
 

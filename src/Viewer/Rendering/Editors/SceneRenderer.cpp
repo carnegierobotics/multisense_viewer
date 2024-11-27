@@ -3,13 +3,17 @@
 //
 
 
-#include "SceneRenderer.h"
-#include "Viewer/Application/Application.h"
+#include "Viewer/Rendering/Editors/SceneRenderer.h"
 #include "Viewer/Rendering/Components/Components.h"
 #include "Viewer/Rendering/RenderResources/DefaultGraphicsPipeline.h"
-#include "Viewer/Scenes/Entity.h"
 #include "Viewer/Rendering/Components/MeshComponent.h"
-#include "CommonEditorFunctions.h"
+#include "Viewer/Rendering/Editors/CommonEditorFunctions.h"
+
+#include "Viewer/Application/Application.h"
+
+#include "Viewer/Scenes/Entity.h"
+
+#include "Viewer/Rendering/MeshInstance.h"
 
 
 namespace VkRender {
@@ -19,6 +23,8 @@ namespace VkRender {
         descriptorRegistry.createManager(DescriptorType::MVP, m_context->vkDevice());
         descriptorRegistry.createManager(DescriptorType::Material, m_context->vkDevice());
         descriptorRegistry.createManager(DescriptorType::DynamicCameraGizmo, m_context->vkDevice());
+
+        m_meshResourceManager = std::make_unique<MeshResourceManager>(m_context);
     }
 
     void SceneRenderer::onEditorResize() {
@@ -89,29 +95,25 @@ namespace VkRender {
             );
         }
 
-        if (command.meshInstance->vertexBuffer) {
-            VkBuffer vertexBuffers[] = {command.meshInstance->vertexBuffer->m_buffer};
-            VkDeviceSize offsets[] = {0};
+        // Bind vertex buffer
+        bool usesVertexBuffers = command.meshInstance->vertexBuffer && command.meshInstance->usesVertexBuffers;
+        if (usesVertexBuffers) {
+            VkBuffer vertexBuffers[] = { command.meshInstance->vertexBuffer->m_buffer };
+            VkDeviceSize offsets[] = { 0 };
             vkCmdBindVertexBuffers(cmdBuffer, 0, 1, vertexBuffers, offsets);
-            // Bind index buffer if the mesh has indices
+
+            // Bind index buffer if present
             if (command.meshInstance->indexBuffer) {
-                vkCmdBindIndexBuffer(cmdBuffer, command.meshInstance->indexBuffer->m_buffer, 0,
-                                     VK_INDEX_TYPE_UINT32);
+                vkCmdBindIndexBuffer(cmdBuffer, command.meshInstance->indexBuffer->m_buffer, 0, VK_INDEX_TYPE_UINT32);
             }
         }
 
-        if (command.meshInstance->vertexBuffer) {
-            // Issue the draw call
-            if (command.meshInstance->indexBuffer) {
-                // Indexed draw call
-                vkCmdDrawIndexed(cmdBuffer, command.meshInstance->indexCount, 1, 0, 0, 0);
-            }
-            else {
-                // Non-indexed draw call
-                vkCmdDraw(cmdBuffer, command.meshInstance->vertexCount, 1, 0, 0);
-            }
-        }
-        if (command.meshInstance->m_type == CAMERA_GIZMO) {
+        // Issue the draw call
+        if (command.meshInstance->indexBuffer && usesVertexBuffers) {
+            // Indexed draw call with vertex buffers
+            vkCmdDrawIndexed(cmdBuffer, command.meshInstance->indexCount, 1, 0, 0, 0);
+        } else {
+            // Non-indexed draw call or draw call without vertex buffers
             vkCmdDraw(cmdBuffer, command.meshInstance->vertexCount, 1, 0, 0);
         }
     }
@@ -151,24 +153,15 @@ namespace VkRender {
             }
             // Use default descriptor set layout
 
+            std::shared_ptr<MeshData> meshData = m_meshManager.getMeshData(meshComponent);
 
-            // Create the pipeline key based on whether the material exists or not
-            // Ensure the MeshInstance exists for this MeshComponent
-            std::shared_ptr<MeshInstance> meshInstance;
-            auto it = m_meshInstances.find(uuid);
-            if (it == m_meshInstances.end()) {
-                // Initialize the MeshInstance
-                meshInstance = initializeMesh(meshComponent);
-                if (!meshInstance)
-                    continue;
-                Log::Logger::getInstance()->info("Created Mesh for Entity: {}", entity.getName());
-                m_meshInstances[uuid] = meshInstance;
-            }
-            else {
-                meshInstance = it->second;
-            }
+            // Update meshData
+
+
+            std::shared_ptr<MeshInstance> meshInstance = m_meshResourceManager->getMeshInstance(meshComponent.getCacheIdentifier(), meshData, meshComponent.meshDataType());
+
             key.topology = meshInstance->topology;
-            key.polygonMode = meshComponent.polygonMode;
+            key.polygonMode = meshComponent.polygonMode();
             // Check if the entity has a MaterialComponent
             std::shared_ptr<MaterialInstance> materialInstance = nullptr;
             if (entity.hasComponent<MaterialComponent>()) {
@@ -203,10 +196,10 @@ namespace VkRender {
             }
             key.setLayouts[1] = descriptorRegistry.getManager(DescriptorType::Material).getDescriptorSetLayout();
 
-
             std::vector<VkVertexInputBindingDescription> vertexInputBinding = {
                 {0, sizeof(VkRender::Vertex), VK_VERTEX_INPUT_RATE_VERTEX}
             };
+
             std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
                 {0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0},
                 {1, 0, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3},
@@ -217,7 +210,7 @@ namespace VkRender {
             key.vertexInputBindingDescriptions = vertexInputBinding;
             key.vertexInputAttributes = vertexInputAttributes;
 
-            if (meshComponent.m_type == CAMERA_GIZMO) {
+            if (meshComponent.meshDataType() == CAMERA_GIZMO) {
                 key.vertexShaderName = "CameraGizmo.vert";
                 key.fragmentShaderName = "default.frag";
                 key.vertexInputBindingDescriptions.clear();
@@ -226,12 +219,13 @@ namespace VkRender {
                 descriptorWrite[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
                 descriptorWrite[0].dstBinding = 0;
                 descriptorWrite[0].dstArrayElement = 0;
-                descriptorWrite[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                descriptorWrite[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
                 descriptorWrite[0].descriptorCount = 1;
-                descriptorWrite[0].pBufferInfo = &renderData.uboVertexBuffer[frameIndex]->m_descriptorBufferInfo;
+                descriptorWrite[0].pBufferInfo = &meshInstance->vertexBuffer->m_descriptorBufferInfo;
                 VkDescriptorSet dynamicCameraDescriptorSet = descriptorRegistry.getManager(
                     DescriptorType::DynamicCameraGizmo).getOrCreateDescriptorSet(descriptorWrite);
                 descriptorSets[2] = dynamicCameraDescriptorSet;
+                key.topology;
                 // Use default descriptor set layout
             }
             key.setLayouts[2] = descriptorRegistry.getManager(DescriptorType::DynamicCameraGizmo).getDescriptorSetLayout();
@@ -257,9 +251,6 @@ namespace VkRender {
 
     void SceneRenderer::onComponentAdded(Entity entity, MeshComponent& meshComponent) {
         // Check if I readd a meshcomponent then we should destroy the renderresources attached to it:
-        if (m_meshInstances.contains(entity.getUUID())) {
-            m_meshInstances.erase(entity.getUUID());
-        }
         m_entityRenderData[entity.getUUID()].cameraBuffer.resize(m_context->swapChainBuffers().size());
         m_entityRenderData[entity.getUUID()].modelBuffer.resize(m_context->swapChainBuffers().size());
         // Create attachable UBO buffers and such
@@ -277,22 +268,9 @@ namespace VkRender {
                 sizeof(glm::mat4), nullptr, "SceneRenderer:MeshComponent:Model",
                 m_context->getDebugUtilsObjectNameFunction());
         }
-        auto& renderData = m_entityRenderData[entity.getUUID()];
-        renderData.uboVertexBuffer.resize(m_context->swapChainBuffers().size());
-        for (int frameIndex = 0; frameIndex < m_context->swapChainBuffers().size(); ++frameIndex) {
-            m_context->vkDevice().createBuffer(
-                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                m_entityRenderData[entity.getUUID()].uboVertexBuffer[frameIndex],
-                sizeof(glm::vec4) * 21, nullptr, "SceneRenderer:MeshComponent:uboVertexBuffer",
-                m_context->getDebugUtilsObjectNameFunction());
-        }
     }
 
     void SceneRenderer::onComponentRemoved(Entity entity, MeshComponent& meshComponent) {
-        if (m_meshInstances.contains(entity.getUUID())) {
-            m_meshInstances.erase(entity.getUUID());
-        }
         if (m_entityRenderData.contains(entity.getUUID())) {
             m_entityRenderData[entity.getUUID()].cameraBuffer.clear();
             m_entityRenderData[entity.getUUID()].modelBuffer.clear();
@@ -300,9 +278,7 @@ namespace VkRender {
     }
 
     void SceneRenderer::onComponentUpdated(Entity entity, MeshComponent& meshComponent) {
-        if (m_meshInstances.contains(entity.getUUID())) {
-            m_meshInstances.erase(entity.getUUID());
-        }
+
     }
 
     void SceneRenderer::onComponentAdded(Entity entity, MaterialComponent& materialComponent) {
@@ -393,56 +369,6 @@ namespace VkRender {
             vkUnmapMemory(m_context->vkDevice().m_LogicalDevice,
                           m_entityRenderData[entity.getUUID()].cameraBuffer[frameIndex]->m_memory);
 
-            if (entity.getComponent<MeshComponent>().m_type == CAMERA_GIZMO) {
-                void* data;
-                auto f = entity.getComponent<MeshComponent>().focalPoint;
-                vkMapMemory(m_context->vkDevice().m_LogicalDevice,
-                            m_entityRenderData[entity.getUUID()].uboVertexBuffer[frameIndex]->m_memory, 0,
-                            sizeof(glm::vec4) * 21, 0, &data);
-                float a = 0.5;
-                float h = f;
-
-                std::vector<glm::vec4> uboVertices = {
-                    // Base (CCW from top)
-                    glm::vec4(-a, a, 0, 1.0), // D
-                    glm::vec4(-a, -a, 0, 1.0), // A
-                    glm::vec4(a, -a, 0, 1.0), // B
-
-                    glm::vec4(-a, a, 0, 1.0), // D
-                    glm::vec4(a, -a, 0, 1.0), // B
-                    glm::vec4(a, a, 0, 1.0), // C
-
-                    // Side 1
-                    glm::vec4(-a, -a, 0, 1.0), // A
-                    glm::vec4(0, 0, h, 1.0), // E
-                    glm::vec4(a, -a, 0, 1.0f), // B
-
-                    // Side 2
-                    glm::vec4(a, -a, 0, 1.0), // B
-                    glm::vec4(0, 0, h, 1.0), // E
-                    glm::vec4(a, a, 0, 1.0), // C
-
-                    // Side 3
-                    glm::vec4(a, a, 0, 1.0), // C
-                    glm::vec4(0, 0, h, 1.0), // E
-                    glm::vec4(-a, a, 0, 1.0), // D
-
-                    // Side 4
-                    glm::vec4(-a, a, 0, 1.0), // D
-                    glm::vec4(0, 0, h, 1.0), // E
-                    glm::vec4(-a, -a, 0, 1.0), // A
-
-                    // Top indicator
-                    glm::vec4(-0.4, 0.6, 0, 1.0), // D
-                    glm::vec4(0.4, 0.6, 0, 1.0), // E
-                    glm::vec4(0, 1.0, 0, 1.0) // A
-
-            };
-
-                memcpy(data, uboVertices.data(), sizeof(glm::vec4) * 21);
-                vkUnmapMemory(m_context->vkDevice().m_LogicalDevice,
-                              m_entityRenderData[entity.getUUID()].uboVertexBuffer[frameIndex]->m_memory);
-            }
         }
         if (entity.hasComponent<TransformComponent>() && entity.hasComponent<MeshComponent>()) {
             void* data;
@@ -490,86 +416,4 @@ namespace VkRender {
         return materialInstance;
     }
 
-
-    std::shared_ptr<MeshInstance> SceneRenderer::initializeMesh(const MeshComponent& meshComponent) {
-        // Load mesh data from file or other source
-        if (meshComponent.m_meshPath.empty() && meshComponent.m_type != CAMERA_GIZMO)
-            return nullptr;
-
-        MeshData meshData = MeshData(meshComponent.m_type, meshComponent.m_meshPath);
-        auto meshInstance = std::make_shared<MeshInstance>();
-        meshInstance->topology = meshComponent.m_type == OBJ_FILE
-                                     ? VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST
-                                     : VK_PRIMITIVE_TOPOLOGY_POINT_LIST; // Set topology based on mesh data
-
-        meshInstance->vertexCount = meshData.vertices.size();
-        meshInstance->indexCount = meshData.indices.size();
-        VkDeviceSize vertexBufferSize = meshData.vertices.size() * sizeof(Vertex);
-        VkDeviceSize indexBufferSize = meshData.indices.size() * sizeof(uint32_t);
-        meshInstance->m_type = meshComponent.m_type;
-        if (meshComponent.m_type == CAMERA_GIZMO) {
-            meshInstance->vertexCount = 21;
-            return meshInstance;
-        }
-
-        if (!vertexBufferSize)
-            return nullptr;
-
-        struct StagingBuffer {
-            VkBuffer buffer;
-            VkDeviceMemory memory;
-        } vertexStaging{}, indexStaging{};
-
-        // Create staging buffers
-        // Vertex m_DataPtr
-        CHECK_RESULT(m_context->vkDevice().createBuffer(
-            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            vertexBufferSize,
-            &vertexStaging.buffer,
-            &vertexStaging.memory,
-            meshData.vertices.data()))
-        // Index m_DataPtr
-        if (indexBufferSize > 0) {
-            CHECK_RESULT(m_context->vkDevice().createBuffer(
-                VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                indexBufferSize,
-                &indexStaging.buffer,
-                &indexStaging.memory,
-                meshData.indices.data()))
-        }
-        CHECK_RESULT(m_context->vkDevice().createBuffer(
-            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            meshInstance->vertexBuffer, vertexBufferSize, nullptr, "SceneRenderer:InitializeMesh:Vertex",
-            m_context->getDebugUtilsObjectNameFunction()));
-        // Index buffer
-        if (indexBufferSize > 0) {
-            CHECK_RESULT(m_context->vkDevice().createBuffer(
-                VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                meshInstance->indexBuffer,
-                indexBufferSize, nullptr, "SceneRenderer:InitializeMesh:Index",
-                m_context->getDebugUtilsObjectNameFunction()));
-        }
-        // Copy from staging buffers
-        VkCommandBuffer copyCmd = m_context->vkDevice().createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
-        VkBufferCopy copyRegion = {};
-        copyRegion.size = vertexBufferSize;
-        vkCmdCopyBuffer(copyCmd, vertexStaging.buffer, meshInstance->vertexBuffer->m_buffer, 1, &copyRegion);
-        if (indexBufferSize > 0) {
-            copyRegion.size = indexBufferSize;
-            vkCmdCopyBuffer(copyCmd, indexStaging.buffer, meshInstance->indexBuffer->m_buffer, 1, &copyRegion);
-        }
-        m_context->vkDevice().flushCommandBuffer(copyCmd, m_context->vkDevice().m_TransferQueue, true);
-        vkDestroyBuffer(m_context->vkDevice().m_LogicalDevice, vertexStaging.buffer, nullptr);
-        vkFreeMemory(m_context->vkDevice().m_LogicalDevice, vertexStaging.memory, nullptr);
-
-        if (indexBufferSize > 0) {
-            vkDestroyBuffer(m_context->vkDevice().m_LogicalDevice, indexStaging.buffer, nullptr);
-            vkFreeMemory(m_context->vkDevice().m_LogicalDevice, indexStaging.memory, nullptr);
-        }
-        return meshInstance;
-    }
 }

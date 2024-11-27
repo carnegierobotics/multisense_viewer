@@ -48,6 +48,7 @@
 #include "Viewer/Rendering/Core/UUID.h"
 #include "Viewer/Rendering/Editors/Editor.h"
 #include "Viewer/Rendering/Editors/EditorFactory.h"
+#include "Viewer/Rendering/Editors/SceneRenderer.h"
 #include "Viewer/Scenes/Scene.h"
 #include "Viewer/Modules/MultiSense/MultiSenseRendererBridge.h"
 

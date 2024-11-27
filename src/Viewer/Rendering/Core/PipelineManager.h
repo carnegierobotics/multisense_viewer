@@ -5,11 +5,11 @@
 #ifndef PIPELINEMANAGER_H
 #define PIPELINEMANAGER_H
 
-#include <Viewer/Rendering/RenderResources/DefaultGraphicsPipeline.h>
+#include <multisense_viewer/src/Viewer/Rendering/RenderResources/DefaultGraphicsPipeline.h>
 
 #include "Viewer/Scenes/Entity.h"
 #include "Viewer/Rendering/Components/MaterialComponent.h"
-#include "Viewer/Rendering/Editors/PipelineKey.h"
+#include "PipelineKey.h"
 
 namespace VkRender {
 

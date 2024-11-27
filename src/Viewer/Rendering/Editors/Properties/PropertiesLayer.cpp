@@ -2,7 +2,7 @@
 // Created by magnus on 8/23/24.
 //
 
-#include "Viewer/Rendering/Editors/Common/Properties/PropertiesLayer.h"
+#include "PropertiesLayer.h"
 
 #include "Viewer/Rendering/Components/GaussianComponent.h"
 #include "Viewer/Rendering/Components/Components.h"
@@ -13,7 +13,7 @@
 #include "Viewer/Scenes/Scene.h"
 #include "Viewer/Application/Application.h"
 #include "Viewer/Scenes/Entity.h"
-#include "Viewer/Rendering/Editors/Common/CommonEditorFunctions.h"
+#include "Viewer/Rendering/Editors/CommonEditorFunctions.h"
 
 namespace VkRender {
 

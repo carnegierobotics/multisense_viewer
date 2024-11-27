@@ -1,112 +1,92 @@
 //
-// Created by mgjer on 04/08/2024.
+// Created by mgjer on 18/08/2024.
 //
 
-#include "Viewer/Rendering/Editors/Common/3DViewport/Editor3DViewport.h"
-#include "Editor3DLayer.h"
-
-#include "Viewer/Rendering/Components/MaterialComponent.h"
-#include "Viewer/Rendering/Editors/Common/CommonEditorFunctions.h"
+#include "EditorImage.h"
 #include "Viewer/Application/Application.h"
-#include "Viewer/Rendering/Components/Components.h"
-#include "Viewer/Rendering/RenderResources/DefaultGraphicsPipeline.h"
-#include "Viewer/Scenes/Entity.h"
-#include "Viewer/Rendering/Components/MeshComponent.h"
+#include "EditorImageLayer.h"
+#include "Viewer/Rendering/Editors/CommonEditorFunctions.h"
 
 namespace VkRender {
-    Editor3DViewport::Editor3DViewport(EditorCreateInfo& createInfo, UUID uuid) : Editor(createInfo, uuid) {
+    EditorImage::EditorImage(EditorCreateInfo &createInfo, UUID uuid) : Editor(createInfo, uuid) {
+        addUI("EditorImageLayer");
         addUI("EditorUILayer");
         addUI("DebugWindow");
-        addUI("Editor3DLayer");
-        addUIData<Editor3DViewportUI>();
+        addUIData<EditorImageUI>();
+
+        m_rayTracer = std::make_unique<VkRender::RT::RayTracer>();
+        diffRenderEntry = std::make_unique<VkRender::DR::DiffRenderEntry>();
+        diffRenderEntry->setup();
 
         m_descriptorRegistry.createManager(DescriptorType::Viewport3DTexture, m_context->vkDevice());
-        m_editorCamera = std::make_shared<Camera>(m_createInfo.width, m_createInfo.height);
-        m_sceneRenderer = m_context->getOrAddSceneRendererByUUID(uuid, m_createInfo);
-        VulkanTexture2DCreateInfo textureCreateInfo(m_context->vkDevice());
-        textureCreateInfo.image = m_sceneRenderer->getOffscreenFramebuffer().resolvedImage;
-        m_colorTexture = std::make_shared<VulkanTexture2D>(textureCreateInfo);
+
+        m_colorTexture = EditorUtils::createEmptyTexture(1280, 720, VK_FORMAT_R8G8B8A8_UNORM, m_context, true);
         m_shaderSelectionBuffer.resize(m_context->swapChainBuffers().size());
         for (auto& frameIndex : m_shaderSelectionBuffer) {
             m_context->vkDevice().createBuffer(
                 VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                 frameIndex,
-                sizeof(int32_t), nullptr, "Editor3DViewport:ShaderSelectionBuffer",
+                sizeof(int32_t), nullptr, "EditorImage:ShaderSelectionBuffer",
                 m_context->getDebugUtilsObjectNameFunction());
         }
     }
 
-    void Editor3DViewport::onEditorResize() {
-        m_editorCamera->setPerspective(static_cast<float>(m_createInfo.width) / m_createInfo.height);
-        m_sceneRenderer->setActiveCamera(m_editorCamera);
-        auto& ci = m_sceneRenderer->getCreateInfo();
-        ci.width = m_createInfo.width;
-        ci.height = m_createInfo.height;
-        m_sceneRenderer->resize(ci);
-        onRenderSettingsChanged();
+    void EditorImage::onEditorResize() {
     }
 
-    void Editor3DViewport::onRenderSettingsChanged() {
-        auto imageUI = std::dynamic_pointer_cast<Editor3DViewportUI>(m_ui);
-        m_sceneRenderer = m_context->getOrAddSceneRendererByUUID(getUUID(), m_createInfo);
-        VulkanTexture2DCreateInfo textureCreateInfo(m_context->vkDevice());
-
-        if (imageUI->selectedImageType == OutputTextureImageType::Color) {
-            textureCreateInfo.image = m_sceneRenderer->getOffscreenFramebuffer().resolvedImage;
+    void EditorImage::onFileDrop(const std::filesystem::path &path) {
+        std::string extension = path.extension().string();
+        std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
+        if (extension == ".png" || extension == ".jpg") {
+            m_colorTexture = EditorUtils::createTextureFromFile(path, m_context);
         }
-        else if (imageUI->selectedImageType == OutputTextureImageType::Depth) {
-            textureCreateInfo.image = m_sceneRenderer->getOffscreenFramebuffer().resolvedDepthImage;
+    }
+
+
+    void EditorImage::onSceneLoad(std::shared_ptr<Scene> scene) {
+        m_rayTracer->setup(scene);
+    }
+
+
+    void EditorImage::onPipelineReload() {
+    }
+
+    void EditorImage::onUpdate() {
+        auto imageUI = std::dynamic_pointer_cast<EditorImageUI>(m_ui);
+
+        if (imageUI->iterateOptimizer) {
+            diffRenderEntry->update();
+
         }
 
-        m_colorTexture = std::make_shared<VulkanTexture2D>(textureCreateInfo);
-    }
 
-    void Editor3DViewport::onSceneLoad(std::shared_ptr<Scene> scene) {
-        m_editorCamera = std::make_shared<Camera>(m_createInfo.width, m_createInfo.height);
-        m_activeScene = m_context->activeScene();
-        m_sceneRenderer->setActiveCamera(m_editorCamera);
-    }
+        if (imageUI->updateImage){
+            void* image = diffRenderEntry->getImage();
+            if (image){
+                if (m_colorTexture->width() != 64)
+                    m_colorTexture = EditorUtils::createEmptyTexture(diffRenderEntry->getImageSize(), diffRenderEntry->getImageSize(), VK_FORMAT_R32_SFLOAT, m_context);
 
-    void Editor3DViewport::onUpdate() {
-        auto imageUI = std::dynamic_pointer_cast<Editor3DViewportUI>(m_ui);
-
-        m_activeScene = m_context->activeScene();
-        if (!m_activeScene)
-            return;
-        m_sceneRenderer->setActiveCamera(m_editorCamera);
-
-        auto& e = m_context->getSelectedEntity();
-        if (e && e.hasComponent<CameraComponent>()) {
-            auto& camera = e.getComponent<CameraComponent>();
-            if (camera.renderFromViewpoint() && imageUI->renderFromViewpoint) {
-                // If the selected entity has a camera with renderFromViewpoint, use it
-                m_sceneRenderer->setActiveCamera(camera.camera);
-                m_lastActiveCamera = &camera; // Update the last active camera
+                size_t dataSize = diffRenderEntry->getImageSize() * diffRenderEntry->getImageSize() * sizeof(float);
+                m_colorTexture->loadImage(image, dataSize);
             }
+
+            m_rayTracer->update(m_createInfo.width, m_createInfo.height);
+
+            m_colorTexture = EditorUtils::createEmptyTexture(diffRenderEntry->getImageSize(), diffRenderEntry->getImageSize(), VK_FORMAT_R32_SFLOAT, m_context);
+            m_colorTexture->loadImage(m_rayTracer->getImage(), m_createInfo.width * m_createInfo.height * 4);
+
         }
-        else if (m_lastActiveCamera && m_lastActiveCamera->renderFromViewpoint()) {
-            // Use the last active camera if it still has renderFromViewpoint enabled
-            m_sceneRenderer->setActiveCamera(m_lastActiveCamera->camera);
-        }
 
-        m_sceneRenderer->m_saveNextFrame = imageUI->saveNextFrame;
-
-
-        auto frameIndex = m_context->currentFrameIndex();
-        // Map and copy data to the global uniform buffer
-
-        void* data;
-        vkMapMemory(m_context->vkDevice().m_LogicalDevice,
-                    m_shaderSelectionBuffer[frameIndex]->m_memory, 0, sizeof(int32_t), 0, &data);
-        memcpy(data, &imageUI->depthColorOption, sizeof(int32_t));
-        vkUnmapMemory(m_context->vkDevice().m_LogicalDevice, m_shaderSelectionBuffer[frameIndex]->m_memory);
-
-        m_sceneRenderer->update();
     }
 
+    void EditorImage::onMouseMove(const MouseButtons &mouse) {
+    }
 
-    void Editor3DViewport::onRender(CommandBuffer& commandBuffer) {
+    void EditorImage::onMouseScroll(float change) {
+    }
+
+    void EditorImage::onRender(CommandBuffer& commandBuffer) {
         std::unordered_map<std::shared_ptr<DefaultGraphicsPipeline>, std::vector<RenderCommand>> renderGroups;
         collectRenderCommands(renderGroups, commandBuffer.frameIndex);
 
@@ -120,7 +100,7 @@ namespace VkRender {
         }
     }
 
-    void Editor3DViewport::collectRenderCommands(
+    void EditorImage::collectRenderCommands(
         std::unordered_map<std::shared_ptr<DefaultGraphicsPipeline>, std::vector<RenderCommand>>& renderGroups,
         uint32_t frameIndex) {
         if (!m_meshInstances) {
@@ -131,7 +111,9 @@ namespace VkRender {
             return;
         PipelineKey key = {};
         key.setLayouts.resize(1);
-        if (m_ui->resizeActive) {
+        auto imageUI = std::dynamic_pointer_cast<EditorImageUI>(m_ui);
+
+        if (imageUI->iterateOptimizer) {
             m_descriptorRegistry.getManager(DescriptorType::Viewport3DTexture).freeDescriptorSets();
         }
         // Prepare descriptor writes based on your texture or other resources
@@ -151,7 +133,7 @@ namespace VkRender {
         key.setLayouts[0] = m_descriptorRegistry.getManager(DescriptorType::Viewport3DTexture).getDescriptorSetLayout();
         // Use default descriptor set layout
         key.vertexShaderName = "default2D.vert";
-        key.fragmentShaderName = "default2D.frag";
+        key.fragmentShaderName = "EditorImageViewportTexture.frag";
         key.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         key.polygonMode = VK_POLYGON_MODE_FILL;
         std::vector<VkVertexInputBindingDescription> vertexInputBinding = {
@@ -162,15 +144,12 @@ namespace VkRender {
         };
         key.vertexInputBindingDescriptions = vertexInputBinding;
         key.vertexInputAttributes = vertexInputAttributes;
-        auto imageUI = std::dynamic_pointer_cast<Editor3DViewportUI>(m_ui);
-        if (imageUI->reloadViewportShader){
-            m_pipelineManager.removePipeline(key);
-        }
+
         // Create or retrieve the pipeline
         RenderPassInfo renderPassInfo{};
         renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
         renderPassInfo.renderPass = m_renderPass->getRenderPass();
-        renderPassInfo.debugName = "Editor3DViewport::";
+        renderPassInfo.debugName = "EditorImage::";
         auto pipeline = m_pipelineManager.getOrCreatePipeline(key, renderPassInfo, m_context);
         // Create the render command
         RenderCommand command;
@@ -181,7 +160,7 @@ namespace VkRender {
         renderGroups[pipeline].push_back(command);
     }
 
-    void Editor3DViewport::bindResourcesAndDraw(const CommandBuffer& commandBuffer, RenderCommand& command) {
+    void EditorImage::bindResourcesAndDraw(const CommandBuffer& commandBuffer, RenderCommand& command) {
         VkCommandBuffer cmdBuffer = commandBuffer.getActiveBuffer();
         uint32_t frameIndex = commandBuffer.frameIndex;
 
@@ -218,18 +197,4 @@ namespace VkRender {
         }
     }
 
-    void Editor3DViewport::onMouseMove(const MouseButtons& mouse) {
-        if (ui()->hovered && mouse.left && !ui()->resizeActive) {
-            m_editorCamera->rotate(mouse.dx, mouse.dy);
-        }
-    }
-
-    void Editor3DViewport::onMouseScroll(float change) {
-        if (ui()->hovered)
-            m_editorCamera->setArcBallPosition((change > 0.0f) ? 0.95f : 1.05f);
-    }
-
-    void Editor3DViewport::onKeyCallback(const Input& input) {
-    }
-
-};
+}

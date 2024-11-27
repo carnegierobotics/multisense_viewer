@@ -9,7 +9,7 @@
 #include <Viewer/Scenes/SceneSerializer.h>
 
 #include "Viewer/Rendering/ImGui/Layer.h"
-#include "Viewer/Rendering/Editors/Common/CommonEditorFunctions.h"
+#include "CommonEditorFunctions.h"
 
 /** Is attached to the renderer through the GuiManager and instantiated in the GuiManager Constructor through
  *         pushLayer<[LayerName]>();

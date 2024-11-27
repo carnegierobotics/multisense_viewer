@@ -8,7 +8,7 @@
 #include <glm/glm.hpp>
 #include <filesystem>
 
-#include "Viewer/Rendering/Editors/PipelineKey.h"
+#include "Viewer/Rendering/Core/PipelineKey.h"
 #include "Viewer/Rendering/Core/VulkanTexture.h"
 
 namespace VkRender {

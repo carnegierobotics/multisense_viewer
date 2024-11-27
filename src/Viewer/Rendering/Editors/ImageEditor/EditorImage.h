@@ -6,8 +6,8 @@
 #define MULTISENSE_VIEWER_EDITORIMAGE
 
 
-#include "Viewer/Rendering/Editors/DescriptorRegistry.h"
-#include "Viewer/Rendering/Editors/PipelineManager.h"
+#include "Viewer/Rendering/Core/DescriptorRegistry.h"
+#include "Viewer/Rendering/Core/PipelineManager.h"
 
 #include "Viewer/Rendering/Editors/Editor.h"
 #include "Viewer/Scenes/Scene.h"

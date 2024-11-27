@@ -7,8 +7,8 @@
 #include "Viewer/Rendering/ImGui/AdditionalWindows/DebugWindow.h"
 #include "Viewer/Rendering/ImGui/AdditionalWindows/NewVersionAvailable.h"
 #include "Viewer/Rendering/Editors/EditorUILayer.h"
-#include "Viewer/Rendering/Editors/Common/SceneHierarchy//SceneHierarchyLayer.h"
-#include "Viewer/Rendering/Editors/Common/Test/EditorTestLayer.h"
+#include "Viewer/Rendering/Editors/SceneHierarchy//SceneHierarchyLayer.h"
+#include "Viewer/Rendering/Editors/Test/EditorTestLayer.h"
 #include "Viewer/Rendering/Editors/MenuLayer.h"
 #include "Viewer/Rendering/Editors/MainContextLayer.h"
 
@@ -16,10 +16,10 @@
 #include "Viewer/Rendering/Editors/MultiSenseViewer/ConfigurationEditor/ConfigurationLayer.h"
 #include "Viewer/Rendering/Editors/MultiSenseViewer/SidebarEditor/SideBarLayer.h"
 
-#include "Viewer/Rendering/Editors/Common/3DViewport/Editor3DLayer.h"
-#include "Viewer/Rendering/Editors/Common/Properties/PropertiesLayer.h"
-#include "Viewer/Rendering/Editors/Common/GaussianViewer/EditorGaussianViewerLayer.h"
-#include "Viewer/Rendering/Editors/Common/ImageEditor/EditorImageLayer.h"
+#include "Viewer/Rendering/Editors/3DViewport/Editor3DLayer.h"
+#include "Viewer/Rendering/Editors/Properties/PropertiesLayer.h"
+#include "Viewer/Rendering/Editors/GaussianViewer/EditorGaussianViewerLayer.h"
+#include "Viewer/Rendering/Editors/ImageEditor/EditorImageLayer.h"
 
 namespace VkRender {
 

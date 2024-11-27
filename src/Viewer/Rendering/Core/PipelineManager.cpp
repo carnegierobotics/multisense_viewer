@@ -1,9 +1,9 @@
 //
 // Created by mgjer on 04/10/2024.
 //
-#include "Viewer/Rendering/Editors/PipelineKey.h"
+#include "PipelineKey.h"
 
-#include "Viewer/Rendering/Editors/PipelineManager.h"
+#include "PipelineManager.h"
 
 
 namespace VkRender {

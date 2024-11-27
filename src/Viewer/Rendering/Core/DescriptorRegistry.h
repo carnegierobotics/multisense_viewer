@@ -5,7 +5,7 @@
 #ifndef DESCRIPTORMANAGERREGISTRY_H
 #define DESCRIPTORMANAGERREGISTRY_H
 
-#include "Viewer/Rendering/Editors/DescriptorSetManager.h"
+#include "DescriptorSetManager.h"
 
 
 namespace VkRender {

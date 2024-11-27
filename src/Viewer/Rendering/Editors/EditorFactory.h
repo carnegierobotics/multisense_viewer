@@ -8,16 +8,16 @@
 #include <utility>
 
 #include "Viewer/Rendering/Editors/Editor.h"
-#include "Viewer/Rendering/Editors/Common/3DViewport/Editor3DViewport.h"
-#include "Viewer/Rendering/Editors/Common/SceneHierarchy/EditorSceneHierarchy.h"
+#include "Viewer/Rendering/Editors/3DViewport/Editor3DViewport.h"
+#include "Viewer/Rendering/Editors/SceneHierarchy/EditorSceneHierarchy.h"
 #include "Viewer/Rendering/Editors/MultiSenseViewer/SidebarEditor/SideBarEditor.h"
 #include "Viewer/Rendering/Editors/MultiSenseViewer/ConfigurationEditor/ConfigurationEditor.h"
-#include "Viewer/Rendering/Editors/Common/Test/EditorTest.h"
-#include "Viewer/Rendering/Editors/Common/Properties/EditorProperties.h"
-#include "Viewer/Rendering/Editors/Common/ImageEditor/EditorImage.h"
-#include "Viewer/Rendering/Editors/Common/SceneRenderer.h"
+#include "Viewer/Rendering/Editors/Test/EditorTest.h"
+#include "Viewer/Rendering/Editors/Properties/EditorProperties.h"
+#include "Viewer/Rendering/Editors/ImageEditor/EditorImage.h"
+#include "SceneRenderer.h"
 #ifdef SYCL_ENABLED
-#include "Viewer/Rendering/Editors/Common/GaussianViewer/EditorGaussianViewer.h"
+#include "Viewer/Rendering/Editors/GaussianViewer/EditorGaussianViewer.h"
 #endif
 namespace VkRender {
 

@@ -9,9 +9,9 @@
 #include "Viewer/Rendering/Editors/Camera.h"
 #include "Viewer/Scenes/Scene.h"
 #include "Viewer/Tools/SyclDeviceSelector.h"
-#include "Viewer/Rendering/Editors/DescriptorSetManager.h"
-#include "Viewer/Rendering/Editors/PipelineManager.h"
-#include "Viewer/Rendering/Editors/DescriptorRegistry.h"
+#include "Viewer/Rendering/Core/DescriptorSetManager.h"
+#include "Viewer/Rendering/Core/PipelineManager.h"
+#include "Viewer/Rendering/Core/DescriptorRegistry.h"
 
 #include "Viewer/Rendering/RenderResources/2DGS/SYCLGaussian2D.h"
 #include "Viewer/Rendering/RenderResources/3DGS/SYCLGaussian3D.h"

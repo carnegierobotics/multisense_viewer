@@ -3,7 +3,7 @@
 //
 #include <functional>
 
-#include "Viewer/Rendering/Editors/PipelineKey.h"
+#include "PipelineKey.h"
 
 // Hash function for PipelineKey
 // Define the hash specialization for PipelineKey

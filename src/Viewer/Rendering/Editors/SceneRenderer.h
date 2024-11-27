@@ -5,11 +5,11 @@
 #ifndef MULTISENSE_SCENERENDERER_H
 #define MULTISENSE_SCENERENDERER_H
 
-#include <multisense_viewer/src/Viewer/Rendering/Editors/PipelineManager.h>
-#include <Viewer/Rendering/Editors/DescriptorSetManager.h>
+#include <multisense_viewer/src/Viewer/Rendering/Core/PipelineManager.h>
+#include <multisense_viewer/src/Viewer/Rendering/Core/DescriptorSetManager.h>
 
 #include "Viewer/Rendering/Editors/Editor.h"
-#include "Viewer/Rendering/Editors/DescriptorRegistry.h"
+#include "Viewer/Rendering/Core/DescriptorRegistry.h"
 
 namespace VkRender {
     class SceneRenderer : public Editor {

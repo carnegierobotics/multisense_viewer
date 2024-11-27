@@ -2,11 +2,11 @@
 // Created by magnus on 8/15/24.
 //
 
-#include "Viewer/Rendering/Editors/Common/GaussianViewer/EditorGaussianViewer.h"
+#include "EditorGaussianViewer.h"
 
-#include <Viewer/Rendering/Editors/Common/CommonEditorFunctions.h>
+#include <multisense_viewer/src/Viewer/Rendering/Editors/CommonEditorFunctions.h>
 
-#include "Viewer/Rendering/Editors/Common/GaussianViewer/EditorGaussianViewerLayer.h"
+#include "EditorGaussianViewerLayer.h"
 
 #include "Viewer/Application/Application.h"
 

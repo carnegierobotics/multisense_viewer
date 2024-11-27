@@ -170,6 +170,12 @@ namespace VkRender {
         float LineSpacing = 0.0f;
     };
 
+    struct VectorComponent {
+        glm::vec3 origin;
+        glm::vec3 direction;
+        float magnitude;
+
+    };
     DISABLE_WARNING_POP
 }
 

@@ -3,10 +3,10 @@
 //
 
 
-#include "Viewer/Rendering/Editors/Common/SceneHierarchy/SceneHierarchyLayer.h"
+#include "SceneHierarchyLayer.h"
 
 #include "Viewer/Rendering/ImGui/IconsFontAwesome6.h"
-#include "Viewer/Rendering/Editors/Common/CommonEditorFunctions.h"
+#include "Viewer/Rendering/Editors/CommonEditorFunctions.h"
 
 namespace VkRender {
 

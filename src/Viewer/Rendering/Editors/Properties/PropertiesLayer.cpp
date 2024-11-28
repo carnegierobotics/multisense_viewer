@@ -476,7 +476,7 @@ namespace VkRender {
                     if (ImGui::Selectable(meshDataTypeToString(meshDataTypeToArray()[i]).c_str(), isSelected)) {
                         currentMeshType = static_cast<int>(meshDataTypeToArray()[i]);
                         component.meshDataType() = static_cast<MeshDataType>(currentMeshType);
-                        component.isDirty = true;
+                        component.updateMeshData = true;
 
                         // Trigger behavior when a new type is selected
                         switch (component.meshDataType()) {
@@ -484,23 +484,18 @@ namespace VkRender {
 
                             EditorUtils::openImportFileDialog("Wavefront", {".obj"}, LayerUtils::OBJ_FILE,
                                                               &m_loadFileFuture);
-                            component.dynamic = false;
                             break;
 
                         case MeshDataType::PLY_FILE:
 
                             EditorUtils::openImportFileDialog("Stanford .PLY", {".ply"}, LayerUtils::PLY_MESH,
                                                               &m_loadFileFuture);
-                            component.dynamic = false;
                             break;
-
                         case MeshDataType::CYLINDER:
                             component.meshParameters = std::make_shared<CylinderMeshParameters>();
-                            component.dynamic = true;
                             break;
                         case MeshDataType::CAMERA_GIZMO:
                             component.meshParameters = std::make_shared<CameraGizmoMeshParameters>();
-                            component.dynamic = true;
                             break;
                         default:
                             Log::Logger::getInstance()->error("Unknown mesh type!");
@@ -536,7 +531,7 @@ namespace VkRender {
                         paramsChanged |= drawVec3Control("Direction", cylinderParams->direction);
                         paramsChanged |= ImGui::SliderFloat("Magnitude", &cylinderParams->magnitude, 0.0f, 100.0f);
                         if (paramsChanged) {
-                            component.isDirty = true;
+                            component.updateMeshData = true;
                         }
                     }
                     break;
@@ -553,7 +548,7 @@ namespace VkRender {
                                                             3.0f);
                         // Add more parameters as needed
                         if (paramsChanged) {
-                            component.isDirty = true;
+                            component.updateMeshData = true;
                         }
                     }
                     break;
@@ -889,6 +884,7 @@ namespace VkRender {
                 if (m_selectionContext.hasComponent<MeshComponent>()) {
                     auto& meshComponent = m_selectionContext.getComponent<MeshComponent>();
                     meshComponent.meshParameters = std::make_shared<OBJFileMeshParameters>(loadFileInfo.path);
+                    meshComponent.modelPath() = loadFileInfo.path;
                 }
 
                 break;
@@ -905,6 +901,7 @@ namespace VkRender {
                 if (m_selectionContext.hasComponent<MeshComponent>()) {
                     auto& meshComponent = m_selectionContext.getComponent<MeshComponent>();
                     meshComponent.meshParameters = std::make_shared<PLYFileMeshParameters>(loadFileInfo.path);
+                    meshComponent.modelPath() = loadFileInfo.path;
                 }
                 break;
             case LayerUtils::VIDEO_TEXTURE_FILE:

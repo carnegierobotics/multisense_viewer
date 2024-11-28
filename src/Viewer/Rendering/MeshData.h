@@ -65,7 +65,7 @@ namespace VkRender {
             return EMPTY;
         if (modeStr == "OBJ_FILE")
             return OBJ_FILE;
-        if (modeStr == "POINT_CLOUD")
+        if (modeStr == "CAMERA_GIZMO")
             return CAMERA_GIZMO;
         if (modeStr == "PLY_FILE")
             return PLY_FILE;

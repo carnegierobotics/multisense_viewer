@@ -19,14 +19,11 @@
 
 namespace VkRender {
     struct MeshComponent {
-        MeshComponent(MeshDataType type)
-            : meshParameters(MeshParameterFactory::createMeshParameters(type)) {
+        explicit MeshComponent(MeshDataType type, std::filesystem::path modelFilePath = "")
+            : m_meshType(type), meshParameters(MeshParameterFactory::createMeshParameters(type, std::move(modelFilePath))) {
         }
 
         MeshComponent() = default;
-
-        MeshComponent(MeshDataType type, std::filesystem::path path) : m_meshType(type), m_modelPath(std::move(path)) {
-        }
 
         std::filesystem::path& modelPath() { return m_modelPath; }
 
@@ -43,8 +40,7 @@ namespace VkRender {
 
         std::shared_ptr<IMeshParameters> meshParameters;
         std::shared_ptr<IMeshParameters> data() { return meshParameters; }
-        bool isDirty = false; // TODO combine this with isDirtyFlag in MeshData
-        bool dynamic = false;
+        bool updateMeshData = false; // TODO combine this with isDirtyFlag in MeshData
 
     private:
         VkPolygonMode m_polygonMode = VK_POLYGON_MODE_FILL;

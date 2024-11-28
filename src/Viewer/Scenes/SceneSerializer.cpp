@@ -131,14 +131,12 @@ namespace VkRender {
         out << YAML::BeginMap;
         out << YAML::Key << "Entity";
         out << YAML::Value << entity.getUUID().operator std::string();
-
         // Serialize Parent UUID if the entity has a ParentComponent
         if (entity.hasComponent<ParentComponent>()) {
             auto parentEntity = entity.getParent();
             out << YAML::Key << "Parent";
             out << YAML::Value << parentEntity.getUUID().operator std::string();
         }
-
         if (entity.hasComponent<TagComponent>()) {
             out << YAML::Key << "TagComponent";
             out << YAML::BeginMap;
@@ -147,7 +145,6 @@ namespace VkRender {
             out << YAML::Value << tag;
             out << YAML::EndMap;
         }
-
         if (entity.hasComponent<TransformComponent>()) {
             out << YAML::Key << "TransformComponent";
             out << YAML::BeginMap;
@@ -160,7 +157,6 @@ namespace VkRender {
             out << YAML::Value << transform.getScale();
             out << YAML::EndMap;
         }
-
         // Serialize VisibleComponent
         if (entity.hasComponent<VisibleComponent>()) {
             out << YAML::Key << "VisibleComponent";
@@ -170,7 +166,6 @@ namespace VkRender {
             out << YAML::Value << visible;
             out << YAML::EndMap;
         }
-
         // Serialize GroupComponent
         if (entity.hasComponent<GroupComponent>()) {
             out << YAML::Key << "GroupComponent";
@@ -178,7 +173,6 @@ namespace VkRender {
             // Add any group-specific serialization if needed
             out << YAML::EndMap;
         }
-
         if (entity.hasComponent<MeshComponent>()) {
             out << YAML::Key << "MeshComponent";
             out << YAML::BeginMap;
@@ -215,46 +209,36 @@ namespace VkRender {
         if (entity.hasComponent<MaterialComponent>()) {
             out << YAML::Key << "MaterialComponent";
             out << YAML::BeginMap;
-
             auto &material = entity.getComponent<MaterialComponent>();
-
             // Serialize baseColor (glm::vec4)
             out << YAML::Key << "BaseColor";
             out << YAML::Value << YAML::Flow << std::vector<float>{
                     material.baseColor.r, material.baseColor.g, material.baseColor.b, material.baseColor.a
             };
-
             // Serialize metallic factor (float)
             out << YAML::Key << "Metallic";
             out << YAML::Value << material.metallic;
-
             // Serialize roughness factor (float)
             out << YAML::Key << "Roughness";
             out << YAML::Value << material.roughness;
-
             // Serialize usesTexture flag (bool)
             out << YAML::Key << "UsesTexture";
             out << YAML::Value << material.usesVideoSource;
-
             // Serialize emissiveFactor (glm::vec4)
             out << YAML::Key << "EmissiveFactor";
             out << YAML::Value << YAML::Flow << std::vector<float>{
                     material.emissiveFactor.r, material.emissiveFactor.g, material.emissiveFactor.b,
                     material.emissiveFactor.a
             };
-
             // Serialize vertex shader name (std::filesystem::path)
             out << YAML::Key << "VertexShader";
             out << YAML::Value << material.vertexShaderName.string(); // Convert path to string
-
             // Serialize fragment shader name (std::filesystem::path)
             out << YAML::Key << "FragmentShader";
             out << YAML::Value << material.fragmentShaderName.string(); // Convert path to string
-
             // Serialize the flag for video source
             out << YAML::Key << "UsesVideoSource";
             out << YAML::Value << material.usesVideoSource;
-
             // If video source is used, serialize the video folder source
             if (material.usesVideoSource) {
                 out << YAML::Key << "VideoFolderSource";
@@ -449,8 +433,8 @@ namespace VkRender {
 
                     MeshDataType meshDataType = stringToMeshDataType(
                             meshComponent["MeshDataType"].as<std::string>());
-
                     auto &mesh = deserializedEntity.addComponent<MeshComponent>(meshDataType, path);
+
                     mesh.polygonMode() = Serialize::stringToPolygonMode(
                             meshComponent["PolygonMode"].as<std::string>());
 

@@ -219,7 +219,7 @@ namespace VkRender {
             key.vertexInputBindingDescriptions = vertexInputBinding;
             key.vertexInputAttributes = vertexInputAttributes;
 
-            if (meshComponent.dynamic) {
+            if (meshData->isDynamic) {
                 key.vertexShaderName = "CameraGizmo.vert";
                 key.fragmentShaderName = "default.frag";
                 key.vertexInputBindingDescriptions.clear();

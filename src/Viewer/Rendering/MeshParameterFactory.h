@@ -8,13 +8,16 @@
 namespace VkRender {
     class MeshParameterFactory {
     public:
-        static std::shared_ptr<IMeshParameters> createMeshParameters(MeshDataType type) {
+        static std::shared_ptr<IMeshParameters> createMeshParameters(MeshDataType type, std::filesystem::path path) {
             switch (type) {
             case CYLINDER:
                 return std::make_shared<CylinderMeshParameters>();
             case CAMERA_GIZMO:
                 return std::make_shared<CameraGizmoMeshParameters>();
-                // Add cases for other mesh types...
+            case OBJ_FILE:
+                return std::make_shared<OBJFileMeshParameters>(path);
+            case PLY_FILE:
+                return std::make_shared<PLYFileMeshParameters>(path);
             default:
                 return nullptr;
             }

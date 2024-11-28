@@ -10,6 +10,7 @@
 #include <filesystem>
 #include <bits/fs_path.h>
 #include <glm/vec3.hpp>
+#include <utility>
 
 namespace VkRender {
     class MeshData;
@@ -49,7 +50,7 @@ namespace VkRender {
     };
     class OBJFileMeshParameters : public IMeshParameters {
     public:
-        OBJFileMeshParameters(const std::filesystem::path& path) : path(path) {}
+        explicit OBJFileMeshParameters(std::filesystem::path  path) : path(std::move(path)) {}
         std::filesystem::path path;
 
         std::string getIdentifier() const override {
@@ -61,7 +62,7 @@ namespace VkRender {
 
     class PLYFileMeshParameters : public IMeshParameters {
     public:
-        PLYFileMeshParameters(const std::filesystem::path& path) : path(path) {}
+        explicit PLYFileMeshParameters(std::filesystem::path  path) : path(std::move(path)) {}
 
         std::filesystem::path path;
 

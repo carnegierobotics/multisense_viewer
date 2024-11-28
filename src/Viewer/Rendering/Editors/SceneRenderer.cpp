@@ -109,7 +109,7 @@ namespace VkRender {
         }
 
         // Issue the draw call
-        if (command.meshInstance->indexBuffer && usesVertexBuffers) {
+        if (command.meshInstance->indexBuffer) {
             // Indexed draw call with vertex buffers
             vkCmdDrawIndexed(cmdBuffer, command.meshInstance->indexCount, 1, 0, 0, 0);
         } else {
@@ -226,13 +226,19 @@ namespace VkRender {
                 key.vertexInputAttributes.clear();
 
                 auto& writes = descriptorWritesTracker[DescriptorManagerType::DynamicCameraGizmo];
-                writes.resize(1);
+                writes.resize(2);
                 writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
                 writes[0].dstBinding = 0;
                 writes[0].dstArrayElement = 0;
                 writes[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
                 writes[0].descriptorCount = 1;
                 writes[0].pBufferInfo = &meshInstance->vertexBuffer->m_descriptorBufferInfo;
+                writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                writes[1].dstBinding = 1;
+                writes[1].dstArrayElement = 0;
+                writes[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+                writes[1].descriptorCount = 1;
+                writes[1].pBufferInfo = &meshInstance->indexBuffer->m_descriptorBufferInfo;
                 VkDescriptorSet dynamicCameraDescriptorSet = descriptorRegistry.getManager(
                     DescriptorManagerType::DynamicCameraGizmo).getOrCreateDescriptorSet(writes);
                 descriptorSets[DescriptorManagerType::DynamicCameraGizmo] = dynamicCameraDescriptorSet;

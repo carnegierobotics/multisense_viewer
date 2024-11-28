@@ -96,7 +96,7 @@ namespace VkRender {
 
         // Generate indices for the base and top caps if desired
         // Base cap
-        /*
+
         for (int i = 1; i < segments - 1; ++i) {
             indices.push_back(0);
             indices.push_back(i);
@@ -109,7 +109,7 @@ namespace VkRender {
             indices.push_back(segments + i + 1);
             indices.push_back(segments + i);
         }
-        */
+
 
         isDynamic = true;
     }

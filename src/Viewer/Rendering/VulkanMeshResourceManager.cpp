@@ -181,7 +181,7 @@ namespace VkRender {
         // Create index buffer if necessary
         if (indexBufferSize > 0) {
             if (meshData->isDynamic) {
-                usageFlags = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+                usageFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
             }
             else {
                 usageFlags = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;

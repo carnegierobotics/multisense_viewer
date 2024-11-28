@@ -57,11 +57,10 @@ namespace VkRender {
         DescriptorRegistry descriptorRegistry;
 
         std::unordered_map<UUID, std::shared_ptr<MaterialInstance>> m_materialInstances;
-        //std::unordered_map<UUID, std::shared_ptr<MeshInstance>> m_meshInstances;
-        std::unordered_map<UUID, std::shared_ptr<PointCloudInstance>> m_pointCloudInstances;
 
         std::unique_ptr<MeshResourceManager> m_meshResourceManager;
         MeshManager m_meshManager;
+        std::vector<RenderCommand> m_renderGroups;
 
         struct EntityRenderData {
             std::vector<std::unique_ptr<Buffer>> cameraBuffer;

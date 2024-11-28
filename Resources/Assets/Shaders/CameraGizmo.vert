@@ -25,7 +25,7 @@ struct VertexData {
 };
 
 layout(std430, set=2, binding=0) buffer CameraGizmoSSBO {
-VertexData vertices[21];
+VertexData vertices[];
 } vertexData;
 
 

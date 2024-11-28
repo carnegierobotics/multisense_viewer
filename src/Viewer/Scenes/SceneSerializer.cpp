@@ -14,7 +14,7 @@
 #include "Viewer/Rendering/Components/GaussianComponent.h"
 
 namespace VkRender::Serialize {
-    static std::string PolygonModeToString(VkPolygonMode mode) {
+    static std::string polygonModeToString(VkPolygonMode mode) {
         switch (mode) {
             case VK_POLYGON_MODE_FILL:
                 return "Fill";
@@ -27,7 +27,7 @@ namespace VkRender::Serialize {
         }
     }
 
-    static VkPolygonMode StringToPolygonMode(const std::string &modeStr) {
+    static VkPolygonMode stringToPolygonMode(const std::string &modeStr) {
         if (modeStr == "Fill")
             return VK_POLYGON_MODE_FILL;
         if (modeStr == "Line")
@@ -37,34 +37,6 @@ namespace VkRender::Serialize {
 
         // Default case, or handle unknown input
         return VK_POLYGON_MODE_FILL;
-    }
-
-    static std::string MeshDataTypeToString(MeshDataType meshDataType) {
-        switch (meshDataType) {
-            case OBJ_FILE:
-                return "OBJ_FILE";
-            case POINT_CLOUD:
-                return "POINT_CLOUD";
-            case PLY_FILE:
-                return "PLY_FILE";
-            case CAMERA_GIZMO:
-                return "CAMERA_GIZMO";
-            default:
-                return "Unknown";
-        }
-    }
-
-    static MeshDataType stringToMeshDataType(const std::string &modeStr) {
-        if (modeStr == "OBJ_FILE")
-            return OBJ_FILE;
-        if (modeStr == "POINT_CLOUD")
-            return POINT_CLOUD;
-        if (modeStr == "CAMERA_GIZMO")
-            return CAMERA_GIZMO;
-        if (modeStr == "PLY_FILE")
-            return PLY_FILE;
-        // Default case, or handle unknown input
-        return OBJ_FILE;
     }
 
     // Convert CameraType to string
@@ -214,9 +186,9 @@ namespace VkRender {
             out << YAML::Key << "ModelPath";
             out << YAML::Value << mesh.modelPath().string();
             out << YAML::Key << "MeshDataType";
-            out << YAML::Value << Serialize::MeshDataTypeToString(mesh.meshDataType());
+            out << YAML::Value << meshDataTypeToString(mesh.meshDataType());
             out << YAML::Key << "PolygonMode";
-            out << YAML::Value << Serialize::PolygonModeToString(mesh.polygonMode()); // Serialize PolygonMode as a string
+            out << YAML::Value << Serialize::polygonModeToString(mesh.polygonMode()); // Serialize PolygonMode as a string
             out << YAML::EndMap;
         }
         if (entity.hasComponent<CameraComponent>()) {
@@ -475,11 +447,11 @@ namespace VkRender {
                 if (meshComponent) {
                     std::filesystem::path path(meshComponent["ModelPath"].as<std::string>());
 
-                    MeshDataType meshDataType = Serialize::stringToMeshDataType(
+                    MeshDataType meshDataType = stringToMeshDataType(
                             meshComponent["MeshDataType"].as<std::string>());
 
                     auto &mesh = deserializedEntity.addComponent<MeshComponent>(meshDataType, path);
-                    mesh.polygonMode() = Serialize::StringToPolygonMode(
+                    mesh.polygonMode() = Serialize::stringToPolygonMode(
                             meshComponent["PolygonMode"].as<std::string>());
 
                 }

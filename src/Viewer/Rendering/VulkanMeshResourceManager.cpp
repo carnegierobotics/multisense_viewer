@@ -8,15 +8,15 @@
 
 namespace VkRender {
     std::shared_ptr<MeshInstance> MeshResourceManager::getMeshInstance(
-            const std::string& identifier,
-            const std::shared_ptr<MeshData>& meshData,
-            MeshDataType meshType) {
-        std::lock_guard<std::mutex> lock(cacheMutex);
+        const std::string& identifier,
+        const std::shared_ptr<MeshData>& meshData,
+        MeshDataType meshType) {
+        std::lock_guard lock(cacheMutex);
 
         auto it = meshInstanceCache.find(identifier);
         if (it != meshInstanceCache.end()) {
             if (meshData->isDirty) {
-                updateMeshInstance(identifier, meshData, meshType);
+                updateMeshInstance(identifier, meshData);
             }
             return it->second;
         }
@@ -31,10 +31,8 @@ namespace VkRender {
     }
 
     void MeshResourceManager::updateMeshInstance(
-            const std::string& identifier,
-            const std::shared_ptr<MeshData>& meshData,
-            MeshDataType meshType) {
-
+        const std::string& identifier,
+        const std::shared_ptr<MeshData>& meshData) {
         auto it = meshInstanceCache.find(identifier);
         if (it != meshInstanceCache.end() && meshData->isDirty) {
             auto meshInstance = it->second;
@@ -47,17 +45,19 @@ namespace VkRender {
 
             if (meshData->isDynamic) {
                 void* data;
-                vkMapMemory(m_context->vkDevice().m_LogicalDevice, meshInstance->vertexBuffer->m_memory, 0, vertexBufferSize, 0, &data);
+                vkMapMemory(m_context->vkDevice().m_LogicalDevice, meshInstance->vertexBuffer->m_memory, 0,
+                            vertexBufferSize, 0, &data);
                 memcpy(data, meshData->vertices.data(), static_cast<size_t>(vertexBufferSize));
                 vkUnmapMemory(m_context->vkDevice().m_LogicalDevice, meshInstance->vertexBuffer->m_memory);
 
                 if (indexBufferSize > 0) {
-                    vkMapMemory(m_context->vkDevice().m_LogicalDevice, meshInstance->indexBuffer->m_memory, 0, indexBufferSize, 0, &data);
+                    vkMapMemory(m_context->vkDevice().m_LogicalDevice, meshInstance->indexBuffer->m_memory, 0,
+                                indexBufferSize, 0, &data);
                     memcpy(data, meshData->indices.data(), static_cast<size_t>(indexBufferSize));
                     vkUnmapMemory(m_context->vkDevice().m_LogicalDevice, meshInstance->indexBuffer->m_memory);
                 }
-
-            } else {
+            }
+            else {
                 // For static meshes, use staging buffers to update device local memory
                 struct StagingBuffer {
                     VkBuffer buffer;
@@ -65,25 +65,26 @@ namespace VkRender {
                 } vertexStaging{}, indexStaging{};
 
                 CHECK_RESULT(m_context->vkDevice().createBuffer(
-                        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                        vertexBufferSize,
-                        &vertexStaging.buffer,
-                        &vertexStaging.memory,
-                        meshData->vertices.data()));
+                    VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                    vertexBufferSize,
+                    &vertexStaging.buffer,
+                    &vertexStaging.memory,
+                    meshData->vertices.data()));
 
                 if (indexBufferSize > 0) {
                     CHECK_RESULT(m_context->vkDevice().createBuffer(
-                            VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                            indexBufferSize,
-                            &indexStaging.buffer,
-                            &indexStaging.memory,
-                            meshData->indices.data()));
+                        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                        indexBufferSize,
+                        &indexStaging.buffer,
+                        &indexStaging.memory,
+                        meshData->indices.data()));
                 }
 
                 // Copy data from staging buffers to device local buffers
-                VkCommandBuffer copyCmd = m_context->vkDevice().createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+                VkCommandBuffer copyCmd = m_context->vkDevice().createCommandBuffer(
+                    VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
                 VkBufferCopy copyRegion = {};
                 copyRegion.size = vertexBufferSize;
                 vkCmdCopyBuffer(copyCmd, vertexStaging.buffer, meshInstance->vertexBuffer->m_buffer, 1, &copyRegion);
@@ -109,14 +110,14 @@ namespace VkRender {
 
     void MeshResourceManager::clearCache() {
         std::lock_guard<std::mutex> lock(cacheMutex);
-        for (auto &pair: meshInstanceCache) {
+        for (auto& pair : meshInstanceCache) {
             // Resources will be cleaned up by MeshInstance destructors
             pair.second.reset();
         }
         meshInstanceCache.clear();
     }
 
-    void MeshResourceManager::removeMeshInstance(const std::string &identifier) {
+    void MeshResourceManager::removeMeshInstance(const std::string& identifier) {
         std::lock_guard<std::mutex> lock(cacheMutex);
         auto it = meshInstanceCache.find(identifier);
         if (it != meshInstanceCache.end()) {
@@ -126,23 +127,20 @@ namespace VkRender {
     }
 
     std::shared_ptr<MeshInstance> MeshResourceManager::createMeshInstance(
-            const std::shared_ptr<MeshData>& meshData,
-            MeshDataType meshType) {
+        const std::shared_ptr<MeshData>& meshData,
+        MeshDataType meshType) {
         auto meshInstance = std::make_shared<MeshInstance>();
 
         // Set topology based on mesh data type
         switch (meshType) {
-            case OBJ_FILE:
-            case PLY_FILE:
-            case CAMERA_GIZMO:
-                meshInstance->topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-                break;
-            case POINT_CLOUD:
-                meshInstance->topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
-                break;
-            default:
-                meshInstance->topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-                break;
+        case OBJ_FILE:
+        case PLY_FILE:
+        case CAMERA_GIZMO:
+            meshInstance->topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+            break;
+        default:
+            meshInstance->topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+            break;
         }
 
         meshInstance->vertexCount = static_cast<uint32_t>(meshData->vertices.size());
@@ -163,7 +161,8 @@ namespace VkRender {
             // For dynamic meshes, use host-visible memory
             memoryProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
             usageFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-        } else {
+        }
+        else {
             // For static meshes, use device-local memory
             memoryProperties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
             usageFlags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
@@ -171,45 +170,49 @@ namespace VkRender {
 
         // Create vertex buffer
         CHECK_RESULT(m_context->vkDevice().createBuffer(
-                usageFlags,
-                memoryProperties,
-                meshInstance->vertexBuffer,
-                vertexBufferSize,
-                nullptr,
-                "MeshResourceManager:VertexBuffer",
-                m_context->getDebugUtilsObjectNameFunction()));
+            usageFlags,
+            memoryProperties,
+            meshInstance->vertexBuffer,
+            vertexBufferSize,
+            nullptr,
+            "MeshResourceManager:VertexBuffer",
+            m_context->getDebugUtilsObjectNameFunction()));
 
         // Create index buffer if necessary
         if (indexBufferSize > 0) {
             if (meshData->isDynamic) {
                 usageFlags = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-            } else {
+            }
+            else {
                 usageFlags = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
             }
             CHECK_RESULT(m_context->vkDevice().createBuffer(
-                    usageFlags,
-                    memoryProperties,
-                    meshInstance->indexBuffer,
-                    indexBufferSize,
-                    nullptr,
-                    "MeshResourceManager:IndexBuffer",
-                    m_context->getDebugUtilsObjectNameFunction()));
+                usageFlags,
+                memoryProperties,
+                meshInstance->indexBuffer,
+                indexBufferSize,
+                nullptr,
+                "MeshResourceManager:IndexBuffer",
+                m_context->getDebugUtilsObjectNameFunction()));
         }
 
         // Upload data to buffers
         if (meshData->isDynamic) {
             // Map memory and copy data directly
             void* data;
-            vkMapMemory(m_context->vkDevice().m_LogicalDevice, meshInstance->vertexBuffer->m_memory, 0, vertexBufferSize, 0, &data);
+            vkMapMemory(m_context->vkDevice().m_LogicalDevice, meshInstance->vertexBuffer->m_memory, 0,
+                        vertexBufferSize, 0, &data);
             memcpy(data, meshData->vertices.data(), static_cast<size_t>(vertexBufferSize));
             vkUnmapMemory(m_context->vkDevice().m_LogicalDevice, meshInstance->vertexBuffer->m_memory);
 
             if (indexBufferSize > 0) {
-                vkMapMemory(m_context->vkDevice().m_LogicalDevice, meshInstance->indexBuffer->m_memory, 0, indexBufferSize, 0, &data);
+                vkMapMemory(m_context->vkDevice().m_LogicalDevice, meshInstance->indexBuffer->m_memory, 0,
+                            indexBufferSize, 0, &data);
                 memcpy(data, meshData->indices.data(), static_cast<size_t>(indexBufferSize));
                 vkUnmapMemory(m_context->vkDevice().m_LogicalDevice, meshInstance->indexBuffer->m_memory);
             }
-        } else {
+        }
+        else {
             // Use staging buffers for static meshes
             // Create staging buffers
             struct StagingBuffer {
@@ -218,21 +221,21 @@ namespace VkRender {
             } vertexStaging{}, indexStaging{};
 
             CHECK_RESULT(m_context->vkDevice().createBuffer(
-                    VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                    vertexBufferSize,
-                    &vertexStaging.buffer,
-                    &vertexStaging.memory,
-                    meshData->vertices.data()));
+                VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                vertexBufferSize,
+                &vertexStaging.buffer,
+                &vertexStaging.memory,
+                meshData->vertices.data()));
 
             if (indexBufferSize > 0) {
                 CHECK_RESULT(m_context->vkDevice().createBuffer(
-                        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                        indexBufferSize,
-                        &indexStaging.buffer,
-                        &indexStaging.memory,
-                        meshData->indices.data()));
+                    VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                    indexBufferSize,
+                    &indexStaging.buffer,
+                    &indexStaging.memory,
+                    meshData->indices.data()));
             }
 
             // Copy data from staging buffers to device local buffers

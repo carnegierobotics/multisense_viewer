@@ -5,6 +5,8 @@
 #ifndef MULTISENSE_VIEWER_MESHINSTANCE_H
 #define MULTISENSE_VIEWER_MESHINSTANCE_H
 
+#include "Viewer/Rendering/MeshData.h"
+
 namespace VkRender {
     struct MeshInstance {
         std::unique_ptr<Buffer> vertexBuffer{};

@@ -16,7 +16,6 @@
 #include "Viewer/Rendering/Editors/CommonEditorFunctions.h"
 
 namespace VkRender {
-
     struct CameraModel {
         enum Type {
             PINHOLE,
@@ -27,7 +26,7 @@ namespace VkRender {
             UNKNOWN
         };
 
-        static Type fromString(const std::string &modelStr) {
+        static Type fromString(const std::string& modelStr) {
             if (modelStr == "PINHOLE") return PINHOLE;
             if (modelStr == "SIMPLE_PINHOLE") return SIMPLE_PINHOLE;
             if (modelStr == "OPENCV") return OPENCV;
@@ -54,7 +53,7 @@ namespace VkRender {
     };
 
     bool
-    parseCameras(const std::filesystem::path &camerasFilePath, std::unordered_map<uint32_t, ColmapCamera> &cameras) {
+    parseCameras(const std::filesystem::path& camerasFilePath, std::unordered_map<uint32_t, ColmapCamera>& cameras) {
         std::ifstream file(camerasFilePath);
         if (!file.is_open()) {
             std::cerr << "Failed to open " << camerasFilePath << std::endl;
@@ -92,7 +91,7 @@ namespace VkRender {
         return true;
     }
 
-    bool parseImages(const std::filesystem::path &imagesFilePath, std::unordered_map<uint32_t, Image> &images) {
+    bool parseImages(const std::filesystem::path& imagesFilePath, std::unordered_map<uint32_t, Image>& images) {
         std::ifstream file(imagesFilePath);
         if (!file.is_open()) {
             std::cerr << "Failed to open " << imagesFilePath << std::endl;
@@ -135,10 +134,10 @@ namespace VkRender {
 
     struct FOV {
         double horizontal; // In radians
-        double vertical;   // In radians
+        double vertical; // In radians
     };
 
-    FOV computeFOV(const ColmapCamera &camera) {
+    FOV computeFOV(const ColmapCamera& camera) {
         FOV fov = {0.0, 0.0};
 
         if (camera.model == CameraModel::PINHOLE || camera.model == CameraModel::OPENCV) {
@@ -147,19 +146,21 @@ namespace VkRender {
             double fy = camera.params[1];
             fov.horizontal = 2.0 * atan(camera.width / (2.0 * fx));
             fov.vertical = 2.0 * atan(camera.height / (2.0 * fy));
-        } else if (camera.model == CameraModel::SIMPLE_PINHOLE) {
+        }
+        else if (camera.model == CameraModel::SIMPLE_PINHOLE) {
             // For SIMPLE_PINHOLE, params are [f, cx, cy]
             double f = camera.params[0];
             fov.horizontal = 2.0 * atan(camera.width / (2.0 * f));
             fov.vertical = 2.0 * atan(camera.height / (2.0 * f));
-        } else {
+        }
+        else {
             std::cerr << "FOV computation not implemented for this camera model." << std::endl;
         }
 
         return fov;
     }
 
-    void PropertiesLayer::addEntitiesFromColmap(const std::filesystem::path &colmapFolderPath) {
+    void PropertiesLayer::addEntitiesFromColmap(const std::filesystem::path& colmapFolderPath) {
         std::filesystem::path imagesTXTfile = colmapFolderPath / "sparse" / "0" / "images.txt";
         std::filesystem::path camerasTXTfile = colmapFolderPath / "sparse" / "0" / "cameras.txt";
 
@@ -174,15 +175,15 @@ namespace VkRender {
         }
 
         // Now, for each image, get the camera info and compute FOV
-        for (const auto &[image_id, image]: images) {
+        for (const auto& [image_id, image] : images) {
             auto camera_it = cameras.find(image.camera_id);
             if (camera_it == cameras.end()) {
                 std::cerr << "Camera ID " << image.camera_id << " not found for image " << image.image_name
-                          << std::endl;
+                    << std::endl;
                 continue;
             }
 
-            const ColmapCamera &camera = camera_it->second;
+            const ColmapCamera& camera = camera_it->second;
 
             // Compute FOV
             FOV fov = computeFOV(camera);
@@ -192,9 +193,9 @@ namespace VkRender {
             std::cout << "Image Name: " << image.image_name << std::endl;
             std::cout << "Camera ID: " << image.camera_id << std::endl;
             std::cout << "Position (T): [" << image.translation.x << ", " << image.translation.y << ", "
-                      << image.translation.z << "]" << std::endl;
+                << image.translation.z << "]" << std::endl;
             std::cout << "Rotation (Q): [" << image.rotation.w << ", " << image.rotation.x << ", " << image.rotation.y
-                      << ", " << image.rotation.z << "]" << std::endl;
+                << ", " << image.rotation.z << "]" << std::endl;
             std::cout << "Width: " << camera.width << ", Height: " << camera.height << std::endl;
             std::cout << "FOV Horizontal (degrees): " << glm::degrees(fov.horizontal) << std::endl;
             std::cout << "FOV Vertical (degrees): " << glm::degrees(fov.vertical) << std::endl;
@@ -207,10 +208,10 @@ namespace VkRender {
             newCamera.setType(Camera::flycam);
             newCamera.fov() = std::min(glm::degrees(fov.horizontal), glm::degrees(fov.vertical));
 
-            auto &cameraComponent = entity.addComponent<CameraComponent>(newCamera);
+            auto& cameraComponent = entity.addComponent<CameraComponent>(newCamera);
             cameraComponent.renderFromViewpoint() = false;
 
-            auto &transformComponent = entity.getComponent<TransformComponent>();
+            auto& transformComponent = entity.getComponent<TransformComponent>();
             glm::quat q_wc(image.rotation.w, image.rotation.x, image.rotation.y, image.rotation.z);
             glm::quat q_cw = glm::conjugate(q_wc);
             glm::vec3 position = -(q_cw * image.translation);
@@ -222,7 +223,7 @@ namespace VkRender {
             //transformComponent.setRotationQuaternion(q_cw);
             transformComponent.setScale({0.5f, 0.5f, 0.5f});
 
-            auto &material = entity.addComponent<MaterialComponent>();
+            auto& material = entity.addComponent<MaterialComponent>();
             material.fragmentShaderName = "defaultTexture.frag";
             material.albedoTexturePath = "";
 
@@ -245,10 +246,10 @@ namespace VkRender {
         m_selectionContext = Entity(); // reset selectioncontext
     }
 
-    bool PropertiesLayer::drawVec3Control(const std::string &label, glm::vec3 &values, float resetValue = 0.0f,
+    bool PropertiesLayer::drawVec3Control(const std::string& label, glm::vec3& values, float resetValue = 0.0f,
                                           float speed = 1.0f, float columnWidth = 100.0f) {
         bool valueChanged = false;
-        ImGuiIO &io = ImGui::GetIO();
+        ImGuiIO& io = ImGui::GetIO();
         auto boldFont = io.Fonts->Fonts[0];
 
         ImGui::PushID(label.c_str());
@@ -324,10 +325,10 @@ namespace VkRender {
         return valueChanged;
     }
 
-    bool PropertiesLayer::drawFloatControl(const std::string &label, float &value, float resetValue = 0.0f,
+    bool PropertiesLayer::drawFloatControl(const std::string& label, float& value, float resetValue = 0.0f,
                                            float speed = 1.0f, float columnWidth = 100.0f) {
         bool valueChanged = false;
-        ImGuiIO &io = ImGui::GetIO();
+        ImGuiIO& io = ImGui::GetIO();
         auto boldFont = io.Fonts->Fonts[0];
 
         ImGui::PushID(label.c_str());
@@ -368,19 +369,19 @@ namespace VkRender {
         return valueChanged;
     }
 
-    template<typename T, typename UIFunction>
-    void PropertiesLayer::drawComponent(const std::string &componentName, Entity entity, UIFunction uiFunction) {
+    template <typename T, typename UIFunction>
+    void PropertiesLayer::drawComponent(const std::string& componentName, Entity entity, UIFunction uiFunction) {
         const ImGuiTreeNodeFlags treeNodeFlags =
-                ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth |
-                ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowOverlap;
+            ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth |
+            ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowOverlap;
         if (entity.hasComponent<T>()) {
-            auto &component = entity.getComponent<T>();
+            auto& component = entity.getComponent<T>();
             ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
 
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{4, 4});
             float lineHeight = GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f;
             ImGui::Separator();
-            bool open = ImGui::TreeNodeEx((void *) typeid(T).hash_code(), treeNodeFlags, "%s", componentName.c_str());
+            bool open = ImGui::TreeNodeEx((void*)typeid(T).hash_code(), treeNodeFlags, "%s", componentName.c_str());
             ImGui::PopStyleVar();
             ImGui::SameLine(contentRegionAvailable.x - lineHeight * 0.5f);
 
@@ -423,13 +424,13 @@ namespace VkRender {
             ImGui::EndPopup();
         }
 
-        drawComponent<TransformComponent>("Transform", entity, [](auto &component) {
+        drawComponent<TransformComponent>("Transform", entity, [](auto& component) {
             drawVec3Control("Translation", component.getPosition());
             drawVec3Control("Rotation", component.getRotationEuler(), 0.0f, 2.0f);
             component.updateFromEulerRotation();
             drawVec3Control("Scale", component.getScale(), 1.0f);
         });
-        drawComponent<CameraComponent>("Camera", entity, [](auto &component) {
+        drawComponent<CameraComponent>("Camera", entity, [](auto& component) {
             drawFloatControl("Field of View", component.camera->fov(), 1.0f);
             component.camera->updateProjectionMatrix();
 
@@ -456,11 +457,113 @@ namespace VkRender {
                 component.camera->setType(Camera::CameraType::flycam);
         });
 
-        drawComponent<MeshComponent>("Mesh", entity, [this, entity](auto &component) {
-            ImGui::Text("MeshFile:");
-            ImGui::Text("%s", component.modelPath().string().c_str());
+        drawComponent<MeshComponent>("Mesh", entity, [this, entity](MeshComponent& component) {
+            // Mesh Type Selection
+
+            static int previousMeshType = -1; // Store the previous selection
+            int currentMeshType = component.meshDataType();
+
+            const auto array = meshDataTypeToStringArray().data();
+            int num = meshDataTypeToStringArray().size();
+            // Create the combo and check for interaction
+
+            // Begin the combo box
+            if (ImGui::BeginCombo("Mesh Type",
+                                  meshDataTypeToString(static_cast<MeshDataType>(currentMeshType)).c_str())) {
+                // Loop through the available mesh types
+                for (size_t i = 0; i < meshDataTypeToArray().size(); ++i) {
+                    bool isSelected = (currentMeshType == static_cast<int>(meshDataTypeToArray()[i]));
+                    if (ImGui::Selectable(meshDataTypeToString(meshDataTypeToArray()[i]).c_str(), isSelected)) {
+                        currentMeshType = static_cast<int>(meshDataTypeToArray()[i]);
+                        component.meshDataType() = static_cast<MeshDataType>(currentMeshType);
+                        component.isDirty = true;
+
+                        // Trigger behavior when a new type is selected
+                        switch (component.meshDataType()) {
+                        case MeshDataType::OBJ_FILE:
+
+                            EditorUtils::openImportFileDialog("Wavefront", {".obj"}, LayerUtils::OBJ_FILE,
+                                                              &m_loadFileFuture);
+                            component.dynamic = false;
+                            break;
+
+                        case MeshDataType::PLY_FILE:
+
+                            EditorUtils::openImportFileDialog("Stanford .PLY", {".ply"}, LayerUtils::PLY_MESH,
+                                                              &m_loadFileFuture);
+                            component.dynamic = false;
+                            break;
+
+                        case MeshDataType::CYLINDER:
+                            component.meshParameters = std::make_shared<CylinderMeshParameters>();
+                            component.dynamic = true;
+                            break;
+                        case MeshDataType::CAMERA_GIZMO:
+                            component.meshParameters = std::make_shared<CameraGizmoMeshParameters>();
+                            component.dynamic = true;
+                            break;
+                        default:
+                            Log::Logger::getInstance()->error("Unknown mesh type!");
+                            break;
+                        }
+                    }
+
+                    // Ensure the currently selected item remains selected
+                    if (isSelected) {
+                        ImGui::SetItemDefaultFocus();
+                    }
+                }
+
+                ImGui::EndCombo();
+            }
+
+            // Display different input fields based on mesh type
+            switch (component.meshDataType()) {
+            case MeshDataType::OBJ_FILE:
+            case MeshDataType::PLY_FILE:
+                {
+                    ImGui::Text("Mesh File:");
+                    ImGui::Text("%s", component.modelPath().c_str());
+                    break;
+                }
+
+            case MeshDataType::CYLINDER:
+                {
+                    auto cylinderParams = std::dynamic_pointer_cast<CylinderMeshParameters>(component.meshParameters);
+                    if (cylinderParams) {
+                        bool paramsChanged = false;
+                        paramsChanged |= drawVec3Control("Origin", cylinderParams->origin);
+                        paramsChanged |= drawVec3Control("Direction", cylinderParams->direction);
+                        paramsChanged |= ImGui::SliderFloat("Magnitude", &cylinderParams->magnitude, 0.0f, 100.0f);
+                        if (paramsChanged) {
+                            component.isDirty = true;
+                        }
+                    }
+                    break;
+                }
+
+            case MeshDataType::CAMERA_GIZMO:
+                {
+                    auto cameraGizmoParams = std::dynamic_pointer_cast<CameraGizmoMeshParameters>(
+                        component.meshParameters);
+                    if (cameraGizmoParams) {
+                        bool paramsChanged = false;
+                        paramsChanged |= ImGui::SliderFloat("Image Size", &cameraGizmoParams->imageSize, 0.1f, 10.0f);
+                        paramsChanged |= ImGui::SliderFloat("Focal Point", &cameraGizmoParams->focalLength, 0.1f,
+                                                            3.0f);
+                        // Add more parameters as needed
+                        if (paramsChanged) {
+                            component.isDirty = true;
+                        }
+                    }
+                    break;
+                }
+            default:
+                break;
+            }
 
 
+            /*
             // Load mesh from file here:
             if (ImGui::Button("Load .obj mesh")) {
                 std::vector<std::string> types{".obj"};
@@ -478,27 +581,46 @@ namespace VkRender {
             // Load mesh from mesh here:
             if (ImGui::Button("Camera gizmo")) {
                 component.meshDataType() = CAMERA_GIZMO;
-                if (m_selectionContext.hasComponent<MeshComponent>())
-                    m_selectionContext.removeComponent<MeshComponent>();
-                m_selectionContext.addComponent<MeshComponent>(MeshDataType::CAMERA_GIZMO);
+                auto cameraGizmoParams = std::make_shared<CameraGizmoMeshParameters>();
+                component.meshParameters = cameraGizmoParams;
             }
+            */
 
             // Polygon Mode Control
             ImGui::Text("Polygon Mode:");
-            const char *polygonModes[] = {"Line", "Fill"};
+            const char* polygonModes[] = {"Line", "Fill"};
             int currentMode = (component.polygonMode() == VK_POLYGON_MODE_LINE) ? 0 : 1;
             if (ImGui::Combo("Polygon Mode", &currentMode, polygonModes, IM_ARRAYSIZE(polygonModes))) {
                 if (currentMode == 0) {
                     component.polygonMode() = VK_POLYGON_MODE_LINE;
-                } else {
+                }
+                else {
                     component.polygonMode() = VK_POLYGON_MODE_FILL;
                 }
                 m_context->activeScene()->onComponentUpdated(entity, component);
             }
-
-
         });
-        drawComponent<TagComponent>("Tag", entity, [this](auto &component) {
+
+        drawComponent<VectorComponent>("VectorComponent", entity, [this](auto& component) {
+            ImGui::Text("Vector:");
+            bool update = false;
+            update |= drawVec3Control("Origin", component.origin);
+            update |= drawVec3Control("Direction", component.direction);
+            update |= ImGui::SliderFloat("Magnitude", &component.magnitude, 0.0f, 100.0f);
+            if (update) {
+                /*
+                MeshComponent meshComponent(CAMERA_GIZMO);
+                if (m_selectionContext.hasComponent<MeshComponent>())
+                    m_selectionContext.removeComponent<MeshComponent>();
+
+                auto cameraGizmoParams = std::make_shared<CameraGizmoMeshParameters>();
+                meshComponent.meshParameters = cameraGizmoParams;
+                m_selectionContext.addComponent<MeshComponent>(meshComponent);
+                */
+            }
+        });
+
+        drawComponent<TagComponent>("Tag", entity, [this](auto& component) {
             ImGui::Text("Entity Name:");
             ImGui::SameLine();
             // Define a buffer large enough to hold the tag's content
@@ -516,7 +638,7 @@ namespace VkRender {
             }
         });
 
-        drawComponent<MaterialComponent>("Material", entity, [this, entity](auto &component) {
+        drawComponent<MaterialComponent>("Material", entity, [this, entity](auto& component) {
             ImGui::Text("Material Properties");
 
             // Base Color Control
@@ -623,7 +745,7 @@ namespace VkRender {
             }
         });
         */
-        drawComponent<GaussianComponent>("Gaussian Model", entity, [this](auto &component) {
+        drawComponent<GaussianComponent>("Gaussian Model", entity, [this](auto& component) {
             ImGui::Text("Gaussian Model Properties");
 
             // Display the number of Gaussians
@@ -686,111 +808,18 @@ namespace VkRender {
         });
 
 
-        drawComponent<GroupComponent>("Group", entity, [this](auto &component) {
+        drawComponent<GroupComponent>("Group", entity, [this](auto& component) {
             ImGui::Text("Load cameras from file");
             ImGui::Text("Colmap Path: %s", component.colmapPath.string().c_str());
             if (ImGui::Button("Set Colmap Folder")) {
                 std::vector<std::string> types{""};
                 EditorUtils::openImportFolderDialog("Load 3DGS .ply file", types, LayerUtils::COLMAP_FOLDER,
                                                     &m_loadFileFuture);
-
             }
             ImGui::SameLine();
             if (ImGui::Button("Load colmap from path")) {
                 if (std::filesystem::exists(component.colmapPath))
                     addEntitiesFromColmap(component.colmapPath);
-            }
-        });
-
-        drawComponent<VectorComponent>("VectorComponent", entity, [this](auto &component) {
-            ImGui::Text("Vector:");
-
-            bool update = false;
-
-            update |= drawVec3Control("Origin", component.origin);
-            update |= drawVec3Control("Direction", component.direction);
-            update |= ImGui::SliderFloat("Magnitude", &component.magnitude, 0.0f, 100.0f);
-
-            if (update){
-                // Normalize the direction to ensure consistent scaling
-                component.direction = glm::normalize(component.direction);
-
-                // Calculate the endpoint of the vector
-                glm::vec3 endpoint = component.origin + component.direction * component.magnitude;
-
-                // Cylinder parameters
-                const int segments = 16; // Number of segments for the circular caps
-                float radius = 0.05f * component.magnitude; // Cylinder radius
-
-                // Base and top centers
-                glm::vec3 baseCenter = component.origin;
-                glm::vec3 topCenter = endpoint;
-
-                // Compute orthogonal vectors for the circular base
-                glm::vec3 up = glm::vec3(0, 1, 0); // Arbitrary perpendicular vector
-                if (glm::abs(glm::dot(up, component.direction)) > 0.9f) {
-                    up = glm::vec3(1, 0, 0); // Switch to another perpendicular vector if needed
-                }
-                glm::vec3 right = glm::normalize(glm::cross(component.direction, up));
-                up = glm::normalize(glm::cross(right, component.direction));
-
-                std::vector<Vertex> vertices;
-                std::vector<uint32_t> indices;
-
-                // Generate vertices for the bottom and top circles
-                for (int i = 0; i < segments; ++i) {
-                    float theta = (2.0f * M_PI * i) / segments; // Angle around the circle
-
-                    // Circular offset
-                    glm::vec3 offset = right * cos(theta) * radius + up * sin(theta) * radius;
-
-                    // Bottom circle vertex
-                    vertices.push_back({ baseCenter + offset });
-
-                    // Top circle vertex
-                    vertices.push_back({ topCenter + offset });
-                }
-
-                // Add center vertices for the caps
-                uint32_t baseCenterIndex = static_cast<uint32_t>(vertices.size());
-                vertices.push_back({ baseCenter }); // Bottom center
-                uint32_t topCenterIndex = static_cast<uint32_t>(vertices.size());
-                vertices.push_back({ topCenter });  // Top center
-
-                // Generate indices for the side faces
-                for (int i = 0; i < segments; ++i) {
-                    uint32_t next = (i + 1) % segments;
-
-                    // First triangle of quad
-                    indices.push_back(i);               // Bottom circle vertex
-                    indices.push_back(segments + i);    // Top circle vertex
-                    indices.push_back(segments + next); // Next top circle vertex
-
-                    // Second triangle of quad
-                    indices.push_back(i);           // Bottom circle vertex
-                    indices.push_back(segments + next); // Next top circle vertex
-                    indices.push_back(next);        // Next bottom circle vertex
-                }
-
-                // Generate indices for the bottom cap
-                for (int i = 0; i < segments; ++i) {
-                    uint32_t next = (i + 1) % segments;
-
-                    indices.push_back(baseCenterIndex); // Bottom center
-                    indices.push_back(i);               // Current bottom circle vertex
-                    indices.push_back(next);            // Next bottom circle vertex
-                }
-
-                // Generate indices for the top cap
-                for (int i = 0; i < segments; ++i) {
-                    uint32_t next = (i + 1) % segments;
-
-                    indices.push_back(topCenterIndex);  // Top center
-                    indices.push_back(segments + next); // Next top circle vertex
-                    indices.push_back(segments + i);    // Current top circle vertex
-                }
-
-
             }
         });
     }
@@ -803,8 +832,8 @@ namespace VkRender {
         ImVec2 window_size = ImVec2(m_editor->ui()->width, m_editor->ui()->height); // Size (width, height)
         // Set window flags to remove decorations
         ImGuiWindowFlags window_flags =
-                ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
-                ImGuiWindowFlags_NoBringToFrontOnFocus;
+            ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
+            ImGuiWindowFlags_NoBringToFrontOnFocus;
 
         // Set next window position and size
         ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always);
@@ -834,8 +863,8 @@ namespace VkRender {
     void PropertiesLayer::onDetach() {
     }
 
-    template<typename T>
-    void PropertiesLayer::displayAddComponentEntry(const std::string &entryName) {
+    template <typename T>
+    void PropertiesLayer::displayAddComponentEntry(const std::string& entryName) {
         if (!m_selectionContext.hasComponent<T>()) {
             if (ImGui::MenuItem(entryName.c_str())) {
                 m_selectionContext.addComponent<T>();
@@ -845,77 +874,82 @@ namespace VkRender {
     }
 
     void
-    PropertiesLayer::handleSelectedFileOrFolder(const LayerUtils::LoadFileInfo &loadFileInfo) {
+    PropertiesLayer::handleSelectedFileOrFolder(const LayerUtils::LoadFileInfo& loadFileInfo) {
         if (!loadFileInfo.path.empty()) {
             switch (loadFileInfo.filetype) {
-                case LayerUtils::TEXTURE_FILE: {
-                    auto &materialComponent = m_selectionContext.getComponent<MaterialComponent>();
+            case LayerUtils::TEXTURE_FILE:
+                {
+                    auto& materialComponent = m_selectionContext.getComponent<MaterialComponent>();
                     materialComponent.albedoTexturePath = loadFileInfo.path;
                     m_context->activeScene()->onComponentUpdated(m_selectionContext, materialComponent);
                 }
-                    break;
-                case LayerUtils::OBJ_FILE:
-                    // Load into the active scene
-                    if (m_selectionContext.hasComponent<MeshComponent>())
-                        m_selectionContext.removeComponent<MeshComponent>();
-                    m_selectionContext.addComponent<MeshComponent>(MeshDataType::OBJ_FILE, loadFileInfo.path);
-                    break;
-                case LayerUtils::PLY_3DGS: {
+                break;
+            case LayerUtils::OBJ_FILE:
+                // Load into the active scene
+                if (m_selectionContext.hasComponent<MeshComponent>()) {
+                    auto& meshComponent = m_selectionContext.getComponent<MeshComponent>();
+                    meshComponent.meshParameters = std::make_shared<OBJFileMeshParameters>(loadFileInfo.path);
+                }
 
+                break;
+            case LayerUtils::PLY_3DGS:
+                {
                     if (m_selectionContext.hasComponent<GaussianComponent>())
                         m_selectionContext.removeComponent<GaussianComponent>();
 
-                    auto &comp = m_selectionContext.addComponent<GaussianComponent>(loadFileInfo.path);
+                    auto& comp = m_selectionContext.addComponent<GaussianComponent>(loadFileInfo.path);
                     comp.addToRenderer = true;
                 }
-                    break;
-                case LayerUtils::PLY_MESH: {
-                    if (m_selectionContext.hasComponent<MeshComponent>())
-                        m_selectionContext.removeComponent<MeshComponent>();
-                    m_selectionContext.addComponent<MeshComponent>(MeshDataType::PLY_FILE, loadFileInfo.path);
+                break;
+            case LayerUtils::PLY_MESH:
+                if (m_selectionContext.hasComponent<MeshComponent>()) {
+                    auto& meshComponent = m_selectionContext.getComponent<MeshComponent>();
+                    meshComponent.meshParameters = std::make_shared<PLYFileMeshParameters>(loadFileInfo.path);
                 }
-                    break;
-                case LayerUtils::VIDEO_TEXTURE_FILE: {
+                break;
+            case LayerUtils::VIDEO_TEXTURE_FILE:
+                {
                     // TODO figure out how to know which component requested the folder or file load operation
                     if (m_selectionContext.hasComponent<MaterialComponent>()) {
-                        auto &materialComponent = m_selectionContext.getComponent<MaterialComponent>();
+                        auto& materialComponent = m_selectionContext.getComponent<MaterialComponent>();
                         materialComponent.videoFolderSource = loadFileInfo.path;
                         m_context->activeScene()->onComponentUpdated(m_selectionContext, materialComponent);
                     }
                 }
-                    break;
-                case LayerUtils::VIDEO_DISPARITY_DEPTH_TEXTURE_FILE:
-                    if (m_selectionContext.hasComponent<PointCloudComponent>()) {
-                        auto &pointCloudComponent = m_selectionContext.getComponent<PointCloudComponent>();
-                        pointCloudComponent.depthVideoFolderSource = loadFileInfo.path;
-                        m_context->activeScene()->onComponentUpdated(m_selectionContext, pointCloudComponent);
-                    }
-                    break;
-                case LayerUtils::VIDEO_DISPARITY_COLOR_TEXTURE_FILE:
-                    if (m_selectionContext.hasComponent<PointCloudComponent>()) {
-                        auto &pointCloudComponent = m_selectionContext.getComponent<PointCloudComponent>();
-                        pointCloudComponent.colorVideoFolderSource = loadFileInfo.path;
-                        m_context->activeScene()->onComponentUpdated(m_selectionContext, pointCloudComponent);
-                    }
-                    break;
-                case LayerUtils::COLMAP_FOLDER:
-                    if (m_selectionContext.hasComponent<GroupComponent>()) {
-                        auto &groupComponent = m_selectionContext.getComponent<GroupComponent>();
-                        std::filesystem::path colmapFolderPath = loadFileInfo.path;
-                        addEntitiesFromColmap(colmapFolderPath);
-                    }
-                    break;
-                default:
-                    Log::Logger::getInstance()->warning("Not implemented yet");
-                    break;
+                break;
+            case LayerUtils::VIDEO_DISPARITY_DEPTH_TEXTURE_FILE:
+                if (m_selectionContext.hasComponent<PointCloudComponent>()) {
+                    auto& pointCloudComponent = m_selectionContext.getComponent<PointCloudComponent>();
+                    pointCloudComponent.depthVideoFolderSource = loadFileInfo.path;
+                    m_context->activeScene()->onComponentUpdated(m_selectionContext, pointCloudComponent);
+                }
+                break;
+            case LayerUtils::VIDEO_DISPARITY_COLOR_TEXTURE_FILE:
+                if (m_selectionContext.hasComponent<PointCloudComponent>()) {
+                    auto& pointCloudComponent = m_selectionContext.getComponent<PointCloudComponent>();
+                    pointCloudComponent.colorVideoFolderSource = loadFileInfo.path;
+                    m_context->activeScene()->onComponentUpdated(m_selectionContext, pointCloudComponent);
+                }
+                break;
+            case LayerUtils::COLMAP_FOLDER:
+                if (m_selectionContext.hasComponent<GroupComponent>()) {
+                    auto& groupComponent = m_selectionContext.getComponent<GroupComponent>();
+                    std::filesystem::path colmapFolderPath = loadFileInfo.path;
+                    addEntitiesFromColmap(colmapFolderPath);
+                }
+                break;
+            default:
+                Log::Logger::getInstance()->warning("Not implemented yet");
+                break;
             }
 
             // Copy the selected file path to wherever it's needed
-            auto &opts = ApplicationConfig::getInstance().getUserSetting();
+            auto& opts = ApplicationConfig::getInstance().getUserSetting();
             opts.lastOpenedImportModelFolderPath = loadFileInfo.path;
             // Additional processing of the file can be done here
             Log::Logger::getInstance()->info("File selected: {}", loadFileInfo.path.filename().string());
-        } else {
+        }
+        else {
             Log::Logger::getInstance()->warning("No file selected.");
         }
     }

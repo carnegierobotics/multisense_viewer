@@ -12,10 +12,12 @@
 #define GLM_ENABLE_EXPERIMENTAL
 
 #include <glm/gtx/quaternion.hpp>
-#include <multisense_viewer/external/entt/include/entt/entt.hpp>
+#include <filesystem>
+#include <entt/entt.hpp>
+#include <Viewer/Tools/Macros.h>
+
 #include "Viewer/Rendering/Editors/Camera.h"
 #include "Viewer/Rendering/Core/UUID.h"
-#include "MeshComponent.h"
 
 namespace VkRender {
     DISABLE_WARNING_PUSH
@@ -160,7 +162,7 @@ namespace VkRender {
     struct GroupComponent {
         std::string placeHolder;
 
-        std::filesystem::path colmapPath;
+        std::filesystem::path colmapPath; // TODO remove
     };
 
     struct TextComponent {

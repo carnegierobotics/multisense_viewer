@@ -12,45 +12,46 @@
 
 
 #include "Viewer/Rendering/MeshData.h"
+#include "Viewer/Rendering/IMeshParameters.h"
+#include "Viewer/Rendering/MeshParameterFactory.h"
 
 #include "Viewer/Tools/Utils.h"
 
 namespace VkRender {
-
     struct MeshComponent {
+        MeshComponent(MeshDataType type)
+            : meshParameters(MeshParameterFactory::createMeshParameters(type)) {
+        }
+
         MeshComponent() = default;
 
-        MeshComponent(MeshDataType type, std::filesystem::path path) : m_meshType(type), m_modelPath(std::move(path)) {}
+        MeshComponent(MeshDataType type, std::filesystem::path path) : m_meshType(type), m_modelPath(std::move(path)) {
+        }
 
-        explicit MeshComponent(MeshDataType type) : m_meshType(type) {}
+        std::filesystem::path& modelPath() { return m_modelPath; }
 
-        std::filesystem::path &modelPath() { return m_modelPath; }
+        MeshDataType& meshDataType() { return m_meshType; }
 
-        MeshDataType &meshDataType() { return m_meshType; }
-
-        VkPolygonMode &polygonMode() { return m_polygonMode; }
+        VkPolygonMode& polygonMode() { return m_polygonMode; }
 
         std::string getCacheIdentifier() const {
-            // Combine mesh type and model path to create a unique identifier
-            std::string identifier = std::to_string(static_cast<int>(m_meshType)) + "_";
-
-            if (!m_modelPath.empty()) {
-                identifier += m_modelPath.string();
-            } else {
-                identifier += "NoPath";
+            if (meshParameters) {
+                return meshParameters->getIdentifier();
             }
-
-            return identifier;
+            return "MeshComponent_NoParameters";
         }
+
+        std::shared_ptr<IMeshParameters> meshParameters;
+        std::shared_ptr<IMeshParameters> data() { return meshParameters; }
+        bool isDirty = false; // TODO combine this with isDirtyFlag in MeshData
+        bool dynamic = false;
 
     private:
         VkPolygonMode m_polygonMode = VK_POLYGON_MODE_FILL;
         std::filesystem::path m_modelPath;
-        MeshDataType m_meshType = MeshDataType::CUSTOM;
+        MeshDataType m_meshType = MeshDataType::EMPTY;
 
     };
-
-
 };
 
 

@@ -20,9 +20,9 @@ namespace VkRender {
     SceneRenderer::SceneRenderer(EditorCreateInfo& createInfo, UUID uuid) : Editor(createInfo, uuid) {
         m_renderToOffscreen = true;
         m_activeCamera = std::make_shared<Camera>(m_createInfo.width, m_createInfo.height);
-        descriptorRegistry.createManager(DescriptorType::MVP, m_context->vkDevice());
-        descriptorRegistry.createManager(DescriptorType::Material, m_context->vkDevice());
-        descriptorRegistry.createManager(DescriptorType::DynamicCameraGizmo, m_context->vkDevice());
+        descriptorRegistry.createManager(DescriptorManagerType::MVP, m_context->vkDevice());
+        descriptorRegistry.createManager(DescriptorManagerType::Material, m_context->vkDevice());
+        descriptorRegistry.createManager(DescriptorManagerType::DynamicCameraGizmo, m_context->vkDevice());
 
         m_meshResourceManager = std::make_unique<MeshResourceManager>(m_context);
     }
@@ -65,15 +65,15 @@ namespace VkRender {
         for (auto entity : view) {
             updateGlobalUniformBuffer(m_context->currentFrameIndex(), Entity(entity, m_activeScene.get()));
         }
+
     }
 
 
     void SceneRenderer::onRender(CommandBuffer& commandBuffer) {
-        std::vector<RenderCommand> renderGroups;
-        collectRenderCommands(renderGroups, commandBuffer.getActiveFrameIndex());
+        collectRenderCommands(m_renderGroups, commandBuffer.getActiveFrameIndex());
 
         // Render each group
-        for (auto& command : renderGroups) {
+        for (auto& command : m_renderGroups) {
             bindResourcesAndDraw(commandBuffer, command);
         }
     }
@@ -87,7 +87,7 @@ namespace VkRender {
                 cmdBuffer,
                 VK_PIPELINE_BIND_POINT_GRAPHICS,
                 command.pipeline->pipeline()->getPipelineLayout(),
-                index,
+                static_cast<uint32_t>(index),
                 1,
                 &descriptorSet,
                 0,
@@ -121,45 +121,52 @@ namespace VkRender {
     void SceneRenderer::collectRenderCommands(
         std::vector<RenderCommand>& renderGroups, uint32_t frameIndex) {
         auto view = m_activeScene->getRegistry().view<MeshComponent, TransformComponent>();
+
+        m_renderGroups.clear();
+        m_renderGroups.reserve(view.size_hint());
         for (auto e : view) {
             Entity entity(e, m_activeScene.get());
             std::string tag = entity.getName();
             UUID uuid = entity.getUUID();
             auto& meshComponent = entity.getComponent<MeshComponent>();
-            std::unordered_map<uint32_t, VkDescriptorSet> descriptorSets; // Add the descriptor set here
+            std::unordered_map<DescriptorManagerType, VkDescriptorSet> descriptorSets; // Add the descriptor set here
+            std::unordered_map<DescriptorManagerType, std::vector<VkWriteDescriptorSet>> descriptorWritesTracker; // Add the descriptor set here
             PipelineKey key = {};
             key.setLayouts.resize(3);
 
-            std::vector<VkWriteDescriptorSet> descriptorWrites(2);
             auto& renderData = m_entityRenderData[entity.getUUID()];
 
             {
-                descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-                descriptorWrites[0].dstBinding = 0;
-                descriptorWrites[0].dstArrayElement = 0;
-                descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-                descriptorWrites[0].descriptorCount = 1;
-                descriptorWrites[0].pBufferInfo = &renderData.cameraBuffer[frameIndex]->m_descriptorBufferInfo;
-                descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-                descriptorWrites[1].dstBinding = 1;
-                descriptorWrites[1].dstArrayElement = 0;
-                descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-                descriptorWrites[1].descriptorCount = 1;
-                descriptorWrites[1].pBufferInfo = &renderData.modelBuffer[frameIndex]->m_descriptorBufferInfo;
-                VkDescriptorSet mvpDescriptorSet = descriptorRegistry.getManager(DescriptorType::MVP).
-                                                                      getOrCreateDescriptorSet(descriptorWrites);
-                descriptorSets[0] = mvpDescriptorSet;
-                key.setLayouts[0] = descriptorRegistry.getManager(DescriptorType::MVP).getDescriptorSetLayout();
+                auto& writes = descriptorWritesTracker[DescriptorManagerType::MVP];
+                writes.resize(2);
+                writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                writes[0].dstBinding = 0;
+                writes[0].dstArrayElement = 0;
+                writes[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                writes[0].descriptorCount = 1;
+                writes[0].pBufferInfo = &renderData.cameraBuffer[frameIndex]->m_descriptorBufferInfo;
+                writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                writes[1].dstBinding = 1;
+                writes[1].dstArrayElement = 0;
+                writes[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                writes[1].descriptorCount = 1;
+                writes[1].pBufferInfo = &renderData.modelBuffer[frameIndex]->m_descriptorBufferInfo;
+                VkDescriptorSet mvpDescriptorSet = descriptorRegistry.getManager(DescriptorManagerType::MVP).
+                                                                      getOrCreateDescriptorSet(writes);
+                descriptorSets[DescriptorManagerType::MVP] = mvpDescriptorSet;
+
+                key.setLayouts[0] = descriptorRegistry.getManager(DescriptorManagerType::MVP).getDescriptorSetLayout();
             }
             // Use default descriptor set layout
 
             std::shared_ptr<MeshData> meshData = m_meshManager.getMeshData(meshComponent);
-
+            if (!meshData)
+                continue;
             // Update meshData
-
-
             std::shared_ptr<MeshInstance> meshInstance = m_meshResourceManager->getMeshInstance(meshComponent.getCacheIdentifier(), meshData, meshComponent.meshDataType());
-
+            if (!meshInstance) {
+                continue;
+            }
             key.topology = meshInstance->topology;
             key.polygonMode = meshComponent.polygonMode();
             // Check if the entity has a MaterialComponent
@@ -179,22 +186,24 @@ namespace VkRender {
                 key.renderMode = materialInstance->renderMode;
                 key.materialPtr = reinterpret_cast<uint64_t*>(materialInstance.get());
 
-                descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-                descriptorWrites[0].dstBinding = 0;
-                descriptorWrites[0].dstArrayElement = 0;
-                descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-                descriptorWrites[0].descriptorCount = 1;
-                descriptorWrites[0].pBufferInfo = &renderData.materialBuffer[frameIndex]->m_descriptorBufferInfo;
-                descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-                descriptorWrites[1].dstBinding = 1;
-                descriptorWrites[1].dstArrayElement = 0;
-                descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-                descriptorWrites[1].descriptorCount = 1;
-                descriptorWrites[1].pImageInfo = &materialInstance->baseColorTexture->getDescriptorInfo();
-                VkDescriptorSet materialDescriptorSet = descriptorRegistry.getManager(DescriptorType::Material).getOrCreateDescriptorSet(descriptorWrites);
-                descriptorSets[1] = materialDescriptorSet;
+                auto& writes = descriptorWritesTracker[DescriptorManagerType::Material];
+                writes.resize(2);
+                writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                writes[0].dstBinding = 0;
+                writes[0].dstArrayElement = 0;
+                writes[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                writes[0].descriptorCount = 1;
+                writes[0].pBufferInfo = &renderData.materialBuffer[frameIndex]->m_descriptorBufferInfo;
+                writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                writes[1].dstBinding = 1;
+                writes[1].dstArrayElement = 0;
+                writes[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                writes[1].descriptorCount = 1;
+                writes[1].pImageInfo = &materialInstance->baseColorTexture->getDescriptorInfo();
+                VkDescriptorSet materialDescriptorSet = descriptorRegistry.getManager(DescriptorManagerType::Material).getOrCreateDescriptorSet(writes);
+                descriptorSets[DescriptorManagerType::Material] = materialDescriptorSet;
             }
-            key.setLayouts[1] = descriptorRegistry.getManager(DescriptorType::Material).getDescriptorSetLayout();
+            key.setLayouts[1] = descriptorRegistry.getManager(DescriptorManagerType::Material).getDescriptorSetLayout();
 
             std::vector<VkVertexInputBindingDescription> vertexInputBinding = {
                 {0, sizeof(VkRender::Vertex), VK_VERTEX_INPUT_RATE_VERTEX}
@@ -210,25 +219,27 @@ namespace VkRender {
             key.vertexInputBindingDescriptions = vertexInputBinding;
             key.vertexInputAttributes = vertexInputAttributes;
 
-            if (meshComponent.meshDataType() == CAMERA_GIZMO) {
+            if (meshComponent.dynamic) {
                 key.vertexShaderName = "CameraGizmo.vert";
                 key.fragmentShaderName = "default.frag";
                 key.vertexInputBindingDescriptions.clear();
                 key.vertexInputAttributes.clear();
-                std::vector<VkWriteDescriptorSet> descriptorWrite(1);
-                descriptorWrite[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-                descriptorWrite[0].dstBinding = 0;
-                descriptorWrite[0].dstArrayElement = 0;
-                descriptorWrite[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-                descriptorWrite[0].descriptorCount = 1;
-                descriptorWrite[0].pBufferInfo = &meshInstance->vertexBuffer->m_descriptorBufferInfo;
+
+                auto& writes = descriptorWritesTracker[DescriptorManagerType::DynamicCameraGizmo];
+                writes.resize(1);
+                writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                writes[0].dstBinding = 0;
+                writes[0].dstArrayElement = 0;
+                writes[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+                writes[0].descriptorCount = 1;
+                writes[0].pBufferInfo = &meshInstance->vertexBuffer->m_descriptorBufferInfo;
                 VkDescriptorSet dynamicCameraDescriptorSet = descriptorRegistry.getManager(
-                    DescriptorType::DynamicCameraGizmo).getOrCreateDescriptorSet(descriptorWrite);
-                descriptorSets[2] = dynamicCameraDescriptorSet;
-                key.topology;
-                // Use default descriptor set layout
+                    DescriptorManagerType::DynamicCameraGizmo).getOrCreateDescriptorSet(writes);
+                descriptorSets[DescriptorManagerType::DynamicCameraGizmo] = dynamicCameraDescriptorSet;
+
+
             }
-            key.setLayouts[2] = descriptorRegistry.getManager(DescriptorType::DynamicCameraGizmo).getDescriptorSetLayout();
+            key.setLayouts[2] = descriptorRegistry.getManager(DescriptorManagerType::DynamicCameraGizmo).getDescriptorSetLayout();
             // Create or retrieve the pipeline
             RenderPassInfo renderPassInfo{};
             renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
@@ -240,13 +251,16 @@ namespace VkRender {
 
             RenderCommand command;
             command.descriptorSets = descriptorSets;
+            command.descriptorWrites = descriptorWritesTracker;
             command.entity = entity;
             command.pipeline = pipeline;
             command.meshInstance = meshInstance.get();
             command.materialInstance = materialInstance.get(); // May be null if no material is attached
             // Add to render group
-            renderGroups.push_back(command);
+            renderGroups.emplace_back(command);
         }
+
+        //descriptorRegistry.freeUnusedDescriptors(renderGroups);
     }
 
     void SceneRenderer::onComponentAdded(Entity entity, MeshComponent& meshComponent) {

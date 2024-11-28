@@ -9,32 +9,24 @@ namespace VkRender{
 
     std::shared_ptr<MeshData> MeshManager::getMeshData(MeshComponent& meshComponent) {
         std::lock_guard<std::mutex> lock(cacheMutex);
-
         std::string identifier = meshComponent.getCacheIdentifier();
-
         auto it = meshDataCache.find(identifier);
-        if (it != meshDataCache.end()) {
+        if (it != meshDataCache.end() && !meshComponent.isDirty) {
             return it->second;
         }
-
-        auto meshData = loadMeshData(meshComponent.meshDataType(), meshComponent.modelPath());
-        if (meshData) {
+        if (meshComponent.data()) {
+            auto meshData = meshComponent.data()->generateMeshData();
             meshDataCache[identifier] = meshData;
+            meshComponent.isDirty = false;
+            return meshData;
         }
-
-        return meshData;
+        return nullptr;
     }
-
     void MeshManager::clearCache() {
 
     }
 
     void MeshManager::removeMeshData(const std::string &identifier) {
-
-    }
-
-    std::shared_ptr<MeshData> MeshManager::loadMeshData(MeshDataType type, const std::filesystem::path& path) {
-        return std::make_shared<MeshData>(type, path);
 
     }
 }

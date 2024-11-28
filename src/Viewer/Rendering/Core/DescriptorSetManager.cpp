@@ -4,12 +4,15 @@
 
 #include "DescriptorSetManager.h"
 
+#include <unordered_set>
+
 namespace VkRender {
     DescriptorSetManager::DescriptorSetManager(
         VulkanDevice& device,
         const std::vector<VkDescriptorSetLayoutBinding>& bindings,
+        DescriptorManagerType descriptorManagerType,
         const uint32_t maxDescriptorSets)
-        : m_device(device) {
+        : m_device(device),m_descriptorManagerType(descriptorManagerType), m_maxDescriptorSets(maxDescriptorSets){
         // Create the descriptor set layout
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -66,7 +69,6 @@ namespace VkRender {
         const std::vector<VkWriteDescriptorSet>& descriptorWrites) {
         // Generate a unique key based on the descriptor writes (you may need a custom hash function)
         size_t hashKey = hashDescriptorWrites(descriptorWrites);
-
         auto it = m_descriptorSetCache.find(hashKey);
         if (it != m_descriptorSetCache.end()) {
             return it->second;
@@ -120,6 +122,37 @@ namespace VkRender {
         m_descriptorSetCache.clear();
     }
 
+    void DescriptorSetManager::queryFreeDescriptorSets(const std::vector<VkWriteDescriptorSet>& externalDescriptorSets) {
+        std::unordered_set<size_t> externalHashes;
+        std::vector<VkDescriptorSet> setsToFree;
+
+        // Compute hash keys for all external descriptor writes
+        externalHashes.insert(hashDescriptorWrites(externalDescriptorSets));
+
+
+        // Iterate through the cache and find descriptor sets not in the external set
+        for (auto it = m_descriptorSetCache.begin(); it != m_descriptorSetCache.end();) {
+            if (externalHashes.find(it->first) == externalHashes.end()) {
+                // If the hash key is not in the external hashes, mark for freeing
+                setsToFree.push_back(it->second);
+                it = m_descriptorSetCache.erase(it); // Erase from cache while iterating
+            } else {
+                ++it;
+            }
+        }
+
+        // Free all descriptor sets marked for deletion
+        if (!setsToFree.empty()) {
+            vkFreeDescriptorSets(
+                m_device.m_LogicalDevice,
+                m_descriptorPool,
+                static_cast<uint32_t>(setsToFree.size()),
+                setsToFree.data()
+            );
+        }
+    }
+
+
     size_t DescriptorSetManager::hashDescriptorImageInfo(const VkDescriptorImageInfo& imageInfo) {
         size_t hash = 0;
         // Hash the image view
@@ -162,7 +195,6 @@ namespace VkRender {
                 hash ^= hashDescriptorBufferInfo(write.pBufferInfo[i]) + 0x9e3779b9 + (hash << 6) + (hash >> 2);
             }
         }
-        // Handle other descriptor types if necessary (e.g., pTexelBufferView)
         return hash;
     }
 

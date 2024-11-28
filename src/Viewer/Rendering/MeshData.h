@@ -5,18 +5,76 @@
 #ifndef MULTISENSE_VIEWER_MESHDATA_H
 #define MULTISENSE_VIEWER_MESHDATA_H
 
-#include <optional>
 
+#include "IMeshParameters.h"
+#include "Components/Components.h"
 #include "Viewer/Rendering/Core/RenderDefinitions.h"
 
 namespace VkRender {
-    enum MeshDataType {
-        OBJ_FILE,
-        POINT_CLOUD,
-        PLY_FILE,
-        CAMERA_GIZMO,
-        CUSTOM,
+    class CylinderMeshParameters;
+
+    enum MeshDataType : uint32_t {
+        EMPTY = 0,
+        OBJ_FILE = 1,
+        PLY_FILE = 2,
+        CYLINDER = 3,
+        CAMERA_GIZMO = 4,
+        MAX_NUM_TYPES = 5
     };
+
+    static std::array<MeshDataType, MAX_NUM_TYPES> meshDataTypeToArray() {
+        return {
+            EMPTY,
+            OBJ_FILE,
+            PLY_FILE,
+            CYLINDER,
+            CAMERA_GIZMO
+        };
+    };
+
+    // Const char * type for easy compatibility with imgui
+    static std::array<const char*, MAX_NUM_TYPES> meshDataTypeToStringArray() {
+        return {
+            "EMPTY",
+            "OBJ_FILE",
+            "PLY_FILE",
+            "CYLINDER",
+            "CAMERA_GIZMO",
+        };
+    };
+
+    static std::string meshDataTypeToString(MeshDataType meshDataType) {
+        switch (meshDataType) {
+        case EMPTY:
+            return "EMPTY";
+        case OBJ_FILE:
+            return "OBJ_FILE";
+        case PLY_FILE:
+            return "PLY_FILE";
+        case CAMERA_GIZMO:
+            return "CAMERA_GIZMO";
+        case CYLINDER:
+            return "CYLINDER";
+        default:
+            return "Unknown";
+        }
+    }
+
+    static MeshDataType stringToMeshDataType(const std::string& modeStr) {
+        if (modeStr == "EMPTY")
+            return EMPTY;
+        if (modeStr == "OBJ_FILE")
+            return OBJ_FILE;
+        if (modeStr == "POINT_CLOUD")
+            return CAMERA_GIZMO;
+        if (modeStr == "PLY_FILE")
+            return PLY_FILE;
+        if (modeStr == "CYLINDER")
+            return CYLINDER;
+        // Default case, or handle unknown input
+        return EMPTY;
+    }
+
 
     struct MeshData {
         std::vector<Vertex> vertices;
@@ -27,58 +85,18 @@ namespace VkRender {
 
         // From in-memory data
         MeshData(std::vector<Vertex> vertices, std::vector<uint32_t> indices)
-                : vertices(std::move(vertices)), indices(std::move(indices)) {}
-
-        // From file or procedural generation
-        explicit MeshData(MeshDataType dataType, const std::filesystem::path& filePath = "") {
-            switch (dataType) {
-                case OBJ_FILE:
-                    m_filePath = filePath;
-                    meshFromObjFile();
-                    break;
-                case PLY_FILE:
-                    m_filePath = filePath;
-                    meshFromPlyFile();
-                    break;
-                case POINT_CLOUD:
-                    meshFromPointCloud();
-                    break;
-                case CAMERA_GIZMO:
-                    meshFromCameraGizmo();
-                    break;
-                case CUSTOM:
-                    //generateCustomMesh();
-                    break;
-                default:
-                    Log::Logger::getInstance()->warning("Unknown MeshDataType");
-                    break;
-            }
+            : vertices(std::move(vertices)), indices(std::move(indices)) {
         }
 
-        // Method to modify a vertex
-        void modifyVertex(size_t index, const Vertex& newVertex) {
-            if (index < vertices.size()) {
-                vertices[index] = newVertex;
-                isDirty = true; // Mark the mesh data as modified
-            } else {
-                Log::Logger::getInstance()->warning("Vertex index out of range");
-            }
-        }
 
-        // Flag to indicate if the mesh is dynamic (modifiable at runtime)
+        void generateCylinderMesh(const CylinderMeshParameters& parameters);
+        void generateCameraGizmoMesh(const CameraGizmoMeshParameters& parameters);
+        void generateOBJMesh(const OBJFileMeshParameters& parameters);
+        void generatePLYMesh(const PLYFileMeshParameters& parameters);
+
+        bool isDirty = true;
         bool isDynamic = false;
-        // Flag to indicate if the mesh data has been modified
-        bool isDirty = false;
-
-    private:
-        std::filesystem::path m_filePath;
-        void meshFromObjFile();
-        void meshFromPointCloud();
-        void meshFromPlyFile();
-        void meshFromCameraGizmo();
-        void generateCustomMesh();
     };
-
 }
 
 #endif //MULTISENSE_VIEWER_MESHDATA_H

@@ -18,8 +18,7 @@ namespace VkRender {
                 : m_context(context) {}
 
         void
-        updateMeshInstance(const std::string &identifier, const std::shared_ptr<MeshData> &meshData,
-                           MeshDataType meshType);
+        updateMeshInstance(const std::string &identifier, const std::shared_ptr<MeshData> &meshData);
 
         std::shared_ptr<MeshInstance>
         getMeshInstance(const std::string &identifier, const std::shared_ptr<MeshData> &meshData,

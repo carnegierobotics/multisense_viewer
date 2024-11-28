@@ -24,7 +24,7 @@ namespace VkRender {
         diffRenderEntry = std::make_unique<DR::DiffRenderEntry>();
         diffRenderEntry->setup();
 
-        m_descriptorRegistry.createManager(DescriptorType::Viewport3DTexture, m_context->vkDevice());
+        m_descriptorRegistry.createManager(DescriptorManagerType::Viewport3DTexture, m_context->vkDevice());
 
 
         m_editorCamera = std::make_shared<Camera>(m_createInfo.width, m_createInfo.height);
@@ -154,7 +154,7 @@ namespace VkRender {
         PipelineKey key = {};
         key.setLayouts.resize(1);
         if (m_ui->resizeActive) {
-            m_descriptorRegistry.getManager(DescriptorType::Viewport3DTexture).freeDescriptorSets();
+            m_descriptorRegistry.getManager(DescriptorManagerType::Viewport3DTexture).freeDescriptorSets();
         }
         // Prepare descriptor writes based on your texture or other resources
         std::array<VkWriteDescriptorSet, 2> writeDescriptors{};
@@ -171,8 +171,8 @@ namespace VkRender {
 
         std::vector<VkWriteDescriptorSet> descriptorWrites = {writeDescriptors[0], writeDescriptors[1]};
         // Get or create the descriptor set using the DescriptorSetManager
-        VkDescriptorSet descriptorSet = m_descriptorRegistry.getManager(DescriptorType::Viewport3DTexture).getOrCreateDescriptorSet(descriptorWrites);
-        key.setLayouts[0] = m_descriptorRegistry.getManager(DescriptorType::Viewport3DTexture).getDescriptorSetLayout();
+        VkDescriptorSet descriptorSet = m_descriptorRegistry.getManager(DescriptorManagerType::Viewport3DTexture).getOrCreateDescriptorSet(descriptorWrites);
+        key.setLayouts[0] = m_descriptorRegistry.getManager(DescriptorManagerType::Viewport3DTexture).getDescriptorSetLayout();
         // Use default descriptor set layout
         key.vertexShaderName = "default2D.vert";
         key.fragmentShaderName = "default2D.frag";
@@ -198,7 +198,7 @@ namespace VkRender {
         RenderCommand command;
         command.pipeline = pipeline;
         command.meshInstance = m_meshInstances.get();
-        command.descriptorSets[0] = descriptorSet; // Assign the descriptor set
+        command.descriptorSets[DescriptorManagerType::Viewport3DTexture] = descriptorSet; // Assign the descriptor set
 
         // Add to render group
         renderGroups[pipeline].push_back(command);
@@ -227,7 +227,7 @@ namespace VkRender {
                     cmdBuffer,
                     VK_PIPELINE_BIND_POINT_GRAPHICS,
                     command.pipeline->pipeline()->getPipelineLayout(),
-                    index,
+                    static_cast<uint32_t>(index), // TODO can't reuse the approach in SceneRenderer since we have different manager types
                     1,
                     &descriptorSet,
                     0,

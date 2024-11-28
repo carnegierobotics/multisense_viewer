@@ -22,7 +22,7 @@ namespace VkRender{
         std::unordered_map<std::string, std::shared_ptr<MeshData>> meshDataCache;
         std::mutex cacheMutex;
 
-        std::shared_ptr<MeshData> loadMeshData(MeshDataType type, const std::filesystem::path& path);
+        std::shared_ptr<MeshData> loadMeshData(MeshComponent& meshComponent);
     };
 
 }

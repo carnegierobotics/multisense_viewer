@@ -903,7 +903,7 @@ TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *
     CHECK_RESULT(
             vkMapMemory(device->m_LogicalDevice, m_TexMem, 0, m_TexSize, 0, reinterpret_cast<void **>( &m_DataPtr)))
 
-    Log::Logger::getInstance()->info("Allocated Texture GPU memory {} bytes with format {}", m_TexSize, static_cast<int>(format));
+    Log::Logger::getInstance()->info("Allocated Texture GPU memory {} bytes size: {}x{} with format {}", m_TexSize, m_Width , m_Height, static_cast<int>(format));
 
     if (m_TexSizeSecondary != 0) {
         CHECK_RESULT(device->createBuffer(
@@ -914,8 +914,8 @@ TextureVideo::TextureVideo(uint32_t texWidth, uint32_t texHeight, VulkanDevice *
                 &m_TexMemSecondary))
         CHECK_RESULT(vkMapMemory(device->m_LogicalDevice, m_TexMemSecondary, 0, m_TexSizeSecondary, 0,
                              reinterpret_cast<void **>( &m_DataPtrSecondary)))
-        Log::Logger::getInstance()->info("Allocated Secondary Texture GPU memory {} bytes with format {}",
-                                         m_TexSizeSecondary, static_cast<int>(format));
+        Log::Logger::getInstance()->info("Allocated Secondary Texture GPU memory {} bytes size: {}x{} with format {}", m_TexSize, m_Width , m_Height, static_cast<int>(format));
+
 
     }
     updateDescriptor();

@@ -170,6 +170,8 @@ bool PointCloud::prepareTexture(VkRender::Device &dev) {
     model->createEmptyTexture(width, height, VkRender::CRL_DISPARITY_IMAGE, true, lumaOrColor);
     VkPipelineShaderStageCreateInfo vs = loadShader("spv/pointcloud.vert", VK_SHADER_STAGE_VERTEX_BIT);
     VkPipelineShaderStageCreateInfo fs = loadShader("spv/pointcloud.frag", VK_SHADER_STAGE_FRAGMENT_BIT);
+    Log::Logger::getInstance()->info("Loading Pointcloud script. Size: {}x{}", width , height);
+
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
                                                             {fs}};
     CRLCameraModels::createRenderPipeline(shaders, model.get(), &renderUtils);
@@ -186,7 +188,7 @@ bool PointCloud::prepareTexture(VkRender::Device &dev) {
         buf->scale = renderData.crlCamera->getCameraInfo(0).pointCloudScale;
         buf->pointSize = pointSize;
         Log::Logger::getInstance()->info(
-                "Transforming depth image to point cloud with focal length {} and point cloud scale {}. Image size is ({}, {})",
+                "Transforming depth image to point cloud with focal length {} and point cloud scale {}. Multisens imgConf size is ({}, {})",
                 renderData.crlCamera->getCameraInfo(0).focalLength, renderData.crlCamera->getCameraInfo(0).pointCloudScale, renderData.crlCamera->getCameraInfo(0).imgConf.width(), renderData.crlCamera->getCameraInfo(0).imgConf.height());
         return true;
     } else {

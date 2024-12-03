@@ -245,8 +245,8 @@ bool CRLCameraModels::Model::getTextureDataPointers(VkRender::TextureData *tex, 
 
 void CRLCameraModels::Model::createEmptyTexture(uint32_t width, uint32_t height, VkRender::CRLCameraDataType texType,
                                                 bool forPointCloud, int isColorOrLuma) {
-    Log::Logger::getInstance()->info("Preparing Texture m_Image {}, {}, with type {}", width, height,
-                                     static_cast<int>(texType));
+    Log::Logger::getInstance()->info("Preparing Texture m_Image {}, {}, with type {}. Num textures: {}", width, height,
+                                     static_cast<int>(texType), m_FramesInFlight);
     VkFormat format{};
     for (uint32_t i = 0; i < m_FramesInFlight; ++i) {
 
@@ -257,6 +257,9 @@ void CRLCameraModels::Model::createEmptyTexture(uint32_t width, uint32_t height,
                     format = VK_FORMAT_G8_B8R8_2PLANE_420_UNORM;
                 } else {
                     format = VK_FORMAT_R8_UNORM;
+                    Log::Logger::getInstance()->info("Preparing Textures for manual Ycbcr2RGB conversion {}x{} size to {}x{}", width, height, width/2, height/2,
+                                 static_cast<int>(texType), m_FramesInFlight);
+
                     m_TextureChromaU[i] = std::make_unique<TextureVideo>(width / 2, height / 2, m_VulkanDevice,
                                                                          VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                                                                          VK_FORMAT_R8_UNORM);

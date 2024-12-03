@@ -71,7 +71,7 @@ namespace VkRender::MultiSense {
             channelMap[static_cast<crl::multisense::RemoteHeadChannel>(0)].get()->ptr()->getDeviceInfo(devInfo);
             Log::Logger::getInstance()->trace("We got a connection! Device info: {}, {}", devInfo.name,
                                               devInfo.buildDate);
-            setMtu(1500, static_cast<crl::multisense::RemoteHeadChannel>(0));
+            setMtu(7200, static_cast<crl::multisense::RemoteHeadChannel>(0));
 
             if (!updateCameraInfo(const_cast<Device *>(dev), static_cast<crl::multisense::RemoteHeadChannel>(0))) {
                 Log::Logger::getInstance()->error(

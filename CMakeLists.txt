@@ -11,7 +11,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Set application version. Remember that it should always match the pushed tag in the form of v1.*-*
 set(VERSION_MAJOR "1")
 set(VERSION_MINOR "1")
-set(VERSION_PATCH "5")
+set(VERSION_PATCH "6")
 set(ARCHITECTURE "amd64")
 
 # Set install directory. Used to generate installers for both Windows and Ubuntu using their native approaches

@@ -101,7 +101,7 @@ public:
     std::vector<std::string> interfaceIDList; // Windows required
     std::vector<uint32_t> indexList;
 
-    int connectMethodSelector = 0;
+    int connectMethodSelector = MANUAL_CONNECT;
     ImGuiTextBuffer Buf;
     ImVector<int> LineOffsets; // Index to lines offset. We maintain this with AddLog() calls.
     ImVector<LOG_COLOR> colors;
@@ -695,6 +695,7 @@ private:
 
 
             /** SELECT METHOD FOR CONNECTION FIELD */
+            /*
             ImGui::Dummy(ImVec2(20.0f, 0.0f));
             ImGui::SameLine();
             ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
@@ -734,20 +735,15 @@ private:
                 handles->usageMonitor->userClickAction("Manual", "ImageButtonText", ImGui::GetCurrentWindow()->Name);
             }
             ImGui::PopFont();
-            /*
-                         ImGui::SameLine(0, 30.0f);
-            (ImGui::ImageButtonText("Virtual", &connectMethodSelector, VIRTUAL_CONNECT, ImVec2(125.0f, 55.0f),
-                                    handles->info->imageButtonTextureDescriptor[5], ImVec2(40.0f, 40.0f), uv0, uv1,
-                                    bg_col,
-                                    tint_col));
-             */
+
             ImGui::PopStyleVar();
             //ImGui::EndChild();
 
-            ImGui::PopStyleColor(); // ImGuiCol_FrameBg
             ImGui::PopStyleVar(2); // RadioButton
-
             autoDetectCamera();
+
+            */
+            ImGui::PopStyleColor(); // ImGuiCol_FrameBg
 
             /** AUTOCONNECT FIELD BEGINS HERE*/
             if (connectMethodSelector == AUTO_CONNECT) {

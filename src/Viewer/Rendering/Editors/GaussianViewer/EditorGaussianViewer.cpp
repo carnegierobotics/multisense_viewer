@@ -227,7 +227,7 @@ namespace VkRender {
                     cmdBuffer,
                     VK_PIPELINE_BIND_POINT_GRAPHICS,
                     command.pipeline->pipeline()->getPipelineLayout(),
-                    static_cast<uint32_t>(index), // TODO can't reuse the approach in SceneRenderer since we have different manager types
+                    0, // TODO can't reuse the approach in SceneRenderer since we have different manager types
                     1,
                     &descriptorSet,
                     0,

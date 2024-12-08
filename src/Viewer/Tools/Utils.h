@@ -542,6 +542,7 @@ namespace Utils {
             case VK_FORMAT_R8G8B8A8_SRGB:
             case VK_FORMAT_B8G8R8A8_UNORM:
             case VK_FORMAT_B8G8R8A8_SRGB:
+            case VK_FORMAT_R8G8B8A8_UINT:
                 return 4; // 4 bytes per pixel (8 bits per channel, 4 channels)
             case VK_FORMAT_R8G8B8_UNORM:
             case VK_FORMAT_R8G8B8_SRGB:

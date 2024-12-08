@@ -13,6 +13,8 @@ namespace VkRender {
         std::unique_ptr<Buffer> indexBuffer{};
         uint32_t vertexCount = 0;
         uint32_t indexCount = 0;
+        uint32_t drawCount = 0;
+        bool SSBO = false;
         // Additional data like vertex layout, primitive type, etc.
         VkPrimitiveTopology topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         MeshDataType m_type{};

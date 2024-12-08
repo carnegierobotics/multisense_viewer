@@ -10,8 +10,6 @@ layout (binding = 1) uniform INFO {
 
 
 void main() {
-    float value = texture(samplerColorMap, inUV).r; // Sample the single channel
-    vec3 finalColor = vec3(value);                 // Expand to RGB if needed
-    // Use finalColor for further processing
-    outColor = vec4(finalColor, 1.0f);
+    vec3 value = texture(samplerColorMap, inUV).rgb; // Sample the single channel
+    outColor = vec4(value, 1.0f);
 }

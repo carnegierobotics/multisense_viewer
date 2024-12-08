@@ -150,6 +150,10 @@ namespace VkRender {
         meshInstance->m_type = meshType;
 
         meshInstance->usesVertexBuffers = meshData->isDynamic == false;
+        meshInstance->SSBO = meshData->isDynamic;
+        if (meshInstance->SSBO) {
+            meshInstance->drawCount =  meshInstance->indexCount; // TODO Is not compatible if we use SSBO's with no. vertices as draw count
+        }
         if (vertexBufferSize == 0)
             return nullptr;
 

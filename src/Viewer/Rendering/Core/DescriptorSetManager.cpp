@@ -122,36 +122,6 @@ namespace VkRender {
         m_descriptorSetCache.clear();
     }
 
-    void DescriptorSetManager::queryFreeDescriptorSets(const std::vector<VkWriteDescriptorSet>& externalDescriptorSets) {
-        std::unordered_set<size_t> externalHashes;
-        std::vector<VkDescriptorSet> setsToFree;
-
-        // Compute hash keys for all external descriptor writes
-        externalHashes.insert(hashDescriptorWrites(externalDescriptorSets));
-
-
-        // Iterate through the cache and find descriptor sets not in the external set
-        for (auto it = m_descriptorSetCache.begin(); it != m_descriptorSetCache.end();) {
-            if (externalHashes.find(it->first) == externalHashes.end()) {
-                // If the hash key is not in the external hashes, mark for freeing
-                setsToFree.push_back(it->second);
-                it = m_descriptorSetCache.erase(it); // Erase from cache while iterating
-            } else {
-                ++it;
-            }
-        }
-
-        // Free all descriptor sets marked for deletion
-        if (!setsToFree.empty()) {
-            vkFreeDescriptorSets(
-                m_device.m_LogicalDevice,
-                m_descriptorPool,
-                static_cast<uint32_t>(setsToFree.size()),
-                setsToFree.data()
-            );
-        }
-    }
-
 
     size_t DescriptorSetManager::hashDescriptorImageInfo(const VkDescriptorImageInfo& imageInfo) {
         size_t hash = 0;

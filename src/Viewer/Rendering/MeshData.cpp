@@ -116,47 +116,44 @@ namespace VkRender {
 
 
     void MeshData::generateCameraGizmoMesh(const CameraGizmoMeshParameters& params) {
-        float a = 0.25;
-        float h = 1.0 * params.focalLength;
+        float a = 0.25f;
+        float h = 1.0f * params.focalLength;
 
         std::vector<glm::vec3> uboVertices = {
-            // Base (CCW from top)
-            glm::vec3(-a, a, 0), // D
-            glm::vec3(-a, -a, 0), // A
-            glm::vec3(a, -a, 0), // B
+            // Pyramid base + apex
+            glm::vec3(-a, -a, 0.0f), // 0: A
+            glm::vec3( a, -a, 0.0f), // 1: B
+            glm::vec3( a,  a, 0.0f), // 2: C
+            glm::vec3(-a,  a, 0.0f), // 3: D
+            glm::vec3( 0.0f, 0.0f, h), // 4: E (apex)
 
-            glm::vec3(-a, a, 0), // D
-            glm::vec3(a, -a, 0), // B
-            glm::vec3(a, a, 0), // C
+            // Top indicator vertices
+            glm::vec3(-0.4f, 0.6f, 0.0f), // 5: F
+            glm::vec3( 0.4f, 0.6f, 0.0f), // 6: G
+            glm::vec3( 0.0f, 1.0f, 0.0f)  // 7: H
+        };
+        indices = {
+            // Base
+            3, 0, 1,
+            3, 1, 2,
 
-            // Side 1
-            glm::vec3(-a, -a, 0), // A
-            glm::vec3(0, 0, h), // E
-            glm::vec3(a, -a, 0), // B
-
-            // Side 2
-            glm::vec3(a, -a, 0), // B
-            glm::vec3(0, 0, h), // E
-            glm::vec3(a, a, 0), // C
-
-            // Side 3
-            glm::vec3(a, a, 0), // C
-            glm::vec3(0, 0, h), // E
-            glm::vec3(-a, a, 0), // D
-
-            // Side 4
-            glm::vec3(-a, a, 0), // D
-            glm::vec3(0, 0, h), // E
-            glm::vec3(-a, -a, 0), // A
+            // Sides
+            0, 4, 1,
+            1, 4, 2,
+            2, 4, 3,
+            3, 4, 0,
 
             // Top indicator
-            glm::vec3(-0.4, 0.6, 0), // D
-            glm::vec3(0.4, 0.6, 0), // E
-            glm::vec3(0, 1.0, 0), // A
+            5, 6, 7
         };
+
         vertices.resize(uboVertices.size());
-        for (int i = 0; i < uboVertices.size(); ++i) {
+        for (size_t i = 0; i < uboVertices.size(); ++i) {
             vertices[i].pos = uboVertices[i];
+            vertices[i].normal   = glm::vec3(0.0f, 0.0f, 1.0f); // Placeholder normal
+            vertices[i].uv0      = glm::vec2(0.0f, 0.0f);       // Placeholder UV
+            vertices[i].uv1      = glm::vec2(0.0f, 0.0f);       // Placeholder UV
+            vertices[i].color    = glm::vec4(1.0f);             // White color
         }
 
         isDynamic = true;

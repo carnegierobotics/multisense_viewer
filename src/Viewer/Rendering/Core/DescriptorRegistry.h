@@ -91,15 +91,6 @@ namespace VkRender {
             m_managers[type] =
                 std::make_unique<DescriptorSetManager>(device, bindings, type);
         }
-
-        void freeUnusedDescriptors(const std::vector<RenderCommand>& renderCommands) {
-            for (auto& renderCommand : renderCommands) {
-                for (const auto& [type, setWrites] : renderCommand.descriptorWrites) {
-                    m_managers[type]->queryFreeDescriptorSets(setWrites);
-                }
-            }
-        }
-
     private:
         std::unordered_map<DescriptorManagerType, std::unique_ptr<DescriptorSetManager>> m_managers;
     };

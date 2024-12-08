@@ -6,7 +6,6 @@
 #define MULTISENSE_VIEWER_SYCLDEVICESELECTOR_H
 
 #include <sycl/sycl.hpp>
-#include <iostream>
 
 #include "Viewer/Tools/Logger.h"
 

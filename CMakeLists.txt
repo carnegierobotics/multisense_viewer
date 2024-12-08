@@ -259,11 +259,10 @@ if (ENABLE_SYCL)
     set(SYCL_SOURCES
             src/Viewer/Rendering/RenderResources/2DGS/SYCLGaussian2D.cpp
             src/Viewer/Rendering/RenderResources/3DGS/SYCLGaussian3D.cpp
-            src/Viewer/Tools/SyclDeviceSelector.h
             src/Viewer/Rendering/Editors/GaussianViewer/EditorGaussianViewer.cpp
             src/Viewer/Rendering/RenderResources/Raytracer/RayTracer.cpp
             src/Viewer/Rendering/RenderResources/Raytracer/RayTracerKernels.cpp
-
+            src/Viewer/Tools/SyclDeviceSelector.h
     )
     list(APPEND SOURCE_FILES ${SYCL_SOURCES})
     message(STATUS "[VkRenderINFO]: SYCL: Adding Gaussian Renderer to source")

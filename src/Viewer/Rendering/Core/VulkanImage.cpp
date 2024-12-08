@@ -13,7 +13,10 @@ namespace VkRender {
         // TODO add warning about adding a image with size of zero. Maybe
         std::string description = createInfo.debugInfo;
         VmaAllocationCreateInfo allocInfo = {};
-        allocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+        allocInfo.usage = createInfo.usage;
+        if (createInfo.usage == VMA_MEMORY_USAGE_AUTO_PREFER_HOST) {
+            allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
+        }
         VkResult result = vmaCreateImage(m_allocator, &createInfo.imageCreateInfo, &allocInfo, &m_image,
                                          &m_allocation, nullptr);
         if (result != VK_SUCCESS)

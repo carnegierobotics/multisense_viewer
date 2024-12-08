@@ -59,7 +59,9 @@ namespace VkRender {
 #endif
         // Create window instance
         // boilerplate stuff (ie. basic window setup)
-        glfwInit();
+        if (!glfwInit()) {
+            throw std::runtime_error("Failed to initialize GLFW");
+        }
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
         glfwWindowHint(GLFW_DECORATED, GLFW_TRUE);
@@ -126,6 +128,9 @@ namespace VkRender {
         uint32_t glfwExtensionCount = 0;
         const char** glfwExtensions;
         glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+        if (!glfwExtensions) {
+            throw std::runtime_error("GLFW failed to provide required instance extensions");
+        }
         std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
         if (m_settings.validation) {
             extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
@@ -223,7 +228,6 @@ namespace VkRender {
         features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
         features2.pNext = &features;
         features2.features = deviceFeatures;
-
         vkGetPhysicalDeviceFeatures2(physicalDevice, &features2);
 
 
@@ -231,6 +235,7 @@ namespace VkRender {
         if (features.samplerYcbcrConversion) {
             //enabledDeviceExtensions.push_back(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME);
             //VkRender::RendererConfig::getInstance().addEnabledExtension(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME);
+            Log::Logger::getInstance()->info("YCBCR Sampler Extension support found!");
         }
         else {
             Log::Logger::getInstance()->error("YCBCR Sampler Extension support not found!");

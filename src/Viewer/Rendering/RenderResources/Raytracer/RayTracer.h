@@ -7,22 +7,35 @@
 
 #include "Viewer/Application/pch.h"
 #include "Viewer/Scenes//Scene.h"
+#include "Viewer/Tools/SyclDeviceSelector.h"
 
 namespace VkRender::RT {
     class RayTracer {
     public:
-        void setup(std::shared_ptr<Scene>& scene);
+        RayTracer(std::shared_ptr<Scene>& scene, uint32_t width, uint32_t height);
 
-        void update(uint32_t width, uint32_t height);
+        void update();
 
 
-        void* getImage() {return m_imageMemory;}
+        uint8_t* getImage() {return m_imageMemory;}
+
+        ~RayTracer();
 
     private:
+        SyclDeviceSelector m_selector = SyclDeviceSelector(SyclDeviceSelector::DeviceType::GPU);
+
         std::shared_ptr<Scene> m_scene;
-        void* m_imageMemory = nullptr;
+        uint8_t* m_imageMemory = nullptr;
 
         uint32_t m_width = 0, m_height = 0;
+
+        struct GPUData {
+            uint8_t* imageMemory = nullptr;
+
+        }m_gpu;
+
+
+        void saveAsPPM(const std::filesystem::path& filename) const;
     };
 }
 

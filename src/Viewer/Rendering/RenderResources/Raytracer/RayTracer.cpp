@@ -4,72 +4,84 @@
 
 #include "Viewer/Scenes/Entity.h"
 #include "Viewer/Rendering/RenderResources/Raytracer/RayTracer.h"
+
+#include <queue>
+
 #include "Viewer/Rendering/RenderResources/Raytracer/RayTracerKernels.h"
 #include <sycl/sycl.hpp>
 
+#include "Viewer/Tools/SyclDeviceSelector.h"
+
 namespace VkRender::RT {
-
-    void RayTracer::setup(std::shared_ptr<Scene> &scene) {
+    RayTracer::RayTracer(std::shared_ptr<Scene>& scene, uint32_t width, uint32_t height) {
         m_scene = scene;
-
-    }
-
-    void RayTracer::update(uint32_t width, uint32_t height) {
         m_width = width;
         m_height = height;
+        auto& queue = m_selector.getQueue();
 
-        // Allocate image memory
-        if (m_imageMemory) {
-            delete[] static_cast<char*>(m_imageMemory);
+        // Load the scene into gpu memory
+        // Create image memory
+        m_imageMemory = new uint8_t[width * height * 4]; // Assuming RGBA8 image
+
+        m_gpu.imageMemory = sycl::malloc_device<uint8_t>(m_width * m_height * 4, queue);
+        if (!m_gpu.imageMemory) {
+            throw std::runtime_error("Device memory allocation failed.");
         }
-        m_imageMemory = new char[width * height * 4]; // Assuming RGBA8 image
+    }
 
-        // Set up SYCL queue
-        sycl::property_list properties{sycl::property::queue::in_order{}, sycl::property::queue::enable_profiling()};
-        sycl::queue queue = sycl::queue(sycl::gpu_selector());
-        Log::Logger::getInstance()->info("Using device: {}",queue.get_device().get_info<sycl::info::device::name>());
+    void RayTracer::update() {
+        auto& queue = m_selector.getQueue();
 
-        for (const auto &device : sycl::device::get_devices()) {
-            std::cout << "Device: " << device.get_info<sycl::info::device::name>() << "\n";
-        }
+        uint32_t tileWidth = 16;
+        uint32_t tileHeight = 16;
+        sycl::range<2> localWorkSize(tileHeight, tileWidth);
+        sycl::range<2> globalWorkSize(m_height, m_width);
 
-        // Create buffers
-        sycl::buffer<char, 1> imageBuffer(static_cast<char*>(m_imageMemory), sycl::range<1>(width * height * 4));
+        queue.submit([&](sycl::handler& h) {
+            // Create a kernel instance with the required parameters
+            const Kernels::RenderKernel kernel(m_gpu.imageMemory, m_width, m_width * m_height * 4);
+            h.parallel_for<class RenderKernel>(
+                sycl::nd_range<2>(globalWorkSize, localWorkSize), kernel);
+        }).wait();
 
-        // Collect meshes from the scene
-        std::vector<Vertex> allVertices;
-        std::vector<uint32_t> allIndices;
-        std::vector<Kernels::MeshInfo> meshInfos; // Stores index offsets and counts for each mesh
-
-
-
-        auto view = m_scene->getRegistry().view<MeshComponent, TransformComponent>();
-        for (auto e : view) {
-            Entity entity(e, m_scene.get());
-            // Get mesh and transform components
-            auto& meshComponent = entity.getComponent<MeshComponent>();
-            auto& transformComponent = entity.getComponent<TransformComponent>();
-            // Load mesh data
-
-        }
-
-
-        // Create buffers for vertices, indices, and mesh info
-        sycl::buffer<Vertex, 1> vertexBuffer(allVertices.data(), sycl::range<1>(allVertices.size()));
-        sycl::buffer<uint32_t, 1> indexBuffer(allIndices.data(), sycl::range<1>(allIndices.size()));
-        sycl::buffer<Kernels::MeshInfo, 1> meshInfoBuffer(meshInfos.data(), sycl::range<1>(meshInfos.size()));
-
-        // Submit kernel
-        queue.submit([&](sycl::handler& cgh) {
-            auto imageAcc = imageBuffer.get_access<sycl::access::mode::write>(cgh);
-            auto vertexAcc = vertexBuffer.get_access<sycl::access::mode::read>(cgh);
-            auto indexAcc = indexBuffer.get_access<sycl::access::mode::read>(cgh);
-            auto meshInfoAcc = meshInfoBuffer.get_access<sycl::access::mode::read>(cgh);
-
-            VkRender::RT::Kernels::rayTracingKernel(cgh, imageAcc, vertexAcc, indexAcc, meshInfoAcc, meshInfos.size(), width, height);
-        });
-
-        // Wait for the queue to finish
+        queue.memcpy(m_imageMemory, m_gpu.imageMemory, m_width * m_height * 4);
         queue.wait();
+
+        saveAsPPM("sycl.ppm");;
+    }
+
+    RayTracer::~RayTracer() {
+        if (m_imageMemory) {
+            delete[] m_imageMemory;
+        }
+
+        if (m_gpu.imageMemory) {
+            sycl::free(m_gpu.imageMemory, m_selector.getQueue());
+        }
+    }
+
+    void RayTracer::saveAsPPM(const std::filesystem::path& filename) const {
+        std::ofstream file(filename, std::ios::binary);
+
+        if (!file.is_open()) {
+            throw std::runtime_error("Failed to open file for writing: " + filename.string());
+        }
+
+        // Write the PPM header
+        file << "P6\n" << m_width << " " << m_height << "\n255\n";
+
+        // Write pixel data in RGB format
+        for (uint32_t y = 0; y < m_height; ++y) {
+            for (uint32_t x = 0; x < m_width; ++x) {
+                uint32_t pixelIndex = (y * m_width + x) * 4; // RGBA8: 4 bytes per pixel
+
+                // Extract R, G, B components (ignore A)
+                file.put(m_imageMemory[pixelIndex + 0]); // R
+                file.put(m_imageMemory[pixelIndex + 1]); // G
+                file.put(m_imageMemory[pixelIndex + 2]); // B
+            }
+        }
+
+        file.close();
     }
 }

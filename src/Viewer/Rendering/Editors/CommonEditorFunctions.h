@@ -13,7 +13,7 @@
 namespace VkRender::EditorUtils {
 
     static std::shared_ptr<VulkanTexture2D> createEmptyTexture(uint32_t width, uint32_t height, VkFormat format,
-                                                               Application* context, bool setValues = false) {
+                                                               Application* context, VmaMemoryUsage usageAllocation = VMA_MEMORY_USAGE_GPU_ONLY, bool setValues = false) {
         VkImageCreateInfo imageCI = Populate::imageCreateInfo();
         imageCI.imageType = VK_IMAGE_TYPE_2D;
         imageCI.format = format;
@@ -42,7 +42,9 @@ namespace VkRender::EditorUtils {
         vulkanImageCreateInfo.dstLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         vulkanImageCreateInfo.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         vulkanImageCreateInfo.debugInfo = "Emtpy texture:" + std::to_string(width) + "x" + std::to_string(height);
+        vulkanImageCreateInfo.usage = usageAllocation;
         VulkanTexture2DCreateInfo textureCreateInfo(context->vkDevice());
+
         textureCreateInfo.image = std::make_shared<VulkanImage>(vulkanImageCreateInfo);
         auto texture = std::make_shared<VulkanTexture2D>(textureCreateInfo);
 

@@ -21,7 +21,6 @@ namespace VkRender{
         MeshInstance* meshInstance = nullptr;             // GPU-specific mesh data
         MaterialInstance* materialInstance = nullptr;  // GPU-specific material data
         std::unordered_map<DescriptorManagerType, VkDescriptorSet> descriptorSets{}; // Add the descriptor set here
-        std::unordered_map<DescriptorManagerType, std::vector<VkWriteDescriptorSet>> descriptorWrites{}; // Added for tracking resources management
 
     };
 

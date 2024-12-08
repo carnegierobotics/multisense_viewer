@@ -110,7 +110,6 @@ namespace VkRender {
         // Clean up the staging buffer
         vkDestroyBuffer(m_vulkanDevice.m_LogicalDevice, stagingBuffer, nullptr);
         vkFreeMemory(m_vulkanDevice.m_LogicalDevice, stagingBufferMemory, nullptr);
-
-
     }
+
 }

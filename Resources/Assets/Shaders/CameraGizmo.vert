@@ -35,15 +35,10 @@ layout(std430, set=2, binding=1) readonly buffer IndexBufferSSBO {
 
 
 void main() {
-	// Fetch the index from the index buffer using gl_VertexIndex
+
 	int idx = int(indexBuffer.indices[gl_VertexIndex]);
-
-	// Get the vertex data using the fetched index
 	vec3 position = vertexData.vertices[idx].position;
-
-	// Transform the vertex position to world space
-	vec4 worldPos = ubo.model * vec4(position, 1.0f);
-
-	// Compute the final clip-space position
+	// Transform the vertex to world space and then to clip space
+	vec4 worldPos = ubo.model * vec4(position, 1.0);
 	gl_Position = camera.projection * camera.view * worldPos;
 }

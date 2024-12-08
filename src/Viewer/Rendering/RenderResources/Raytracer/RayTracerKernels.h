@@ -5,29 +5,37 @@
 #ifndef MULTISENSE_VIEWER_RAYTRACERKERNELS_H
 #define MULTISENSE_VIEWER_RAYTRACERKERNELS_H
 
-#include <glm/glm.hpp>
 #include <sycl/sycl.hpp>
-
-#include "Viewer/Rendering/Core/RenderDefinitions.h"
 
 namespace VkRender::RT::Kernels {
 
-    struct MeshInfo {
-        uint32_t indexOffset;
-        uint32_t indexCount;
-        // Assuming transform is a 4x4 matrix; define accordingly
-        glm::mat4 transform;
+    class RenderKernel {
+    public:
+        RenderKernel(uint8_t* imageMemory, uint32_t width, uint32_t size)
+            : m_imageMemory(imageMemory), m_width(width), m_size(size) {}
+
+        void operator()(sycl::nd_item<2> item) const {
+            uint32_t x = item.get_global_id(1); // Column index
+            uint32_t y = item.get_global_id(0); // Row index
+
+            // Compute pixel index (row-major order)
+            uint32_t pixelIndex = (y * m_width + x) * 4; // RGBA8: 4 bytes per pixel
+
+            // Ensure we don't go out of bounds
+            if (pixelIndex < m_size) {
+                m_imageMemory[pixelIndex + 0] = static_cast<uint8_t>(x % 256); // R
+                m_imageMemory[pixelIndex + 1] = static_cast<uint8_t>(y % 256); // G
+                m_imageMemory[pixelIndex + 2] = 0;                             // B
+                m_imageMemory[pixelIndex + 3] = 255;                           // A
+            }
+        }
+
+    private:
+        uint8_t* m_imageMemory;
+        uint32_t m_width;
+        uint32_t m_size;
     };
 
-    void rayTracingKernel(
-            sycl::handler& cgh,
-            const sycl::accessor<char, 1, sycl::access::mode::write>& imageAcc,
-            const sycl::accessor<Vertex, 1, sycl::access::mode::read>& vertexAcc,
-            const sycl::accessor<uint32_t, 1, sycl::access::mode::read>& indexAcc,
-            const sycl::accessor<MeshInfo, 1, sycl::access::mode::read>& meshInfoAcc,
-            size_t numMeshes,
-            uint32_t width,
-            uint32_t height);
 }
 
 

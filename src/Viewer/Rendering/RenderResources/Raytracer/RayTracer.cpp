@@ -4,19 +4,17 @@
 
 #include "Viewer/Scenes/Entity.h"
 #include "Viewer/Rendering/RenderResources/Raytracer/RayTracer.h"
-
-#include <queue>
-
 #include "Viewer/Rendering/RenderResources/Raytracer/RayTracerKernels.h"
 #include <sycl/sycl.hpp>
 
 #include "Viewer/Tools/SyclDeviceSelector.h"
 
 namespace VkRender::RT {
-    RayTracer::RayTracer(std::shared_ptr<Scene>& scene, uint32_t width, uint32_t height) {
+    RayTracer::RayTracer(Application* ctx, std::shared_ptr<Scene>& scene, uint32_t width, uint32_t height) : m_context(ctx) {
         m_scene = scene;
         m_width = width;
         m_height = height;
+        m_camera = Camera(width, height);
         auto& queue = m_selector.getQueue();
 
         // Load the scene into gpu memory
@@ -27,19 +25,72 @@ namespace VkRender::RT {
         if (!m_gpu.imageMemory) {
             throw std::runtime_error("Device memory allocation failed.");
         }
+
+        std::vector<InputAssembly> vertexData;
+        std::vector<uint32_t> indices;
+
+        auto view = scene->getRegistry().view<MeshComponent, TransformComponent>();
+        for (auto e : view) {
+            Entity entity(e, scene.get());
+            std::string tag = entity.getName();
+            if (tag != "RayTracedObject")
+                continue;
+            auto& meshComponent = entity.getComponent<MeshComponent>();
+            std::shared_ptr<MeshData> meshData = m_meshManager.getMeshData(meshComponent);
+            for (auto& vert : meshData->vertices) {
+                InputAssembly input{};
+                input.position = vert.pos;
+                input.color = vert.color;
+                input.normal = vert.normal;
+                vertexData.emplace_back(input);
+            }
+            indices = meshData->indices;
+            m_gpu.numVertices = vertexData.size();
+            m_gpu.numIndices = indices.size();
+        }
+
+        m_gpu.vertices = sycl::malloc_device<InputAssembly>(vertexData.size(), queue);
+        queue.memcpy(m_gpu.vertices, vertexData.data(), vertexData.size() * sizeof(InputAssembly));
+
+        m_gpu.indices = sycl::malloc_device<uint32_t>(indices.size(), queue);
+        queue.memcpy(m_gpu.indices, indices.data(), indices.size() * sizeof(uint32_t));
+        queue.wait();
     }
 
     void RayTracer::update() {
         auto& queue = m_selector.getQueue();
 
+        glm::vec3 cameraOrigin, cameraDirection;
+
+        auto view = m_scene->getRegistry().view<CameraComponent, TransformComponent, MeshComponent>();
+        for (auto e : view) {
+            Entity entity(e, m_scene.get());
+            auto& camera = entity.getComponent<CameraComponent>();
+            auto& transform = entity.getComponent<TransformComponent>();
+
+            cameraOrigin = transform.getPosition();
+
+            glm::quat rotation = transform.getRotationQuaternion();
+            // Calculate the camera direction by rotating the default forward vector
+            glm::vec3 defaultForward(0.0f, 0.0f, 1.0f); // Forward direction in OpenGL convention
+            cameraDirection = glm::normalize(rotation * defaultForward);
+
+            auto cameraGizmoParams = std::dynamic_pointer_cast<CameraGizmoMeshParameters>(
+                         entity.getComponent<MeshComponent>().meshParameters);
+
+            float focalPoint = cameraGizmoParams->focalPoint;
+            // TODO draw the camera generated vectors in mesh view.
+
+        }
+
         uint32_t tileWidth = 16;
         uint32_t tileHeight = 16;
-        sycl::range<2> localWorkSize(tileHeight, tileWidth);
-        sycl::range<2> globalWorkSize(m_height, m_width);
+        sycl::range localWorkSize(tileHeight, tileWidth);
+        sycl::range globalWorkSize(m_height, m_width);
 
         queue.submit([&](sycl::handler& h) {
             // Create a kernel instance with the required parameters
-            const Kernels::RenderKernel kernel(m_gpu.imageMemory, m_width, m_width * m_height * 4);
+            const Kernels::RenderKernel kernel(m_gpu, m_width, m_height, m_width * m_height * 4, cameraOrigin, cameraDirection);
             h.parallel_for<class RenderKernel>(
                 sycl::nd_range<2>(globalWorkSize, localWorkSize), kernel);
         }).wait();

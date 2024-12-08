@@ -117,7 +117,7 @@ namespace VkRender {
 
     void MeshData::generateCameraGizmoMesh(const CameraGizmoMeshParameters& params) {
         float a = 0.25f;
-        float h = 1.0f * params.focalLength;
+        float h = params.focalPoint;
 
         std::vector<glm::vec3> uboVertices = {
             // Pyramid base + apex

@@ -198,6 +198,18 @@ namespace VkRender {
         userSetting.projectName = project.projectName;
     }
 
+    std::shared_ptr<Camera> Application::getViewportCamera() {
+        for (auto& editor : m_editors) {
+            auto& ci = editor->getCreateInfo();
+            if(ci.editorTypeDescription == EditorType::Viewport3D) { // TODO make it the last active viewport instead
+                auto viewport = dynamic_cast<Editor3DViewport*>(editor.get());
+                auto camera = viewport->getCamera();
+                return camera;
+            };
+        }
+        return nullptr;
+    }
+
     // TODO make scene objects serializeable and loadable.
     void Application::loadScene(const std::filesystem::path& scenePath) {
         for (auto& editor : m_sceneRenderers) {

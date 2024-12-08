@@ -5,14 +5,16 @@
 #ifndef MULTISENSE_VIEWER_RAYTRACER_H
 #define MULTISENSE_VIEWER_RAYTRACER_H
 
-#include "Viewer/Application/pch.h"
-#include "Viewer/Scenes//Scene.h"
+#include <Viewer/Rendering/MeshManager.h>
+
+#include "Viewer/Scenes/Scene.h"
 #include "Viewer/Tools/SyclDeviceSelector.h"
+#include "Viewer/Rendering/RenderResources/Raytracer/Definitions.h"
 
 namespace VkRender::RT {
     class RayTracer {
     public:
-        RayTracer(std::shared_ptr<Scene>& scene, uint32_t width, uint32_t height);
+        RayTracer(Application* context, std::shared_ptr<Scene>& scene, uint32_t width, uint32_t height);
 
         void update();
 
@@ -21,7 +23,10 @@ namespace VkRender::RT {
 
         ~RayTracer();
 
+
     private:
+        Camera m_camera;
+        Application* m_context;
         SyclDeviceSelector m_selector = SyclDeviceSelector(SyclDeviceSelector::DeviceType::GPU);
 
         std::shared_ptr<Scene> m_scene;
@@ -29,10 +34,8 @@ namespace VkRender::RT {
 
         uint32_t m_width = 0, m_height = 0;
 
-        struct GPUData {
-            uint8_t* imageMemory = nullptr;
-
-        }m_gpu;
+        GPUData m_gpu;
+        MeshManager m_meshManager;
 
 
         void saveAsPPM(const std::filesystem::path& filename) const;

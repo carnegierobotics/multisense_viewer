@@ -14,7 +14,6 @@ namespace VkRender {
         addUI("DebugWindow");
         addUIData<EditorImageUI>();
 
-        //m_rayTracer = std::make_unique<VkRender::RT::RayTracer>();
         diffRenderEntry = std::make_unique<VkRender::DR::DiffRenderEntry>();
         diffRenderEntry->setup();
 

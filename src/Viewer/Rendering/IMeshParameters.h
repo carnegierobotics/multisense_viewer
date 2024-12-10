@@ -11,6 +11,7 @@
 #include <bits/fs_path.h>
 #include <glm/vec3.hpp>
 #include <utility>
+#include "Viewer/Rendering/Core/UUID.h"
 
 namespace VkRender {
     class MeshData;
@@ -20,6 +21,9 @@ namespace VkRender {
         virtual ~IMeshParameters() = default;
         virtual std::string getIdentifier() const = 0;
         virtual std::shared_ptr<MeshData> generateMeshData() const = 0;
+
+    protected:
+        UUID uuid;
     };
 
 
@@ -28,10 +32,11 @@ namespace VkRender {
         glm::vec3 origin;
         glm::vec3 direction;
         float magnitude;
+        float radius = 0.05f;
 
         std::string getIdentifier() const override {
             // Generate a unique identifier based on parameters
-            return "Cylinder_";
+            return "Cylinder_" + std::to_string(uuid);
         }
 
         std::shared_ptr<MeshData> generateMeshData() const override;
@@ -40,10 +45,10 @@ namespace VkRender {
     class CameraGizmoMeshParameters : public IMeshParameters {
     public:
         float imageSize; // TODO implement or remove
-        float focalPoint = 1.0f;
+        float focalPoint = 0.008f;
 
         std::string getIdentifier() const override {
-            return "CameraGizmo_";
+            return "CameraGizmo_" + std::to_string(uuid);
         }
 
         std::shared_ptr<MeshData> generateMeshData() const override;

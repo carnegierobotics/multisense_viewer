@@ -31,7 +31,7 @@ namespace VkRender {
 
         // Parameters for the cylinder
         const int segments = 20; // Adjust for smoother cylinder
-        const float radius = 0.05f; // Adjust as needed
+        const float radius = parameters.radius; // Adjust as needed
         const float height = magnitude;
 
         glm::vec3 endPoint = origin + direction * height;

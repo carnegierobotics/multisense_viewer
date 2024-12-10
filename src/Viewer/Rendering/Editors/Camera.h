@@ -68,8 +68,8 @@ namespace VkRender {
         uint32_t m_width = 720;
 
     public:
-        enum CameraType {
-            arcball, flycam
+        enum CameraType : int32_t {
+            arcball = 0, flycam = 1, pinhole = 2
         };
         CameraType m_type = CameraType::arcball;
 
@@ -97,6 +97,14 @@ namespace VkRender {
             resetPosition();
         }
 
+        Camera(CameraType type, uint32_t width, uint32_t height){
+            m_cx = static_cast<float>(width) / 2;
+            m_cy = static_cast<float>(height) / 2;
+            m_width = width;
+            m_height = height;
+            setPinholeProjection(m_fx, m_fy, m_cx, m_cy, 0.1f, 10.0f);
+        }
+
         uint32_t width() const { return m_width; }
         uint32_t height() const { return m_height; }
 
@@ -106,7 +114,7 @@ namespace VkRender {
         }
 
         void updateViewMatrix() {
-            if (m_type == CameraType::flycam) {
+            if (m_type == CameraType::flycam || m_type == CameraType::pinhole) {
                 matrices.view = glm::inverse(getFlyCameraTransMat());
             } else if (m_type == CameraType::arcball) {
                 matrices.view = glm::inverse(getArcBallCameraTransMat());
@@ -242,20 +250,30 @@ namespace VkRender {
             );
         };
 
-        void updateAspectRatio(float aspect) {
-            float focal_length = 1.0f / tanf(glm::radians(m_Fov) * 0.5f);
-            float x = focal_length / aspect;
-            float y = -focal_length;
+        float m_fx = 600.0f;  // Example value
+        float m_fy = 600.0f;  // Example value
+        float m_cx = m_width * 0.5f;
+        float m_cy = m_height * 0.5f;
+
+        void setPinholeProjection(float fx, float fy, float cx, float cy, float zNear = 0.1f, float zFar = 10.0f) {
+            m_Znear = zNear;
+            m_Zfar = zFar;
+
             float A = -m_Zfar / (m_Zfar - m_Znear);
-            float B = -m_Zfar * m_Znear / (m_Zfar - m_Znear);
+            float B = (-m_Zfar * m_Znear) / (m_Zfar - m_Znear);
+
+            // Note: width() and height() return the image dimensions.
+            float w = static_cast<float>(width());
+            float h = static_cast<float>(height());
 
             matrices.perspective = glm::mat4(
-                    x, 0.0f, 0.0f, 0.0f,
-                    0.0f, y, 0.0f, 0.0f,
-                    0.0f, 0.0f, A, -1.0f,
-                    0.0f, 0.0f, B, 0.0f
+                    (2.0f * fx) / w,          0.0f,                ((2.0f * cx) - w) / w,     0.0f,
+                    0.0f,                    (2.0f * fy) / h,     ((2.0f * cy) - h) / h,     0.0f,
+                    0.0f,                    0.0f,                A,                        -1.0f,
+                    0.0f,                    0.0f,                B,                         0.0f
             );
         }
+
 
         void resetPosition() {
             pose.reset();

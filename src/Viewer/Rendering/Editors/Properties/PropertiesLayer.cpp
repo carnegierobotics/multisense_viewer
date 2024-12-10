@@ -419,7 +419,6 @@ namespace VkRender {
             displayAddComponentEntry<MaterialComponent>("Material");
             displayAddComponentEntry<PointCloudComponent>("PointCloud");
             displayAddComponentEntry<GaussianComponent>("3DGS Model");
-            displayAddComponentEntry<VectorComponent>("VectorComponent");
 
             ImGui::EndPopup();
         }
@@ -430,7 +429,7 @@ namespace VkRender {
             component.updateFromEulerRotation();
             drawVec3Control("Scale", component.getScale(), 1.0f);
         });
-        drawComponent<CameraComponent>("Camera", entity, [](auto& component) {
+        drawComponent<CameraComponent>("Camera", entity, [](CameraComponent& component) {
             drawFloatControl("Field of View", component.camera->fov(), 1.0f);
             component.camera->updateProjectionMatrix();
 
@@ -453,8 +452,22 @@ namespace VkRender {
                 }
             }
 
-            if (component.renderFromViewpoint())
-                component.camera->setType(Camera::CameraType::flycam);
+            static const std::array<const char*, 3> cameraTypeNames = {"Arcball", "Flycam", "Pinhole"};
+
+            // Variable to store the current camera type as an index
+            auto currentTypeIndex = static_cast<int32_t>(component.camera->m_type);
+
+            // Dropdown for selecting the camera type
+            if (ImGui::Combo("Camera Type", &currentTypeIndex, cameraTypeNames.data(), static_cast<int>(cameraTypeNames.size()))) {
+                // Update the camera type based on the selected index
+                component.camera->setType(static_cast<Camera::CameraType>(currentTypeIndex));
+
+                // Optionally update other settings when the type changes
+                if (component.camera->m_type == Camera::CameraType::pinhole) {
+                    // Adjust projection matrix or settings for the pinhole camera
+                    component.camera->updateProjectionMatrix();
+                }
+            }
         });
 
         drawComponent<MeshComponent>("Mesh", entity, [this, entity](MeshComponent& component) {
@@ -530,6 +543,7 @@ namespace VkRender {
                         paramsChanged |= drawVec3Control("Origin", cylinderParams->origin);
                         paramsChanged |= drawVec3Control("Direction", cylinderParams->direction);
                         paramsChanged |= ImGui::SliderFloat("Magnitude", &cylinderParams->magnitude, 0.0f, 100.0f);
+                        paramsChanged |= ImGui::SliderFloat("Radius", &cylinderParams->radius, 0.001f, 0.1f);
                         if (paramsChanged) {
                             component.updateMeshData = true;
                         }
@@ -596,24 +610,6 @@ namespace VkRender {
             }
         });
 
-        drawComponent<VectorComponent>("VectorComponent", entity, [this](auto& component) {
-            ImGui::Text("Vector:");
-            bool update = false;
-            update |= drawVec3Control("Origin", component.origin);
-            update |= drawVec3Control("Direction", component.direction);
-            update |= ImGui::SliderFloat("Magnitude", &component.magnitude, 0.0f, 100.0f);
-            if (update) {
-                /*
-                MeshComponent meshComponent(CAMERA_GIZMO);
-                if (m_selectionContext.hasComponent<MeshComponent>())
-                    m_selectionContext.removeComponent<MeshComponent>();
-
-                auto cameraGizmoParams = std::make_shared<CameraGizmoMeshParameters>();
-                meshComponent.meshParameters = cameraGizmoParams;
-                m_selectionContext.addComponent<MeshComponent>(meshComponent);
-                */
-            }
-        });
 
         drawComponent<TagComponent>("Tag", entity, [this](auto& component) {
             ImGui::Text("Entity Name:");

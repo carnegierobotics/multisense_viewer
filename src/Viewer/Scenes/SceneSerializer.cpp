@@ -46,6 +46,8 @@ namespace VkRender::Serialize {
                 return "arcball";
             case Camera::flycam:
                 return "flycam";
+            case Camera::pinhole:
+                return "pinhole";
             default:
                 throw std::invalid_argument("Unknown CameraType");
         }
@@ -55,6 +57,7 @@ namespace VkRender::Serialize {
     Camera::CameraType stringToCameraType(const std::string &str) {
         if (str == "arcball") return Camera::arcball;
         if (str == "flycam") return Camera::flycam;
+        if (str == "pinhole") return Camera::pinhole;
         throw std::invalid_argument("Unknown CameraType: " + str);
     }
 }

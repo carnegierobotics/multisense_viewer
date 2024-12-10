@@ -25,16 +25,12 @@ namespace VkRender {
 
         if (selectedEntity && selectedEntity.hasComponent<CameraComponent>()) {
             auto cameraPtr = selectedEntity.getComponent<CameraComponent>().camera;
-            cameraPtr->setType(Camera::flycam);
             cameraPtr->update(m_context->deltaTime());
-
             auto &transform = selectedEntity.getComponent<TransformComponent>();
             cameraPtr->pose.pos = transform.getPosition();
             cameraPtr->pose.q = transform.getRotationQuaternion();
             cameraPtr->setPerspective(static_cast<float>(cameraPtr->width()) / cameraPtr->height());
             cameraPtr->updateViewMatrix();
-            //cameraPtr->matrices.perspective[1] = -cameraPtr->matrices.perspective[1];
-
         }
 
 
@@ -289,9 +285,6 @@ namespace VkRender {
     void Scene::onComponentAdded<TemporaryComponent>(Entity entity, TemporaryComponent &component) {
     }
 
-    template<>
-    void Scene::onComponentAdded<VectorComponent>(Entity entity, VectorComponent &component) {
-    }
 
     /** COMPONENT REMOVE **/
 
@@ -361,9 +354,6 @@ namespace VkRender {
     template<>
     void Scene::onComponentRemoved<TemporaryComponent>(Entity entity, TemporaryComponent &component) {
     }
-    template<>
-    void Scene::onComponentRemoved<VectorComponent>(Entity entity, VectorComponent &component) {
-    }
 
     /** COMPONENT UPDATE **/
     template<>
@@ -432,8 +422,6 @@ namespace VkRender {
     template<>
     void Scene::onComponentUpdated<TemporaryComponent>(Entity entity, TemporaryComponent &component) {
     }
-    template<>
-    void Scene::onComponentUpdated<VectorComponent>(Entity entity, VectorComponent &component) {
-    }
+
     DISABLE_WARNING_POP
 }

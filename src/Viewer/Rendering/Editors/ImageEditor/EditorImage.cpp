@@ -48,7 +48,7 @@ namespace VkRender {
        // m_rayTracer->setup(scene);
 
         m_rayTracer = std::make_unique<VkRender::RT::RayTracer>(m_context, scene, m_createInfo.width, m_createInfo.height);
-        m_colorTexture = EditorUtils::createEmptyTexture(m_createInfo.width , m_createInfo.height, VK_FORMAT_R8G8B8A8_UNORM, m_context, VMA_MEMORY_USAGE_AUTO_PREFER_HOST);
+        m_colorTexture = EditorUtils::createEmptyTexture(m_createInfo.width , m_createInfo.height, VK_FORMAT_R8G8B8A8_UNORM, m_context);
 
     }
 

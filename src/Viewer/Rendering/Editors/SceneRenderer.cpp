@@ -109,12 +109,12 @@ namespace VkRender {
         }
 
         // Issue the draw call
-        if (command.meshInstance->indexBuffer && usesVertexBuffers) {
+        if (command.meshInstance->indexBuffer && !command.meshInstance->SSBO) {
             // Indexed draw call with vertex buffers
             vkCmdDrawIndexed(cmdBuffer, command.meshInstance->indexCount, 1, 0, 0, 0);
         } else {
             // Non-indexed draw call or draw call without vertex buffers
-            vkCmdDraw(cmdBuffer, command.meshInstance->vertexCount, 1, 0, 0);
+            vkCmdDraw(cmdBuffer, command.meshInstance->drawCount, 1, 0, 0);
         }
     }
 
@@ -130,7 +130,7 @@ namespace VkRender {
             UUID uuid = entity.getUUID();
             auto& meshComponent = entity.getComponent<MeshComponent>();
             std::unordered_map<DescriptorManagerType, VkDescriptorSet> descriptorSets; // Add the descriptor set here
-            std::unordered_map<DescriptorManagerType, std::vector<VkWriteDescriptorSet>> descriptorWritesTracker; // Add the descriptor set here
+            std::unordered_map<DescriptorManagerType, std::vector<VkWriteDescriptorSet>> descriptorWritesTracker; // TODO remove
             PipelineKey key = {};
             key.setLayouts.resize(3);
 
@@ -224,15 +224,22 @@ namespace VkRender {
                 key.fragmentShaderName = "default.frag";
                 key.vertexInputBindingDescriptions.clear();
                 key.vertexInputAttributes.clear();
+                key.topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
 
                 auto& writes = descriptorWritesTracker[DescriptorManagerType::DynamicCameraGizmo];
-                writes.resize(1);
+                writes.resize(2);
                 writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
                 writes[0].dstBinding = 0;
                 writes[0].dstArrayElement = 0;
                 writes[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
                 writes[0].descriptorCount = 1;
                 writes[0].pBufferInfo = &meshInstance->vertexBuffer->m_descriptorBufferInfo;
+                writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                writes[1].dstBinding = 1;
+                writes[1].dstArrayElement = 0;
+                writes[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+                writes[1].descriptorCount = 1;
+                writes[1].pBufferInfo = &meshInstance->indexBuffer->m_descriptorBufferInfo;
                 VkDescriptorSet dynamicCameraDescriptorSet = descriptorRegistry.getManager(
                     DescriptorManagerType::DynamicCameraGizmo).getOrCreateDescriptorSet(writes);
                 descriptorSets[DescriptorManagerType::DynamicCameraGizmo] = dynamicCameraDescriptorSet;
@@ -251,7 +258,6 @@ namespace VkRender {
 
             RenderCommand command;
             command.descriptorSets = descriptorSets;
-            command.descriptorWrites = descriptorWritesTracker;
             command.entity = entity;
             command.pipeline = pipeline;
             command.meshInstance = meshInstance.get();
@@ -259,8 +265,6 @@ namespace VkRender {
             // Add to render group
             renderGroups.emplace_back(command);
         }
-
-        //descriptorRegistry.freeUnusedDescriptors(renderGroups);
     }
 
     void SceneRenderer::onComponentAdded(Entity entity, MeshComponent& meshComponent) {
@@ -424,7 +428,7 @@ namespace VkRender {
         }
         else {
             materialInstance->baseColorTexture = EditorUtils::createEmptyTexture(1280, 720, VK_FORMAT_R8G8B8A8_UNORM,
-                m_context, true);
+                m_context, VMA_MEMORY_USAGE_GPU_ONLY, true);
         }
         Log::Logger::getInstance()->info("Created Material for Entity: {}", entity.getName());
         return materialInstance;

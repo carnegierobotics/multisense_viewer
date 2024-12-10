@@ -40,7 +40,7 @@ namespace VkRender {
     class CameraGizmoMeshParameters : public IMeshParameters {
     public:
         float imageSize; // TODO implement or remove
-        float focalLength = 1.0f;
+        float focalPoint = 1.0f;
 
         std::string getIdentifier() const override {
             return "CameraGizmo_";

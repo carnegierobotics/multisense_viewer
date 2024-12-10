@@ -1,19 +1,13 @@
 sceneName: "Default Scene"
-projectName: "DifferentiableRenderer"
+projectName: "Editor"
 logLevel: 2
 editors:
   - borderSize: 5
-    editorTypeDescription: "3D Viewport"
+    editorTypeDescription: "Gaussian Viewer"
     width: 80
-    height: 50
+    height: 100
     x: 0
     y: 0
-  - borderSize: 5
-    editorTypeDescription: "Image Editor"
-    width: 80
-    height: 50
-    x: 0
-    y: 50
   - borderSize: 5
     editorTypeDescription: "Properties"
     width: 20
@@ -26,4 +20,3 @@ editors:
     height: 25
     x: 80
     y: 0
-

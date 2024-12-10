@@ -37,6 +37,7 @@ namespace VkRender {
 
         void onMouseScroll(float change) override;
         void onKeyCallback(const Input &input) override;
+        std::shared_ptr<Camera> getCamera(){return m_editorCamera;}
 
         std::shared_ptr<MeshInstance> setupMesh();
 

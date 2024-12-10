@@ -30,6 +30,8 @@ namespace VkRender {
         VkImageLayout dstLayout{};
         std::string debugInfo = "Unnamed";
         VkImageAspectFlags aspectMask{};
+        VmaMemoryUsage usage = VMA_MEMORY_USAGE_GPU_ONLY;
+
     };
 
     struct VulkanImage {
@@ -43,7 +45,6 @@ namespace VkRender {
         VulkanImage(VulkanImage &&other) noexcept: m_vulkanDevice(other.m_vulkanDevice),
                                                    m_allocator(other.m_allocator) {
             std::swap(this->m_image, other.m_image);
-            std::swap(this->m_mem, other.m_mem);
             std::swap(this->m_view, other.m_view);
             std::swap(this->m_allocation, other.m_allocation);
         }
@@ -53,7 +54,6 @@ namespace VkRender {
             if (this != &other) { // Check for self-assignment
                 std::swap(this->m_vulkanDevice, other.m_vulkanDevice);
                 std::swap(this->m_image, other.m_image);
-                std::swap(this->m_mem, other.m_mem);
                 std::swap(this->m_view, other.m_view);
                 std::swap(this->m_allocation, other.m_allocation);
             }
@@ -69,16 +69,24 @@ namespace VkRender {
 
         VkImageView& view(){return m_view;}
         VkImage& image(){return m_image;}
+        VmaAllocation& memory(){return m_allocation;}
         uint32_t width(){return m_width;}
         uint32_t height(){return m_height;}
         uint32_t getImageSize(){return m_imageSize;}
 
+        struct Allocation {
+            VmaAllocator allocator;
+            VmaAllocation allocation;
+        };
+
+        Allocation getAllocation() {
+            return {m_allocator, m_allocation};
+        }
     private:
         VulkanDevice &m_vulkanDevice;
         VmaAllocator &m_allocator;
 
         VkImage m_image{};
-        VkDeviceMemory m_mem{};
         VkImageView m_view{};
         VmaAllocation m_allocation{};
         uint32_t m_imageSize{};

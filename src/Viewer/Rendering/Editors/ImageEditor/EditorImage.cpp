@@ -14,13 +14,12 @@ namespace VkRender {
         addUI("DebugWindow");
         addUIData<EditorImageUI>();
 
-        //m_rayTracer = std::make_unique<VkRender::RT::RayTracer>();
         diffRenderEntry = std::make_unique<VkRender::DR::DiffRenderEntry>();
         diffRenderEntry->setup();
 
         m_descriptorRegistry.createManager(DescriptorManagerType::Viewport3DTexture, m_context->vkDevice());
 
-        m_colorTexture = EditorUtils::createEmptyTexture(1280, 720, VK_FORMAT_R8G8B8A8_UNORM, m_context, true);
+        m_colorTexture = EditorUtils::createEmptyTexture(1280, 720, VK_FORMAT_R8G8B8A8_UNORM, m_context, VMA_MEMORY_USAGE_GPU_ONLY, true);
         m_shaderSelectionBuffer.resize(m_context->swapChainBuffers().size());
         for (auto& frameIndex : m_shaderSelectionBuffer) {
             m_context->vkDevice().createBuffer(
@@ -30,6 +29,7 @@ namespace VkRender {
                 sizeof(int32_t), nullptr, "EditorImage:ShaderSelectionBuffer",
                 m_context->getDebugUtilsObjectNameFunction());
         }
+
     }
 
     void EditorImage::onEditorResize() {
@@ -46,6 +46,10 @@ namespace VkRender {
 
     void EditorImage::onSceneLoad(std::shared_ptr<Scene> scene) {
        // m_rayTracer->setup(scene);
+
+        m_rayTracer = std::make_unique<VkRender::RT::RayTracer>(m_context, scene, m_createInfo.width, m_createInfo.height);
+        m_colorTexture = EditorUtils::createEmptyTexture(m_createInfo.width , m_createInfo.height, VK_FORMAT_R8G8B8A8_UNORM, m_context, VMA_MEMORY_USAGE_AUTO_PREFER_HOST);
+
     }
 
 
@@ -62,22 +66,9 @@ namespace VkRender {
 
 
         if (imageUI->updateImage){
-            void* image = diffRenderEntry->getImage();
-            if (image){
-                if (m_colorTexture->width() != 64)
-                    m_colorTexture = EditorUtils::createEmptyTexture(diffRenderEntry->getImageSize(), diffRenderEntry->getImageSize(), VK_FORMAT_R32_SFLOAT, m_context);
-
-                size_t dataSize = diffRenderEntry->getImageSize() * diffRenderEntry->getImageSize() * sizeof(float);
-                m_colorTexture->loadImage(image, dataSize);
-            }
-
-            //m_rayTracer->update(m_createInfo.width, m_createInfo.height);
-
-            m_colorTexture = EditorUtils::createEmptyTexture(diffRenderEntry->getImageSize(), diffRenderEntry->getImageSize(), VK_FORMAT_R32_SFLOAT, m_context);
+            m_rayTracer->update();
             m_colorTexture->loadImage(m_rayTracer->getImage(), m_createInfo.width * m_createInfo.height * 4);
-
         }
-
     }
 
     void EditorImage::onMouseMove(const MouseButtons &mouse) {
@@ -184,7 +175,7 @@ namespace VkRender {
                 cmdBuffer,
                 VK_PIPELINE_BIND_POINT_GRAPHICS,
                 command.pipeline->pipeline()->getPipelineLayout(),
-                static_cast<uint32_t>(index), // TODO can't reuse the approach in SceneRenderer since we have different manager types
+                0, // TODO can't reuse the approach in SceneRenderer since we have different manager types
                 1,
                 &descriptorSet,
                 0,

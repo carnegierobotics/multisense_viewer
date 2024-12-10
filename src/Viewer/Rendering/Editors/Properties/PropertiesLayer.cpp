@@ -544,7 +544,7 @@ namespace VkRender {
                     if (cameraGizmoParams) {
                         bool paramsChanged = false;
                         paramsChanged |= ImGui::SliderFloat("Image Size", &cameraGizmoParams->imageSize, 0.1f, 10.0f);
-                        paramsChanged |= ImGui::SliderFloat("Focal Point", &cameraGizmoParams->focalLength, 0.1f,
+                        paramsChanged |= ImGui::SliderFloat("Focal Point", &cameraGizmoParams->focalPoint, 0.1f,
                                                             3.0f);
                         // Add more parameters as needed
                         if (paramsChanged) {

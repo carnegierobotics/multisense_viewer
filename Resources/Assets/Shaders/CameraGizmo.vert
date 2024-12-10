@@ -24,15 +24,21 @@ struct VertexData {
 	vec4 color;      // Naturally aligned to 16 bytes
 };
 
-layout(std430, set=2, binding=0) buffer CameraGizmoSSBO {
+layout(std430, set=2, binding=0) readonly buffer CameraGizmoSSBO {
 VertexData vertices[];
 } vertexData;
 
+// Index buffer SSBO
+layout(std430, set=2, binding=1) readonly buffer IndexBufferSSBO {
+	uint indices[];
+} indexBuffer;
+
 
 void main() {
-	int idx = gl_VertexIndex;
-	// Transform the vertex position to world space
-	vec4 worldPos = ubo.model * vec4(vertexData.vertices[idx].position, 1.0f);
 
+	int idx = int(indexBuffer.indices[gl_VertexIndex]);
+	vec3 position = vertexData.vertices[idx].position;
+	// Transform the vertex to world space and then to clip space
+	vec4 worldPos = ubo.model * vec4(position, 1.0);
 	gl_Position = camera.projection * camera.view * worldPos;
 }

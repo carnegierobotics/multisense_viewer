@@ -150,6 +150,10 @@ namespace VkRender {
         meshInstance->m_type = meshType;
 
         meshInstance->usesVertexBuffers = meshData->isDynamic == false;
+        meshInstance->SSBO = meshData->isDynamic;
+        if (meshInstance->SSBO) {
+            meshInstance->drawCount =  meshInstance->indexCount; // TODO Is not compatible if we use SSBO's with no. vertices as draw count
+        }
         if (vertexBufferSize == 0)
             return nullptr;
 
@@ -181,7 +185,7 @@ namespace VkRender {
         // Create index buffer if necessary
         if (indexBufferSize > 0) {
             if (meshData->isDynamic) {
-                usageFlags = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+                usageFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
             }
             else {
                 usageFlags = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;

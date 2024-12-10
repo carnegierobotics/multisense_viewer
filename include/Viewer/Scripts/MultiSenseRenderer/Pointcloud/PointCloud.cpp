@@ -77,7 +77,7 @@ void PointCloud::update() {
         auto depthTex = VkRender::TextureData(VkRender::CRL_DISPARITY_IMAGE, conf.width(), conf.height());
         model->getTextureDataPointers(&depthTex, renderData.index);
         if (renderData.crlCamera->getCameraStream("Disparity Left", &depthTex, remoteHeadIndex)) {
-        Log::Logger::getInstance()->info("Uploading multisense data to GPU: {} for frame index {}. Image size: {}x{}", static_cast<int>(tex.m_Type), renderData.index, tex.m_Width, tex.m_Height);
+        //Log::Logger::getInstance()->info("Uploading multisense data to GPU: {} for frame index {}. Image size: {}x{}", static_cast<int>(tex.m_Type), renderData.index, tex.m_Width, tex.m_Height);
             model->updateTexture(depthTex.m_Type, renderData.index);
         }
 

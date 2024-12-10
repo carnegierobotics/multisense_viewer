@@ -71,7 +71,7 @@ namespace VkRender::MultiSense {
             channelMap[static_cast<crl::multisense::RemoteHeadChannel>(0)].get()->ptr()->getDeviceInfo(devInfo);
             Log::Logger::getInstance()->trace("We got a connection! Device info: {}, {}", devInfo.name,
                                               devInfo.buildDate);
-            setMtu(7200, static_cast<crl::multisense::RemoteHeadChannel>(0));
+            setMtu(1400, static_cast<crl::multisense::RemoteHeadChannel>(0));
 
             if (!updateCameraInfo(const_cast<Device *>(dev), static_cast<crl::multisense::RemoteHeadChannel>(0))) {
                 Log::Logger::getInstance()->error(
@@ -784,12 +784,9 @@ namespace VkRender::MultiSense {
 
         std::this_thread::sleep_for(std::chrono::milliseconds(300));
 
-        if (crl::multisense::Status_Ok !=
-            channelMap[channelID]->ptr()->getMtu(infoMap[channelID].sensorMTU)) {
-            Log::Logger::getInstance()->error("Failed to verify aux img conf");
-            return false;
-        }
-
+        int32_t getMtu = -1;
+        channelMap[channelID]->ptr()->getMtu(getMtu);
+        Log::Logger::getInstance()->info("Current mtu on channel {}", getMtu);
         if (status != crl::multisense::Status_Ok) {
             Log::Logger::getInstance()->info("Failed to set MTU {}", mtu);
             return false;

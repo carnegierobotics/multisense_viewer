@@ -78,6 +78,7 @@ namespace VkRender {
         gaussianRenderer3D.setActiveCamera(m_editorCamera);
 
 
+        /*
         auto &e = m_context->getSelectedEntity();
         if (e && e.hasComponent<CameraComponent>()) {
             auto &camera = e.getComponent<CameraComponent>();
@@ -94,6 +95,7 @@ namespace VkRender {
             gaussianRenderer3D.setActiveCamera(m_lastActiveCamera->camera);
         }
 
+        */
         auto frameIndex = m_context->currentFrameIndex();
         void *data;
         vkMapMemory(m_context->vkDevice().m_LogicalDevice,

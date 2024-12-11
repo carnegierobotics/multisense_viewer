@@ -5,6 +5,7 @@
 #ifndef MULTISENSE_SCENERENDERER_H
 #define MULTISENSE_SCENERENDERER_H
 
+#include "BaseCamera.h"
 #include "Viewer/Rendering/Core/PipelineManager.h"
 #include "Viewer/Rendering/Core/DescriptorSetManager.h"
 #include "Viewer/Rendering/VulkanMeshResourceManager.h"
@@ -39,10 +40,10 @@ namespace VkRender {
 
         void updateGlobalUniformBuffer(uint32_t frameIndex, Entity entity);
 
-        void setActiveCamera(const std::shared_ptr<Camera>& cameraPtr){
+        void setActiveCamera(const std::shared_ptr<BaseCamera>& cameraPtr){
             m_activeCamera = cameraPtr;
         }
-        std::shared_ptr<Camera> getActiveCamera() const {
+        std::shared_ptr<BaseCamera> getActiveCamera() const {
             return m_activeCamera.lock();
         }
         ~SceneRenderer() override;
@@ -50,7 +51,7 @@ namespace VkRender {
 
 
     private:
-        std::weak_ptr<Camera> m_activeCamera;
+        std::weak_ptr<BaseCamera> m_activeCamera;
         std::shared_ptr<Scene> m_activeScene;
 
         PipelineManager m_pipelineManager;

@@ -2,7 +2,9 @@
 // Created by magnus on 8/23/24.
 //
 
-#include "PropertiesLayer.h"
+#include <glm/gtc/type_ptr.hpp>  // for glm::value_ptr
+
+#include "Viewer/Rendering/Editors/Properties/PropertiesLayer.h"
 
 #include "Viewer/Rendering/Components/GaussianComponent.h"
 #include "Viewer/Rendering/Components/Components.h"
@@ -16,6 +18,7 @@
 #include "Viewer/Rendering/Editors/CommonEditorFunctions.h"
 
 namespace VkRender {
+    /*
     struct CameraModel {
         enum Type {
             PINHOLE,
@@ -231,8 +234,9 @@ namespace VkRender {
             entity.setParent(m_selectionContext);
             m_selectionContext.getComponent<GroupComponent>().colmapPath = colmapFolderPath;
         }
-    }
 
+    }
+    */
     /** Called once upon this object creation**/
     void PropertiesLayer::onAttach() {
     }
@@ -430,27 +434,29 @@ namespace VkRender {
             drawVec3Control("Scale", component.getScale(), 1.0f);
         });
         drawComponent<CameraComponent>("Camera", entity, [](CameraComponent& component) {
-            drawFloatControl("Field of View", component.camera->fov(), 1.0f);
+            //drawFloatControl("Field of View", component.camera->fov(), 1.0f);
             component.camera->updateProjectionMatrix();
 
             ImGui::Checkbox("Render scene from viewpoint", &component.renderFromViewpoint());
+            /*
             // Controls for Camera Resolution (Width and Height)
             int width = static_cast<int>(component.camera->width());
             int height = static_cast<int>(component.camera->height());
             ImGui::SetNextItemWidth(100.0f);
             if (ImGui::InputInt("Width", &width)) {
                 if (width > 0) {
-                    component.camera->setCameraResolution(static_cast<uint32_t>(width), component.camera->height());
+                    //component.camera->setCameraResolution(static_cast<uint32_t>(width), component.camera->height());
                     component.camera->updateProjectionMatrix();
                 }
             }
             ImGui::SetNextItemWidth(100.0f);
             if (ImGui::InputInt("Height", &height)) {
                 if (height > 0) {
-                    component.camera->setCameraResolution(component.camera->width(), static_cast<uint32_t>(height));
+                    //component.camera->setCameraResolution(component.camera->width(), static_cast<uint32_t>(height));
                     component.camera->updateProjectionMatrix();
                 }
             }
+
 
             static const std::array<const char*, 3> cameraTypeNames = {"Arcball", "Flycam", "Pinhole"};
 
@@ -468,6 +474,7 @@ namespace VkRender {
                     component.camera->updateProjectionMatrix();
                 }
             }
+            */
         });
 
         drawComponent<MeshComponent>("Mesh", entity, [this, entity](MeshComponent& component) {
@@ -800,6 +807,7 @@ namespace VkRender {
 
 
         drawComponent<GroupComponent>("Group", entity, [this](auto& component) {
+            /*
             ImGui::Text("Load cameras from file");
             ImGui::Text("Colmap Path: %s", component.colmapPath.string().c_str());
             if (ImGui::Button("Set Colmap Folder")) {
@@ -812,6 +820,7 @@ namespace VkRender {
                 if (std::filesystem::exists(component.colmapPath))
                     addEntitiesFromColmap(component.colmapPath);
             }
+            */
         });
     }
 
@@ -922,13 +931,6 @@ namespace VkRender {
                     auto& pointCloudComponent = m_selectionContext.getComponent<PointCloudComponent>();
                     pointCloudComponent.colorVideoFolderSource = loadFileInfo.path;
                     m_context->activeScene()->onComponentUpdated(m_selectionContext, pointCloudComponent);
-                }
-                break;
-            case LayerUtils::COLMAP_FOLDER:
-                if (m_selectionContext.hasComponent<GroupComponent>()) {
-                    auto& groupComponent = m_selectionContext.getComponent<GroupComponent>();
-                    std::filesystem::path colmapFolderPath = loadFileInfo.path;
-                    addEntitiesFromColmap(colmapFolderPath);
                 }
                 break;
             default:

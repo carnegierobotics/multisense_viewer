@@ -13,7 +13,6 @@
 
 #include "Viewer/Application/pch.h"
 #include "Viewer/Rendering/Editors/EditorDefinitions.h"
-#include "Viewer/Scenes/Entity.h"
 
 #include "Viewer/Rendering/Core/VulkanFramebuffer.h"
 #include "Viewer/Rendering/Core/VulkanImage.h"

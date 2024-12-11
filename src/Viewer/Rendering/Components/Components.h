@@ -14,9 +14,9 @@
 #include <glm/gtx/quaternion.hpp>
 #include <filesystem>
 #include <entt/entt.hpp>
+#include <Viewer/Rendering/Editors/BaseCamera.h>
 #include <Viewer/Tools/Macros.h>
 
-#include "Viewer/Rendering/Editors/Camera.h"
 #include "Viewer/Rendering/Core/UUID.h"
 
 namespace VkRender {
@@ -126,18 +126,12 @@ namespace VkRender {
 
     struct CameraComponent {
         // we use a shared pointer as storage since most often we need to share this data with the rendering loop.
-        std::shared_ptr<Camera> camera;
+        std::shared_ptr<BaseCamera> camera = std::make_shared<BaseCamera>();
         bool render = true;
-
-        CameraComponent() {
-            camera = std::make_shared<Camera>();
-        }
-
-        explicit CameraComponent(const Camera &cam) : camera(std::make_shared<Camera>(cam)) {
-        }
 
         bool &renderFromViewpoint() { return render; }
     };
+
 
     struct ScriptComponent {
         std::string className;

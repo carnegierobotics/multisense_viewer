@@ -6,7 +6,6 @@
 #define DEFINITIONS_H
 
 #include <glm/glm.hpp>
-#include "Viewer/Rendering/Editors/Camera.h"
 
 namespace VkRender::RT{
     struct InputAssembly {
@@ -21,8 +20,6 @@ namespace VkRender::RT{
         uint32_t*  indices; // e.g., {0, 1, 2, 2, 3, 0, ...}
         size_t numVertices;
         size_t numIndices;
-
-        Camera camera;
     };
 
 

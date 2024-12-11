@@ -8,7 +8,6 @@
 #include "Viewer/Rendering/ImGui/Layer.h"
 #include "Viewer/Scenes/Entity.h"
 #include "Viewer/Rendering/ImGui/LayerUtils.h"
-#include <glm/gtc/type_ptr.hpp>  // Include this header for glm::value_ptr
 
 namespace VkRender {
 
@@ -50,8 +49,6 @@ namespace VkRender {
         drawVec3Control(const std::string &label, glm::vec3 &values, float resetValue, float columnWidth, float speed);
 
         static bool drawFloatControl(const std::string &label, float &value, float resetValue, float speed, float columnWidth);
-
-        void addEntitiesFromColmap(const std::filesystem::path &colmapFolderPath);
     };
 }
 

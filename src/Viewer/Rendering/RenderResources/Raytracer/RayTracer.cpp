@@ -15,7 +15,7 @@ namespace VkRender::RT {
         m_scene = scene;
         m_width = width;
         m_height = height;
-        m_camera = Camera(width, height);
+        m_camera = BaseCamera(width / height);
         auto& queue = m_selector.getQueue();
         // Load the scene into gpu memory
         // Create image memory
@@ -65,6 +65,7 @@ namespace VkRender::RT {
                 float focalPoint = cameraGizmoParams->focalPoint;
                 // Define your field of view here (in radians)
                 // For example:
+                /*
                 float aspect = camera->width() / camera->height();
                 float pixelSize = 2.0e-6f;
                 float hFov = 2 * atanf(camera->width() * pixelSize / (2 * focalPoint));
@@ -98,6 +99,7 @@ namespace VkRender::RT {
                 createRayEntity("Bottom Left", -hFov * 0.5f, -vFov * 0.5f);
                 // Bottom-right corner: downward and right
                 createRayEntity("Bottom Right", hFov * 0.5f, -vFov * 0.5f);
+                */
             }
         }
     }

@@ -40,8 +40,7 @@ namespace VkRender::LayerUtils {
         FRAGMENT_SHADER_FILE,
         SAVE_SCENE,
         SAVE_SCENE_AS,
-        SAVE_PROJECT_AS,
-        COLMAP_FOLDER,
+        SAVE_PROJECT_AS
     } FileTypeLoadFlow;
 
     struct LoadFileInfo {

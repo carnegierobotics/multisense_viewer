@@ -57,7 +57,6 @@ DISABLE_WARNING_POP
     #undef APIENTRY
 #endif
 
-#include "Viewer/Rendering/Editors/Camera.h"
 #include "Viewer/Rendering/ImGui/GuiManager.h"
 #include "Viewer/Tools/Logger.h"
 

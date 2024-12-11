@@ -39,6 +39,7 @@ namespace VkRender::Serialize {
         return VK_POLYGON_MODE_FILL;
     }
 
+    /*
     // Convert CameraType to string
     std::string cameraTypeToString(Camera::CameraType type) {
         switch (type) {
@@ -60,6 +61,7 @@ namespace VkRender::Serialize {
         if (str == "pinhole") return Camera::pinhole;
         throw std::invalid_argument("Unknown CameraType: " + str);
     }
+    */
 }
 
 namespace YAML {
@@ -188,6 +190,7 @@ namespace VkRender {
             out << YAML::Value << Serialize::polygonModeToString(mesh.polygonMode()); // Serialize PolygonMode as a string
             out << YAML::EndMap;
         }
+        /*
         if (entity.hasComponent<CameraComponent>()) {
             out << YAML::Key << "CameraComponent";
             out << YAML::BeginMap;
@@ -209,6 +212,7 @@ namespace VkRender {
             out << YAML::Value << cameraProps->m_Fov;
             out << YAML::EndMap;
         }
+        */
         if (entity.hasComponent<MaterialComponent>()) {
             out << YAML::Key << "MaterialComponent";
             out << YAML::BeginMap;
@@ -404,6 +408,7 @@ namespace VkRender {
                 // Store the entity in the map
                 entityMap[entityId] = deserializedEntity;
 
+                /*
                 auto cameraComponent = entity["CameraComponent"];
                 if (cameraComponent) {
                     auto &camera = deserializedEntity.addComponent<CameraComponent>();
@@ -430,6 +435,7 @@ namespace VkRender {
                     camera.camera->updateProjectionMatrix();
 
                 }
+                */
                 auto meshComponent = entity["MeshComponent"];
                 if (meshComponent) {
                     std::filesystem::path path(meshComponent["ModelPath"].as<std::string>());

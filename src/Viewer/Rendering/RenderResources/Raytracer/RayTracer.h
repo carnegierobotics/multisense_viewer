@@ -25,7 +25,7 @@ namespace VkRender::RT {
 
 
     private:
-        Camera m_camera;
+        BaseCamera m_camera;
         Application* m_context;
         SyclDeviceSelector m_selector = SyclDeviceSelector(SyclDeviceSelector::DeviceType::GPU);
 

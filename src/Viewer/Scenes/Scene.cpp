@@ -25,12 +25,8 @@ namespace VkRender {
 
         if (selectedEntity && selectedEntity.hasComponent<CameraComponent>()) {
             auto cameraPtr = selectedEntity.getComponent<CameraComponent>().camera;
-            cameraPtr->update(m_context->deltaTime());
             auto &transform = selectedEntity.getComponent<TransformComponent>();
-            cameraPtr->pose.pos = transform.getPosition();
-            cameraPtr->pose.q = transform.getRotationQuaternion();
-            cameraPtr->setPerspective(static_cast<float>(cameraPtr->width()) / cameraPtr->height());
-            cameraPtr->updateViewMatrix();
+            cameraPtr->updateViewMatrix(transform.getTransform());
         }
 
 

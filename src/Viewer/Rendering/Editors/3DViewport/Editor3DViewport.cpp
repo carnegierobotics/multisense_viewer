@@ -6,6 +6,7 @@
 #include "Editor3DLayer.h"
 
 #include "Viewer/Rendering/Components/MaterialComponent.h"
+#include "Viewer/Rendering/Editors/ArcballCamera.h"
 #include "Viewer/Rendering/Editors/CommonEditorFunctions.h"
 #include "Viewer/Application/Application.h"
 #include "Viewer/Rendering/Components/Components.h"
@@ -21,7 +22,8 @@ namespace VkRender {
         addUIData<Editor3DViewportUI>();
 
         m_descriptorRegistry.createManager(DescriptorManagerType::Viewport3DTexture, m_context->vkDevice());
-        m_editorCamera = std::make_shared<Camera>(m_createInfo.width, m_createInfo.height);
+        m_editorCamera = std::make_shared<ArcballCamera>();
+
         m_sceneRenderer = m_context->getOrAddSceneRendererByUUID(uuid, m_createInfo);
         VulkanTexture2DCreateInfo textureCreateInfo(m_context->vkDevice());
         textureCreateInfo.image = m_sceneRenderer->getOffscreenFramebuffer().resolvedImage;
@@ -38,7 +40,7 @@ namespace VkRender {
     }
 
     void Editor3DViewport::onEditorResize() {
-        m_editorCamera->setPerspective(static_cast<float>(m_createInfo.width) / m_createInfo.height);
+        m_editorCamera = std::make_shared<ArcballCamera>(m_createInfo.width / m_createInfo.height);
         m_sceneRenderer->setActiveCamera(m_editorCamera);
         auto& ci = m_sceneRenderer->getCreateInfo();
         ci.width = m_createInfo.width;
@@ -63,7 +65,7 @@ namespace VkRender {
     }
 
     void Editor3DViewport::onSceneLoad(std::shared_ptr<Scene> scene) {
-        m_editorCamera = std::make_shared<Camera>(m_createInfo.width, m_createInfo.height);
+        m_editorCamera = std::make_shared<ArcballCamera>(m_createInfo.width / m_createInfo.height);
         m_activeScene = m_context->activeScene();
         m_sceneRenderer->setActiveCamera(m_editorCamera);
     }
@@ -220,13 +222,14 @@ namespace VkRender {
 
     void Editor3DViewport::onMouseMove(const MouseButtons& mouse) {
         if (ui()->hovered && mouse.left && !ui()->resizeActive) {
-            m_editorCamera->rotate(mouse.dx, mouse.dy);
+            //m_editorCamera->rotate(mouse.dx, mouse.dy);
         }
     }
 
     void Editor3DViewport::onMouseScroll(float change) {
-        if (ui()->hovered)
-            m_editorCamera->setArcBallPosition((change > 0.0f) ? 0.95f : 1.05f);
+        if (ui()->hovered){
+            //m_editorCamera->setArcBallPosition((change > 0.0f) ? 0.95f : 1.05f);
+            }
     }
 
     void Editor3DViewport::onKeyCallback(const Input& input) {

@@ -6,7 +6,6 @@
 #define MULTISENSE_VIEWER_EDITORGAUSSIANVIEWER_H
 
 #include "Viewer/Rendering/Editors/Editor.h"
-#include "Viewer/Rendering/Editors/Camera.h"
 #include "Viewer/Scenes/Scene.h"
 #include "Viewer/Tools/SyclDeviceSelector.h"
 #include "Viewer/Rendering/Core/DescriptorSetManager.h"

@@ -5,10 +5,10 @@
 #ifndef MULTISENSE_VIEWER_EDITOR_H
 #define MULTISENSE_VIEWER_EDITOR_H
 
-
-#include <string>
-#include <Viewer/Rendering/Components/MaterialComponent.h>
-
+#include "Viewer/Scenes/Entity.h"
+#include "Viewer/Rendering/Components/MaterialComponent.h"
+#include "Viewer/Rendering/Components/MeshComponent.h"
+#include "Viewer/Rendering/Components/PointCloudComponent.h"
 #include "Viewer/Rendering/Core/RenderDefinitions.h"
 #include "Viewer/Rendering/Editors/EditorIncludes.h"
 #include "Viewer/Rendering/Core/VulkanRenderPass.h"

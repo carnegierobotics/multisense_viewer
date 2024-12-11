@@ -198,7 +198,7 @@ namespace VkRender {
         userSetting.projectName = project.projectName;
     }
 
-    std::shared_ptr<Camera> Application::getViewportCamera() {
+    std::shared_ptr<BaseCamera> Application::getViewportCamera() {
         for (auto& editor : m_editors) {
             auto& ci = editor->getCreateInfo();
             if(ci.editorTypeDescription == EditorType::Viewport3D) { // TODO make it the last active viewport instead

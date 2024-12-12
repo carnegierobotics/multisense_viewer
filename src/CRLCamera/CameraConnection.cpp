@@ -894,7 +894,6 @@ namespace VkRender::MultiSense {
         // If we successfully connect
         //dev->channelConnections = app->camPtr.connect(dev, dev->interfaceName);
         Utils::initializeUIDataBlockWithTestData(*dev);
-        dev->channelInfo.front().availableSources.emplace_back("Compute");
         dev->state = CRL_STATE_ACTIVE;
         Log::Logger::getInstance()->info("Set dev {}'s state to CRL_STATE_ACTIVE ", dev->name);
     }

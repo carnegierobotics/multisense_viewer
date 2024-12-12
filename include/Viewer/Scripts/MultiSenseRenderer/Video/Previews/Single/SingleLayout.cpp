@@ -273,8 +273,6 @@ void SingleLayout::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
 
         if (src == "Idle") {
             state = DRAW_NO_SOURCE;
-        } else if (src == "Compute") {
-            state = DRAW_MULTISENSE;
         } else {
             state = DRAW_NO_DATA;
         }

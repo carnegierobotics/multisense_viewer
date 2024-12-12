@@ -682,7 +682,7 @@ private:
             ImGui::Dummy(ImVec2(20.0f, 0.0f));
             ImGui::SameLine();
             ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
-            ImGui::Text("1. Profile Name:");
+            ImGui::Text("Profile Name:");
             ImGui::PopStyleColor();
             ImGui::PushStyleColor(ImGuiCol_FrameBg, VkRender::Colors::CRLDarkGray425);
             ImGui::Dummy(ImVec2(0.0f, 5.0f));
@@ -691,8 +691,6 @@ private:
             ImGui::SetNextItemWidth(handles->info->popupWidth - 40.0f);
             ImGui::CustomInputTextWithHint("##InputProfileName", "MultiSense Profile", &m_Entry.profileName,
                                            ImGuiInputTextFlags_AutoSelectAll);
-            ImGui::Dummy(ImVec2(0.0f, 30.0f));
-
 
             /** SELECT METHOD FOR CONNECTION FIELD */
             /*

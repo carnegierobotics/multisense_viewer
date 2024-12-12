@@ -786,6 +786,8 @@ namespace VkRender::MultiSense {
 
         int32_t getMtu = -1;
         channelMap[channelID]->ptr()->getMtu(getMtu);
+        updateAndLog([&](auto &data) { return channelMap[channelID]->ptr()->getMtu(data); }, infoMap[channelID].sensorMTU, "sensorMTU");
+
         Log::Logger::getInstance()->info("Current mtu on channel {}", getMtu);
         if (status != crl::multisense::Status_Ok) {
             Log::Logger::getInstance()->info("Failed to set MTU {}", mtu);

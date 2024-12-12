@@ -223,7 +223,7 @@ namespace VkRender {
         float gain = 1.0f;
         float fps = 30.0f;
         float stereoPostFilterStrength = 0.5f;
-        int mtu = 7200;
+        int mtu = 1400;
         bool hdrEnabled = false;
         float gamma = 2.0f;
         bool hdr = false;

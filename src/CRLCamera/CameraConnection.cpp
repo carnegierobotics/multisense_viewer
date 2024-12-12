@@ -103,7 +103,7 @@ namespace VkRender::MultiSense {
             p->light.flashing = lightConf.getFlash();
             p->light.startupTime = static_cast<float>(lightConf.getStartupTime()) / 1000.0f;
             p->stereo.stereoPostFilterStrength = conf.stereoPostFilterStrength();
-            //p->stereo.mtu = camPtr.getCameraInfo(dev->configRemoteHead).sensorMTU;
+            p->stereo.mtu = camPtr.getCameraInfo(dev->configRemoteHead).sensorMTU;
 
             dev->parameters.updateGuiParams = false;
         }

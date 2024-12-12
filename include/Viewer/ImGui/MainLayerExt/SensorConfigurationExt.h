@@ -816,22 +816,19 @@ public:
                 ImGui::SameLine(0, textSpacing - txtSize.x);
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
                 static int mtuValues[] = {576, 1280, 1400, 1500, 2000, 4000, 7200, 9000};  // common MTU values
-                static int customMTU = 7200;
-                static int mtuIndex = 6;  // Default index for the slider (1500 as default)
-
+                static int mtuIndex = 2;  // Default index for the slider (1500 as default)
+                auto& customMTU = d.parameters.stereo.mtu;
+                static bool isCustomValue = false;
                 if (ImGui::SliderInt("##MTU", &mtuIndex, 0, IM_ARRAYSIZE(mtuValues) - 1,
-                                     std::to_string(mtuValues[mtuIndex]).c_str())) {
-                    handles->usageMonitor->userClickAction("##MTU setting", "SliderFloat",
-                                                           ImGui::GetCurrentWindow()->Name);
+                                     isCustomValue ? std::to_string(customMTU).c_str() : std::to_string(mtuValues[mtuIndex]).c_str(), ImGuiSliderFlags_NoInput | ImGuiSliderFlags_AlwaysClamp)) {
                     d.parameters.stereo.mtu = mtuValues[mtuIndex];
+                    isCustomValue = false;
                 }
                 d.parameters.stereo.update |= ImGui::IsItemDeactivatedAfterEdit();
-
                 // Handle right-click context menu to enter custom MTU value
                 if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {
                     ImGui::OpenPopup("MTU_InputPopup");  // Open the popup when right-clicked
                 }
-
                 if (ImGui::BeginPopup("MTU_InputPopup")) {
                     ImGui::Text("Enter custom MTU value:");
                     if (ImGui::InputInt("##CustomMTUInput", &customMTU)) {
@@ -842,8 +839,9 @@ public:
                     bool btnClick = ImGui::Button("Set");
                     if (btnClick) {
                         ImGui::CloseCurrentPopup();
-                        d.parameters.stereo.mtu = static_cast<float>(customMTU);  // Update the MTU with the custom value
+                        d.parameters.stereo.mtu = customMTU;  // Update the MTU with the custom value
                         d.parameters.stereo.update |= btnClick;
+                        isCustomValue = true;
                     }
                     ImGui::EndPopup();
                 }

@@ -16,18 +16,18 @@
 namespace VkRender::Serialize {
     static std::string polygonModeToString(VkPolygonMode mode) {
         switch (mode) {
-            case VK_POLYGON_MODE_FILL:
-                return "Fill";
-            case VK_POLYGON_MODE_LINE:
-                return "Line";
-            case VK_POLYGON_MODE_POINT:
-                return "Point";
-            default:
-                return "Unknown";
+        case VK_POLYGON_MODE_FILL:
+            return "Fill";
+        case VK_POLYGON_MODE_LINE:
+            return "Line";
+        case VK_POLYGON_MODE_POINT:
+            return "Point";
+        default:
+            return "Unknown";
         }
     }
 
-    static VkPolygonMode stringToPolygonMode(const std::string &modeStr) {
+    static VkPolygonMode stringToPolygonMode(const std::string& modeStr) {
         if (modeStr == "Fill")
             return VK_POLYGON_MODE_FILL;
         if (modeStr == "Line")
@@ -65,9 +65,9 @@ namespace VkRender::Serialize {
 }
 
 namespace YAML {
-    template<>
+    template <>
     struct convert<glm::vec3> {
-        static Node encode(const glm::vec3 &rhs) {
+        static Node encode(const glm::vec3& rhs) {
             Node node;
             node.push_back(rhs.x);
             node.push_back(rhs.y);
@@ -75,7 +75,7 @@ namespace YAML {
             return node;
         }
 
-        static bool decode(const Node &node, glm::vec3 &rhs) {
+        static bool decode(const Node& node, glm::vec3& rhs) {
             if (!node.IsSequence() || node.size() != 3) {
                 return false;
             }
@@ -86,9 +86,9 @@ namespace YAML {
         }
     };
 
-    template<>
+    template <>
     struct convert<glm::quat> {
-        static Node encode(const glm::quat &rhs) {
+        static Node encode(const glm::quat& rhs) {
             Node node;
             node.push_back(rhs.w);
             node.push_back(rhs.x);
@@ -97,7 +97,7 @@ namespace YAML {
             return node;
         }
 
-        static bool decode(const Node &node, glm::quat &rhs) {
+        static bool decode(const Node& node, glm::quat& rhs) {
             if (!node.IsSequence() || node.size() != 4) {
                 return false;
             }
@@ -111,28 +111,28 @@ namespace YAML {
 }
 
 namespace VkRender {
-    YAML::Emitter &operator<<(YAML::Emitter &out, const glm::vec3 &v) {
+    YAML::Emitter& operator<<(YAML::Emitter& out, const glm::vec3& v) {
         out << YAML::Flow;
         out << YAML::BeginSeq << v.x << v.y << v.z << YAML::EndSeq;
         return out;
     }
 
-    YAML::Emitter &operator<<(YAML::Emitter &out, const glm::vec4 &v) {
+    YAML::Emitter& operator<<(YAML::Emitter& out, const glm::vec4& v) {
         out << YAML::Flow;
         out << YAML::BeginSeq << v.w << v.x << v.y << v.z << YAML::EndSeq;
         return out;
     }
 
-    YAML::Emitter &operator<<(YAML::Emitter &out, const glm::quat &v) {
+    YAML::Emitter& operator<<(YAML::Emitter& out, const glm::quat& v) {
         out << YAML::Flow;
         out << YAML::BeginSeq << v.w << v.x << v.y << v.z << YAML::EndSeq;
         return out;
     }
 
-    SceneSerializer::SceneSerializer(const std::shared_ptr<Scene> &scene) : m_scene(scene) {
+    SceneSerializer::SceneSerializer(const std::shared_ptr<Scene>& scene) : m_scene(scene) {
     }
 
-    static void SerializeEntity(YAML::Emitter &out, Entity entity) {
+    static void SerializeEntity(YAML::Emitter& out, Entity entity) {
         out << YAML::BeginMap;
         out << YAML::Key << "Entity";
         out << YAML::Value << entity.getUUID().operator std::string();
@@ -145,7 +145,7 @@ namespace VkRender {
         if (entity.hasComponent<TagComponent>()) {
             out << YAML::Key << "TagComponent";
             out << YAML::BeginMap;
-            auto &tag = entity.getComponent<TagComponent>().Tag;
+            auto& tag = entity.getComponent<TagComponent>().Tag;
             out << YAML::Key << "Tag";
             out << YAML::Value << tag;
             out << YAML::EndMap;
@@ -153,7 +153,7 @@ namespace VkRender {
         if (entity.hasComponent<TransformComponent>()) {
             out << YAML::Key << "TransformComponent";
             out << YAML::BeginMap;
-            auto &transform = entity.getComponent<TransformComponent>();
+            auto& transform = entity.getComponent<TransformComponent>();
             out << YAML::Key << "Position";
             out << YAML::Value << transform.getPosition();
             out << YAML::Key << "Rotation";
@@ -166,7 +166,7 @@ namespace VkRender {
         if (entity.hasComponent<VisibleComponent>()) {
             out << YAML::Key << "VisibleComponent";
             out << YAML::BeginMap;
-            auto &visible = entity.getComponent<VisibleComponent>().visible;
+            auto& visible = entity.getComponent<VisibleComponent>().visible;
             out << YAML::Key << "Visible";
             out << YAML::Value << visible;
             out << YAML::EndMap;
@@ -181,46 +181,48 @@ namespace VkRender {
         if (entity.hasComponent<MeshComponent>()) {
             out << YAML::Key << "MeshComponent";
             out << YAML::BeginMap;
-            auto &mesh = entity.getComponent<MeshComponent>();
-            out << YAML::Key << "ModelPath";
-            out << YAML::Value << mesh.modelPath().string();
+            auto& mesh = entity.getComponent<MeshComponent>();
+            switch (mesh.meshDataType()) {
+            case OBJ_FILE:
+                {
+                    auto params = std::dynamic_pointer_cast<OBJFileMeshParameters>(mesh.meshParameters);
+                    out << YAML::Key << "ModelPath";
+                    out << YAML::Value << params->path.string();
+                }
+                break;
+            case PLY_FILE:
+                {
+                    auto params = std::dynamic_pointer_cast<PLYFileMeshParameters>(mesh.meshParameters);
+                    out << YAML::Key << "ModelPath";
+                    out << YAML::Value << params->path.string();
+                }
+                break;
+            default:
+                break;
+            }
             out << YAML::Key << "MeshDataType";
             out << YAML::Value << meshDataTypeToString(mesh.meshDataType());
             out << YAML::Key << "PolygonMode";
-            out << YAML::Value << Serialize::polygonModeToString(mesh.polygonMode()); // Serialize PolygonMode as a string
+            out << YAML::Value << Serialize::polygonModeToString(mesh.polygonMode());
+            // Serialize PolygonMode as a string
             out << YAML::EndMap;
         }
-        /*
+
         if (entity.hasComponent<CameraComponent>()) {
             out << YAML::Key << "CameraComponent";
             out << YAML::BeginMap;
             auto &camera = entity.getComponent<CameraComponent>();
-            out << YAML::Key << "render";
-            out << YAML::Value << camera.render;
-            auto &cameraProps = camera.camera;
-            out << YAML::Key << "Type";
-            out << YAML::Value << Serialize::cameraTypeToString(cameraProps->m_type);
-            out << YAML::Key << "Width";
-            out << YAML::Value << cameraProps->width();
-            out << YAML::Key << "Height";
-            out << YAML::Value << cameraProps->height();
-            out << YAML::Key << "ZNear";
-            out << YAML::Value << cameraProps->m_Znear;
-            out << YAML::Key << "ZFar";
-            out << YAML::Value << cameraProps->m_Zfar;
-            out << YAML::Key << "FOV";
-            out << YAML::Value << cameraProps->m_Fov;
             out << YAML::EndMap;
         }
-        */
+
         if (entity.hasComponent<MaterialComponent>()) {
             out << YAML::Key << "MaterialComponent";
             out << YAML::BeginMap;
-            auto &material = entity.getComponent<MaterialComponent>();
+            auto& material = entity.getComponent<MaterialComponent>();
             // Serialize baseColor (glm::vec4)
             out << YAML::Key << "BaseColor";
             out << YAML::Value << YAML::Flow << std::vector<float>{
-                    material.baseColor.r, material.baseColor.g, material.baseColor.b, material.baseColor.a
+                material.baseColor.r, material.baseColor.g, material.baseColor.b, material.baseColor.a
             };
             // Serialize metallic factor (float)
             out << YAML::Key << "Metallic";
@@ -234,8 +236,8 @@ namespace VkRender {
             // Serialize emissiveFactor (glm::vec4)
             out << YAML::Key << "EmissiveFactor";
             out << YAML::Value << YAML::Flow << std::vector<float>{
-                    material.emissiveFactor.r, material.emissiveFactor.g, material.emissiveFactor.b,
-                    material.emissiveFactor.a
+                material.emissiveFactor.r, material.emissiveFactor.g, material.emissiveFactor.b,
+                material.emissiveFactor.a
             };
             // Serialize vertex shader name (std::filesystem::path)
             out << YAML::Key << "VertexShader";
@@ -260,7 +262,7 @@ namespace VkRender {
         if (entity.hasComponent<PointCloudComponent>()) {
             out << YAML::Key << "PointCloudComponent";
             out << YAML::BeginMap;
-            auto &component = entity.getComponent<PointCloudComponent>();
+            auto& component = entity.getComponent<PointCloudComponent>();
             out << YAML::Key << "PointSize";
             out << YAML::Value << component.pointSize;
             // Serialize the flag for video source
@@ -326,7 +328,7 @@ namespace VkRender {
         if (entity.hasComponent<GroupComponent>()) {
             out << YAML::Key << "GroupComponent";
             out << YAML::BeginMap;
-            auto &groupComponent = entity.getComponent<GroupComponent>();
+            auto& groupComponent = entity.getComponent<GroupComponent>();
             out << YAML::Key << "ColmapPath";
             out << YAML::Value << groupComponent.colmapPath.string();
             out << YAML::EndMap;
@@ -335,7 +337,7 @@ namespace VkRender {
         out << YAML::EndMap;
     }
 
-    void SceneSerializer::serialize(const std::filesystem::path &filePath) {
+    void SceneSerializer::serialize(const std::filesystem::path& filePath) {
         // Ensure the directory exists
         if (filePath.has_parent_path()) {
             std::filesystem::create_directories(filePath.parent_path());
@@ -347,7 +349,7 @@ namespace VkRender {
         out << YAML::Value << "Scene name";
         out << YAML::Key << "Entities";
         out << YAML::Value << YAML::BeginSeq;
-        for (auto entity: m_scene->m_registry.view<entt::entity>()) {
+        for (auto entity : m_scene->m_registry.view<entt::entity>()) {
             Entity e(entity, m_scene.get());
             if (!e || e.hasComponent<TemporaryComponent>())
                 continue;
@@ -361,12 +363,12 @@ namespace VkRender {
         Log::Logger::getInstance()->info("Saved scene: {} to {}", filePath.filename().string(), filePath.string());
     }
 
-    void SceneSerializer::serializeRuntime(const std::filesystem::path &filePath) {
+    void SceneSerializer::serializeRuntime(const std::filesystem::path& filePath) {
         throw std::runtime_error("Not implemented");
     }
 
 
-    bool SceneSerializer::deserialize(const std::filesystem::path &filePath) {
+    bool SceneSerializer::deserialize(const std::filesystem::path& filePath) {
         // TODO sanitize input
         std::ifstream stream(filePath);
         std::stringstream stringStream;
@@ -381,7 +383,7 @@ namespace VkRender {
         if (entities) {
             std::unordered_map<uint64_t, Entity> entityMap;
 
-            for (auto entity: entities) {
+            for (auto entity : entities) {
                 auto entityId = UUID(entity["Entity"].as<uint64_t>()); // todo uuid
                 std::string name = "Unnamed";
                 auto tagComponent = entity["TagComponent"];
@@ -392,7 +394,7 @@ namespace VkRender {
 
                 auto transformComponent = entity["TransformComponent"];
                 if (transformComponent) {
-                    auto &tc = deserializedEntity.getComponent<TransformComponent>();
+                    auto& tc = deserializedEntity.getComponent<TransformComponent>();
                     tc.setPosition(transformComponent["Position"].as<glm::vec3>());
                     tc.setRotationQuaternion(transformComponent["Rotation"].as<glm::quat>());
                     tc.setScale(transformComponent["Scale"].as<glm::vec3>());
@@ -401,59 +403,48 @@ namespace VkRender {
                 // Deserialize VisibleComponent
                 auto visibleComponentNode = entity["VisibleComponent"];
                 if (visibleComponentNode) {
-                    auto &visibleComponent = deserializedEntity.addComponent<VisibleComponent>();
+                    auto& visibleComponent = deserializedEntity.addComponent<VisibleComponent>();
                     visibleComponent.visible = visibleComponentNode["Visible"].as<bool>();
                 }
 
                 // Store the entity in the map
                 entityMap[entityId] = deserializedEntity;
 
-                /*
+
                 auto cameraComponent = entity["CameraComponent"];
                 if (cameraComponent) {
                     auto &camera = deserializedEntity.addComponent<CameraComponent>();
-                    camera.camera->setType(Serialize::stringToCameraType(cameraComponent["Type"].as<std::string>()));
-
-                    // Deserialize and set the camera resolution (width and height)
-                    uint32_t width = cameraComponent["Width"].as<uint32_t>();
-                    uint32_t height = cameraComponent["Height"].as<uint32_t>();
-                    camera.camera->setCameraResolution(width, height);
-
-                    // Deserialize and set the near and far plane distances
-                    float zNear = cameraComponent["ZNear"].as<float>();
-                    float zFar = cameraComponent["ZFar"].as<float>();
-                    camera.camera->setPerspective(static_cast<float>(width) / static_cast<float>(height), zNear, zFar);
-
-                    // Deserialize and set the field of view (FOV)
-                    float fov = cameraComponent["FOV"].as<float>();
-                    camera.camera->fov() = fov;
-
-                    // Deserialize the render flag
-                    camera.render = cameraComponent["render"].as<bool>();
-
-                    // Update the projection matrix after all properties are set
                     camera.camera->updateProjectionMatrix();
-
                 }
-                */
+
                 auto meshComponent = entity["MeshComponent"];
                 if (meshComponent) {
-                    std::filesystem::path path(meshComponent["ModelPath"].as<std::string>());
+                    std::filesystem::path path;
+                    if (meshComponent["ModelPath"]) {
+                        path = meshComponent["ModelPath"].as<std::string>();
+                    }
 
-                    MeshDataType meshDataType = stringToMeshDataType(
-                            meshComponent["MeshDataType"].as<std::string>());
-                    auto &mesh = deserializedEntity.addComponent<MeshComponent>(meshDataType, path);
+                    std::string meshDataTypeStr = meshComponent["MeshDataType"].as<std::string>();
+                    MeshDataType meshDataType = stringToMeshDataType(meshDataTypeStr);
 
-                    mesh.polygonMode() = Serialize::stringToPolygonMode(
-                            meshComponent["PolygonMode"].as<std::string>());
-
+                    // Add MeshComponent to the entity
+                    MeshComponent& mesh = deserializedEntity.addComponent<MeshComponent>(meshDataType, path);
+                    // Deserialize PolygonMode
+                    if (meshComponent["PolygonMode"] && meshComponent["PolygonMode"].IsScalar()) {
+                        std::string polygonModeStr = meshComponent["PolygonMode"].as<std::string>();
+                        mesh.polygonMode() = Serialize::stringToPolygonMode(polygonModeStr);
+                    }
+                    else {
+                        // Handle missing PolygonMode (optional: set default or throw error)
+                        mesh.polygonMode() = VK_POLYGON_MODE_FILL; // Default value
+                    }
                 }
 
                 auto materialComponent = entity["MaterialComponent"];
                 if (materialComponent) {
-                    auto &material = deserializedEntity.addComponent<MaterialComponent>();
+                    auto& material = deserializedEntity.addComponent<MaterialComponent>();
                     // Deserialize base color
-                    auto baseColor = materialComponent["BaseColor"].as<std::vector<float> >();
+                    auto baseColor = materialComponent["BaseColor"].as<std::vector<float>>();
                     if (baseColor.size() == 4) {
                         material.baseColor = glm::vec4(baseColor[0], baseColor[1], baseColor[2], baseColor[3]);
                     }
@@ -464,7 +455,7 @@ namespace VkRender {
                     // Deserialize uses texture flag
                     material.usesVideoSource = materialComponent["UsesTexture"].as<bool>();
                     // Deserialize emissive factor
-                    auto emissiveFactor = materialComponent["EmissiveFactor"].as<std::vector<float> >();
+                    auto emissiveFactor = materialComponent["EmissiveFactor"].as<std::vector<float>>();
                     if (emissiveFactor.size() == 4) {
                         material.emissiveFactor = glm::vec4(emissiveFactor[0], emissiveFactor[1], emissiveFactor[2],
                                                             emissiveFactor[3]);
@@ -472,49 +463,49 @@ namespace VkRender {
                     // Deserialize vertex shader name
                     if (materialComponent["VertexShader"]) {
                         material.vertexShaderName = std::filesystem::path(
-                                materialComponent["VertexShader"].as<std::string>());
+                            materialComponent["VertexShader"].as<std::string>());
                     }
                     // Deserialize fragment shader name
                     if (materialComponent["FragmentShader"]) {
                         material.fragmentShaderName = std::filesystem::path(
-                                materialComponent["FragmentShader"].as<std::string>());
+                            materialComponent["FragmentShader"].as<std::string>());
                     }
                     // Deserialize albedo texture path (only if usesTexture is true)
                     if (material.usesVideoSource && materialComponent["VideoFolderSource"]) {
                         material.videoFolderSource = std::filesystem::path(
-                                materialComponent["VideoFolderSource"].as<std::string>());
+                            materialComponent["VideoFolderSource"].as<std::string>());
                         material.isDisparity =
-                                materialComponent["IsDisparity"].as<bool>();
+                            materialComponent["IsDisparity"].as<bool>();
                     }
                 }
 
                 auto pointCloudComponent = entity["PointCloudComponent"];
                 if (pointCloudComponent) {
-                    auto &component = deserializedEntity.addComponent<PointCloudComponent>();
+                    auto& component = deserializedEntity.addComponent<PointCloudComponent>();
                     component.pointSize = pointCloudComponent["PointSize"].as<float>();
 
                     component.usesVideoSource = pointCloudComponent["UsesVideoSource"].as<bool>();
                     component.depthVideoFolderSource = std::filesystem::path(
-                            pointCloudComponent["DepthVideoFolderSource"].as<std::string>());
+                        pointCloudComponent["DepthVideoFolderSource"].as<std::string>());
                     component.colorVideoFolderSource = std::filesystem::path(
-                            pointCloudComponent["ColorVideoFolderSource"].as<std::string>());
+                        pointCloudComponent["ColorVideoFolderSource"].as<std::string>());
                 }
                 auto groupComponent = entity["GroupComponent"];
                 if (groupComponent) {
-                    auto &component = deserializedEntity.addComponent<GroupComponent>();
-                    auto colmapPathNode =  groupComponent["ColmapPath"];
+                    auto& component = deserializedEntity.addComponent<GroupComponent>();
+                    auto colmapPathNode = groupComponent["ColmapPath"];
                     if (colmapPathNode)
                         component.colmapPath = colmapPathNode.as<std::string>();
                 }
 
                 auto gaussianComponentNode = entity["GaussianComponent"];
                 if (gaussianComponentNode) {
-                    auto &component = deserializedEntity.addComponent<GaussianComponent>();
+                    auto& component = deserializedEntity.addComponent<GaussianComponent>();
 
                     // Deserialize means
                     auto meansNode = gaussianComponentNode["Means"];
                     if (meansNode) {
-                        for (const auto &meanNode: meansNode) {
+                        for (const auto& meanNode : meansNode) {
                             glm::vec3 mean;
                             mean.x = meanNode[0].as<float>();
                             mean.y = meanNode[1].as<float>();
@@ -525,13 +516,13 @@ namespace VkRender {
 
                     auto covariancesNode = gaussianComponentNode["Scales"];
                     if (covariancesNode) {
-                        for (const auto &covNode: covariancesNode) {
+                        for (const auto& covNode : covariancesNode) {
                             component.scales.push_back(covNode.as<glm::vec3>());
                         }
                     }
                     auto rotationsNode = gaussianComponentNode["Rotations"];
                     if (rotationsNode) {
-                        for (const auto &rotNode: rotationsNode) {
+                        for (const auto& rotNode : rotationsNode) {
                             component.rotations.push_back(rotNode.as<glm::quat>());
                         }
                     }
@@ -539,7 +530,7 @@ namespace VkRender {
                     // Deserialize amplitudes
                     auto amplitudesNode = gaussianComponentNode["Opacities"];
                     if (amplitudesNode) {
-                        for (const auto &amplitudeNode: amplitudesNode) {
+                        for (const auto& amplitudeNode : amplitudesNode) {
                             float amplitude = amplitudeNode.as<float>();
                             component.opacities.push_back(amplitude);
                         }
@@ -547,17 +538,15 @@ namespace VkRender {
                     // Deserialize amplitudes
                     auto colorsNode = gaussianComponentNode["Colors"];
                     if (colorsNode) {
-                        for (const auto &colorNode: colorsNode) {
+                        for (const auto& colorNode : colorsNode) {
                             auto color = colorNode.as<glm::vec3>();
                             component.colors.push_back(color);
                         }
                     }
-
                 }
-
             }
 
-            for (auto entityNode: entities) {
+            for (auto entityNode : entities) {
                 uint64_t uuid = entityNode["Entity"].as<uint64_t>();
                 Entity deserializedEntity = entityMap[uuid];
 
@@ -568,11 +557,11 @@ namespace VkRender {
                     if (entityMap.find(parentUUID) != entityMap.end()) {
                         Entity parentEntity = entityMap[parentUUID];
                         deserializedEntity.setParent(parentEntity);
-                    } else {
+                    }
+                    else {
                         Log::Logger::getInstance()->warning("Parent entity with UUID {} not found.", parentUUID);
                     }
                 }
-
             }
         }
 
@@ -582,7 +571,7 @@ namespace VkRender {
         return true;
     }
 
-    bool SceneSerializer::deserializeRuntime(const std::filesystem::path &filePath) {
+    bool SceneSerializer::deserializeRuntime(const std::filesystem::path& filePath) {
         // Not implement
         throw std::runtime_error("Not implemented");
         return false;

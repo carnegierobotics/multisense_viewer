@@ -374,7 +374,7 @@ namespace VkRender {
             if (activeCameraPtr) {
                 globalUBO.view = activeCameraPtr->matrices.view;
                 globalUBO.projection = activeCameraPtr->matrices.projection;
-                //globalUBO.cameraPosition = activeCameraPtr->pose.pos;
+                globalUBO.cameraPosition = activeCameraPtr->matrices.position;
             }
 
             // Map and copy data to the global uniform buffer

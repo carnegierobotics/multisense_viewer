@@ -435,9 +435,12 @@ namespace VkRender {
         });
         drawComponent<CameraComponent>("Camera", entity, [](CameraComponent& component) {
             //drawFloatControl("Field of View", component.camera->fov(), 1.0f);
-            component.camera->updateProjectionMatrix();
 
             ImGui::Checkbox("Render scene from viewpoint", &component.renderFromViewpoint());
+            ImGui::Checkbox("Flip Y", &component.flipY);
+
+            component.camera->updateProjectionMatrix();
+
             /*
             // Controls for Camera Resolution (Width and Height)
             int width = static_cast<int>(component.camera->width());
@@ -535,12 +538,19 @@ namespace VkRender {
             // Display different input fields based on mesh type
             switch (component.meshDataType()) {
             case MeshDataType::OBJ_FILE:
-            case MeshDataType::PLY_FILE:
                 {
+                    auto params = std::dynamic_pointer_cast<OBJFileMeshParameters>(component.meshParameters);
                     ImGui::Text("Mesh File:");
-                    ImGui::Text("%s", component.modelPath().c_str());
-                    break;
+                    ImGui::Text("%s", params->path.c_str());
                 }
+                break;
+            case PLY_FILE:
+                {
+                    auto params = std::dynamic_pointer_cast<PLYFileMeshParameters>(component.meshParameters);
+                    ImGui::Text("Mesh File:");
+                    ImGui::Text("%s", params->path.c_str());
+                }
+                break;
 
             case MeshDataType::CYLINDER:
                 {
@@ -636,13 +646,13 @@ namespace VkRender {
             }
         });
 
-        drawComponent<MaterialComponent>("Material", entity, [this, entity](auto& component) {
+        drawComponent<MaterialComponent>("Material", entity, [this, entity](MaterialComponent& component) {
             ImGui::Text("Material Properties");
 
             // Base Color Control
             ImGui::Text("Base Color");
             ImGui::ColorEdit4("##BaseColor", glm::value_ptr(component.baseColor));
-            /*
+
             // Metallic Control
             ImGui::Text("Metallic");
             ImGui::SliderFloat("##Metallic", &component.metallic, 0.0f, 1.0f);
@@ -651,7 +661,7 @@ namespace VkRender {
             ImGui::Text("Roughness");
             ImGui::SliderFloat("##Roughness", &component.roughness, 0.0f, 1.0f);
 
-
+            /*
             // Emissive Factor Control
             ImGui::Text("Emissive Factor");
             ImGui::ColorEdit3("##EmissiveFactor", glm::value_ptr(component.emissiveFactor));
@@ -889,7 +899,6 @@ namespace VkRender {
                 if (m_selectionContext.hasComponent<MeshComponent>()) {
                     auto& meshComponent = m_selectionContext.getComponent<MeshComponent>();
                     meshComponent.meshParameters = std::make_shared<OBJFileMeshParameters>(loadFileInfo.path);
-                    meshComponent.modelPath() = loadFileInfo.path;
                 }
 
                 break;
@@ -906,7 +915,6 @@ namespace VkRender {
                 if (m_selectionContext.hasComponent<MeshComponent>()) {
                     auto& meshComponent = m_selectionContext.getComponent<MeshComponent>();
                     meshComponent.meshParameters = std::make_shared<PLYFileMeshParameters>(loadFileInfo.path);
-                    meshComponent.modelPath() = loadFileInfo.path;
                 }
                 break;
             case LayerUtils::VIDEO_TEXTURE_FILE:

@@ -7,6 +7,7 @@
 
 #include <glm/glm.hpp>
 
+#include "Viewer/Rendering/Components/TransformComponent.h"
 
 namespace VkRender {
     class BaseCamera {
@@ -21,32 +22,54 @@ namespace VkRender {
         struct Matrices {
             glm::mat4 view = glm::mat4(1.0f);
             glm::mat4 projection = glm::mat4(1.0f);
+            glm::vec3 position = glm::vec3(0.0f);
         } matrices;
 
         float m_zNear = 0.1f;
         float m_zFar = 100.0f;
         float m_fov = 60.0f; // FOV in degrees
         float m_aspectRatio = 1.6f; // 16/10 aspect ratio
+        bool m_flipYProjection = false;
         // Instead of storing pose in here, just rely on external transforms.
 
         virtual void updateViewMatrix(const glm::mat4& worldTransform) {
             // The view matrix is typically the inverse of the camera's world transform
+            matrices.position = glm::vec3(worldTransform[3]); // Convert vec4 to vec3 (drop the w component)
             matrices.view = glm::inverse(worldTransform);
+        }
+        virtual void updateViewMatrix(TransformComponent& trans) {
+            // The view matrix is typically the inverse of the camera's world transform
+            matrices.position = trans.getPosition(); // Convert vec4 to vec3 (drop the w component)
+            matrices.view = glm::inverse(trans.getTransform());
         }
 
         virtual void updateProjectionMatrix() {
+
             // Guide: https://vincent-p.github.io/posts/vulkan_perspective_matrix/
-            float focalLength = 1.0f / tanf(glm::radians(m_fov) * 0.5f);
-            float x = focalLength / m_aspectRatio;
-            float y = -focalLength;
-            float A = -m_zNear / (m_zNear - m_zFar);
-            float B = (-m_zNear * m_zFar) / (m_zNear - m_zFar);
+            float tanHalfFovy = tanf(glm::radians(m_fov) * 0.5f);
+            float x = 1 / (tanHalfFovy * m_aspectRatio);
+            float y = 1 / tanHalfFovy;
+            float A = m_zFar / (m_zNear - m_zFar);
+            float B = -(m_zFar * m_zNear) / (m_zFar - m_zNear);
             matrices.projection = glm::mat4(
-                x, 0.0f, 0.0f, 0.0f,
-                0.0f, y, 0.0f, 0.0f,
-                0.0f, 0.0f, A, -1.0f,
-                0.0f, 0.0f, B, 0.0f
+                    x, 0.0f, 0.0f, 0.0f,
+                    0.0f, y, 0.0f, 0.0f,
+                    0.0f, 0.0f, A, -1.0f,
+                    0.0f, 0.0f, B, 0.0f
             );
+
+            /*
+            matrices.projection = glm::perspectiveRH_ZO(
+                glm::radians(m_fov),
+                m_aspectRatio,
+                m_zNear,
+                m_zFar
+            );
+            */
+
+            if (m_flipYProjection) {
+                matrices.projection[1][1] *= -1;
+            }
         };
 
         // Movement and rotation inputs now should affect the TransformComponent externally.

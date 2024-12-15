@@ -40,7 +40,7 @@ namespace VkRender {
     }
 
     void Editor3DViewport::onEditorResize() {
-        m_editorCamera = std::make_shared<ArcballCamera>(m_createInfo.width / m_createInfo.height);
+        m_editorCamera = std::make_shared<ArcballCamera>(static_cast<float>(m_createInfo.width) / static_cast<float>(m_createInfo.height));
         m_sceneRenderer->setActiveCamera(m_editorCamera);
         auto& ci = m_sceneRenderer->getCreateInfo();
         ci.width = m_createInfo.width;
@@ -65,7 +65,7 @@ namespace VkRender {
     }
 
     void Editor3DViewport::onSceneLoad(std::shared_ptr<Scene> scene) {
-        m_editorCamera = std::make_shared<ArcballCamera>(m_createInfo.width / m_createInfo.height);
+        m_editorCamera = std::make_shared<ArcballCamera>(static_cast<float>(m_createInfo.width) / static_cast<float>(m_createInfo.height));
         m_activeScene = m_context->activeScene();
         m_sceneRenderer->setActiveCamera(m_editorCamera);
     }
@@ -149,23 +149,26 @@ namespace VkRender {
         writeDescriptors[1].descriptorCount = 1;
         writeDescriptors[1].pBufferInfo = &m_shaderSelectionBuffer[frameIndex]->m_descriptorBufferInfo;
         std::vector descriptorWrites = {writeDescriptors[0], writeDescriptors[1]};
-        VkDescriptorSet descriptorSet = m_descriptorRegistry.getManager(DescriptorManagerType::Viewport3DTexture).getOrCreateDescriptorSet(descriptorWrites);
-        key.setLayouts[0] = m_descriptorRegistry.getManager(DescriptorManagerType::Viewport3DTexture).getDescriptorSetLayout();
+        VkDescriptorSet descriptorSet = m_descriptorRegistry.getManager(DescriptorManagerType::Viewport3DTexture).
+                                                             getOrCreateDescriptorSet(descriptorWrites);
+        key.setLayouts[0] = m_descriptorRegistry.getManager(DescriptorManagerType::Viewport3DTexture).
+                                                 getDescriptorSetLayout();
         // Use default descriptor set layout
         key.vertexShaderName = "default2D.vert";
         key.fragmentShaderName = "default2D.frag";
         key.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         key.polygonMode = VK_POLYGON_MODE_FILL;
         std::vector<VkVertexInputBindingDescription> vertexInputBinding = {
-                {0, sizeof(VkRender::ImageVertex), VK_VERTEX_INPUT_RATE_VERTEX}
-        };        std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
+            {0, sizeof(VkRender::ImageVertex), VK_VERTEX_INPUT_RATE_VERTEX}
+        };
+        std::vector<VkVertexInputAttributeDescription> vertexInputAttributes = {
             {0, 0, VK_FORMAT_R32G32_SFLOAT, 0},
             {1, 0, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 2},
         };
         key.vertexInputBindingDescriptions = vertexInputBinding;
         key.vertexInputAttributes = vertexInputAttributes;
         auto imageUI = std::dynamic_pointer_cast<Editor3DViewportUI>(m_ui);
-        if (imageUI->reloadViewportShader){
+        if (imageUI->reloadViewportShader) {
             m_pipelineManager.removePipeline(key);
         }
         // Create or retrieve the pipeline
@@ -222,17 +225,16 @@ namespace VkRender {
 
     void Editor3DViewport::onMouseMove(const MouseButtons& mouse) {
         if (ui()->hovered && mouse.left && !ui()->resizeActive) {
-            //m_editorCamera->rotate(mouse.dx, mouse.dy);
+            m_editorCamera->rotate(mouse.dx, mouse.dy);
         }
     }
 
     void Editor3DViewport::onMouseScroll(float change) {
-        if (ui()->hovered){
-            //m_editorCamera->setArcBallPosition((change > 0.0f) ? 0.95f : 1.05f);
-            }
+        if (ui()->hovered) {
+            m_editorCamera->zoom((change > 0.0f) ? 0.95f : 1.05f);
+        }
     }
 
     void Editor3DViewport::onKeyCallback(const Input& input) {
     }
-
 };

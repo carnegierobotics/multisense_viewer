@@ -25,8 +25,6 @@ namespace VkRender {
 
         MeshComponent() = default;
 
-        std::filesystem::path& modelPath() { return m_modelPath; }
-
         MeshDataType& meshDataType() { return m_meshType; }
 
         VkPolygonMode& polygonMode() { return m_polygonMode; }
@@ -44,7 +42,6 @@ namespace VkRender {
 
     private:
         VkPolygonMode m_polygonMode = VK_POLYGON_MODE_FILL;
-        std::filesystem::path m_modelPath;
         MeshDataType m_meshType = MeshDataType::EMPTY;
 
     };

@@ -327,8 +327,8 @@ namespace VkRender {
         else {
             file << statsString;
             file.close();
+            vmaFreeStatsString(m_allocator, statsString);
         }
-        vmaFreeStatsString(m_allocator, statsString);
 #endif
         vmaDestroyAllocator(m_allocator);
 

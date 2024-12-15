@@ -128,9 +128,9 @@ namespace VkRender {
             glm::vec3( 0.0f, 0.0f, h), // 4: E (apex)
 
             // Top indicator vertices
-            glm::vec3(-0.4f, 0.6f, 0.0f), // 5: F
-            glm::vec3( 0.4f, 0.6f, 0.0f), // 6: G
-            glm::vec3( 0.0f, 1.0f, 0.0f)  // 7: H
+            glm::vec3(-0.4f, -0.6f, 0.0f), // 5: F
+            glm::vec3( 0.4f, -0.6f, 0.0f), // 6: G
+            glm::vec3( 0.0f, -1.0f, 0.0f)  // 7: H
         };
         indices = {
             // Base

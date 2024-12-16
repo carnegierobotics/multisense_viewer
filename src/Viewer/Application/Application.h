@@ -107,6 +107,7 @@ namespace VkRender {
         Entity& getSelectedEntity() {return m_selectedEntity;}
         void setSelectedEntity(Entity entity){m_selectedEntity = entity;}
         std::shared_ptr<BaseCamera> getViewportCamera();
+        Editor3DViewport* getViewport();
 
         uint32_t currentFrameIndex() { return currentFrame; }
         uint32_t getFrameId() { return frameID; }

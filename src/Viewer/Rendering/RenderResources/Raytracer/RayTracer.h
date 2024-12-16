@@ -16,7 +16,7 @@ namespace VkRender::RT {
     public:
         RayTracer(Application* context, std::shared_ptr<Scene>& scene, uint32_t width, uint32_t height);
 
-        void update();
+        void update(bool update);
 
 
         uint8_t* getImage() {return m_imageMemory;}

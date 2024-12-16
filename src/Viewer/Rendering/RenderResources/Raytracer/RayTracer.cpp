@@ -10,13 +10,13 @@
 #include "Viewer/Tools/SyclDeviceSelector.h"
 
 namespace VkRender::RT {
-    RayTracer::RayTracer(Application *ctx, std::shared_ptr<Scene> &scene, uint32_t width, uint32_t height) : m_context(
-            ctx) {
+    RayTracer::RayTracer(Application* ctx, std::shared_ptr<Scene>& scene, uint32_t width, uint32_t height) : m_context(
+        ctx) {
         m_scene = scene;
         m_width = width;
         m_height = height;
         m_camera = BaseCamera(width / height);
-        auto &queue = m_selector.getQueue();
+        auto& queue = m_selector.getQueue();
         // Load the scene into gpu memory
         // Create image memory
         m_imageMemory = new uint8_t[width * height * 4]; // Assuming RGBA8 image
@@ -28,14 +28,14 @@ namespace VkRender::RT {
         std::vector<uint32_t> indices;
 
         auto view = scene->getRegistry().view<MeshComponent, TransformComponent>();
-        for (auto e: view) {
+        for (auto e : view) {
             Entity entity(e, scene.get());
             std::string tag = entity.getName();
-            if (tag != "RayTracedObject")
+            auto& meshComponent = entity.getComponent<MeshComponent>();
+            if (meshComponent.meshDataType() != OBJ_FILE)
                 continue;
-            auto &meshComponent = entity.getComponent<MeshComponent>();
             std::shared_ptr<MeshData> meshData = m_meshManager.getMeshData(meshComponent);
-            for (auto &vert: meshData->vertices) {
+            for (auto& vert : meshData->vertices) {
                 InputAssembly input{};
                 input.position = vert.pos;
                 input.color = vert.color;
@@ -51,16 +51,14 @@ namespace VkRender::RT {
         m_gpu.indices = sycl::malloc_device<uint32_t>(indices.size(), queue);
         queue.memcpy(m_gpu.indices, indices.data(), indices.size() * sizeof(uint32_t));
         queue.wait();
-
     }
 
-    void RayTracer::update() {
-
+    void RayTracer::update(bool update) {
         {
             auto view = m_scene->getRegistry().view<CameraComponent, TransformComponent, MeshComponent>();
-            for (auto e: view) {
+            for (auto e : view) {
                 Entity entity(e, m_scene.get());
-                auto &transform = entity.getComponent<TransformComponent>();
+                auto& transform = entity.getComponent<TransformComponent>();
                 auto camera = std::dynamic_pointer_cast<PinholeCamera>(entity.getComponent<CameraComponent>().camera);
                 if (!camera)
                     continue;
@@ -74,7 +72,7 @@ namespace VkRender::RT {
 
                 // Helper lambda to create a ray entity
                 auto updateRayEntity = [&](Entity cornerEntity, float x, float y) {
-                    MeshComponent *mesh;
+                    MeshComponent* mesh;
                     if (!cornerEntity.hasComponent<MeshComponent>())
                         mesh = &cornerEntity.addComponent<MeshComponent>(CYLINDER);
                     else
@@ -82,6 +80,7 @@ namespace VkRender::RT {
 
                     if (!cornerEntity.hasComponent<TemporaryComponent>())
                         cornerEntity.addComponent<TemporaryComponent>();
+
 
                     cornerEntity.getComponent<TransformComponent>() = transform;
                     auto cylinderParams = std::dynamic_pointer_cast<CylinderMeshParameters>(mesh->meshParameters);
@@ -98,8 +97,6 @@ namespace VkRender::RT {
                         float Z = Z_plane;
                         return glm::vec3(X, Y, Z);
                     };
-
-
                     glm::vec3 direction = mapPixelTo3D(x, y);
 
 
@@ -108,6 +105,14 @@ namespace VkRender::RT {
                     cylinderParams->radius = 0.01f;
                     mesh->updateMeshData = true;
                 };
+
+                auto groupEntity = m_scene->getOrCreateEntityByName("Rays");
+                if (!groupEntity.hasComponent<GroupComponent>())
+                    groupEntity.addComponent<GroupComponent>();
+                if (!groupEntity.hasComponent<TemporaryComponent>())
+                    groupEntity.addComponent<TemporaryComponent>();
+                if (!groupEntity.hasComponent<VisibleComponent>())
+                    groupEntity.addComponent<VisibleComponent>(); // For visibility toggling
 
                 auto topLeftEntity = m_scene->getOrCreateEntityByName("TopLeft");
                 auto topRightEntity = m_scene->getOrCreateEntityByName("TopRight");
@@ -121,6 +126,14 @@ namespace VkRender::RT {
                 updateRayEntity(bottomLeftEntity, width, height);
                 updateRayEntity(bottomRightEntity, 0.0f, height);
 
+                topLeftEntity.setParent(groupEntity);
+                topRightEntity.setParent(groupEntity);
+                bottomLeftEntity.setParent(groupEntity);
+                bottomRightEntity.setParent(groupEntity);
+
+                //auto centerRayEntity = m_scene->getOrCreateEntityByName("CenterRay");
+                //updateRayEntity(centerRayEntity, width / 2, height / 2);
+
                 // Generate rays for every 10th pixel
                 for (int x = 0; x < width; x += 100) {
                     for (int y = 0; y < height; y += 100) {
@@ -129,50 +142,44 @@ namespace VkRender::RT {
 
                         // Get or create the entity for this ray
                         auto rayEntity = m_scene->getOrCreateEntityByName(rayEntityName);
+                        rayEntity.setParent(groupEntity);
 
                         // Update the ray entity's position or other attributes based on the pixel coordinates
                         updateRayEntity(rayEntity, static_cast<float>(x), static_cast<float>(y));
                     }
                 }
-                //auto centerRayEntity = m_scene->getOrCreateEntityByName("CenterRay");
-
-                //updateRayEntity(centerRayEntity, width / 2, height / 2);
-
             }
         }
 
-        /*
-        auto &queue = m_selector.getQueue();
 
-        glm::vec3 cameraOrigin, cameraDirection;
-
-        auto view = m_scene->getRegistry().view<CameraComponent, TransformComponent, MeshComponent>();
-        for (auto e: view) {
-            Entity entity(e, m_scene.get());
-            auto &camera = entity.getComponent<CameraComponent>();
-            auto &transform = entity.getComponent<TransformComponent>();
+        if (update) {
+            auto& queue = m_selector.getQueue();
 
 
+            auto cameraEntity = m_scene->getEntityByName("Camera");
+            if (cameraEntity) {
+                auto camera = std::dynamic_pointer_cast<PinholeCamera>(cameraEntity.getComponent<CameraComponent>().camera);
+                auto& transform = cameraEntity.getComponent<TransformComponent>();
+
+
+                uint32_t tileWidth = 16;
+                uint32_t tileHeight = 16;
+                sycl::range localWorkSize(tileHeight, tileWidth);
+                sycl::range globalWorkSize(m_height, m_width);
+
+                queue.submit([&](sycl::handler& h) {
+                    // Create a kernel instance with the required parameters
+                    const Kernels::RenderKernel kernel(m_gpu, m_width, m_height, m_width * m_height * 4, transform, *camera);
+                    h.parallel_for<class RenderKernel>(
+                        sycl::nd_range<2>(globalWorkSize, localWorkSize), kernel);
+                }).wait();
+
+                queue.memcpy(m_imageMemory, m_gpu.imageMemory, m_width * m_height * 4);
+                queue.wait();
+
+                saveAsPPM("sycl.ppm");;
+            }
         }
-
-        uint32_t tileWidth = 16;
-        uint32_t tileHeight = 16;
-        sycl::range localWorkSize(tileHeight, tileWidth);
-        sycl::range globalWorkSize(m_height, m_width);
-
-        queue.submit([&](sycl::handler &h) {
-            // Create a kernel instance with the required parameters
-            const Kernels::RenderKernel kernel(m_gpu, m_width, m_height, m_width * m_height * 4, cameraOrigin,
-                                               cameraDirection);
-            h.parallel_for<class RenderKernel>(
-                    sycl::nd_range<2>(globalWorkSize, localWorkSize), kernel);
-        }).wait();
-
-        queue.memcpy(m_imageMemory, m_gpu.imageMemory, m_width * m_height * 4);
-        queue.wait();
-
-        saveAsPPM("sycl.ppm");;
-        */
     }
 
     RayTracer::~RayTracer() {
@@ -185,7 +192,7 @@ namespace VkRender::RT {
         }
     }
 
-    void RayTracer::saveAsPPM(const std::filesystem::path &filename) const {
+    void RayTracer::saveAsPPM(const std::filesystem::path& filename) const {
         std::ofstream file(filename, std::ios::binary);
 
         if (!file.is_open()) {

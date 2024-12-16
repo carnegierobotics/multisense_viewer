@@ -433,7 +433,7 @@ namespace VkRender {
             component.updateFromEulerRotation();
             drawVec3Control("Scale", component.getScale(), 1.0f);
         });
-        drawComponent<CameraComponent>("Camera", entity, [](CameraComponent &component) {
+        drawComponent<CameraComponent>("Camera", entity, [this](CameraComponent &component) {
             //drawFloatControl("Field of View", component.camera->fov(), 1.0f);
 
             ImGui::Checkbox("Render scene from viewpoint", &component.renderFromViewpoint());
@@ -498,6 +498,14 @@ namespace VkRender {
                     paramsChanged |= ImGui::SliderFloat("Cx", &component.pinHoleParameters.cx, 1.0f, 4096.0f);
                     paramsChanged |= ImGui::SliderFloat("Cy", &component.pinHoleParameters.cy, 1.0f, 4096.0f);
 
+                    if(ImGui::Button("Set from viewport")) {
+                        auto& ci = m_context->getViewport()->getCreateInfo();
+                        component.pinHoleParameters.width = ci.width;
+                        component.pinHoleParameters.height = ci.height;
+                        component.pinHoleParameters.cx = ci.width / 2;
+                        component.pinHoleParameters.cy = ci.height / 2;
+                        paramsChanged = true;
+                    }
                     break;
                 case CameraComponent::ARCBALL:
                     break;

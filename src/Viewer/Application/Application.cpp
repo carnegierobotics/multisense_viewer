@@ -210,6 +210,17 @@ namespace VkRender {
         return nullptr;
     }
 
+    Editor3DViewport* Application::getViewport() {
+        for (auto& editor : m_editors) {
+            auto& ci = editor->getCreateInfo();
+            if(ci.editorTypeDescription == EditorType::Viewport3D) { // TODO make it selectable if we have more viewports
+                auto viewport = dynamic_cast<Editor3DViewport*>(editor.get());
+                return viewport;
+            };
+        }
+        return nullptr;
+    }
+
     // TODO make scene objects serializeable and loadable.
     void Application::loadScene(const std::filesystem::path& scenePath) {
         for (auto& editor : m_sceneRenderers) {

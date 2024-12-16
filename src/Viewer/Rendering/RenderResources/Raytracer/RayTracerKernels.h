@@ -6,14 +6,16 @@
 #define MULTISENSE_VIEWER_RAYTRACERKERNELS_H
 
 #include <sycl/sycl.hpp>
+#include <Viewer/Rendering/Components/CameraComponent.h>
+#include <Viewer/Rendering/Components/TransformComponent.h>
 
 #include "Definitions.h"
 
 
 namespace VkRender::RT::Kernels {
     static bool rayTriangleIntersect(
-        const glm::vec3& ray_origin,
-        const glm::vec3& ray_dir,
+        glm::vec3& ray_origin,
+        glm::vec3& ray_dir,
         const glm::vec3& a,
         const glm::vec3& b,
         const glm::vec3& c,
@@ -51,10 +53,10 @@ namespace VkRender::RT::Kernels {
 
     class RenderKernel {
     public:
-        RenderKernel(GPUData gpuData, uint32_t width, uint32_t height, uint32_t size, glm::vec3 cameraOrigin,
-                     glm::vec3 cameraDir)
-            : m_gpuData(gpuData), m_width(width), m_height(height), m_size(size), m_cameraOrigin(cameraOrigin),
-              m_cameraDir(cameraDir) {
+        RenderKernel(GPUData gpuData, uint32_t width, uint32_t height, uint32_t size, TransformComponent cameraPose,
+                     PinholeCamera camera)
+            : m_gpuData(gpuData), m_width(width), m_height(height), m_size(size), m_cameraTransform(cameraPose),
+              m_camera(camera) {
         }
 
         void operator()(sycl::nd_item<2> item) const {
@@ -65,63 +67,86 @@ namespace VkRender::RT::Kernels {
             if (pixelIndex >= m_size)
                 return;
 
-            float ndc_x = (x + 0.5f) / static_cast<float>(m_width) * 2.0f - 1.0f;
-            float ndc_y = (y + 0.5f) / static_cast<float>(m_height) * 2.0f - 1.0f;
-            float aspect_ratio = static_cast<float>(m_width) / static_cast<float>(m_height);
-            ndc_x *= aspect_ratio;
-            // Field of view (assume vertical FOV is given)
-            float tan_fov_y = tan(M_PI_4f / 2.0f); // Replace `fov_y` with your vertical FOV value
-            float tan_fov_x = tan_fov_y * aspect_ratio;
-            glm::vec3 cameraRight(1.0f, 0.0f, 0.0f);
-            glm::vec3 cameraUp(0.0f, 0.0f, 1.0f);
-            glm::vec3 ray_dir = glm::normalize(cameraRight * (ndc_x * tan_fov_x) +
-                cameraUp * (ndc_y * tan_fov_y) +
-                m_cameraDir);
+            float fx = m_camera.m_fx;
+            float fy = m_camera.m_fy;
+            float cx = m_camera.m_cx;
+            float cy = m_camera.m_cy;
+            float Z_plane = -1.0f;
 
-
-            // We will do a brute force intersection test with every triangle:
-            float closest_t = FLT_MAX;
-            bool hit = false;
-            glm::vec3 hitPoint(0.0f);
-
-            // Assume triangles are defined by indices in groups of three
-            size_t triangleCount = m_gpuData.numIndices / 3;
-            for (size_t tri = 0; tri < triangleCount; ++tri) {
+            auto mapPixelTo3D = [&](float u, float v) {
+                float X = -(u - cx) * Z_plane / fx;
+                float Y = -(v - cy) * Z_plane / fy; // Notice the minus sign before (v - cy)
+                float Z = Z_plane;
+                return glm::vec3(X, Y, Z);
+            };
+        glm::vec3 direction = mapPixelTo3D(static_cast<float>(x), static_cast<float>(y));
+        glm::vec3 rayOrigin = m_cameraTransform.translation;
+        glm::vec3 worldRayDir = glm::mat3(m_cameraTransform.rotation) * glm::normalize(direction);
+        // Primary ray intersection
+        float closest_t = FLT_MAX;
+        bool hit = false;
+        glm::vec3 hitPoint(0.0f);
+        size_t triangleCount = m_gpuData.numIndices / 3;
+        for (size_t tri = 0; tri < triangleCount; ++tri) {
+            uint32_t i0 = m_gpuData.indices[tri * 3 + 0];
+            uint32_t i1 = m_gpuData.indices[tri * 3 + 1];
+            uint32_t i2 = m_gpuData.indices[tri * 3 + 2];
+            const glm::vec3& a = m_gpuData.vertices[i0].position;
+            const glm::vec3& b = m_gpuData.vertices[i1].position;
+            const glm::vec3& c = m_gpuData.vertices[i2].position;
+            glm::vec3 intersectionPoint;
+            if (rayTriangleIntersect(rayOrigin, worldRayDir, a, b, c, intersectionPoint)) {
+                float dist = glm::distance(rayOrigin, intersectionPoint);
+                if (dist < closest_t) {
+                    closest_t = dist;
+                    hit = true;
+                    hitPoint = intersectionPoint;
+                }
+            }
+        }
+        // Set up a directional light
+        // Light direction = direction from which light comes; it "shines" in the opposite direction
+        glm::vec3 lightDirection = glm::normalize(glm::vec3(-1.0f, 0.0f, 1.2f));
+        if (hit) {
+            // Once we have the hit point, we check for shadows
+            glm::vec3 shadowOrigin = hitPoint + 1e-4f * lightDirection; // small offset to prevent self-intersection
+            glm::vec3 shadowDir = -lightDirection; // Ray towards the light
+            bool inShadow = false;
+            // Shadow ray intersection test
+            for (size_t tri = 0; tri < triangleCount && !inShadow; ++tri) {
                 uint32_t i0 = m_gpuData.indices[tri * 3 + 0];
                 uint32_t i1 = m_gpuData.indices[tri * 3 + 1];
                 uint32_t i2 = m_gpuData.indices[tri * 3 + 2];
-
-                glm::vec3 a = m_gpuData.vertices[i0].position;
-                glm::vec3 b = m_gpuData.vertices[i1].position;
-                glm::vec3 c = m_gpuData.vertices[i2].position;
-
-                glm::vec3 intersectionPoint;
-                if (rayTriangleIntersect(m_cameraOrigin, ray_dir, a, b, c, intersectionPoint)) {
-                    float dist = glm::distance(m_cameraOrigin, intersectionPoint);
-                    if (dist < closest_t) {
-                        closest_t = dist;
-                        hit = true;
-                        hitPoint = intersectionPoint;
-                    }
+                const glm::vec3& a = m_gpuData.vertices[i0].position;
+                const glm::vec3& b = m_gpuData.vertices[i1].position;
+                const glm::vec3& c = m_gpuData.vertices[i2].position;
+                glm::vec3 dummyIntersection;
+                if (rayTriangleIntersect(shadowOrigin, shadowDir, a, b, c, dummyIntersection)) {
+                    // If the shadow ray hits anything, we are in shadow
+                    inShadow = true;
                 }
             }
-
-            if (hit) {
-                // If we hit a triangle, color the pixel accordingly.
-                // For a simple visualization, let’s map intersection distance to grayscale.
-                uint8_t intensity = static_cast<uint8_t>(glm::clamp(closest_t, 0.0f, 255.0f));
-                m_gpuData.imageMemory[pixelIndex + 0] = intensity; // R
-                m_gpuData.imageMemory[pixelIndex + 1] = intensity; // G
-                m_gpuData.imageMemory[pixelIndex + 2] = intensity; // B
+            // Simple shading:
+            // If not in shadow, bright. If in shadow, darker.
+            if (!inShadow) {
+                m_gpuData.imageMemory[pixelIndex + 0] = 255; // R
+                m_gpuData.imageMemory[pixelIndex + 1] = 255; // G
+                m_gpuData.imageMemory[pixelIndex + 2] = 255; // B
+                m_gpuData.imageMemory[pixelIndex + 3] = 255; // A
+            } else {
+                // Shadowed
+                m_gpuData.imageMemory[pixelIndex + 0] = 80; // R
+                m_gpuData.imageMemory[pixelIndex + 1] = 80; // G
+                m_gpuData.imageMemory[pixelIndex + 2] = 80; // B
                 m_gpuData.imageMemory[pixelIndex + 3] = 255; // A
             }
-            else {
-                // No intersection: clear pixel to some background color.
-                m_gpuData.imageMemory[pixelIndex + 0] = 0; // R
-                m_gpuData.imageMemory[pixelIndex + 1] = 0; // G
-                m_gpuData.imageMemory[pixelIndex + 2] = 0; // B
-                m_gpuData.imageMemory[pixelIndex + 3] = 255; // A
-            }
+        } else {
+            // Background
+            m_gpuData.imageMemory[pixelIndex + 0] = 35; // R
+            m_gpuData.imageMemory[pixelIndex + 1] = 35; // G
+            m_gpuData.imageMemory[pixelIndex + 2] = 35; // B
+            m_gpuData.imageMemory[pixelIndex + 3] = 255; // A
+        }
         }
 
     private:
@@ -130,8 +155,8 @@ namespace VkRender::RT::Kernels {
         uint32_t m_height;
         uint32_t m_size;
 
-        glm::vec3 m_cameraOrigin;
-        glm::vec3 m_cameraDir;
+        TransformComponent m_cameraTransform;
+        PinholeCamera m_camera;
     };
 }
 

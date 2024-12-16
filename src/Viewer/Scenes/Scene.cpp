@@ -76,6 +76,22 @@ namespace VkRender {
         // If not found, create a new entity with the given UUID and name
         return createEntity(name);
     }
+    Entity Scene::getEntityByName(const std::string &name) {
+        // Check if the entity with the given UUID exists
+        auto view = m_registry.view<TagComponent>();
+        for (auto entityHandle : view) {
+            auto &tagComponent = view.get<TagComponent>(entityHandle);
+            if (tagComponent.getTag() == name) {
+                // Entity with the given UUID already exists
+                Entity existingEntity = {entityHandle, this};
+                Log::Logger::getInstance()->trace("Retrieved existing Entity with UUID: {} and Tag: {}",
+                                                 existingEntity.getUUID().operator std::string(), existingEntity.getName());
+                return existingEntity;
+            }
+        }
+        // If not found return empty entity
+        return Entity();
+    }
 
     void Scene::destroyEntity(Entity entity) {
         if (!entity) {

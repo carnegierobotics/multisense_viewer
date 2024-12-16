@@ -126,6 +126,32 @@ namespace VkRender {
         m_renderGroups.reserve(view.size_hint());
         for (auto e : view) {
             Entity entity(e, m_activeScene.get());
+
+            // Initialize a flag to determine if we should skip this entity
+            bool skipEntity = false;
+
+            // Start with the current entity
+            Entity current = entity;
+            // Traverse up the parent hierarchy
+            while (current.getParent()) {
+                // Move to the parent entity
+                current = current.getParent();
+                // Check if the parent has both GroupComponent and VisibilityComponent
+                if (current.hasComponent<GroupComponent>() && current.hasComponent<VisibleComponent>()) {
+                    // Retrieve the VisibilityComponent
+                    auto& visibility = current.getComponent<VisibleComponent>();
+                    // If visibility is set to false, mark to skip this entity
+                    if (!visibility.visible) {
+                        skipEntity = true;
+                        break; // No need to check further ancestors
+                    }
+                }
+            }
+            // If an ancestor with visible == false was found, skip to the next entity
+            if (skipEntity) {
+                continue;
+            }
+
             std::string tag = entity.getName();
             UUID uuid = entity.getUUID();
             auto& meshComponent = entity.getComponent<MeshComponent>();

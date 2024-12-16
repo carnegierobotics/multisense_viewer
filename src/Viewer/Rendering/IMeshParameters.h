@@ -12,7 +12,7 @@
 #include <glm/vec3.hpp>
 #include <utility>
 #include "Viewer/Rendering/Core/UUID.h"
-#include "Viewer/Rendering/Components/Components.h"
+#include "Viewer/Rendering/Components/CameraComponent.h"
 
 namespace VkRender {
     class MeshData;

@@ -51,7 +51,7 @@ namespace VkRender {
         // we use a shared pointer as storage since most often we need to share this data with the rendering loop.
         std::shared_ptr<BaseCamera> camera = std::make_shared<BaseCamera>(); // Possibly not required to be a pointer type, but we're passing it quite often so might be beneficial at the risk of safety
         bool render = false;
-        bool flipY = true;
+        bool flipY = false;
         CameraType cameraType = PERSPECTIVE;
         struct PinHoleParameters {
             int height = 720;         // Default image height

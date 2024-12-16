@@ -39,16 +39,16 @@ namespace VkRender {
 
             float fxNorm = (2.0f * m_fx) / w;
             float fyNorm = (2.0f * m_fy) / h;
-            float cxNorm = ((2.0f * m_cx) - w) / w;
-            float cyNorm = ((2.0f * m_cy) - h) / h;
+            float cxNorm = -((2.0f * m_cx) - w) / w;
+            float cyNorm = -((2.0f * m_cy) - h) / h;
             if (m_flipYProjection) {
                 fyNorm *= -1;
             }
 
             matrices.projection = glm::mat4(
-                    fxNorm, 0.0f, cxNorm, 0.0f,
-                    0.0f, fyNorm, cyNorm, 0.0f,
-                    0.0f, 0.0f, A, -1.0f,
+                    fxNorm, 0.0f, 0.0f, 0.0f,
+                    0.0f, fyNorm, 0.0f, 0.0f,
+                    cxNorm, cyNorm, A, -1.0f,
                     0.0f, 0.0f, B, 0.0f
             );
         }

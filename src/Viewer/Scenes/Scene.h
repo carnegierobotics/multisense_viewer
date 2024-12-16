@@ -32,6 +32,7 @@ namespace VkRender {
         const entt::registry &getRegistry() const {return m_registry;}
 
         Entity createEntity(const std::string &name);
+        Entity getOrCreateEntityByName(const std::string &name);
         Entity createEntityWithUUID(UUID uuid, const std::string &name);
         void destroyEntity(Entity entity);
         void notifyComponentRemoval(Entity entity);

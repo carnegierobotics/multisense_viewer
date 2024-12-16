@@ -139,7 +139,9 @@ namespace VkRender {
                     camera->m_flipYProjection = flipY;
                     break;
                 default:
-                    Log::Logger::getInstance()->warning("Camera type not implemented in scene");
+                    Log::Logger::getInstance()->warning("Camera type not implemented in scene. Reverting to Perspective");
+                    camera = std::make_shared<BaseCamera>();
+                    break;
             }
         }
 

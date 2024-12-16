@@ -10,13 +10,13 @@
 #include "Viewer/Tools/SyclDeviceSelector.h"
 
 namespace VkRender::RT {
-    RayTracer::RayTracer(Application* ctx, std::shared_ptr<Scene>& scene, uint32_t width, uint32_t height) : m_context(
-        ctx) {
+    RayTracer::RayTracer(Application *ctx, std::shared_ptr<Scene> &scene, uint32_t width, uint32_t height) : m_context(
+            ctx) {
         m_scene = scene;
         m_width = width;
         m_height = height;
         m_camera = BaseCamera(width / height);
-        auto& queue = m_selector.getQueue();
+        auto &queue = m_selector.getQueue();
         // Load the scene into gpu memory
         // Create image memory
         m_imageMemory = new uint8_t[width * height * 4]; // Assuming RGBA8 image
@@ -28,14 +28,14 @@ namespace VkRender::RT {
         std::vector<uint32_t> indices;
 
         auto view = scene->getRegistry().view<MeshComponent, TransformComponent>();
-        for (auto e : view) {
+        for (auto e: view) {
             Entity entity(e, scene.get());
             std::string tag = entity.getName();
             if (tag != "RayTracedObject")
                 continue;
-            auto& meshComponent = entity.getComponent<MeshComponent>();
+            auto &meshComponent = entity.getComponent<MeshComponent>();
             std::shared_ptr<MeshData> meshData = m_meshManager.getMeshData(meshComponent);
-            for (auto& vert : meshData->vertices) {
+            for (auto &vert: meshData->vertices) {
                 InputAssembly input{};
                 input.position = vert.pos;
                 input.color = vert.color;
@@ -51,66 +51,89 @@ namespace VkRender::RT {
         m_gpu.indices = sycl::malloc_device<uint32_t>(indices.size(), queue);
         queue.memcpy(m_gpu.indices, indices.data(), indices.size() * sizeof(uint32_t));
         queue.wait();
-        {
-            auto view = m_scene->getRegistry().view<CameraComponent, TransformComponent, MeshComponent>();
-            for (auto e : view) {
-                Entity entity(e, m_scene.get());
-                auto& transform = entity.getComponent<TransformComponent>();
-                auto& camera = entity.getComponent<CameraComponent>().camera;
 
-
-                // Define your field of view here (in radians)
-                // For example:
-                /*
-                float aspect = camera->width() / camera->height();
-                float pixelSize = 2.0e-6f;
-                float hFov = 2 * atanf(camera->width() * pixelSize / (2 * focalPoint));
-                float vFov = 2 * atanf(camera->height() * pixelSize / (2 * focalPoint));
-
-                // The base forward vector pointing down the -Z axis
-                glm::vec3 forward = glm::vec3(0.0f, 0.0f, -1.0f);
-                // A helper lambda to create a ray entity
-                auto createRayEntity = [&](const std::string& name, float horizontalAngle, float verticalAngle) {
-                    auto cornerEntity = m_scene->createEntity(name);
-                    auto& mesh = cornerEntity.addComponent<MeshComponent>(CYLINDER);
-                    cornerEntity.getComponent<TransformComponent>() = transform;
-                    auto cylinderParams = std::dynamic_pointer_cast<CylinderMeshParameters>(mesh.meshParameters);
-                    cylinderParams->magnitude = focalPoint;
-                    cylinderParams->origin = glm::vec3(0.0f, 0.0f, focalPoint);
-                    // Rotate the forward vector by verticalAngle around X and horizontalAngle around Y
-                    glm::mat4 pitch = glm::rotate(glm::mat4(1.0f), verticalAngle, glm::vec3(1.0f, 0.0f, 0.0f));
-                    glm::mat4 yaw = glm::rotate(glm::mat4(1.0f), horizontalAngle, glm::vec3(0.0f, 1.0f, 0.0f));
-
-                    glm::vec3 dir = glm::vec3(yaw * pitch * glm::vec4(forward, 0.0f));
-                    cylinderParams->direction = glm::normalize(dir);
-                    cylinderParams->radius = 0.01f;
-                    mesh.updateMeshData = true;
-                };
-                // Create rays for each corner:
-                // Top-left corner: rotate upward (positive vertical angle) and to the left (negative horizontal angle)
-                createRayEntity("Top Left", -hFov * 0.5f, vFov * 0.5f);
-                // Top-right corner: upward and to the right (positive horizontal angle)
-                createRayEntity("Top Right", hFov * 0.5f, vFov * 0.5f);
-                // Bottom-left corner: downward (negative vertical angle) and left (negative horizontal angle)
-                createRayEntity("Bottom Left", -hFov * 0.5f, -vFov * 0.5f);
-                // Bottom-right corner: downward and right
-                createRayEntity("Bottom Right", hFov * 0.5f, -vFov * 0.5f);
-                */
-            }
-        }
     }
 
     void RayTracer::update() {
-        auto& queue = m_selector.getQueue();
+
+        {
+            auto view = m_scene->getRegistry().view<CameraComponent, TransformComponent, MeshComponent>();
+            for (auto e: view) {
+                Entity entity(e, m_scene.get());
+                auto &transform = entity.getComponent<TransformComponent>();
+                auto camera = std::dynamic_pointer_cast<PinholeCamera>(entity.getComponent<CameraComponent>().camera);
+                float fx = camera->m_fx;
+                float fy = camera->m_fy;
+                float cx = camera->m_cx;
+                float cy = camera->m_cy;
+                float width = camera->m_width;
+                float height = camera->m_height;
+
+
+                // Helper lambda to create a ray entity
+                auto updateRayEntity = [&](Entity cornerEntity, float x, float y) {
+                    MeshComponent *mesh;
+                    if (!cornerEntity.hasComponent<MeshComponent>())
+                        mesh = &cornerEntity.addComponent<MeshComponent>(CYLINDER);
+                    else
+                        mesh = &cornerEntity.getComponent<MeshComponent>();
+
+                    if (!cornerEntity.hasComponent<TemporaryComponent>())
+                        cornerEntity.addComponent<TemporaryComponent>();
+
+                    cornerEntity.getComponent<TransformComponent>() = transform;
+                    auto cylinderParams = std::dynamic_pointer_cast<CylinderMeshParameters>(mesh->meshParameters);
+                    // The cylinder magnitude is how long the cylinder is.
+                    // Start the cylinder at the camera origin
+                    cylinderParams->origin = glm::vec3(0.0f, 0.0f, 0.0f);
+
+                    // Choose a plane at Z = -1 for visualization. Objects in front of the camera have negative Z.
+                    float Z_plane = -1.0f;
+
+                    auto mapPixelTo3D = [&](float u, float v) {
+                        float X = -(u - cx) * Z_plane / fx;
+                        float Y = -(v - cy) * Z_plane / fy; // Notice the minus sign before (v - cy)
+                        float Z = Z_plane;
+                        return glm::vec3(X, Y, Z);
+                    };
+
+
+                    glm::vec3 direction = mapPixelTo3D(x, y);
+
+
+                    cylinderParams->direction = glm::normalize(direction);
+                    cylinderParams->magnitude = glm::length(direction);
+                    cylinderParams->radius = 0.01f;
+                    mesh->updateMeshData = true;
+                };
+
+                auto topLeftEntity = m_scene->getOrCreateEntityByName("TopLeft");
+                auto topRightEntity = m_scene->getOrCreateEntityByName("TopRight");
+
+                auto bottomLeftEntity = m_scene->getOrCreateEntityByName("BottomLeft");
+                auto bottomRightEntity = m_scene->getOrCreateEntityByName("BottomRight");
+
+                auto centerRayEntity = m_scene->getOrCreateEntityByName("CenterRay");
+
+                updateRayEntity(topLeftEntity, 0.0f, 0.0f);
+                updateRayEntity(topRightEntity, width, 0.0f);
+                updateRayEntity(bottomLeftEntity, width, height);
+                updateRayEntity(bottomRightEntity, 0.0f, height);
+                updateRayEntity(centerRayEntity, width / 2, height / 2);
+
+            }
+        }
+
+        /*
+        auto &queue = m_selector.getQueue();
 
         glm::vec3 cameraOrigin, cameraDirection;
 
         auto view = m_scene->getRegistry().view<CameraComponent, TransformComponent, MeshComponent>();
-        for (auto e : view) {
+        for (auto e: view) {
             Entity entity(e, m_scene.get());
-            auto& camera = entity.getComponent<CameraComponent>();
-            auto& transform = entity.getComponent<TransformComponent>();
-
+            auto &camera = entity.getComponent<CameraComponent>();
+            auto &transform = entity.getComponent<TransformComponent>();
 
 
         }
@@ -120,18 +143,19 @@ namespace VkRender::RT {
         sycl::range localWorkSize(tileHeight, tileWidth);
         sycl::range globalWorkSize(m_height, m_width);
 
-        queue.submit([&](sycl::handler& h) {
+        queue.submit([&](sycl::handler &h) {
             // Create a kernel instance with the required parameters
             const Kernels::RenderKernel kernel(m_gpu, m_width, m_height, m_width * m_height * 4, cameraOrigin,
                                                cameraDirection);
             h.parallel_for<class RenderKernel>(
-                sycl::nd_range<2>(globalWorkSize, localWorkSize), kernel);
+                    sycl::nd_range<2>(globalWorkSize, localWorkSize), kernel);
         }).wait();
 
         queue.memcpy(m_imageMemory, m_gpu.imageMemory, m_width * m_height * 4);
         queue.wait();
 
         saveAsPPM("sycl.ppm");;
+        */
     }
 
     RayTracer::~RayTracer() {
@@ -144,7 +168,7 @@ namespace VkRender::RT {
         }
     }
 
-    void RayTracer::saveAsPPM(const std::filesystem::path& filename) const {
+    void RayTracer::saveAsPPM(const std::filesystem::path &filename) const {
         std::ofstream file(filename, std::ios::binary);
 
         if (!file.is_open()) {

@@ -473,6 +473,7 @@ namespace VkRender {
                                 camera.projectionParameters.far = projectionParams["Far"].as<float>(100.0f);
                                 camera.projectionParameters.aspect = projectionParams["Aspect"].as<float>(1.6f);
                                 camera.projectionParameters.fov = projectionParams["FOV"].as<float>(60.0f);
+                                camera.updateParametersChanged();
                             }
                             break;
                         }
@@ -494,9 +495,7 @@ namespace VkRender {
                         default:
                             Log::Logger::getInstance()->warning("Fallback: Cannot deserialize camera type");
                     }
-
-                    // Ensure the camera projection matrix is updated
-                    camera.camera->updateProjectionMatrix();
+                    camera.updateParametersChanged();
                 }
 
                 auto meshComponent = entity["MeshComponent"];

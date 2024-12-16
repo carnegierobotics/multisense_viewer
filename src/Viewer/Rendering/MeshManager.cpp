@@ -18,6 +18,7 @@ namespace VkRender{
             auto meshData = meshComponent.data()->generateMeshData();
             meshDataCache[identifier] = meshData;
             meshComponent.updateMeshData = false;
+            meshData->isDirty = true;
             return meshData;
         }
         return nullptr;

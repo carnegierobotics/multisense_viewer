@@ -64,9 +64,9 @@ namespace VkRender {
 
         }
 
+        m_rayTracer->update();
 
         if (imageUI->updateImage){
-            m_rayTracer->update();
             m_colorTexture->loadImage(m_rayTracer->getImage(), m_createInfo.width * m_createInfo.height * 4);
         }
     }

@@ -113,13 +113,28 @@ namespace VkRender::RT {
                 auto bottomLeftEntity = m_scene->getOrCreateEntityByName("BottomLeft");
                 auto bottomRightEntity = m_scene->getOrCreateEntityByName("BottomRight");
 
-                auto centerRayEntity = m_scene->getOrCreateEntityByName("CenterRay");
 
                 updateRayEntity(topLeftEntity, 0.0f, 0.0f);
                 updateRayEntity(topRightEntity, width, 0.0f);
                 updateRayEntity(bottomLeftEntity, width, height);
                 updateRayEntity(bottomRightEntity, 0.0f, height);
-                updateRayEntity(centerRayEntity, width / 2, height / 2);
+
+                // Generate rays for every 10th pixel
+                for (int x = 0; x < width; x += 100) {
+                    for (int y = 0; y < height; y += 100) {
+                        // Create a unique name for the ray entity
+                        std::string rayEntityName = "Ray_" + std::to_string(x) + "_" + std::to_string(y);
+
+                        // Get or create the entity for this ray
+                        auto rayEntity = m_scene->getOrCreateEntityByName(rayEntityName);
+
+                        // Update the ray entity's position or other attributes based on the pixel coordinates
+                        updateRayEntity(rayEntity, static_cast<float>(x), static_cast<float>(y));
+                    }
+                }
+                //auto centerRayEntity = m_scene->getOrCreateEntityByName("CenterRay");
+
+                //updateRayEntity(centerRayEntity, width / 2, height / 2);
 
             }
         }

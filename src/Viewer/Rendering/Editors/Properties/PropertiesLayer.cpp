@@ -568,6 +568,8 @@ namespace VkRender {
                 }
                 m_context->activeScene()->onComponentUpdated(entity, component);
             }
+            component.updateMeshData = false;
+
             // Begin the combo box
             if (ImGui::BeginCombo("Mesh Type",
                                   meshDataTypeToString(static_cast<MeshDataType>(currentMeshType)).c_str())) {

@@ -323,7 +323,7 @@ namespace VkRender {
     void Application::recreateEditor(std::unique_ptr<Editor>& editor, EditorCreateInfo& createInfo) {
         auto newEditor = createEditor(createInfo);
         newEditor->ui() = editor->ui();
-        newEditor->onSceneLoad(std::shared_ptr<Scene>());
+        newEditor->onSceneLoad(m_activeScene);
         editor = std::move(newEditor);
     }
 
@@ -562,7 +562,7 @@ namespace VkRender {
 
         // Copy UI states
 
-        newEditor->onSceneLoad(std::shared_ptr<Scene>(m_activeScene));
+        newEditor->onSceneLoad(m_activeScene);
         m_editors.push_back(std::move(newEditor));
     }
 

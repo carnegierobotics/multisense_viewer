@@ -18,7 +18,7 @@ namespace VkRender{
             VulkanDevice& device,
             const std::vector<VkDescriptorSetLayoutBinding>& bindings,
             DescriptorManagerType descriptorManagerType,
-            uint32_t maxDescriptorSets = 100);
+            uint32_t maxDescriptorSets = 1000);
         ~DescriptorSetManager();
         VkDescriptorSetLayout& getDescriptorSetLayout(){return m_descriptorSetLayout;}
 

@@ -60,7 +60,7 @@ namespace VkRender {
         auto imageUI = std::dynamic_pointer_cast<EditorImageUI>(m_ui);
 
         if (imageUI->iterateOptimizer) {
-            diffRenderEntry->update();
+            //diffRenderEntry->update();
 
         }
 

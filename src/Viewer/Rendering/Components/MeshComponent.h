@@ -38,7 +38,7 @@ namespace VkRender {
 
         std::shared_ptr<IMeshParameters> meshParameters;
         std::shared_ptr<IMeshParameters> data() { return meshParameters; }
-        bool updateMeshData = true; // TODO combine this with isDirtyFlag in MeshData
+        bool updateMeshData = false; // TODO combine this with isDirtyFlag in MeshData
 
     private:
         VkPolygonMode m_polygonMode = VK_POLYGON_MODE_FILL;

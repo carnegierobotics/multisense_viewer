@@ -27,7 +27,6 @@ namespace VkRender {
             auto cameraComponent = selectedEntity.getComponent<CameraComponent>();
             auto &transform = selectedEntity.getComponent<TransformComponent>();
             cameraComponent.camera->updateViewMatrix(transform.getTransform());
-            cameraComponent.camera->m_flipYProjection = cameraComponent.flipY;
             cameraComponent.camera->updateProjectionMatrix();
         }
 

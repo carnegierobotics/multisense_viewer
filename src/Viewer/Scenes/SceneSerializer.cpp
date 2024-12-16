@@ -212,7 +212,45 @@ namespace VkRender {
             out << YAML::Key << "CameraComponent";
             out << YAML::BeginMap;
             auto &camera = entity.getComponent<CameraComponent>();
+            auto type = camera.cameraType;
+            // Serialize CameraType
+            out << YAML::Key << "CameraType";
+            out << YAML::Value << CameraComponent::cameraTypeToString(camera.cameraType);
+
+            // Serialize based on CameraType
+            switch (camera.cameraType) {
+                case CameraComponent::ARCBALL:
+                    // ARCBALL-specific serialization (if any) can be added here
+                    break;
+                case CameraComponent::PERSPECTIVE: {
+                    auto &params = camera.projectionParameters;
+                    out << YAML::Key << "ProjectionParameters";
+                    out << YAML::BeginMap;
+                    out << YAML::Key << "Near" << YAML::Value << params.near;
+                    out << YAML::Key << "Far" << YAML::Value << params.far;
+                    out << YAML::Key << "Aspect" << YAML::Value << params.aspect;
+                    out << YAML::Key << "FOV" << YAML::Value << params.fov;
+                    out << YAML::EndMap;
+                    break;
+                }
+                case CameraComponent::PINHOLE: {
+                    auto &params = camera.pinHoleParameters;
+                    out << YAML::Key << "PinHoleParameters";
+                    out << YAML::BeginMap;
+                    out << YAML::Key << "Height" << YAML::Value << params.height;
+                    out << YAML::Key << "Width" << YAML::Value << params.width;
+                    out << YAML::Key << "Fx" << YAML::Value << params.fx;
+                    out << YAML::Key << "Fy" << YAML::Value << params.fy;
+                    out << YAML::Key << "Cx" << YAML::Value << params.cx;
+                    out << YAML::Key << "Cy" << YAML::Value << params.cy;
+                    out << YAML::EndMap;
+                    break;
+                }
+                default:
+                    Log::Logger::getInstance()->warning("Fallback: Cannot serialize camera type");
+            }
             out << YAML::EndMap;
+
         }
 
         if (entity.hasComponent<MaterialComponent>()) {
@@ -413,7 +451,51 @@ namespace VkRender {
 
                 auto cameraComponent = entity["CameraComponent"];
                 if (cameraComponent) {
-                    auto &camera = deserializedEntity.addComponent<CameraComponent>();
+                    auto& camera = deserializedEntity.addComponent<CameraComponent>();
+
+                    // Deserialize CameraType
+                    if (cameraComponent["CameraType"]) {
+                        std::string cameraTypeStr = cameraComponent["CameraType"].as<std::string>();
+                        camera.cameraType = CameraComponent::stringToCameraType(cameraTypeStr);
+                    }
+
+                    // Deserialize based on CameraType
+                    switch (camera.cameraType) {
+                        case CameraComponent::ARCBALL:
+                            // ARCBALL-specific deserialization (if any) can be added here
+                            break;
+
+                        case CameraComponent::PERSPECTIVE:
+                        {
+                            auto projectionParams = cameraComponent["ProjectionParameters"];
+                            if (projectionParams) {
+                                camera.projectionParameters.near = projectionParams["Near"].as<float>(0.1f);
+                                camera.projectionParameters.far = projectionParams["Far"].as<float>(100.0f);
+                                camera.projectionParameters.aspect = projectionParams["Aspect"].as<float>(1.6f);
+                                camera.projectionParameters.fov = projectionParams["FOV"].as<float>(60.0f);
+                            }
+                            break;
+                        }
+
+                        case CameraComponent::PINHOLE:
+                        {
+                            auto pinholeParams = cameraComponent["PinHoleParameters"];
+                            if (pinholeParams) {
+                                camera.pinHoleParameters.height = pinholeParams["Height"].as<int>(720);
+                                camera.pinHoleParameters.width = pinholeParams["Width"].as<int>(1280);
+                                camera.pinHoleParameters.fx = pinholeParams["Fx"].as<float>(1280.0f);
+                                camera.pinHoleParameters.fy = pinholeParams["Fy"].as<float>(720.0f);
+                                camera.pinHoleParameters.cx = pinholeParams["Cx"].as<float>(640.0f);
+                                camera.pinHoleParameters.cy = pinholeParams["Cy"].as<float>(360.0f);
+                            }
+                            break;
+                        }
+
+                        default:
+                            Log::Logger::getInstance()->warning("Fallback: Cannot deserialize camera type");
+                    }
+
+                    // Ensure the camera projection matrix is updated
                     camera.camera->updateProjectionMatrix();
                 }
 

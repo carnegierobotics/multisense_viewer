@@ -12,6 +12,7 @@
 #include <glm/vec3.hpp>
 #include <utility>
 #include "Viewer/Rendering/Core/UUID.h"
+#include "Viewer/Rendering/Components/Components.h"
 
 namespace VkRender {
     class MeshData;
@@ -42,15 +43,21 @@ namespace VkRender {
         std::shared_ptr<MeshData> generateMeshData() const override;
     };
 
-    class CameraGizmoMeshParameters : public IMeshParameters {
+    class CameraGizmoPinholeMeshParameters : public IMeshParameters {
     public:
-        float imageSize; // TODO implement or remove
-        float focalPoint = 0.008f;
-
+        CameraComponent::PinHoleParameters parameters;
         std::string getIdentifier() const override {
-            return "CameraGizmo_" + std::to_string(uuid);
+            return "CameraGizmoPinhole_" + std::to_string(uuid);
         }
+        std::shared_ptr<MeshData> generateMeshData() const override;
+    };
 
+    class CameraGizmoPerspectiveMeshParameters : public IMeshParameters {
+    public:
+        CameraComponent::ProjectionParameters parameters;
+        std::string getIdentifier() const override {
+            return "CameraGizmoPerspective_" + std::to_string(uuid);
+        }
         std::shared_ptr<MeshData> generateMeshData() const override;
     };
     class OBJFileMeshParameters : public IMeshParameters {

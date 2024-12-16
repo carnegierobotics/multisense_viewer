@@ -115,45 +115,173 @@ namespace VkRender {
     }
 
 
-    void MeshData::generateCameraGizmoMesh(const CameraGizmoMeshParameters& params) {
-        float a = 0.25f;
-        float h = params.focalPoint;
+    void MeshData::generateCameraPinholeGizmoMesh(const CameraGizmoPinholeMeshParameters& pinhole) {
+        float width  = pinhole.parameters.width;
+        float height = pinhole.parameters.height;
+        float fx     = pinhole.parameters.fx;
+        float fy     = pinhole.parameters.fy;
+        float cx     = pinhole.parameters.cx;
+        float cy     = pinhole.parameters.cy;
 
-        std::vector<glm::vec3> uboVertices = {
-            // Pyramid base + apex
-            glm::vec3(-a, -a, 0.0f), // 0: A
-            glm::vec3( a, -a, 0.0f), // 1: B
-            glm::vec3( a,  a, 0.0f), // 2: C
-            glm::vec3(-a,  a, 0.0f), // 3: D
-            glm::vec3( 0.0f, 0.0f, h), // 4: E (apex)
+        // Choose a plane at Z = -1 for visualization. Objects in front of the camera have negative Z.
+        float Z_plane = -1.0f;
 
-            // Top indicator vertices
-            glm::vec3(-0.4f, -0.6f, 0.0f), // 5: F
-            glm::vec3( 0.4f, -0.6f, 0.0f), // 6: G
-            glm::vec3( 0.0f, -1.0f, 0.0f)  // 7: H
+        // Convert image corners into camera coordinates:
+        // We'll map four corners of the image:
+        // Top-left:     (u,v) = (0, 0)
+        // Top-right:    (u,v) = (width, 0)
+        // Bottom-right: (u,v) = (width, height)
+        // Bottom-left:  (u,v) = (0, height)
+        //
+        // The mapping chosen so that:
+        // X = -(u - cx)*Z_plane/fx
+        // Y =  (v - cy)*Z_plane/fy
+        // Z =  Z_plane (negative)
+        //
+        // This ensures:
+        // - Left side (u<cx) => negative X
+        // - Top side (v<cy) => positive Y
+        // - Forward along negative Z
+
+        auto mapPixelTo3D = [&](float u, float v) {
+            float X = -(u - cx) * Z_plane / fx;
+            float Y = -(v - cy) * Z_plane / fy; // Notice the minus sign before (v - cy)
+            float Z = Z_plane;
+            return glm::vec3(X, Y, Z);
         };
+
+
+        glm::vec3 topLeft     = mapPixelTo3D(0.0f,     0.0f);
+        glm::vec3 topRight    = mapPixelTo3D(width,     0.0f);
+        glm::vec3 bottomRight = mapPixelTo3D(width,     height);
+        glm::vec3 bottomLeft  = mapPixelTo3D(0.0f,      height);
+
+        // The pinhole (camera center) at the origin
+        glm::vec3 pinholePos = glm::vec3(0.0f, 0.0f, 0.0f);
+
+        // Define vertices: pinhole + the four corners of the image plane
+        // We'll store them in order: pinhole(0), topLeft(1), topRight(2), bottomRight(3), bottomLeft(4)
+        std::vector<glm::vec3> uboVertices = {
+                pinholePos,
+                topLeft,
+                topRight,
+                bottomRight,
+                bottomLeft
+        };
+
+        // We'll create a simple line-based mesh:
+        // Lines from pinhole to each corner:
+        // pinhole -> topLeft
+        // pinhole -> topRight
+        // pinhole -> bottomRight
+        // pinhole -> bottomLeft
+        //
+        // And lines forming the image plane rectangle:
+        // topLeft -> topRight
+        // topRight -> bottomRight
+        // bottomRight -> bottomLeft
+        // bottomLeft -> topLeft
+
         indices = {
-            // Base
-            3, 0, 1,
-            3, 1, 2,
+                // Lines from pinhole (0) to image corners
+                0, 1,
+                0, 2,
+                0, 3,
+                0, 4,
 
-            // Sides
-            0, 4, 1,
-            1, 4, 2,
-            2, 4, 3,
-            3, 4, 0,
-
-            // Top indicator
-            5, 6, 7
+                // Image plane rectangle
+                1, 2,
+                2, 3,
+                3, 4,
+                4, 1
         };
 
         vertices.resize(uboVertices.size());
         for (size_t i = 0; i < uboVertices.size(); ++i) {
-            vertices[i].pos = uboVertices[i];
-            vertices[i].normal   = glm::vec3(0.0f, 0.0f, 1.0f); // Placeholder normal
-            vertices[i].uv0      = glm::vec2(0.0f, 0.0f);       // Placeholder UV
-            vertices[i].uv1      = glm::vec2(0.0f, 0.0f);       // Placeholder UV
-            vertices[i].color    = glm::vec4(1.0f);             // White color
+            vertices[i].pos    = uboVertices[i];
+            vertices[i].normal = glm::vec3(0.0f, 0.0f, 1.0f); // Normal not very meaningful for a line gizmo
+            vertices[i].uv0    = glm::vec2(0.0f, 0.0f);       // Placeholder UV
+            vertices[i].uv1    = glm::vec2(0.0f, 0.0f);       // Placeholder UV
+            vertices[i].color  = glm::vec4(1.0f);             // White color
+        }
+
+        // This is a gizmo; often drawn as lines. Ensure rendering mode is line-friendly if needed.
+        isDynamic = true;
+    }
+
+    void MeshData::generateCameraPerspectiveGizmoMesh(const CameraGizmoPerspectiveMeshParameters& perspective) {
+        float nearDist = perspective.parameters.near;
+        float farDist = perspective.parameters.far;
+        float fovDegrees = perspective.parameters.fov;
+        float aspect = perspective.parameters.aspect;
+
+        // Convert FOV to radians if it's given in degrees
+        float fovRadians = glm::radians(fovDegrees);
+        float tanHalfFov = std::tan(fovRadians * 0.5f);
+
+        // Compute the half-widths and half-heights of the near and far planes
+        float nearHeight = 2.0f * nearDist * tanHalfFov;
+        float nearWidth  = nearHeight * aspect;
+
+        float farHeight = 2.0f * farDist * tanHalfFov;
+        float farWidth  = farHeight * aspect;
+
+        // Define the vertices for a frustum:
+        // Near plane corners (Z = nearDist)
+        // We'll assume the camera looks along +Z, with +X to the right and +Y up.
+        glm::vec3 NBL(-nearWidth * 0.5f, -nearHeight * 0.5f, -nearDist); // Near Bottom Left
+        glm::vec3 NBR( nearWidth * 0.5f, -nearHeight * 0.5f, -nearDist); // Near Bottom Right
+        glm::vec3 NTR( nearWidth * 0.5f,  nearHeight * 0.5f, -nearDist); // Near Top Right
+        glm::vec3 NTL(-nearWidth * 0.5f,  nearHeight * 0.5f, -nearDist); // Near Top Left
+
+        // Far plane corners (Z = farDist)
+        glm::vec3 FBL(-farWidth * 0.5f, -farHeight * 0.5f, -farDist); // Far Bottom Left
+        glm::vec3 FBR( farWidth * 0.5f, -farHeight * 0.5f, -farDist); // Far Bottom Right
+        glm::vec3 FTR( farWidth * 0.5f,  farHeight * 0.5f, -farDist); // Far Top Right
+        glm::vec3 FTL(-farWidth * 0.5f,  farHeight * 0.5f, -farDist); // Far Top Left
+
+        std::vector<glm::vec3> uboVertices = {
+                NBL, NBR, NTR, NTL, // 0-3 : Near plane
+                FBL, FBR, FTR, FTL  // 4-7 : Far plane
+        };
+
+        // We will define the frustum as a closed mesh with 6 faces, each face made of two triangles.
+        // Indices order (triangles) for each quad is typically: (0,1,2) and (2,3,0).
+        indices = {
+                // Near face
+                0, 1, 2,
+                2, 3, 0,
+
+                // Far face
+                4, 5, 6,
+                6, 7, 4,
+
+                // Left face (NBL, NTL, FTL, FBL)
+                0, 3, 7,
+                7, 4, 0,
+
+                // Right face (NBR, NTR, FTR, FBR)
+                1, 2, 6,
+                6, 5, 1,
+
+                // Top face (NTL, NTR, FTR, FTL)
+                3, 2, 6,
+                6, 7, 3,
+
+                // Bottom face (NBL, NBR, FBR, FBL)
+                0, 1, 5,
+                5, 4, 0
+        };
+
+        // Resize vertex array to match our vertex count
+        vertices.resize(uboVertices.size());
+
+        for (size_t i = 0; i < uboVertices.size(); ++i) {
+            vertices[i].pos     = uboVertices[i];
+            vertices[i].normal  = glm::vec3(0.0f, 0.0f, 1.0f); // Placeholder normal
+            vertices[i].uv0     = glm::vec2(0.0f, 0.0f);       // Placeholder UV
+            vertices[i].uv1     = glm::vec2(0.0f, 0.0f);       // Placeholder UV
+            vertices[i].color   = glm::vec4(1.0f);             // White color
         }
 
         isDynamic = true;

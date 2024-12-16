@@ -14,10 +14,16 @@ namespace VkRender {
         return meshData;
     }
 
-    std::shared_ptr<MeshData> CameraGizmoMeshParameters::generateMeshData() const  {
+    std::shared_ptr<MeshData> CameraGizmoPerspectiveMeshParameters::generateMeshData() const  {
         // Generate mesh data for camera gizmo
         auto meshData = std::make_shared<MeshData>();
-        meshData->generateCameraGizmoMesh(*this);
+        meshData->generateCameraPerspectiveGizmoMesh(*this);
+        return meshData;
+    }
+    std::shared_ptr<MeshData> CameraGizmoPinholeMeshParameters::generateMeshData() const  {
+        // Generate mesh data for camera gizmo
+        auto meshData = std::make_shared<MeshData>();
+        meshData->generateCameraPinholeGizmoMesh(*this);
         return meshData;
     }
 

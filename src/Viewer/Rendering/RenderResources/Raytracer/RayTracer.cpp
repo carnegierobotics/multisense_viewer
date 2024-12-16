@@ -58,11 +58,7 @@ namespace VkRender::RT {
                 auto& transform = entity.getComponent<TransformComponent>();
                 auto& camera = entity.getComponent<CameraComponent>().camera;
 
-                // Retrieve focal point from the camera gizmo parameters
-                auto cameraGizmoParams = std::dynamic_pointer_cast<CameraGizmoMeshParameters>(
-                    entity.getComponent<MeshComponent>().meshParameters
-                );
-                float focalPoint = cameraGizmoParams->focalPoint;
+
                 // Define your field of view here (in radians)
                 // For example:
                 /*

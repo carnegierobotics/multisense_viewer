@@ -131,17 +131,8 @@ namespace VkRender {
         MeshDataType meshType) {
         auto meshInstance = std::make_shared<MeshInstance>();
 
-        // Set topology based on mesh data type
-        switch (meshType) {
-        case OBJ_FILE:
-        case PLY_FILE:
-        case CAMERA_GIZMO:
-            meshInstance->topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-            break;
-        default:
-            meshInstance->topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-            break;
-        }
+
+        meshInstance->topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 
         meshInstance->vertexCount = static_cast<uint32_t>(meshData->vertices.size());
         meshInstance->indexCount = static_cast<uint32_t>(meshData->indices.size());

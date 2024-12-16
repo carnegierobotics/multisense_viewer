@@ -19,6 +19,10 @@ namespace VkRender {
             BaseCamera::updateProjectionMatrix();
         }
 
+        BaseCamera(float aspect, float fov, float near, float far) : m_aspectRatio(aspect), m_fov(fov), m_zNear(near), m_zFar(far){
+
+        }
+
         struct Matrices {
             glm::mat4 view = glm::mat4(1.0f);
             glm::mat4 projection = glm::mat4(1.0f);

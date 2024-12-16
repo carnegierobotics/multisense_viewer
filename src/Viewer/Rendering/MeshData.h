@@ -18,8 +18,9 @@ namespace VkRender {
         OBJ_FILE = 1,
         PLY_FILE = 2,
         CYLINDER = 3,
-        CAMERA_GIZMO = 4,
-        MAX_NUM_TYPES = 5
+        CAMERA_GIZMO_PERSPECTIVE = 4,
+        CAMERA_GIZMO_PINHOLE = 5,
+        MAX_NUM_TYPES = 6
     };
 
     static std::array<MeshDataType, MAX_NUM_TYPES> meshDataTypeToArray() {
@@ -28,7 +29,8 @@ namespace VkRender {
             OBJ_FILE,
             PLY_FILE,
             CYLINDER,
-            CAMERA_GIZMO
+            CAMERA_GIZMO_PERSPECTIVE,
+            CAMERA_GIZMO_PINHOLE,
         };
     };
 
@@ -39,7 +41,8 @@ namespace VkRender {
             "OBJ_FILE",
             "PLY_FILE",
             "CYLINDER",
-            "CAMERA_GIZMO",
+            "CAMERA_GIZMO_PERSPECTIVE",
+            "CAMERA_GIZMO_PINHOLE",
         };
     };
 
@@ -51,8 +54,10 @@ namespace VkRender {
             return "OBJ_FILE";
         case PLY_FILE:
             return "PLY_FILE";
-        case CAMERA_GIZMO:
-            return "CAMERA_GIZMO";
+        case CAMERA_GIZMO_PERSPECTIVE:
+            return "CAMERA_GIZMO_PERSPECTIVE";
+        case CAMERA_GIZMO_PINHOLE:
+            return "CAMERA_GIZMO_PINHOLE";
         case CYLINDER:
             return "CYLINDER";
         default:
@@ -65,8 +70,10 @@ namespace VkRender {
             return EMPTY;
         if (modeStr == "OBJ_FILE")
             return OBJ_FILE;
-        if (modeStr == "CAMERA_GIZMO")
-            return CAMERA_GIZMO;
+        if (modeStr == "CAMERA_GIZMO_PERSPECTIVE")
+            return CAMERA_GIZMO_PERSPECTIVE;
+        if (modeStr == "CAMERA_GIZMO_PINHOLE")
+            return CAMERA_GIZMO_PINHOLE;
         if (modeStr == "PLY_FILE")
             return PLY_FILE;
         if (modeStr == "CYLINDER")
@@ -90,7 +97,8 @@ namespace VkRender {
 
 
         void generateCylinderMesh(const CylinderMeshParameters& parameters);
-        void generateCameraGizmoMesh(const CameraGizmoMeshParameters& parameters);
+        void generateCameraPinholeGizmoMesh(const CameraGizmoPinholeMeshParameters& parameters);
+        void generateCameraPerspectiveGizmoMesh(const CameraGizmoPerspectiveMeshParameters& parameters);
         void generateOBJMesh(const OBJFileMeshParameters& parameters);
         void generatePLYMesh(const PLYFileMeshParameters& parameters);
 

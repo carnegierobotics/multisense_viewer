@@ -250,10 +250,10 @@ namespace VkRender {
         m_selectionContext = Entity(); // reset selectioncontext
     }
 
-    bool PropertiesLayer::drawVec3Control(const std::string& label, glm::vec3& values, float resetValue = 0.0f,
+    bool PropertiesLayer::drawVec3Control(const std::string &label, glm::vec3 &values, float resetValue = 0.0f,
                                           float speed = 1.0f, float columnWidth = 100.0f) {
         bool valueChanged = false;
-        ImGuiIO& io = ImGui::GetIO();
+        ImGuiIO &io = ImGui::GetIO();
         auto boldFont = io.Fonts->Fonts[0];
 
         ImGui::PushID(label.c_str());
@@ -329,10 +329,10 @@ namespace VkRender {
         return valueChanged;
     }
 
-    bool PropertiesLayer::drawFloatControl(const std::string& label, float& value, float resetValue = 0.0f,
+    bool PropertiesLayer::drawFloatControl(const std::string &label, float &value, float resetValue = 0.0f,
                                            float speed = 1.0f, float columnWidth = 100.0f) {
         bool valueChanged = false;
-        ImGuiIO& io = ImGui::GetIO();
+        ImGuiIO &io = ImGui::GetIO();
         auto boldFont = io.Fonts->Fonts[0];
 
         ImGui::PushID(label.c_str());
@@ -373,19 +373,19 @@ namespace VkRender {
         return valueChanged;
     }
 
-    template <typename T, typename UIFunction>
-    void PropertiesLayer::drawComponent(const std::string& componentName, Entity entity, UIFunction uiFunction) {
+    template<typename T, typename UIFunction>
+    void PropertiesLayer::drawComponent(const std::string &componentName, Entity entity, UIFunction uiFunction) {
         const ImGuiTreeNodeFlags treeNodeFlags =
-            ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth |
-            ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowOverlap;
+                ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth |
+                ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_AllowOverlap;
         if (entity.hasComponent<T>()) {
-            auto& component = entity.getComponent<T>();
+            auto &component = entity.getComponent<T>();
             ImVec2 contentRegionAvailable = ImGui::GetContentRegionAvail();
 
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{4, 4});
             float lineHeight = GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f;
             ImGui::Separator();
-            bool open = ImGui::TreeNodeEx((void*)typeid(T).hash_code(), treeNodeFlags, "%s", componentName.c_str());
+            bool open = ImGui::TreeNodeEx((void *) typeid(T).hash_code(), treeNodeFlags, "%s", componentName.c_str());
             ImGui::PopStyleVar();
             ImGui::SameLine(contentRegionAvailable.x - lineHeight * 0.5f);
 
@@ -427,18 +427,85 @@ namespace VkRender {
             ImGui::EndPopup();
         }
 
-        drawComponent<TransformComponent>("Transform", entity, [](auto& component) {
+        drawComponent<TransformComponent>("Transform", entity, [](auto &component) {
             drawVec3Control("Translation", component.getPosition());
             drawVec3Control("Rotation", component.getRotationEuler(), 0.0f, 2.0f);
             component.updateFromEulerRotation();
             drawVec3Control("Scale", component.getScale(), 1.0f);
         });
-        drawComponent<CameraComponent>("Camera", entity, [](CameraComponent& component) {
+        drawComponent<CameraComponent>("Camera", entity, [](CameraComponent &component) {
             //drawFloatControl("Field of View", component.camera->fov(), 1.0f);
 
             ImGui::Checkbox("Render scene from viewpoint", &component.renderFromViewpoint());
-            ImGui::Checkbox("Flip Y", &component.flipY);
 
+            bool paramsChanged = false;
+            paramsChanged |= ImGui::Checkbox("Flip Y", &component.flipY);
+
+            static const auto allCameraTypes = CameraComponent::getAllCameraTypes();
+            static const auto cameraTypeStrings = []() {
+                std::vector<std::string> strings;
+                for (const auto &type: allCameraTypes) {
+                    strings.push_back(CameraComponent::cameraTypeToString(type));
+                }
+                return strings;
+            }();
+
+            // Get the current camera type as a string
+            std::string currentCameraTypeStr = CameraComponent::cameraTypeToString(component.cameraType);
+
+            // Get the index of the current camera type
+            int currentIndex = std::distance(
+                    cameraTypeStrings.begin(),
+                    std::find(cameraTypeStrings.begin(), cameraTypeStrings.end(), currentCameraTypeStr)
+            );
+
+            // ImGui combo box
+            if (ImGui::BeginCombo("Camera Type", currentCameraTypeStr.c_str())) {
+                for (int i = 0; i < cameraTypeStrings.size(); ++i) {
+                    bool isSelected = (i == currentIndex);
+                    if (ImGui::Selectable(cameraTypeStrings[i].c_str(), isSelected)) {
+                        currentIndex = i;
+                        component.cameraType = allCameraTypes[i];
+                    }
+
+                    if (isSelected) {
+                        ImGui::SetItemDefaultFocus();
+                    }
+                }
+                ImGui::EndCombo();
+            }
+
+
+            switch (component.cameraType) {
+
+                case CameraComponent::PERSPECTIVE:
+                    paramsChanged |= ImGui::SliderFloat("Field of View", &component.projectionParameters.fov, 5.0f,
+                                                        180.0f);
+                    paramsChanged |= ImGui::SliderFloat("Aspect Ratio", &component.projectionParameters.aspect, 0.1f,
+                                                        10.0f);
+                    paramsChanged |= ImGui::SliderFloat("Near Plane", &component.projectionParameters.near, 0.01f,
+                                                        10.0f);
+                    paramsChanged |= ImGui::SliderFloat("Far Plane", &component.projectionParameters.far, 1.0f,
+                                                        1000.0f);
+
+                    break;
+                case CameraComponent::PINHOLE:
+                    paramsChanged |= ImGui::SliderInt("Width", &component.pinHoleParameters.width, 1.0, 4096);
+                    paramsChanged |= ImGui::SliderInt("Height", &component.pinHoleParameters.height, 1.0, 4096);
+
+                    paramsChanged |= ImGui::SliderFloat("Fx", &component.pinHoleParameters.fx, 1.0f, 4096.0f);
+                    paramsChanged |= ImGui::SliderFloat("Fy", &component.pinHoleParameters.fy, 1.0f, 4096.0f);
+                    paramsChanged |= ImGui::SliderFloat("Cx", &component.pinHoleParameters.cx, 1.0f, 4096.0f);
+                    paramsChanged |= ImGui::SliderFloat("Cy", &component.pinHoleParameters.cy, 1.0f, 4096.0f);
+
+                    break;
+                case CameraComponent::ARCBALL:
+                    break;
+            }
+
+            if (paramsChanged) {
+                component.updateParametersChanged();
+            }
             component.camera->updateProjectionMatrix();
 
             /*
@@ -480,7 +547,7 @@ namespace VkRender {
             */
         });
 
-        drawComponent<MeshComponent>("Mesh", entity, [this, entity](MeshComponent& component) {
+        drawComponent<MeshComponent>("Mesh", entity, [this, &entity](MeshComponent &component) {
             // Mesh Type Selection
 
             static int previousMeshType = -1; // Store the previous selection
@@ -489,7 +556,18 @@ namespace VkRender {
             const auto array = meshDataTypeToStringArray().data();
             int num = meshDataTypeToStringArray().size();
             // Create the combo and check for interaction
-
+            // Polygon Mode Control
+            ImGui::Text("Polygon Mode:");
+            const char *polygonModes[] = {"Line", "Fill"};
+            int currentMode = (component.polygonMode() == VK_POLYGON_MODE_LINE) ? 0 : 1;
+            if (ImGui::Combo("Polygon Mode", &currentMode, polygonModes, IM_ARRAYSIZE(polygonModes))) {
+                if (currentMode == 0) {
+                    component.polygonMode() = VK_POLYGON_MODE_LINE;
+                } else {
+                    component.polygonMode() = VK_POLYGON_MODE_FILL;
+                }
+                m_context->activeScene()->onComponentUpdated(entity, component);
+            }
             // Begin the combo box
             if (ImGui::BeginCombo("Mesh Type",
                                   meshDataTypeToString(static_cast<MeshDataType>(currentMeshType)).c_str())) {
@@ -503,26 +581,29 @@ namespace VkRender {
 
                         // Trigger behavior when a new type is selected
                         switch (component.meshDataType()) {
-                        case MeshDataType::OBJ_FILE:
+                            case MeshDataType::OBJ_FILE:
 
-                            EditorUtils::openImportFileDialog("Wavefront", {".obj"}, LayerUtils::OBJ_FILE,
-                                                              &m_loadFileFuture);
-                            break;
+                                EditorUtils::openImportFileDialog("Wavefront", {".obj"}, LayerUtils::OBJ_FILE,
+                                                                  &m_loadFileFuture);
+                                break;
 
-                        case MeshDataType::PLY_FILE:
+                            case MeshDataType::PLY_FILE:
 
-                            EditorUtils::openImportFileDialog("Stanford .PLY", {".ply"}, LayerUtils::PLY_MESH,
-                                                              &m_loadFileFuture);
-                            break;
-                        case MeshDataType::CYLINDER:
-                            component.meshParameters = std::make_shared<CylinderMeshParameters>();
-                            break;
-                        case MeshDataType::CAMERA_GIZMO:
-                            component.meshParameters = std::make_shared<CameraGizmoMeshParameters>();
-                            break;
-                        default:
-                            Log::Logger::getInstance()->error("Unknown mesh type!");
-                            break;
+                                EditorUtils::openImportFileDialog("Stanford .PLY", {".ply"}, LayerUtils::PLY_MESH,
+                                                                  &m_loadFileFuture);
+                                break;
+                            case MeshDataType::CYLINDER:
+                                component.meshParameters = std::make_shared<CylinderMeshParameters>();
+                                break;
+                            case MeshDataType::CAMERA_GIZMO_PINHOLE:
+                                component.meshParameters = std::make_shared<CameraGizmoPinholeMeshParameters>();
+                                break;
+                            case MeshDataType::CAMERA_GIZMO_PERSPECTIVE:
+                                component.meshParameters = std::make_shared<CameraGizmoPerspectiveMeshParameters>();
+                                break;
+                            default:
+                                Log::Logger::getInstance()->error("Unknown mesh type!");
+                                break;
                         }
                     }
 
@@ -537,23 +618,25 @@ namespace VkRender {
 
             // Display different input fields based on mesh type
             switch (component.meshDataType()) {
-            case MeshDataType::OBJ_FILE:
-                {
+                case MeshDataType::OBJ_FILE: {
                     auto params = std::dynamic_pointer_cast<OBJFileMeshParameters>(component.meshParameters);
-                    ImGui::Text("Mesh File:");
-                    ImGui::Text("%s", params->path.c_str());
-                }
-                break;
-            case PLY_FILE:
-                {
-                    auto params = std::dynamic_pointer_cast<PLYFileMeshParameters>(component.meshParameters);
-                    ImGui::Text("Mesh File:");
-                    ImGui::Text("%s", params->path.c_str());
-                }
-                break;
+                    if (params){
+                        ImGui::Text("Mesh File:");
+                        ImGui::Text("%s", params->path.empty() ? "" : params->path.c_str());
+                    }
 
-            case MeshDataType::CYLINDER:
-                {
+                }
+                    break;
+                case PLY_FILE: {
+                    auto params = std::dynamic_pointer_cast<PLYFileMeshParameters>(component.meshParameters);
+                    if (params){
+                        ImGui::Text("Mesh File:");
+                        ImGui::Text("%s", params->path.empty() ? "" : params->path.c_str());
+                    }
+                }
+                    break;
+
+                case MeshDataType::CYLINDER: {
                     auto cylinderParams = std::dynamic_pointer_cast<CylinderMeshParameters>(component.meshParameters);
                     if (cylinderParams) {
                         bool paramsChanged = false;
@@ -567,68 +650,59 @@ namespace VkRender {
                     }
                     break;
                 }
+                    ImGui::Dummy(ImVec2(5.0f, 5.0f));
 
-            case MeshDataType::CAMERA_GIZMO:
-                {
-                    auto cameraGizmoParams = std::dynamic_pointer_cast<CameraGizmoMeshParameters>(
-                        component.meshParameters);
-                    if (cameraGizmoParams) {
-                        bool paramsChanged = false;
-                        paramsChanged |= ImGui::SliderFloat("Image Size", &cameraGizmoParams->imageSize, 0.1f, 10.0f);
-                        paramsChanged |= ImGui::SliderFloat("Focal Point", &cameraGizmoParams->focalPoint, 0.1f,
-                                                            3.0f);
-                        // Add more parameters as needed
-                        if (paramsChanged) {
-                            component.updateMeshData = true;
+                case MeshDataType::CAMERA_GIZMO_PINHOLE: {
+                    if (entity.hasComponent<CameraComponent>()) {
+                        auto cameraGizmoParams = std::dynamic_pointer_cast<CameraGizmoPinholeMeshParameters>(
+                                component.meshParameters);
+                        if (cameraGizmoParams) {
+                            auto &cameraParams = entity.getComponent<CameraComponent>().pinHoleParameters;
+                            // Update focal point and check if it has changed
+                            if (cameraGizmoParams->parameters != cameraParams) {
+                                cameraGizmoParams->parameters = cameraParams;
+                                component.updateMeshData = true;
+                            }
+                        }
+                    } else {
+
+                        if (ImGui::Button("Add a camera component!")) {
+                            entity.addComponent<CameraComponent>();
+                        }
+
+                    }
+                    break;
+
+                    case MeshDataType::CAMERA_GIZMO_PERSPECTIVE: {
+                        if (entity.hasComponent<CameraComponent>()) {
+                            auto cameraGizmoParams = std::dynamic_pointer_cast<CameraGizmoPerspectiveMeshParameters>(
+                                    component.meshParameters);
+                            if (cameraGizmoParams) {
+                                auto &cameraParams = entity.getComponent<CameraComponent>().projectionParameters;
+                                // Update focal point and check if it has changed
+                                if (cameraGizmoParams->parameters != cameraParams) {
+                                    cameraGizmoParams->parameters = cameraParams;
+                                    component.updateMeshData = true;
+                                }
+                            }
+                        } else {
+
+                            if (ImGui::Button("Add a camera component!")) {
+                                entity.addComponent<CameraComponent>();
+                            }
+
                         }
                     }
                     break;
                 }
-            default:
-                break;
+                default:
+                    break;
             }
 
-
-            /*
-            // Load mesh from file here:
-            if (ImGui::Button("Load .obj mesh")) {
-                std::vector<std::string> types{".obj"};
-                EditorUtils::openImportFileDialog("Wavefront", types, LayerUtils::OBJ_FILE, &m_loadFileFuture);
-            }
-
-            ImGui::SameLine();
-            // Load mesh from mesh here:
-            if (ImGui::Button("Load .ply mesh")) {
-                std::vector<std::string> types{".ply"};
-                EditorUtils::openImportFileDialog("Stanford .PLY", types, LayerUtils::PLY_MESH, &m_loadFileFuture);
-            }
-
-            ImGui::SameLine();
-            // Load mesh from mesh here:
-            if (ImGui::Button("Camera gizmo")) {
-                component.meshDataType() = CAMERA_GIZMO;
-                auto cameraGizmoParams = std::make_shared<CameraGizmoMeshParameters>();
-                component.meshParameters = cameraGizmoParams;
-            }
-            */
-
-            // Polygon Mode Control
-            ImGui::Text("Polygon Mode:");
-            const char* polygonModes[] = {"Line", "Fill"};
-            int currentMode = (component.polygonMode() == VK_POLYGON_MODE_LINE) ? 0 : 1;
-            if (ImGui::Combo("Polygon Mode", &currentMode, polygonModes, IM_ARRAYSIZE(polygonModes))) {
-                if (currentMode == 0) {
-                    component.polygonMode() = VK_POLYGON_MODE_LINE;
-                }
-                else {
-                    component.polygonMode() = VK_POLYGON_MODE_FILL;
-                }
-                m_context->activeScene()->onComponentUpdated(entity, component);
-            }
         });
 
 
-        drawComponent<TagComponent>("Tag", entity, [this](auto& component) {
+        drawComponent<TagComponent>("Tag", entity, [this](auto &component) {
             ImGui::Text("Entity Name:");
             ImGui::SameLine();
             // Define a buffer large enough to hold the tag's content
@@ -646,7 +720,7 @@ namespace VkRender {
             }
         });
 
-        drawComponent<MaterialComponent>("Material", entity, [this, entity](MaterialComponent& component) {
+        drawComponent<MaterialComponent>("Material", entity, [this, entity](MaterialComponent &component) {
             ImGui::Text("Material Properties");
 
             // Base Color Control
@@ -723,37 +797,7 @@ namespace VkRender {
             // Notify scene that material component has been updated
         });
 
-        /*
-        drawComponent<PointCloudComponent>("PointCloud", entity, [this](auto &component) {
-            ImGui::Text("Point Size");
-            ImGui::SliderFloat("##PointSize", &component.pointSize, 0.0f, 10.0f);
-            // Texture Control
-            ImGui::Checkbox("Use Video Source", &component.usesVideoSource);
-            if (component.usesVideoSource) {
-                ImGui::BeginChild("TextureChildWindow", ImVec2(0, ImGui::GetTextLineHeightWithSpacing() * 6), true);
-                ImGui::Text("Depth Images folder:");
-                ImGui::Text("%s", component.depthVideoFolderSource.string().c_str());
-                // Button to load texture
-                if (ImGui::Button("Set Depth Images")) {
-                    std::vector<std::string> types{".png", ".jpg", ".bmp"};
-                    EditorUtils::openImportFolderDialog("Set Image Folder", types,
-                                                        LayerUtils::VIDEO_DISPARITY_DEPTH_TEXTURE_FILE,
-                                                        &m_loadFolderFuture);
-                }
-                ImGui::Text("Color Images folder:");
-                ImGui::Text("%s", component.colorVideoFolderSource.string().c_str());
-                // Button to load texture
-                if (ImGui::Button("Set Color Images")) {
-                    std::vector<std::string> types{".png", ".jpg", ".bmp"};
-                    EditorUtils::openImportFolderDialog("Set Image Folder", types,
-                                                        LayerUtils::VIDEO_DISPARITY_COLOR_TEXTURE_FILE,
-                                                        &m_loadFolderFuture);
-                }
-                ImGui::EndChild();
-            }
-        });
-        */
-        drawComponent<GaussianComponent>("Gaussian Model", entity, [this](auto& component) {
+        drawComponent<GaussianComponent>("Gaussian Model", entity, [this](auto &component) {
             ImGui::Text("Gaussian Model Properties");
 
             // Display the number of Gaussians
@@ -816,7 +860,7 @@ namespace VkRender {
         });
 
 
-        drawComponent<GroupComponent>("Group", entity, [this](auto& component) {
+        drawComponent<GroupComponent>("Group", entity, [this](auto &component) {
             /*
             ImGui::Text("Load cameras from file");
             ImGui::Text("Colmap Path: %s", component.colmapPath.string().c_str());
@@ -842,8 +886,8 @@ namespace VkRender {
         ImVec2 window_size = ImVec2(m_editor->ui()->width, m_editor->ui()->height); // Size (width, height)
         // Set window flags to remove decorations
         ImGuiWindowFlags window_flags =
-            ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
-            ImGuiWindowFlags_NoBringToFrontOnFocus;
+                ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
+                ImGuiWindowFlags_NoBringToFrontOnFocus;
 
         // Set next window position and size
         ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always);
@@ -873,8 +917,8 @@ namespace VkRender {
     void PropertiesLayer::onDetach() {
     }
 
-    template <typename T>
-    void PropertiesLayer::displayAddComponentEntry(const std::string& entryName) {
+    template<typename T>
+    void PropertiesLayer::displayAddComponentEntry(const std::string &entryName) {
         if (!m_selectionContext.hasComponent<T>()) {
             if (ImGui::MenuItem(entryName.c_str())) {
                 m_selectionContext.addComponent<T>();
@@ -884,75 +928,71 @@ namespace VkRender {
     }
 
     void
-    PropertiesLayer::handleSelectedFileOrFolder(const LayerUtils::LoadFileInfo& loadFileInfo) {
+    PropertiesLayer::handleSelectedFileOrFolder(const LayerUtils::LoadFileInfo &loadFileInfo) {
         if (!loadFileInfo.path.empty()) {
             switch (loadFileInfo.filetype) {
-            case LayerUtils::TEXTURE_FILE:
-                {
-                    auto& materialComponent = m_selectionContext.getComponent<MaterialComponent>();
+                case LayerUtils::TEXTURE_FILE: {
+                    auto &materialComponent = m_selectionContext.getComponent<MaterialComponent>();
                     materialComponent.albedoTexturePath = loadFileInfo.path;
                     m_context->activeScene()->onComponentUpdated(m_selectionContext, materialComponent);
                 }
-                break;
-            case LayerUtils::OBJ_FILE:
-                // Load into the active scene
-                if (m_selectionContext.hasComponent<MeshComponent>()) {
-                    auto& meshComponent = m_selectionContext.getComponent<MeshComponent>();
-                    meshComponent.meshParameters = std::make_shared<OBJFileMeshParameters>(loadFileInfo.path);
-                }
+                    break;
+                case LayerUtils::OBJ_FILE:
+                    // Load into the active scene
+                    if (m_selectionContext.hasComponent<MeshComponent>()) {
+                        auto &meshComponent = m_selectionContext.getComponent<MeshComponent>();
+                        meshComponent.meshParameters = std::make_shared<OBJFileMeshParameters>(loadFileInfo.path);
+                    }
 
-                break;
-            case LayerUtils::PLY_3DGS:
-                {
+                    break;
+                case LayerUtils::PLY_3DGS: {
                     if (m_selectionContext.hasComponent<GaussianComponent>())
                         m_selectionContext.removeComponent<GaussianComponent>();
 
-                    auto& comp = m_selectionContext.addComponent<GaussianComponent>(loadFileInfo.path);
+                    auto &comp = m_selectionContext.addComponent<GaussianComponent>(loadFileInfo.path);
                     comp.addToRenderer = true;
                 }
-                break;
-            case LayerUtils::PLY_MESH:
-                if (m_selectionContext.hasComponent<MeshComponent>()) {
-                    auto& meshComponent = m_selectionContext.getComponent<MeshComponent>();
-                    meshComponent.meshParameters = std::make_shared<PLYFileMeshParameters>(loadFileInfo.path);
-                }
-                break;
-            case LayerUtils::VIDEO_TEXTURE_FILE:
-                {
+                    break;
+                case LayerUtils::PLY_MESH:
+                    if (m_selectionContext.hasComponent<MeshComponent>()) {
+                        auto &meshComponent = m_selectionContext.getComponent<MeshComponent>();
+                        meshComponent.meshParameters = std::make_shared<PLYFileMeshParameters>(loadFileInfo.path);
+                    }
+                    break;
+                case LayerUtils::VIDEO_TEXTURE_FILE: {
                     // TODO figure out how to know which component requested the folder or file load operation
                     if (m_selectionContext.hasComponent<MaterialComponent>()) {
-                        auto& materialComponent = m_selectionContext.getComponent<MaterialComponent>();
+                        auto &materialComponent = m_selectionContext.getComponent<MaterialComponent>();
                         materialComponent.videoFolderSource = loadFileInfo.path;
                         m_context->activeScene()->onComponentUpdated(m_selectionContext, materialComponent);
                     }
                 }
-                break;
-            case LayerUtils::VIDEO_DISPARITY_DEPTH_TEXTURE_FILE:
-                if (m_selectionContext.hasComponent<PointCloudComponent>()) {
-                    auto& pointCloudComponent = m_selectionContext.getComponent<PointCloudComponent>();
-                    pointCloudComponent.depthVideoFolderSource = loadFileInfo.path;
-                    m_context->activeScene()->onComponentUpdated(m_selectionContext, pointCloudComponent);
-                }
-                break;
-            case LayerUtils::VIDEO_DISPARITY_COLOR_TEXTURE_FILE:
-                if (m_selectionContext.hasComponent<PointCloudComponent>()) {
-                    auto& pointCloudComponent = m_selectionContext.getComponent<PointCloudComponent>();
-                    pointCloudComponent.colorVideoFolderSource = loadFileInfo.path;
-                    m_context->activeScene()->onComponentUpdated(m_selectionContext, pointCloudComponent);
-                }
-                break;
-            default:
-                Log::Logger::getInstance()->warning("Not implemented yet");
-                break;
+                    break;
+                case LayerUtils::VIDEO_DISPARITY_DEPTH_TEXTURE_FILE:
+                    if (m_selectionContext.hasComponent<PointCloudComponent>()) {
+                        auto &pointCloudComponent = m_selectionContext.getComponent<PointCloudComponent>();
+                        pointCloudComponent.depthVideoFolderSource = loadFileInfo.path;
+                        m_context->activeScene()->onComponentUpdated(m_selectionContext, pointCloudComponent);
+                    }
+                    break;
+                case LayerUtils::VIDEO_DISPARITY_COLOR_TEXTURE_FILE:
+                    if (m_selectionContext.hasComponent<PointCloudComponent>()) {
+                        auto &pointCloudComponent = m_selectionContext.getComponent<PointCloudComponent>();
+                        pointCloudComponent.colorVideoFolderSource = loadFileInfo.path;
+                        m_context->activeScene()->onComponentUpdated(m_selectionContext, pointCloudComponent);
+                    }
+                    break;
+                default:
+                    Log::Logger::getInstance()->warning("Not implemented yet");
+                    break;
             }
 
             // Copy the selected file path to wherever it's needed
-            auto& opts = ApplicationConfig::getInstance().getUserSetting();
+            auto &opts = ApplicationConfig::getInstance().getUserSetting();
             opts.lastOpenedImportModelFolderPath = loadFileInfo.path;
             // Additional processing of the file can be done here
             Log::Logger::getInstance()->info("File selected: {}", loadFileInfo.path.filename().string());
-        }
-        else {
+        } else {
             Log::Logger::getInstance()->warning("No file selected.");
         }
     }

@@ -12,8 +12,10 @@ namespace VkRender {
             switch (type) {
             case CYLINDER:
                 return std::make_shared<CylinderMeshParameters>();
-            case CAMERA_GIZMO:
-                return std::make_shared<CameraGizmoMeshParameters>();
+            case CAMERA_GIZMO_PERSPECTIVE:
+                return std::make_shared<CameraGizmoPerspectiveMeshParameters>();
+            case CAMERA_GIZMO_PINHOLE:
+                return std::make_shared<CameraGizmoPinholeMeshParameters>();
             case OBJ_FILE:
                 return std::make_shared<OBJFileMeshParameters>(path);
             case PLY_FILE:

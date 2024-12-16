@@ -92,8 +92,7 @@ namespace VkRender {
             m_registry.destroy(entity);
         } else {
             Log::Logger::getInstance()->warning(
-                    "Attempted to delete an invalid or already deleted entity with UUID: {}",
-                    entity.getUUID().operator std::string());
+                    "Attempted to delete an invalid or already deleted entity");
         }
     }
 

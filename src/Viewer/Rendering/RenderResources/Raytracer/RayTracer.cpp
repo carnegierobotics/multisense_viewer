@@ -62,6 +62,8 @@ namespace VkRender::RT {
                 Entity entity(e, m_scene.get());
                 auto &transform = entity.getComponent<TransformComponent>();
                 auto camera = std::dynamic_pointer_cast<PinholeCamera>(entity.getComponent<CameraComponent>().camera);
+                if (!camera)
+                    continue;
                 float fx = camera->m_fx;
                 float fy = camera->m_fy;
                 float cx = camera->m_cx;

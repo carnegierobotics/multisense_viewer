@@ -31,6 +31,10 @@ namespace VkRender {
             return m_queue;
         }
 
+        ~SyclDeviceSelector(){
+            m_queue.wait();
+        }
+
     private:
         sycl::queue m_queue;
 

@@ -104,47 +104,21 @@ namespace VkRender::RT::Kernels {
                 }
             }
         }
-        // Set up a directional light
-        // Light direction = direction from which light comes; it "shines" in the opposite direction
-        glm::vec3 lightDirection = glm::normalize(glm::vec3(-1.0f, 0.0f, 1.2f));
+
         if (hit) {
-            // Once we have the hit point, we check for shadows
-            glm::vec3 shadowOrigin = hitPoint + 1e-4f * lightDirection; // small offset to prevent self-intersection
-            glm::vec3 shadowDir = -lightDirection; // Ray towards the light
-            bool inShadow = false;
-            // Shadow ray intersection test
-            for (size_t tri = 0; tri < triangleCount && !inShadow; ++tri) {
-                uint32_t i0 = m_gpuData.indices[tri * 3 + 0];
-                uint32_t i1 = m_gpuData.indices[tri * 3 + 1];
-                uint32_t i2 = m_gpuData.indices[tri * 3 + 2];
-                const glm::vec3& a = m_gpuData.vertices[i0].position;
-                const glm::vec3& b = m_gpuData.vertices[i1].position;
-                const glm::vec3& c = m_gpuData.vertices[i2].position;
-                glm::vec3 dummyIntersection;
-                if (rayTriangleIntersect(shadowOrigin, shadowDir, a, b, c, dummyIntersection)) {
-                    // If the shadow ray hits anything, we are in shadow
-                    inShadow = true;
-                }
-            }
-            // Simple shading:
-            // If not in shadow, bright. If in shadow, darker.
-            if (!inShadow) {
-                m_gpuData.imageMemory[pixelIndex + 0] = 255; // R
-                m_gpuData.imageMemory[pixelIndex + 1] = 255; // G
-                m_gpuData.imageMemory[pixelIndex + 2] = 255; // B
-                m_gpuData.imageMemory[pixelIndex + 3] = 255; // A
-            } else {
-                // Shadowed
-                m_gpuData.imageMemory[pixelIndex + 0] = 80; // R
-                m_gpuData.imageMemory[pixelIndex + 1] = 80; // G
-                m_gpuData.imageMemory[pixelIndex + 2] = 80; // B
-                m_gpuData.imageMemory[pixelIndex + 3] = 255; // A
-            }
-        } else {
-            // Background
-            m_gpuData.imageMemory[pixelIndex + 0] = 35; // R
-            m_gpuData.imageMemory[pixelIndex + 1] = 35; // G
-            m_gpuData.imageMemory[pixelIndex + 2] = 35; // B
+            // If we hit a triangle, color the pixel accordingly.
+            // For a simple visualization, let’s map intersection distance to grayscale.
+            uint8_t intensity = static_cast<uint8_t>(glm::clamp(closest_t, 0.0f, 255.0f));
+            m_gpuData.imageMemory[pixelIndex + 0] = 255; // R
+            m_gpuData.imageMemory[pixelIndex + 1] = 255; // G
+            m_gpuData.imageMemory[pixelIndex + 2] = 255; // B
+            m_gpuData.imageMemory[pixelIndex + 3] = 255; // A
+        }
+        else {
+            // No intersection: clear pixel to some background color.
+            m_gpuData.imageMemory[pixelIndex + 0] = 0; // R
+            m_gpuData.imageMemory[pixelIndex + 1] = 0; // G
+            m_gpuData.imageMemory[pixelIndex + 2] = 0; // B
             m_gpuData.imageMemory[pixelIndex + 3] = 255; // A
         }
         }

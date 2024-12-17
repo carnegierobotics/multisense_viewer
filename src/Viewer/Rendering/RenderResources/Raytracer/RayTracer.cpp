@@ -177,7 +177,7 @@ namespace VkRender::RT {
                 queue.memcpy(m_imageMemory, m_gpu.imageMemory, m_width * m_height * 4);
                 queue.wait();
 
-                saveAsPPM("sycl.ppm");;
+                //saveAsPPM("sycl.ppm");;
             }
         }
     }

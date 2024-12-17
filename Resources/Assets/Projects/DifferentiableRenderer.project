@@ -4,7 +4,13 @@ logLevel: 2
 editors:
   - borderSize: 5
     editorTypeDescription: "3D Viewport"
-    width: 80
+    width: 40
+    height: 50
+    x: 40
+    y: 0
+  - borderSize: 5
+    editorTypeDescription: "Gaussian Viewer"
+    width: 40
     height: 50
     x: 0
     y: 0

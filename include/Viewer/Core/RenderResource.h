@@ -380,7 +380,7 @@ namespace RenderResource {
             VkResult res = vkCreateGraphicsPipelines(device->m_LogicalDevice, nullptr, 1, &pipelineCI, nullptr,
                                                      &data.pipeline);
             if (res != VK_SUCCESS)
-                throw std::runtime_error("Failed to create graphics m_Pipeline");
+                throw std::runtime_error("Failed to create graphics pipeline: RenderResource");
         }
     };
 }

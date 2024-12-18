@@ -38,6 +38,7 @@
 
 #include <vulkan/vulkan_core.h>
 #include <string>
+#include "Viewer/Tools/Logger.h"
 
 #if defined(_MSC_VER)
 #define DISABLE_WARNING_PUSH           __pragma(warning( push ))
@@ -110,7 +111,8 @@ DISABLE_WARNING_USELESS_CAST
 {                                                                                                           \
     VkResult res = (f);                                                                                     \
     if (res != VK_SUCCESS)                                                                                  \
-    {                                                                                                       \
+    {                                                                                                                        \
+        Log::Logger::getInstance()->fatal("Fatal Error: VkResult is {} in {} at {}", Macros::errorString(res) ,__FILE__ , __LINE__ );     \
         std::cerr << "Fatal : VkResult is \"" << Macros::errorString(res) << "\" in " << __FILE__ << " at line " << __LINE__ << "\n"; \
         assert(res == VK_SUCCESS);                                                                                \
     }                                                                                                             \

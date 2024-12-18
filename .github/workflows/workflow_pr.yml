@@ -61,7 +61,7 @@ jobs:
 
 
   BuildWindows:
-    name: Build and Create Installer for Windows
+    name: Compile Check for Windows
     needs: [VersionJob]
     runs-on: windows-2022
     steps:

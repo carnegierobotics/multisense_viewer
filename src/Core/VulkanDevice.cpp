@@ -262,6 +262,9 @@ VulkanDevice::createLogicalDevice(VkPhysicalDeviceFeatures enabled, std::vector<
 
     }
 
+    Log::Logger::getInstance()->info("Us ycbcr color extension supported? {}", std::find(m_SupportedExtensions.begin(), m_SupportedExtensions.end(), VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME) !=
+            m_SupportedExtensions.end());
+
     if (!deviceExtensions.empty()) {
         for (const char *enabledExtension: deviceExtensions) {
             if (!extensionSupported(enabledExtension)) {

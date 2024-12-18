@@ -348,7 +348,7 @@ void ImageView::createGraphicsPipeline() {
                                                      nullptr,
                                                      &m_model->resources[j].pipeline[i]);
             if (res != VK_SUCCESS)
-                throw std::runtime_error("Failed to create graphics m_Pipeline");
+                throw std::runtime_error("Failed to create graphics pipeline: ImageView");
         }
     }
 }

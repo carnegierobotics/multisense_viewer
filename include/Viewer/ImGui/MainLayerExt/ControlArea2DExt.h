@@ -138,7 +138,8 @@ public:
 
                 /** @brief Drop down for compression selection */
                 {
-                    static std::vector<std::string> saveFormat = {"Select format:", "tiff", "png", "rosbag"};
+                    //static std::vector<std::string> saveFormat = {"Select format:", "tiff", "png", "rosbag"};
+                    static std::vector<std::string> saveFormat = {"Select format:", "tiff", "png"};
                     static size_t selector = 0;
 
                     ImGui::SetNextItemWidth(ImGui::GetWindowSize().x - ImGui::GetCursorPosX() - 5.0f);

@@ -32,8 +32,8 @@ OutputBaseFilename=MultiSenseSetup
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
-SetupIconFile=.\MultiSense_viewer\Assets\Tools\Windows\{#MyAppSetupIcoName}
-UninstallDisplayIcon=.\MultiSense_viewer\Assets\Tools\Windows\{#MyAppSetupIcoName}
+SetupIconFile=.\MultiSense-Viewer\Assets\Tools\Windows\{#MyAppSetupIcoName}
+UninstallDisplayIcon=.\MultiSense-Viewer\Assets\Tools\Windows\{#MyAppSetupIcoName}
 UsePreviousAppDir=no
 
 [Languages]
@@ -43,10 +43,10 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "MultiSense_viewer\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "MultiSense_viewer\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "MultiSense_viewer\AutoConnect.exe"; DestDir: "{app}"; Flags: ignoreversion
-; NOTE: Don't use "Flags: ignoreversion" on any shared system MultiSense_viewer
+Source: "MultiSense-Viewer\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "MultiSense-Viewer\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "MultiSense-Viewer\AutoConnect.exe"; DestDir: "{app}"; Flags: ignoreversion
+; NOTE: Don't use "Flags: ignoreversion" on any shared system MultiSense-Viewer
 
 [Registry]
 Root: HKA; Subkey: "Software\Classes\{#MyAppAssocExt}\OpenWithProgids"; ValueType: string; ValueName: "{#MyAppAssocKey}"; ValueData: ""; Flags: uninsdeletevalue

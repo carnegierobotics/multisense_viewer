@@ -6,6 +6,7 @@
 #include "Viewer/Rendering/RenderResources/Raytracer/RayTracer.h"
 #include "Viewer/Rendering/RenderResources/Raytracer/RayTracerKernels.h"
 #include <sycl/sycl.hpp>
+#include <Viewer/Rendering/Components/GaussianComponent.h>
 
 #include "Viewer/Tools/SyclDeviceSelector.h"
 
@@ -16,14 +17,46 @@ namespace VkRender::RT {
         m_width = width;
         m_height = height;
         m_camera = BaseCamera(width / height);
-        auto& queue = m_selector.getQueue();
         // Load the scene into gpu memory
         // Create image memory
         m_imageMemory = new uint8_t[width * height * 4]; // Assuming RGBA8 image
-        m_gpu.imageMemory = sycl::malloc_device<uint8_t>(m_width * m_height * 4, queue);
+        m_gpu.imageMemory = sycl::malloc_device<uint8_t>(m_width * m_height * 4, m_selector.getQueue());
         if (!m_gpu.imageMemory) {
             throw std::runtime_error("Device memory allocation failed.");
         }
+
+        uploadVertexData(scene);
+        uploadGaussianData(scene);
+
+    }
+
+    void RayTracer::uploadGaussianData(std::shared_ptr<Scene>& scene) {
+        std::vector<GaussianInputAssembly> gaussianData;
+
+        auto view = scene->getRegistry().view<GaussianComponent, TransformComponent>();
+        for (auto e : view) {
+            Entity entity(e, scene.get());
+            std::string tag = entity.getName();
+            auto& gaussianComponent = entity.getComponent<GaussianComponent>();
+
+            for (size_t i = 0; i < gaussianComponent.size(); ++i) {
+                GaussianInputAssembly point{};
+                point.position = gaussianComponent.means[i];
+                point.normal = glm::vec3(0.0f, 0.0f, 1.0f);;
+                point.scale = gaussianComponent.scales[i];
+                point.intensity = gaussianComponent.opacities[i];
+                gaussianData.push_back(point);
+            }
+        }
+        m_gpu.numGaussians = gaussianData.size();
+
+        auto& queue = m_selector.getQueue();
+        m_gpu.gaussianInputAssembly = sycl::malloc_device<GaussianInputAssembly>(gaussianData.size(), queue);
+        queue.memcpy(m_gpu.gaussianInputAssembly, gaussianData.data(), gaussianData.size() * sizeof(GaussianInputAssembly));
+        queue.wait();
+    }
+
+    void RayTracer::uploadVertexData(std::shared_ptr<Scene>& scene) {
         std::vector<InputAssembly> vertexData;
         std::vector<uint32_t> indices;
 
@@ -46,6 +79,8 @@ namespace VkRender::RT {
             m_gpu.numVertices = vertexData.size();
             m_gpu.numIndices = indices.size();
         }
+
+        auto& queue = m_selector.getQueue();
         m_gpu.vertices = sycl::malloc_device<InputAssembly>(vertexData.size(), queue);
         queue.memcpy(m_gpu.vertices, vertexData.data(), vertexData.size() * sizeof(InputAssembly));
         m_gpu.indices = sycl::malloc_device<uint32_t>(indices.size(), queue);

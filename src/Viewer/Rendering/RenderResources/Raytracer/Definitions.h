@@ -14,14 +14,29 @@ namespace VkRender::RT{
         glm::vec3 normal;
     };
 
+    struct GaussianInputAssembly {
+        glm::vec3 position;
+        glm::vec3 normal;
+        glm::vec2 scale;
+        float intensity;
+    };
+
+    struct GaussianScene {
+        GaussianInputAssembly* inputAssembly;
+    };
+
     struct GPUData {
-        uint8_t* imageMemory = nullptr;
         InputAssembly* vertices;
         uint32_t*  indices; // e.g., {0, 1, 2, 2, 3, 0, ...}
         size_t numVertices;
         size_t numIndices;
-    };
+        // GS
+        GaussianInputAssembly* gaussianInputAssembly;
+        size_t numGaussians;
 
+        // uint8_t
+        uint8_t* imageMemory;
+    };
 
 
 }

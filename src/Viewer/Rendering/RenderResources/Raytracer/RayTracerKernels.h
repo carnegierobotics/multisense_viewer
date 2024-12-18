@@ -51,6 +51,17 @@ namespace VkRender::RT::Kernels {
         return false;
     }
 
+    static bool intersectPlane(const glm::vec3 &n, const glm::vec3 &p0, const glm::vec3 &l0, const glm::vec3 &l, float &t) {
+        // Assuming vectors are normalized
+        float denom = glm::dot(n, l);
+        if (std::abs(denom) > 1e-6) { // Avoid near-parallel cases
+            glm::vec3 p0l0 = p0 - l0;
+            t = glm::dot(p0l0, n) / denom;
+            return (t >= 0); // Only return true for intersections in front of the ray
+        }
+        return false;
+    }
+
     class RenderKernel {
     public:
         RenderKernel(GPUData gpuData, uint32_t width, uint32_t height, uint32_t size, TransformComponent cameraPose,
@@ -79,12 +90,28 @@ namespace VkRender::RT::Kernels {
                 float Z = Z_plane;
                 return glm::vec3(X, Y, Z);
             };
-        glm::vec3 direction = mapPixelTo3D(static_cast<float>(x), static_cast<float>(y));
-        glm::vec3 rayOrigin = m_cameraTransform.translation;
-        glm::vec3 worldRayDir = glm::mat3(m_cameraTransform.rotation) * glm::normalize(direction);
-        // Primary ray intersection
-        float closest_t = FLT_MAX;
-        bool hit = false;
+            glm::vec3 direction = mapPixelTo3D(static_cast<float>(x), static_cast<float>(y));
+            glm::vec3 rayOrigin = m_cameraTransform.translation;
+            glm::vec3 worldRayDir = glm::normalize(glm::mat3(m_cameraTransform.rotation) * glm::normalize(direction));
+            // Primary ray intersection
+            float closest_t = FLT_MAX;
+            bool hit = false;
+
+            for (size_t idx = 0; idx < m_gpuData.numGaussians; ++idx) {
+                glm::vec3& pos =  m_gpuData.gaussianInputAssembly[idx].position;
+                glm::vec3& normal = m_gpuData.gaussianInputAssembly[idx].normal;
+                glm::vec2& scale = m_gpuData.gaussianInputAssembly[idx].scale;
+                float intensity = m_gpuData.gaussianInputAssembly[idx].intensity;
+
+                float t = FLT_MAX;
+                if (intersectPlane(normal, pos, rayOrigin, worldRayDir, t) && t < closest_t) {
+                    closest_t = t;
+                    hit = true;
+                }
+            }
+
+
+            /*
         glm::vec3 hitPoint(0.0f);
         size_t triangleCount = m_gpuData.numIndices / 3;
         for (size_t tri = 0; tri < triangleCount; ++tri) {
@@ -104,23 +131,24 @@ namespace VkRender::RT::Kernels {
                 }
             }
         }
+            */
 
-        if (hit) {
-            // If we hit a triangle, color the pixel accordingly.
-            // For a simple visualization, let’s map intersection distance to grayscale.
-            uint8_t intensity = static_cast<uint8_t>(glm::clamp(closest_t, 0.0f, 255.0f));
-            m_gpuData.imageMemory[pixelIndex + 0] = 255; // R
-            m_gpuData.imageMemory[pixelIndex + 1] = 255; // G
-            m_gpuData.imageMemory[pixelIndex + 2] = 255; // B
-            m_gpuData.imageMemory[pixelIndex + 3] = 255; // A
-        }
-        else {
-            // No intersection: clear pixel to some background color.
-            m_gpuData.imageMemory[pixelIndex + 0] = 0; // R
-            m_gpuData.imageMemory[pixelIndex + 1] = 0; // G
-            m_gpuData.imageMemory[pixelIndex + 2] = 0; // B
-            m_gpuData.imageMemory[pixelIndex + 3] = 255; // A
-        }
+            if (hit) {
+                // If we hit a triangle, color the pixel accordingly.
+                // For a simple visualization, let’s map intersection distance to grayscale.
+                uint8_t intensity = static_cast<uint8_t>(glm::clamp(closest_t, 0.0f, 255.0f));
+                m_gpuData.imageMemory[pixelIndex + 0] = 255; // R
+                m_gpuData.imageMemory[pixelIndex + 1] = 255; // G
+                m_gpuData.imageMemory[pixelIndex + 2] = 255; // B
+                m_gpuData.imageMemory[pixelIndex + 3] = 255; // A
+            }
+            else {
+                // No intersection: clear pixel to some background color.
+                m_gpuData.imageMemory[pixelIndex + 0] = 0; // R
+                m_gpuData.imageMemory[pixelIndex + 1] = 0; // G
+                m_gpuData.imageMemory[pixelIndex + 2] = 0; // B
+                m_gpuData.imageMemory[pixelIndex + 3] = 255; // A
+            }
         }
 
     private:

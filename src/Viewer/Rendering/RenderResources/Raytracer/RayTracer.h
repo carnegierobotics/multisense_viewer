@@ -15,6 +15,8 @@ namespace VkRender::RT {
     class RayTracer {
     public:
         RayTracer(Application* context, std::shared_ptr<Scene>& scene, uint32_t width, uint32_t height);
+        void uploadGaussianData(std::shared_ptr<Scene>& scene);
+        void uploadVertexData(std::shared_ptr<Scene>& scene);
 
         void update(bool update);
 

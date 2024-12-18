@@ -626,7 +626,7 @@ namespace VkRender::MultiSense {
                                              const std::vector<uint32_t> &maskVec,
                                              crl::multisense::RemoteHeadChannel idx,
                                              CRLPhysicalCamera &camPtr) {
-        uint32_t bits = camPtr.getCameraInfo(idx).supportedSources;
+        crl::multisense::DataSource bits = camPtr.getCameraInfo(idx).supportedSources;
         for (auto mask: maskVec) {
             bool enabled = (bits & mask);
             if (enabled) {

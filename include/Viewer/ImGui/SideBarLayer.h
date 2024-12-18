@@ -71,14 +71,16 @@
 #endif
 
 
-class SideBarLayer : public VkRender::Layer {
+class SideBarLayer : public VkRender::Layer
+{
 public:
-
-    typedef enum LOG_COLOR {
+    typedef enum LOG_COLOR
+    {
         LOG_COLOR_GRAY = 0,
         LOG_COLOR_GREEN = 1,
         LOG_COLOR_RED = 2
     } LOG_COLOR;
+
     VkRender::EntryConnectDevice m_Entry;
     std::vector<VkRender::EntryConnectDevice> entryConnectDeviceList;
     uint32_t gifFrameIndex = 0;
@@ -91,7 +93,9 @@ public:
     std::string dots;
     bool btnConnect = false;
     bool enableConnectButton = true;
-    enum {
+
+    enum
+    {
         MANUAL_CONNECT = 1,
         AUTO_CONNECT = 2
     };
@@ -118,15 +122,18 @@ public:
 #endif
     std::string btnLabel = "Start";
 
-    void onAttach() override {
+    void onAttach() override
+    {
         gifFrameTimer = std::chrono::steady_clock::now();
         gifFrameTimer2 = std::chrono::steady_clock::now();
     }
 
-    void onFinishedRender() override {
+    void onFinishedRender() override
+    {
     }
 
-    void onDetach() override {
+    void onDetach() override
+    {
         adapterUtils.stopAdapterScan();
 #ifdef __linux__
         if (autoConnectProcess != nullptr) {
@@ -134,30 +141,35 @@ public:
                 reader->sendStopSignal();
             pclose(autoConnectProcess);
 #else
-            if (shellInfo.hProcess != nullptr) {
-                if (reader)
-                    reader->sendStopSignal();
-                if (TerminateProcess(shellInfo.hProcess, 1) != 0) {
-                    Log::Logger::getInstance()->info("Terminated AutoConnect program");
-                } else
-                    Log::Logger::getInstance()->info("Failed to terminate AutoConnect program");
+        if (shellInfo.hProcess != nullptr)
+        {
+            if (reader)
+                reader->sendStopSignal();
+            if (TerminateProcess(shellInfo.hProcess, 1) != 0)
+            {
+                Log::Logger::getInstance()->info("Terminated AutoConnect program");
+            }
+            else
+                Log::Logger::getInstance()->info("Failed to terminate AutoConnect program");
 #endif
         }
         auto startTime = std::chrono::steady_clock::now();
         // Make sure adapter utils scanning thread is shut down correctly
-        while (true) {
+        while (true)
+        {
             Log::Logger::getInstance()->traceWithFrequency("shutdown adapterutils: ", 1000,
                                                            "Waiting for adapterUtils to shutdown");
             if (adapterUtils.shutdownReady())
                 break;
         }
 
-        auto timeSpan = std::chrono::duration_cast<std::chrono::duration<float >>(
-                std::chrono::steady_clock::now() - startTime);
+        auto timeSpan = std::chrono::duration_cast<std::chrono::duration<float>>(
+            std::chrono::steady_clock::now() - startTime);
         Log::Logger::getInstance()->trace("Adapter utils took {}s to shut down", timeSpan.count());
     }
 
-    static void openURL(const std::string &url) {
+    static void openURL(const std::string& url)
+    {
 #ifdef _WIN32
         ShellExecuteA(nullptr, "open", url.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
 #elif __linux__
@@ -169,8 +181,10 @@ public:
 #endif
     }
 
-    static void askUsageLoggingPermissionPopUp(VkRender::GuiObjectHandles *handle) {
-        if (VkRender::RendererConfig::getInstance().getUserSetting().askForUsageLoggingPermissions) {
+    static void askUsageLoggingPermissionPopUp(VkRender::GuiObjectHandles* handle)
+    {
+        if (VkRender::RendererConfig::getInstance().getUserSetting().askForUsageLoggingPermissions)
+        {
             ImGui::OpenPopup("Anonymous Usage Statistics");
 
             auto user = VkRender::RendererConfig::getInstance().getUserSetting();
@@ -183,11 +197,15 @@ public:
         ImVec2 anonymousWindowSize(500.0f, 180.0f);
         ImGui::SetNextWindowPos(ImVec2((handle->info->width / 2) - (anonymousWindowSize.x / 2),
                                        (handle->info->height / 2) - (anonymousWindowSize.y / 2) - 50.0f));
-        if (ImGui::BeginPopupModal("Anonymous Usage Statistics", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-            std::string url = "https://github.com/carnegierobotics/multisense_viewer/blob/master/Assets/Generated/PrivacyPolicy.md";
+        if (ImGui::BeginPopupModal("Anonymous Usage Statistics", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+        {
+            std::string url =
+                "https://github.com/carnegierobotics/multisense_viewer/blob/master/Assets/Generated/PrivacyPolicy.md";
             static bool isLinkHovered = false;
-            ImVec4 blueLinkColor = isLinkHovered ? ImVec4(0.17f, 0.579f, 0.893f, 1.0f) : ImVec4(0.0f, 0.439f, 0.753f,
-                                                                                                1.0f);
+            ImVec4 blueLinkColor = isLinkHovered
+                                       ? ImVec4(0.17f, 0.579f, 0.893f, 1.0f)
+                                       : ImVec4(0.0f, 0.439f, 0.753f,
+                                                1.0f);
 
             ImGui::Text("We would like to collect anonymous usage statistics to help improve our product.");
             ImGui::Text("Data collected will only be used for product improvement purposes");
@@ -200,7 +218,8 @@ public:
                                   ImVec4(0, 0, 0, 0)); // Transparent button background when active
             ImGui::SameLine();
             ImGui::SetNextItemWidth(ImGui::CalcTextSize("Privacy policy").x);
-            if (ImGui::Selectable("Privacy policy", false, ImGuiSelectableFlags_DontClosePopups)) {
+            if (ImGui::Selectable("Privacy policy", false, ImGuiSelectableFlags_DontClosePopups))
+            {
                 openURL(url);
                 handle->usageMonitor->userClickAction("Privacy policy", "Selectable",
                                                       ImGui::GetCurrentWindow()->Name);
@@ -216,7 +235,8 @@ public:
             bool update = ImGui::RadioButton("Yes", &radio_value, 1);
             ImGui::SameLine();
             update |= ImGui::RadioButton("No", &radio_value, 0);
-            if (update) {
+            if (update)
+            {
                 user.userConsentToSendLogs = radio_value;
                 VkRender::RendererConfig::getInstance().setUserSetting(user);
                 handle->usageMonitor->setSetting("user_consent_to_collect_statistics", radio_value ? "true" : "false");
@@ -226,7 +246,8 @@ public:
 
             ImVec2 btnSize(120.0f, 0.0f);
             ImGui::SetCursorPosX((ImGui::GetWindowWidth() / 2) - (btnSize.x / 2));
-            if (ImGui::Button("OK", btnSize)) {
+            if (ImGui::Button("OK", btnSize))
+            {
                 handle->usageMonitor->setSetting("ask_user_consent_to_collect_statistics", "false");
                 user.userConsentToSendLogs = radio_value;
                 VkRender::RendererConfig::getInstance().setUserSetting(user);
@@ -244,17 +265,18 @@ public:
         ImGui::PopStyleVar(2);
     }
 
-    void onUIRender(VkRender::GuiObjectHandles *handles) override {
-            if (handles->renderer3D){
-
-                return;
-            }
+    void onUIRender(VkRender::GuiObjectHandles* handles) override
+    {
+        if (handles->renderer3D)
+        {
+            return;
+        }
 
         bool pOpen = true;
         ImGuiWindowFlags window_flags = 0;
         window_flags =
-                ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus |
-                ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoScrollWithMouse;
+            ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoBringToFrontOnFocus |
+            ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoScrollWithMouse;
         ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
         ImGui::SetNextWindowSize(ImVec2(handles->info->sidebarWidth, handles->info->height));
         ImGui::PushStyleColor(ImGuiCol_WindowBg, VkRender::Colors::CRLGray424Main);
@@ -265,7 +287,8 @@ public:
         askUsageLoggingPermissionPopUp(handles);
         ImGui::SetCursorPos(ImVec2(0.0f, 0.0f));
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
-        if (ImGui::Button("Settings", ImVec2(handles->info->sidebarWidth, 17.0f))) {
+        if (ImGui::Button("Settings", ImVec2(handles->info->sidebarWidth, 17.0f)))
+        {
             handles->showDebugWindow = !handles->showDebugWindow;
             handles->usageMonitor->userClickAction("Settings", "button", ImGui::GetCurrentWindow()->Name);
         }
@@ -288,14 +311,15 @@ public:
     }
 
 private:
-    void addLogLine(LOG_COLOR color, const char *fmt, ...) IM_FMTARGS(3) {
+    void addLogLine(LOG_COLOR color, const char* fmt, ...) IM_FMTARGS(3) {
         int old_size = Buf.size();
         va_list args;
         va_start(args, fmt);
         Buf.appendfv(fmt, args);
         va_end(args);
         for (int new_size = Buf.size(); old_size < new_size; old_size++)
-            if (Buf[old_size] == '\n') {
+            if (Buf[old_size] == '\n')
+            {
                 LineOffsets.push_back(old_size + 1);
             }
         colors.push_back(color);
@@ -306,21 +330,26 @@ private:
      * Should run once popup modal is opened
      * Periodically check the status of connected ethernet devices
      * */
-    void autoDetectCamera() {
+    void autoDetectCamera()
+    {
         // if reader is not opened we don't start autoconnect program
         if (!reader)
             return;
 
-        if (startedAutoConnect) {
+        if (startedAutoConnect)
+        {
             // Try to open reader. TODO timeout or number of tries for opening
             if (!reader->isOpen)
                 reader->open();
-            else {
-                if (reader->read()) {
+            else
+            {
+                if (reader->read())
+                {
                     std::string str = reader->getLogLine();
                     if (!str.empty())
                         addLogLine(LOG_COLOR_GRAY, "%s", str.c_str());
-                    if (reader->stopRequested) {
+                    if (reader->stopRequested)
+                    {
                         reader->sendStopSignal();
 
                         m_Entry.IP.clear();
@@ -337,8 +366,10 @@ private:
                             return;
                         }
 #else
-                        if (shellInfo.hProcess != nullptr) {
-                            if (TerminateProcess(shellInfo.hProcess, 1) != 0) {
+                        if (shellInfo.hProcess != nullptr)
+                        {
+                            if (TerminateProcess(shellInfo.hProcess, 1) != 0)
+                            {
                                 Log::Logger::getInstance()->info("Stopped the auto connect process gracefully");
                             }
                             shellInfo.hProcess = nullptr;
@@ -351,17 +382,23 @@ private:
                     }
                     // Same IP on same adapter is treated as the same camera
                     std::vector<VkRender::EntryConnectDevice> entries = reader->getResult();
-                    for (const auto &entry: entries) {
-                        if (!entry.cameraName.empty()) {
+                    for (const auto& entry : entries)
+                    {
+                        if (!entry.cameraName.empty())
+                        {
                             bool cameraExists = false;
-                            for (const auto &e: entryConnectDeviceList) {
+                            for (const auto& e : entryConnectDeviceList)
+                            {
                                 if (e.IP == entry.IP && e.interfaceIndex == entry.interfaceIndex)
                                     cameraExists = true;
                             }
-                            if (!cameraExists) {
-                                VkRender::EntryConnectDevice e{entry.IP, entry.interfaceName, entry.cameraName,
-                                                               entry.interfaceIndex,
-                                                               entry.description};
+                            if (!cameraExists)
+                            {
+                                VkRender::EntryConnectDevice e{
+                                    entry.IP, entry.interfaceName, entry.cameraName,
+                                    entry.interfaceIndex,
+                                    entry.description
+                                };
 
                                 entryConnectDeviceList.push_back(e);
                             }
@@ -369,7 +406,9 @@ private:
                     }
                 }
             }
-        } else {
+        }
+        else
+        {
 #ifdef __linux__
             std::string fileName = "./AutoConnectLauncher.sh";
             autoConnectProcess = popen((fileName).c_str(), "r");
@@ -392,26 +431,31 @@ private:
             shellInfo.hInstApp = nullptr;
             bool instance = ShellExecuteExA(&shellInfo);
 
-            if (!instance) {
+            if (!instance)
+            {
                 Log::Logger::getInstance()->info("Failed to start new process, error: %zu", GetLastError());
                 reader.reset();
                 btnLabel = "Start";
                 // Reset attempts
-            } else {
+            }
+            else
+            {
                 startedAutoConnect = true;
             }
 #endif
         }
     }
 
-    static void createDefaultElement(VkRender::GuiObjectHandles *handles, const VkRender::EntryConnectDevice &entry,
-                              bool fromWindowsAutoConnect = false) {
+    static void createDefaultElement(VkRender::GuiObjectHandles* handles, const VkRender::EntryConnectDevice& entry,
+                                     bool fromWindowsAutoConnect = false)
+    {
         VkRender::Device el{};
 
         el.name = entry.profileName;
         el.IP = entry.IP;
         el.state = fromWindowsAutoConnect ? VkRender::CRL_STATE_JUST_ADDED_WINDOWS : VkRender::CRL_STATE_JUST_ADDED;
-        Log::Logger::getInstance()->info("Set dev {}'s state to VkRender::CRL_STATE_JUST_ADDED. On Windows? {} ", el.name,
+        Log::Logger::getInstance()->info("Set dev {}'s state to VkRender::CRL_STATE_JUST_ADDED. On Windows? {} ",
+                                         el.name,
                                          fromWindowsAutoConnect);
         el.interfaceName = entry.interfaceName;
         el.interfaceDescription = entry.description;
@@ -426,76 +470,79 @@ private:
     }
 
 
-    void sidebarElements(VkRender::GuiObjectHandles *handles) {
-        auto &devices = handles->devices;
-        for (size_t i = 0; i < devices.size(); ++i) {
-            auto &e = devices.at(i);
+    void sidebarElements(VkRender::GuiObjectHandles* handles)
+    {
+        auto& devices = handles->devices;
+        for (size_t i = 0; i < devices.size(); ++i)
+        {
+            auto& e = devices.at(i);
             std::string buttonIdentifier;
             ImVec4 btnColor{};
             // Set colors based on state
-            switch (e.state) {
-                case VkRender::CRL_STATE_CONNECTED:
-                    break;
-                case VkRender::CRL_STATE_CONNECTING:
-                    buttonIdentifier = "Connecting";
-                    ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLGray424);
-                    ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::CRLBlueIsh);
-                    btnColor = VkRender::Colors::CRLBlueIsh;
-                    break;
-                case VkRender::CRL_STATE_ACTIVE:
-                    buttonIdentifier = "Active";
-                    ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLGray421);
-                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.26f, 0.42f, 0.31f, 1.0f));
-                    btnColor = ImVec4(0.26f, 0.42f, 0.31f, 1.0f);
-                    break;
-                case VkRender::CRL_STATE_INACTIVE:
-                    buttonIdentifier = "Inactive";
-                    ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLGray424);
-                    ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::CRLRed);
-                    btnColor = VkRender::Colors::CRLRed;
-                    break;
-                case VkRender::CRL_STATE_LOST_CONNECTION:
-                    buttonIdentifier = "Lost connection...";
-                    ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLGray424);
-                    ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::CRLBlueIsh);
-                    btnColor = VkRender::Colors::CRLBlueIsh;
-                    break;
-                case VkRender::CRL_STATE_DISCONNECTED:
-                    buttonIdentifier = "Disconnected";
-                    ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLGray424);
-                    ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::CRLRed);
-                    btnColor = VkRender::Colors::CRLRed;
-                    break;
-                case VkRender::CRL_STATE_UNAVAILABLE:
-                    ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLGray424);
-                    ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::CRLDarkGray425);
-                    btnColor = VkRender::Colors::CRLDarkGray425;
-                    buttonIdentifier = "Unavailable";
-                    break;
-                case VkRender::CRL_STATE_JUST_ADDED :
-                case VkRender::CRL_STATE_JUST_ADDED_WINDOWS:
-                    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
-                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
-                    btnColor = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
-                    buttonIdentifier = "Added...";
-                    break;
-                case VkRender::CRL_STATE_DISCONNECT_AND_FORGET:
-                    buttonIdentifier = "Disconnecting...cmake";
-                    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
-                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
-                    break;
-                case VkRender::CRL_STATE_REMOVE_FROM_LIST:
-                    buttonIdentifier = "Removing...";
-                    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
-                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
-                    break;
-                case VkRender::CRL_STATE_RESET:
-                    buttonIdentifier = "Resetting";
-                    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
-                    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
-                    break;
-                default:
-                    break;
+            switch (e.state)
+            {
+            case VkRender::CRL_STATE_CONNECTED:
+                break;
+            case VkRender::CRL_STATE_CONNECTING:
+                buttonIdentifier = "Connecting";
+                ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLGray424);
+                ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::CRLBlueIsh);
+                btnColor = VkRender::Colors::CRLBlueIsh;
+                break;
+            case VkRender::CRL_STATE_ACTIVE:
+                buttonIdentifier = "Active";
+                ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLGray421);
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.26f, 0.42f, 0.31f, 1.0f));
+                btnColor = ImVec4(0.26f, 0.42f, 0.31f, 1.0f);
+                break;
+            case VkRender::CRL_STATE_INACTIVE:
+                buttonIdentifier = "Inactive";
+                ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLGray424);
+                ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::CRLRed);
+                btnColor = VkRender::Colors::CRLRed;
+                break;
+            case VkRender::CRL_STATE_LOST_CONNECTION:
+                buttonIdentifier = "Lost connection...";
+                ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLGray424);
+                ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::CRLBlueIsh);
+                btnColor = VkRender::Colors::CRLBlueIsh;
+                break;
+            case VkRender::CRL_STATE_DISCONNECTED:
+                buttonIdentifier = "Disconnected";
+                ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLGray424);
+                ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::CRLRed);
+                btnColor = VkRender::Colors::CRLRed;
+                break;
+            case VkRender::CRL_STATE_UNAVAILABLE:
+                ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLGray424);
+                ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::CRLDarkGray425);
+                btnColor = VkRender::Colors::CRLDarkGray425;
+                buttonIdentifier = "Unavailable";
+                break;
+            case VkRender::CRL_STATE_JUST_ADDED:
+            case VkRender::CRL_STATE_JUST_ADDED_WINDOWS:
+                ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+                btnColor = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
+                buttonIdentifier = "Added...";
+                break;
+            case VkRender::CRL_STATE_DISCONNECT_AND_FORGET:
+                buttonIdentifier = "Disconnecting...cmake";
+                ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+                break;
+            case VkRender::CRL_STATE_REMOVE_FROM_LIST:
+                buttonIdentifier = "Removing...";
+                ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+                break;
+            case VkRender::CRL_STATE_RESET:
+                buttonIdentifier = "Resetting";
+                ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.03f, 0.07f, 0.1f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.1f, 0.1f, 0.1f, 1.0f));
+                break;
+            default:
+                break;
             }
 
             ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
@@ -509,8 +556,8 @@ private:
 
             // Delete a profile
             {
-
-                if (ImGui::SmallButton("X")) {
+                if (ImGui::SmallButton("X"))
+                {
                     // delete and disconnect devices
                     if (handles->devices.at(i).state == VkRender::CRL_STATE_CONNECTING)
                         handles->devices.at(i).state = VkRender::CRL_STATE_INTERRUPT_CONNECTION;
@@ -580,33 +627,38 @@ private:
             //buttonIdentifier += "##" + e.IP;
             //e.clicked = ImGui::Button(buttonIdentifier.c_str(), ImVec2(ImGui::GetFontSize() * 10, ImGui::GetFontSize() * 2));
 
-            ImVec2 uv0 = ImVec2(0.0f, 0.0f);                        // UV coordinates for lower-left
+            ImVec2 uv0 = ImVec2(0.0f, 0.0f); // UV coordinates for lower-left
             ImVec2 uv1 = ImVec2(1.0f, 1.0f);
-            ImVec4 tint_col = ImVec4(1.0f, 1.0f, 1.0f, 0.3f);       // No tint
+            ImVec4 tint_col = ImVec4(1.0f, 1.0f, 1.0f, 0.3f); // No tint
 
             // Check if other device is already attempting to connect
             bool busy = false;
-            for (const auto &dev: handles->devices) {
+            for (const auto& dev : handles->devices)
+            {
                 if (dev.state == VkRender::CRL_STATE_CONNECTING)
                     busy = true;
             }
 
             // Connect button
-            if (buttonIdentifier == "Connecting") {
+            if (buttonIdentifier == "Connecting")
+            {
                 e.clicked = ImGui::ButtonWithGif(buttonIdentifier.c_str(), ImVec2(ImGui::GetFontSize() * 10, 35.0f),
                                                  handles->info->gif.image[gifFrameIndex2], ImVec2(35.0f, 35.0f),
                                                  uv0,
                                                  uv1,
                                                  tint_col, btnColor) && !busy;
-            } else {
+            }
+            else
+            {
                 e.clicked = ImGui::Button(buttonIdentifier.c_str(),
                                           ImVec2(ImGui::GetFontSize() * 10, ImGui::GetFontSize() * 2)) && !busy;
             }
             auto time = std::chrono::steady_clock::now();
             auto time_span =
-                    std::chrono::duration_cast<std::chrono::duration<float>>(time - gifFrameTimer2);
+                std::chrono::duration_cast<std::chrono::duration<float>>(time - gifFrameTimer2);
 
-            if (time_span.count() > static_cast<float>(*handles->info->gif.delay) / 1000.0f) {
+            if (time_span.count() > static_cast<float>(*handles->info->gif.delay) / 1000.0f)
+            {
                 gifFrameTimer2 = std::chrono::steady_clock::now();
                 gifFrameIndex2++;
             }
@@ -622,14 +674,15 @@ private:
         }
     }
 
-    static void addDeviceButton(VkRender::GuiObjectHandles *handles) {
-
+    static void addDeviceButton(VkRender::GuiObjectHandles* handles)
+    {
         ImGui::SetCursorPos(ImVec2((handles->info->sidebarWidth / 2) - (handles->info->addDeviceWidth / 2),
                                    handles->info->height - handles->info->addDeviceBottomPadding));
 
         ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::CRLBlueIsh);
         if (ImGui::Button("ADD DEVICE", ImVec2(handles->info->addDeviceWidth, handles->info->addDeviceHeight)) ||
-            handles->openAddDevicePopup) {
+            handles->openAddDevicePopup)
+        {
             ImGui::OpenPopup("add_device_modal");
             handles->usageMonitor->userClickAction("ADD_DEVICE", "button", ImGui::GetCurrentWindow()->Name);
             handles->openAddDevicePopup = false;
@@ -637,7 +690,8 @@ private:
         ImGui::PopStyleColor();
     }
 
-    void addPopup(VkRender::GuiObjectHandles *handles) {
+    void addPopup(VkRender::GuiObjectHandles* handles)
+    {
         ImGui::SetNextWindowSize(ImVec2(handles->info->popupWidth, handles->info->popupHeight), ImGuiCond_Always);
         ImGui::PushStyleVar(ImGuiStyleVar_PopupBorderSize, 0);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
@@ -648,8 +702,8 @@ private:
 
 
         if (ImGui::BeginPopupModal("add_device_modal", nullptr,
-                                   ImGuiWindowFlags_NoDecoration)) {
-
+                                   ImGuiWindowFlags_NoDecoration))
+        {
             /** HEADER FIELD */
             ImVec2 popupDrawPos = ImGui::GetCursorScreenPos();
             ImVec2 headerPosMax = popupDrawPos;
@@ -665,7 +719,7 @@ private:
             std::string title = "Connect to MultiSense";
             ImVec2 size = ImGui::CalcTextSize(title.c_str());
             float anchorPoint =
-                    (handles->info->popupWidth - size.x) / 2; // Make a m_Title in center of popup window
+                (handles->info->popupWidth - size.x) / 2; // Make a m_Title in center of popup window
 
 
             ImGui::Dummy(ImVec2(0.0f, size.y));
@@ -744,20 +798,25 @@ private:
             ImGui::PopStyleColor(); // ImGuiCol_FrameBg
 
             /** AUTOCONNECT FIELD BEGINS HERE*/
-            if (connectMethodSelector == AUTO_CONNECT) {
+            if (connectMethodSelector == AUTO_CONNECT)
+            {
                 adapterUtils.stopAdapterScan(); // Stop scan if we select manual as autoconnect will run its own scan
                 m_Entry.cameraName = "AutoConnect";
                 ImGui::Dummy(ImVec2(0.0f, 12.0f));
                 ImGui::Dummy(ImVec2(20.0f, 0.0f));
                 ImGui::SameLine();
 
-                if (ImGui::Button(btnLabel.c_str(), ImVec2(80.0f, 20.0f))) {
+                if (ImGui::Button(btnLabel.c_str(), ImVec2(80.0f, 20.0f)))
+                {
                     Log::Logger::getInstance()->info("User clicked {}", btnLabel);
-                    if (btnLabel == "Start") {
+                    if (btnLabel == "Start")
+                    {
                         handles->usageMonitor->userClickAction("Start", "button", ImGui::GetCurrentWindow()->Name);
                         reader = std::make_unique<AutoConnectReader>();
                         btnLabel = "Reset";
-                    } else {
+                    }
+                    else
+                    {
                         handles->usageMonitor->userClickAction("Reset", "button", ImGui::GetCurrentWindow()->Name);
                         reader->sendStopSignal();
                         entryConnectDeviceList.clear();
@@ -780,20 +839,20 @@ private:
                             btnLabel = "Start";
                         }
 #else
-                        if (shellInfo.hProcess != nullptr) {
-                            if (TerminateProcess(shellInfo.hProcess, 1) != 0) {
+                        if (shellInfo.hProcess != nullptr)
+                        {
+                            if (TerminateProcess(shellInfo.hProcess, 1) != 0)
+                            {
                                 Log::Logger::getInstance()->info("Stopped the auto connect process gracefully");
                             }
                             shellInfo.hProcess = nullptr;
                             reader.reset();
                             btnLabel = "Start";
                             startedAutoConnect = false;
-
                         }
 #endif
                     }
                 }
-
 
 
                 /** STATUS SPINNER */
@@ -809,46 +868,51 @@ private:
                 ImGui::PushStyleColor(ImGuiCol_PopupBg, VkRender::Colors::CRLBlueIsh);
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextWhite);
                 ImGui::HelpMarker(" If no packet at adapter is received try the following: \n "
-                                  " 1. Reconnect ethernet cables \n "
-                                  " 2. Power cycle the camera \n "
-                                  " 3. Wait 20-30 seconds. If no packet is received contact support  \n\n");
+                    " 1. Reconnect ethernet cables \n "
+                    " 2. Power cycle the camera \n "
+                    " 3. Wait 20-30 seconds. If no packet is received contact support  \n\n");
 
                 ImGui::PopStyleColor(2);
 
                 ImGui::PushStyleColor(ImGuiCol_ChildBg, VkRender::Colors::CRLDarkGray425);
-                const char *id = "Log Window";
+                const char* id = "Log Window";
                 ImGui::Dummy(ImVec2(0.0f, 5.0f));
                 ImGui::Dummy(ImVec2(20.0f, 0.0f));
 
                 ImGui::SameLine();
                 ImGui::BeginChild(id, ImVec2(handles->info->popupWidth - 40.0f, 85.0f), false, 0);
                 ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0));
-                const char *buf = Buf.begin();
-                const char *buf_end = Buf.end();
+                const char* buf = Buf.begin();
+                const char* buf_end = Buf.end();
                 ImGuiListClipper clipper;
                 clipper.Begin(LineOffsets.Size);
-                while (clipper.Step()) {
-                    for (int line_no = clipper.DisplayStart; line_no < clipper.DisplayEnd; line_no++) {
-                        const char *line_start = buf + LineOffsets[line_no];
-                        const char *line_end = (line_no + 1 < LineOffsets.Size) ? (buf + LineOffsets[line_no + 1] -
-                                                                                   1)
-                                                                                : buf_end;
+                while (clipper.Step())
+                {
+                    for (int line_no = clipper.DisplayStart; line_no < clipper.DisplayEnd; line_no++)
+                    {
+                        const char* line_start = buf + LineOffsets[line_no];
+                        const char* line_end = (line_no + 1 < LineOffsets.Size)
+                                                   ? (buf + LineOffsets[line_no + 1] -
+                                                       1)
+                                                   : buf_end;
                         // Weird index magic. colors is an ImGui vector.
-                        if (line_no > 0 && line_no < colors.size() - 1) {
+                        if (line_no > 0 && line_no < colors.size() - 1)
+                        {
                             LOG_COLOR col = colors[line_no + 1];
-                            switch (col) {
-                                case LOG_COLOR_GRAY:
-                                    lastLogTextColor = VkRender::Colors::TextColorGray;
-                                    break;
-                                case LOG_COLOR_GREEN:
-                                    lastLogTextColor = VkRender::Colors::TextGreenColor;
-                                    break;
-                                case LOG_COLOR_RED:
-                                    lastLogTextColor = VkRender::Colors::TextRedColor;
-                                    break;
-                                default:
-                                    lastLogTextColor = VkRender::Colors::TextColorGray;
-                                    break;
+                            switch (col)
+                            {
+                            case LOG_COLOR_GRAY:
+                                lastLogTextColor = VkRender::Colors::TextColorGray;
+                                break;
+                            case LOG_COLOR_GREEN:
+                                lastLogTextColor = VkRender::Colors::TextGreenColor;
+                                break;
+                            case LOG_COLOR_RED:
+                                lastLogTextColor = VkRender::Colors::TextRedColor;
+                                break;
+                            default:
+                                lastLogTextColor = VkRender::Colors::TextColorGray;
+                                break;
                             }
                         }
                         ImGui::PushStyleColor(ImGuiCol_Text, lastLogTextColor);
@@ -856,7 +920,6 @@ private:
                         ImGui::SameLine();
                         ImGui::TextUnformatted(line_start, line_end);
                         ImGui::PopStyleColor();
-
                     }
                 }
                 clipper.End();
@@ -873,23 +936,27 @@ private:
 
                 auto time = std::chrono::steady_clock::now();
                 auto time_span =
-                        std::chrono::duration_cast<std::chrono::duration<float>>(time - searchingTextAnimTimer);
+                    std::chrono::duration_cast<std::chrono::duration<float>>(time - searchingTextAnimTimer);
 
-                if (time_span.count() > 0.35f && startedAutoConnect) {
+                if (time_span.count() > 0.35f && startedAutoConnect)
+                {
                     searchingTextAnimTimer = std::chrono::steady_clock::now();
                     dots.append(".");
 
                     if (dots.size() > 4)
                         dots.clear();
-
-                } else if (!startedAutoConnect)
+                }
+                else if (!startedAutoConnect)
                     dots = ".";
 
                 ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
 
-                if (entryConnectDeviceList.empty() && startedAutoConnect) {
+                if (entryConnectDeviceList.empty() && startedAutoConnect)
+                {
                     ImGui::Text("%s", ("Searching" + dots).c_str());
-                } else {
+                }
+                else
+                {
                     ImGui::Text("Select device:");
                 }
 
@@ -898,10 +965,13 @@ private:
 
                 static bool selected = false;
 
-                if (!selected) {
+                if (!selected)
+                {
                     ImGui::PushStyleColor(ImGuiCol_Header, ImVec4());
                     m_Entry.interfaceName.clear();
-                } else {
+                }
+                else
+                {
                     ImGui::PushStyleColor(ImGuiCol_Header, ImGui::GetStyle().Colors[ImGuiCol_Header]);
                 }
                 // Header
@@ -913,20 +983,22 @@ private:
                 ImGui::SameLine();
                 ImGui::BeginChild("##ResultsChild", ImVec2(handles->info->popupWidth - (20.0f * 2.0f), 50.0f), true,
                                   0);
-                for (size_t n = 0; n < entryConnectDeviceList.size(); n++) {
+                for (size_t n = 0; n < entryConnectDeviceList.size(); n++)
+                {
                     if (entryConnectDeviceList[n].cameraName.empty()) continue;
                     if (ImGui::Selectable((entryConnectDeviceList[n].cameraName + "##" + std::to_string(n)).c_str(),
                                           resultsComboIndex == static_cast<int>(n),
                                           ImGuiSelectableFlags_DontClosePopups,
-                                          ImVec2(handles->info->popupWidth - (20.0f * 2), 15.0f))) {
+                                          ImVec2(handles->info->popupWidth - (20.0f * 2), 15.0f)))
+                    {
                         handles->usageMonitor->userClickAction(entryConnectDeviceList[n].cameraName, "Selectable",
                                                                ImGui::GetCurrentWindow()->Name);
 
                         resultsComboIndex = static_cast<int>(n);
-                        entryConnectDeviceList[n].profileName = entryConnectDeviceList[n].cameraName; // Keep profile m_Name if user inputted this before auto-connect is finished
+                        entryConnectDeviceList[n].profileName = entryConnectDeviceList[n].cameraName;
+                        // Keep profile m_Name if user inputted this before auto-connect is finished
                         m_Entry = entryConnectDeviceList[n];
                         selected = true;
-
                     }
                 }
                 ImGui::EndChild();
@@ -946,8 +1018,9 @@ private:
                 ImGui::PopStyleColor(3);
                 */
             }
-                /** MANUAL_CONNECT FIELD BEGINS HERE*/
-            else if (connectMethodSelector == MANUAL_CONNECT) {
+            /** MANUAL_CONNECT FIELD BEGINS HERE*/
+            else if (connectMethodSelector == MANUAL_CONNECT)
+            {
                 // AdapterSearch Threaded operation
                 // Threaded adapter search for manual connect
 #ifdef WIN32
@@ -988,7 +1061,7 @@ private:
                 manualConnectAdapters = adapterUtils.getAdaptersList();
                 interfaceNameList.clear();
                 indexList.clear();
-// Following three ifdef macros are a bit janky but required since Windows uses a HEX-ID AND Name to describe a network adapter whereas linux only uses a Name
+                // Following three ifdef macros are a bit janky but required since Windows uses a HEX-ID AND Name to describe a network adapter whereas linux only uses a Name
 #ifdef WIN32
                 interfaceIDList.clear();
 #endif
@@ -998,10 +1071,11 @@ private:
                 // Always have a base item in it.
                 // if we push back other items then remove base item
                 // No identical items
-                for (const auto &a: manualConnectAdapters) {
+                for (const auto& a : manualConnectAdapters)
+                {
 #ifdef WIN32
-                    if (a.supports && !Utils::isInVector(interfaceNameList, a.description)) {
-
+                    if (a.supports && !Utils::isInVector(interfaceNameList, a.description))
+                    {
                         interfaceNameList.push_back(a.description);
                         interfaceIDList.push_back(a.ifName);
 #else
@@ -1009,13 +1083,15 @@ private:
                         interfaceNameList.push_back(a.ifName);
 #endif
                         indexList.push_back(a.ifIndex);
-                        if (Utils::isInVector(interfaceNameList, "No adapters found")) {
+                        if (Utils::isInVector(interfaceNameList, "No adapters found"))
+                        {
                             Utils::delFromVector(&interfaceNameList, std::string("No adapters found"));
                         }
                     }
                 }
                 if (!Utils::isInVector(interfaceNameList, "No adapters found") &&
-                    interfaceNameList.empty()) {
+                    interfaceNameList.empty())
+                {
                     interfaceNameList.emplace_back("No adapters found");
                     indexList.push_back(0);
                 }
@@ -1037,14 +1113,16 @@ private:
                 ImGui::SameLine();
                 ImGui::SetNextItemWidth(handles->info->popupWidth - 40.0f);
                 ImGui::PushStyleColor(ImGuiCol_PopupBg, VkRender::Colors::CRLDarkGray425);
-                if (ImGui::BeginCombo("##SelectAdapter", previewValue.c_str(), flags)) {
-                    for (size_t n = 0; n < interfaceNameList.size(); n++) {
+                if (ImGui::BeginCombo("##SelectAdapter", previewValue.c_str(), flags))
+                {
+                    for (size_t n = 0; n < interfaceNameList.size(); n++)
+                    {
                         const bool is_selected = (ethernetComboIndex == n);
-                        if (ImGui::Selectable(interfaceNameList[n].c_str(), is_selected)) {
+                        if (ImGui::Selectable(interfaceNameList[n].c_str(), is_selected))
+                        {
                             ethernetComboIndex = static_cast<uint32_t>(n);
                             handles->usageMonitor->userClickAction("SelectAdapter", "combo",
                                                                    ImGui::GetCurrentWindow()->Name);
-
                         }
                         // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
                         if (is_selected)
@@ -1069,12 +1147,48 @@ private:
                 ImGui::HelpMarker("\n  Check this if you are connecting to a remote head device  \n ");
                 ImGui::PopStyleColor(3);
                  */
-            } else {
+
+#ifdef WIN32
+                std::string url = "https://docs.carnegierobotics.com/network/host_configuration/windows.html";
+#else
+                std::string url = "https://docs.carnegierobotics.com/network/host_configuration/linux.html";
+#endif
+
+                ImGui::Dummy(ImVec2(0.0f, 25.0f));
+                ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLTextGray);
+                ImGui::Dummy(ImVec2(20.0f, 5.0f));
+                ImGui::SameLine();
+                ImGui::Text("Having trouble connecting to a camera?");
+                ImGui::Dummy(ImVec2(20.0f, 5.0f));
+                ImGui::SameLine();
+                ImGui::Text("Refer to our guide by clicking below for setting up the network configuration.");
+                ImGui::Dummy(ImVec2(20.0f, 5.0f));
+                ImGui::SameLine();
+                static bool isLinkHovered = false;
+                ImVec4 blueLinkColor = isLinkHovered
+                                           ? ImVec4(0.17f, 0.579f, 0.893f, 1.0f)
+                                           : ImVec4(0.0f, 0.439f, 0.753f,
+                                                    1.0f);
+                ImGui::PushStyleColor(ImGuiCol_Text, blueLinkColor);
+                std::string selectableTxt = "Network Configuration Guide";
+                if (ImGui::Selectable(selectableTxt.c_str(), false, ImGuiSelectableFlags_DontClosePopups,
+                                      ImGui::CalcTextSize(selectableTxt.c_str())))
+                {
+                    openURL(url);
+                    handles->usageMonitor->userClickAction("Network Configuration", "Selectable",
+                                                           ImGui::GetCurrentWindow()->Name);
+                }
+                ImGui::PopStyleColor(2);
+            }
+            else
+            {
                 adapterUtils.stopAdapterScan(); // Stop it if it was started and we deselect manual connect
             }
 
-            if (handles->configureNetwork) {
-                if (elevated() && connectMethodSelector == MANUAL_CONNECT) {
+            if (handles->configureNetwork)
+            {
+                if (elevated() && connectMethodSelector == MANUAL_CONNECT)
+                {
                     ImGui::PushStyleColor(ImGuiCol_Text, VkRender::Colors::CRLRed);
                     ImGui::Dummy(ImVec2(40.0f, 10.0));
                     ImGui::Dummy(ImVec2(20.0f, 0.0));
@@ -1086,14 +1200,16 @@ private:
 #endif
                     enableConnectButton = false;
                     ImGui::PopStyleColor();
-                } else
+                }
+                else
                     enableConnectButton = true;
-
-            } else
+            }
+            else
                 enableConnectButton = true;
 
 
-            if (connectMethodSelector == AUTO_CONNECT && !reader) {
+            if (connectMethodSelector == AUTO_CONNECT && !reader)
+            {
                 enableConnectButton = false;
             }
 
@@ -1105,7 +1221,8 @@ private:
             ImGui::PushFont(handles->info->font15);
             bool btnCancel = ImGui::Button("Close", ImVec2(190.0f, 30.0f));
             ImGui::SameLine(0, 130.0f);
-            if (!m_Entry.ready(handles->devices, m_Entry) || !enableConnectButton) {
+            if (!m_Entry.ready(handles->devices, m_Entry) || !enableConnectButton)
+            {
                 ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
                 ImGui::PushStyleColor(ImGuiCol_Button, VkRender::Colors::TextColorGray);
             }
@@ -1114,13 +1231,15 @@ private:
             // If hovered, and no admin rights while auto config is checked, and a connect method must be selected
             if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) &&
                 (!m_Entry.ready(handles->devices, m_Entry) || !enableConnectButton) &&
-                (connectMethodSelector == AUTO_CONNECT || connectMethodSelector == MANUAL_CONNECT)) {
+                (connectMethodSelector == AUTO_CONNECT || connectMethodSelector == MANUAL_CONNECT))
+            {
                 ImGui::PushStyleColor(ImGuiCol_PopupBg, VkRender::Colors::CRLBlueIsh);
                 ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
                 ImGui::BeginTooltip();
                 std::vector<std::string> errors = m_Entry.getNotReadyReasons(handles->devices, m_Entry);
                 ImGui::Text("Please solve the following: ");
-                if (connectMethodSelector == AUTO_CONNECT) {
+                if (connectMethodSelector == AUTO_CONNECT)
+                {
                     if (reader)
                         errors.insert(errors.begin(), "No device selected");
                     else
@@ -1128,15 +1247,16 @@ private:
 
                     Utils::removeFromVector(&errors, "No selected network adapter");
                 }
-                if (elevated() && connectMethodSelector == MANUAL_CONNECT && handles->configureNetwork) {
+                if (elevated() && connectMethodSelector == MANUAL_CONNECT && handles->configureNetwork)
+                {
 #ifdef WIN32
                     errors.emplace_back("Admin rights is needed to auto configure network");
 #else
                     errors.emplace_back("Root access is needed to auto configure network");
 #endif
-
                 }
-                for (size_t i = 0; i < errors.size(); ++i) {
+                for (size_t i = 0; i < errors.size(); ++i)
+                {
                     ImGui::Text("%s", (std::to_string(i + 1) + ". " + errors[i]).c_str());
                 }
 
@@ -1144,29 +1264,33 @@ private:
                 ImGui::PopStyleColor();
                 ImGui::PopStyleVar();
             }
-            if (!m_Entry.ready(handles->devices, m_Entry) || !enableConnectButton) {
+            if (!m_Entry.ready(handles->devices, m_Entry) || !enableConnectButton)
+            {
                 ImGui::PopStyleColor();
                 ImGui::PopItemFlag();
             }
             ImGui::Dummy(ImVec2(0.0f, 5.0f));
 
-            if (btnCancel) {
+            if (btnCancel)
+            {
                 handles->usageMonitor->userClickAction("Cancel", "button",
                                                        ImGui::GetCurrentWindow()->Name);
                 ImGui::CloseCurrentPopup();
             }
 
-            if (btnConnect && m_Entry.ready(handles->devices, m_Entry) && enableConnectButton) {
+            if (btnConnect && m_Entry.ready(handles->devices, m_Entry) && enableConnectButton)
+            {
                 handles->usageMonitor->userClickAction("Connect", "button",
                                                        ImGui::GetCurrentWindow()->Name);
-                if (reader) {
+                if (reader)
+                {
                     reader->setIpConfig(resultsComboIndex);
                     reader->sendStopSignal();
                 }
                 // Stop autoConnect and set IP the found MultiSense device
                 // Next: Create default element, but if this happens on windows we can to connect for ~~8 seconds to allow added ip address to finish configuring
 #ifdef WIN32
-                createDefaultElement(handles, m_Entry,  connectMethodSelector == AUTO_CONNECT);
+                createDefaultElement(handles, m_Entry, connectMethodSelector == AUTO_CONNECT);
                 ImGui::CloseCurrentPopup();
 #else
                 createDefaultElement(handles, m_Entry);
@@ -1177,15 +1301,17 @@ private:
             }
 
             ImGui::EndPopup();
-        } else {
+        }
+        else
+        {
             adapterUtils.stopAdapterScan(); // Stop scan if we close popup
         }
         ImGui::PopStyleColor();
         ImGui::PopStyleVar(5); // popup style vars
     }
 
-    void addSpinnerGif(VkRender::GuiObjectHandles *handles) {
-
+    void addSpinnerGif(VkRender::GuiObjectHandles* handles)
+    {
         ImVec2 size = ImVec2(40.0f, 40.0f);
         ImVec2 uv0 = ImVec2(0.0f, 0.0f);
         ImVec2 uv1 = ImVec2(1.0f, 1.0f);
@@ -1196,9 +1322,10 @@ private:
         ImGui::Image(handles->info->gif.image[gifFrameIndex], size, uv0, uv1, bg_col, tint_col);
         auto time = std::chrono::steady_clock::now();
         auto time_span =
-                std::chrono::duration_cast<std::chrono::duration<float>>(time - gifFrameTimer);
+            std::chrono::duration_cast<std::chrono::duration<float>>(time - gifFrameTimer);
 
-        if (time_span.count() > static_cast<float>(*handles->info->gif.delay) / 1000.0f) {
+        if (time_span.count() > static_cast<float>(*handles->info->gif.delay) / 1000.0f)
+        {
             gifFrameTimer = std::chrono::steady_clock::now();
             gifFrameIndex++;
         }
@@ -1206,8 +1333,6 @@ private:
         if (gifFrameIndex == handles->info->gif.totalFrames)
             gifFrameIndex = 0;
     }
-
-
 };
 
 

@@ -134,7 +134,9 @@ void PointCloud::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
             lumaOrColor = dev.useAuxForPointCloudColor;
             model->m_Draw = false;
             auto& device = const_cast<VkRender::Device &>(dev);
-            prepareTexFuture = std::async(std::launch::async, &PointCloud::prepareTexture, this, std::ref(device));
+            prepareTexture(device);
+            prepareTexFuture = std::async(std::launch::async, &PointCloud::updatePointCloudParameters, this, std::ref(device));
+
         }
     }
 }
@@ -150,8 +152,29 @@ void PointCloud::draw(CommandBuffer * commandBuffer, uint32_t i, bool b) {
     }
 }
 
+bool PointCloud::updatePointCloudParameters(VkRender::Device& dev){
+    uint32_t width = 0, height = 0, depth = 0;
+    Utils::cameraResolutionToValue(res, &width, &height, &depth);
 
-bool PointCloud::prepareTexture(VkRender::Device &dev) {
+    if (renderData.crlCamera->updateCameraInfo(&dev, 0)){
+        auto *buf = ubo[0].pointCloudData.get();
+        buf->Q = renderData.crlCamera->getCameraInfo(0).QMat;
+        buf->height = static_cast<float>(height);
+        buf->width = static_cast<float>(width);
+        buf->disparity = static_cast<float>(depth);
+        buf->focalLength = renderData.crlCamera->getCameraInfo(0).focalLength;
+        buf->scale = renderData.crlCamera->getCameraInfo(0).pointCloudScale;
+        buf->pointSize = pointSize;
+        Log::Logger::getInstance()->info(
+                "Transforming depth image to point cloud with focal length {} and point cloud scale {}. Multisens imgConf size is ({}, {})",
+                renderData.crlCamera->getCameraInfo(0).focalLength, renderData.crlCamera->getCameraInfo(0).pointCloudScale, renderData.crlCamera->getCameraInfo(0).imgConf.width(), renderData.crlCamera->getCameraInfo(0).imgConf.height());
+        return true;
+    } else {
+        Log::Logger::getInstance()->error("Failed to update camera info for pointcloud!");
+    }
+    return false;
+}
+void PointCloud::prepareTexture(VkRender::Device &dev) {
     uint32_t width = 0, height = 0, depth = 0;
     Utils::cameraResolutionToValue(res, &width, &height, &depth);
 
@@ -176,24 +199,4 @@ bool PointCloud::prepareTexture(VkRender::Device &dev) {
     std::vector<VkPipelineShaderStageCreateInfo> shaders = {{vs},
                                                             {fs}};
     CRLCameraModels::createRenderPipeline(shaders, model.get(), &renderUtils);
-
-
-    if (renderData.crlCamera->updateCameraInfo(&dev, 0)){
-
-        auto *buf = ubo[0].pointCloudData.get();
-        buf->Q = renderData.crlCamera->getCameraInfo(0).QMat;
-        buf->height = static_cast<float>(height);
-        buf->width = static_cast<float>(width);
-        buf->disparity = static_cast<float>(depth);
-        buf->focalLength = renderData.crlCamera->getCameraInfo(0).focalLength;
-        buf->scale = renderData.crlCamera->getCameraInfo(0).pointCloudScale;
-        buf->pointSize = pointSize;
-        Log::Logger::getInstance()->info(
-                "Transforming depth image to point cloud with focal length {} and point cloud scale {}. Multisens imgConf size is ({}, {})",
-                renderData.crlCamera->getCameraInfo(0).focalLength, renderData.crlCamera->getCameraInfo(0).pointCloudScale, renderData.crlCamera->getCameraInfo(0).imgConf.width(), renderData.crlCamera->getCameraInfo(0).imgConf.height());
-        return true;
-    } else {
-        Log::Logger::getInstance()->error("Failed to update camera info for pointcloud!");
-    }
-    return false;
 }

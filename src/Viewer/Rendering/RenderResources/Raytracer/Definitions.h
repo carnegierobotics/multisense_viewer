@@ -26,12 +26,12 @@ namespace VkRender::RT{
     };
 
     struct GPUData {
-        InputAssembly* vertices;
-        uint32_t*  indices; // e.g., {0, 1, 2, 2, 3, 0, ...}
+        InputAssembly* vertices = nullptr;
+        uint32_t*  indices = nullptr;  // e.g., {0, 1, 2, 2, 3, 0, ...}
         size_t numVertices;
         size_t numIndices;
         // GS
-        GaussianInputAssembly* gaussianInputAssembly;
+        GaussianInputAssembly* gaussianInputAssembly = nullptr;
         size_t numGaussians;
 
         // uint8_t

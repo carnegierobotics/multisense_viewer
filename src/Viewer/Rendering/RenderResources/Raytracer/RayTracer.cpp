@@ -25,9 +25,24 @@ namespace VkRender::RT {
             throw std::runtime_error("Device memory allocation failed.");
         }
 
+        upload(scene);
+    }
+
+    void RayTracer::upload(std::shared_ptr<Scene> scene){
+        if (m_gpu.gaussianInputAssembly){
+            sycl::free(m_gpu.gaussianInputAssembly, m_selector.getQueue());
+            m_gpu.gaussianInputAssembly = nullptr;
+        }
+        if (m_gpu.vertices){
+            sycl::free(m_gpu.vertices, m_selector.getQueue());
+            m_gpu.vertices = nullptr;
+        }
+        if (m_gpu.indices){
+            sycl::free(m_gpu.indices, m_selector.getQueue());
+            m_gpu.indices = nullptr;
+        }
         uploadVertexData(scene);
         uploadGaussianData(scene);
-
     }
 
     void RayTracer::uploadGaussianData(std::shared_ptr<Scene>& scene) {

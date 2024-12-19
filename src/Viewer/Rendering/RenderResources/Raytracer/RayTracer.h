@@ -26,6 +26,8 @@ namespace VkRender::RT {
         ~RayTracer();
 
 
+        void upload(std::shared_ptr<Scene> ptr);
+
     private:
         BaseCamera m_camera;
         Application* m_context;
@@ -41,6 +43,7 @@ namespace VkRender::RT {
 
 
         void saveAsPPM(const std::filesystem::path& filename) const;
+
     };
 }
 

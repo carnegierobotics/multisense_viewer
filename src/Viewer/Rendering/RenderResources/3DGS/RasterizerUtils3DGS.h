@@ -4,7 +4,7 @@
 
 #ifndef RASTERIZERUTILS3D_H
 #define RASTERIZERUTILS3D_H
-#include <Viewer/Rendering/Editors/Camera.h>
+#include <Viewer/Rendering/Editors/PinholeCamera.h>
 
 namespace VkRender{
     struct GaussianPoint
@@ -30,8 +30,8 @@ namespace VkRender{
 
     // TODO remove and replace with something more intuitive
     struct CameraParams {
-        float tanFovX = 0;
-        float tanFovY = 0;
+        //float tanFovX = 0;
+        //float tanFovY = 0;
         float focalX = 0;
         float focalY = 0;
     };
@@ -47,8 +47,11 @@ namespace VkRender{
     };
 
     struct PreProcessData {
-        Camera camera;
+        PinholeCamera camera;
         PreProcessSettings preProcessSettings;
+
+        uint32_t width = 0;
+        uint32_t height = 0;
     };
 
     static glm::mat3 computeCov3D(const glm::vec3 &scale, const glm::quat &q) {
@@ -108,15 +111,6 @@ namespace VkRender{
         );
     }
 
-
-    static CameraParams getHtanfovxyFocal(float fovy, float h, float w) {
-        float htany = std::tan(glm::radians(fovy) / 2.0f);
-        float htanx = htany / h * w;
-        float focal_y = h / (2.0f * htany);
-        float focal_x = focal_y * (w / h); // Ensure aspect ratio is maintained
-
-        return {htanx, htany, focal_x, focal_y};
-    }
 
     static glm::vec3 computeColorFromSH(const std::array<std::array<float, 15>, 3> &sh_coeffs,
                                  const glm::vec3 &color_dc,

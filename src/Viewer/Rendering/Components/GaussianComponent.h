@@ -24,7 +24,7 @@ namespace VkRender {
         std::vector<glm::quat> rotations;
         std::vector<glm::vec3> colors;   // Contiguous array for covariance matrices
         std::vector<std::array<std::array<float, 15>, 3>> shCoeffs;
-        bool addToRenderer = false;
+        bool addToRenderer = true;
 
         GaussianComponent() = default;
 

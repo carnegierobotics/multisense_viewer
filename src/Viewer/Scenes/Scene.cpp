@@ -21,16 +21,15 @@ namespace VkRender {
 
 
     void Scene::update() {
-        auto &selectedEntity = m_context->getSelectedEntity();
 
-        if (selectedEntity && selectedEntity.hasComponent<CameraComponent>()) {
-            auto cameraComponent = selectedEntity.getComponent<CameraComponent>();
-            auto &transform = selectedEntity.getComponent<TransformComponent>();
+        auto view = m_registry.view<CameraComponent>();
+        for (auto e: view) {
+            auto entity = Entity(e, this);
+            auto cameraComponent = entity.getComponent<CameraComponent>();
+            auto &transform = entity.getComponent<TransformComponent>();
             cameraComponent.camera->updateViewMatrix(transform.getTransform());
             cameraComponent.camera->updateProjectionMatrix();
         }
-
-
 
     }
 

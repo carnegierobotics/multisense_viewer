@@ -42,16 +42,16 @@ namespace VkRender {
 
         void preProcessGaussians(uint8_t *imageMemory);
 
-        void setActiveCamera(const std::shared_ptr<Camera>& cameraPtr){
+        void setActiveCamera(const std::shared_ptr<BaseCamera>& cameraPtr){
             m_activeCamera = cameraPtr;
         }
-        std::shared_ptr<Camera> getActiveCamera() const {
+        std::shared_ptr<BaseCamera> getActiveCamera() const {
             return m_activeCamera.lock();
         }
 
     private:
 
-        std::weak_ptr<Camera> m_activeCamera;
+        std::weak_ptr<BaseCamera> m_activeCamera;
 
         sycl::queue &m_queue;
         PreProcessData m_preProcessData;

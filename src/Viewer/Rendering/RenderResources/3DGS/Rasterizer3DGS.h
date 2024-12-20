@@ -17,7 +17,7 @@ namespace VkRender::Rasterizer {
         Preprocess(GaussianPoint *points, PreProcessData *preProcessData)
                 : m_points(points),
                   m_camera(preProcessData->camera),
-                  m_settings(preProcessData->preProcessSettings) {
+                  m_settings(preProcessData->preProcessSettings), m_width(preProcessData->width), m_height(preProcessData->height) {
         }
 
 
@@ -33,7 +33,7 @@ namespace VkRender::Rasterizer {
             glm::quat q = m_points[i].rotation;
             glm::vec3 position = m_points[i].position;
             glm::vec4 posView = m_camera.matrices.view * glm::vec4(position, 1.0f);
-            glm::vec4 posClip = m_camera.matrices.perspective * posView;
+            glm::vec4 posClip = m_camera.matrices.projection * posView;
             glm::vec3 posNDC = glm::vec3(posClip) / posClip.w;
             int x = position.x, y = position.y, z = position.z;
             //int zview = posView.z;
@@ -41,8 +41,8 @@ namespace VkRender::Rasterizer {
                 return;
             }
 
-            float pixPosX = ((posNDC.x + 1.0f) * static_cast<float>(m_camera.width()) - 1.0f) * 0.5f;
-            float pixPosY = ((posNDC.y + 1.0f) * static_cast<float>(m_camera.height()) - 1.0f) * 0.5f;
+            float pixPosX = ((posNDC.x + 1.0f) * static_cast<float>(m_width) - 1.0f) * 0.5f;
+            float pixPosY = ((posNDC.y + 1.0f) * static_cast<float>(m_height) - 1.0f) * 0.5f;
             auto screenPosPoint = glm::vec3(pixPosX, pixPosY, posNDC.z);
 
             glm::mat3 cov3D = computeCov3D(scale, q);
@@ -71,7 +71,7 @@ namespace VkRender::Rasterizer {
 
                 std::array<std::array<float, 15>, 3> sh = m_points[i].shCoeffs;
                 glm::vec3 color = m_points[i].color;
-                glm::vec3 cameraPos = m_camera.pose.pos;
+                glm::vec3 cameraPos = m_camera.matrices.position;
                 glm::vec3 gaussianPos = m_points[i].position;
 
                 glm::vec3 result = computeColorFromSH(m_points[i].shCoeffs, color, gaussianPos, cameraPos);
@@ -95,8 +95,9 @@ namespace VkRender::Rasterizer {
         }
 
         GaussianPoint *m_points;
-        Camera m_camera;
+        PinholeCamera m_camera;
         PreProcessSettings m_settings;
+        uint32_t m_width, m_height;
     };
 
     class InclusiveSum {

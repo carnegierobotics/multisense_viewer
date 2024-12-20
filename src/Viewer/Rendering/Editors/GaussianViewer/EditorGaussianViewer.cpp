@@ -48,10 +48,10 @@ namespace VkRender {
 
     void EditorGaussianViewer::onSceneLoad(std::shared_ptr<Scene> scene) {
         m_editorCamera = std::make_shared<Camera>(m_createInfo.width, m_createInfo.height);
-
         m_activeScene = m_context->activeScene();
-        gaussianRenderer2D.setActiveCamera(m_editorCamera);
-        gaussianRenderer3D.setActiveCamera(m_editorCamera);
+
+        m_colorTexture = EditorUtils::createEmptyTexture(m_createInfo.width, m_createInfo.height,
+                                                         VK_FORMAT_B8G8R8A8_UNORM, m_context);
 
     }
 
@@ -62,8 +62,6 @@ namespace VkRender {
         m_colorTexture = EditorUtils::createEmptyTexture(m_createInfo.width, m_createInfo.height,
                                                          VK_FORMAT_B8G8R8A8_UNORM, m_context);
 
-        gaussianRenderer2D.setActiveCamera(m_editorCamera);
-        gaussianRenderer3D.setActiveCamera(m_editorCamera);
 
     }
 
@@ -75,27 +73,26 @@ namespace VkRender {
 
         }
         gaussianRenderer2D.setActiveCamera(m_editorCamera);
+        /*
         gaussianRenderer3D.setActiveCamera(m_editorCamera);
 
 
-        /*
         auto &e = m_context->getSelectedEntity();
         if (e && e.hasComponent<CameraComponent>()) {
             auto &camera = e.getComponent<CameraComponent>();
             if (camera.renderFromViewpoint()) {
                 // If the selected entity has a camera with renderFromViewpoint, use it
                 camera.camera->setCameraResolution(m_createInfo.width, m_createInfo.height);
-                gaussianRenderer2D.setActiveCamera(camera.camera);
                 gaussianRenderer3D.setActiveCamera(camera.camera);
                 m_lastActiveCamera = &camera; // Update the last active camera
             }
         } else if (m_lastActiveCamera && m_lastActiveCamera->renderFromViewpoint()) {
             // Use the last active camera if it still has renderFromViewpoint enabled
-            gaussianRenderer2D.setActiveCamera(m_lastActiveCamera->camera);
             gaussianRenderer3D.setActiveCamera(m_lastActiveCamera->camera);
         }
-
         */
+
+
         auto frameIndex = m_context->currentFrameIndex();
         void *data;
         vkMapMemory(m_context->vkDevice().m_LogicalDevice,
@@ -114,7 +111,7 @@ namespace VkRender {
         m_activeScene->getRegistry().view<GaussianComponent>().each([&](auto entity, GaussianComponent &gaussianComp) {
             auto e = Entity(entity, m_activeScene.get());
             if (e.getComponent<GaussianComponent>().addToRenderer)
-                updateRender = true;
+                updateRender = false;
         });
 
         if (imageUI->render3dgsImage || updateRender) {

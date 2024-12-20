@@ -824,6 +824,15 @@ public:
                     d.parameters.stereo.mtu = mtuValues[mtuIndex];
                     isCustomValue = false;
                 }
+                if (d.parameters.stereo.mtu != mtuValues[mtuIndex] && !isCustomValue){
+                    // Check if the current MTU matches any of the predefined MTU values
+                    for (int i = 0; i < IM_ARRAYSIZE(mtuValues); ++i) {
+                        if (d.parameters.stereo.mtu == mtuValues[i]) {
+                            mtuIndex = i; // Set the correct index
+                            break;
+                        }
+                    }
+                }
                 d.parameters.stereo.update |= ImGui::IsItemDeactivatedAfterEdit();
                 // Handle right-click context menu to enter custom MTU value
                 if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right)) {

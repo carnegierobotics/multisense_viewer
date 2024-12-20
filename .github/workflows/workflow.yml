@@ -76,27 +76,20 @@ jobs:
           tag_name: ${{ github.ref_name }}
           release_name: ${{ github.ref_name }}
           body: |
-            # MultiSense Viewer 1.1.1
+            # MultiSense Viewer
             - Not compatible with remote head systems. Revert to 1.0.0 for that purpose.
-            ### New features:
-            - Visualize IMU data with corresponding 3D model (MultiSense: KS-21, S27, S30)
-            - Image enhancements (Normalize disparity, apply colormaps, interpolate)
-            - Zoom controls in 2D view
-            - Colorize Point Cloud if the AUX camera is present
-            - Record point clouds as .ply files
-            - Record IMU data
-            - AUX camera exposure control with LibMultiSense 6.0.0
-            - Reloadable spirv-shaders (useful for testing various gpu-applied filters)
-            - Various optimizations and more reliable AutoConnect
-            - Opt-in for anonymous usage statistics
-            - Image effects (Edge detection, blurring, embossing, sharpening)
-
+            
+            ## Installing:
+            
             ### Windows users:
 
             1.  Install WinPcap_driver.exe to let the viewer configure network settings automatically
             2.  Download and run the Windows installer: MultiSenseSetup.exe
 
             ### Ubuntu users:
+            Make sure you have updated graphics drivers, ffmpeg and policykit installed. Can be installed via apt pacakge manager:
+            apt install ffmpeg libvulkan1 policykit-1
+            Ubuntu 20.04 Users may also require to install: apt install libdeflate-dev
             1. Download and install the multisense_1.1-0_amd64.deb package using your default package manager or type in terminal:
             $ dpkg --install ~/Downloads/multisense_1.1-0_amd64.deb
             2. Launch through start menu or run a start script at
@@ -109,7 +102,7 @@ jobs:
 
 
   BuildWindows:
-    name: Build For Windows
+    name: Compile Check for Windows
     needs: [ReleaseJob, VersionJob]
     # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
     # You can convert this to a matrix build if you need cross-platform coverage.

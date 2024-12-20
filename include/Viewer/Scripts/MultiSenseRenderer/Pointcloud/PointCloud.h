@@ -90,10 +90,11 @@ public:
     float pointSize = 1.8f;
     bool flipPointCloud = false;
     void draw(CommandBuffer * commandBuffer, uint32_t i, bool b) override;
+    bool updatePointCloudParameters(VkRender::Device& dev);
 
     int point = 0;
 
-    bool prepareTexture(VkRender::Device &dev);
+    void prepareTexture(VkRender::Device &dev);
 };
 
 

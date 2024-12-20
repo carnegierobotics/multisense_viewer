@@ -71,7 +71,7 @@ namespace VkRender::MultiSense {
             channelMap[static_cast<crl::multisense::RemoteHeadChannel>(0)].get()->ptr()->getDeviceInfo(devInfo);
             Log::Logger::getInstance()->trace("We got a connection! Device info: {}, {}", devInfo.name,
                                               devInfo.buildDate);
-            setMtu(1500, static_cast<crl::multisense::RemoteHeadChannel>(0));
+            setMtu(1400, static_cast<crl::multisense::RemoteHeadChannel>(0));
 
             if (!updateCameraInfo(const_cast<Device *>(dev), static_cast<crl::multisense::RemoteHeadChannel>(0))) {
                 Log::Logger::getInstance()->error(
@@ -212,8 +212,8 @@ namespace VkRender::MultiSense {
                 if (headerTwo->data().source != src ||
                     tex->m_Width != header->data().width ||
                     tex->m_Height < header->data().height) {
-                    Log::Logger::getInstance()->error(
-                            "In getCameraStream: Color Source and dimensions did not match expected values");
+                    //Log::Logger::getInstance()->error(
+                    //        "In getCameraStream: Color Source and dimensions did not match expected values");
                     return false;
                 }
                 tex->m_Id = static_cast<uint32_t>(header->data().frameId);
@@ -245,8 +245,8 @@ namespace VkRender::MultiSense {
 
                     if (tex->data3 != nullptr) {
                         size_t diff2 = static_cast<size_t>((tex->m_Height) / 2) - headerTwo->data().height;
-                        std::memset(tex->data2 + (headerTwo->data().imageLength / 2), 0x00, diff2 * tex->m_Width);
-                        std::memset(tex->data3 + (headerTwo->data().imageLength / 2), 0x00, diff2 * tex->m_Width);
+                        //std::memset(tex->data2 + (headerTwo->data().imageLength / 2), 0x00, diff2 * tex->m_Width);
+                        //std::memset(tex->data3 + (headerTwo->data().imageLength / 2), 0x00, diff2 * tex->m_Width);
 
                     } else {
                         uint32_t diff2 = tex->m_Height / 2 - headerTwo->data().height;
@@ -267,7 +267,7 @@ namespace VkRender::MultiSense {
             case CRL_POINT_CLOUD:
                 if (header->data().source != src || tex->m_Width != header->data()
                         .width || tex->m_Height < header->data().height) {
-                    Log::Logger::getInstance()->warning(
+                    Log::Logger::getInstance()->trace(
                             "In getCameraStream: Monochrome source and dimensions did not match expected values");
                     return false;
                 }
@@ -784,12 +784,11 @@ namespace VkRender::MultiSense {
 
         std::this_thread::sleep_for(std::chrono::milliseconds(300));
 
-        if (crl::multisense::Status_Ok !=
-            channelMap[channelID]->ptr()->getMtu(infoMap[channelID].sensorMTU)) {
-            Log::Logger::getInstance()->error("Failed to verify aux img conf");
-            return false;
-        }
+        int32_t getMtu = -1;
+        channelMap[channelID]->ptr()->getMtu(getMtu);
+        updateAndLog([&](auto &data) { return channelMap[channelID]->ptr()->getMtu(data); }, infoMap[channelID].sensorMTU, "sensorMTU");
 
+        Log::Logger::getInstance()->info("Current mtu on channel {}", getMtu);
         if (status != crl::multisense::Status_Ok) {
             Log::Logger::getInstance()->info("Failed to set MTU {}", mtu);
             return false;

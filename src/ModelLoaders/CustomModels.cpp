@@ -250,13 +250,13 @@ void CustomModels::createGraphicsPipeline(std::vector<VkPipelineShaderStageCreat
         VkResult res = vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, nullptr, 1, &pipelineCI, nullptr,
                                                  &pipelines[i]);
         if (res != VK_SUCCESS)
-            throw std::runtime_error("Failed to create graphics m_Pipeline");
+            throw std::runtime_error("Failed to create graphics pipeline: CustomModels 1/2");
 
         pipelineCI.renderPass = (*renderer->secondaryRenderPasses)[0].renderPass;
         res = vkCreateGraphicsPipelines(vulkanDevice->m_LogicalDevice, nullptr, 1, &pipelineCI, nullptr,
                                         &pipelinesSecondary[i]);
         if (res != VK_SUCCESS)
-            throw std::runtime_error("Failed to create graphics m_Pipeline");
+            throw std::runtime_error("Failed to create graphics pipeline: CustomModels 2/2");
 
     }
 }

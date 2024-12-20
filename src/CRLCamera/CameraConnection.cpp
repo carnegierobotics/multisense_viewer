@@ -103,7 +103,7 @@ namespace VkRender::MultiSense {
             p->light.flashing = lightConf.getFlash();
             p->light.startupTime = static_cast<float>(lightConf.getStartupTime()) / 1000.0f;
             p->stereo.stereoPostFilterStrength = conf.stereoPostFilterStrength();
-            //p->stereo.mtu = camPtr.getCameraInfo(dev->configRemoteHead).sensorMTU;
+            p->stereo.mtu = camPtr.getCameraInfo(dev->configRemoteHead).sensorMTU;
 
             dev->parameters.updateGuiParams = false;
         }
@@ -626,7 +626,7 @@ namespace VkRender::MultiSense {
                                              const std::vector<uint32_t> &maskVec,
                                              crl::multisense::RemoteHeadChannel idx,
                                              CRLPhysicalCamera &camPtr) {
-        uint32_t bits = camPtr.getCameraInfo(idx).supportedSources;
+        crl::multisense::DataSource bits = camPtr.getCameraInfo(idx).supportedSources;
         for (auto mask: maskVec) {
             bool enabled = (bits & mask);
             if (enabled) {
@@ -833,10 +833,11 @@ namespace VkRender::MultiSense {
 
             app->updateUIDataBlock(*dev, app->camPtr);
 
+            /*
             Log::Logger::getInstance()->info("Attempting to restore last session from .ini runtime config file");
             if (!isRemoteHead)
                 app->getProfileFromIni(*dev);
-
+            */
             // Set the resolution read from config file
             const auto &info = app->camPtr.getCameraInfo(dev->channelConnections.front()).devInfo;
             dev->cameraName = info.name;
@@ -893,7 +894,6 @@ namespace VkRender::MultiSense {
         // If we successfully connect
         //dev->channelConnections = app->camPtr.connect(dev, dev->interfaceName);
         Utils::initializeUIDataBlockWithTestData(*dev);
-        dev->channelInfo.front().availableSources.emplace_back("Compute");
         dev->state = CRL_STATE_ACTIVE;
         Log::Logger::getInstance()->info("Set dev {}'s state to CRL_STATE_ACTIVE ", dev->name);
     }
@@ -903,71 +903,73 @@ namespace VkRender::MultiSense {
         Log::Logger::getInstance()->info("Disconnecting profile {} using camera {}", dev->name.c_str(),
                                          dev->cameraName.c_str());
         // Save settings to file. Attempt to create a new file if it doesn't exist
-        CSimpleIniA ini;
-        ini.SetUnicode();
-        auto filePath = (Utils::getSystemCachePath() / "crl.ini");
-        SI_Error rc = ini.LoadFile(filePath.c_str());
-        if (rc < 0) {
-            // File doesn't exist error, then create one
-            if (rc == SI_FILE && errno == ENOENT) {
-                std::ofstream output(filePath.c_str());
-                output.close();
-                rc = ini.LoadFile(filePath.c_str());
-            } else
-                Log::Logger::getInstance()->error("Failed to create profile configuration file\n");
-        }
-        std::string CRLSerialNumber = dev->serialName;
-        // If sidebar is empty or we dont recognize any serial numbers in the crl.ini file then clear it.
-        // new m_Entry given we have a valid ini file m_Entry
-        if (rc >= 0 && !CRLSerialNumber.empty()) {
-            // Profile Data
-            addIniEntry(&ini, CRLSerialNumber, "ProfileName", dev->name);
-            addIniEntry(&ini, CRLSerialNumber, "AdapterName", dev->interfaceName);
-            addIniEntry(&ini, CRLSerialNumber, "CameraName", dev->cameraName);
-            addIniEntry(&ini, CRLSerialNumber, "IP", dev->IP);
-            addIniEntry(&ini, CRLSerialNumber, "AdapterIndex", std::to_string(dev->interfaceIndex));
-            addIniEntry(&ini, CRLSerialNumber, "State", std::to_string(dev->state));
-            // Preview Data per channel
-            for (const auto &ch: dev->channelConnections) {
-                std::string mode = "Mode" + std::to_string(ch);
-                if (dev->channelInfo.empty() || dev->channelInfo[ch].modes.empty())
-                    continue;
+        /*
+       CSimpleIniA ini;
+       ini.SetUnicode();
 
-                auto resMode = dev->channelInfo[ch].modes[dev->channelInfo[ch].selectedModeIndex];
-                if (Utils::stringToCameraResolution(resMode) == CRL_RESOLUTION_NONE)
-                    resMode = "0";
+       auto filePath = (Utils::getSystemCachePath() / "crl.ini");
+       SI_Error rc = ini.LoadFile(filePath.c_str());
+       if (rc < 0) {
+           // File doesn't exist error, then create one
+           if (rc == SI_FILE && errno == ENOENT) {
+               std::ofstream output(filePath.c_str());
+               output.close();
+               rc = ini.LoadFile(filePath.c_str());
+           } else
+               Log::Logger::getInstance()->error("Failed to create profile configuration file\n");
+       }
+       std::string CRLSerialNumber = dev->serialName;
+       // If sidebar is empty or we dont recognize any serial numbers in the crl.ini file then clear it.
+       // new m_Entry given we have a valid ini file m_Entry
+       if (rc >= 0 && !CRLSerialNumber.empty()) {
+           // Profile Data
+           addIniEntry(&ini, CRLSerialNumber, "ProfileName", dev->name);
+           addIniEntry(&ini, CRLSerialNumber, "AdapterName", dev->interfaceName);
+           addIniEntry(&ini, CRLSerialNumber, "CameraName", dev->cameraName);
+           addIniEntry(&ini, CRLSerialNumber, "IP", dev->IP);
+           addIniEntry(&ini, CRLSerialNumber, "AdapterIndex", std::to_string(dev->interfaceIndex));
+           addIniEntry(&ini, CRLSerialNumber, "State", std::to_string(dev->state));
+           // Preview Data per channel
+           for (const auto &ch: dev->channelConnections) {
+               std::string mode = "Mode" + std::to_string(ch);
+               if (dev->channelInfo.empty() || dev->channelInfo[ch].modes.empty())
+                   continue;
 
-                addIniEntry(&ini, CRLSerialNumber, mode,
-                            std::to_string(static_cast<int>(Utils::stringToCameraResolution(
-                                    resMode))
-                            ));
-                addIniEntry(&ini, CRLSerialNumber, "Layout", std::to_string(static_cast<int>(dev->layout)));
-                for (int i = 0; i <= CRL_PREVIEW_FOUR; ++i) {
-                    std::string source = dev->win[static_cast<StreamWindowIndex>(i)].selectedSource;
-                    std::string remoteHead = std::to_string(
-                        dev->win[static_cast<StreamWindowIndex>(i)].selectedRemoteHeadIndex);
-                    std::string key = "Preview" + std::to_string(i + 1);
-                    std::string value = (source.append(":" + remoteHead));
-                    addIniEntry(&ini, CRLSerialNumber, key, value);
-                }
-            }
-        }
-        // delete m_Entry if we gave the disconnect and reset flag Otherwise just normal disconnect
-        // save the m_DataPtr back to the file
+               auto resMode = dev->channelInfo[ch].modes[dev->channelInfo[ch].selectedModeIndex];
+               if (Utils::stringToCameraResolution(resMode) == CRL_RESOLUTION_NONE)
+                   resMode = "0";
 
+               addIniEntry(&ini, CRLSerialNumber, mode,
+                           std::to_string(static_cast<int>(Utils::stringToCameraResolution(
+                                   resMode))
+                           ));
+               addIniEntry(&ini, CRLSerialNumber, "Layout", std::to_string(static_cast<int>(dev->layout)));
+               for (int i = 0; i <= CRL_PREVIEW_FOUR; ++i) {
+                   std::string source = dev->win[static_cast<StreamWindowIndex>(i)].selectedSource;
+                   std::string remoteHead = std::to_string(
+                       dev->win[static_cast<StreamWindowIndex>(i)].selectedRemoteHeadIndex);
+                   std::string key = "Preview" + std::to_string(i + 1);
+                   std::string value = (source.append(":" + remoteHead));
+                   addIniEntry(&ini, CRLSerialNumber, key, value);
+               }
+           }
+       }
+       // delete m_Entry if we gave the disconnect and reset flag Otherwise just normal disconnect
+       // save the m_DataPtr back to the file
+*/
         if (dev->state == CRL_STATE_DISCONNECT_AND_FORGET || dev->state == CRL_STATE_INTERRUPT_CONNECTION) {
-            ini.Delete(CRLSerialNumber.c_str(), nullptr);
+            //ini.Delete(CRLSerialNumber.c_str(), nullptr);
             dev->state = CRL_STATE_REMOVE_FROM_LIST;
             Log::Logger::getInstance()->info("Set dev {}'s state to CRL_STATE_REMOVE_FROM_LIST ", dev->name);
-            Log::Logger::getInstance()->info("Deleted saved profile for serial: {}", CRLSerialNumber);
+            //Log::Logger::getInstance()->info("Deleted saved profile for serial: {}", CRLSerialNumber);
         } else {
             dev->state = CRL_STATE_DISCONNECTED;
             Log::Logger::getInstance()->info("Set dev {}'s state to CRL_STATE_DISCONNECTED ", dev->name);
         }
-        rc = ini.SaveFile(filePath.c_str());
-        if (rc < 0) {
-            Log::Logger::getInstance()->info("Failed to save crl.ini file. Err: {}", rc);
-        }
+        //rc = ini.SaveFile(filePath.c_str());
+        //if (rc < 0) {
+        //    Log::Logger::getInstance()->info("Failed to save crl.ini file. Err: {}", rc);
+        //}
 
         dev->channelInfo.clear();
     }

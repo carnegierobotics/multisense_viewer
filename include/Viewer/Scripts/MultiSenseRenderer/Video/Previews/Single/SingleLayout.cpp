@@ -102,6 +102,7 @@ void SingleLayout::update() {
         }
         // If we get MultiSense images then
         // Update the texture or update the GPU Texture
+        //Log::Logger::getInstance()->info("Uploading multisense data to GPU: {} for frame index {}. Image size: {}x{}", static_cast<int>(tex.m_Type), renderData.index, tex.m_Width, tex.m_Height);
         if (m_Model->updateTexture(textureType, renderData.index)) {
             state = DRAW_MULTISENSE;
             lastPresentedFrameID = tex.m_Id;
@@ -272,8 +273,6 @@ void SingleLayout::onUIUpdate(VkRender::GuiObjectHandles *uiHandle) {
 
         if (src == "Idle") {
             state = DRAW_NO_SOURCE;
-        } else if (src == "Compute") {
-            state = DRAW_MULTISENSE;
         } else {
             state = DRAW_NO_DATA;
         }

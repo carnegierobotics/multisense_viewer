@@ -87,7 +87,7 @@ namespace Validation {
             Log::Logger::getInstance()->error("Validation error: {}", pCallbackData->pMessage);
         }
         else if (messageSeverity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
-            Log::Logger::getInstance()->info("Validation info: {}", pCallbackData->pMessage);
+            Log::Logger::getInstance()->trace("Validation info: {}", pCallbackData->pMessage);
         }
 
         return VK_FALSE;

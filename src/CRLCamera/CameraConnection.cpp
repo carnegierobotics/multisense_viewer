@@ -1006,12 +1006,12 @@ namespace VkRender::MultiSense {
                                                   crl::multisense::RemoteHeadChannel index) {
         auto *app = reinterpret_cast<CameraConnection *>(context);
         std::scoped_lock lock(app->writeParametersMtx);
-        if (!app->camPtr.setGamma(gamma, index))return;
-        if (!app->camPtr.setGain(gain, index)) return;
-        if (!app->camPtr.setFps(fps, index)) return;
-        if (!app->camPtr.setPostFilterStrength(spfs, index)) return;
-        if (!app->camPtr.setHDR(hdr, index)) return;
-        if (!app->camPtr.setMtu(mtu, index)) return;
+        if (!app->camPtr.setGamma(gamma, index))                {app->updateFromCameraParameters(dev, index); return;}
+        if (!app->camPtr.setGain(gain, index))                  {app->updateFromCameraParameters(dev, index); return;}
+        if (!app->camPtr.setFps(fps, index))                    {app->updateFromCameraParameters(dev, index); return;}
+        if (!app->camPtr.setPostFilterStrength(spfs, index))    {app->updateFromCameraParameters(dev, index); return;}
+        if (!app->camPtr.setHDR(hdr, index))                    {app->updateFromCameraParameters(dev, index); return;}
+        if (!app->camPtr.setMtu(mtu, index))                    {app->updateFromCameraParameters(dev, index); return;}
 
 
         app->updateFromCameraParameters(dev, index);
@@ -1081,6 +1081,7 @@ namespace VkRender::MultiSense {
         p->aux.ep.autoExposureRoiY = auxConf.autoExposureRoiY();
         p->aux.gain = auxConf.gain();
         p->aux.gamma = auxConf.gamma();
+        p->stereo.mtu = camPtr.getCameraInfo(dev->configRemoteHead).sensorMTU;
 
         dev->parameters.updateGuiParams = false;
     }

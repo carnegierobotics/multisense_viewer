@@ -60,7 +60,9 @@ namespace VkRender::PathTracer {
             glm::vec3 a = m_gpuDataOutput[photonID].apertureHitPoint;
             glm::vec3 hitCam = m_gpuDataOutput[photonID].cameraHitPointLocal;
             float etmin = m_gpuDataOutput[photonID].emissionDirectionLength;
-
+            size_t gaussianIdx = m_gpuDataOutput[photonID].gaussianIdx;
+            if (gaussianIdx > 1)
+                int error = 1;
             // Camera intrinsics
             float fx = m_camera->parameters().fx;
             float fy = m_camera->parameters().fy;
@@ -235,9 +237,9 @@ namespace VkRender::PathTracer {
             sycl::atomic_ref<float, sycl::memory_order::relaxed,
                              sycl::memory_scope::device,
                              sycl::access::address_space::global_space>
-                sum_x(m_gpuData.sumGradients->x),
-                sum_y(m_gpuData.sumGradients->y),
-                sum_z(m_gpuData.sumGradients->z);
+                sum_x(m_gpuData.sumGradients[gaussianIdx].x),
+                sum_y(m_gpuData.sumGradients[gaussianIdx].y),
+                sum_z(m_gpuData.sumGradients[gaussianIdx].z);
 
             sum_x.fetch_add(grad_total.x);
             sum_y.fetch_add(grad_total.y);

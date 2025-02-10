@@ -59,7 +59,7 @@ void VulkanSwapchain::create(uint32_t *width, uint32_t *height, bool vsync)
     // Get available present modes
     uint32_t presentModeCount;
      result = vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, NULL);
-    if (result != VK_SUCCESS) throw std::runtime_error("Failed to get present modes ");
+    if (result != VK_SUCCESS) throw std::runtime_error("Failed to get present modes " + std::to_string(static_cast<int>(result)));
     assert(presentModeCount > 0);
 
     std::vector<VkPresentModeKHR> presentModes(presentModeCount);

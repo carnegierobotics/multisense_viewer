@@ -150,7 +150,7 @@ namespace VkRender::PathTracer {
 
         // Example pseudo-code:
 
-        pathTracer->update(iterationInfo.renderSettings);
+        //pathTracer->update(iterationInfo.renderSettings);
 
 
         // For illustration:
@@ -206,21 +206,25 @@ namespace VkRender::PathTracer {
         IterationInfo* iterationInfo = reinterpret_cast<IterationInfo*>(settingsPtr);
         save_gradient_to_png(dLoss_dRenderedImage,"gradients/gradient_" + std::to_string(iterationInfo->iteration) + ".png");
         pathTracer->m_backwardInfo.gradientImage = dLoss_dRenderedImage.data_ptr<float>();
-        auto gradients = pathTracer->backward(iterationInfo->renderSettings);
-
-        glm::vec3 grad = *gradients.sumGradients;
-
-        float grad_x = grad.x;
-        float grad_y = grad.y;
-        float grad_z = grad.z;
         auto grad_positions = torch::zeros_like(positions);
 
+        /*
+        auto gradients = pathTracer->backward(iterationInfo->renderSettings);
+        glm::vec3* grad = gradients.sumGradients;
+
         auto gradPosA = grad_positions.accessor<float, 2>();
+        const float MAX_GRADIENT = 1e6f; // Define a reasonable threshold for large values
         for (int i = 0; i < grad_positions.size(0); ++i) {
-            gradPosA[i][0] = grad_x;
-            gradPosA[i][1] = grad_y;
-            gradPosA[i][2] = grad_z;
+            float grad_x = grad[i].x;
+            float grad_y = grad[i].y;
+            float grad_z = grad[i].z;
+
+            // Replace NaNs or very large gradients with 0
+            gradPosA[i][0] = (std::isnan(grad_x) || std::abs(grad_x) > MAX_GRADIENT) ? 0.0f : grad_x;
+            gradPosA[i][1] = (std::isnan(grad_y) || std::abs(grad_y) > MAX_GRADIENT) ? 0.0f : grad_y;
+            gradPosA[i][2] = (std::isnan(grad_z) || std::abs(grad_z) > MAX_GRADIENT) ? 0.0f : grad_z;
         }
+        */
 
         // Return them in the same order as forward inputs
         return {

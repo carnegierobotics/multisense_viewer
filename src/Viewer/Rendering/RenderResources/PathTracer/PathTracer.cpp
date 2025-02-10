@@ -21,9 +21,16 @@ namespace VkRender::PathTracer {
         // Load the scene into gpu memory
         // Create image memory
         // Allocate host memory for RGBA image (4 floats per pixel)
+
+        uint32_t numGaussianElements = 1;
+        auto view = scene->getRegistry().view<GaussianComponent2DGS>();
+        for (auto e : view) {
+            auto& component = Entity(e, scene.get()).getComponent<GaussianComponent2DGS>();
+            numGaussianElements = component.size();
+        }
         m_imageMemory = new float[pipelineSettings.width * pipelineSettings.height];
         m_backwardInfo.gradients = new glm::vec3[pipelineSettings.photonCount];
-        m_backwardInfo.sumGradients = new glm::vec3();
+        m_backwardInfo.sumGradients = new glm::vec3[numGaussianElements];
         m_renderInformation = std::make_unique<RenderInformation>();
         pipelineSettings.queue.wait();
         prepareImageAndInfoBuffers();
@@ -82,7 +89,7 @@ namespace VkRender::PathTracer {
 
             double totalM = static_cast<double>(m_renderInformation->totalPhotons) / 1e6;
             double sensorK = static_cast<double>(m_renderInformation->photonsAccumulated) / 1000.0;
-            Log::Logger::getInstance()->info(
+            Log::Logger::getInstance()->trace(
                 "Path Tracer:  Simulated {}M photons. About {}k photons hit the sensor",
                 totalM, sensorK);
 
@@ -99,7 +106,7 @@ namespace VkRender::PathTracer {
             auto& queue = m_pipelineSettings.queue;
             uint64_t simulatePhotonCount = m_pipelineSettings.photonCount;
             uint32_t imageSize = m_pipelineSettings.width * m_pipelineSettings.height;
-
+            uint32_t numGaussians = m_gpu.numGaussians;
             queue.memcpy(m_gpu.gradientImage, m_backwardInfo.gradientImage,  sizeof(float) * imageSize);
 
             m_renderInformation->totalPhotons += m_pipelineSettings.photonCount;
@@ -116,9 +123,9 @@ namespace VkRender::PathTracer {
                 cgh.parallel_for(globalRange, kernel);
             });
 
-            queue.wait_and_throw();
+            queue.wait();
             queue.memcpy(m_backwardInfo.gradients, m_gpu.gradients, simulatePhotonCount * sizeof(glm::vec3));
-            queue.memcpy(m_backwardInfo.sumGradients, m_gpu.sumGradients,  sizeof(glm::vec3));
+            queue.memcpy(m_backwardInfo.sumGradients, m_gpu.sumGradients,  sizeof(glm::vec3) * numGaussians);
             queue.wait();
         }
         catch (const std::exception& e) {
@@ -353,8 +360,8 @@ namespace VkRender::PathTracer {
         m_gpu.gradients = sycl::malloc_device<glm::vec3>(m_pipelineSettings.photonCount, queue);
         queue.fill(m_gpu.gradients, glm::vec3(0.0f), m_pipelineSettings.photonCount);
 
-        m_gpu.sumGradients = sycl::malloc_device<glm::vec3>(1, queue);
-        queue.fill(m_gpu.sumGradients, glm::vec3(0.0f), 1);
+        m_gpu.sumGradients = sycl::malloc_device<glm::vec3>(N, queue);
+        queue.fill(m_gpu.sumGradients, glm::vec3(0.0f), N);
 
         uint32_t imageSize = m_pipelineSettings.width * m_pipelineSettings.height;
         m_gpu.gradientImage = sycl::malloc_device<float>(imageSize, queue);
@@ -537,7 +544,7 @@ namespace VkRender::PathTracer {
             delete[] m_backwardInfo.gradients;
         }
         if (m_backwardInfo.sumGradients) {
-            delete m_backwardInfo.sumGradients;
+            delete[] m_backwardInfo.sumGradients;
         }
         freeResources();
     }

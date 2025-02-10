@@ -61,7 +61,7 @@ namespace VkRender {
                 if (!meshEntity.hasComponent<MeshComponent>()) {
                     meshEntity.addComponent<MeshComponent>(
                         OBJ_FILE,
-                        "/home/magnus/CLionProjects/multisense_viewer/Resources/models-repository/disk.obj"
+                        "../Resources/models-repository/disk.obj"
                     );
                 }
                 // Only add the MaterialComponent if it doesn't already exist.

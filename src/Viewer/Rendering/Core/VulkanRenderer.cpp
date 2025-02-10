@@ -638,7 +638,7 @@ namespace VkRender {
         if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR) {
             // Swap chain is no longer compatible with the surface and needs to be recreated
             Log::Logger::getInstance()->warning(
-                "SwapChain no longer compatible on graphicsQueue present. Will recreate on next frame");
+                "SwapChain no longer compatible on graphicsQueue present. Will recreate on next frame. Result: {}", static_cast<int>(result));
             recreateResourcesNextFrame = true;
         }
         else if (result != VK_SUCCESS) {

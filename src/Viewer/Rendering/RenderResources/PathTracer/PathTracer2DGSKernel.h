@@ -210,7 +210,7 @@ namespace VkRender::PathTracer {
                     glm::vec3 hitPointCam = hitPointCam4 / hitPointCam4.w;
 
                     accumulateOnSensor(photonID, hitPointCam, photonFlux * scaleFactor);
-
+                    m_gpuDataOutput[photonID].gaussianIdx = gaussianID;
                     m_gpuDataOutput[photonID].emissionOrigin = rayOrigin;
                     m_gpuDataOutput[photonID].emissionDirection = directLightingDir;
                     m_gpuDataOutput[photonID].hitCamera = cameraHit;

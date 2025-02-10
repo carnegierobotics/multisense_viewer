@@ -74,10 +74,20 @@ namespace VkRender {
                                                                         width, height);
 
 
-            std::filesystem::path filePath = "/home/magnus/datasets/PathTracingGS/active/render_info.yaml";
+            //std::filesystem::path filePath = "/home/magnus/datasets/PathTracingGS/active/render_info.yaml";
+            std::filesystem::path baseDir = "/home/magnus-desktop/datasets/PhotonRebuild/active/";
+
+            std::filesystem::path renderInfoFilePath;
+            for (const auto& entry : std::filesystem::recursive_directory_iterator(baseDir)) {
+                std::string filename = entry.path().filename().string();
+                if (filename.find("render_info") != std::string::npos && filename.ends_with(".yaml")) {
+                   renderInfoFilePath = entry.path(); // Return the first matching file
+                }
+            }
+
             //std::filesystem::path filePath = "/home/magnus/datasets/PathTracingGS/04_02_active/render_info.yaml";
-            if (std::filesystem::exists(filePath)) {
-                YAML::Node config = YAML::LoadFile(filePath);
+            if (std::filesystem::exists(renderInfoFilePath)) {
+                YAML::Node config = YAML::LoadFile(renderInfoFilePath);
                 // Retrieve values from YAML nodes
                 auto gamma = config["Gamma"].as<double>();
                 auto photonHitCount = config["PhotonHitCount"].as<uint64_t>();
@@ -96,7 +106,7 @@ namespace VkRender {
                 m_renderSettings.numFrames = frameCount;
             }
             else {
-                Log::Logger::getInstance()->warning("Did not load params from dataset folder");
+                Log::Logger::getInstance()->warning("Did not load params from dataset folder. Filename: {}", renderInfoFilePath.string());
             }
 
             // Create a new path tracer pipeline
@@ -128,7 +138,7 @@ namespace VkRender {
                 // We pass in the parameters of our module (or custom parameter list)
                 m_photonRebuildModule->parameters(),
                 // Then define the Adam options, e.g. learning rate = 1e-3
-                torch::optim::AdamOptions(0.05f)
+                torch::optim::AdamOptions(0.025f)
             );
 
             m_accumulatedTensor = torch::Tensor();
@@ -143,7 +153,7 @@ namespace VkRender {
         if (m_photonRebuildModule && (imageUI->step || imageUI->toggleStep)) {
             // Store camera entities (assuming there are exactly two cameras)
 
-            CameraComponent activeCamera;
+            CameraComponent* activeCamera;
 
             std::vector<Entity> cameraEntities;
             size_t activeCameraIndex;
@@ -166,24 +176,23 @@ namespace VkRender {
                 // Select the active camera
                 activeCameraIndex = m_stepIteration % cameraEntities.size();
 
-                activeCamera = cameraEntities[activeCameraIndex].getComponent<CameraComponent>();
+                activeCamera = &cameraEntities[activeCameraIndex].getComponent<CameraComponent>();
                 Log::Logger::getInstance()->info("Selecting Camera: {}", cameraEntities[activeCameraIndex].getName());
 
             } else {
-                activeCamera = *m_activeScene->getActiveCamera();
+                activeCamera = m_activeScene->getActiveCamera();
             }
 
 
 
             // Prepare path tracer forward settings
             // Use the actual scene camera (pinhole) from your scene
-            m_renderSettings.camera = *activeCamera.getPinholeCamera();
+            m_renderSettings.camera = *activeCamera->getPinholeCamera();
             m_renderSettings.cameraTransform = TransformComponent(
-                activeCamera.getPinholeCamera()->matrices.transform);
-            if (m_previousSceneCamera != &activeCamera)
+                activeCamera->getPinholeCamera()->matrices.transform);
+            if (m_previousSceneCamera != activeCamera)
                 m_pathTracer->resetImage();
-            m_previousSceneCamera = &activeCamera;
-
+            m_previousSceneCamera = activeCamera;
             if (m_numAccumulated == 0) {
                 m_photonRebuildModule->uploadPathTracerFromTensor(); // Upload path tracer with the new parameters
                 m_photonRebuildModule->uploadSceneFromTensor(m_context->activeScene());
@@ -224,8 +233,8 @@ namespace VkRender {
                 // Load the target tensor
 
 
-                //std::filesystem::path basePath = "/home/magnus-desktop/datasets/PhotonRebuild/active/";
-                std::filesystem::path basePath = "/home/magnus/datasets/PathTracingGS/active/";
+                std::filesystem::path basePath = "/home/magnus-desktop/datasets/PhotonRebuild/active/";
+                //std::filesystem::path basePath = "/home/magnus/datasets/PathTracingGS/active/";
                 std::filesystem::path gtFileName ;
                 if (imageUI->automatic) {
                     gtFileName = basePath / (cameraEntities[activeCameraIndex].getName() + ".pfm");

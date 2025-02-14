@@ -48,7 +48,7 @@ namespace VkRender
 
             auto imageUI = std::dynamic_pointer_cast<EditorDifferentiableRendererLayerUI>(m_editor->ui());
 
-            imageUI->reloadRenderer = ImGui::Button("Reload");
+            imageUI->reloadRenderer |= ImGui::Button("Reload");
             ImGui::SameLine();
 
             imageUI->step = ImGui::Button("Step");
@@ -59,16 +59,14 @@ namespace VkRender
 
             ImGui::Checkbox("Denoise##Toggle", &imageUI->denoise);
             ImGui::SameLine();
-
-            ImGui::Checkbox("Loop Cameras##Toggle", &imageUI->automatic);
-            ImGui::SameLine();
-
             ImGui::SameLine(); // Dropdown for selecting render kernel
             const char* selections[] = {"CPU", "GPU"}; // TODO This should come from selectSyclDevices
             ImGui::SetNextItemWidth(100.0f);
             ImGui::Combo("##Select Device Type", &imageUI->selectedDeviceIndex, selections,IM_ARRAYSIZE(selections));
             imageUI->kernelDevice = selections[imageUI->selectedDeviceIndex];
 
+            auto* editor =  reinterpret_cast<EditorDifferentiableRenderer *>(m_editor);
+            ImGui::Text("Iteration: %d", editor->m_stepIteration);
             ImGui::End();
         }
 

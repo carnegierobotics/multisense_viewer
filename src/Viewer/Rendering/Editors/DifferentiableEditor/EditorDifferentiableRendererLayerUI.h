@@ -14,12 +14,10 @@ namespace VkRender {
         bool step = false;
         bool toggleStep = false;
 
-        std::string kernelDevice = "CPU";
-        int selectedDeviceIndex = 0;
+        std::string kernelDevice = "";
+        int selectedDeviceIndex = 1;
 
         bool denoise = false;
-
-        bool automatic = false;
         // Constructor that copies everything from base EditorUI
         EditorDifferentiableRendererLayerUI(const EditorUI &baseUI) : EditorUI(baseUI) {}
     };

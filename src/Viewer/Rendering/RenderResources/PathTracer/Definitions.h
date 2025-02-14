@@ -71,7 +71,7 @@ namespace VkRender::PathTracer {
         glm::vec2 scale;
 
         float emission; // Emissive power
-        float color; // Albedo
+        glm::vec4 color; // Albedo
         float diffuse; // Diffuse coefficient
         float specular; // Specular coefficient
         float phongExponent; // Shininess exponent
@@ -120,12 +120,25 @@ namespace VkRender::PathTracer {
         // Direct lighting parameters
         bool hitCamera = false;
         float emissionDirectionLength = 0.0f;     // etmin
-        size_t gaussianIdx = 0;
+
+        size_t gaussianID = UINT64_MAX;
+
         glm::vec3 emissionOrigin = glm::vec3(0.0f);          // eo
         glm::vec3 emissionDirection = glm::vec3(0.0f);       // ed
         glm::vec3 apertureHitPoint = glm::vec3(0.0f);        // a
         glm::vec3 cameraHitPointLocal = glm::vec3(0.0f);     // p
 
+        struct Bounce {
+            //Properties:
+            glm::vec3 hitPointWorld = glm::vec3(0.0f);
+            glm::vec3 hitNormalWorld = glm::vec3(0.0f);
+            float hitPointIntersectionParameter = 0.0f;
+            size_t gaussianID = 0;
+            glm::vec3 halfVector = glm::vec3(0.0f);
+        };
+
+        // 1 bounce
+        Bounce bounce[1];
     };
 
 

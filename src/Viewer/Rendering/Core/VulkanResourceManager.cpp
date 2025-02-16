@@ -31,28 +31,22 @@ namespace VkRender {
             }
             Log::Logger::getInstance()->trace("Deferred housekeeping: {} (waited {} frames)",it->debugString, it->framesWaited);
 
+
+            /*
             // Now that the task has aged N frames (or we're exiting), flush the command buffer.¨
-            vkDeviceWaitIdle(m_vulkanDevice->m_LogicalDevice);
-            vkQueueWaitIdle(m_queue);
             VkCommandBuffer commandBuffer = m_vulkanDevice->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
             m_vulkanDevice->flushCommandBuffer(commandBuffer,
                                                  m_queue,
                                                  m_vulkanDevice->m_CommandPool,
                                                  true,
                                                  it->fence);
+            */
 
-            // Check if the fence is signaled (or if we're forcing cleanup on exit).
-            VkResult result = vkGetFenceStatus(m_vulkanDevice->m_LogicalDevice, it->fence);
-            if (result == VK_SUCCESS || onExit) {
-                it->cleanupFunction();
-                vkDestroyFence(m_vulkanDevice->m_LogicalDevice, it->fence, nullptr);
-                it = m_deferredCleanupFunctions.erase(it);
-                somethingToClean = true;
-                vkDeviceWaitIdle(m_vulkanDevice->m_LogicalDevice);
-                vkQueueWaitIdle(m_queue);
-            } else {
-                ++it;
-            }
+            it->cleanupFunction();
+            vkDestroyFence(m_vulkanDevice->m_LogicalDevice, it->fence, nullptr);
+            it = m_deferredCleanupFunctions.erase(it);
+            somethingToClean = true;
+
         }
 
         if (somethingToClean) {

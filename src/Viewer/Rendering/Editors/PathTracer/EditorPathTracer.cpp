@@ -103,12 +103,6 @@ namespace VkRender {
                 height = activeCamera->pinholeParameters.height;
             }
 
-            m_colorTexture = EditorUtils::createEmptyTexture(
-                width,
-                height,
-                VK_FORMAT_R8G8B8A8_UNORM,
-                m_context);
-
             PathTracer::PhotonTracer::PipelineSettings pipelineSettings(syclDevice, width, height);
             pipelineSettings.photonCount = imageUI->photonCount;
             pipelineSettings.numBounces = imageUI->numBounces;
@@ -153,17 +147,7 @@ namespace VkRender {
         auto activeCamera = m_context->activeScene()->getActiveCamera();
         bool newCamera = m_previousSceneCamera != activeCamera;
         if (imageUI->clearImageMemory) {
-            uint32_t width = m_createInfo.width;
-            uint32_t height = m_createInfo.height;
-            if (activeCamera && imageUI->useSceneCamera) {
-                width = activeCamera->pinholeParameters.width;
-                height = activeCamera->pinholeParameters.height;
-            }
-            m_colorTexture = EditorUtils::createEmptyTexture(
-                width,
-                height,
-                VK_FORMAT_R8G8B8A8_UNORM,
-                m_context);
+
         }
 
         updatePathTracerSettings();
@@ -262,6 +246,18 @@ namespace VkRender {
                                                     m_colorTexture->width(), m_colorTexture->height(),
                                                     renderSettings.camera.m_parameters.width,
                                                     renderSettings.camera.m_parameters.height);
+
+                uint32_t width = m_createInfo.width;
+                uint32_t height = m_createInfo.height;
+                if (activeCamera && imageUI->useSceneCamera) {
+                    width = activeCamera->pinholeParameters.width;
+                    height = activeCamera->pinholeParameters.height;
+                }
+                m_colorTexture = EditorUtils::createEmptyTexture(
+                    width,
+                    height,
+                    VK_FORMAT_R8G8B8A8_UNORM,
+                    m_context);
             }
         }
         if (imageUI->saveImage || imageUI->bypassSave) {

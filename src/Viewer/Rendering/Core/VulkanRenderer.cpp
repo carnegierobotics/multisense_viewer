@@ -551,7 +551,7 @@ namespace VkRender {
             frameTimer = static_cast<float>(tDiff) / 1000;
 
             if (static_cast<float>(tDiff) > 33){
-                Log::Logger::getInstance()->trace("Warning: Exceeding 33ms for render time. Time: {}", static_cast<float>(tDiff));
+                Log::Logger::getInstance()->info("Warning: Exceeding 33ms for render time. Time: {}", static_cast<float>(tDiff));
             }
             postRenderActions();
             mouse.d = glm::vec2(0.0f);
@@ -602,7 +602,7 @@ namespace VkRender {
 
         // Cleanup deferred deletions
         Log::Logger::getInstance()->trace("Deferred cleanup check");
-        VulkanResourceManager::getInstance().cleanup();
+        //VulkanResourceManager::getInstance().cleanup();
 
 
         // Also signal subsequent fences by various rendering operations

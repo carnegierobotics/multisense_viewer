@@ -25,7 +25,7 @@ namespace VkRender::PathTracer {
             }
             // Each thread traces one photon.
             traceOnePhotonDirectLighting(photonID);
-            traceOnePhotonDirectLighting(photonID);
+            //traceOnePhotonDirectLighting(photonID);
         }
 
     private:
@@ -297,7 +297,8 @@ namespace VkRender::PathTracer {
             float scaleFactor = 20000.0f;
             glm::vec3 grad_geometry_scaled = (grad_geometry * dLoss);
             // The total gradient is the sum:
-            glm::vec3 grad_total = grad_intensity + grad_geometry_scaled;
+            //glm::vec3 grad_total = grad_intensity + grad_geometry_scaled; // TODO dropped the intensity_ future work should verify if this decision mattered
+            glm::vec3 grad_total = grad_geometry_scaled;
 
             float d_uv_x = grad_geometry_scaled.x;
             float d_uv_y = grad_geometry_scaled.y;

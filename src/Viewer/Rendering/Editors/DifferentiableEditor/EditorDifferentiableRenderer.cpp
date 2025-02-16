@@ -32,7 +32,6 @@ namespace VkRender {
         }
         m_colorTexture = EditorUtils::createEmptyTexture(m_createInfo.width, m_createInfo.height,
                                                          VK_FORMAT_R8G8B8A8_UNORM, m_context);
-
     }
 
     void EditorDifferentiableRenderer::onEditorResize() {
@@ -91,7 +90,8 @@ namespace VkRender {
             Log::Logger::getInstance()->warning("Did not load params from dataset folder: {}", filePath.string());
         }
 
-        m_pathTracer = std::make_unique<PathTracer::PhotonTracer>(m_context, pipelineSettings, m_context->activeScene());
+        m_pathTracer = std::make_unique<
+            PathTracer::PhotonTracer>(m_context, pipelineSettings, m_context->activeScene());
         syclDevice->getQueue().wait();
         auto list = syclDevice->getQueue().get_wait_list();
         for (const auto &event: list) {
@@ -115,12 +115,6 @@ namespace VkRender {
         }
         m_meshInstances.reset();
         m_meshInstances = EditorUtils::setupMesh(m_context, scaleX, scaleY);
-        m_colorTexture = EditorUtils::createEmptyTexture(
-            width,
-            height,
-            VK_FORMAT_R8G8B8A8_UNORM,
-            m_context);
-        Log::Logger::getInstance()->info("Created New Color Texture");
 
         m_photonRebuildModule = std::make_unique<PathTracer::PhotonRebuildModule>(
             m_pathTracer.get(), m_context->activeScene());
@@ -151,12 +145,15 @@ namespace VkRender {
                 }
             }
         }
+        if (!m_context->activeScene()->getActiveCamera())
+            return;
         // 2. Check if we need to re-create the pipeline (resolution changed or user forced reset).
         if (imageUI->reloadRenderer) {
             Log::Logger::getInstance()->info("Resetting Path Tracer.. Change in settings");
             updatePathTracerSettings();
             imageUI->reloadRenderer = false;
         }
+
 
         // ----------------------------------------------------------
         // 1. Accumulate forward passes
@@ -182,105 +179,125 @@ namespace VkRender {
                 m_photonRebuildModule->uploadSceneFromTensor(m_context->activeScene());
             }
 
-            // Upload path tracer with the new parameters
-            PathTracer::IterationInfo pathTracerIterationInfo;
-            pathTracerIterationInfo.renderSettings = m_renderSettings;
-            pathTracerIterationInfo.iteration = m_stepIteration;
-            pathTracerIterationInfo.denoise = imageUI->denoise;
-            // Forward pass (autograd-compatible)
-            m_accumulatedTensor = m_photonRebuildModule->forward(pathTracerIterationInfo);
-            m_numAccumulated++;
+            bool imageSizeMatch = static_cast<uint32_t>(m_renderSettings.camera.m_parameters.width) == m_colorTexture->
+                                  width() &&
+                                  static_cast<uint32_t>(m_renderSettings.camera.m_parameters.height) == m_colorTexture
+                                  ->height();
+            if (imageSizeMatch) {
+                // Upload path tracer with the new parameters
+                PathTracer::IterationInfo pathTracerIterationInfo;
+                pathTracerIterationInfo.renderSettings = m_renderSettings;
+                pathTracerIterationInfo.iteration = m_stepIteration;
+                pathTracerIterationInfo.denoise = imageUI->denoise;
+                // Forward pass (autograd-compatible)
+                m_accumulatedTensor = m_photonRebuildModule->forward(pathTracerIterationInfo);
+                m_numAccumulated++;
 
-            // Optionally retrieve the float* for real-time display
-            float *img = m_photonRebuildModule->getRenderedImage();
-            uint32_t width = m_colorTexture->width();
-            uint32_t height = m_colorTexture->height();
-            if (!img) {
-                std::cerr << "No rendered image returned; skipping display step.\n";
-                return;
-            }
-
-            // Convert to RGBA for UI
-            std::vector<uint8_t> convertedImage(width * height * 4); // RGBA
-            for (uint32_t i = 0; i < width * height; ++i) {
-                float r = img[i]; // If single channel, replicate to R/G/B
-                convertedImage[i * 4 + 0] = static_cast<uint8_t>(std::clamp(r, 0.0f, 1.0f) * 255.0f);
-                convertedImage[i * 4 + 1] = static_cast<uint8_t>(std::clamp(r, 0.0f, 1.0f) * 255.0f);
-                convertedImage[i * 4 + 2] = static_cast<uint8_t>(std::clamp(r, 0.0f, 1.0f) * 255.0f);
-                convertedImage[i * 4 + 3] = 255;
-            }
-            m_colorTexture->loadImage(convertedImage.data(), convertedImage.size());
-            Log::Logger::getInstance()->info("Using Camera: {}", m_context->activeScene()->getActiveCameraEntity().getName());
-            // Backpropagate -- OPTIMIZATION STEP --
-
-            if (m_numAccumulated >= m_pathTracer->getPipelineSettings().numFrames) {
-                // Load the target tensor
-
-
-                //std::filesystem::path basePath = "/home/magnus-desktop/datasets/PhotonRebuild/active/";
-                std::filesystem::path basePath = "/home/magnus/datasets/PathTracingGS/active/";
-                std::filesystem::path gtFileName;
-
-                gtFileName = basePath / (m_context->activeScene()->getActiveCameraEntity().getName() + ".pfm");
-
-
-                Log::Logger::getInstance()->info("Rendered iteration: {}: gt file: {}", m_stepIteration,
-                                                 gtFileName.string());
-                torch::Tensor targetTensor = loadPFM(gtFileName, width, height);
-
-                // Compute loss
-                //auto loss = torch::mean(torch::abs(targetTensor - m_accumulatedTensor));
-                auto loss = torch::mean(torch::pow(targetTensor - m_accumulatedTensor, 2));
-
-                // Backward
-                loss.backward();
-
-                // Example debug prints
-                std::cout << "Loss: " << loss.item<float>() << std::endl;
-                Log::Logger::getInstance()->info("Loss: {}", loss.item<float>());
-                // Gradient checks: positions, scales, normals
-                // (Make sure you've actually registered these as parameters in your module!)
-                auto positions = m_photonRebuildModule->m_tensorData.positions;
-
-                auto gradPositions = m_photonRebuildModule->m_tensorData.positions.grad();
-                auto gradScales = m_photonRebuildModule->m_tensorData.scales.grad();
-                auto gradNormals = m_photonRebuildModule->m_tensorData.normals.grad();
-
-                m_lastIteration.positionGradient = glm::vec3(positions[0][0].item<float>(),
-                                                             positions[0][1].item<float>(),
-                                                             positions[0][2].item<float>());
-
-                if (positions.defined()) {
-                    // Check for NaNs or Infs
-                    if (positions.isnan().any().item<bool>()) {
-                        std::cout << "positions contain NaNs!\n";
-                    }
-                    if (positions.isinf().any().item<bool>()) {
-                        std::cout << "positions contain Infs!\n";
-                    }
-                    std::cout << "Positions: ("
-                            << positions[0][0].item<float>() << ", "
-                            << positions[0][1].item<float>() << ", "
-                            << positions[0][2].item<float>() << ")"
-                            << std::endl;
-
-                    Log::Logger::getInstance()->info("eo Gradient: ({},{},{})",
-                                                     gradPositions[0][0].item<float>(),
-                                                     gradPositions[0][1].item<float>(),
-                                                     gradPositions[0][2].item<float>());
-
-                    Log::Logger::getInstance()->info("e0 Position: ({},{},{})",
-                                                     positions[0][0].item<float>(),
-                                                     positions[0][1].item<float>(),
-                                                     positions[0][2].item<float>());
+                // Optionally retrieve the float* for real-time display
+                float *img = m_photonRebuildModule->getRenderedImage();
+                uint32_t width = m_colorTexture->width();
+                uint32_t height = m_colorTexture->height();
+                if (!img) {
+                    std::cerr << "No rendered image returned; skipping display step.\n";
+                    return;
                 }
-                // Optimizer step
-                m_optimizer->step();
-                // Reset the accumulation if you only wanted to do a single backprop per accumulation
-                m_accumulatedTensor = torch::Tensor();
-                m_numAccumulated = 0;
-                m_optimizer->zero_grad(); // Clear old gradients
-                m_stepIteration++;
+
+                // Convert to RGBA for UI
+                std::vector<uint8_t> convertedImage(width * height * 4); // RGBA
+                for (uint32_t i = 0; i < width * height; ++i) {
+                    float r = img[i]; // If single channel, replicate to R/G/B
+                    convertedImage[i * 4 + 0] = static_cast<uint8_t>(std::clamp(r, 0.0f, 1.0f) * 255.0f);
+                    convertedImage[i * 4 + 1] = static_cast<uint8_t>(std::clamp(r, 0.0f, 1.0f) * 255.0f);
+                    convertedImage[i * 4 + 2] = static_cast<uint8_t>(std::clamp(r, 0.0f, 1.0f) * 255.0f);
+                    convertedImage[i * 4 + 3] = 255;
+                }
+                m_colorTexture->loadImage(convertedImage.data(), convertedImage.size());
+                Log::Logger::getInstance()->info("Using Camera: {}",
+                                                 m_context->activeScene()->getActiveCameraEntity().getName());
+                // Backpropagate -- OPTIMIZATION STEP --
+
+                if (m_numAccumulated >= m_pathTracer->getPipelineSettings().numFrames) {
+                    // Load the target tensor
+
+
+                    //std::filesystem::path basePath = "/home/magnus-desktop/datasets/PhotonRebuild/active/";
+                    std::filesystem::path basePath = "/home/magnus/datasets/PathTracingGS/active/";
+                    std::filesystem::path gtFileName;
+
+                    gtFileName = basePath / (m_context->activeScene()->getActiveCameraEntity().getName() + ".pfm");
+
+
+                    Log::Logger::getInstance()->info("Rendered iteration: {}: gt file: {}", m_stepIteration,
+                                                     gtFileName.string());
+                    torch::Tensor targetTensor = loadPFM(gtFileName, width, height);
+
+                    // Compute loss
+                    //auto loss = torch::mean(torch::abs(targetTensor - m_accumulatedTensor));
+                    auto loss = torch::mean(torch::pow(targetTensor - m_accumulatedTensor, 2));
+
+                    // Backward
+                    loss.backward();
+
+                    // Example debug prints
+                    std::cout << "Loss: " << loss.item<float>() << std::endl;
+                    Log::Logger::getInstance()->info("Loss: {}", loss.item<float>());
+                    // Gradient checks: positions, scales, normals
+                    // (Make sure you've actually registered these as parameters in your module!)
+                    auto positions = m_photonRebuildModule->m_tensorData.positions;
+
+                    auto gradPositions = m_photonRebuildModule->m_tensorData.positions.grad();
+                    auto gradScales = m_photonRebuildModule->m_tensorData.scales.grad();
+                    auto gradNormals = m_photonRebuildModule->m_tensorData.normals.grad();
+
+                    m_lastIteration.positionGradient = glm::vec3(positions[0][0].item<float>(),
+                                                                 positions[0][1].item<float>(),
+                                                                 positions[0][2].item<float>());
+
+                    if (positions.defined()) {
+                        // Check for NaNs or Infs
+                        if (positions.isnan().any().item<bool>()) {
+                            std::cout << "positions contain NaNs!\n";
+                        }
+                        if (positions.isinf().any().item<bool>()) {
+                            std::cout << "positions contain Infs!\n";
+                        }
+                        std::cout << "Positions: ("
+                                << positions[0][0].item<float>() << ", "
+                                << positions[0][1].item<float>() << ", "
+                                << positions[0][2].item<float>() << ")"
+                                << std::endl;
+
+                        Log::Logger::getInstance()->info("eo Gradient: ({},{},{})",
+                                                         gradPositions[0][0].item<float>(),
+                                                         gradPositions[0][1].item<float>(),
+                                                         gradPositions[0][2].item<float>());
+
+                        Log::Logger::getInstance()->info("e0 Position: ({},{},{})",
+                                                         positions[0][0].item<float>(),
+                                                         positions[0][1].item<float>(),
+                                                         positions[0][2].item<float>());
+                    }
+                    // Optimizer step
+                    m_optimizer->step();
+                    // Reset the accumulation if you only wanted to do a single backprop per accumulation
+                    m_accumulatedTensor = torch::Tensor();
+                    m_numAccumulated = 0;
+                    m_optimizer->zero_grad(); // Clear old gradients
+                    m_stepIteration++;
+                }
+            } else {
+                Log::Logger::getInstance()->warning("Image size Mismatch! Texture: {}x{}, Camera: {}x{}",
+                                                    m_colorTexture->width(), m_colorTexture->height(),
+                                                    m_renderSettings.camera.m_parameters.width,
+                                                    m_renderSettings.camera.m_parameters.height);
+
+                uint32_t width = m_context->activeScene()->getActiveCamera()->pinholeParameters.width;
+                uint32_t height = m_context->activeScene()->getActiveCamera()->pinholeParameters.height;
+                m_colorTexture = EditorUtils::createEmptyTexture(
+                    width,
+                    height,
+                    VK_FORMAT_R8G8B8A8_UNORM,
+                    m_context);
             }
         }
     }

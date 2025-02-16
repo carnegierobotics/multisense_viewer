@@ -49,7 +49,7 @@ namespace VkRender::PathTracer {
             // Get the model transform matrix for the emissive entity
 
             // 2) Sample emission direction
-            glm::vec3 rayDir = sampleCosineWeightedHemisphere(emitNormalLocal, photonID);
+            glm::vec3 rayDir = sampleRandomHemisphere(emitNormalLocal, photonID);
             float photonFlux = emissionPower; // or you can store a color as a vec3 if needed
             glm::vec3 rayOrigin = emitPosLocal;
             float apertureDiameter = (m_camera->parameters().focalLength / m_camera->parameters().fNumber) / 1000;
@@ -78,7 +78,7 @@ namespace VkRender::PathTracer {
                 if (hit) {
                     // Fetch material parameters
                     const GaussianInputAssembly &mat = m_gpuData.gaussianInputAssembly[hitEntity];
-                    float albedo = mat.color.x;
+                    float color = mat.color.x / 255.0f;
                     float specular = mat.specular; // Specular coefficient
                     float shininess = mat.phongExponent;
                     float diffuse = mat.diffuse; // Diffuse coefficient
@@ -108,17 +108,18 @@ namespace VkRender::PathTracer {
 
                     float cosTheta = glm::dot(hitNormalWorld, -rayDir);
                     cosTheta = glm::max(0.0f, cosTheta); // Clamp to 0 to prevent negative contributions
-                    float diffuseContribution = cosTheta * diffuse * albedo / M_PIf;
+                    float diffuseContribution = cosTheta * color / M_PIf;
 
 
-                    glm::vec3 delta = rayDir + contributionRayDir;
+                    glm::vec3 delta = -rayDir + contributionRayDir;
                     glm::vec3 halfVector = delta / glm::length(delta);
-                    float cosAlpha = std::max(glm::dot(hitNormalWorld, halfVector), 0.0f);
-                    float specularContribution = specular * std::pow(cosAlpha, shininess) / M_PIf;
+                    float cosAlpha = glm::dot(hitNormalWorld, halfVector);
+                    float cosAlphaMax = std::max(cosAlpha, 0.0f);
+                    float specularContribution = std::pow(cosAlphaMax, shininess) / M_PIf;
 
-                    float sumForWeights = albedo + specular;
+                    float sumForWeights = diffuse + specular;
                     if (sumForWeights > 0.0f) {
-                        float diffuseWeight = albedo / sumForWeights;
+                        float diffuseWeight = diffuse / sumForWeights;
                         float specularWeight = specular / sumForWeights;
                         // Weighted sum
                         contributionRayContribution = diffuseWeight * diffuseContribution
@@ -168,7 +169,7 @@ namespace VkRender::PathTracer {
                     photonFlux = photonFlux / rrProb;
 
                     // Sample new direction (Lambertian reflection)
-                    glm::vec3 newDir = sampleCosineWeightedHemisphere(hitNormalWorld, photonID);
+                    glm::vec3 newDir = sampleRandomHemisphere(hitNormalWorld, photonID);
                     //glm::vec3 newDir = sampleRandomDirection(photonID);
                     rayOrigin = hitPointWorld + hitNormalWorld * 1e-4f; // Offset to prevent self-intersection
                     rayDir = glm::normalize(newDir);
@@ -227,7 +228,7 @@ namespace VkRender::PathTracer {
                     float d = glm::length(cameraHitPointWorld);
                     float cosTheta = glm::dot(directLightingDir, -cameraPlaneNormalWorld);
                     //float scaleFactor = (M_PIf * apertureRadius * apertureRadius * d * d) / glm::max(0.1f, cosTheta);
-                    float scaleFactor = (M_PIf * 0.000001f * d * d) / glm::max(0.1f, cosTheta);
+                    //float scaleFactor = (M_PIf * 0.000001f) / glm::max(0.1f, cosTheta);
 
                     //
                     // 1. Transform the hit point from world space to camera space
@@ -235,7 +236,7 @@ namespace VkRender::PathTracer {
                     glm::vec4 hitPointCam4 = worldToCamera * glm::vec4(cameraHitPointWorld, 1.0f);
                     glm::vec3 hitPointCam = hitPointCam4 / hitPointCam4.w;
 
-                    accumulateOnSensor(photonID, hitPointCam, photonFlux * scaleFactor);
+                    accumulateOnSensor(photonID, hitPointCam, photonFlux);
 
                     m_gpuDataOutput[photonID].gaussianID = gaussianID;
                     m_gpuDataOutput[photonID].emissionOrigin = rayOrigin;

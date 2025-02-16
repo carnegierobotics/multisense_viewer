@@ -102,6 +102,13 @@ namespace VkRender {
                 width = activeCamera->pinholeParameters.width;
                 height = activeCamera->pinholeParameters.height;
             }
+
+            m_colorTexture = EditorUtils::createEmptyTexture(
+                width,
+                height,
+                VK_FORMAT_R8G8B8A8_UNORM,
+                m_context);
+
             PathTracer::PhotonTracer::PipelineSettings pipelineSettings(syclDevice, width, height);
             pipelineSettings.photonCount = imageUI->photonCount;
             pipelineSettings.numBounces = imageUI->numBounces;
@@ -145,11 +152,25 @@ namespace VkRender {
 
         auto activeCamera = m_context->activeScene()->getActiveCamera();
         bool newCamera = m_previousSceneCamera != activeCamera;
+        if (imageUI->clearImageMemory) {
+            uint32_t width = m_createInfo.width;
+            uint32_t height = m_createInfo.height;
+            if (activeCamera && imageUI->useSceneCamera) {
+                width = activeCamera->pinholeParameters.width;
+                height = activeCamera->pinholeParameters.height;
+            }
+            m_colorTexture = EditorUtils::createEmptyTexture(
+                width,
+                height,
+                VK_FORMAT_R8G8B8A8_UNORM,
+                m_context);
+        }
 
         updatePathTracerSettings();
 
         if (imageUI->clearImageMemory || newCamera) {
             m_pathTracer->resetImage();
+
         }
 
         // 4. If user wants to render/preview, update the path tracer with the latest camera.
@@ -186,19 +207,7 @@ namespace VkRender {
 
             renderSettings.gammaCorrection = imageUI->shaderSelection.gammaCorrection;
 
-            if (imageUI->clearImageMemory) {
-                uint32_t width = m_createInfo.width;
-                uint32_t height = m_createInfo.height;
-                if (activeCamera && imageUI->useSceneCamera) {
-                    width = activeCamera->pinholeParameters.width;
-                    height = activeCamera->pinholeParameters.height;
-                }
-                m_colorTexture = EditorUtils::createEmptyTexture(
-                    width,
-                    height,
-                    VK_FORMAT_R8G8B8A8_UNORM,
-                    m_context);
-            }
+
 
             bool imageSizeMatch = static_cast<uint32_t>(renderSettings.camera.m_parameters.width) == m_colorTexture->
                                   width() &&

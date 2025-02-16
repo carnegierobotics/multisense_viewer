@@ -541,7 +541,7 @@ namespace VkRender {
             auto tEnd = std::chrono::high_resolution_clock::now();
             frameCounter++;
             float fpsTimer = std::chrono::duration<float, std::milli>(tEnd - graphLastTimestamp).count();
-            if (fpsTimer > 333.0f) {
+            if (fpsTimer > 1000.0f) {
                 lastFPS = static_cast<float>(frameCounter) * (1000.0f / fpsTimer);
                 frameCounter = 0;
                 graphLastTimestamp = tEnd;

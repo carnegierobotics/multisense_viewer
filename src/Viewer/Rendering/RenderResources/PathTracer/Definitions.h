@@ -130,15 +130,15 @@ namespace VkRender::PathTracer {
 
         struct Bounce {
             //Properties:
+            glm::vec3 position = glm::vec3(0.0f);
+            glm::vec3 normal = glm::vec3(0.0f);
+
             glm::vec3 hitPointWorld = glm::vec3(0.0f);
             glm::vec3 hitNormalWorld = glm::vec3(0.0f);
-            float hitPointIntersectionParameter = 0.0f;
-            size_t gaussianID = 0;
-            glm::vec3 halfVector = glm::vec3(0.0f);
         };
 
         // 1 bounce
-        Bounce bounce[1];
+        Bounce bounce[4];
     };
 
 

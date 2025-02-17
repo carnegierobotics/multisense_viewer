@@ -76,6 +76,11 @@ namespace VkRender::PathTracer {
 
                 // If we hit some geometry then calculate the bounce
                 if (hit) {
+                    // Store hit parameters
+                    m_gpuDataOutput[photonID].bounce[bounce].position = m_gpuData.gaussianInputAssembly[hitEntity].position;
+                    m_gpuDataOutput[photonID].bounce[bounce].normal = m_gpuData.gaussianInputAssembly[hitEntity].normal;
+                    m_gpuDataOutput[photonID].bounce[bounce].hitPointWorld =  hitPointWorld;
+                    m_gpuDataOutput[photonID].bounce[bounce].hitNormalWorld = hitNormalWorld;
                     // Fetch material parameters
                     const GaussianInputAssembly &mat = m_gpuData.gaussianInputAssembly[hitEntity];
                     float color = mat.color.x / 255.0f;

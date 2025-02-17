@@ -39,93 +39,159 @@ namespace VkRender::PathTracer {
         // Single Photon Trace (Multi-Bounce)
         // ---------------------------------------------------------
         void traceOnePhotonSingleBounce(size_t photonID) const {
-            size_t gaussianID = m_gpuDataOutput[photonID].gaussianID; // \mathbf{e}_o
-
-            glm::vec3 gaussianPosition = m_gpuData.gaussianInputAssembly[gaussianID].position;
-            float emissionPower = m_gpuData.gaussianInputAssembly[gaussianID].emission;
-            float sigma = m_gpuData.gaussianInputAssembly[gaussianID].scale.x; // assume uniform sigma
-
-            // ------------------------------------------------------------------
-            // 1) Load forward-pass data from global memory (saved in step 1)
-            // ------------------------------------------------------------------
-            // Emitter:
-            glm::vec3 e_c = gaussianPosition;
-            glm::vec3 e_o = m_gpuDataOutput[photonID].emissionOrigin;
-            glm::vec3 e_d = m_gpuDataOutput[photonID].emissionDirection;
-
-            /*
-            // Geometry intersection:
-
-
-            // BRDF details at the bounce:
-            glm::vec3 a = m_gpuDataOutput[photonID].apertureHitPoint;
-            glm::vec3 a_d       = m_gpuDataOutput[photonID].a_d;               // out direction to aperture
-            glm::vec3 h         = m_gpuDataOutput[photonID].h;                 // half-vector
-            float     s         = m_gpuDataOutput[photonID].brdfVal;           // s(\mathbf{e}_o)
-
-            // Aperture/camera intersection for final pass:
-            float     t_aperture = m_gpuDataOutput[photonID].t_aperture;       // a_tmin
-            glm::vec3 p_final    = m_gpuDataOutput[photonID].finalPoint;       // final camera-plane intersection
-
-            */
             auto camera2World = m_cameraTransform->getTransform();
             glm::mat4 world2Camera = glm::inverse(camera2World);
+
             glm::vec3 cameraNormal = glm::normalize(glm::mat3(camera2World) * glm::vec3(0.0f, 0.0f, -1.0f));
             glm::vec3 pinholePosition = m_cameraTransform->getPosition();
             glm::vec3 cameraPlanePointWorld = glm::vec3(camera2World * glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
+            // A point on the plane
+
+            // For clarity, rename e_o = emissionOrigin, e_d = apertureSampleDir
+            glm::vec3 e_o = m_gpuDataOutput[photonID].emissionOrigin;
+            glm::vec3 e_d = m_gpuDataOutput[photonID].emissionDirection;
+            glm::vec3 a = m_gpuDataOutput[photonID].apertureHitPoint;
+            glm::vec3 hitCam = m_gpuDataOutput[photonID].cameraHitPointLocal;
+            float etmin = m_gpuDataOutput[photonID].emissionDirectionLength;
+            size_t gaussianID = m_gpuDataOutput[photonID].gaussianID;
+            glm::vec3 a_c = m_cameraTransform->getPosition(); // center of aperture
+            glm::vec3 gaussianPosition = m_gpuData.gaussianInputAssembly[gaussianID].position;
+            float emissionPower = m_gpuData.gaussianInputAssembly[gaussianID].emission;
+            glm::vec3& e_c = gaussianPosition;
+            // Camera intrinsics
+            float fx = m_camera->parameters().fx;
+            float fy = m_camera->parameters().fy;
+            float cx = m_camera->parameters().cx;
+            float cy = m_camera->parameters().cy;
+            float px = hitCam.x;
+            float py = hitCam.y;
+            float pz = hitCam.z;
+            float xPixel = (fx * px / pz) + cx;
+            float yPixel = (fy * py / pz) + cy;
+
+            float dLoss = bilinearSample(m_gpuData.gradientImage,
+                                         static_cast<int>(m_camera->parameters().width),
+                                         static_cast<int>(m_camera->parameters().height),
+                                         xPixel, yPixel);
 
             glm::vec3 f = cameraPlanePointWorld; // e.g., defined in your camera parameters
             glm::vec3 f_n = cameraNormal; // e.g., (0,0,1) if the focal plane faces +Z
 
-
-            float t_g = m_gpuDataOutput[photonID].bounce[0].hitPointIntersectionParameter; // intersection param
-            glm::vec3 g_n = m_gpuDataOutput[photonID].bounce[0].hitNormalWorld; // intersection param
-            glm::vec3 g_hit = m_gpuDataOutput[photonID].bounce[0].hitPointWorld; // \mathbf{g}_{\text{hit}}
-
             // PIXEL LOSS GROUND TRUTH
-            glm::vec3 a_hit(0.0f);
-            glm::vec3 a_c =  m_cameraTransform->getPosition();
-            glm::vec3 a_d = sampleDirectionTowardAperture(
-                g_hit,
-                 a_c, // center of aperture
+
+            GPUDataOutput::Bounce& object = m_gpuDataOutput[photonID].bounce[gaussianID];
+            glm::vec3 g_c = object.position;
+            glm::vec3 g_n = object.normal;
+            glm::vec3 g_hit = object.hitPointWorld;
+            float tg_gt = glm::dot(g_c-e_c, g_n) / glm::dot(e_d, g_n);
+            glm::vec3 g_hit_gt = e_c + tg_gt * e_d;
+
+            glm::vec3 apertureHitPoint;
+            glm::vec3 a_d_gt = sampleDirectionTowardAperture(
+                g_hit_gt,
+                a_c,
                 cameraNormal,
-                a_hit,
+                apertureHitPoint,
                 0,
                 photonID
             );
 
-            // Compute the Gaussian intensity.
-            glm::vec3 delta = e_c - e_o;
-            float delta_norm_sq = glm::dot(delta, delta);
-            float e_i = emissionPower * std::exp(-delta_norm_sq / (2.0f * sigma * sigma));
-            // Compute derivative of the Gaussian intensity with respect to the sampled position e_o.
-            // Note: de_i/de_o = e_i * (e_c - e_o) / sigma^2.
-            glm::vec3 de_i_deo = (e_i / (sigma * sigma)) * delta;
+            glm::vec3 camHit;
+            float a_tmin_gt;
+            float incidentAngle;
+            bool cameraHit = checkCameraPlaneIntersection(g_hit_gt, a_d_gt, camHit,
+                                                          a_tmin_gt, incidentAngle);
+            glm::vec3 cameraHitPointWorld = g_hit_gt + a_d_gt * a_tmin_gt;
 
+            glm::vec4 hitPointCam = world2Camera * glm::vec4(cameraHitPointWorld, 1.0f);
+            hitPointCam = hitPointCam / hitPointCam.w;
+            float px_gt = hitPointCam.x;
+            float py_gt = hitPointCam.y;
+            float pz_gt = hitPointCam.z;
+            float gtPixelU = (fx * px_gt / pz_gt) + cx;
+            float gtPixelV = (fy * py_gt / pz_gt) + cy;
 
-            float diffuse = m_gpuData.gaussianInputAssembly[gaussianID].diffuse;
-            float specular = m_gpuData.gaussianInputAssembly[gaussianID].specular;
-            glm::vec4 color = m_gpuData.gaussianInputAssembly[gaussianID].color;
-            float phongExponent = m_gpuData.gaussianInputAssembly[gaussianID].phongExponent;
+            /// Finding gradient of pixel projection to e0
 
+            glm::vec3 grad_tg =-g_n / (glm::dot(e_d, g_n));
 
-            glm::vec3 dt_g_eo = -g_n / glm::dot(e_d, g_n);
+            glm::mat3 J_ghit_eo = glm::mat3(1.0f);
+            J_ghit_eo += glm::outerProduct(e_d, grad_tg);
 
-            glm::mat3 dg_hit_deo = glm::mat3(1.0f) + glm::outerProduct(e_d, dt_g_eo);
-
-            glm::mat3 dw_eo = -dg_hit_deo;
-
+            // d_atmin_eo
             glm::vec3 w = a_c - g_hit;
-            float w_norm_inv = 1.0f / glm::length(w);
+            float w_len = glm::length(w);
+            glm::mat3 J_w_eo = -J_ghit_eo;
 
-            glm::vec3 tmpVec1 = (w / std::pow(w_norm_inv, 3.0f));
-            glm::vec3 tmpVec2 = w * dw_eo;
+            glm::vec3 tmp = w / static_cast<float>(std::pow(w_len, 3));
+            glm::vec3 tmp2 = J_w_eo * w;
+            glm::mat3 J_ad_eo = - 1 / w_len * J_w_eo;
+            glm::mat3 term2 = glm::outerProduct(tmp, tmp2);
+            J_ad_eo += term2;
 
-            glm::mat3 da_d_deo = (w_norm_inv * dw_eo) - glm::outerProduct(tmpVec1, tmpVec2);
+            // grad atmin_eo
+            glm::vec3 a_d = glm::normalize(a_c - g_hit);
+            float a_tmin = glm::dot((f-g_hit), f_n) / (glm::dot(a_d, f_n));
 
-            glm::vec3 dh_deo;
+            float d = glm::dot(a_d, f_n);
+            glm::vec3 d_d = f_n * J_ad_eo;
 
-            glm::vec3 ds_deo;
+            float n = glm::dot((f-g_hit), f_n);
+            glm::vec d_n = -f_n * J_ghit_eo;
+
+            glm::vec3 grad_atmin_eo =((d_n * d) - (n*d_d)) / (d * d);
+
+            // J_p_eo
+
+            glm::mat3 J_p_eo = J_ghit_eo;
+            J_p_eo += glm::outerProduct(a_d, grad_atmin_eo) + a_tmin * J_ad_eo;
+
+
+            float px_camera = hitCam.x;
+            float py_camera = hitCam.y;
+            float pz_camera = hitCam.z;
+            // Compute derivatives
+            float inv_pz = 1.0f / pz_camera;
+            float inv_pz2 = inv_pz * inv_pz; // 1/pz^2
+            // Construct Jacobian matrix J_(u,v),p (2x3)
+            glm::mat3x3 J_uv_p(0.0f); // J_uv_p is in fact a 2x3 matrix but use a 3x3 for simple integration with glm
+            J_uv_p[0][0] = fx * inv_pz; // ∂u/∂px
+            J_uv_p[0][1] = 0.0f; // ∂u/∂py
+            J_uv_p[0][2] = -fx * px_camera * inv_pz2; // ∂u/∂pz
+
+            J_uv_p[1][0] = 0.0f; // ∂v/∂px
+            J_uv_p[1][1] = fy * inv_pz; // ∂v/∂py
+            J_uv_p[1][2] = -fy * py_camera * inv_pz2; // ∂v/∂pz
+            //glm::mat2x3  J_uv_eo = multiply2x3_3x3(J_uv_p, dp_de_o_camera);
+            glm::mat3 J_uv_eo =  glm::mat3(world2Camera) * glm::transpose(J_p_eo); // Recall it is now column-major
+
+
+            // 1) Evaluate the pixel mismatch:
+            float du = (xPixel - gtPixelU);
+            float dv = (yPixel - gtPixelV);
+
+            // 2) dL/d(u) and dL/d(v) for L2 cost:
+            float dLdu = 2.f * du;
+            float dLdv = 2.f * dv;
+
+            // For the geometry part, you need to pull back the loss derivative in image space through the Jacobian:
+            glm::vec3 grad_geometry;
+            grad_geometry.x = (dLdu * J_uv_eo[0][0] + dLdv * J_uv_eo[0][1]);
+            grad_geometry.y = (dLdu * J_uv_eo[1][0] + dLdv * J_uv_eo[1][1]);
+            grad_geometry.z = (dLdu * J_uv_eo[2][0] + dLdv * J_uv_eo[2][1]);
+
+
+            // Atomically accumulate the gradient.
+            sycl::atomic_ref<float, sycl::memory_order::acq_rel,
+                        sycl::memory_scope::device,
+                        sycl::access::address_space::global_space>
+                    sum_x(m_gpuData.sumGradients[gaussianID].x),
+                    sum_y(m_gpuData.sumGradients[gaussianID].y),
+                    sum_z(m_gpuData.sumGradients[gaussianID].z);
+
+            sum_x.fetch_add(grad_geometry.x);
+            sum_y.fetch_add(grad_geometry.y);
+            sum_z.fetch_add(grad_geometry.z);
         }
 
         // ---------------------------------------------------------

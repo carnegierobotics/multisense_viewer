@@ -82,7 +82,7 @@ namespace VkRender {
             pathTracerUI->switchKernelDevice = true;
         }
 
-        if (ImGui::Checkbox("Render Dataset", &m_checkRenderDataset)) {
+        if (ImGui::Checkbox("Render Dataset", &m_checkRenderDataset) && m_checkRenderDataset) {
             pathTracerUI->switchKernelDevice = true;
             pathTracerUI->useSceneCamera = true;
         }
@@ -153,9 +153,17 @@ namespace VkRender {
         ImGui::Text("Optimization");
         ImGui::Spacing();
         if (ImGui::Checkbox("Iterate", &m_iterate)) {
-            optimizationUI->reloadRenderer = true;
-            optimizationUI->toggleStep = true;
-            m_cameraID = 0;
+
+            if (m_iterate) {
+                optimizationUI->reloadRenderer = true;
+                optimizationUI->toggleStep = true;
+                m_cameraID = 0;
+            } else {
+                optimizationUI->toggleStep = false;
+                m_checkRenderDataset = false;
+                m_cameraID = 0;
+            }
+
         }
 
         if (m_iterate) {
@@ -181,6 +189,9 @@ namespace VkRender {
         if (ImGui::Button("Stop##Iterate")) {
             // When the button is clicked, retrieve the active scene and call generateCameras.
             optimizationUI->toggleStep = false;
+            m_iterate = false;
+            m_cameraID = 0;
+
         }
 
         // End the ImGui window.

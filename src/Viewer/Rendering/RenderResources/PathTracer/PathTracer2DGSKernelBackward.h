@@ -24,8 +24,8 @@ namespace VkRender::PathTracer {
                 return;
             }
             // Each thread traces one photon.
-            traceOnePhotonDirectLighting(photonID);
-            traceOnePhotonDirectLighting(photonID);
+            //traceOnePhotonDirectLighting(photonID);
+            traceOnePhotonSingleBounce(photonID);
         }
 
     private:

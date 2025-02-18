@@ -24,8 +24,8 @@ namespace VkRender::PathTracer {
                 return;
             }
             // Each thread traces one photon.
-            //traceOnePhotonDirectLighting(photonID);
-            traceOnePhotonSingleBounce(photonID);
+            traceOnePhotonDirectLighting(photonID);
+            //traceOnePhotonSingleBounce(photonID);
         }
 
     private:
@@ -69,8 +69,13 @@ namespace VkRender::PathTracer {
             glm::vec3 f_n = cameraNormal; // e.g., (0,0,1) if the focal plane faces +Z
 
             // PIXEL LOSS GROUND TRUTH
-            GPUDataOutput::Bounce& object = m_gpuDataOutput[photonID].bounce[gaussianID];
+            GPUDataOutput::Bounce& object = m_gpuDataOutput[photonID].bounce[0];
             size_t hitObjectID = object.gaussianID;
+
+            if (hitObjectID > m_gpuData.numGaussians || gaussianID > m_gpuData.numGaussians || !object.hitCamera) {
+                return;
+            }
+
             auto& newHitObject = m_gpuData.gaussianInputAssembly[hitObjectID];
             glm::vec3 g_c = newHitObject.position;
             glm::vec3 g_n = newHitObject.normal;
@@ -80,7 +85,7 @@ namespace VkRender::PathTracer {
             float tg_gt = glm::dot((g_c-e_c), g_n) / glm::dot(e_d, g_n);
             glm::vec3 g_hit_gt = e_c + tg_gt * e_d;
 
-            glm::vec3 apertureHitPoint;
+            glm::vec3 apertureHitPoint(0.0f);
             glm::vec3 a_d_gt = sampleDirectionTowardAperture(
                 g_hit_gt,
                 a_c,
@@ -90,9 +95,9 @@ namespace VkRender::PathTracer {
                 photonID
             );
 
-            glm::vec3 camHit;
-            float a_tmin_gt;
-            float incidentAngle;
+            glm::vec3 camHit(0.0f);
+            float a_tmin_gt = 0.0f;
+            float incidentAngle = 0.0f;
             bool cameraHit = checkCameraPlaneIntersection(g_hit_gt, a_d_gt, camHit,
                                                           a_tmin_gt, incidentAngle);
             glm::vec3 cameraHitPointWorldGT = g_hit_gt + a_d_gt * a_tmin_gt;
@@ -108,6 +113,9 @@ namespace VkRender::PathTracer {
             float xPixel = (fx * px / pz) + cx;
             float yPixel = (fy * py / pz) + cy;
 
+            if (xPixel > m_camera->m_parameters.width || yPixel > m_camera->m_parameters.height || xPixel < 0.0f || yPixel < 0.0f) {
+                return;
+            }
 
             glm::vec4 hitPointCamGT = world2Camera * glm::vec4(cameraHitPointWorldGT, 1.0f);
             hitPointCamGT = hitPointCamGT / hitPointCamGT.w;
@@ -121,6 +129,9 @@ namespace VkRender::PathTracer {
                                          static_cast<int>(m_camera->parameters().width),
                                          static_cast<int>(m_camera->parameters().height),
                                          xPixel, yPixel);
+
+            if (dLoss == 0.0f)
+                return;
             /// Finding gradient of pixel projection to e0
 
             glm::vec3 grad_tg =-g_n / (glm::dot(e_d, g_n));
@@ -185,12 +196,13 @@ namespace VkRender::PathTracer {
             float dLdv = 2.f * dv;
 
             // For the geometry part, you need to pull back the loss derivative in image space through the Jacobian:
-            glm::vec3 grad_geometry;
+            glm::vec3 grad_geometry(0.0f);
             grad_geometry.x = (dLdu * J_uv_eo[0][0] + dLdv * J_uv_eo[0][1]);
             grad_geometry.y = (dLdu * J_uv_eo[1][0] + dLdv * J_uv_eo[1][1]);
             grad_geometry.z = (dLdu * J_uv_eo[2][0] + dLdv * J_uv_eo[2][1]);
 
-            glm::vec3 total_gradient = grad_geometry * dLoss;
+            glm::vec3 total_gradient = -grad_geometry * dLoss;
+
             // Atomically accum ulate the gradient.
             sycl::atomic_ref<float, sycl::memory_order::acq_rel,
                         sycl::memory_scope::device,
@@ -199,15 +211,20 @@ namespace VkRender::PathTracer {
                     sum_y(m_gpuData.sumGradients[gaussianID].y),
                     sum_z(m_gpuData.sumGradients[gaussianID].z);
 
-            sum_x.fetch_add(grad_geometry.x);
-            sum_y.fetch_add(grad_geometry.y);
-            sum_z.fetch_add(grad_geometry.z);
+            sum_x.fetch_add(total_gradient.x);
+            sum_y.fetch_add(total_gradient.y);
+            sum_z.fetch_add(total_gradient.z);
         }
+
 
         // ---------------------------------------------------------
         // Single Photon Trace
         // ---------------------------------------------------------
         void traceOnePhotonDirectLighting(size_t photonID) const {
+
+            if (!m_gpuDataOutput[photonID].hitCamera)
+                return;
+
             auto camera2World = m_cameraTransform->getTransform();
             glm::mat4 world2Camera = glm::inverse(camera2World);
 

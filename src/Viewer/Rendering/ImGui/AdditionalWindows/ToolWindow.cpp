@@ -82,6 +82,12 @@ namespace VkRender {
             pathTracerUI->switchKernelDevice = true;
         }
 
+        ImGui::Spacing();
+        ImGui::Spacing();
+        static int numForward = 10;
+        ImGui::SliderInt("Num Forward Passes", &numForward, 1, 200);
+
+
         if (ImGui::Checkbox("Render Dataset", &m_checkRenderDataset) && m_checkRenderDataset) {
             pathTracerUI->switchKernelDevice = true;
             pathTracerUI->useSceneCamera = true;
@@ -104,6 +110,7 @@ namespace VkRender {
             ImGui::SliderFloat("Gamma Correction", &pathTracerUI->shaderSelection.gammaCorrection, 0.1f, 3.0f, "%.2f");
         }
 
+
         if (m_checkRenderDataset) {
             auto cameraView = scene->getRegistry().view<CameraComponent>();
             std::vector<Entity> cameraEntities;
@@ -118,10 +125,12 @@ namespace VkRender {
 
             pathTracerUI->toggleRendering = true;
 
-            pathTracerUI->bypassSave = true;
+            if (m_editorPathTracer->getRenderInformation()->frameID >= (numForward - 1)) {
+                pathTracerUI->bypassSave = true;
 
+            }
 
-            if (m_editorPathTracer->getRenderInformation()->frameID >= 1) {
+            if (m_editorPathTracer->getRenderInformation()->frameID >= numForward) {
                 m_cameraID++;
                 auto &nextCamera = cameraEntities[m_cameraID % cameraEntities.size()].getComponent<CameraComponent>();
                 nextCamera.isActiveCamera() = true;

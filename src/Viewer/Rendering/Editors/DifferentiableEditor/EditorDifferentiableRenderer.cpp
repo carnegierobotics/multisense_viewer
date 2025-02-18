@@ -59,8 +59,8 @@ namespace VkRender {
         }
         PathTracer::PhotonTracer::PipelineSettings pipelineSettings(syclDevice, width, height);
 
-        std::filesystem::path datasetPath = "/home/magnus-desktop/datasets/PhotonRebuild";
-        //std::filesystem::path datasetPath = "/home/magnus/datasets/PhotonRebuild";
+        //std::filesystem::path datasetPath = "/home/magnus-desktop/datasets/PhotonRebuild";
+        std::filesystem::path datasetPath = "/home/magnus/datasets/PathTracingGS";
 
         std::filesystem::path baseDir = datasetPath / "active";
         std::filesystem::path filePath;
@@ -126,7 +126,7 @@ namespace VkRender {
             // We pass in the parameters of our module (or custom parameter list)
             m_photonRebuildModule->parameters(),
             // Then define the Adam options, e.g. learning rate = 1e-3
-            torch::optim::AdamOptions(0.03f)
+            torch::optim::AdamOptions(0.05f)
         );
         m_accumulatedTensor = torch::Tensor();
         m_numAccumulated = 0;
@@ -155,6 +155,7 @@ namespace VkRender {
             Log::Logger::getInstance()->info("Resetting Path Tracer.. Change in settings");
             updatePathTracerSettings();
             imageUI->reloadRenderer = false;
+            m_stepIteration = 0;
         }
 
 
@@ -224,8 +225,8 @@ namespace VkRender {
 
 
                     //std::filesystem::path basePath = "/home/magnus-desktop/datasets/PhotonRebuild/active/";
-                    std::filesystem::path datasetPath = "/home/magnus-desktop/datasets/PhotonRebuild";
-                    //std::filesystem::path datasetPath = ""/home/magnus/datasets/PathTracingGS";
+                    //std::filesystem::path datasetPath = "/home/magnus-desktop/datasets/PhotonRebuild";
+                    std::filesystem::path datasetPath = "/home/magnus/datasets/PathTracingGS";
 
                     std::filesystem::path basePath = datasetPath / "active";
                     std::filesystem::path gtFileName;

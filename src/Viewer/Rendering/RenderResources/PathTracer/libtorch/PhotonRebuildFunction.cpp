@@ -9,7 +9,7 @@
 #include <OpenImageDenoise/oidn.hpp>
 
 namespace VkRender::PathTracer {
-    static void save_gradient_to_png(torch::Tensor gradient, const std::filesystem::path& filename) {
+    static void save_gradient_to_png(torch::Tensor gradient, const std::filesystem::path &filename) {
         std::filesystem::path dir = filename.parent_path();
 
         // Create directory if it doesn't exist
@@ -30,7 +30,7 @@ namespace VkRender::PathTracer {
         auto uint8_tensor = normalized.to(torch::kUInt8);
 
         // Get raw pointer
-        uint8_t* data = uint8_tensor.data_ptr<uint8_t>();
+        uint8_t *data = uint8_tensor.data_ptr<uint8_t>();
 
         // Get dimensions
         int width = gradient.size(1);
@@ -43,7 +43,8 @@ namespace VkRender::PathTracer {
         std::ofstream file(filenamePath.replace_extension(".pfm"), std::ios::binary);
 
         if (!file.is_open()) {
-            throw std::runtime_error("Failed to open file for writing: " + filenamePath.replace_extension(".pfm").string());
+            throw std::runtime_error(
+                "Failed to open file for writing: " + filenamePath.replace_extension(".pfm").string());
         }
         // Write the PFM header
         // "PF" indicates a color image. Use "Pf" for grayscale.
@@ -64,10 +65,11 @@ namespace VkRender::PathTracer {
         }
 
         // Write the RGB float data
-        file.write(reinterpret_cast<const char*>(rgbData.data()), rgbData.size() * sizeof(float));
+        file.write(reinterpret_cast<const char *>(rgbData.data()), rgbData.size() * sizeof(float));
 
         if (!file) {
-            throw std::runtime_error("Failed to write PFM data to file: " + filenamePath.replace_extension(".pfm").string());
+            throw std::runtime_error(
+                "Failed to write PFM data to file: " + filenamePath.replace_extension(".pfm").string());
         }
 
         file.close();
@@ -90,8 +92,8 @@ namespace VkRender::PathTracer {
         std::cout.flush();
     }
 
-    static void denoiseImage(float* singleChannelImage, uint32_t width, uint32_t height,
-                                        std::vector<float>& output) {
+    static void denoiseImage(float *singleChannelImage, uint32_t width, uint32_t height,
+                             std::vector<float> &output) {
         // Initialize OIDN device and commit
         oidn::DeviceRef device = oidn::newDevice();
         device.commit();
@@ -115,7 +117,7 @@ namespace VkRender::PathTracer {
         filter.execute();
 
         // Check for errors from OIDN
-        const char* errorMessage;
+        const char *errorMessage;
         if (device.getError(errorMessage) != oidn::Error::None) {
             std::cerr << "OIDN Error: " << errorMessage << std::endl;
             return;
@@ -126,8 +128,8 @@ namespace VkRender::PathTracer {
         std::memcpy(output.data(), outputBuffer.getData(), imageSize * sizeof(float));
     }
 
-    torch::Tensor PhotonRebuildFunction::forward(torch::autograd::AutogradContext* ctx,
-                                                 IterationInfo& iterationInfo, PhotonTracer* pathTracer,
+    torch::Tensor PhotonRebuildFunction::forward(torch::autograd::AutogradContext *ctx,
+                                                 IterationInfo &iterationInfo, PhotonTracer *pathTracer,
                                                  torch::Tensor positions, torch::Tensor scales,
                                                  torch::Tensor normals, torch::Tensor emissions,
                                                  torch::Tensor colors,
@@ -154,10 +156,10 @@ namespace VkRender::PathTracer {
 
 
         // For illustration:
-        const PhotonTracer::PipelineSettings& photonTracerSettings = pathTracer->getPipelineSettings();
-        int64_t height =photonTracerSettings.height;
+        const PhotonTracer::PipelineSettings &photonTracerSettings = pathTracer->getPipelineSettings();
+        int64_t height = photonTracerSettings.height;
         int64_t width = photonTracerSettings.width;
-        float* rawImage = pathTracer->getImage();
+        float *rawImage = pathTracer->getImage();
 
         std::vector<float> denoisedImage;
         if (iterationInfo.denoise) {
@@ -184,7 +186,7 @@ namespace VkRender::PathTracer {
     }
 
 
-    torch::autograd::tensor_list PhotonRebuildFunction::backward(torch::autograd::AutogradContext* ctx,
+    torch::autograd::tensor_list PhotonRebuildFunction::backward(torch::autograd::AutogradContext *ctx,
                                                                  torch::autograd::tensor_list grad_outputs) {
         // Usually, the forward returned 1 tensor => grad_outputs.size() == 1
         // grad_outputs[0] is d(L)/d(output).
@@ -200,15 +202,16 @@ namespace VkRender::PathTracer {
         auto specular = saved[6];
         // Retrieve the path tracer pointer
         auto pathTracerRaw = ctx->saved_data["pathTracer"].toInt();
-        PhotonTracer* pathTracer = reinterpret_cast<PhotonTracer*>(pathTracerRaw);
+        PhotonTracer *pathTracer = reinterpret_cast<PhotonTracer *>(pathTracerRaw);
         // Retrieve the path tracer pointer
         auto settingsPtr = ctx->saved_data["IterationInfo"].toInt();
-        IterationInfo* iterationInfo = reinterpret_cast<IterationInfo*>(settingsPtr);
-        save_gradient_to_png(dLoss_dRenderedImage,"gradients/gradient_" + std::to_string(iterationInfo->iteration) + ".png");
+        IterationInfo *iterationInfo = reinterpret_cast<IterationInfo *>(settingsPtr);
+        save_gradient_to_png(dLoss_dRenderedImage,
+                             "gradients/" + std::to_string(iterationInfo->iteration) + ".png");
         pathTracer->m_backwardInfo.gradientImage = dLoss_dRenderedImage.data_ptr<float>();
         auto gradients = pathTracer->backward(iterationInfo->renderSettings);
 
-        glm::vec3* grad = gradients.sumGradients;
+        glm::vec3 *grad = gradients.sumGradients;
 
         float grad_x = grad[0].x;
         float grad_y = grad[0].y;
@@ -218,11 +221,13 @@ namespace VkRender::PathTracer {
         float grad2_y = grad[1].y;
         float grad2_z = grad[1].z;
 
-        Log::Logger::getInstance()->info("Gradients: First: {},{},{}, Second: {},{},{}",grad_x, grad_y, grad_z, grad2_x, grad2_y, grad2_z);
+        Log::Logger::getInstance()->info("Gradients: First: {},{},{}, Second: {},{},{}", grad_x, grad_y, grad_z,
+                                         grad2_x, grad2_y, grad2_z);
 
         auto posA = positions.accessor<float, 2>();
 
-        Log::Logger::getInstance()->info("Positions: First: {},{},{}, Second: {},{},{}",posA[0][0], posA[0][2], posA[0][3], posA[1][0], posA[1][2], posA[1][3]);
+        Log::Logger::getInstance()->info("Positions: First: {},{},{}, Second: {},{},{}", posA[0][0], posA[0][2],
+                                         posA[0][3], posA[1][0], posA[1][2], posA[1][3]);
 
         auto grad_positions = torch::zeros_like(positions);
 
@@ -232,10 +237,18 @@ namespace VkRender::PathTracer {
             float gy = grad[i].y;
             float gz = grad[i].z;
 
+            if (std::isnan(gx) ||
+                std::isnan(gy) ||
+                std::isnan(gz)) {
+                gx = 0.0f;
+                gy = 0.0f;
+                gz = 0.0f;
+                Log::Logger::getInstance()->warning(" NaN warning in Gradients: {}", gx);
+            }
             // Replace NaNs with zero (or another fallback value)
-            gradPosA[i][0] = std::isnan(gx) ? 0.0f : gx;
-            gradPosA[i][1] = std::isnan(gy) ? 0.0f : gy;
-            gradPosA[i][2] = std::isnan(gz) ? 0.0f : gz;
+            gradPosA[i][0] =  gx;
+            gradPosA[i][1] =  gy;
+            gradPosA[i][2] =  gz;
         }
 
         // Return them in the same order as forward inputs

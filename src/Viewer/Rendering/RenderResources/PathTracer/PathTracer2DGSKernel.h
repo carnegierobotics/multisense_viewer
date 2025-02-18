@@ -77,12 +77,16 @@ namespace VkRender::PathTracer {
                 m_gpuDataOutput[photonID].apertureHitPoint = apertureHitPoint;
                 m_gpuDataOutput[photonID].cameraHitPointLocal = cameraHitPointLocal;
                 m_gpuDataOutput[photonID].hitCamera = true;
+
+
             }
 
             m_gpuDataOutput[photonID].gaussianID = gaussianID;
             m_gpuDataOutput[photonID].emissionOrigin = rayOrigin;
             m_gpuDataOutput[photonID].emissionDirection = rayDir;
 
+            if (gaussianID == 0 && m_gpuDataOutput[photonID].hitCamera)
+                int interesting = 1;
             // 3) Multi-bounce loop
             for (uint32_t bounce = 0; bounce < m_gpuData.renderInformation->numBounces; ++bounce) {
                 // A) Intersect with the scene

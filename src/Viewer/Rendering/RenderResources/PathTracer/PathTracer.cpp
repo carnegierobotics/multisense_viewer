@@ -118,6 +118,7 @@ namespace VkRender::PathTracer {
             queue.memcpy(m_gpu.pinholeCamera, &renderSettings.camera, sizeof(PinholeCamera));
             queue.memcpy(m_gpu.cameraTransform, &renderSettings.cameraTransform, sizeof(TransformComponent));
 
+            queue.wait();
             sycl::range<1> globalRange(simulatePhotonCount);
             queue.submit([&](sycl::handler &cgh) {
                 // Capture GPUData, etc. by value or reference as needed

@@ -11,8 +11,8 @@ namespace VkRender::PathTracer {
     class LightTracerKernelBackward {
     public:
         LightTracerKernelBackward(GPUData gpuData,
-                                  GPUDataOutput *gpuDataOutput,
-                                  PCG32 *rng)
+                                  GPUDataOutput* gpuDataOutput,
+                                  PCG32* rng)
             : m_gpuData(gpuData), m_gpuDataOutput(gpuDataOutput), m_rng(rng) {
             m_cameraTransform = m_gpuData.cameraTransform;
             m_camera = m_gpuData.pinholeCamera;
@@ -25,16 +25,16 @@ namespace VkRender::PathTracer {
             }
             // Each thread traces one photon.
             traceOnePhotonDirectLighting(photonID);
-            //traceOnePhotonSingleBounce(photonID);
+            traceOnePhotonSingleBounce(photonID);
         }
 
     private:
         GPUData m_gpuData{};
-        GPUDataOutput *m_gpuDataOutput{};
+        GPUDataOutput* m_gpuDataOutput{};
 
-        PCG32 *m_rng;
-        TransformComponent *m_cameraTransform{};
-        PinholeCamera *m_camera{};
+        PCG32* m_rng;
+        TransformComponent* m_cameraTransform{};
+        PinholeCamera* m_camera{};
         // ---------------------------------------------------------
         // Single Photon Trace (Multi-Bounce)
         // ---------------------------------------------------------
@@ -82,7 +82,7 @@ namespace VkRender::PathTracer {
             glm::vec3 g_hit2 = object.hitPointWorld;
             float t_g = glm::dot((g_c - e_o), g_n) / glm::dot(e_d, g_n);
             glm::vec3 g_hit = e_o + t_g * e_d;
-            float tg_gt = glm::dot((g_c-e_c), g_n) / glm::dot(e_d, g_n);
+            float tg_gt = glm::dot((g_c - e_c), g_n) / glm::dot(e_d, g_n);
             glm::vec3 g_hit_gt = e_c + tg_gt * e_d;
 
             glm::vec3 apertureHitPoint(0.0f);
@@ -103,7 +103,7 @@ namespace VkRender::PathTracer {
             glm::vec3 cameraHitPointWorldGT = g_hit_gt + a_d_gt * a_tmin_gt;
 
             glm::vec3 a_d = glm::normalize(a_c - g_hit);
-            float a_tmin = glm::dot((f-g_hit), f_n) / (glm::dot(a_d, f_n));
+            float a_tmin = glm::dot((f - g_hit), f_n) / (glm::dot(a_d, f_n));
             glm::vec3 cameraHitPointWorld = g_hit + a_d * a_tmin;
             glm::vec4 hitPointCam = world2Camera * glm::vec4(cameraHitPointWorld, 1.0f);
             hitPointCam = hitPointCam / hitPointCam.w;
@@ -113,7 +113,8 @@ namespace VkRender::PathTracer {
             float xPixel = (fx * px / pz) + cx;
             float yPixel = (fy * py / pz) + cy;
 
-            if (xPixel > m_camera->m_parameters.width || yPixel > m_camera->m_parameters.height || xPixel < 0.0f || yPixel < 0.0f) {
+            if (xPixel > m_camera->m_parameters.width || yPixel > m_camera->m_parameters.height || xPixel < 0.0f ||
+                yPixel < 0.0f) {
                 return;
             }
 
@@ -134,7 +135,7 @@ namespace VkRender::PathTracer {
                 return;
             /// Finding gradient of pixel projection to e0
 
-            glm::vec3 grad_tg =-g_n / (glm::dot(e_d, g_n));
+            glm::vec3 grad_tg = -g_n / (glm::dot(e_d, g_n));
 
             glm::mat3 J_ghit_eo = glm::mat3(1.0f);
             J_ghit_eo += glm::outerProduct(e_d, grad_tg);
@@ -148,17 +149,17 @@ namespace VkRender::PathTracer {
             glm::vec3 tmp2 = glm::transpose(J_w_eo) * w;
             glm::mat3 term2 = glm::outerProduct(tmp, tmp2);
 
-            glm::mat3 J_ad_eo = (- 1 / w_len) * J_w_eo;
+            glm::mat3 J_ad_eo = (-1 / w_len) * J_w_eo;
             J_ad_eo += term2;
 
             // grad atmin_eo
             float d = glm::dot(a_d, f_n);
             glm::vec3 d_d = f_n * J_ad_eo;
 
-            float n = glm::dot((f-g_hit), f_n);
+            float n = glm::dot((f - g_hit), f_n);
             glm::vec d_n = -f_n * J_ghit_eo;
 
-            glm::vec3 grad_atmin_eo =((d_n * d) - (n*d_d)) / (d * d);
+            glm::vec3 grad_atmin_eo = ((d_n * d) - (n * d_d)) / (d * d);
 
             // J_p_eo
 
@@ -184,7 +185,7 @@ namespace VkRender::PathTracer {
             //glm::mat2x3  J_uv_eo = multiply2x3_3x3(J_uv_p, dp_de_o_camera);
             // Apply Rotation:
             glm::mat3 w2c = glm::mat3(world2Camera);
-            glm::mat3 J_p_eo_camera =  w2c * J_p_eo;
+            glm::mat3 J_p_eo_camera = w2c * J_p_eo;
             glm::mat3 J_uv_eo = glm::transpose(J_uv_p) * J_p_eo_camera;
 
             // 1) Evaluate the pixel mismatch:
@@ -205,11 +206,11 @@ namespace VkRender::PathTracer {
 
             // Atomically accum ulate the gradient.
             sycl::atomic_ref<float, sycl::memory_order::acq_rel,
-                        sycl::memory_scope::device,
-                        sycl::access::address_space::global_space>
-                    sum_x(m_gpuData.sumGradients[gaussianID].x),
-                    sum_y(m_gpuData.sumGradients[gaussianID].y),
-                    sum_z(m_gpuData.sumGradients[gaussianID].z);
+                             sycl::memory_scope::device,
+                             sycl::access::address_space::global_space>
+                sum_x(m_gpuData.sumGradients[gaussianID].x),
+                sum_y(m_gpuData.sumGradients[gaussianID].y),
+                sum_z(m_gpuData.sumGradients[gaussianID].z);
 
             sum_x.fetch_add(total_gradient.x);
             sum_y.fetch_add(total_gradient.y);
@@ -221,7 +222,6 @@ namespace VkRender::PathTracer {
         // Single Photon Trace
         // ---------------------------------------------------------
         void traceOnePhotonDirectLighting(size_t photonID) const {
-
             if (!m_gpuDataOutput[photonID].hitCamera)
                 return;
 
@@ -321,7 +321,7 @@ namespace VkRender::PathTracer {
             glm::vec3 r = a - e_o;
             float r_length = glm::length(r);
             glm::mat3x3 Jed_eo = (glm::outerProduct(r, r) / (r_length * r_length * r_length)) - (1 / r_length) *
-                                 glm::mat3(1.0f);
+                glm::mat3(1.0f);
             // 2.2) Focal Plane intersection parameter:
             // (b) tMin = ...
             //     dtMin/de_o = ...
@@ -406,11 +406,11 @@ namespace VkRender::PathTracer {
 
             // Atomically accumulate the gradient.
             sycl::atomic_ref<float, sycl::memory_order::acq_rel,
-                        sycl::memory_scope::device,
-                        sycl::access::address_space::global_space>
-                    sum_x(m_gpuData.sumGradients[gaussianID].x),
-                    sum_y(m_gpuData.sumGradients[gaussianID].y),
-                    sum_z(m_gpuData.sumGradients[gaussianID].z);
+                             sycl::memory_scope::device,
+                             sycl::access::address_space::global_space>
+                sum_x(m_gpuData.sumGradients[gaussianID].x),
+                sum_y(m_gpuData.sumGradients[gaussianID].y),
+                sum_z(m_gpuData.sumGradients[gaussianID].z);
 
             sum_x.fetch_add(grad_total.x);
             sum_y.fetch_add(grad_total.y);
@@ -512,7 +512,7 @@ namespace VkRender::PathTracer {
         //glm::vec3 dL_deo = dU_deo * dLoss * emissionPower;
 
         */
-        glm::mat2x3 multiply2x3_3x3(const glm::mat2x3 &A, const glm::mat3 &B) const {
+        glm::mat2x3 multiply2x3_3x3(const glm::mat2x3& A, const glm::mat3& B) const {
             glm::mat2x3 result;
             // Manual matrix multiplication
             result[0][0] = A[0][0] * B[0][0] + A[1][0] * B[0][1] + A[2][0] * B[0][2];
@@ -527,7 +527,7 @@ namespace VkRender::PathTracer {
         }
 
 
-        float bilinearSample(const float *image, int width, int height, float x, float y) const {
+        float bilinearSample(const float* image, int width, int height, float x, float y) const {
             int x0 = static_cast<int>(std::floor(x));
             int y0 = static_cast<int>(std::floor(y));
             int x1 = x0 + 1;
@@ -551,14 +551,14 @@ namespace VkRender::PathTracer {
 
             // Bilinear interpolation formula
             return (1 - dx) * (1 - dy) * I00 + dx * (1 - dy) * I10 +
-                   (1 - dx) * dy * I01 + dx * dy * I11;
+                (1 - dx) * dy * I01 + dx * dy * I11;
         }
 
         glm::vec3 sampleDirectionTowardAperture(
-            const glm::vec3 &lightPos,
-            const glm::vec3 &apertureCenter,
-            const glm::vec3 &apertureNormal,
-            glm::vec3 &apertureHitpoint,
+            const glm::vec3& lightPos,
+            const glm::vec3& apertureCenter,
+            const glm::vec3& apertureNormal,
+            glm::vec3& apertureHitpoint,
             float apertureRadius,
             uint64_t photonID) const {
             // pick random point on the lens
@@ -569,8 +569,8 @@ namespace VkRender::PathTracer {
         }
 
         glm::vec3 samplePointOnDisk(size_t photonID,
-                                    const glm::vec3 &center,
-                                    const glm::vec3 &normal,
+                                    const glm::vec3& center,
+                                    const glm::vec3& normal,
                                     float radius) const {
             // Or use any 2D disk sampling approach (e.g., concentric disk sampling).
             // We'll do a simple naive approach:
@@ -595,11 +595,11 @@ namespace VkRender::PathTracer {
         }
 
         bool checkCameraPlaneIntersection(
-            const glm::vec3 &rayOriginWorld,
-            const glm::vec3 &rayDirWorld,
-            glm::vec3 &hitPointCam, // out: intersection in camera space
-            float &tIntersect, // out: parameter t
-            float &contributionScore // out: parameter contributionScore
+            const glm::vec3& rayOriginWorld,
+            const glm::vec3& rayDirWorld,
+            glm::vec3& hitPointCam, // out: intersection in camera space
+            float& tIntersect, // out: parameter t
+            float& contributionScore // out: parameter contributionScore
         ) const {
             // 1) Transform to camera space
 
@@ -653,7 +653,7 @@ namespace VkRender::PathTracer {
         // ---------------------------------------------------------------------
         //  accumulateOnSensor
         // ---------------------------------------------------------------------
-        void accumulateOnSensor(size_t photonID, const glm::vec3 &hitPointCam, float photonFlux) const {
+        void accumulateOnSensor(size_t photonID, const glm::vec3& hitPointCam, float photonFlux) const {
             // 2. Project to the image plane using pinhole intrinsics:
             // Important: Z_cam should be > 0 for a point in front of the camera.
             //
@@ -700,9 +700,9 @@ namespace VkRender::PathTracer {
 
                     // Use atomic operations to safely update the pixel value.
                     sycl::atomic_ref<float, sycl::memory_order::relaxed,
-                                sycl::memory_scope::device,
-                                sycl::access::address_space::global_space>
-                            imageMemoryAtomic(m_gpuData.imageMemory[pixelIndex]);
+                                     sycl::memory_scope::device,
+                                     sycl::access::address_space::global_space>
+                        imageMemoryAtomic(m_gpuData.imageMemory[pixelIndex]);
 
                     // Optionally, prevent saturation by clamping the pixel value to 1.0f.
                     float currentValue = imageMemoryAtomic.load();
@@ -718,16 +718,16 @@ namespace VkRender::PathTracer {
             addFluxToPixel(x1, y1, w11);
             // 7. Atomically update the photon count.
             sycl::atomic_ref<uint64_t, sycl::memory_order::relaxed,
-                        sycl::memory_scope::device,
-                        sycl::access::address_space::global_space>
-                    photonsAccumulatedAtomic(m_gpuData.renderInformation->photonsAccumulated);
+                             sycl::memory_scope::device,
+                             sycl::access::address_space::global_space>
+                photonsAccumulatedAtomic(m_gpuData.renderInformation->photonsAccumulated);
             photonsAccumulatedAtomic.fetch_add(static_cast<uint64_t>(1));
         }
 
         // ---------------------------------------------------------------------
         //  Helper: sample an emissive gaussian object
         // ---------------------------------------------------------------------
-        size_t sampleRandomEmissiveGaussian(size_t photonID, size_t &entityID) const {
+        size_t sampleRandomEmissiveGaussian(size_t photonID, size_t& entityID) const {
             // Simple Linear Congruential Generator (LCG) for RNG
             std::array<size_t, 10> samples{}; // TODo max 10 light sources supported currently
             size_t i = 0;
@@ -747,10 +747,10 @@ namespace VkRender::PathTracer {
         // ---------------------------------------------------------------------
         void sampleGaussianPositionAndNormal(size_t entityID, size_t emissiveEntityIdx,
                                              size_t photonID,
-                                             glm::vec3 &outPos,
-                                             glm::vec3 &outNormal,
-                                             float &emissionPower) const {
-            const GaussianInputAssembly &gaussian = m_gpuData.gaussianInputAssembly[emissiveEntityIdx];
+                                             glm::vec3& outPos,
+                                             glm::vec3& outNormal,
+                                             float& emissionPower) const {
+            const GaussianInputAssembly& gaussian = m_gpuData.gaussianInputAssembly[emissiveEntityIdx];
             // ------------------------------------------------------------------
             // 1. Prepare the normal, find two tangent vectors for the plane.
             // ------------------------------------------------------------------
@@ -782,7 +782,7 @@ namespace VkRender::PathTracer {
             //     If scale.y=1 => maximum distance is 1 meter in Y
             //     For ellipse: (x/σx)^2 + (y/σy)^2 <= 1
             float ellipseParam = (x * x) / (gaussian.scale.x * gaussian.scale.x)
-                                 + (y * y) / (gaussian.scale.y * gaussian.scale.y);
+                + (y * y) / (gaussian.scale.y * gaussian.scale.y);
 
             // ------------------------------------------------------------------
             // 3. Offset the center by (x, y) in the plane spanned by (t1, t2).
@@ -806,7 +806,7 @@ namespace VkRender::PathTracer {
 
             // Gaussian PDF (unnormalized since we are within the ellipse)
             float gaussianPDF = (1.0f / (2.0f * M_PIf * sigma_x * sigma_y)) *
-                                expf(-0.5f * ((x * x) / (sigma_x * sigma_x) + (y * y) / (sigma_y * sigma_y)));
+                expf(-0.5f * ((x * x) / (sigma_x * sigma_x) + (y * y) / (sigma_y * sigma_y)));
 
             // Area of the ellipse
             float ellipseArea = M_PIf * sigma_x * sigma_y;
@@ -841,7 +841,7 @@ namespace VkRender::PathTracer {
 
 
         // Constructs an orthonormal basis (T, B, N) given a normal N.
-        static void buildTangentBasis(const glm::vec3 &N, glm::vec3 &T, glm::vec3 &B) {
+        static void buildTangentBasis(const glm::vec3& N, glm::vec3& T, glm::vec3& B) {
             // Any vector not collinear with N will do for "temp"
             glm::vec3 temp = (fabs(N.x) > 0.9f) ? glm::vec3(0, 1, 0) : glm::vec3(1, 0, 0);
 
@@ -851,7 +851,7 @@ namespace VkRender::PathTracer {
         }
 
         glm::vec3 sampleCosineWeightedHemisphere(
-            const glm::vec3 &normal,
+            const glm::vec3& normal,
             size_t photonID) // random [0,1]
         const {
             // Step 1: Convert to spherical coords for cosine-weighted distribution
@@ -878,7 +878,7 @@ namespace VkRender::PathTracer {
         // ---------------------------------------------------------------------
         //  sampleRandomHemisphere (Lambertian reflection) using PCG32
         // ---------------------------------------------------------------------
-        glm::vec3 sampleRandomHemisphere(const glm::vec3 &normal, size_t photonID) const {
+        glm::vec3 sampleRandomHemisphere(const glm::vec3& normal, size_t photonID) const {
             glm::vec3 r = randomUnitVector(photonID);
             if (glm::dot(r, normal) < 0.f) {
                 r = -r;

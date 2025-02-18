@@ -59,8 +59,8 @@ namespace VkRender {
         }
         PathTracer::PhotonTracer::PipelineSettings pipelineSettings(syclDevice, width, height);
 
-        //std::filesystem::path datasetPath = "/home/magnus-desktop/datasets/PhotonRebuild";
-        std::filesystem::path datasetPath = "/home/magnus/datasets/PathTracingGS";
+        std::filesystem::path datasetPath = "/home/magnus-desktop/datasets/PhotonRebuild";
+        //std::filesystem::path datasetPath = "/home/magnus/datasets/PathTracingGS";
 
         std::filesystem::path baseDir = datasetPath / "active";
         std::filesystem::path filePath;
@@ -224,9 +224,8 @@ namespace VkRender {
                     // Load the target tensor
 
 
-                    //std::filesystem::path basePath = "/home/magnus-desktop/datasets/PhotonRebuild/active/";
-                    //std::filesystem::path datasetPath = "/home/magnus-desktop/datasets/PhotonRebuild";
-                    std::filesystem::path datasetPath = "/home/magnus/datasets/PathTracingGS";
+                    std::filesystem::path datasetPath = "/home/magnus-desktop/datasets/PhotonRebuild";
+                    //std::filesystem::path datasetPath = "/home/magnus/datasets/PathTracingGS";
 
                     std::filesystem::path basePath = datasetPath / "active";
                     std::filesystem::path gtFileName;

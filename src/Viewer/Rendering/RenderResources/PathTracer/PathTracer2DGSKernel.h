@@ -11,8 +11,8 @@ namespace VkRender::PathTracer {
     class LightTracerKernel {
     public:
         LightTracerKernel(GPUData gpuData,
-                          GPUDataOutput *gpuDataOutput,
-                          PCG32 *rng)
+                          GPUDataOutput* gpuDataOutput,
+                          PCG32* rng)
             : m_gpuData(gpuData), m_gpuDataOutput(gpuDataOutput), m_rng(rng) {
             m_cameraTransform = m_gpuData.cameraTransform;
             m_camera = m_gpuData.pinholeCamera;
@@ -29,11 +29,11 @@ namespace VkRender::PathTracer {
 
     private:
         GPUData m_gpuData{};
-        GPUDataOutput *m_gpuDataOutput{};
+        GPUDataOutput* m_gpuDataOutput{};
 
-        PCG32 *m_rng;
-        TransformComponent *m_cameraTransform{};
-        PinholeCamera *m_camera{};
+        PCG32* m_rng;
+        TransformComponent* m_cameraTransform{};
+        PinholeCamera* m_camera{};
 
         // ---------------------------------------------------------
         // Single Photon Trace (Multi-Bounce)
@@ -52,6 +52,11 @@ namespace VkRender::PathTracer {
             glm::vec3 rayDir = sampleRandomHemisphere(emitNormalLocal, photonID);
             float photonFlux = emissionPower; // or you can store a color as a vec3 if needed
             glm::vec3 rayOrigin = emitPosLocal;
+
+            // Debug:
+            //rayOrigin = glm::vec3(-0.248758718, -0.139150426, 3);
+            //rayDir = glm::vec3(0.324716568, -0.026821157, -0.945430994);
+
             float apertureDiameter = (m_camera->parameters().focalLength / m_camera->parameters().fNumber) / 1000;
             // float apertureRadius = apertureDiameter * 0.5f;
             float apertureRadius = 0.00001f;
@@ -60,7 +65,25 @@ namespace VkRender::PathTracer {
             glm::vec3 cameraPlaneNormalWorld = glm::normalize(
                 glm::mat3(entityTransform) * glm::vec3(0.0f, 0.0f, -1.0f));
 
-            castContributionRay(rayOrigin, cameraPlaneNormalWorld, apertureRadius, photonID, gaussianID, photonFlux);
+            glm::vec3 directLightDir(0.0f);
+            float camera_t = 0.0f;
+            glm::vec3 apertureHitPoint(0.0f);
+            glm::vec3 cameraHitPointLocal(0.0f);
+            if (castContributionRay(rayOrigin, cameraPlaneNormalWorld, apertureRadius, photonID, gaussianID, photonFlux
+                                    , directLightDir, apertureHitPoint, cameraHitPointLocal, camera_t
+            )) {
+
+                m_gpuDataOutput[photonID].directLightingDir = directLightDir;
+                m_gpuDataOutput[photonID].emissionDirectionLength = camera_t;
+                m_gpuDataOutput[photonID].apertureHitPoint = apertureHitPoint;
+                m_gpuDataOutput[photonID].cameraHitPointLocal = cameraHitPointLocal;
+                m_gpuDataOutput[photonID].hitCamera = true;
+            }
+
+            m_gpuDataOutput[photonID].gaussianID = gaussianID;
+            m_gpuDataOutput[photonID].emissionOrigin = rayOrigin;
+            m_gpuDataOutput[photonID].emissionDirection = rayDir;
+
             // 3) Multi-bounce loop
             for (uint32_t bounce = 0; bounce < m_gpuData.renderInformation->numBounces; ++bounce) {
                 // A) Intersect with the scene
@@ -76,13 +99,9 @@ namespace VkRender::PathTracer {
 
                 // If we hit some geometry then calculate the bounce
                 if (hit) {
-                    // Store hit parameters
-                    m_gpuDataOutput[photonID].bounce[bounce].position = m_gpuData.gaussianInputAssembly[hitEntity].position;
-                    m_gpuDataOutput[photonID].bounce[bounce].normal = m_gpuData.gaussianInputAssembly[hitEntity].normal;
-                    m_gpuDataOutput[photonID].bounce[bounce].hitPointWorld =  hitPointWorld;
-                    m_gpuDataOutput[photonID].bounce[bounce].hitNormalWorld = hitNormalWorld;
+
                     // Fetch material parameters
-                    const GaussianInputAssembly &mat = m_gpuData.gaussianInputAssembly[hitEntity];
+                    const GaussianInputAssembly& mat = m_gpuData.gaussianInputAssembly[hitEntity];
                     float color = mat.color.x / 255.0f;
                     float specular = mat.specular; // Specular coefficient
                     float shininess = mat.phongExponent;
@@ -101,12 +120,12 @@ namespace VkRender::PathTracer {
                     // TODO also calculate the contribution if I am sampling directly towards the camera instead of just reflecting along the surface normal
                     // Contribution Dir
 
-                    glm::vec3 apertureHitPoint;
+                    glm::vec3 a;
                     glm::vec3 contributionRayDir = sampleDirectionTowardAperture(
                         hitPointWorld,
                         m_cameraTransform->getPosition(), // center of aperture
                         cameraPlaneNormalWorld, // might be -X if your camera faces X, or -Z, etc.
-                        apertureHitPoint,
+                        a,
                         apertureRadius,
                         photonID
                     );
@@ -128,7 +147,7 @@ namespace VkRender::PathTracer {
                         float specularWeight = specular / sumForWeights;
                         // Weighted sum
                         contributionRayContribution = diffuseWeight * diffuseContribution
-                                                      + specularWeight * specularContribution;
+                            + specularWeight * specularContribution;
                     }
 
                     /*
@@ -175,13 +194,33 @@ namespace VkRender::PathTracer {
 
                     // Sample new direction (Lambertian reflection)
                     glm::vec3 newDir = sampleRandomHemisphere(hitNormalWorld, photonID);
-                    //glm::vec3 newDir = sampleRandomDirection(photonID);
-                    rayOrigin = hitPointWorld + hitNormalWorld * 1e-4f; // Offset to prevent self-intersection
-                    rayDir = glm::normalize(newDir);
+                    glm::vec3 newRayOrigin = hitPointWorld + hitNormalWorld * 1e-4f;
+                    // Offset to prevent self-intersection
 
-                    castContributionRay(rayOrigin, cameraPlaneNormalWorld, apertureRadius, photonID, gaussianID,
-                                        contributionFlux);
-                } else {
+
+                    glm::vec3 newDirectLightDir(0.0f);
+                    float newCamera_t = 0.0f;
+                    glm::vec3 newApertureHitPoint(0.0f);
+                    glm::vec3 newCameraHitPointLocal(0.0f);
+                    if (castContributionRay(newRayOrigin, cameraPlaneNormalWorld, apertureRadius, photonID, gaussianID, contributionFlux
+                                            , newDirectLightDir, newApertureHitPoint, newCameraHitPointLocal, newCamera_t
+                    )) {
+                        m_gpuDataOutput[photonID].bounce[bounce].hitCamera = true;
+                        m_gpuDataOutput[photonID].bounce[bounce].emissionDirection = newDirectLightDir;
+                        m_gpuDataOutput[photonID].bounce[bounce].emissionOrigin = newRayOrigin;
+                        m_gpuDataOutput[photonID].bounce[bounce].emissionDirectionLength = newCamera_t;
+                        m_gpuDataOutput[photonID].bounce[bounce].apertureHitPoint = newApertureHitPoint;
+                        m_gpuDataOutput[photonID].bounce[bounce].cameraHitPointLocal = newCameraHitPointLocal;
+                    }
+
+                    m_gpuDataOutput[photonID].bounce[bounce].hitPointWorld = hitPointWorld;
+                    m_gpuDataOutput[photonID].bounce[bounce].hitNormalWorld = hitNormalWorld;
+                    m_gpuDataOutput[photonID].bounce[bounce].gaussianID = hitEntity;
+                    //glm::vec3 newDir = sampleRandomDirection(photonID);
+                    rayOrigin = newRayOrigin; // Offset to prevent self-intersection
+                    rayDir = glm::normalize(newDir);
+                }
+                else {
                     return;
                 }
             } // end for bounces
@@ -189,13 +228,16 @@ namespace VkRender::PathTracer {
             // If we exit here, we used up all bounces w/o hitting sensor
         }
 
-        void castContributionRay(const glm::vec3 &rayOrigin, const glm::vec3 &cameraPlaneNormalWorld,
-                                 float apertureRadius, size_t photonID, size_t gaussianID, float photonFlux) const {
+        bool castContributionRay(const glm::vec3& rayOrigin, const glm::vec3& cameraPlaneNormalWorld,
+                                 float apertureRadius, size_t photonID, size_t gaussianID, float photonFlux,
+                                 glm::vec3& directLightDir,
+                                 glm::vec3& apertureHitPoint,
+                                 glm::vec3& cameraHitPointLocal,
+                                 float& camera_t
+        ) const {
             // Calculate direct lighting
 
-            glm::vec3 apertureHitPoint;
-
-            glm::vec3 directLightingDir = sampleDirectionTowardAperture(
+            directLightDir = sampleDirectionTowardAperture(
                 rayOrigin,
                 m_cameraTransform->getPosition(), // center of aperture
                 cameraPlaneNormalWorld, // might be -X if your camera faces X, or -Z, etc.
@@ -204,9 +246,9 @@ namespace VkRender::PathTracer {
                 photonID
             );
             // Early exist if we are hitting the camera plane from behind, this happens if the aperture direction and camera plane normal are parallell or within that quadrant
-            float direction = glm::dot(directLightingDir, cameraPlaneNormalWorld);
+            float direction = glm::dot(directLightDir, cameraPlaneNormalWorld);
             if (direction >= 0.0f) {
-                return;
+                return false;
             }
             // Check if contribution ray intersects geometry
             glm::vec3 directLightingOrigin = rayOrigin;
@@ -214,24 +256,23 @@ namespace VkRender::PathTracer {
             // Create contribution Rays and trace towards the camera
             // Trace our contribution ray
             glm::vec3 camHit;
-            float tCam;
             float incidentAngle;
-            bool cameraHit = checkCameraPlaneIntersection(directLightingOrigin, directLightingDir, camHit,
-                                                          tCam, incidentAngle);
+            bool cameraHit = checkCameraPlaneIntersection(directLightingOrigin, directLightDir, camHit,
+                                                          camera_t, incidentAngle);
             if (cameraHit) {
                 float closest_t = FLT_MAX;
                 size_t hitEntity = 0;
                 glm::vec3 hitPointWorld(0.0f);
                 glm::vec3 hitNormalWorld(0.0f);
                 // check intersection with geometry
-                bool hit = geometryIntersection2DGS(gaussianID, directLightingOrigin, directLightingDir, hitEntity,
+                bool hit = geometryIntersection2DGS(gaussianID, directLightingOrigin, directLightDir, hitEntity,
                                                     closest_t, hitPointWorld, hitNormalWorld);
                 float tGeom = hit ? closest_t : FLT_MAX;
-                if (tCam < tGeom) {
-                    glm::vec3 cameraHitPointWorld = directLightingOrigin + directLightingDir * tCam;
+                if (camera_t < tGeom) {
+                    glm::vec3 cameraHitPointWorld = directLightingOrigin + directLightDir * camera_t;
 
                     float d = glm::length(cameraHitPointWorld);
-                    float cosTheta = glm::dot(directLightingDir, -cameraPlaneNormalWorld);
+                    float cosTheta = glm::dot(directLightDir, -cameraPlaneNormalWorld);
                     //float scaleFactor = (M_PIf * apertureRadius * apertureRadius * d * d) / glm::max(0.1f, cosTheta);
                     //float scaleFactor = (M_PIf * 0.000001f) / glm::max(0.1f, cosTheta);
 
@@ -239,30 +280,24 @@ namespace VkRender::PathTracer {
                     // 1. Transform the hit point from world space to camera space
                     glm::mat4 worldToCamera = glm::inverse(m_cameraTransform->getTransform());
                     glm::vec4 hitPointCam4 = worldToCamera * glm::vec4(cameraHitPointWorld, 1.0f);
-                    glm::vec3 hitPointCam = hitPointCam4 / hitPointCam4.w;
+                    cameraHitPointLocal = hitPointCam4 / hitPointCam4.w;
+                    accumulateOnSensor(photonID, cameraHitPointLocal, photonFlux);
 
-                    accumulateOnSensor(photonID, hitPointCam, photonFlux);
-
-                    m_gpuDataOutput[photonID].gaussianID = gaussianID;
-                    m_gpuDataOutput[photonID].emissionOrigin = rayOrigin;
-                    m_gpuDataOutput[photonID].emissionDirection = directLightingDir;
-                    m_gpuDataOutput[photonID].hitCamera = cameraHit;
-                    m_gpuDataOutput[photonID].emissionDirectionLength = tCam;
-                    m_gpuDataOutput[photonID].apertureHitPoint = apertureHitPoint;
-                    m_gpuDataOutput[photonID].cameraHitPointLocal = hitPointCam;
+                    return true;
                 }
             }
+            return false;
         }
 
 
         bool geometryIntersection2DGS(
             size_t gaussianID,
-            const glm::vec3 &rayOrigin,
-            const glm::vec3 &rayDir,
-            size_t &hitPointIdx,
-            float &closest_t,
-            glm::vec3 &hitPointWorld,
-            glm::vec3 &hitNormalWorld
+            const glm::vec3& rayOrigin,
+            const glm::vec3& rayDir,
+            size_t& hitPointIdx,
+            float& closest_t,
+            glm::vec3& hitPointWorld,
+            glm::vec3& hitNormalWorld
         ) const {
             bool hit = false;
             float epsilon = 1e-6f;
@@ -271,7 +306,7 @@ namespace VkRender::PathTracer {
                 if (i == gaussianID)
                     continue;
 
-                const GaussianInputAssembly &gp = m_gpuData.gaussianInputAssembly[i];
+                const GaussianInputAssembly& gp = m_gpuData.gaussianInputAssembly[i];
                 glm::vec3 N = gp.normal; // plane normal
                 float denom = glm::dot(N, rayDir);
 
@@ -303,7 +338,7 @@ namespace VkRender::PathTracer {
                 float sigmaU = gp.scale.x;
                 float sigmaV = gp.scale.y;
                 float ellipseParam = (u * u) / (sigmaU * sigmaU)
-                                     + (v * v) / (sigmaV * sigmaV);
+                    + (v * v) / (sigmaV * sigmaV);
 
                 if (ellipseParam > 1.0f) {
                     // Outside the ellipse => ignore this intersection
@@ -323,10 +358,10 @@ namespace VkRender::PathTracer {
 
 
         glm::vec3 sampleDirectionTowardAperture(
-            const glm::vec3 &lightPos,
-            const glm::vec3 &apertureCenter,
-            const glm::vec3 &apertureNormal,
-            glm::vec3 &apertureHitpoint,
+            const glm::vec3& lightPos,
+            const glm::vec3& apertureCenter,
+            const glm::vec3& apertureNormal,
+            glm::vec3& apertureHitpoint,
             float apertureRadius,
             uint64_t photonID) const {
             // pick random point on the lens
@@ -337,8 +372,8 @@ namespace VkRender::PathTracer {
         }
 
         glm::vec3 samplePointOnDisk(size_t photonID,
-                                    const glm::vec3 &center,
-                                    const glm::vec3 &normal,
+                                    const glm::vec3& center,
+                                    const glm::vec3& normal,
                                     float radius) const {
             // Or use any 2D disk sampling approach (e.g., concentric disk sampling).
             // We'll do a simple naive approach:
@@ -363,11 +398,11 @@ namespace VkRender::PathTracer {
         }
 
         bool checkCameraPlaneIntersection(
-            const glm::vec3 &rayOriginWorld,
-            const glm::vec3 &rayDirWorld,
-            glm::vec3 &hitPointCam, // out: intersection in camera space
-            float &tIntersect, // out: parameter t
-            float &contributionScore // out: parameter contributionScore
+            const glm::vec3& rayOriginWorld,
+            const glm::vec3& rayDirWorld,
+            glm::vec3& hitPointCam, // out: intersection in camera space
+            float& tIntersect, // out: parameter t
+            float& contributionScore // out: parameter contributionScore
         ) const {
             // 1) Transform to camera space
 
@@ -421,7 +456,7 @@ namespace VkRender::PathTracer {
         // ---------------------------------------------------------------------
         //  accumulateOnSensor
         // ---------------------------------------------------------------------
-        void accumulateOnSensor(size_t photonID, const glm::vec3 &hitPointCam, float photonFlux) const {
+        void accumulateOnSensor(size_t photonID, const glm::vec3& hitPointCam, float photonFlux) const {
             // 2. Project to the image plane using pinhole intrinsics:
             // Important: Z_cam should be > 0 for a point in front of the camera.
             //
@@ -468,9 +503,9 @@ namespace VkRender::PathTracer {
 
                     // Use atomic operations to safely update the pixel value.
                     sycl::atomic_ref<float, sycl::memory_order::relaxed,
-                                sycl::memory_scope::device,
-                                sycl::access::address_space::global_space>
-                            imageMemoryAtomic(m_gpuData.imageMemory[pixelIndex]);
+                                     sycl::memory_scope::device,
+                                     sycl::access::address_space::global_space>
+                        imageMemoryAtomic(m_gpuData.imageMemory[pixelIndex]);
 
                     // Optionally, prevent saturation by clamping the pixel value to 1.0f.
                     float currentValue = imageMemoryAtomic.load();
@@ -486,16 +521,16 @@ namespace VkRender::PathTracer {
             addFluxToPixel(x1, y1, w11);
             // 7. Atomically update the photon count.
             sycl::atomic_ref<uint64_t, sycl::memory_order::relaxed,
-                        sycl::memory_scope::device,
-                        sycl::access::address_space::global_space>
-                    photonsAccumulatedAtomic(m_gpuData.renderInformation->photonsAccumulated);
+                             sycl::memory_scope::device,
+                             sycl::access::address_space::global_space>
+                photonsAccumulatedAtomic(m_gpuData.renderInformation->photonsAccumulated);
             photonsAccumulatedAtomic.fetch_add(static_cast<uint64_t>(1));
         }
 
         // ---------------------------------------------------------------------
         //  Helper: sample an emissive gaussian object
         // ---------------------------------------------------------------------
-        size_t sampleRandomEmissiveGaussian(size_t photonID, size_t &entityID) const {
+        size_t sampleRandomEmissiveGaussian(size_t photonID, size_t& entityID) const {
             // Simple Linear Congruential Generator (LCG) for RNG
             std::array<size_t, 10> samples{}; // TODo max 10 light sources supported currently
             size_t i = 0;
@@ -515,10 +550,10 @@ namespace VkRender::PathTracer {
         // ---------------------------------------------------------------------
         void sampleGaussianPositionAndNormal(size_t entityID, size_t emissiveEntityIdx,
                                              size_t photonID,
-                                             glm::vec3 &outPos,
-                                             glm::vec3 &outNormal,
-                                             float &emissionPower) const {
-            const GaussianInputAssembly &gaussian = m_gpuData.gaussianInputAssembly[emissiveEntityIdx];
+                                             glm::vec3& outPos,
+                                             glm::vec3& outNormal,
+                                             float& emissionPower) const {
+            const GaussianInputAssembly& gaussian = m_gpuData.gaussianInputAssembly[emissiveEntityIdx];
             // ------------------------------------------------------------------
             // 1. Prepare the normal, find two tangent vectors for the plane.
             // ------------------------------------------------------------------
@@ -550,7 +585,7 @@ namespace VkRender::PathTracer {
             //     If scale.y=1 => maximum distance is 1 meter in Y
             //     For ellipse: (x/σx)^2 + (y/σy)^2 <= 1
             float ellipseParam = (x * x) / (gaussian.scale.x * gaussian.scale.x)
-                                 + (y * y) / (gaussian.scale.y * gaussian.scale.y);
+                + (y * y) / (gaussian.scale.y * gaussian.scale.y);
 
             // ------------------------------------------------------------------
             // 3. Offset the center by (x, y) in the plane spanned by (t1, t2).
@@ -574,7 +609,7 @@ namespace VkRender::PathTracer {
 
             // Gaussian PDF (unnormalized since we are within the ellipse)
             float gaussianPDF = (1.0f / (2.0f * M_PIf * sigma_x * sigma_y)) *
-                                expf(-0.5f * ((x * x) / (sigma_x * sigma_x) + (y * y) / (sigma_y * sigma_y)));
+                expf(-0.5f * ((x * x) / (sigma_x * sigma_x) + (y * y) / (sigma_y * sigma_y)));
 
             // Area of the ellipse
             float ellipseArea = M_PIf * sigma_x * sigma_y;
@@ -609,7 +644,7 @@ namespace VkRender::PathTracer {
 
 
         // Constructs an orthonormal basis (T, B, N) given a normal N.
-        static void buildTangentBasis(const glm::vec3 &N, glm::vec3 &T, glm::vec3 &B) {
+        static void buildTangentBasis(const glm::vec3& N, glm::vec3& T, glm::vec3& B) {
             // Any vector not collinear with N will do for "temp"
             glm::vec3 temp = (fabs(N.x) > 0.9f) ? glm::vec3(0, 1, 0) : glm::vec3(1, 0, 0);
 
@@ -619,7 +654,7 @@ namespace VkRender::PathTracer {
         }
 
         glm::vec3 sampleCosineWeightedHemisphere(
-            const glm::vec3 &normal,
+            const glm::vec3& normal,
             size_t photonID) // random [0,1]
         const {
             // Step 1: Convert to spherical coords for cosine-weighted distribution
@@ -652,7 +687,7 @@ namespace VkRender::PathTracer {
         // ---------------------------------------------------------------------
         //  sampleRandomHemisphere (Lambertian reflection) using PCG32
         // ---------------------------------------------------------------------
-        glm::vec3 sampleRandomHemisphere(const glm::vec3 &normal, size_t photonID) const {
+        glm::vec3 sampleRandomHemisphere(const glm::vec3& normal, size_t photonID) const {
             glm::vec3 r = randomUnitVector(photonID);
             if (glm::dot(r, normal) < 0.f) {
                 r = -r;

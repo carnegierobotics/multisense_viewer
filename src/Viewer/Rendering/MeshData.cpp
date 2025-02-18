@@ -29,7 +29,7 @@ namespace VkRender {
     void MeshData::generateCylinderMesh(const CylinderMeshParameters& parameters) {
         // Extract parameters from the map
         glm::vec3 origin = parameters.origin;
-        glm::vec3 direction =  parameters.direction;
+        glm::vec3 direction =  glm::normalize(parameters.direction);
         float magnitude =  parameters.magnitude;
 
         // Parameters for the cylinder

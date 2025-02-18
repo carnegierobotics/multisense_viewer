@@ -59,7 +59,10 @@ namespace VkRender {
         }
         PathTracer::PhotonTracer::PipelineSettings pipelineSettings(syclDevice, width, height);
 
-        std::filesystem::path baseDir = "/home/magnus/datasets/PathTracingGS/active/";
+        std::filesystem::path datasetPath = "/home/magnus-desktop/datasets/PhotonRebuild";
+        //std::filesystem::path datasetPath = "/home/magnus/datasets/PhotonRebuild";
+
+        std::filesystem::path baseDir = datasetPath / "active";
         std::filesystem::path filePath;
         for (const auto &entry: std::filesystem::recursive_directory_iterator(baseDir)) {
             std::string filename = entry.path().filename().string();
@@ -212,7 +215,7 @@ namespace VkRender {
                     convertedImage[i * 4 + 3] = 255;
                 }
                 m_colorTexture->loadImage(convertedImage.data(), convertedImage.size());
-                Log::Logger::getInstance()->info("Using Camera: {}",
+                Log::Logger::getInstance()->info("Forward pass no: {}/{}, Using Camera: {}",m_numAccumulated, m_pathTracer->getPipelineSettings().numFrames,
                                                  m_context->activeScene()->getActiveCameraEntity().getName());
                 // Backpropagate -- OPTIMIZATION STEP --
 
@@ -221,7 +224,10 @@ namespace VkRender {
 
 
                     //std::filesystem::path basePath = "/home/magnus-desktop/datasets/PhotonRebuild/active/";
-                    std::filesystem::path basePath = "/home/magnus/datasets/PathTracingGS/active/";
+                    std::filesystem::path datasetPath = "/home/magnus-desktop/datasets/PhotonRebuild";
+                    //std::filesystem::path datasetPath = ""/home/magnus/datasets/PathTracingGS";
+
+                    std::filesystem::path basePath = datasetPath / "active";
                     std::filesystem::path gtFileName;
 
                     gtFileName = basePath / (m_context->activeScene()->getActiveCameraEntity().getName() + ".pfm");

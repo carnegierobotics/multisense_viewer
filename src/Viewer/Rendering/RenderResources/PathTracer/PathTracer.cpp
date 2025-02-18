@@ -370,8 +370,8 @@ namespace VkRender::PathTracer {
 
             // Fill default appearance properties
             point.emission = emissionsPtr[i]; // emission = 0
-            point.diffuse = specularPtr[i]; // diffuse = 0.5
-            point.specular = diffusePtr[i]; // specular = 0.5
+            point.diffuse = diffusePtr[i]; // diffuse = 0.5
+            point.specular = specularPtr[i]; // specular = 0.5
             point.phongExponent = 32; // phongExponent = 32
 
             hostGaussians[i] = point;

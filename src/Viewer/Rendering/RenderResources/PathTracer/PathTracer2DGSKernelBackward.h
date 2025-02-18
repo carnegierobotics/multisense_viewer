@@ -51,7 +51,7 @@ namespace VkRender::PathTracer {
             glm::vec3 e_o = m_gpuDataOutput[photonID].emissionOrigin;
             glm::vec3 e_d = m_gpuDataOutput[photonID].emissionDirection;
             glm::vec3 a = m_gpuDataOutput[photonID].apertureHitPoint;
-            glm::vec3 hitCam = m_gpuDataOutput[photonID].cameraHitPointLocal;
+            //glm::vec3 hitCam = m_gpuDataOutput[photonID].cameraHitPointLocal;
             float etmin = m_gpuDataOutput[photonID].emissionDirectionLength;
             size_t gaussianID = m_gpuDataOutput[photonID].gaussianID;
             glm::vec3 a_c = m_cameraTransform->getPosition(); // center of aperture
@@ -63,27 +63,21 @@ namespace VkRender::PathTracer {
             float fy = m_camera->parameters().fy;
             float cx = m_camera->parameters().cx;
             float cy = m_camera->parameters().cy;
-            float px = hitCam.x;
-            float py = hitCam.y;
-            float pz = hitCam.z;
-            float xPixel = (fx * px / pz) + cx;
-            float yPixel = (fy * py / pz) + cy;
 
-            float dLoss = bilinearSample(m_gpuData.gradientImage,
-                                         static_cast<int>(m_camera->parameters().width),
-                                         static_cast<int>(m_camera->parameters().height),
-                                         xPixel, yPixel);
 
             glm::vec3 f = cameraPlanePointWorld; // e.g., defined in your camera parameters
             glm::vec3 f_n = cameraNormal; // e.g., (0,0,1) if the focal plane faces +Z
 
             // PIXEL LOSS GROUND TRUTH
-
             GPUDataOutput::Bounce& object = m_gpuDataOutput[photonID].bounce[gaussianID];
-            glm::vec3 g_c = object.position;
-            glm::vec3 g_n = object.normal;
-            glm::vec3 g_hit = object.hitPointWorld;
-            float tg_gt = glm::dot(g_c-e_c, g_n) / glm::dot(e_d, g_n);
+            size_t hitObjectID = object.gaussianID;
+            auto& newHitObject = m_gpuData.gaussianInputAssembly[hitObjectID];
+            glm::vec3 g_c = newHitObject.position;
+            glm::vec3 g_n = newHitObject.normal;
+            glm::vec3 g_hit2 = object.hitPointWorld;
+            float t_g = glm::dot((g_c - e_o), g_n) / glm::dot(e_d, g_n);
+            glm::vec3 g_hit = e_o + t_g * e_d;
+            float tg_gt = glm::dot((g_c-e_c), g_n) / glm::dot(e_d, g_n);
             glm::vec3 g_hit_gt = e_c + tg_gt * e_d;
 
             glm::vec3 apertureHitPoint;
@@ -101,16 +95,32 @@ namespace VkRender::PathTracer {
             float incidentAngle;
             bool cameraHit = checkCameraPlaneIntersection(g_hit_gt, a_d_gt, camHit,
                                                           a_tmin_gt, incidentAngle);
-            glm::vec3 cameraHitPointWorld = g_hit_gt + a_d_gt * a_tmin_gt;
+            glm::vec3 cameraHitPointWorldGT = g_hit_gt + a_d_gt * a_tmin_gt;
 
+            glm::vec3 a_d = glm::normalize(a_c - g_hit);
+            float a_tmin = glm::dot((f-g_hit), f_n) / (glm::dot(a_d, f_n));
+            glm::vec3 cameraHitPointWorld = g_hit + a_d * a_tmin;
             glm::vec4 hitPointCam = world2Camera * glm::vec4(cameraHitPointWorld, 1.0f);
             hitPointCam = hitPointCam / hitPointCam.w;
-            float px_gt = hitPointCam.x;
-            float py_gt = hitPointCam.y;
-            float pz_gt = hitPointCam.z;
+            float px = hitPointCam.x;
+            float py = hitPointCam.y;
+            float pz = hitPointCam.z;
+            float xPixel = (fx * px / pz) + cx;
+            float yPixel = (fy * py / pz) + cy;
+
+
+            glm::vec4 hitPointCamGT = world2Camera * glm::vec4(cameraHitPointWorldGT, 1.0f);
+            hitPointCamGT = hitPointCamGT / hitPointCamGT.w;
+            float px_gt = hitPointCamGT.x;
+            float py_gt = hitPointCamGT.y;
+            float pz_gt = hitPointCamGT.z;
             float gtPixelU = (fx * px_gt / pz_gt) + cx;
             float gtPixelV = (fy * py_gt / pz_gt) + cy;
 
+            float dLoss = bilinearSample(m_gpuData.gradientImage,
+                                         static_cast<int>(m_camera->parameters().width),
+                                         static_cast<int>(m_camera->parameters().height),
+                                         xPixel, yPixel);
             /// Finding gradient of pixel projection to e0
 
             glm::vec3 grad_tg =-g_n / (glm::dot(e_d, g_n));
@@ -124,15 +134,13 @@ namespace VkRender::PathTracer {
             glm::mat3 J_w_eo = -J_ghit_eo;
 
             glm::vec3 tmp = w / static_cast<float>(std::pow(w_len, 3));
-            glm::vec3 tmp2 = J_w_eo * w;
-            glm::mat3 J_ad_eo = - 1 / w_len * J_w_eo;
+            glm::vec3 tmp2 = glm::transpose(J_w_eo) * w;
             glm::mat3 term2 = glm::outerProduct(tmp, tmp2);
+
+            glm::mat3 J_ad_eo = (- 1 / w_len) * J_w_eo;
             J_ad_eo += term2;
 
             // grad atmin_eo
-            glm::vec3 a_d = glm::normalize(a_c - g_hit);
-            float a_tmin = glm::dot((f-g_hit), f_n) / (glm::dot(a_d, f_n));
-
             float d = glm::dot(a_d, f_n);
             glm::vec3 d_d = f_n * J_ad_eo;
 
@@ -147,9 +155,9 @@ namespace VkRender::PathTracer {
             J_p_eo += glm::outerProduct(a_d, grad_atmin_eo) + a_tmin * J_ad_eo;
 
 
-            float px_camera = hitCam.x;
-            float py_camera = hitCam.y;
-            float pz_camera = hitCam.z;
+            float px_camera = hitPointCam.x;
+            float py_camera = hitPointCam.y;
+            float pz_camera = hitPointCam.z;
             // Compute derivatives
             float inv_pz = 1.0f / pz_camera;
             float inv_pz2 = inv_pz * inv_pz; // 1/pz^2
@@ -163,8 +171,10 @@ namespace VkRender::PathTracer {
             J_uv_p[1][1] = fy * inv_pz; // ∂v/∂py
             J_uv_p[1][2] = -fy * py_camera * inv_pz2; // ∂v/∂pz
             //glm::mat2x3  J_uv_eo = multiply2x3_3x3(J_uv_p, dp_de_o_camera);
-            glm::mat3 J_uv_eo =  glm::mat3(world2Camera) * glm::transpose(J_p_eo); // Recall it is now column-major
-
+            // Apply Rotation:
+            glm::mat3 w2c = glm::mat3(world2Camera);
+            glm::mat3 J_p_eo_camera =  w2c * J_p_eo;
+            glm::mat3 J_uv_eo = glm::transpose(J_uv_p) * J_p_eo_camera;
 
             // 1) Evaluate the pixel mismatch:
             float du = (xPixel - gtPixelU);
@@ -180,8 +190,8 @@ namespace VkRender::PathTracer {
             grad_geometry.y = (dLdu * J_uv_eo[1][0] + dLdv * J_uv_eo[1][1]);
             grad_geometry.z = (dLdu * J_uv_eo[2][0] + dLdv * J_uv_eo[2][1]);
 
-
-            // Atomically accumulate the gradient.
+            glm::vec3 total_gradient = grad_geometry * dLoss;
+            // Atomically accum ulate the gradient.
             sycl::atomic_ref<float, sycl::memory_order::acq_rel,
                         sycl::memory_scope::device,
                         sycl::access::address_space::global_space>
@@ -339,7 +349,7 @@ namespace VkRender::PathTracer {
             // Apply Rotation:
             glm::mat3 dp_de_o_world = glm::mat3(world2Camera) * dp_de_o;
             //glm::mat2x3  J_uv_eo = multiply2x3_3x3(J_uv_p, dp_de_o_camera);
-            glm::mat3 J_uv_eo = glm::transpose(J_uv_p) * dp_de_o_world;
+            glm::mat3 J_uv_eo = J_uv_p * dp_de_o_world;
             // Now, combine the derivative contributions.
             // Previously, we computed dL/de_o = dLoss * de_i/de_o.
             // We add the extra term from the path-length differentiation:

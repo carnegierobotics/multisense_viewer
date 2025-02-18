@@ -602,7 +602,7 @@ namespace VkRender {
 
         // Cleanup deferred deletions
         Log::Logger::getInstance()->trace("Deferred cleanup check");
-        //VulkanResourceManager::getInstance().cleanup();
+        VulkanResourceManager::getInstance().cleanup();
 
 
         // Also signal subsequent fences by various rendering operations

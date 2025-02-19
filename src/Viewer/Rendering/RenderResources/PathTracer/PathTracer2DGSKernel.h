@@ -64,12 +64,14 @@ namespace VkRender::PathTracer {
             glm::mat4 entityTransform = m_cameraTransform->getTransform();
             glm::vec3 cameraPlaneNormalWorld = glm::normalize(
                 glm::mat3(entityTransform) * glm::vec3(0.0f, 0.0f, -1.0f));
+            m_gpuDataOutput[photonID].emissionDirection = rayDir;
 
             glm::vec3 directLightDir(0.0f);
             float camera_t = 0.0f;
             glm::vec3 apertureHitPoint(0.0f);
             glm::vec3 cameraHitPointLocal(0.0f);
-            if (castContributionRay(rayOrigin, cameraPlaneNormalWorld, apertureRadius, photonID, gaussianID, photonFlux
+            float scalePowerDirectLighting = 0.00000001 * photonFlux;
+            if (castContributionRay(rayOrigin, cameraPlaneNormalWorld, apertureRadius, photonID, gaussianID, scalePowerDirectLighting
                                     , directLightDir, apertureHitPoint, cameraHitPointLocal, camera_t
             )) {
                 m_gpuDataOutput[photonID].directLightingDir = directLightDir;
@@ -77,13 +79,16 @@ namespace VkRender::PathTracer {
                 m_gpuDataOutput[photonID].apertureHitPoint = apertureHitPoint;
                 m_gpuDataOutput[photonID].cameraHitPointLocal = cameraHitPointLocal;
                 m_gpuDataOutput[photonID].hitCamera = true;
+                m_gpuDataOutput[photonID].emissionDirection = directLightDir;
 
 
             }
-
             m_gpuDataOutput[photonID].gaussianID = gaussianID;
             m_gpuDataOutput[photonID].emissionOrigin = rayOrigin;
-            m_gpuDataOutput[photonID].emissionDirection = rayDir;
+
+            if (photonID == 10000) {
+                int stop = 1;
+            }
 
             if (gaussianID == 0 && m_gpuDataOutput[photonID].hitCamera)
                 int interesting = 1;
@@ -122,7 +127,7 @@ namespace VkRender::PathTracer {
                     // TODO also calculate the contribution if I am sampling directly towards the camera instead of just reflecting along the surface normal
                     // Contribution Dir
 
-                    glm::vec3 a;
+                    glm::vec3 a(0.0f);
                     glm::vec3 contributionRayDir = sampleDirectionTowardAperture(
                         hitPointWorld,
                         m_cameraTransform->getPosition(), // center of aperture
@@ -593,13 +598,6 @@ namespace VkRender::PathTracer {
             // (c) Scale by anisotropic stddev (sigma_x, sigma_y)
             x = z0 * gaussian.scale.x;
             y = z1 * gaussian.scale.y;
-
-            // (d) Check elliptical boundary
-            //     If scale.x=1 => maximum distance is 1 meter in X
-            //     If scale.y=1 => maximum distance is 1 meter in Y
-            //     For ellipse: (x/σx)^2 + (y/σy)^2 <= 1
-            float ellipseParam = (x * x) / (gaussian.scale.x * gaussian.scale.x)
-                                 + (y * y) / (gaussian.scale.y * gaussian.scale.y);
 
             // ------------------------------------------------------------------
             // 3. Offset the center by (x, y) in the plane spanned by (t1, t2).

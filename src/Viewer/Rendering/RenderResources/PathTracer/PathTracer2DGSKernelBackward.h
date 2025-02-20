@@ -132,7 +132,6 @@ namespace VkRender::PathTracer {
             // Intersection derivative from light source
             glm::mat3 J_ghit_gc = (1 / glm::dot(e_d, g_n)) * glm::outerProduct(e_d, g_n);
 
-
             // outgoing direction derivative to camera
             glm::vec3 v_tmp = a_c - g_hit;
             float v_len = glm::length(v_tmp);
@@ -158,11 +157,9 @@ namespace VkRender::PathTracer {
             glm::vec3 grad_atmin_gc = tmp_numerator / tmp_denom;
 
             // Focal Plane intersection coordinates:
-            glm::mat3 J_p_gc(0.0f);
-
             glm::mat3 tmp_term_2 = glm::outerProduct(a_d, grad_atmin_gc);
             glm::mat3 tmp_term_3 = a_tmin * J_ad_gc;
-            J_p_gc = J_ghit_gc + tmp_term_2 + tmp_term_3;
+            glm::mat3 J_p_gc = J_ghit_gc + tmp_term_2 + tmp_term_3;
 
             // Camera extrinsics gradients:
 
@@ -384,7 +381,7 @@ namespace VkRender::PathTracer {
             grad_geometry.y = (dLdu * J_uv_eo[1][0] + dLdv * J_uv_eo[1][1]);
             grad_geometry.z = (dLdu * J_uv_eo[2][0] + dLdv * J_uv_eo[2][1]);
 
-            glm::vec3 total_gradient = -grad_geometry * dLoss;
+            glm::vec3 total_gradient = grad_geometry * dLoss;
 
             // Atomically accum ulate the gradient.
             sycl::atomic_ref<float, sycl::memory_order::acq_rel,

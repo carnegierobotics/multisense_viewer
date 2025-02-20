@@ -86,9 +86,6 @@ namespace VkRender::PathTracer {
             m_gpuDataOutput[photonID].gaussianID = gaussianID;
             m_gpuDataOutput[photonID].emissionOrigin = rayOrigin;
 
-            if (photonID == 10000) {
-                int stop = 1;
-            }
 
             if (gaussianID == 0 && m_gpuDataOutput[photonID].hitCamera)
                 int interesting = 1;
@@ -108,14 +105,40 @@ namespace VkRender::PathTracer {
                 // If we hit some geometry then calculate the bounce
                 if (hit) {
                     // Fetch material parameters
-                    const GaussianInputAssembly &mat = m_gpuData.gaussianInputAssembly[hitEntity];
-                    float color = mat.color.x / 255.0f;
-                    float specular = mat.specular; // Specular coefficient
-                    float shininess = mat.phongExponent;
-                    float diffuse = mat.diffuse; // Diffuse coefficient
+                    const GaussianInputAssembly &hitGaussianEntity = m_gpuData.gaussianInputAssembly[hitEntity];
+                    float color = hitGaussianEntity.color.x / 255.0f;
+                    float specular = hitGaussianEntity.specular; // Specular coefficient
+                    float shininess = hitGaussianEntity.phongExponent;
+                    float diffuse = hitGaussianEntity.diffuse; // Diffuse coefficient
                     // We'll accumulate our contribution here
                     float totalContribution = 1.0f;
                     float contributionRayContribution = 0.0f;
+
+                    glm::vec3 gaussianDelta = hitPointWorld - hitGaussianEntity.position;
+                    glm::vec3 normal = hitGaussianEntity.normal;
+                    glm::vec2 scale = hitGaussianEntity.scale;
+
+                    // Compute distance to Gaussian center
+                    float distanceToGaussianCenter = glm::length(gaussianDelta);
+
+                    // Build local tangent basis for the plane
+                    glm::vec3 tAxis, bAxis;
+                    buildTangentBasis(normal, tAxis, bAxis);
+
+                    float u = glm::dot(gaussianDelta, tAxis);
+                    float v = glm::dot(gaussianDelta, bAxis);
+
+                    // Check elliptical boundary:
+                    float sigmaU = scale.x * 0.33f;
+                    float sigmaV = scale.y * 0.33f;
+
+                    float dSquared = (u * u) / (sigmaU * sigmaU)
+                        + (v * v) / (sigmaV * sigmaV);
+
+                    // --- 5. Gaussian attenuation in 2D ---
+                    float gaussianAttenuation = exp(-0.5f * dSquared);
+
+
 
                     // ----------------------------------
                     // NON-METALLIC branch (diffuse > 0)
@@ -157,37 +180,11 @@ namespace VkRender::PathTracer {
                                                       + specularWeight * specularContribution;
                     }
 
-                    /*
-                    // Path contribution
-                    {
-                        float cosTheta = glm::dot(hitNormalWorld, -rayDir);
-                        cosTheta = glm::max(0.0f, cosTheta); // Clamp to 0 to prevent negative contributions
-                        float diffuseContribution = diffuse * albedo * cosTheta / M_PIf;
-
-                        glm::vec3 reflectedDir = glm::reflect(rayDir, hitNormalWorld);
-                        float cosAlpha = glm::dot(glm::normalize(reflectedDir), glm::normalize(-rayDir));
-                        cosAlpha = glm::max(0.0f, cosAlpha);
-                        float specularContribution = specular * std::pow(cosAlpha, shininess) / M_PIf;
-                        //3 ) Energy conservation / normalization:
-                        //    We want to ensure that the total reflection doesn't exceed 1,
-                        //    weight diffuse vs. specular so that sum of their "weights" is 1.
-                        float sumForWeights = diffuse + specular;
-                        if (sumForWeights > 0.0f) {
-                            float diffuseWeight = diffuse / sumForWeights;
-                            float specularWeight = specular / sumForWeights;
-                            // Weighted sum
-                            totalContribution = diffuseWeight * diffuseContribution
-                                                + specularWeight * specularContribution;
-                        } else {
-                            // Fallback if albedo + specular == 0
-                            totalContribution = 0.0f;
-                        }
-                    }
-                    */
-
-                    float contributionFlux = photonFlux * contributionRayContribution;
+                    float contributionFlux = photonFlux * contributionRayContribution * gaussianAttenuation;
                     // Finally, scale the photonFlux (or outgoing radiance) by total contribution
+
                     photonFlux *= totalContribution;
+                    /*
                     // Russian Roulette termination
                     float rrProb = photonFlux;
                     float minProbability = 0.2f; // 20%
@@ -198,6 +195,7 @@ namespace VkRender::PathTracer {
                         return; // Photon terminated i.e. absorbed by the last surface
                     }
                     photonFlux = photonFlux / rrProb;
+                    */
 
                     // Sample new direction (Lambertian reflection)
                     glm::vec3 newDir = sampleCosineWeightedHemisphere(hitNormalWorld, photonID);
@@ -209,10 +207,11 @@ namespace VkRender::PathTracer {
                     float newCamera_t = 0.0f;
                     glm::vec3 newApertureHitPoint(0.0f);
                     glm::vec3 newCameraHitPointLocal(0.0f);
+                    bool shouldAddContribution = bounce != 1;
                     if (castContributionRay(newRayOrigin, cameraPlaneNormalWorld, apertureRadius, photonID, gaussianID,
                                             contributionFlux
                                             , newDirectLightDir, newApertureHitPoint, newCameraHitPointLocal,
-                                            newCamera_t
+                                            newCamera_t, shouldAddContribution
                     )) {
                         m_gpuDataOutput[photonID].bounce[bounce].hitCamera = true;
                         m_gpuDataOutput[photonID].bounce[bounce].emissionDirection = newDirectLightDir;
@@ -220,6 +219,9 @@ namespace VkRender::PathTracer {
                         m_gpuDataOutput[photonID].bounce[bounce].emissionDirectionLength = newCamera_t;
                         m_gpuDataOutput[photonID].bounce[bounce].apertureHitPoint = newApertureHitPoint;
                         m_gpuDataOutput[photonID].bounce[bounce].cameraHitPointLocal = newCameraHitPointLocal;
+
+                        if (bounce == 1)
+                            int interesting = 1;
                     }
 
                     m_gpuDataOutput[photonID].bounce[bounce].hitPointWorld = hitPointWorld;
@@ -241,7 +243,8 @@ namespace VkRender::PathTracer {
                                  glm::vec3 &directLightDir,
                                  glm::vec3 &apertureHitPoint,
                                  glm::vec3 &cameraHitPointLocal,
-                                 float &camera_t
+                                 float &camera_t,
+                                 bool shouldAddContribution = true
         ) const {
             // Calculate direct lighting
 
@@ -289,7 +292,9 @@ namespace VkRender::PathTracer {
                     glm::mat4 worldToCamera = glm::inverse(m_cameraTransform->getTransform());
                     glm::vec4 hitPointCam4 = worldToCamera * glm::vec4(cameraHitPointWorld, 1.0f);
                     cameraHitPointLocal = hitPointCam4 / hitPointCam4.w;
-                    if (accumulateOnSensor(photonID, cameraHitPointLocal, photonFlux)) {
+                    float energy = shouldAddContribution ? photonFlux : 0.0f;
+
+                    if (accumulateOnSensor(photonID, cameraHitPointLocal, energy)) {
                         return true;
                     }
                 }
@@ -352,6 +357,7 @@ namespace VkRender::PathTracer {
                     // Outside the ellipse => ignore this intersection
                     continue;
                 }
+
 
                 // If we get here, we have a valid intersection
                 closest_t = dist;

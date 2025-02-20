@@ -146,7 +146,7 @@ namespace VkRender::PathTracer {
         };
 
         // 1 bounce
-        Bounce bounce[4];
+        Bounce bounce[2];
     };
 
 

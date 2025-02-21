@@ -232,6 +232,25 @@ namespace VkRender {
                     out << YAML::Value << params->path.string();
                 }
                 break;
+                case CYLINDER: {
+                    auto params = std::dynamic_pointer_cast<CylinderMeshParameters>(mesh.meshParameters);
+                    out << YAML::Key << "Origin";
+                    out << YAML::Value << YAML::Flow << std::vector<float>{
+                        params->origin.x, params->origin.y, params->origin.z
+                    };
+
+                    out << YAML::Key << "Direction";
+                    out << YAML::Value << YAML::Flow << std::vector<float>{
+                        params->direction.x, params->direction.y, params->direction.z
+                    };
+
+                    out << YAML::Key << "Magnitude";
+                    out << YAML::Value << params->magnitude;
+
+                    out << YAML::Key << "Radius";
+                    out << YAML::Value << params->radius;
+                }
+                break;
                 default:
                     break;
             }
@@ -622,29 +641,59 @@ namespace VkRender {
                     camera.updateParametersChanged();
                 }
 
-                auto meshComponent = entity["MeshComponent"];
-                if (meshComponent) {
+                auto meshComponentNode = entity["MeshComponent"];
+                if (meshComponentNode) {
                     std::filesystem::path path;
-                    if (meshComponent["ModelPath"]) {
-                        path = meshComponent["ModelPath"].as<std::string>();
+                    if (meshComponentNode["ModelPath"]) {
+                        path = meshComponentNode["ModelPath"].as<std::string>();
                     }
-                    if (meshComponent["RelativeModelPath"]) {
+                    if (meshComponentNode["RelativeModelPath"]) {
                         path = std::filesystem::path(assetsPath) / std::filesystem::path(
-                                   meshComponent["RelativeModelPath"].as<std::string>());
+                                   meshComponentNode["RelativeModelPath"].as<std::string>());
                     }
 
-                    auto meshDataTypeStr = meshComponent["MeshDataType"].as<std::string>();
+                    auto meshDataTypeStr = meshComponentNode["MeshDataType"].as<std::string>();
                     MeshDataType meshDataType = stringToMeshDataType(meshDataTypeStr);
 
                     // Add MeshComponent to the entity
                     auto &mesh = deserializedEntity.addComponent<MeshComponent>(meshDataType, path);
                     // Deserialize PolygonMode
-                    if (meshComponent["PolygonMode"] && meshComponent["PolygonMode"].IsScalar()) {
-                        std::string polygonModeStr = meshComponent["PolygonMode"].as<std::string>();
+                    if (meshComponentNode["PolygonMode"] && meshComponentNode["PolygonMode"].IsScalar()) {
+                        std::string polygonModeStr = meshComponentNode["PolygonMode"].as<std::string>();
                         mesh.polygonMode() = Serialize::stringToPolygonMode(polygonModeStr);
                     } else {
                         // Handle missing PolygonMode (optional: set default or throw error)
                         mesh.polygonMode() = VK_POLYGON_MODE_FILL; // Default value
+                    }
+
+                    switch (meshDataType) {
+                        case CYLINDER: {
+                            auto params = std::make_shared<CylinderMeshParameters>();
+                            auto originNode = meshComponentNode["Origin"];
+                            if (originNode && originNode.IsSequence() && originNode.size() == 3) {
+                                params->origin = glm::vec3(originNode[0].as<float>(), originNode[1].as<float>(),
+                                                           originNode[2].as<float>());
+                            }
+
+                            auto directionNode = meshComponentNode["Direction"];
+                            if (directionNode && directionNode.IsSequence() && directionNode.size() == 3) {
+                                params->direction = glm::vec3(directionNode[0].as<float>(),
+                                                              directionNode[1].as<float>(),
+                                                              directionNode[2].as<float>());
+                            }
+
+                            if (meshComponentNode["Magnitude"]) {
+                                params->magnitude = meshComponentNode["Magnitude"].as<float>();
+                            }
+
+                            if (meshComponentNode["Radius"]) {
+                                params->radius = meshComponentNode["Radius"].as<float>();
+                            }
+
+                            mesh.meshParameters = params;
+                        }
+                        break;
+                        default: ;
                     }
                 }
 

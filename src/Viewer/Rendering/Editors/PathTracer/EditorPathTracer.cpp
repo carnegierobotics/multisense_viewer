@@ -112,15 +112,7 @@ namespace VkRender {
             m_pathTracer = std::make_unique<PathTracer::PhotonTracer>(m_context, pipelineSettings,
                                                                       m_context->activeScene());
             syclDevice->getQueue().wait();
-            auto list = syclDevice->getQueue().get_wait_list();
-            for (const auto &event: list) {
-                try {
-                    auto status = event.get_info<sycl::info::event::command_execution_status>();
-                    Log::Logger::getInstance()->info("Event status: {}", static_cast<int>(status));
-                } catch (const std::exception &e) {
-                    Log::Logger::getInstance()->error("Error retrieving event info: {}", e.what());
-                }
-            }
+
             vkDeviceWaitIdle(m_context->vkDevice().m_LogicalDevice);
             float editorAspect = static_cast<float>(m_createInfo.width) /
                                  static_cast<float>(m_createInfo.height);

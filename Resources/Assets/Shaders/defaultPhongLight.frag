@@ -19,6 +19,7 @@ layout (set = 1, binding = 0) uniform Info {
     float numLightSources;
     vec4 lightPosition[32]; // Expanded vec3 -> vec4 for alignment
     vec4 lightNormal[32];   // Expanded vec3 -> vec4 for alignment
+    bool useVertexColor;
 } info;
 
 layout (set = 1, binding = 1) uniform sampler2D samplerColorMap;

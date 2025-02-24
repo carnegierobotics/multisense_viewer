@@ -45,6 +45,36 @@ namespace VkRender {
         std::shared_ptr<MeshData> generateMeshData() const override;
     };
 
+    class QuadricMeshParameters : public IMeshParameters {
+    public:
+        // Quadric parameters
+        float a       = 1.0f;  // Scale in x
+        float b       = 1.0f;  // Scale in y
+        float c       = 1.0f;  // Curvature scale
+        float t_x     = 1.0f;  // Param controlling sign in x-direction
+        float t_y     = 1.0f;  // Param controlling sign in y-direction
+
+
+        // Sampling parameters
+        int   gridResolution = 50;  // number of grid points in each dimension
+        glm::vec2 min = glm::vec2(-10.0f);
+        glm::vec2 max = glm::vec2(10.0f);
+
+
+        // Beta-kernel parameters
+        float b_beta      = 0.0f;   // exponent shift
+        float threshold   = 0.1f;   // radial kernel threshold
+        float kernelScale = 1.0f;   // normalizes the radial coordinate
+
+
+        std::string getIdentifier() const override {
+            // Generate a unique identifier based on parameters
+            return "Quadric" + std::to_string(uuid);
+        }
+
+        std::shared_ptr<MeshData> generateMeshData() const override;
+    };
+
     class CameraGizmoPinholeMeshParameters : public IMeshParameters {
     public:
         PinholeParameters parameters;

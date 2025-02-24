@@ -18,9 +18,10 @@ namespace VkRender {
         OBJ_FILE = 1,
         PLY_FILE = 2,
         CYLINDER = 3,
-        CAMERA_GIZMO_PERSPECTIVE = 4,
-        CAMERA_GIZMO_PINHOLE = 5,
-        MAX_NUM_TYPES = 6
+        QUADRIC = 4,
+        CAMERA_GIZMO_PERSPECTIVE = 5,
+        CAMERA_GIZMO_PINHOLE = 6,
+        MAX_NUM_TYPES = 7
     };
 
     static std::array<MeshDataType, MAX_NUM_TYPES> meshDataTypeToArray() {
@@ -29,6 +30,7 @@ namespace VkRender {
             OBJ_FILE,
             PLY_FILE,
             CYLINDER,
+            QUADRIC,
             CAMERA_GIZMO_PERSPECTIVE,
             CAMERA_GIZMO_PINHOLE,
         };
@@ -41,6 +43,7 @@ namespace VkRender {
             "OBJ_FILE",
             "PLY_FILE",
             "CYLINDER",
+            "QUADRIC",
             "CAMERA_GIZMO_PERSPECTIVE",
             "CAMERA_GIZMO_PINHOLE",
         };
@@ -60,6 +63,8 @@ namespace VkRender {
             return "CAMERA_GIZMO_PINHOLE";
         case CYLINDER:
             return "CYLINDER";
+        case QUADRIC:
+            return "QUADRIC";
         default:
             return "Unknown";
         }
@@ -78,6 +83,8 @@ namespace VkRender {
             return PLY_FILE;
         if (modeStr == "CYLINDER")
             return CYLINDER;
+        if (modeStr == "QUADRIC")
+            return QUADRIC;
         // Default case, or handle unknown input
         return EMPTY;
     }
@@ -95,6 +102,8 @@ namespace VkRender {
             : vertices(std::move(vertices)), indices(std::move(indices)) {
         }
 
+
+        void generateQuadricMesh(const QuadricMeshParameters &parameters);
 
         void generateCylinderMesh(const CylinderMeshParameters& parameters);
         void generateCameraPinholeGizmoMesh(const CameraGizmoPinholeMeshParameters& parameters);

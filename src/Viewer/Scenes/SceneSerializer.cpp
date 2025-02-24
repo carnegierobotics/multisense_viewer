@@ -250,6 +250,28 @@ namespace VkRender {
                     out << YAML::Key << "Radius";
                     out << YAML::Value << params->radius;
                 }
+                case QUADRIC: {
+                    // Cast to our quadric type.
+                    auto params = std::dynamic_pointer_cast<QuadricMeshParameters>(mesh.meshParameters);
+
+                    out << YAML::Key << "a" << YAML::Value << params->a;
+                    out << YAML::Key << "b" << YAML::Value << params->b;
+                    out << YAML::Key << "c" << YAML::Value << params->c;
+                    out << YAML::Key << "t_x" << YAML::Value << params->t_x;
+                    out << YAML::Key << "t_y" << YAML::Value << params->t_y;
+
+                    out << YAML::Key << "gridResolution" << YAML::Value << params->gridResolution;
+
+                    out << YAML::Key << "min";
+                    out << YAML::Value << YAML::Flow << std::vector<float>{
+                        params->min.x, params->min.y
+                    };
+
+                    out << YAML::Key << "max";
+                    out << YAML::Value << YAML::Flow << std::vector<float>{
+                        params->max.x, params->max.y
+                    };
+                }
                 break;
                 default:
                     break;
@@ -332,6 +354,8 @@ namespace VkRender {
             out << YAML::Value << material.specular;
             out << YAML::Key << "PhongExponent";
             out << YAML::Value << material.phongExponent;
+            out << YAML::Key << "UseVertexColor";
+            out << YAML::Value << material.useVertexColor;
             // Serialize vertex shader name (std::filesystem::path)
             out << YAML::Key << "VertexShader";
             out << YAML::Value << material.vertexShaderName.string(); // Convert path to string
@@ -693,6 +717,47 @@ namespace VkRender {
                             mesh.meshParameters = params;
                         }
                         break;
+
+                        case QUADRIC: {
+                            auto params = std::make_shared<QuadricMeshParameters>();
+
+                            if (meshComponentNode["a"])
+                                params->a = meshComponentNode["a"].as<float>();
+                            if (meshComponentNode["b"])
+                                params->b = meshComponentNode["b"].as<float>();
+                            if (meshComponentNode["c"])
+                                params->c = meshComponentNode["c"].as<float>();
+                            if (meshComponentNode["t_x"])
+                                params->t_x = meshComponentNode["t_x"].as<float>();
+                            if (meshComponentNode["t_y"])
+                                params->t_y = meshComponentNode["t_y"].as<float>();
+
+                            if (meshComponentNode["gridResolution"])
+                                params->gridResolution = meshComponentNode["gridResolution"].as<int>();
+
+                            if (meshComponentNode["min"] &&
+                                meshComponentNode["min"].IsSequence() &&
+                                meshComponentNode["min"].size() == 2)
+                            {
+                                params->min = glm::vec2(
+                                    meshComponentNode["min"][0].as<float>(),
+                                    meshComponentNode["min"][1].as<float>()
+                                );
+                            }
+
+                            if (meshComponentNode["max"] &&
+                                meshComponentNode["max"].IsSequence() &&
+                                meshComponentNode["max"].size() == 2)
+                            {
+                                params->max = glm::vec2(
+                                    meshComponentNode["max"][0].as<float>(),
+                                    meshComponentNode["max"][1].as<float>()
+                                );
+                            }
+
+                            mesh.meshParameters = params;
+                        }
+
                         default: ;
                     }
                 }
@@ -724,6 +789,11 @@ namespace VkRender {
                         material.phongExponent = materialComponent["PhongExponent"].as<float>();
                     } else {
                         material.phongExponent = 32.0f; // Default value or handle as needed
+                    }
+                    if (materialComponent["UseVertexColor"]) {
+                        material.useVertexColor = materialComponent["UseVertexColor"].as<bool>();
+                    } else {
+                        material.useVertexColor = false; // Default value or handle as needed
                     }
                     // Deserialize uses texture flag
                     if (materialComponent["VertexShader"]) {

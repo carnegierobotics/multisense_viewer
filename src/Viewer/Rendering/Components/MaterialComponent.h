@@ -27,6 +27,7 @@ namespace VkRender {
         bool isSensor = false;
 
         bool reloadShader = false;
+        bool useVertexColor = false;
 
         std::filesystem::path vertexShaderName = "defaultBasic.vert";
         std::filesystem::path fragmentShaderName = "defaultPhongLight.frag";

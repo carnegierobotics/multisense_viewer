@@ -39,7 +39,6 @@
 #include "pch.h"
 
 #include <GLFW/glfw3.h>
-#include <entt/entt.hpp>
 
 
 #include "Viewer/Application/Project.h"

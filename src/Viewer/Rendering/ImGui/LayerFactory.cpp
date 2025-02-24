@@ -25,9 +25,10 @@
 
 #ifdef DIFF_RENDERER_ENABLED
 #include "Viewer/Rendering/ImGui/AdditionalWindows/ToolWindow.h" // TODO should have a way of transferring data between editors
+#include "Viewer/Rendering/Editors/DifferentiableEditor/EditorDifferentiableRendererLayer.h"
+
 #endif
 #include "Viewer/Rendering/Editors/PathTracer/EditorPathTracerLayer.h"
-#include "Viewer/Rendering/Editors/DifferentiableEditor/EditorDifferentiableRendererLayer.h"
 #include "Viewer/Rendering/Editors/GaussianViewer/EditorGaussianViewerLayer.h"
 
 #endif
@@ -51,12 +52,11 @@ namespace VkRender {
 
 #ifdef SYCL_ENABLED
         if (layerName == "EditorPathTracerLayer") return std::make_shared<EditorPathTracerLayer>();
-        if (layerName == "EditorDifferentiableRendererLayer") return std::make_shared<
-            EditorDifferentiableRendererLayer>();
         if (layerName == "EditorGaussianViewerLayer") return std::make_shared<EditorGaussianViewerLayer>();
 #ifdef DIFF_RENDERER_ENABLED
         if (layerName == "ToolWindow") return std::make_shared<ToolWindow>();
-
+        if (layerName == "EditorDifferentiableRendererLayer") return std::make_shared<
+    EditorDifferentiableRendererLayer>();
 #endif
 #endif
         throw std::runtime_error("Tried to push layer: " + layerName + " Which doesn't exists");

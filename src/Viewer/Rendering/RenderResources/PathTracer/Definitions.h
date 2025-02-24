@@ -77,6 +77,34 @@ namespace VkRender::PathTracer {
         float phongExponent; // Shininess exponent
     };
 
+    struct QuadricInputAssembly {
+        // Quadric parameters
+        float a       = 1.0f;  // Scale in x
+        float b       = 1.0f;  // Scale in y
+        float c       = 1.0f;  // Curvature scale
+        float t_x     = 1.0f;  // Param controlling sign in x-direction
+        float t_y     = 1.0f;  // Param controlling sign in y-direction
+
+        // Sampling parameters
+        glm::vec2 min = glm::vec2(-10.0f);
+        glm::vec2 max = glm::vec2(10.0f);
+
+        // Beta kernel parameters:
+        float b_beta      = 0.0f;   // exponent shift
+        float threshold   = 0.1f;   // radial kernel threshold
+        float kernelScale = 1.0f;   // normalizes the radial coordinate
+
+        // Appearance
+        float emission; // Emissive power
+        glm::vec4 color; // Albedo
+        float diffuse; // Diffuse coefficient
+        float specular; // Specular coefficient
+        float phongExponent; // Shininess exponent
+
+        // Transform
+        TransformComponent transform;
+    };
+
     // TODO possibly redundant
     struct RenderInformation {
         uint64_t photonsAccumulated = 0;
@@ -88,22 +116,14 @@ namespace VkRender::PathTracer {
     };
 
     struct GPUData {
-        InputAssembly* vertices = nullptr;
-        uint32_t* indices = nullptr; // e.g., {0, 1, 2, 2, 3, 0, ...}
-        uint32_t* vertexOffsets = nullptr;
-        uint32_t* indexOffsets = nullptr;
-        TransformComponent* transforms = nullptr;
-        MaterialComponent* materials = nullptr;
-        TagComponent* tagComponents = nullptr;
-        uint32_t numEntities = 0;
-
-        uint32_t totalVertices = 0;
-        uint32_t totalIndices = 0;
-
         // GS
         GaussianInputAssembly* gaussianInputAssembly = nullptr;
-
         size_t numGaussians = 0;
+
+        // Quadric
+        QuadricInputAssembly* quadricInputAssembly = nullptr;
+        size_t numQuadrics = 0;
+
         glm::vec3* gradients = nullptr;
         glm::vec3* sumGradients = nullptr;
         float * gradientImage = nullptr;
@@ -167,14 +187,14 @@ namespace VkRender::PathTracer {
         uint32_t nextUInt() {
             uint64_t old_state = state;
             state = old_state * 6364136223846793005ULL + inc;
-            uint32_t xorshifted = static_cast<uint32_t>(((old_state >> 18u) ^ old_state) >> 27u);
+            auto xorshifted = static_cast<uint32_t>(((old_state >> 18u) ^ old_state) >> 27u);
             uint32_t rot = static_cast<uint32_t>(old_state >> 59u);
             return (xorshifted >> rot) | (xorshifted << ((-rot) & 31));
         }
 
         // Generate a random float in [0, 1)
         float nextFloat() {
-            return nextUInt() / static_cast<float>(UINT32_MAX);
+            return  static_cast<float>(nextUInt()) / static_cast<float>(UINT32_MAX);
         }
     };
 }

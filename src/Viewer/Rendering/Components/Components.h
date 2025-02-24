@@ -7,7 +7,6 @@
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
-#include <filesystem>
 #include <entt/entt.hpp>
 #include "Viewer/Rendering/Core/UUID.h"
 

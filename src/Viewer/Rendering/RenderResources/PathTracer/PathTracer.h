@@ -39,15 +39,15 @@ namespace VkRender::PathTracer {
             uint32_t height = 0;
 
             uint64_t photonCount = 1e4;
-            int numBounces = 1;
+            uint32_t numBounces = 1;
             uint32_t numFrames = 1;
 
             std::shared_ptr<SYCLDeviceSelector> syclDevice;
 
-            sycl::queue& device() const {
+            [[nodiscard]] sycl::queue& device() const {
                 return syclDevice->getQueue();
             }
-            PipelineSettings(std::shared_ptr<SYCLDeviceSelector> q, uint32_t width, uint32_t height, uint64_t photonCount = 1e4, uint64_t numBounces = 1) :
+            PipelineSettings(std::shared_ptr<SYCLDeviceSelector> q, uint32_t width, uint32_t height, uint64_t photonCount = 1e4, uint32_t numBounces = 1) :
                 syclDevice(std::move(q)), width(width), height(height), photonCount(photonCount), numBounces(numBounces) {
             }
         };
@@ -100,6 +100,9 @@ namespace VkRender::PathTracer {
         void freeResources();
         void prepareImageAndInfoBuffers();
         void uploadGaussianData(std::shared_ptr<Scene>& scene);
+
+        void uploadQuadricEntities(std::shared_ptr<Scene> &scene);
+
         void uploadVertexData(std::shared_ptr<Scene>& scene);
     };
 

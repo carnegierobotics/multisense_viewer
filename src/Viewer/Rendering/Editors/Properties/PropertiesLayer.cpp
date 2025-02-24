@@ -444,6 +444,9 @@ namespace VkRender {
                         case MeshDataType::CYLINDER:
                             component.meshParameters = std::make_shared<CylinderMeshParameters>();
                             break;
+                        case MeshDataType::QUADRIC:
+                            component.meshParameters = std::make_shared<QuadricMeshParameters>();
+                            break;
                         case MeshDataType::CAMERA_GIZMO_PINHOLE:
                             component.meshParameters = std::make_shared<CameraGizmoPinholeMeshParameters>();
                             break;
@@ -492,6 +495,30 @@ namespace VkRender {
                     paramsChanged |= drawVec3Control("Direction", cylinderParams->direction);
                     paramsChanged |= ImGui::SliderFloat("Magnitude", &cylinderParams->magnitude, 0.0f, 100.0f);
                     paramsChanged |= ImGui::SliderFloat("Radius", &cylinderParams->radius, 0.001f, 0.1f);
+                    if (paramsChanged) {
+                        component.updateMeshData = true;
+                    }
+                }
+                break;
+            }
+            case MeshDataType::QUADRIC: {
+                auto cylinderParams = std::dynamic_pointer_cast<QuadricMeshParameters>(component.meshParameters);
+                if (cylinderParams) {
+                    bool paramsChanged = false;
+                    paramsChanged |= ImGui::SliderInt("GridResolution", &cylinderParams->gridResolution, 0.0f, 100.0f);
+                    paramsChanged |= drawVec2Control("Min", cylinderParams->min);
+                    paramsChanged |= drawVec2Control("Max", cylinderParams->max);
+
+                    paramsChanged |= ImGui::SliderFloat("tx", &cylinderParams->t_x, -5.0f, 5.0f);
+                    paramsChanged |= ImGui::SliderFloat("ty", &cylinderParams->t_y, -5.0f, 5.0f);
+                    paramsChanged |= ImGui::SliderFloat("a", &cylinderParams->a, -5.0f, 5.0f);
+                    paramsChanged |= ImGui::SliderFloat("b", &cylinderParams->b, -5.0f, 5.0f);
+                    paramsChanged |= ImGui::SliderFloat("c", &cylinderParams->c, -5.0f, 5.0f);
+                    ImGui::Separator();
+                    ImGui::Text("Beta Kernel opts");
+                    paramsChanged |= ImGui::SliderFloat("b_beta", &cylinderParams->b_beta, -5.0f, 5.0f);
+                    paramsChanged |= ImGui::SliderFloat("threshold", &cylinderParams->threshold, 0.0f, 1.0f);
+                    paramsChanged |= ImGui::SliderFloat("scale", &cylinderParams->kernelScale, 0.0f, 10.0f);
                     if (paramsChanged) {
                         component.updateMeshData = true;
                     }
@@ -589,6 +616,9 @@ namespace VkRender {
                 component.reloadShader = true;
                 m_context->activeScene()->onComponentUpdated(entity, component);
             }
+
+            ImGui::Checkbox("Use Vertex Color", &component.useVertexColor);
+
             ImGui::Dummy(ImVec2(5.0f, 5.0f));
             ImGui::PushFont(m_editor->guiResources().font15);
             ImGui::Text("Texture");

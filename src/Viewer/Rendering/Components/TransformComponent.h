@@ -26,7 +26,7 @@ namespace VkRender {
         // Constructors
         TransformComponent() = default;
         // Constructor that decomposes a transform matrix into translation, rotation, and scale.
-        TransformComponent(const glm::mat4& transform) {
+        explicit TransformComponent(const glm::mat4& transform) {
             // --- Translation ---
             // The translation is stored in the 4th column of the matrix.
             translation = glm::vec3(transform[3]);
@@ -52,7 +52,7 @@ namespace VkRender {
 
 
         // Get the transformation matrix
-        [[nodiscard]] glm::mat4 getTransform() const {
+        glm::mat4 getTransform() const {
             glm::mat4 rotMat = glm::mat4_cast(rotation);
 
             if (m_flipUpAxis) {

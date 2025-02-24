@@ -119,6 +119,7 @@ namespace VkRender {
      */
     class Layer {
     public:
+        virtual ~Layer() = default;
 
         /** @brief
          * Pure virtual must be overridden.

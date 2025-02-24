@@ -34,10 +34,13 @@ layout(std430, set=2, binding=1) readonly buffer IndexBufferSSBO {
 } indexBuffer;
 
 
-void main() {
+layout(location = 0) out vec4 outColor;
 
+void main() {
 	int idx = int(indexBuffer.indices[gl_VertexIndex]);
 	vec3 position = vertexData.vertices[idx].position;
+	outColor = vertexData.vertices[idx].color;
+
 	// Transform the vertex to world space and then to clip space
 	vec4 worldPos = ubo.model * vec4(position, 1.0);
 	gl_Position = camera.projection * camera.view * worldPos;

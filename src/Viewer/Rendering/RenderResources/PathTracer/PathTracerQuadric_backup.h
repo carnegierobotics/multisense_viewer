@@ -31,53 +31,65 @@ namespace VkRender::PathTracer {
 
     private:
         GPUData m_gpuData{};
-        GPUDataOutput *m_gpuDataOutput = nullptr;
+        GPUDataOutput *m_gpuDataOutput{};
 
-        PCG32 *m_rng = nullptr;
-        TransformComponent *m_cameraTransform = nullptr;
-        PinholeCamera *m_camera = nullptr;
+        PCG32 *m_rng;
+        TransformComponent *m_cameraTransform{};
+        PinholeCamera *m_camera{};
 
         // ---------------------------------------------------------
         // Single Photon Trace (Multi-Bounce)
         // ---------------------------------------------------------
         void traceOnePhoton(size_t photonID) const {
             // 1) Pick an emissive triangle and sample a random point on it
-            size_t gaussianID = sampleRandomEmissiveGaussian(photonID);
-            glm::vec3 emitPosLocal(0.0f), emitNormalLocal(0.0f);
-            float photonFlux = 0.0f;
-            sampleEmissiveDirectionAndPower(gaussianID, photonID, emitPosLocal, emitNormalLocal,
-                                            photonFlux);
+            size_t entityID = 0;
+            size_t gaussianID = sampleRandomEmissiveGaussian(photonID, entityID);
+            glm::vec3 emitPosLocal, emitNormalLocal;
+            float emissionPower;
+            sampleGaussianPositionAndNormal(entityID, gaussianID, photonID, emitPosLocal, emitNormalLocal,
+                                            emissionPower);
+            // Get the model transform matrix for the emissive entity
 
             // 2) Sample emission direction
             glm::vec3 rayDir = sampleCosineWeightedHemisphere(emitNormalLocal, photonID);
+            float photonFlux = emissionPower; // or you can store a color as a vec3 if needed
             glm::vec3 rayOrigin = emitPosLocal;
 
+            // Debug:
+            //rayOrigin = glm::vec3(-0.248758718, -0.139150426, 3);
+            //rayDir = glm::vec3(0.324716568, -0.026821157, -0.945430994);
+
             float apertureDiameter = (m_camera->parameters().focalLength / m_camera->parameters().fNumber) / 1000;
-            float apertureRadius = 0.0f;
+            // float apertureRadius = apertureDiameter * 0.5f;
+            float apertureRadius = 0.00001f;
 
             glm::mat4 entityTransform = m_cameraTransform->getTransform();
-            glm::vec3 cameraPlaneNormalWorld = glm::normalize(glm::mat3(entityTransform) * glm::vec3(0.0f, 0.0f, -1.0f));
-            //m_gpuDataOutput[photonID].emissionDirection = rayDir;
-
+            glm::vec3 cameraPlaneNormalWorld = glm::normalize(
+                glm::mat3(entityTransform) * glm::vec3(0.0f, 0.0f, -1.0f));
+            m_gpuDataOutput[photonID].emissionDirection = rayDir;
 
             glm::vec3 directLightDir(0.0f);
             float camera_t = 0.0f;
             glm::vec3 apertureHitPoint(0.0f);
             glm::vec3 cameraHitPointLocal(0.0f);
             float scalePowerDirectLighting = 0.00000001 * photonFlux;
-            if (castContributionRay(rayOrigin, cameraPlaneNormalWorld, apertureRadius, photonID,
+            if (castContributionRay(rayOrigin, cameraPlaneNormalWorld, apertureRadius, photonID, gaussianID,
                                     scalePowerDirectLighting
                                     , directLightDir, apertureHitPoint, cameraHitPointLocal, camera_t
             )) {
-                //m_gpuDataOutput[photonID].directLightingDir = directLightDir;
-                //m_gpuDataOutput[photonID].emissionDirectionLength = camera_t;
-                //m_gpuDataOutput[photonID].apertureHitPoint = apertureHitPoint;
-                //m_gpuDataOutput[photonID].cameraHitPointLocal = cameraHitPointLocal;
-                //m_gpuDataOutput[photonID].hitCamera = true;
-                //m_gpuDataOutput[photonID].emissionDirection = directLightDir;
+                m_gpuDataOutput[photonID].directLightingDir = directLightDir;
+                m_gpuDataOutput[photonID].emissionDirectionLength = camera_t;
+                m_gpuDataOutput[photonID].apertureHitPoint = apertureHitPoint;
+                m_gpuDataOutput[photonID].cameraHitPointLocal = cameraHitPointLocal;
+                m_gpuDataOutput[photonID].hitCamera = true;
+                m_gpuDataOutput[photonID].emissionDirection = directLightDir;
             }
-            //m_gpuDataOutput[photonID].gaussianID = gaussianID;
-            //m_gpuDataOutput[photonID].emissionOrigin = rayOrigin;
+            m_gpuDataOutput[photonID].gaussianID = gaussianID;
+            m_gpuDataOutput[photonID].emissionOrigin = rayOrigin;
+
+
+            if (gaussianID == 0 && m_gpuDataOutput[photonID].hitCamera)
+                int interesting = 1;
             // 3) Multi-bounce loop
             for (uint32_t bounce = 0; bounce < m_gpuData.renderInformation->numBounces; ++bounce) {
                 // A) Intersect with the scene
@@ -86,21 +98,46 @@ namespace VkRender::PathTracer {
                 glm::vec3 hitPointWorld(0.0f);
                 glm::vec3 hitNormalWorld(0.0f);
 
+
                 // check intersection with geometry
-                bool hit = geometryIntersectionQuadric(gaussianID, rayOrigin, rayDir, hitEntity, closest_t,
-                                                       hitPointWorld,
-                                                       hitNormalWorld);
+                bool hit = geometryIntersection2DGS(gaussianID, rayOrigin, rayDir, hitEntity, closest_t, hitPointWorld,
+                                                    hitNormalWorld);
 
                 // If we hit some geometry then calculate the bounce
                 if (hit) {
                     // Fetch material parameters
-                    const QuadricInputAssembly &hitGaussianEntity = m_gpuData.quadricInputAssembly[hitEntity];
-                    float color = hitGaussianEntity.color.x;
+                    const GaussianInputAssembly &hitGaussianEntity = m_gpuData.gaussianInputAssembly[hitEntity];
+                    float color = hitGaussianEntity.color.x / 255.0f;
                     float specular = hitGaussianEntity.specular; // Specular coefficient
                     float shininess = hitGaussianEntity.phongExponent;
                     float diffuse = hitGaussianEntity.diffuse; // Diffuse coefficient
+                    // We'll accumulate our contribution here
                     float totalContribution = 1.0f;
                     float contributionRayContribution = 0.0f;
+
+                    glm::vec3 gaussianDelta = hitPointWorld - hitGaussianEntity.position;
+                    glm::vec3 normal = hitGaussianEntity.normal;
+                    glm::vec2 scale = hitGaussianEntity.scale;
+
+                    // Compute distance to Gaussian center
+                    float distanceToGaussianCenter = glm::length(gaussianDelta);
+
+                    // Build local tangent basis for the plane
+                    glm::vec3 tAxis, bAxis;
+                    buildTangentBasis(normal, tAxis, bAxis);
+
+                    float u = glm::dot(gaussianDelta, tAxis);
+                    float v = glm::dot(gaussianDelta, bAxis);
+
+                    // Check elliptical boundary:
+                    float sigmaU = scale.x * 0.33f;
+                    float sigmaV = scale.y * 0.33f;
+
+                    float dSquared = (u * u) / (sigmaU * sigmaU)
+                                     + (v * v) / (sigmaV * sigmaV);
+
+                    // --- 5. Gaussian attenuation in 2D ---
+                    float gaussianAttenuation = exp(-0.5f * dSquared);
 
 
                     // ----------------------------------
@@ -143,7 +180,7 @@ namespace VkRender::PathTracer {
                                                       + specularWeight * specularContribution;
                     }
 
-                    float contributionFlux = photonFlux * contributionRayContribution;
+                    float contributionFlux = photonFlux * contributionRayContribution * gaussianAttenuation;
                     // Finally, scale the photonFlux (or outgoing radiance) by total contribution
 
                     photonFlux *= totalContribution;
@@ -170,22 +207,26 @@ namespace VkRender::PathTracer {
                     float newCamera_t = 0.0f;
                     glm::vec3 newApertureHitPoint(0.0f);
                     glm::vec3 newCameraHitPointLocal(0.0f);
-                    if (castContributionRay(newRayOrigin, cameraPlaneNormalWorld, apertureRadius, photonID,
+                    bool shouldAddContribution = bounce != 1;
+                    if (castContributionRay(newRayOrigin, cameraPlaneNormalWorld, apertureRadius, photonID, gaussianID,
                                             contributionFlux
                                             , newDirectLightDir, newApertureHitPoint, newCameraHitPointLocal,
-                                            newCamera_t
+                                            newCamera_t, shouldAddContribution
                     )) {
-                        //m_gpuDataOutput[photonID].bounce[bounce].hitCamera = true;
-                        //m_gpuDataOutput[photonID].bounce[bounce].emissionDirection = newDirectLightDir;
-                        //m_gpuDataOutput[photonID].bounce[bounce].emissionOrigin = newRayOrigin;
-                        //m_gpuDataOutput[photonID].bounce[bounce].emissionDirectionLength = newCamera_t;
-                        //m_gpuDataOutput[photonID].bounce[bounce].apertureHitPoint = newApertureHitPoint;
-                        //m_gpuDataOutput[photonID].bounce[bounce].cameraHitPointLocal = newCameraHitPointLocal;
+                        m_gpuDataOutput[photonID].bounce[bounce].hitCamera = true;
+                        m_gpuDataOutput[photonID].bounce[bounce].emissionDirection = newDirectLightDir;
+                        m_gpuDataOutput[photonID].bounce[bounce].emissionOrigin = newRayOrigin;
+                        m_gpuDataOutput[photonID].bounce[bounce].emissionDirectionLength = newCamera_t;
+                        m_gpuDataOutput[photonID].bounce[bounce].apertureHitPoint = newApertureHitPoint;
+                        m_gpuDataOutput[photonID].bounce[bounce].cameraHitPointLocal = newCameraHitPointLocal;
+
+                        if (bounce == 1)
+                            int interesting = 1;
                     }
 
-                    //m_gpuDataOutput[photonID].bounce[bounce].hitPointWorld = hitPointWorld;
-                    //m_gpuDataOutput[photonID].bounce[bounce].hitNormalWorld = hitNormalWorld;
-                    //m_gpuDataOutput[photonID].bounce[bounce].gaussianID = hitEntity;
+                    m_gpuDataOutput[photonID].bounce[bounce].hitPointWorld = hitPointWorld;
+                    m_gpuDataOutput[photonID].bounce[bounce].hitNormalWorld = hitNormalWorld;
+                    m_gpuDataOutput[photonID].bounce[bounce].gaussianID = hitEntity;
                     //glm::vec3 newDir = sampleRandomDirection(photonID);
                     rayOrigin = newRayOrigin; // Offset to prevent self-intersection
                     rayDir = glm::normalize(newDir);
@@ -198,11 +239,12 @@ namespace VkRender::PathTracer {
         }
 
         bool castContributionRay(const glm::vec3 &rayOrigin, const glm::vec3 &cameraPlaneNormalWorld,
-                                 float apertureRadius, size_t photonID, float photonFlux,
+                                 float apertureRadius, size_t photonID, size_t gaussianID, float photonFlux,
                                  glm::vec3 &directLightDir,
                                  glm::vec3 &apertureHitPoint,
                                  glm::vec3 &cameraHitPointLocal,
-                                 float &camera_t
+                                 float &camera_t,
+                                 bool shouldAddContribution = true
         ) const {
             // Calculate direct lighting
 
@@ -214,7 +256,6 @@ namespace VkRender::PathTracer {
                 apertureRadius,
                 photonID
             );
-
             // Early exist if we are hitting the camera plane from behind, this happens if the aperture direction and camera plane normal are parallell or within that quadrant
             float direction = glm::dot(directLightDir, cameraPlaneNormalWorld);
             if (direction >= 0.0f) {
@@ -225,25 +266,37 @@ namespace VkRender::PathTracer {
 
             // Create contribution Rays and trace towards the camera
             // Trace our contribution ray
-            glm::vec3 camHit(0.0f);
-            float incidentAngle = 0.0f;
+            glm::vec3 camHit;
+            float incidentAngle;
             bool cameraHit = checkCameraPlaneIntersection(directLightingOrigin, directLightDir, camHit,
                                                           camera_t, incidentAngle);
             if (cameraHit) {
-                glm::vec3 cameraHitPointWorld = directLightingOrigin + directLightDir * camera_t;
+                float closest_t = FLT_MAX;
+                size_t hitEntity = 0;
+                glm::vec3 hitPointWorld(0.0f);
+                glm::vec3 hitNormalWorld(0.0f);
+                // check intersection with geometry
+                bool hit = geometryIntersection2DGS(gaussianID, directLightingOrigin, directLightDir, hitEntity,
+                                                    closest_t, hitPointWorld, hitNormalWorld);
+                float tGeom = hit ? closest_t : FLT_MAX;
+                if (camera_t < tGeom) {
+                    glm::vec3 cameraHitPointWorld = directLightingOrigin + directLightDir * camera_t;
 
-                // 1. Transform the hit point from world space to camera space
-                float det = glm::determinant(m_cameraTransform->getTransform());
-                if(fabs(det) < 1e-6f){
-                    return false;
-                };
+                    float d = glm::length(cameraHitPointWorld);
+                    float cosTheta = glm::dot(directLightDir, -cameraPlaneNormalWorld);
+                    //float scaleFactor = (M_PIf * apertureRadius * apertureRadius * d * d) / glm::max(0.1f, cosTheta);
+                    //float scaleFactor = (M_PIf * 0.000001f) / glm::max(0.1f, cosTheta);
 
-                glm::mat4 worldToCamera = glm::inverse(m_cameraTransform->getTransform());
-                glm::vec4 hitPointCam4 = worldToCamera * glm::vec4(cameraHitPointWorld, 1.0f);
-                cameraHitPointLocal = hitPointCam4 / hitPointCam4.w;
+                    //
+                    // 1. Transform the hit point from world space to camera space
+                    glm::mat4 worldToCamera = glm::inverse(m_cameraTransform->getTransform());
+                    glm::vec4 hitPointCam4 = worldToCamera * glm::vec4(cameraHitPointWorld, 1.0f);
+                    cameraHitPointLocal = hitPointCam4 / hitPointCam4.w;
+                    float energy = shouldAddContribution ? photonFlux : 0.0f;
 
-                if (accumulateOnSensor(photonID, cameraHitPointLocal, photonFlux)) {
-                    return true;
+                    if (accumulateOnSensor(photonID, cameraHitPointLocal, energy)) {
+                        return true;
+                    }
                 }
             }
             return false;
@@ -258,138 +311,103 @@ namespace VkRender::PathTracer {
             glm::vec3 &hitPointWorld,
             glm::vec3 &hitNormalWorld
         ) const {
-            // 1) Build M^-1 to transform the ray into local quadric coords
-            auto &quadric = m_gpuData.quadricInputAssembly[0];
-            auto transform = quadric.transform.getTransform();
-            float det = glm::determinant(transform);
-            if(fabs(det) < 1e-6f){
+    // 1) Build M^-1 to transform the ray into local quadric coords
+            auto& quadric = m_gpuData.quadricInputAssembly[0];
+    glm::mat4 localFromWorld = glm::inverse(quadric.transform.getTransform());
+
+    // Transform origin and direction:
+    glm::vec4 o4 = localFromWorld * glm::vec4(rayOrigin, 1.0f); // local-space origin
+    glm::vec4 d4 = localFromWorld * glm::vec4(rayDir,    0.0f); // local-space direction
+    glm::vec3 o  = glm::vec3(o4) / o4.w; // if transform is affine, w=1 for origin
+    glm::vec3 d  = glm::normalize(glm::vec3(d4));
+
+    // 2) Define short-hands
+    float alphaX = std::tanh(quadric.t_x);
+    float alphaY = std::tanh(quadric.t_y);
+
+    // 3) Expand f(x(t), y(t), z(t)) = 0 => A t^2 + B t + C = 0
+    //    with  x(t) = o.x + d.x * t, etc.
+    float Ax = d.x;
+    float Ay = d.y;
+    float Az = d.z;
+    float Ox = o.x;
+    float Oy = o.y;
+    float Oz = o.z;
+
+    // A = c [ alphaX * dx^2 / a^2 + alphaY * dy^2 / b^2 ]
+    float A = quadric.c * (
+        alphaX * (Ax * Ax) / (quadric.a * quadric.a) +
+        alphaY * (Ay * Ay) / (quadric.b * quadric.b)
+    );
+    // B = c [ 2 alphaX Ox dx / a^2 + 2 alphaY Oy dy / b^2 ] - dz
+    float B = quadric.c * (
+        2.0f * alphaX * Ox * Ax / (quadric.a * quadric.a) +
+        2.0f * alphaY * Oy * Ay / (quadric.b * quadric.b)
+    ) - Az;
+    // C = c [ alphaX Ox^2 / a^2 + alphaY Oy^2 / b^2 ] - Oz
+    float C = quadric.c * (
+        alphaX * (Ox * Ox) / (quadric.a * quadric.a) +
+        alphaY * (Oy * Oy) / (quadric.b * quadric.b)
+    ) - Oz;
+
+    // 4) Solve quadricratic
+    float eps = 1e-6f;
+    // special case: if A is extremely small, the surface might degenerate or
+    // or we might effectively have a linear equation. Usually, we expect A != 0
+    if (fabs(A) < eps)
+    {
+        // Then the equation is B t + C = 0 => t = -C/B
+        if (fabs(B) < eps) return false;
+        float tLin = -C / B;
+        if (tLin > eps) {
+            closest_t = tLin;
+        } else {
             return false;
-            };
-
-            glm::mat4 localFromWorld = glm::inverse(transform);
-
-            // Transform origin and direction:
-            glm::vec4 o4 = localFromWorld * glm::vec4(rayOrigin, 1.0f); // local-space origin
-            glm::vec4 d4 = localFromWorld * glm::vec4(rayDir, 0.0f); // local-space direction
-            glm::vec3 o = glm::vec3(o4) / o4.w; // if transform is affine, w=1 for origin
-            glm::vec3 d = glm::normalize(glm::vec3(d4));
-
-            // 2) Define short-hands
-            float alphaX = std::tanh(quadric.t_x);
-            float alphaY = std::tanh(quadric.t_y);
-
-            // 3) Expand f(x(t), y(t), z(t)) = 0 => A t^2 + B t + C = 0
-            //    with  x(t) = o.x + d.x * t, etc.
-            float Ax = d.x;
-            float Ay = d.y;
-            float Az = d.z;
-            float Ox = o.x;
-            float Oy = o.y;
-            float Oz = o.z;
-
-            // A = c [ alphaX * dx^2 / a^2 + alphaY * dy^2 / b^2 ]
-            float A = quadric.c * (
-                          alphaX * (Ax * Ax) / (quadric.a * quadric.a) +
-                          alphaY * (Ay * Ay) / (quadric.b * quadric.b)
-                      );
-            // B = c [ 2 alphaX Ox dx / a^2 + 2 alphaY Oy dy / b^2 ] - dz
-            float B = quadric.c * (
-                          2.0f * alphaX * Ox * Ax / (quadric.a * quadric.a) +
-                          2.0f * alphaY * Oy * Ay / (quadric.b * quadric.b)
-                      ) - Az;
-            // C = c [ alphaX Ox^2 / a^2 + alphaY Oy^2 / b^2 ] - Oz
-            float C = quadric.c * (
-                          alphaX * (Ox * Ox) / (quadric.a * quadric.a) +
-                          alphaY * (Oy * Oy) / (quadric.b * quadric.b)
-                      ) - Oz;
-
-            // 4) Solve quadricratic
-            float eps = 1e-6f;
-            // special case: if A is extremely small, the surface might degenerate or
-            // or we might effectively have a linear equation. Usually, we expect A != 0
-            if (fabs(A) < eps) {
-                // Then the equation is B t + C = 0 => t = -C/B
-                if (fabs(B) < eps) return false;
-                float tLin = -C / B;
-                if (tLin > eps) {
-                    closest_t = tLin;
-                } else {
-                    return false;
-                }
-            } else {
-                float disc = (B * B) - 4.0f * A * C;
-                if (disc < 0.0f) return false; // no real solutions
-
-                float sqrtDisc = std::sqrt(disc);
-                float t1 = (-B - sqrtDisc) / (2.0f * A);
-                float t2 = (-B + sqrtDisc) / (2.0f * A);
-
-                // we want the smallest positive solution
-                float tMin = std::numeric_limits<float>::max();
-                if (t1 > eps && t1 < tMin) tMin = t1;
-                if (t2 > eps && t2 < tMin) tMin = t2;
-                if (tMin == std::numeric_limits<float>::max()) return false; // no positive solution
-
-                closest_t = tMin;
-            }
-
-            // 5) Compute local hit point
-            glm::vec3 hitLocal = o + d * closest_t;
-
-            float R_general = std::sqrt(
-                std::fabs(alphaX) * (hitLocal.x * hitLocal.x) / (quadric.a * quadric.a) +
-                std::fabs(alphaY) * (hitLocal.y * hitLocal.y) / (quadric.b * quadric.b)
-            );
-
-            // normalized radial coordinate r = R_general / kernelScale
-            float r = R_general / quadric.kernelScale;
-
-            auto betaKernel = [&](float r, float bExp){
-                // (1 - r^2)^(4 e^bExp), clipped if r>1
-                if (r > 1.0f) r = 1.0f;
-                return std::pow(1.0f - r*r, 4.0f * std::exp(bExp));
-            };
-
-            float bkValue = betaKernel(r, quadric.b_beta);
-
-            bool insideBetaDist = (bkValue >= quadric.threshold);
-            if (!insideBetaDist) {
-                return false;
-            }
-
-            // 6) Transform local hit to world space
-            glm::vec4 hitW4 = quadric.transform.getTransform() * glm::vec4(hitLocal, 1.0f);
-            glm::vec3 hitW = glm::vec3(hitW4) / hitW4.w;
-            hitPointWorld = hitW;
-
-            // 7) Compute local normal from gradient: ∇f(x,y,z) = (2*c*alphaX*x/a^2, 2*c*alphaY*y/b^2, -1)
-            glm::vec3 gradLocal(
-                2.0f * quadric.c * alphaX * hitLocal.x / (quadric.a * quadric.a),
-                2.0f * quadric.c * alphaY * hitLocal.y / (quadric.b * quadric.b),
-                -1.0f
-            );
-
-            // 8) Transform the local normal to world space
-            //    If your transform is just rotation+translation (orthonormal),
-            //    you can multiply by the rotation part. For a general affine transform,
-            //    the correct approach is n_world = normalize( inverseTranspose(M) * n_local ).
-            glm::mat3 mat = glm::mat3(quadric.transform.getTransform());
-            float det2 = glm::determinant(mat);
-            if(fabs(det2) < 1e-6f)
-                return false;
-            // Now safe to compute:
-            glm::mat3 invT = glm::inverseTranspose(mat);
-
-            glm::vec3 normalW = glm::normalize(invT * gradLocal);
-
-            if (glm::dot(normalW, rayDir) > 0.0f)
-                normalW = -normalW;
-            hitNormalWorld = normalW;
-
-            hitPointIdx = 0;
-            return true;
         }
+    }
+    else
+    {
+        float disc = (B*B) - 4.0f*A*C;
+        if (disc < 0.0f) return false;  // no real solutions
 
+        float sqrtDisc = std::sqrt(disc);
+        float t1 = (-B - sqrtDisc) / (2.0f * A);
+        float t2 = (-B + sqrtDisc) / (2.0f * A);
+
+        // we want the smallest positive solution
+        float tMin = std::numeric_limits<float>::max();
+        if (t1 > eps && t1 < tMin) tMin = t1;
+        if (t2 > eps && t2 < tMin) tMin = t2;
+        if (tMin == std::numeric_limits<float>::max()) return false; // no positive solution
+
+        closest_t = tMin;
+    }
+
+    // 5) Compute local hit point
+    glm::vec3 hitLocal = o + d * closest_t;
+
+    // 6) Transform local hit to world space
+    glm::vec4 hitW4 = quadric.transform.getTransform() * glm::vec4(hitLocal, 1.0f);
+    glm::vec3 hitW  = glm::vec3(hitW4) / hitW4.w;
+    hitPointWorld     = hitW;
+
+    // 7) Compute local normal from gradient: ∇f(x,y,z) = (2*c*alphaX*x/a^2, 2*c*alphaY*y/b^2, -1)
+    glm::vec3 gradLocal(
+        2.0f * quadric.c * alphaX * hitLocal.x / (quadric.a * quadric.a),
+        2.0f * quadric.c * alphaY * hitLocal.y / (quadric.b * quadric.b),
+        -1.0f
+    );
+
+    // 8) Transform the local normal to world space
+    //    If your transform is just rotation+translation (orthonormal),
+    //    you can multiply by the rotation part. For a general affine transform,
+    //    the correct approach is n_world = normalize( inverseTranspose(M) * n_local ).
+    glm::mat3 invT = glm::inverseTranspose(glm::mat3(quadric.transform.getTransform()));
+    glm::vec3 normalW = glm::normalize(invT * gradLocal);
+    hitNormalWorld = normalW;
+
+    return true;
+}
         bool geometryIntersection2DGS(
             size_t gaussianID,
             const glm::vec3 &rayOrigin,
@@ -508,13 +526,13 @@ namespace VkRender::PathTracer {
             // 1) Transform to camera space
 
             glm::mat4 entityTransform = m_cameraTransform->getTransform();
-            glm::mat3 entityRotation = glm::mat3(entityTransform);
             // Camera plane normal in world space
-            glm::vec3 cameraPlaneNormalWorld = glm::normalize(entityRotation * glm::vec3(0.0f, 0.0f, -1.0f));
+            glm::vec3 cameraPlaneNormalWorld = glm::normalize(
+                glm::mat3(entityTransform) * glm::vec3(0.0f, 0.0f, -1.0f));
+            glm::vec3 cameraPlanePointWorld = glm::vec3(
+                entityTransform *
+                glm::vec4(0.0f, 0.0f, 1.0f, 1.0f)); // A point on the plane
 
-            glm::vec4 cameraPlanePointWorld4 =  entityTransform * glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
-
-            glm::vec3 cameraPlanePointWorld = glm::vec3(cameraPlanePointWorld4 / cameraPlanePointWorld4.w);
             // Ray-plane intersection
 
             // Ray-plane intersection calculation
@@ -528,11 +546,6 @@ namespace VkRender::PathTracer {
                 return false; // Intersection is behind the ray origin
             }
             glm::vec3 intersectionPoint = rayOriginWorld + t * rayDirWorld;
-
-            float det = glm::determinant(entityTransform);
-            if(fabs(det) < 1e-6f){
-                return false;
-            };
 
             glm::mat4 view = glm::inverse(entityTransform);
             glm::vec4 intersectionPointCamera = view * glm::vec4(intersectionPoint, 1.0f);
@@ -647,33 +660,25 @@ namespace VkRender::PathTracer {
         // ---------------------------------------------------------------------
         //  Helper: sample an emissive gaussian object
         // ---------------------------------------------------------------------
-        size_t sampleRandomEmissiveGaussian(size_t photonID) const {
-            std::array<size_t, 10> emissiveIndices{}; // max 10 emissive light sources supported
-            size_t count = 0;
+        size_t sampleRandomEmissiveGaussian(size_t photonID, size_t &entityID) const {
+            // Simple Linear Congruential Generator (LCG) for RNG
+            std::array<size_t, 10> samples{}; // TODo max 10 light sources supported currently
+            size_t i = 0;
             for (size_t entityIdx = 0; entityIdx < m_gpuData.numGaussians; ++entityIdx) {
                 if (m_gpuData.gaussianInputAssembly[entityIdx].emission > 0.f) {
-                    if (count < emissiveIndices.size()) { // ensure we don't write out-of-bounds
-                        emissiveIndices[count++] = entityIdx;
-                    }
+                    samples[i] = entityIdx;
+                    i++;
                 }
             }
-
-            size_t emissiveIndex = 0;
-            if (count == 0) {
-                // No emissive gaussian found; handle this error case as needed.
-                emissiveIndex = 0;
-                return 0;
-            }
-
-            size_t randomChoice = m_rng[photonID].nextUInt() % count;
-            emissiveIndex = emissiveIndices[randomChoice];
-            return emissiveIndex;
+            entityID = 0;
+            // Select a random Gaussian with emissive properties
+            return samples[m_rng[photonID].nextUInt() % i];
         }
 
         // ---------------------------------------------------------------------
-        //  sampleEmissiveDirectionAndPower
+        //  sampleGaussianPositionAndNormal
         // ---------------------------------------------------------------------
-        void sampleEmissiveDirectionAndPower(size_t emissiveEntityIdx,
+        void sampleGaussianPositionAndNormal(size_t entityID, size_t emissiveEntityIdx,
                                              size_t photonID,
                                              glm::vec3 &outPos,
                                              glm::vec3 &outNormal,
@@ -683,13 +688,13 @@ namespace VkRender::PathTracer {
             // 1. Prepare the normal, find two tangent vectors for the plane.
             // ------------------------------------------------------------------
             glm::vec3 n = glm::normalize(gaussian.normal);
-            glm::vec3 t1(0.0f);
-            glm::vec3 t2(0.0f);
+            glm::vec3 t1;
+            glm::vec3 t2;
             buildTangentBasis(n, t1, t2);
             // 2. Repeatedly draw samples from a standard normal, then scale
             //    them by (sigma_x, sigma_y), until they fall inside the ellipse.
 
-            float x = 0.0f, y = 0.0f; // final offsets in local 2D coords
+            float x, y; // final offsets in local 2D coords
 
             // (a) Generate two uniform randoms in [0,1)
             float u1 = m_rng[photonID].nextFloat();
@@ -788,7 +793,7 @@ namespace VkRender::PathTracer {
             float z = std::sqrt(1.0f - u1);
 
             // Step 4: Build a local orthonormal basis around 'normal'
-            glm::vec3 t(0.0f), b(0.0f);
+            glm::vec3 t, b;
             buildTangentBasis(normal, t, b);
 
             // Step 5: Transform the local sample to world space

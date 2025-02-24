@@ -26,11 +26,154 @@
 
 namespace VkRender {
 
-    void MeshData::generateCylinderMesh(const CylinderMeshParameters& parameters) {
+    static glm::vec3 getViridisColor(float t) {
+        // Clamp t to [0, 1]
+        t = glm::clamp(t, 0.0f, 1.0f);
+
+        // Viridis control points (from known values)
+        struct ViridisPoint {
+            float t;
+            glm::vec3 color;
+        };
+        static const ViridisPoint viridis[5] = {
+            {0.0f,  glm::vec3(0.267004f, 0.004874f, 0.329415f)},
+            {0.25f, glm::vec3(0.229739f, 0.322361f, 0.545706f)},
+            {0.5f,  glm::vec3(0.127568f, 0.566949f, 0.550556f)},
+            {0.75f, glm::vec3(0.369214f, 0.788888f, 0.382914f)},
+            {1.0f,  glm::vec3(0.993248f, 0.906157f, 0.143936f)}
+        };
+
+        // Find the interval [viridis[i].t, viridis[i+1].t] that contains t.
+        for (int i = 0; i < 4; ++i) {
+            if (t <= viridis[i + 1].t) {
+                float localT = (t - viridis[i].t) / (viridis[i + 1].t - viridis[i].t);
+                return glm::mix(viridis[i].color, viridis[i + 1].color, localT);
+            }
+        }
+        return viridis[4].color;
+    }
+
+    void MeshData::generateQuadricMesh(const QuadricMeshParameters &params) {
+        // Clear any existing data
+        vertices.clear();
+        indices.clear();
+
+        int N = params.gridResolution;
+        float dx = (params.max.x - params.min.x) / float(N - 1);
+        float dy = (params.max.y - params.min.y) / float(N - 1);
+
+        // Precompute the sign factors alpha_x, alpha_y
+        float alphaX = std::tanh(params.t_x);
+        float alphaY = std::tanh(params.t_y);
+
+        // We'll store a "map" of valid vertex indices. -1 means not used.
+        std::vector<int> vertexMap(N * N, -1);
+        std::vector<Vertex> tmpVertices;
+        tmpVertices.reserve(N * N);
+
+        // If you want a final global scale (e.g. 0.1), define here
+        float scaleFactor = 1.0f;
+        // Helper lambda for Beta kernel:
+        auto betaKernel = [&](float r, float bExp){
+            // (1 - r^2)^(4 e^bExp), clipped if r>1
+            if (r > 1.0f) r = 1.0f;
+            return std::pow(1.0f - r*r, 4.0f * std::exp(bExp));
+        };
+
+        // Generate grid and compute vertices
+        for (int i = 0; i < N; ++i) {
+            float x = params.min.x + i * dx; // domain from min.x to max.x
+            for (int j = 0; j < N; ++j) {
+                float y = params.min.y + j * dy; // domain from min.y to max.y
+
+                // z = c( alphaX*x^2/a^2 + alphaY*y^2/b^2 )
+                float z = params.c * (
+                              (alphaX * x * x) / (params.a * params.a) +
+                              (alphaY * y * y) / (params.b * params.b)
+                          );
+
+                // Build position
+                glm::vec3 position(x, y, z);
+
+                // Evaluate gradient for normal
+                glm::vec3 grad(
+                    2.0f * params.c * alphaX * x / (params.a * params.a),
+                    2.0f * params.c * alphaY * y / (params.b * params.b),
+                    -1.0f
+                );
+                glm::vec3 normal = glm::normalize(grad);
+
+                // Apply scale factor if you like
+                position *= scaleFactor;
+
+                // Compute radial coordinate for Beta kernel
+                // R_general = sqrt(|alphaX| x^2 / a^2 + |alphaY| y^2 / b^2)
+                float R_general = std::sqrt(
+                    std::fabs(alphaX) * (x * x) / (params.a * params.a) +
+                    std::fabs(alphaY) * (y * y) / (params.b * params.b)
+                );
+
+                // normalized radial coordinate r = R_general / kernelScale
+                float r = R_general / params.kernelScale;
+
+                // Evaluate kernel
+                float bkValue = betaKernel(r, params.b_beta);
+
+                bool keepVertex = (bkValue >= params.threshold);
+                if (!keepVertex)
+                {
+                    vertexMap[i*N + j] = -1;
+                    continue;
+                }
+
+                // Construct vertex
+                Vertex v{};
+                v.color = glm::vec4(getViridisColor(bkValue), 1.0f);
+                v.pos = position;
+                v.normal = normal;
+                v.uv0 = glm::vec2(
+                    float(i) / float(N - 1),
+                    float(j) / float(N - 1)
+                );
+
+                int newIndex = static_cast<int>(tmpVertices.size());
+                vertexMap[i * N + j] = newIndex;
+                tmpVertices.push_back(v);
+            }
+        }
+
+        // Create two triangles per cell
+        for (int i = 0; i < N - 1; ++i) {
+            for (int j = 0; j < N - 1; ++j) {
+                int v0 = vertexMap[i * N + j];
+                int v1 = vertexMap[i * N + (j + 1)];
+                int v2 = vertexMap[(i + 1) * N + j];
+                int v3 = vertexMap[(i + 1) * N + (j + 1)];
+
+                // If valid, create two triangles
+                if (v0 >= 0 && v1 >= 0 && v2 >= 0 && v3 >= 0) {
+                    indices.push_back(v0);
+                    indices.push_back(v1);
+                    indices.push_back(v2);
+
+                    indices.push_back(v1);
+                    indices.push_back(v3);
+                    indices.push_back(v2);
+                }
+            }
+        }
+
+        // Finalize
+        vertices = std::move(tmpVertices);
+        isDynamic = true;
+    }
+
+
+    void MeshData::generateCylinderMesh(const CylinderMeshParameters &parameters) {
         // Extract parameters from the map
         glm::vec3 origin = parameters.origin;
-        glm::vec3 direction =  glm::normalize(parameters.direction);
-        float magnitude =  parameters.magnitude;
+        glm::vec3 direction = glm::normalize(parameters.direction);
+        float magnitude = parameters.magnitude;
 
         // Parameters for the cylinder
         const int segments = 20; // Adjust for smoother cylinder
@@ -118,14 +261,14 @@ namespace VkRender {
     }
 
 
-    void MeshData::generateCameraPinholeGizmoMesh(const CameraGizmoPinholeMeshParameters& pinhole) {
-        float width  = pinhole.parameters.width;
+    void MeshData::generateCameraPinholeGizmoMesh(const CameraGizmoPinholeMeshParameters &pinhole) {
+        float width = pinhole.parameters.width;
         float height = pinhole.parameters.height;
-        float fx     = pinhole.parameters.fx;
-        float fy     = pinhole.parameters.fy;
-        float cx     = pinhole.parameters.cx;
-        float cy     = pinhole.parameters.cy;
-        float focalLength     = pinhole.parameters.focalLength;
+        float fx = pinhole.parameters.fx;
+        float fy = pinhole.parameters.fy;
+        float cx = pinhole.parameters.cx;
+        float cy = pinhole.parameters.cy;
+        float focalLength = pinhole.parameters.focalLength;
 
         // Choose a plane at Z = -1 for visualization. Objects in front of the camera have negative Z.
 
@@ -155,15 +298,15 @@ namespace VkRender {
 
         float Z_plane = -1.0f;
 
-        glm::vec3 frontTopLeft     = mapPixelTo3D(0.0f,     0.0f, Z_plane);
-        glm::vec3 frontTopRight    = mapPixelTo3D(width,     0.0f, Z_plane);
-        glm::vec3 frontBottomRight = mapPixelTo3D(width,     height, Z_plane);
-        glm::vec3 frontBottomLeft  = mapPixelTo3D(0.0f,      height, Z_plane);
+        glm::vec3 frontTopLeft = mapPixelTo3D(0.0f, 0.0f, Z_plane);
+        glm::vec3 frontTopRight = mapPixelTo3D(width, 0.0f, Z_plane);
+        glm::vec3 frontBottomRight = mapPixelTo3D(width, height, Z_plane);
+        glm::vec3 frontBottomLeft = mapPixelTo3D(0.0f, height, Z_plane);
 
-        glm::vec3 backTopLeft     = mapPixelTo3D(0.0f,     0.0f, focalLength / 1000); // convert focal length to meters
-        glm::vec3 backTopRight    = mapPixelTo3D(width,     0.0f, focalLength / 1000); // convert focal length to meters
-        glm::vec3 backBottomRight = mapPixelTo3D(width,     height, focalLength / 1000); // convert focal length to meters
-        glm::vec3 backBottomLeft  = mapPixelTo3D(0.0f,      height, focalLength / 1000); // convert focal length to meters
+        glm::vec3 backTopLeft = mapPixelTo3D(0.0f, 0.0f, focalLength / 1000); // convert focal length to meters
+        glm::vec3 backTopRight = mapPixelTo3D(width, 0.0f, focalLength / 1000); // convert focal length to meters
+        glm::vec3 backBottomRight = mapPixelTo3D(width, height, focalLength / 1000); // convert focal length to meters
+        glm::vec3 backBottomLeft = mapPixelTo3D(0.0f, height, focalLength / 1000); // convert focal length to meters
 
         // The pinhole (camera center) at the origin
         glm::vec3 pinholePos = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -171,15 +314,15 @@ namespace VkRender {
         // Define vertices: pinhole + the four corners of the image plane
         // We'll store them in order: pinhole(0), topLeft(1), topRight(2), bottomRight(3), bottomLeft(4)
         std::vector<glm::vec3> uboVertices = {
-                pinholePos,
-                frontTopLeft,
-                frontTopRight,
-                frontBottomRight,
-                frontBottomLeft,
-                backTopLeft,
-                backTopRight,
-                backBottomRight,
-                backBottomLeft
+            pinholePos,
+            frontTopLeft,
+            frontTopRight,
+            frontBottomRight,
+            frontBottomLeft,
+            backTopLeft,
+            backTopRight,
+            backBottomRight,
+            backBottomLeft
         };
 
         // We'll create a simple line-based mesh:
@@ -196,44 +339,44 @@ namespace VkRender {
         // bottomLeft -> topLeft
 
         indices = {
-                // Lines from pinhole (0) to image corners
-                0, 1,
-                0, 2,
-                0, 3,
-                0, 4,
+            // Lines from pinhole (0) to image corners
+            0, 1,
+            0, 2,
+            0, 3,
+            0, 4,
 
-                // Image plane rectangle
-                1, 2,
-                2, 3,
-                3, 4,
-                4, 1,
+            // Image plane rectangle
+            1, 2,
+            2, 3,
+            3, 4,
+            4, 1,
 
-                // Lines from pinhole (0) to sensor corners
-                0, 5,
-                0, 6,
-                0, 7,
-                0, 8,
+            // Lines from pinhole (0) to sensor corners
+            0, 5,
+            0, 6,
+            0, 7,
+            0, 8,
 
-                // Image plane rectangle
-                5, 8, 7,
-                5, 7, 6,
+            // Image plane rectangle
+            5, 8, 7,
+            5, 7, 6,
 
         };
 
         vertices.resize(uboVertices.size());
         for (size_t i = 0; i < uboVertices.size(); ++i) {
-            vertices[i].pos    = uboVertices[i];
+            vertices[i].pos = uboVertices[i];
             vertices[i].normal = glm::vec3(0.0f, 0.0f, 1.0f); // Normal not very meaningful for a line gizmo
-            vertices[i].uv0    = glm::vec2(0.0f, 0.0f);       // Placeholder UV
-            vertices[i].uv1    = glm::vec2(0.0f, 0.0f);       // Placeholder UV
-            vertices[i].color  = glm::vec4(1.0f);             // White color
+            vertices[i].uv0 = glm::vec2(0.0f, 0.0f); // Placeholder UV
+            vertices[i].uv1 = glm::vec2(0.0f, 0.0f); // Placeholder UV
+            vertices[i].color = glm::vec4(1.0f); // White color
         }
 
         // This is a gizmo; often drawn as lines. Ensure rendering mode is line-friendly if needed.
         isDynamic = true;
     }
 
-    void MeshData::generateCameraPerspectiveGizmoMesh(const CameraGizmoPerspectiveMeshParameters& perspective) {
+    void MeshData::generateCameraPerspectiveGizmoMesh(const CameraGizmoPerspectiveMeshParameters &perspective) {
         float nearDist = perspective.parameters.near;
         float farDist = perspective.parameters.far;
         float fovDegrees = perspective.parameters.fov;
@@ -245,74 +388,74 @@ namespace VkRender {
 
         // Compute the half-widths and half-heights of the near and far planes
         float nearHeight = 2.0f * nearDist * tanHalfFov;
-        float nearWidth  = nearHeight * aspect;
+        float nearWidth = nearHeight * aspect;
 
         float farHeight = 2.0f * farDist * tanHalfFov;
-        float farWidth  = farHeight * aspect;
+        float farWidth = farHeight * aspect;
 
         // Define the vertices for a frustum:
         // Near plane corners (Z = nearDist)
         // We'll assume the camera looks along +Z, with +X to the right and +Y up.
         glm::vec3 NBL(-nearWidth * 0.5f, -nearHeight * 0.5f, -nearDist); // Near Bottom Left
-        glm::vec3 NBR( nearWidth * 0.5f, -nearHeight * 0.5f, -nearDist); // Near Bottom Right
-        glm::vec3 NTR( nearWidth * 0.5f,  nearHeight * 0.5f, -nearDist); // Near Top Right
-        glm::vec3 NTL(-nearWidth * 0.5f,  nearHeight * 0.5f, -nearDist); // Near Top Left
+        glm::vec3 NBR(nearWidth * 0.5f, -nearHeight * 0.5f, -nearDist); // Near Bottom Right
+        glm::vec3 NTR(nearWidth * 0.5f, nearHeight * 0.5f, -nearDist); // Near Top Right
+        glm::vec3 NTL(-nearWidth * 0.5f, nearHeight * 0.5f, -nearDist); // Near Top Left
 
         // Far plane corners (Z = farDist)
         glm::vec3 FBL(-farWidth * 0.5f, -farHeight * 0.5f, -farDist); // Far Bottom Left
-        glm::vec3 FBR( farWidth * 0.5f, -farHeight * 0.5f, -farDist); // Far Bottom Right
-        glm::vec3 FTR( farWidth * 0.5f,  farHeight * 0.5f, -farDist); // Far Top Right
-        glm::vec3 FTL(-farWidth * 0.5f,  farHeight * 0.5f, -farDist); // Far Top Left
+        glm::vec3 FBR(farWidth * 0.5f, -farHeight * 0.5f, -farDist); // Far Bottom Right
+        glm::vec3 FTR(farWidth * 0.5f, farHeight * 0.5f, -farDist); // Far Top Right
+        glm::vec3 FTL(-farWidth * 0.5f, farHeight * 0.5f, -farDist); // Far Top Left
 
         std::vector<glm::vec3> uboVertices = {
-                NBL, NBR, NTR, NTL, // 0-3 : Near plane
-                FBL, FBR, FTR, FTL  // 4-7 : Far plane
+            NBL, NBR, NTR, NTL, // 0-3 : Near plane
+            FBL, FBR, FTR, FTL // 4-7 : Far plane
         };
 
         // We will define the frustum as a closed mesh with 6 faces, each face made of two triangles.
         // Indices order (triangles) for each quad is typically: (0,1,2) and (2,3,0).
         indices = {
-                // Near face
-                0, 1, 2,
-                2, 3, 0,
+            // Near face
+            0, 1, 2,
+            2, 3, 0,
 
-                // Far face
-                4, 5, 6,
-                6, 7, 4,
+            // Far face
+            4, 5, 6,
+            6, 7, 4,
 
-                // Left face (NBL, NTL, FTL, FBL)
-                0, 3, 7,
-                7, 4, 0,
+            // Left face (NBL, NTL, FTL, FBL)
+            0, 3, 7,
+            7, 4, 0,
 
-                // Right face (NBR, NTR, FTR, FBR)
-                1, 2, 6,
-                6, 5, 1,
+            // Right face (NBR, NTR, FTR, FBR)
+            1, 2, 6,
+            6, 5, 1,
 
-                // Top face (NTL, NTR, FTR, FTL)
-                3, 2, 6,
-                6, 7, 3,
+            // Top face (NTL, NTR, FTR, FTL)
+            3, 2, 6,
+            6, 7, 3,
 
-                // Bottom face (NBL, NBR, FBR, FBL)
-                0, 1, 5,
-                5, 4, 0
+            // Bottom face (NBL, NBR, FBR, FBL)
+            0, 1, 5,
+            5, 4, 0
         };
 
         // Resize vertex array to match our vertex count
         vertices.resize(uboVertices.size());
 
         for (size_t i = 0; i < uboVertices.size(); ++i) {
-            vertices[i].pos     = uboVertices[i];
-            vertices[i].normal  = glm::vec3(0.0f, 0.0f, 1.0f); // Placeholder normal
-            vertices[i].uv0     = glm::vec2(0.0f, 0.0f);       // Placeholder UV
-            vertices[i].uv1     = glm::vec2(0.0f, 0.0f);       // Placeholder UV
-            vertices[i].color   = glm::vec4(1.0f);             // White color
+            vertices[i].pos = uboVertices[i];
+            vertices[i].normal = glm::vec3(0.0f, 0.0f, 1.0f); // Placeholder normal
+            vertices[i].uv0 = glm::vec2(0.0f, 0.0f); // Placeholder UV
+            vertices[i].uv1 = glm::vec2(0.0f, 0.0f); // Placeholder UV
+            vertices[i].color = glm::vec4(1.0f); // White color
         }
 
         isDynamic = true;
     }
 
-    void MeshData::generateOBJMesh(const OBJFileMeshParameters& parameters) {
-                tinyobj::ObjReaderConfig reader_config;
+    void MeshData::generateOBJMesh(const OBJFileMeshParameters &parameters) {
+        tinyobj::ObjReaderConfig reader_config;
         reader_config.mtl_search_path = "./"; // Path to material files
 
         tinyobj::ObjReader reader;
@@ -331,14 +474,14 @@ namespace VkRender {
             Log::Logger::getInstance()->warning(".OBJ file empty {}", parameters.path.string());
         }
 
-        auto& attrib = reader.GetAttrib();
-        auto& shapes = reader.GetShapes();
-        auto& materials = reader.GetMaterials();
+        auto &attrib = reader.GetAttrib();
+        auto &shapes = reader.GetShapes();
+        auto &materials = reader.GetMaterials();
 
         // Pre-allocate memory for vertices and indices vectors
         size_t estimatedVertexCount = attrib.vertices.size() / 3;
         size_t estimatedIndexCount = 0;
-        for (const auto& shape : shapes) {
+        for (const auto &shape: shapes) {
             estimatedIndexCount += shape.mesh.indices.size();
         }
 
@@ -353,23 +496,23 @@ namespace VkRender {
         bool calculateNormals = false;
 
         // Build the mesh (vertices + indices)
-        for (const auto& shape : shapes) {
-            for (const auto& index : shape.mesh.indices) {
+        for (const auto &shape: shapes) {
+            for (const auto &index: shape.mesh.indices) {
                 VkRender::Vertex vertex{};
 
                 // Position
                 vertex.pos = {
-                        attrib.vertices[3 * index.vertex_index + 0],
-                        attrib.vertices[3 * index.vertex_index + 1],
-                        attrib.vertices[3 * index.vertex_index + 2]
+                    attrib.vertices[3 * index.vertex_index + 0],
+                    attrib.vertices[3 * index.vertex_index + 1],
+                    attrib.vertices[3 * index.vertex_index + 2]
                 };
 
                 // Normal (if available). Otherwise, set to zero to mark that we need to compute it
                 if (index.normal_index > -1) {
                     vertex.normal = {
-                            attrib.normals[3 * index.normal_index + 0],
-                            attrib.normals[3 * index.normal_index + 1],
-                            attrib.normals[3 * index.normal_index + 2]
+                        attrib.normals[3 * index.normal_index + 0],
+                        attrib.normals[3 * index.normal_index + 1],
+                        attrib.normals[3 * index.normal_index + 2]
                     };
                 } else {
                     vertex.normal = {0.0f, 0.0f, 0.0f}; // Will compute later
@@ -378,8 +521,8 @@ namespace VkRender {
                 // UV
                 if (index.texcoord_index > -1) {
                     vertex.uv0 = {
-                            attrib.texcoords[2 * index.texcoord_index + 0],
-                            1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
+                        attrib.texcoords[2 * index.texcoord_index + 0],
+                        1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
                     };
                 }
 
@@ -397,8 +540,7 @@ namespace VkRender {
         computeNormals();
     }
 
-    void MeshData::computeNormals()
-    {
+    void MeshData::computeNormals() {
         // Accumulator array the same size as `vertices`
         std::vector<glm::vec3> accumulators(vertices.size(), glm::vec3(0.0f));
 
@@ -410,9 +552,9 @@ namespace VkRender {
             uint32_t i2 = indices[i + 2];
 
             // Positions of the triangle’s vertices
-            const glm::vec3& p0 = vertices[i0].pos;
-            const glm::vec3& p1 = vertices[i1].pos;
-            const glm::vec3& p2 = vertices[i2].pos;
+            const glm::vec3 &p0 = vertices[i0].pos;
+            const glm::vec3 &p1 = vertices[i1].pos;
+            const glm::vec3 &p2 = vertices[i2].pos;
 
             // Compute face normal (using right-handed cross product)
             glm::vec3 edge1 = p1 - p0;
@@ -435,8 +577,8 @@ namespace VkRender {
         }
     }
 
-    void MeshData::generatePLYMesh(const PLYFileMeshParameters& parameters) {
-                std::ifstream ss(parameters.path.string(), std::ios::binary);
+    void MeshData::generatePLYMesh(const PLYFileMeshParameters &parameters) {
+        std::ifstream ss(parameters.path.string(), std::ios::binary);
         if (ss.fail()) {
             Log::Logger::getInstance()->warning("Failed to open {}", parameters.path.string());
             return;
@@ -450,16 +592,14 @@ namespace VkRender {
         try {
             // Request position data (double type)
             positionData = file.request_properties_from_element("vertex", {"x", "y", "z"});
-        }
-        catch (const std::exception& e) {
+        } catch (const std::exception &e) {
             Log::Logger::getInstance()->warning("Failed to Vertex information from {}", parameters.path.string());
         }
 
         try {
             // Request color data (uchar type)
             colorData = file.request_properties_from_element("vertex", {"red", "green", "blue"});
-        }
-        catch (const std::exception& e) {
+        } catch (const std::exception &e) {
             Log::Logger::getInstance()->warning("Failed to Vertex color information from {}", parameters.path.string());
         }
 
@@ -468,13 +608,12 @@ namespace VkRender {
 
             facesData = file.request_properties_from_element(
                 "face",
-                { "vertex_indices" },
+                {"vertex_indices"},
                 3
-                );
-
-        }
-        catch (const std::exception& e) {
-            Log::Logger::getInstance()->warning("Failed to face/vertex_indices information from {}", parameters.path.string());
+            );
+        } catch (const std::exception &e) {
+            Log::Logger::getInstance()->warning("Failed to face/vertex_indices information from {}",
+                                                parameters.path.string());
         }
 
         file.read(ss);
@@ -544,9 +683,8 @@ namespace VkRender {
         }
 
         // Normalize all the vertex normals
-        for (auto& vertex : vertices) {
+        for (auto &vertex: vertices) {
             vertex.normal = glm::normalize(vertex.normal);
         }
-
     }
 }

@@ -315,6 +315,7 @@ if (${ENABLE_PYTORCH})
             src/Viewer/Rendering/RenderResources/PathTracer/libtorch/PhotonRebuildModule.cpp
             src/Viewer/Rendering/RenderResources/PathTracer/libtorch/PhotonRebuildFunction.cpp
             src/Viewer/Rendering/Editors/DifferentiableEditor/EditorDifferentiableRenderer.cpp
+            src/Viewer/Rendering/Editors/DifferentiableEditor/EditorDifferentiableRendererLayer.cpp
             src/Viewer/Rendering/ImGui/AdditionalWindows/ToolWindow.cpp
     )
     list(APPEND SOURCE_FILES ${DIFF_RENDER_SOURCES})

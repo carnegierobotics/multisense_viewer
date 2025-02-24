@@ -13,6 +13,12 @@ namespace VkRender {
         meshData->generateCylinderMesh(*this);
         return meshData;
     }
+    std::shared_ptr<MeshData> QuadricMeshParameters::generateMeshData() const  {
+        // Generate mesh data for a cylinder
+        auto meshData = std::make_shared<MeshData>();
+        meshData->generateQuadricMesh(*this);
+        return meshData;
+    }
 
     std::shared_ptr<MeshData> CameraGizmoPerspectiveMeshParameters::generateMeshData() const  {
         // Generate mesh data for camera gizmo

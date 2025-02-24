@@ -43,6 +43,11 @@ namespace VkRender {
             if (vertexBufferSize == 0)
                 return;
 
+            if (vertexBufferSize != meshInstance->vertexBuffer->m_size || indexBufferSize != meshInstance->indexBuffer->m_size) {
+                it->second = createMeshInstance(meshData, meshInstance->m_type);
+                meshInstance = it->second;
+            }
+
             if (meshData->isDynamic) {
                 void* data;
                 vkMapMemory(m_context->vkDevice().m_LogicalDevice, meshInstance->vertexBuffer->m_memory, 0,

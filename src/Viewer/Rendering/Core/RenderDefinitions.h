@@ -74,7 +74,9 @@ namespace VkRender {
      */
     struct alignas(16) Vertex {
         glm::vec3 pos;      // 12 bytes + 4 bytes padding
+        float _pad0;
         glm::vec3 normal;   // 12 bytes + 4 bytes padding
+        float _pad1;
         glm::vec2 uv0;      // 8 bytes + 8 bytes padding
         glm::vec2 uv1;      // 8 bytes + 8 bytes padding
         glm::vec4 color;    // 16 bytes
@@ -180,6 +182,7 @@ namespace VkRender {
         glm::vec3 _pad1;           // 12 bytes of padding for alignment
         glm::vec4 lightPosition[32]; // 32 * 16 bytes (vec3 expanded to vec4 for alignment)
         glm::vec4 lightNormal[32];   // 32 * 16 bytes (vec3 expanded to vec4 for alignment)
+        bool useVertexColor;
     };
 
     struct RenderPassInfo { // TODO move somewhere else

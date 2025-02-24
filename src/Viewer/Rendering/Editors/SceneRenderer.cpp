@@ -114,13 +114,14 @@ namespace VkRender {
                 matUBO.specular = material.specular;
                 matUBO.diffuse = material.diffuse;
                 matUBO.emissiveFactor = glm::vec4(material.emission);
+                matUBO.useVertexColor = material.useVertexColor;
 
                 for (int i = 0; i < lightSources.size(); ++i) {
                     matUBO.lightPosition[i] = glm::vec4(lightSources[i].position, 1.0f);
                     matUBO.lightNormal[i] =   glm::vec4(lightSources[i].normal, 1.0f);
                 }
                 matUBO.numLightSources = static_cast<float>(lightSources.size());
-                assert(matUBO.numLightSources < 32);
+                assert(matUBO.numLightSources < 10);
 
                 void *data;
                 vkMapMemory(m_context->vkDevice().m_LogicalDevice,

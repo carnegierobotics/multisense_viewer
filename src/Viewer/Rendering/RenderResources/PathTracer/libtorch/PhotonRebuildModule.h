@@ -33,7 +33,7 @@ namespace VkRender::PathTracer {
 
     private:
         PhotonTracer* m_photonRebuild;
-        void uploadFromScene(std::weak_ptr<Scene> scene);
+        void uploadTensorFromScene(std::weak_ptr<Scene> scene);
         torch::Tensor m_outputTensor;  // Store the output tenso
     };
 

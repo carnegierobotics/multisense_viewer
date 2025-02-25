@@ -29,6 +29,11 @@ namespace VkRender::PathTracer {
         torch::Tensor colors;
         torch::Tensor specular;
         torch::Tensor diffuse;
+
+        // Quadrics:
+        torch::Tensor quadrics; // nx5 vectors
+        torch::Tensor quadricPositions;
+
     };
 #else
     struct GPUDataTensors;
@@ -151,7 +156,7 @@ namespace VkRender::PathTracer {
 
         struct Bounce {
             //Properties:
-            size_t gaussianID = UINT64_MAX;
+            size_t quadricID = UINT64_MAX;
             glm::vec3 hitPointWorld = glm::vec3(0.0f);
             glm::vec3 hitNormalWorld = glm::vec3(0.0f);
 

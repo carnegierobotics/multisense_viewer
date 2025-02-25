@@ -13,7 +13,7 @@
 #include "Viewer/Rendering/RenderResources/PathTracer/PathTracer2DGSKernelBackward.h"
 
 namespace VkRender::PathTracer {
-    PhotonTracer::PhotonTracer(Application *ctx, const PipelineSettings &pipelineSettings,
+    PhotonTracer::PhotonTracer(Application* ctx, const PipelineSettings& pipelineSettings,
                                std::shared_ptr<Scene> scene) : m_pipelineSettings(pipelineSettings),
                                                                m_context(ctx) {
         // Load the scene into gpu memory
@@ -36,12 +36,12 @@ namespace VkRender::PathTracer {
             m_pipelineSettings.height);
         Log::Logger::getInstance()->info("PathTracer on Device: {}",
                                          m_pipelineSettings.device().get_device().get_info<sycl::info::device::name>().
-                                         c_str());
+                                                            c_str());
     }
 
-    void PhotonTracer::update(RenderSettings &renderSettings) {
+    void PhotonTracer::update(RenderSettings& renderSettings) {
         try {
-            auto &queue = m_pipelineSettings.device();
+            auto& queue = m_pipelineSettings.device();
 
             // Update shared GPU/CPU render information
             m_renderInformation->frameID++;
@@ -59,7 +59,7 @@ namespace VkRender::PathTracer {
             Log::Logger::getInstance()->trace("Path Tracer: Submitting Kernels");
 
             if (m_gpu.numGaussians > 0) {
-                queue.submit([&](sycl::handler &cgh) {
+                queue.submit([&](sycl::handler& cgh) {
                     LightTracerKernel kernel(m_gpu, m_gpuDataOutput, m_pcg32);
                     cgh.parallel_for(globalRange, kernel);
                 });
@@ -78,16 +78,17 @@ namespace VkRender::PathTracer {
             Log::Logger::getInstance()->trace(
                 "Path Tracer:  Simulated {}M photons. About {}k photons hit the sensor",
                 totalM, sensorK);
-        } catch (const sycl::exception &e) {
+        }
+        catch (const sycl::exception& e) {
             Log::Logger::getInstance()->warning("Caught exception: {}", e.what());
             std::cerr << "Exception: " << e.what() << std::endl;
             throw std::runtime_error("Caught exception");
         }
     }
 
-    PhotonTracer::BackwardInfo PhotonTracer::backward(RenderSettings &renderSettings) {
+    PhotonTracer::BackwardInfo PhotonTracer::backward(RenderSettings& renderSettings) {
         try {
-            auto &queue = m_pipelineSettings.device();
+            auto& queue = m_pipelineSettings.device();
             uint64_t simulatePhotonCount = m_pipelineSettings.photonCount;
             uint32_t imageSize = m_pipelineSettings.width * m_pipelineSettings.height;
 
@@ -102,7 +103,7 @@ namespace VkRender::PathTracer {
 
             queue.wait();
             sycl::range<1> globalRange(simulatePhotonCount);
-            queue.submit([&](sycl::handler &cgh) {
+            queue.submit([&](sycl::handler& cgh) {
                 // Capture GPUData, etc. by value or reference as needed
                 LightTracerKernelBackward kernel(m_gpu, m_gpuDataOutput, m_pcg32);
                 cgh.parallel_for(globalRange, kernel);
@@ -112,7 +113,8 @@ namespace VkRender::PathTracer {
             queue.memcpy(m_backwardInfo.gradients, m_gpu.gradients, simulatePhotonCount * sizeof(glm::vec3));
             queue.memcpy(m_backwardInfo.sumGradients, m_gpu.sumGradients, sizeof(glm::vec3) * m_gpu.numGaussians);
             queue.wait();
-        } catch (const std::exception &e) {
+        }
+        catch (const std::exception& e) {
             std::cerr << "Exception: " << e.what() << std::endl;
         }
         return m_backwardInfo;
@@ -120,7 +122,7 @@ namespace VkRender::PathTracer {
 
     void PhotonTracer::resetImage() {
         Log::Logger::getInstance()->trace("Resetting Image...");
-        auto &queue = m_pipelineSettings.device();
+        auto& queue = m_pipelineSettings.device();
         queue.fill(m_gpu.imageMemory, static_cast<float>(0),
                    m_pipelineSettings.width * m_pipelineSettings.height).wait();
         m_renderInformation->frameID = 0;
@@ -132,7 +134,7 @@ namespace VkRender::PathTracer {
 
     void PhotonTracer::prepareImageAndInfoBuffers() {
         uint32_t imageSize = m_pipelineSettings.width * m_pipelineSettings.height;
-        auto &queue = m_pipelineSettings.device();
+        auto& queue = m_pipelineSettings.device();
         // Allocate device memory for RGBA image (4 floats per pixel)
         m_gpu.imageMemory = sycl::malloc_device<float>(imageSize, queue);
         if (!m_gpu.imageMemory) {
@@ -176,7 +178,7 @@ namespace VkRender::PathTracer {
 
 
     void PhotonTracer::freeResources() {
-        auto &queue = m_pipelineSettings.device();
+        auto& queue = m_pipelineSettings.device();
         Log::Logger::getInstance()->info("Freeing Path tracer GPU/SYCL resources");
 
         queue.wait();
@@ -242,12 +244,12 @@ namespace VkRender::PathTracer {
     }
 
 
-    void PhotonTracer::uploadGaussiansFromTensors(GPUDataTensors &data) {
+    void PhotonTracer::uploadGaussiansFromTensors(GPUDataTensors& data) {
 #ifdef DIFF_RENDERER_ENABLED
         freeResources();
         prepareImageAndInfoBuffers();
 
-        auto &queue = m_pipelineSettings.device();
+        auto& queue = m_pipelineSettings.device();
         // 2) Move Tensors to CPU (if they aren't already) so we can extract values
         //    (SYCL can't just copy directly from a PyTorch CUDA device pointer.)
         //    If data is already on CPU, this .cpu() will be basically a no-op.
@@ -283,14 +285,14 @@ namespace VkRender::PathTracer {
         // 6) Pointers to the underlying float data (on CPU).
         //    We'll read them row-by-row.
         //    Example: positionsCpu.data_ptr<float>() returns a pointer to the 2D array in row-major order.
-        const float *posPtr = positionsCpu.data_ptr<float>();
-        const float *scalesPtr = scalesCpu.data_ptr<float>();
-        const float *normalsPtr = normalsCpu.data_ptr<float>();
+        const float* posPtr = positionsCpu.data_ptr<float>();
+        const float* scalesPtr = scalesCpu.data_ptr<float>();
+        const float* normalsPtr = normalsCpu.data_ptr<float>();
 
-        const float *emissionsPtr = emissionsCpu.data_ptr<float>();
-        const float *colorsPtr = colorsCpu.data_ptr<float>();
-        const float *specularPtr = specularCpu.data_ptr<float>();
-        const float *diffusePtr = diffuseCpu.data_ptr<float>();
+        const float* emissionsPtr = emissionsCpu.data_ptr<float>();
+        const float* colorsPtr = colorsCpu.data_ptr<float>();
+        const float* specularPtr = specularCpu.data_ptr<float>();
+        const float* diffusePtr = diffuseCpu.data_ptr<float>();
 
         // 7) Fill the hostGaussians array
         //    (positions = 3 floats, normals = 3 floats, scale = 1 float, plus defaults)
@@ -351,17 +353,60 @@ namespace VkRender::PathTracer {
 
         // Log
         Log::Logger::getInstance()->info("uploadFromTensors: Uploaded {} Gaussians", N);
+
+        // Upload QUadrics
+        float* quadricsPtr = data.quadrics.cpu().data_ptr<float>(); // shape: [numGaussians]
+        float* quadricsPosPtr = data.quadricPositions.cpu().data_ptr<float>(); // shape: [numGaussians]
+
+        const auto numQuadrics = data.quadricPositions.size(0);
+
+        std::vector<QuadricInputAssembly> quadricInputAssembly;
+        for (int i = 0; i < numQuadrics; ++i) {
+            QuadricInputAssembly point{};
+            point.a = quadricsPtr[i * 8 + 0];
+            point.b = quadricsPtr[i * 8 + 1];
+            point.c = quadricsPtr[i * 8 + 2];
+            point.t_x = quadricsPtr[i * 8 + 3];
+            point.t_y = quadricsPtr[i * 8 + 4];
+            point.b_beta = quadricsPtr[i * 8 + 5];
+            point.threshold = quadricsPtr[i * 8 + 6];
+            point.kernelScale = quadricsPtr[i * 8 + 7];
+
+            point.min = glm::vec2(-1.0f);
+            point.max = glm::vec2(1.0f);
+
+            point.emission = 0.0f;
+            point.diffuse = 0.5f;
+            point.specular = 0.5f;
+            point.phongExponent = 32.0f;
+            point.color = glm::vec4(0.8f);
+
+            glm::vec3 translation = {quadricsPosPtr[i * 3 + 0], quadricsPosPtr[i * 3 + 1], quadricsPosPtr[i * 3 + 2]};
+            point.transform.setPosition(translation);
+
+            quadricInputAssembly.push_back(point);
+        }
+
+
+        m_gpu.quadricInputAssembly = sycl::malloc_device<QuadricInputAssembly>(quadricInputAssembly.size(), queue);
+        queue.memcpy(m_gpu.quadricInputAssembly, quadricInputAssembly.data(),
+                     quadricInputAssembly.size() * sizeof(QuadricInputAssembly));
+        m_gpu.numQuadrics = quadricInputAssembly.size(); // Number of entities for rendering
+
+        Log::Logger::getInstance()->info("Uploaded  {} Quadrics to renderkernel from Tensor", m_gpu.numQuadrics);
+        queue.wait();
+
 #endif
     }
 
-    void PhotonTracer::uploadGaussianData(std::shared_ptr<Scene> &scene) {
-        auto &queue = m_pipelineSettings.device();
+    void PhotonTracer::uploadGaussianData(std::shared_ptr<Scene>& scene) {
+        auto& queue = m_pipelineSettings.device();
         std::vector<GaussianInputAssembly> gaussianInputAssembly;
         std::vector<TransformComponent> transformMatrices; // Transformation matrices for entities
         // Find all entities with GaussianComponent
         auto view = scene->getRegistry().view<GaussianComponent2DGS>();
-        for (auto e: view) {
-            auto &component = Entity(e, scene.get()).getComponent<GaussianComponent2DGS>();
+        for (auto e : view) {
+            auto& component = Entity(e, scene.get()).getComponent<GaussianComponent2DGS>();
             for (size_t i = 0; i < component.size(); ++i) {
                 GaussianInputAssembly point{};
                 point.position = component.positions[i];
@@ -375,7 +420,7 @@ namespace VkRender::PathTracer {
                 point.phongExponent = component.phongExponents[i];
                 gaussianInputAssembly.push_back(point);
             }
-            auto &transform = Entity(e, scene.get()).getComponent<TransformComponent>();
+            auto& transform = Entity(e, scene.get()).getComponent<TransformComponent>();
             transformMatrices.emplace_back(transform);
         }
 
@@ -388,15 +433,15 @@ namespace VkRender::PathTracer {
         queue.wait();
     }
 
-    void PhotonTracer::uploadQuadricEntities(std::shared_ptr<Scene> &scene) {
-        auto &queue = m_pipelineSettings.device();
+    void PhotonTracer::uploadQuadricEntities(std::shared_ptr<Scene>& scene) {
+        auto& queue = m_pipelineSettings.device();
         std::vector<QuadricInputAssembly> quadricInputAssembly;
         std::vector<TransformComponent> transformMatrices; // Transformation matrices for entities
         // Find all entities with GaussianComponent
         auto view = scene->getRegistry().view<MeshComponent, MaterialComponent>();
-        for (auto e: view) {
-            auto &component = Entity(e, scene.get()).getComponent<MeshComponent>();
-            auto &material = Entity(e, scene.get()).getComponent<MaterialComponent>();
+        for (auto e : view) {
+            auto& component = Entity(e, scene.get()).getComponent<MeshComponent>();
+            auto& material = Entity(e, scene.get()).getComponent<MaterialComponent>();
             if (component.meshDataType() == QUADRIC) {
                 auto parameters = std::dynamic_pointer_cast<QuadricMeshParameters>(component.meshParameters);
                 if (!parameters) {
@@ -420,9 +465,11 @@ namespace VkRender::PathTracer {
                 point.diffuse = material.diffuse;
                 point.specular = material.specular;
                 point.phongExponent = material.phongExponent;
+                auto& transform = Entity(e, scene.get()).getComponent<TransformComponent>();
+                point.transform = transform;
+
                 quadricInputAssembly.push_back(point);
-                auto &transform = Entity(e, scene.get()).getComponent<TransformComponent>();
-                transformMatrices.emplace_back(transform);
+
             }
         }
 
@@ -435,7 +482,7 @@ namespace VkRender::PathTracer {
         queue.wait();
     }
 
-    void PhotonTracer::uploadVertexData(std::shared_ptr<Scene> &scene) {
+    void PhotonTracer::uploadVertexData(std::shared_ptr<Scene>& scene) {
         /*
         std::vector<InputAssembly> vertexData;
         std::vector<uint32_t> indices;
@@ -575,7 +622,6 @@ namespace VkRender::PathTracer {
             Log::Logger::getInstance()->trace("Freed CPU Memory: sumGradients");
         }
         freeResources();
-
     }
 
 

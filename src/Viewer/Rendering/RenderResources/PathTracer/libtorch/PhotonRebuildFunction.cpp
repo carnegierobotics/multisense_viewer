@@ -134,11 +134,15 @@ namespace VkRender::PathTracer {
                                                  torch::Tensor normals, torch::Tensor emissions,
                                                  torch::Tensor colors,
                                                  torch::Tensor specular,
-                                                 torch::Tensor diffuse) {
+                                                 torch::Tensor diffuse,
+                                                 torch::Tensor quadrics,
+                                                 torch::Tensor quadricPositions
+                                                 ) {
         // =================
         // 1) Save for backward any Tensors or scalar values you need
         //    to compute derivatives later. For example:
-        ctx->save_for_backward({positions, scales, normals, emissions, colors, specular, diffuse});
+        ctx->save_for_backward({positions, scales, normals, emissions, colors, specular, diffuse, quadrics,
+quadricPositions});
         ctx->saved_data["pathTracer"] = reinterpret_cast<int64_t>(pathTracer);
 
         // If you have non-tensor data you want in backward(), you can store
@@ -198,8 +202,11 @@ namespace VkRender::PathTracer {
         auto normals = saved[2];
         auto emissions = saved[3];
         auto colors = saved[4];
-        auto diffuse = saved[5];
-        auto specular = saved[6];
+        auto specular = saved[5];
+        auto diffuse = saved[6];
+        auto quadrics = saved[7];
+        auto quadricPositions = saved[8];
+
         // Retrieve the path tracer pointer
         auto pathTracerRaw = ctx->saved_data["pathTracer"].toInt();
         PhotonTracer *pathTracer = reinterpret_cast<PhotonTracer *>(pathTracerRaw);
@@ -229,10 +236,14 @@ namespace VkRender::PathTracer {
         Log::Logger::getInstance()->info("Positions: First: {},{},{}, Second: {},{},{}", posA[0][0], posA[0][2],
                                          posA[0][3], posA[1][0], posA[1][2], posA[1][3]);
 
-        auto grad_positions = torch::zeros_like(positions);
+        auto gradientEmissivePositions = torch::zeros_like(positions);
 
-        auto gradPosA = grad_positions.accessor<float, 2>();
-        for (int i = 0; i < grad_positions.size(0); ++i) {
+        auto gradientQuadricPositions = torch::zeros_like(quadricPositions);
+
+        auto gradPosA = gradientEmissivePositions.accessor<float, 2>();
+        auto gradQuadPosA = gradientQuadricPositions.accessor<float, 2>();
+
+        for (int i = 0; i < gradientQuadricPositions.size(0); ++i) {
             float gx = grad[i].x;
             float gy = grad[i].y;
             float gz = grad[i].z;
@@ -246,22 +257,24 @@ namespace VkRender::PathTracer {
                 Log::Logger::getInstance()->warning(" NaN warning in Gradients: {}", gx);
             }
             // Replace NaNs with zero (or another fallback value)
-            gradPosA[i][0] =  gx;
-            gradPosA[i][1] =  gy;
-            gradPosA[i][2] =  gz;
+            gradQuadPosA[i][0] =  gx;
+            gradQuadPosA[i][1] =  gy;
+            gradQuadPosA[i][2] =  gz;
         }
 
         // Return them in the same order as forward inputs
         return {
             torch::Tensor(), // wrt settings (not a Tensor)
             torch::Tensor(), // wrt pathTracer (not a Tensor)
-            grad_positions, // wrt positions
+            gradientEmissivePositions, // wrt positions
             torch::Tensor(), // wrt scales
             torch::Tensor(), // wrt normals
             torch::Tensor(), // emission
             torch::Tensor(), // colors
             torch::Tensor(), // specular
             torch::Tensor(), // diffuse
+            torch::Tensor(), // gradQuadApperance
+            gradientQuadricPositions, // gradQUadPos
         };
     }
 }

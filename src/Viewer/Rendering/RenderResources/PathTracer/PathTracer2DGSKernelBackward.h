@@ -11,8 +11,8 @@ namespace VkRender::PathTracer {
     class LightTracerKernelBackward {
     public:
         LightTracerKernelBackward(GPUData gpuData,
-                                  GPUDataOutput *gpuDataOutput,
-                                  PCG32 *rng)
+                                  GPUDataOutput* gpuDataOutput,
+                                  PCG32* rng)
             : m_gpuData(gpuData), m_gpuDataOutput(gpuDataOutput), m_rng(rng) {
             m_cameraTransform = m_gpuData.cameraTransform;
             m_camera = m_gpuData.pinholeCamera;
@@ -31,19 +31,19 @@ namespace VkRender::PathTracer {
 
     private:
         GPUData m_gpuData{};
-        GPUDataOutput *m_gpuDataOutput{};
+        GPUDataOutput* m_gpuDataOutput{};
 
-        PCG32 *m_rng;
-        TransformComponent *m_cameraTransform{};
-        PinholeCamera *m_camera{};
+        PCG32* m_rng;
+        TransformComponent* m_cameraTransform{};
+        PinholeCamera* m_camera{};
 
         // ---------------------------------------------------------
         // Single Photon Trace (Multi-Bounce)
         // ---------------------------------------------------------
         void traceOnePhotonSingleBounceObjectGradient(size_t photonID) const {
-            GPUDataOutput::Bounce &object = m_gpuDataOutput[photonID].bounce[0];
-            size_t hitObjectID = object.gaussianID;
-            if (hitObjectID > m_gpuData.numGaussians) {
+            GPUDataOutput::Bounce& object = m_gpuDataOutput[photonID].bounce[0];
+            size_t hitObjectID = object.quadricID;
+            if (hitObjectID > m_gpuData.numQuadrics) {
                 return;
             }
 
@@ -74,7 +74,219 @@ namespace VkRender::PathTracer {
                 return;
             }
 
-            auto &newHitObject = m_gpuData.gaussianInputAssembly[hitObjectID];
+            //e_o = glm::vec3(-0.5, -0.5, 3);
+            //e_d = glm::normalize(glm::vec3(0.1, 0.1, -1));
+
+            auto& quadric = m_gpuData.quadricInputAssembly[hitObjectID];
+            glm::vec3 g_c = quadric.transform.getPosition();
+            glm::mat3 world2Quadric = quadric.transform.getTransform();
+            glm::vec3 e_o_local = world2Quadric * (e_o - g_c);
+            glm::vec3 e_d_local = world2Quadric * e_d;
+
+            // Compute alpha_x and alpha_y using hyperbolic tangent
+            float alpha_x = std::tanh(quadric.t_x);
+            float alpha_y = std::tanh(quadric.t_y);
+
+            // Compute quadratic coefficients (note: local vector components: x, y, z correspond to (1), (2), (3))
+            float A = quadric.c * (alpha_x * (e_d_local.x * e_d_local.x) / (quadric.a * quadric.a)
+                + alpha_y * (e_d_local.y * e_d_local.y) / (quadric.b * quadric.b));
+            float B = quadric.c * (2.0f * alpha_x * e_o_local.x * e_d_local.x / (quadric.a * quadric.a)
+                    + 2.0f * alpha_y * e_o_local.y * e_d_local.y / (quadric.b * quadric.b))
+                - e_d_local.z;
+            float C = quadric.c * (alpha_x * (e_o_local.x * e_o_local.x) / (quadric.a * quadric.a)
+                    + alpha_y * (e_o_local.y * e_o_local.y) / (quadric.b * quadric.b))
+                - e_o_local.z;
+
+            // Compute the discriminant
+            float discriminant = B * B - 4.0f * A * C;
+            if (discriminant < 0.0f) {
+                return;
+            }
+
+            // Solve for the smallest positive t (g_tmin)
+            float t_min = (-B + std::sqrt(discriminant)) / (2.0f * A);
+
+            // Calculate the hit point in the quadric's local space:
+            // g_hit_local = e_d_local * t_min + e_o_local
+            glm::vec3 g_hit_local = e_d_local * t_min + e_o_local;
+
+            // Transform the local hit point back to world space.
+            // If quadric.transform is orthonormal, its inverse is its transpose.
+            glm::mat3 quadric2World = glm::transpose(world2Quadric);
+            glm::vec3 g_hit = quadric2World * g_hit_local + g_c;
+
+            glm::vec3 a_d = glm::normalize(a_c - g_hit);
+            float a_tmin = glm::dot((f - g_hit), f_n) / (glm::dot(a_d, f_n));
+            glm::vec3 cameraHitPointWorld = g_hit + a_d * a_tmin;
+            glm::vec4 hitPointCam = world2Camera * glm::vec4(cameraHitPointWorld, 1.0f);
+            hitPointCam = hitPointCam / hitPointCam.w;
+            float px = hitPointCam.x;
+            float py = hitPointCam.y;
+            float pz = hitPointCam.z;
+            float xPixel = (fx * px / pz) + cx;
+            float yPixel = (fy * py / pz) + cy;
+
+            if (xPixel > m_camera->m_parameters.width || yPixel > m_camera->m_parameters.height || xPixel < 0.0f ||
+                yPixel < 0.0f) {
+                return;
+            }
+            float dLoss = bilinearSample(m_gpuData.gradientImage,
+                             static_cast<int>(m_camera->parameters().width),
+                             static_cast<int>(m_camera->parameters().height),
+                             xPixel, yPixel);
+
+            float xPixel_gt = 0.0f;
+            float yPixel_gt = 0.0f;
+            ////////// GT CALCULATION /&///////
+            {
+                glm::vec3 e_d_gt = glm::normalize(g_c - e_o);
+                glm::vec3 e_o_local_gt = world2Quadric * (e_o - g_c);
+                glm::vec3 e_d_local_gt = world2Quadric * e_d_gt;
+
+                // Compute quadratic coefficients (note: local vector components: x, y, z correspond to (1), (2), (3))
+                float A_gt = quadric.c * (alpha_x * (e_d_local_gt.x * e_d_local_gt.x) / (quadric.a * quadric.a)
+                    + alpha_y * (e_d_local_gt.y * e_d_local_gt.y) / (quadric.b * quadric.b));
+                float B_gt = quadric.c * (2.0f * alpha_x * e_o_local_gt.x * e_d_local_gt.x / (quadric.a * quadric.a)
+                        + 2.0f * alpha_y * e_o_local_gt.y * e_d_local_gt.y / (quadric.b * quadric.b))
+                    - e_d_local_gt.z;
+                float C_gt = quadric.c * (alpha_x * (e_o_local_gt.x * e_o_local_gt.x) / (quadric.a * quadric.a)
+                        + alpha_y * (e_o_local_gt.y * e_o_local_gt.y) / (quadric.b * quadric.b))
+                    - e_o_local_gt.z;
+
+                // Compute the discriminant
+                float discriminant_gt = B_gt * B_gt - 4.0f * A_gt * C_gt;
+                if (discriminant_gt < 0.0f) {
+                    return;
+                }
+
+                // Solve for the smallest positive t (g_tmin)
+                float t_min_gt = (-B_gt + std::sqrt(discriminant_gt)) / (2.0f * A_gt);
+
+                // Calculate the hit point in the quadric's local space:
+                // g_hit_local = e_d_local * t_min + e_o_local
+                glm::vec3 g_hit_local_gt = e_d_local_gt * t_min_gt + e_o_local_gt;
+
+                // Transform the local hit point back to world space.
+                // If quadric.transform is orthonormal, its inverse is its transpose.
+                glm::vec3 g_hit_gt = quadric2World * g_hit_local_gt + g_c;
+
+                glm::vec3 a_d_gt = glm::normalize(a_c - g_hit_gt);
+                float a_tmin_gt = glm::dot((f - g_hit_gt), f_n) / (glm::dot(a_d_gt, f_n));
+                glm::vec3 cameraHitPointWorld_gt = g_hit_gt + a_d_gt * a_tmin_gt;
+                glm::vec4 hitPointCam_gt = world2Camera * glm::vec4(cameraHitPointWorld_gt, 1.0f);
+                hitPointCam_gt = hitPointCam_gt / hitPointCam_gt.w;
+                float px_gt = hitPointCam_gt.x;
+                float py_gt = hitPointCam_gt.y;
+                float pz_gt = hitPointCam_gt.z;
+                xPixel_gt = (fx * px_gt / pz_gt) + cx;
+                yPixel_gt = (fy * py_gt / pz_gt) + cy;
+            }
+
+            // ===== Backward Pass =====
+            // We now compute the gradient (jacobian) of our hit point and subsequent losses with respect to g_c.
+
+            // --- (1) Gradients of B and C with respect to g_c ---
+            // Because e_o_local = world2Quadric*(e_o - g_c), we have d(e_o_local)/d(g_c) = -world2Quadric.
+            // Compute ∇ₑₒ B:
+            glm::vec3 grad_B_eo;
+            grad_B_eo.x = quadric.c * 2.0f * alpha_x * e_d_local.x / (quadric.a * quadric.a);
+            grad_B_eo.y = quadric.c * 2.0f * alpha_y * e_d_local.y / (quadric.b * quadric.b);
+            grad_B_eo.z = 0.0f; // B does not depend on e_o_local.z
+
+            // Thus, derivative of B with respect to g_c:
+            glm::vec3 dB_dgc = -glm::transpose(world2Quadric) * grad_B_eo;
+
+            // For C: C = c*(alpha_x*(e_o_local.x²)/a² + alpha_y*(e_o_local.y²)/b²) – e_o_local.z
+            glm::vec3 grad_C_eo;
+            grad_C_eo.x = quadric.c * 2.0f * alpha_x * e_o_local.x / (quadric.a * quadric.a);
+            grad_C_eo.y = quadric.c * 2.0f * alpha_y * e_o_local.y / (quadric.b * quadric.b);
+            grad_C_eo.z = -1.0f;
+            glm::vec3 dC_dgc = -glm::transpose(world2Quadric) * grad_C_eo;
+
+            // --- (2) Derivatives of t_min with respect to B and C ---
+            float d_tmin_dB = 1.0f / (2.0f * A) * (1.0f + B / std::sqrt(discriminant));
+            float d_tmin_dC = -1.0f / std::sqrt(discriminant);
+
+            // --- (3) Chain rule: derivative of t_min with respect to g_c ---
+            glm::vec3 dtmin_dgc = d_tmin_dB * dB_dgc + d_tmin_dC * dC_dgc;
+
+            // --- (4) Derivative of g_hit_local with respect to g_c ---
+            // g_hit_local = e_d_local * t_min + e_o_local, with d(e_o_local)/d(g_c) = -world2Quadric.
+            // Using the outer–product, we write:
+            glm::mat3 d_hitLocal_dgc = -world2Quadric + glm::outerProduct(e_d_local, dtmin_dgc);
+
+            // --- (5) Derivative of g_hit with respect to g_c ---
+            // Recall: g_hit = quadric2World * g_hit_local + g_c, so:
+            glm::mat3 d_ghit_dgc = glm::transpose(world2Quadric) * d_hitLocal_dgc + glm::mat3(1.0f);
+            // d_ghit_dgc is our J_ghit,gc.
+
+            // --- (6) Derivative of a_d = normalize(a_c - g_hit) ---
+            glm::vec3 v_tmp = a_c - g_hit;
+            float v_len = glm::length(v_tmp);
+            glm::mat3 I = glm::mat3(1.0f);
+            // The derivative of a normalized vector: (I/v_len - outer(v_tmp,v_tmp)/(v_len³))
+            glm::mat3 J_ad_gc = (I / v_len - glm::outerProduct(v_tmp, v_tmp) / (v_len * v_len * v_len)) * (-d_ghit_dgc);
+
+            // --- (7) Derivative of a_tmin = ((f - g_hit) ⋅ f_n) / (a_d ⋅ f_n) ---
+            float n_val = glm::dot(f - g_hit, f_n);
+            float d_val = glm::dot(a_d, f_n);
+            // d(n)/d(g_c) = - (transpose(J_ad_gc) * f_n)
+            glm::vec3 d_n =  glm::transpose(J_ad_gc) * (-f_n);
+            // d(d)/d(g_c) = (transpose(J_ad_gc) * f_n)
+            glm::vec3 d_d = glm::transpose(J_ad_gc) * f_n;
+            glm::vec3 nabla_atmin_gc = (d_val * d_n - n_val * d_d) / (d_val * d_val);
+
+            // --- (8) Derivative of the focal plane intersection p(g_c) = g_hit + a_tmin * a_d ---
+            // Using the product rule:
+            glm::mat3 J_p_gc = d_ghit_dgc + glm::outerProduct(a_d, nabla_atmin_gc) + a_tmin * J_ad_gc;
+
+            // --- (9) Camera extrinsics: p_camera = R_w2c * p(g_c) ---
+            glm::mat3 w2c = glm::mat3(world2Camera);
+
+            glm::mat3 J_pc_gc = w2c * J_p_gc;
+            // --- (10) Pinhole projection derivative ---
+            // For a camera point p_camera = (px,py,pz), the projection is:
+            // u = fx * px / pz + cx, v = fy * py / pz + cy.
+            // Its Jacobian (2×3) is:
+            glm::mat3 J_uv_pcam(0.0f);
+            J_uv_pcam[0][0] = fx / pz;
+            J_uv_pcam[0][1] = 0.0f;
+            J_uv_pcam[0][2] = -fx * px / (pz * pz);
+            J_uv_pcam[1][0] = 0.0f;
+            J_uv_pcam[1][1] = fy / pz;
+            J_uv_pcam[1][2] = -fy * py / (pz * pz);
+            J_uv_pcam = glm::transpose(J_uv_pcam);
+            // --- (11) Derivative of pixel coordinates with respect to g_c ---
+            glm::mat3x3 J_uv_gc = J_uv_pcam * J_pc_gc;
+
+            // --- (12) Pixel loss function and its derivative ---
+            // L_pix = (u - u_gt)² + (v - v_gt)², so ∇L = [2*(u - u_gt), 2*(v - v_gt)].
+            glm::vec2 L_pix_d;
+            L_pix_d.x = 2.0f * (xPixel - xPixel_gt);
+            L_pix_d.y = 2.0f * (yPixel - yPixel_gt);
+
+            // --- (13) Finally, gradient with respect to g_c ---
+            // nabla_gc = (J_uv_gc)ᵀ * L_pix_d.
+            glm::vec3 grad_geometry(0.0f);
+            grad_geometry.x = (L_pix_d.x * J_uv_gc[0][0] + L_pix_d.y * J_uv_gc[0][1]);
+            grad_geometry.y = (L_pix_d.x * J_uv_gc[1][0] + L_pix_d.y * J_uv_gc[1][1]);
+            grad_geometry.z = (L_pix_d.x * J_uv_gc[2][0] + L_pix_d.y * J_uv_gc[2][1]);
+
+            glm::vec3 total_gradient = grad_geometry * dLoss;
+
+            // Atomically accum ulate the gradient.
+            sycl::atomic_ref<float, sycl::memory_order::acq_rel,
+                             sycl::memory_scope::device,
+                             sycl::access::address_space::global_space>
+                sum_x(m_gpuData.sumGradients[hitObjectID].x),
+                sum_y(m_gpuData.sumGradients[hitObjectID].y),
+                sum_z(m_gpuData.sumGradients[hitObjectID].z);
+
+            sum_x.fetch_add(total_gradient.x);
+            sum_y.fetch_add(total_gradient.y);
+            sum_z.fetch_add(total_gradient.z);
+
+            /*
             glm::vec3 g_c = newHitObject.position;
             glm::vec3 g_n = newHitObject.normal;
             float t_g = glm::dot((g_c - e_o), g_n) / glm::dot(e_d, g_n);
@@ -123,10 +335,7 @@ namespace VkRender::PathTracer {
             float gtPixelU = (fx * px_gt / pz_gt) + cx;
             float gtPixelV = (fy * py_gt / pz_gt) + cy;
 
-            float dLoss = bilinearSample(m_gpuData.gradientImage,
-                                         static_cast<int>(m_camera->parameters().width),
-                                         static_cast<int>(m_camera->parameters().height),
-                                         xPixel, yPixel);
+
 
 
             // Intersection derivative from light source
@@ -198,19 +407,7 @@ namespace VkRender::PathTracer {
             grad_geometry.y = (dLdu * J_uv_eo[1][0] + dLdv * J_uv_eo[1][1]);
             grad_geometry.z = (dLdu * J_uv_eo[2][0] + dLdv * J_uv_eo[2][1]);
 
-            glm::vec3 total_gradient = grad_geometry * dLoss;
-
-            // Atomically accum ulate the gradient.
-            sycl::atomic_ref<float, sycl::memory_order::acq_rel,
-                        sycl::memory_scope::device,
-                        sycl::access::address_space::global_space>
-                    sum_x(m_gpuData.sumGradients[hitObjectID].x),
-                    sum_y(m_gpuData.sumGradients[hitObjectID].y),
-                    sum_z(m_gpuData.sumGradients[hitObjectID].z);
-
-            sum_x.fetch_add(total_gradient.x);
-            sum_y.fetch_add(total_gradient.y);
-            sum_z.fetch_add(total_gradient.z);
+            */
 
         }
 
@@ -236,7 +433,7 @@ namespace VkRender::PathTracer {
             glm::vec3 a_c = m_cameraTransform->getPosition(); // center of aperture
             glm::vec3 gaussianPosition = m_gpuData.gaussianInputAssembly[gaussianID].position;
             float emissionPower = m_gpuData.gaussianInputAssembly[gaussianID].emission;
-            glm::vec3 &e_c = gaussianPosition;
+            glm::vec3& e_c = gaussianPosition;
             // Camera intrinsics
             float fx = m_camera->parameters().fx;
             float fy = m_camera->parameters().fy;
@@ -248,14 +445,14 @@ namespace VkRender::PathTracer {
             glm::vec3 f_n = cameraNormal; // e.g., (0,0,1) if the focal plane faces +Z
 
             // PIXEL LOSS GROUND TRUTH
-            GPUDataOutput::Bounce &object = m_gpuDataOutput[photonID].bounce[0];
-            size_t hitObjectID = object.gaussianID;
+            GPUDataOutput::Bounce& object = m_gpuDataOutput[photonID].bounce[0];
+            size_t hitObjectID = object.quadricID;
 
             if (hitObjectID > m_gpuData.numGaussians || gaussianID > m_gpuData.numGaussians || !object.hitCamera) {
                 return;
             }
 
-            auto &newHitObject = m_gpuData.gaussianInputAssembly[hitObjectID];
+            auto& newHitObject = m_gpuData.gaussianInputAssembly[hitObjectID];
             glm::vec3 g_c = newHitObject.position;
             glm::vec3 g_n = newHitObject.normal;
             glm::vec3 g_hit2 = object.hitPointWorld;
@@ -385,11 +582,11 @@ namespace VkRender::PathTracer {
 
             // Atomically accum ulate the gradient.
             sycl::atomic_ref<float, sycl::memory_order::acq_rel,
-                        sycl::memory_scope::device,
-                        sycl::access::address_space::global_space>
-                    sum_x(m_gpuData.sumGradients[gaussianID].x),
-                    sum_y(m_gpuData.sumGradients[gaussianID].y),
-                    sum_z(m_gpuData.sumGradients[gaussianID].z);
+                             sycl::memory_scope::device,
+                             sycl::access::address_space::global_space>
+                sum_x(m_gpuData.sumGradients[gaussianID].x),
+                sum_y(m_gpuData.sumGradients[gaussianID].y),
+                sum_z(m_gpuData.sumGradients[gaussianID].z);
 
             sum_x.fetch_add(total_gradient.x);
             sum_y.fetch_add(total_gradient.y);
@@ -500,7 +697,7 @@ namespace VkRender::PathTracer {
             glm::vec3 r = a - e_o;
             float r_length = glm::length(r);
             glm::mat3x3 Jed_eo = (glm::outerProduct(r, r) / (r_length * r_length * r_length)) - (1 / r_length) *
-                                 glm::mat3(1.0f);
+                glm::mat3(1.0f);
             // 2.2) Focal Plane intersection parameter:
             // (b) tMin = ...
             //     dtMin/de_o = ...
@@ -585,11 +782,11 @@ namespace VkRender::PathTracer {
 
             // Atomically accumulate the gradient.
             sycl::atomic_ref<float, sycl::memory_order::acq_rel,
-                        sycl::memory_scope::device,
-                        sycl::access::address_space::global_space>
-                    sum_x(m_gpuData.sumGradients[gaussianID].x),
-                    sum_y(m_gpuData.sumGradients[gaussianID].y),
-                    sum_z(m_gpuData.sumGradients[gaussianID].z);
+                             sycl::memory_scope::device,
+                             sycl::access::address_space::global_space>
+                sum_x(m_gpuData.sumGradients[gaussianID].x),
+                sum_y(m_gpuData.sumGradients[gaussianID].y),
+                sum_z(m_gpuData.sumGradients[gaussianID].z);
 
             if (photonID == 10000) {
                 int stop = 1;
@@ -695,7 +892,7 @@ namespace VkRender::PathTracer {
         //glm::vec3 dL_deo = dU_deo * dLoss * emissionPower;
 
         */
-        glm::mat2x3 multiply2x3_3x3(const glm::mat2x3 &A, const glm::mat3 &B) const {
+        glm::mat2x3 multiply2x3_3x3(const glm::mat2x3& A, const glm::mat3& B) const {
             glm::mat2x3 result;
             // Manual matrix multiplication
             result[0][0] = A[0][0] * B[0][0] + A[1][0] * B[0][1] + A[2][0] * B[0][2];
@@ -710,7 +907,7 @@ namespace VkRender::PathTracer {
         }
 
 
-        float bilinearSample(const float *image, int width, int height, float x, float y) const {
+        float bilinearSample(const float* image, int width, int height, float x, float y) const {
             int x0 = static_cast<int>(std::floor(x));
             int y0 = static_cast<int>(std::floor(y));
             int x1 = x0 + 1;
@@ -734,14 +931,14 @@ namespace VkRender::PathTracer {
 
             // Bilinear interpolation formula
             return (1 - dx) * (1 - dy) * I00 + dx * (1 - dy) * I10 +
-                   (1 - dx) * dy * I01 + dx * dy * I11;
+                (1 - dx) * dy * I01 + dx * dy * I11;
         }
 
         glm::vec3 sampleDirectionTowardAperture(
-            const glm::vec3 &lightPos,
-            const glm::vec3 &apertureCenter,
-            const glm::vec3 &apertureNormal,
-            glm::vec3 &apertureHitpoint,
+            const glm::vec3& lightPos,
+            const glm::vec3& apertureCenter,
+            const glm::vec3& apertureNormal,
+            glm::vec3& apertureHitpoint,
             float apertureRadius,
             uint64_t photonID) const {
             // pick random point on the lens
@@ -752,8 +949,8 @@ namespace VkRender::PathTracer {
         }
 
         glm::vec3 samplePointOnDisk(size_t photonID,
-                                    const glm::vec3 &center,
-                                    const glm::vec3 &normal,
+                                    const glm::vec3& center,
+                                    const glm::vec3& normal,
                                     float radius) const {
             // Or use any 2D disk sampling approach (e.g., concentric disk sampling).
             // We'll do a simple naive approach:
@@ -778,11 +975,11 @@ namespace VkRender::PathTracer {
         }
 
         bool checkCameraPlaneIntersection(
-            const glm::vec3 &rayOriginWorld,
-            const glm::vec3 &rayDirWorld,
-            glm::vec3 &hitPointCam, // out: intersection in camera space
-            float &tIntersect, // out: parameter t
-            float &contributionScore // out: parameter contributionScore
+            const glm::vec3& rayOriginWorld,
+            const glm::vec3& rayDirWorld,
+            glm::vec3& hitPointCam, // out: intersection in camera space
+            float& tIntersect, // out: parameter t
+            float& contributionScore // out: parameter contributionScore
         ) const {
             // 1) Transform to camera space
 
@@ -836,7 +1033,7 @@ namespace VkRender::PathTracer {
         // ---------------------------------------------------------------------
         //  accumulateOnSensor
         // ---------------------------------------------------------------------
-        void accumulateOnSensor(size_t photonID, const glm::vec3 &hitPointCam, float photonFlux) const {
+        void accumulateOnSensor(size_t photonID, const glm::vec3& hitPointCam, float photonFlux) const {
             // 2. Project to the image plane using pinhole intrinsics:
             // Important: Z_cam should be > 0 for a point in front of the camera.
             //
@@ -883,9 +1080,9 @@ namespace VkRender::PathTracer {
 
                     // Use atomic operations to safely update the pixel value.
                     sycl::atomic_ref<float, sycl::memory_order::relaxed,
-                                sycl::memory_scope::device,
-                                sycl::access::address_space::global_space>
-                            imageMemoryAtomic(m_gpuData.imageMemory[pixelIndex]);
+                                     sycl::memory_scope::device,
+                                     sycl::access::address_space::global_space>
+                        imageMemoryAtomic(m_gpuData.imageMemory[pixelIndex]);
 
                     // Optionally, prevent saturation by clamping the pixel value to 1.0f.
                     float currentValue = imageMemoryAtomic.load();
@@ -901,16 +1098,16 @@ namespace VkRender::PathTracer {
             addFluxToPixel(x1, y1, w11);
             // 7. Atomically update the photon count.
             sycl::atomic_ref<uint64_t, sycl::memory_order::relaxed,
-                        sycl::memory_scope::device,
-                        sycl::access::address_space::global_space>
-                    photonsAccumulatedAtomic(m_gpuData.renderInformation->photonsAccumulated);
+                             sycl::memory_scope::device,
+                             sycl::access::address_space::global_space>
+                photonsAccumulatedAtomic(m_gpuData.renderInformation->photonsAccumulated);
             photonsAccumulatedAtomic.fetch_add(static_cast<uint64_t>(1));
         }
 
         // ---------------------------------------------------------------------
         //  Helper: sample an emissive gaussian object
         // ---------------------------------------------------------------------
-        size_t sampleRandomEmissiveGaussian(size_t photonID, size_t &entityID) const {
+        size_t sampleRandomEmissiveGaussian(size_t photonID, size_t& entityID) const {
             // Simple Linear Congruential Generator (LCG) for RNG
             std::array<size_t, 10> samples{}; // TODo max 10 light sources supported currently
             size_t i = 0;
@@ -930,10 +1127,10 @@ namespace VkRender::PathTracer {
         // ---------------------------------------------------------------------
         void sampleGaussianPositionAndNormal(size_t entityID, size_t emissiveEntityIdx,
                                              size_t photonID,
-                                             glm::vec3 &outPos,
-                                             glm::vec3 &outNormal,
-                                             float &emissionPower) const {
-            const GaussianInputAssembly &gaussian = m_gpuData.gaussianInputAssembly[emissiveEntityIdx];
+                                             glm::vec3& outPos,
+                                             glm::vec3& outNormal,
+                                             float& emissionPower) const {
+            const GaussianInputAssembly& gaussian = m_gpuData.gaussianInputAssembly[emissiveEntityIdx];
             // ------------------------------------------------------------------
             // 1. Prepare the normal, find two tangent vectors for the plane.
             // ------------------------------------------------------------------
@@ -965,7 +1162,7 @@ namespace VkRender::PathTracer {
             //     If scale.y=1 => maximum distance is 1 meter in Y
             //     For ellipse: (x/σx)^2 + (y/σy)^2 <= 1
             float ellipseParam = (x * x) / (gaussian.scale.x * gaussian.scale.x)
-                                 + (y * y) / (gaussian.scale.y * gaussian.scale.y);
+                + (y * y) / (gaussian.scale.y * gaussian.scale.y);
 
             // ------------------------------------------------------------------
             // 3. Offset the center by (x, y) in the plane spanned by (t1, t2).
@@ -989,7 +1186,7 @@ namespace VkRender::PathTracer {
 
             // Gaussian PDF (unnormalized since we are within the ellipse)
             float gaussianPDF = (1.0f / (2.0f * M_PIf * sigma_x * sigma_y)) *
-                                expf(-0.5f * ((x * x) / (sigma_x * sigma_x) + (y * y) / (sigma_y * sigma_y)));
+                expf(-0.5f * ((x * x) / (sigma_x * sigma_x) + (y * y) / (sigma_y * sigma_y)));
 
             // Area of the ellipse
             float ellipseArea = M_PIf * sigma_x * sigma_y;
@@ -1024,7 +1221,7 @@ namespace VkRender::PathTracer {
 
 
         // Constructs an orthonormal basis (T, B, N) given a normal N.
-        static void buildTangentBasis(const glm::vec3 &N, glm::vec3 &T, glm::vec3 &B) {
+        static void buildTangentBasis(const glm::vec3& N, glm::vec3& T, glm::vec3& B) {
             // Any vector not collinear with N will do for "temp"
             glm::vec3 temp = (fabs(N.x) > 0.9f) ? glm::vec3(0, 1, 0) : glm::vec3(1, 0, 0);
 
@@ -1034,7 +1231,7 @@ namespace VkRender::PathTracer {
         }
 
         glm::vec3 sampleCosineWeightedHemisphere(
-            const glm::vec3 &normal,
+            const glm::vec3& normal,
             size_t photonID) // random [0,1]
         const {
             // Step 1: Convert to spherical coords for cosine-weighted distribution
@@ -1061,7 +1258,7 @@ namespace VkRender::PathTracer {
         // ---------------------------------------------------------------------
         //  sampleRandomHemisphere (Lambertian reflection) using PCG32
         // ---------------------------------------------------------------------
-        glm::vec3 sampleRandomHemisphere(const glm::vec3 &normal, size_t photonID) const {
+        glm::vec3 sampleRandomHemisphere(const glm::vec3& normal, size_t photonID) const {
             glm::vec3 r = randomUnitVector(photonID);
             if (glm::dot(r, normal) < 0.f) {
                 r = -r;

@@ -13,7 +13,7 @@ namespace VkRender::PathTracer {
     PhotonRebuildModule::PhotonRebuildModule(PhotonTracer* rt, std::weak_ptr<Scene> scene)
         : m_photonRebuild(rt) {
         // Optionally register parameters or buffers if needed
-        uploadFromScene(std::move(scene));
+        uploadTensorFromScene(std::move(scene));
     }
 
     PhotonRebuildModule::~PhotonRebuildModule() {
@@ -36,20 +36,22 @@ namespace VkRender::PathTracer {
             m_tensorData.emissions,
             m_tensorData.colors,
             m_tensorData.specular,
-            m_tensorData.diffuse
+            m_tensorData.diffuse,
+            m_tensorData.quadrics,
+            m_tensorData.quadricPositions
         );
 
-        m_outputTensor = result.clone();  // Clone to ensure ownership
+        m_outputTensor = result.clone(); // Clone to ensure ownership
 
         return result;
     }
 
     float* PhotonRebuildModule::getRenderedImage() {
         if (m_outputTensor.defined()) {
-            return m_outputTensor.data_ptr<float>();  // Get a float pointer to the tensor data
+            return m_outputTensor.data_ptr<float>(); // Get a float pointer to the tensor data
         }
         return nullptr;
-        }
+    }
 
     void PhotonRebuildModule::freeData() {
         if (m_data.gaussianInputAssembly) {
@@ -62,87 +64,124 @@ namespace VkRender::PathTracer {
         m_photonRebuild->uploadGaussiansFromTensors(m_tensorData);
     }
 
-void PhotonRebuildModule::uploadSceneFromTensor(std::shared_ptr<Scene> scene) {
-    // Get views of all the 2DGS Gaussian components in the scene.
-    auto gaussianView = scene->getRegistry().view<GaussianComponent2DGS>();
+    void PhotonRebuildModule::uploadSceneFromTensor(std::shared_ptr<Scene> scene) {
+        // Get views of all the 2DGS Gaussian components in the scene.
+        auto gaussianView = scene->getRegistry().view<GaussianComponent2DGS>();
 
-    // Get CPU copies of our tensors (if they aren’t already on CPU)
-    auto positionsTensor = m_tensorData.positions.cpu();
-    auto scalesTensor    = m_tensorData.scales.cpu();
-    auto normalsTensor   = m_tensorData.normals.cpu();
-    auto emissionsTensor = m_tensorData.emissions.cpu();
-    auto colorsTensor    = m_tensorData.colors.cpu();
-    auto specularTensor  = m_tensorData.specular.cpu();
-    auto diffuseTensor   = m_tensorData.diffuse.cpu();
+        // Get CPU copies of our tensors (if they aren’t already on CPU)
+        auto positionsTensor = m_tensorData.positions.cpu();
+        auto scalesTensor = m_tensorData.scales.cpu();
+        auto normalsTensor = m_tensorData.normals.cpu();
+        auto emissionsTensor = m_tensorData.emissions.cpu();
+        auto colorsTensor = m_tensorData.colors.cpu();
+        auto specularTensor = m_tensorData.specular.cpu();
+        auto diffuseTensor = m_tensorData.diffuse.cpu();
 
-    // Assume that the first dimension of each tensor is the number of gaussians.
-    int numGaussians = positionsTensor.size(0);
+        // Assume that the first dimension of each tensor is the number of gaussians.
+        int numGaussians = positionsTensor.size(0);
 
-    // Pointers to the raw data.
-    // (These assume that the tensors are contiguous and of type float.)
-    float* posPtr    = positionsTensor.data_ptr<float>();   // shape: [numGaussians, 3]
-    float* scalePtr  = scalesTensor.data_ptr<float>();        // shape: [numGaussians, 2]
-    float* normPtr   = normalsTensor.data_ptr<float>();       // shape: [numGaussians, 3]
-    float* emissPtr  = emissionsTensor.data_ptr<float>();     // shape: [numGaussians]
-    float* colorPtr  = colorsTensor.data_ptr<float>();        // shape: [numGaussians]
-    float* specPtr   = specularTensor.data_ptr<float>();      // shape: [numGaussians]
-    float* diffPtr   = diffuseTensor.data_ptr<float>();       // shape: [numGaussians]
+        // Pointers to the raw data.
+        // (These assume that the tensors are contiguous and of type float.)
+        float* posPtr = positionsTensor.data_ptr<float>(); // shape: [numGaussians, 3]
+        float* scalePtr = scalesTensor.data_ptr<float>(); // shape: [numGaussians, 2]
+        float* normPtr = normalsTensor.data_ptr<float>(); // shape: [numGaussians, 3]
+        float* emissPtr = emissionsTensor.data_ptr<float>(); // shape: [numGaussians]
+        float* colorPtr = colorsTensor.data_ptr<float>(); // shape: [numGaussians]
+        float* specPtr = specularTensor.data_ptr<float>(); // shape: [numGaussians]
+        float* diffPtr = diffuseTensor.data_ptr<float>(); // shape: [numGaussians]
 
-    // For each GaussianComponent2DGS in our scene, update its vectors with the tensor data.
-    // (Often in an ECS there is only one global component of a given type,
-    //  but if there are multiple, they will all be updated identically.)
-    for (auto entityID : gaussianView) {
-        auto entity = Entity(entityID, scene.get());
-        auto &comp = entity.getComponent<GaussianComponent2DGS>();
+        // For each GaussianComponent2DGS in our scene, update its vectors with the tensor data.
+        // (Often in an ECS there is only one global component of a given type,
+        //  but if there are multiple, they will all be updated identically.)
+        for (auto entityID : gaussianView) {
+            auto entity = Entity(entityID, scene.get());
+            auto& comp = entity.getComponent<GaussianComponent2DGS>();
 
-        // Resize the vectors to hold data for all gaussians.
-        comp.positions.resize(numGaussians);
-        comp.scales.resize(numGaussians);
-        comp.normals.resize(numGaussians);
-        comp.emissions.resize(numGaussians);
-        comp.colors.resize(numGaussians);
-        comp.specular.resize(numGaussians);
-        comp.diffuse.resize(numGaussians);
-        // Note: If opacities or phongExponents should also be updated,
-        // add them here and ensure the corresponding tensors exist.
+            // Resize the vectors to hold data for all gaussians.
+            comp.positions.resize(numGaussians);
+            comp.scales.resize(numGaussians);
+            comp.normals.resize(numGaussians);
+            comp.emissions.resize(numGaussians);
+            comp.colors.resize(numGaussians);
+            comp.specular.resize(numGaussians);
+            comp.diffuse.resize(numGaussians);
+            // Note: If opacities or phongExponents should also be updated,
+            // add them here and ensure the corresponding tensors exist.
 
-        // Copy the data from the tensors to the component's vectors.
-        for (int i = 0; i < numGaussians; i++) {
-            // Update positions (each is 3 floats)
-            comp.positions[i] = glm::vec3(
-                posPtr[i * 3 + 0],
-                posPtr[i * 3 + 1],
-                posPtr[i * 3 + 2]
-            );
-            // Update scales (each is 2 floats)
-            comp.scales[i] = glm::vec2(
-                scalePtr[i * 2 + 0],
-                scalePtr[i * 2 + 1]
-            );
-            // Update normals (each is 3 floats)
-            comp.normals[i] = glm::vec3(
-                normPtr[i * 3 + 0],
-                normPtr[i * 3 + 1],
-                normPtr[i * 3 + 2]
-            );
-            // Update colors (each is 4 floats)
-            comp.colors[i] = glm::vec4(
-                colorPtr[i * 4 + 0],
-                colorPtr[i * 4 + 1],
-                colorPtr[i * 4 + 2],
-                colorPtr[i * 4 + 3]
-            );
+            // Copy the data from the tensors to the component's vectors.
+            for (int i = 0; i < numGaussians; i++) {
+                // Update positions (each is 3 floats)
+                comp.positions[i] = glm::vec3(
+                    posPtr[i * 3 + 0],
+                    posPtr[i * 3 + 1],
+                    posPtr[i * 3 + 2]
+                );
+                // Update scales (each is 2 floats)
+                comp.scales[i] = glm::vec2(
+                    scalePtr[i * 2 + 0],
+                    scalePtr[i * 2 + 1]
+                );
+                // Update normals (each is 3 floats)
+                comp.normals[i] = glm::vec3(
+                    normPtr[i * 3 + 0],
+                    normPtr[i * 3 + 1],
+                    normPtr[i * 3 + 2]
+                );
+                // Update colors (each is 4 floats)
+                comp.colors[i] = glm::vec4(
+                    colorPtr[i * 4 + 0],
+                    colorPtr[i * 4 + 1],
+                    colorPtr[i * 4 + 2],
+                    colorPtr[i * 4 + 3]
+                );
 
-            // Update the other properties (each assumed to be a single float per gaussian)
-            comp.emissions[i] = emissPtr[i];
-            comp.specular[i]  = specPtr[i];
-            comp.diffuse[i]   = diffPtr[i];
+                // Update the other properties (each assumed to be a single float per gaussian)
+                comp.emissions[i] = emissPtr[i];
+                comp.specular[i] = specPtr[i];
+                comp.diffuse[i] = diffPtr[i];
+            }
+        }
+
+        float* quadricsPtr = m_tensorData.quadrics.cpu().data_ptr<float>(); // shape: [numGaussians]
+        float* quadricsPosPtr = m_tensorData.quadricPositions.cpu().data_ptr<float>(); // shape: [numGaussians]
+
+        auto viewQuadric = scene->getRegistry().view<MeshComponent, MaterialComponent>();
+        for (int i = 0; auto e : viewQuadric) {
+            auto& component = Entity(e, scene.get()).getComponent<MeshComponent>();
+            auto& material = Entity(e, scene.get()).getComponent<MaterialComponent>();
+            auto& transform = Entity(e, scene.get()).getComponent<TransformComponent>();
+            if (component.meshDataType() == QUADRIC) {
+                auto parameters = std::dynamic_pointer_cast<QuadricMeshParameters>(component.meshParameters);
+                if (!parameters) {
+                    continue;
+                }
+                glm::vec3 translation = {quadricsPosPtr[i * 3 + 0], quadricsPosPtr[i * 3 + 1], quadricsPosPtr[i * 3 + 2]};
+                transform.setPosition(translation);
+
+                parameters->a = quadricsPtr[i * 8 + 0];
+                parameters->b = quadricsPtr[i * 8 + 1];
+                parameters->c = quadricsPtr[i * 8 + 2];
+                parameters->t_x = quadricsPtr[i * 8 + 3];
+                parameters->t_y = quadricsPtr[i * 8 + 4];
+                parameters->b_beta = quadricsPtr[i * 8 + 5];
+                parameters->threshold = quadricsPtr[i * 8 + 6];
+                parameters->kernelScale = quadricsPtr[i * 8 + 7];
+
+                material.emission = 0.0f;
+                material.diffuse = 0.5f;
+                material.specular = 0.5f;
+                material.phongExponent = 32.0f;
+                material.albedo = glm::vec4(0.8f);
+                parameters->min = glm::vec2(-1.0f);
+                parameters->max = glm::vec2(1.0f);
+
+                i++;
+            }
         }
     }
-}
 
 
-    void PhotonRebuildModule::uploadFromScene(std::weak_ptr<Scene> scene) {
+    void PhotonRebuildModule::uploadTensorFromScene(std::weak_ptr<Scene> scene) {
         freeData();
         auto scenePtr = scene.lock();
         std::vector<GaussianInputAssembly> gaussianInputAssembly;
@@ -278,5 +317,87 @@ void PhotonRebuildModule::uploadSceneFromTensor(std::shared_ptr<Scene> scene) {
 
         Log::Logger::getInstance()->info("Registrered and Uploaded {} Gaussians from scene to Tensors",
                                          m_data.numGaussians);
+
+        std::vector<QuadricInputAssembly> quadricInputAssembly;
+        std::vector<TransformComponent> quadricTransformMatrices; // Transformation matrices for entities
+        // Find all entities with GaussianComponent
+        auto viewQuadric = scenePtr->getRegistry().view<MeshComponent, MaterialComponent>();
+        for (auto e : viewQuadric) {
+            auto& component = Entity(e, scenePtr.get()).getComponent<MeshComponent>();
+            auto& material = Entity(e, scenePtr.get()).getComponent<MaterialComponent>();
+            if (component.meshDataType() == QUADRIC) {
+                auto parameters = std::dynamic_pointer_cast<QuadricMeshParameters>(component.meshParameters);
+                if (!parameters) {
+                    continue;
+                }
+                QuadricInputAssembly point{};
+                point.a = parameters->a;
+                point.b = parameters->b;
+                point.c = parameters->c;
+                point.t_x = parameters->t_x;
+                point.t_y = parameters->t_y;
+                point.min = parameters->min;
+                point.max = parameters->max;
+
+                point.b_beta = parameters->b_beta;
+                point.threshold = parameters->threshold;
+                point.kernelScale = parameters->kernelScale;
+
+                point.emission = material.emission;
+                point.color = material.albedo;
+                point.diffuse = material.diffuse;
+                point.specular = material.specular;
+                point.phongExponent = material.phongExponent;
+                quadricInputAssembly.push_back(point);
+                auto& transform = Entity(e, scenePtr.get()).getComponent<TransformComponent>();
+                quadricTransformMatrices.emplace_back(transform);
+            }
+        }
+        // 1) Convert to a tensor of shape [N, 8]
+        std::vector<float> hostQuadrics;
+        hostQuadrics.reserve(quadricInputAssembly.size() * 8);
+
+        for (auto& item : quadricInputAssembly) {
+            hostQuadrics.push_back(item.a);
+            hostQuadrics.push_back(item.b);
+            hostQuadrics.push_back(item.c);
+            hostQuadrics.push_back(item.t_x);
+            hostQuadrics.push_back(item.t_y);
+            hostQuadrics.push_back(item.b_beta);
+            hostQuadrics.push_back(item.threshold);
+            hostQuadrics.push_back(item.kernelScale);
+        }
+
+        // from_blob does not copy by default. Once we go out of scope, hostQuadrics might be freed.
+        // Usually, we wrap it in a clone() call to own the data inside a Torch tensor:
+        m_tensorData.quadrics = torch::from_blob(
+            hostQuadrics.data(),
+            {static_cast<long>(quadricInputAssembly.size()), 8},
+            torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCPU)
+        ).clone().to(device).set_requires_grad(false);
+
+        // 1) Convert to a tensor of shape [N, 8]
+        std::vector<float> hostQuadricPositions;
+        hostQuadricPositions.reserve(quadricTransformMatrices.size() * 3);
+
+        for (auto& item : quadricTransformMatrices) {
+            hostQuadricPositions.push_back(item.getPosition().x);
+            hostQuadricPositions.push_back(item.getPosition().y);
+            hostQuadricPositions.push_back(item.getPosition().z);
+        }
+
+        // from_blob does not copy by default. Once we go out of scope, hostQuadrics might be freed.
+        // Usually, we wrap it in a clone() call to own the data inside a Torch tensor:
+        m_tensorData.quadricPositions = torch::from_blob(
+            hostQuadricPositions.data(),
+            {static_cast<long>(quadricTransformMatrices.size()), 3},
+            torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCPU)
+        ).clone().to(device).set_requires_grad(true);
+
+        register_parameter("quadrics", m_tensorData.quadrics);
+        register_parameter("quadricPositions", m_tensorData.quadricPositions);
+
+        Log::Logger::getInstance()->info("Registrered and Uploaded {} Quadrics from scene to Tensors",
+                                         m_data.numQuadrics);
     }
 }

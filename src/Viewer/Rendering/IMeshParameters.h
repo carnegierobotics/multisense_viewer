@@ -57,8 +57,8 @@ namespace VkRender {
 
         // Sampling parameters
         int   gridResolution = 50;  // number of grid points in each dimension
-        glm::vec2 min = glm::vec2(-10.0f);
-        glm::vec2 max = glm::vec2(10.0f);
+        glm::vec2 min = glm::vec2(-1.0f);
+        glm::vec2 max = glm::vec2(1.0f);
 
 
         // Beta-kernel parameters

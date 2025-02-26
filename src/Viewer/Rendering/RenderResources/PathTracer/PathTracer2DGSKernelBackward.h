@@ -74,8 +74,8 @@ namespace VkRender::PathTracer {
                 return;
             }
 
-            //e_o = glm::vec3(-0.5, -0.5, 3);
-            //e_d = glm::normalize(glm::vec3(0.1, 0.1, -1));
+            //e_o = glm::vec3(0, 0, 6);
+            //e_d = glm::normalize(glm::vec3(-0.1, 0.0, -1));
 
             auto& quadric = m_gpuData.quadricInputAssembly[hitObjectID];
             glm::vec3 g_c = quadric.transform.getPosition();
@@ -160,7 +160,12 @@ namespace VkRender::PathTracer {
                 }
 
                 // Solve for the smallest positive t (g_tmin)
-                float t_min_gt = (-B_gt + std::sqrt(discriminant_gt)) / (2.0f * A_gt);
+                float t_min_gt = 0.0f;
+                if (A <= 0.0f) {
+                    t_min_gt = -C/B;
+                } else {
+                    t_min_gt = (-B_gt + std::sqrt(discriminant_gt)) / (2.0f * A_gt);
+                }
 
                 // Calculate the hit point in the quadric's local space:
                 // g_hit_local = e_d_local * t_min + e_o_local

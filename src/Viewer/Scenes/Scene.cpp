@@ -6,6 +6,7 @@
 
 #include "Viewer/Scenes/Scene.h"
 
+#include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtx/quaternion.hpp>
 
 #include <Viewer/Rendering/Components/GaussianComponent.h>
@@ -21,6 +22,44 @@ namespace VkRender {
         m_context = context;
     }
 
+    static glm::vec3 computeWorldHitPoint(const glm::vec3 &e_o, const glm::vec3 &e_d,
+                                          const glm::vec3 &g_c,
+                                          float a, float b, float c,
+                                          float alpha_x, float alpha_y) {
+        // Since R_w2g is the identity, the local coordinates are simply:
+        //   local direction: e_d,l,gt = e_d
+        //   local origin:    e_o,l,gt = e_o - g_c
+        glm::vec3 e_d_l = e_d;
+        glm::vec3 e_o_l = e_o - g_c;
+
+        // Compute the intersection parameters.
+        // Note: In your provided printout, A turns out to be zero because the x,y components of e_d are zero.
+        float A = c * (alpha_x * (e_d_l.x * e_d_l.x) / (a * a) +
+                       alpha_y * (e_d_l.y * e_d_l.y) / (b * b));
+
+        float B = c * (2.0f * alpha_x * (e_o_l.x * e_d_l.x) / (a * a) +
+                       2.0f * alpha_y * (e_o_l.y * e_d_l.y) / (b * b))
+                  - e_d_l.z;
+
+        float C = c * (alpha_x * (e_o_l.x * e_o_l.x) / (a * a) +
+                       alpha_y * (e_o_l.y * e_o_l.y) / (b * b))
+                  - e_o_l.z;
+
+        // In the provided code, the quadratic term A is zero (or negligible)
+        // so the intersection parameter is computed as:
+        float disc = (B * B) - 4 * A * C;
+
+        float g_tmin = (-B + sqrt(disc)) / (2 * A);
+
+        // Compute the local hit point: g_hit,l,gt = e_d,l,gt * t + e_o,l,gt
+        glm::vec3 g_hit_l = e_d_l * g_tmin + e_o_l;
+
+        // World hit point is then given by (R_g2w * local_point + g_c).
+        // Since R_g2w is the identity, we simply add g_c.
+        glm::vec3 g_hit = g_hit_l + g_c;
+
+        return g_hit;
+    }
 
     void Scene::update() {
         auto cameraView = m_registry.view<CameraComponent>();
@@ -40,7 +79,7 @@ namespace VkRender {
                 }
             }
         }
-
+        Entity emissiveGaussianEntity;
         auto gaussianView = m_registry.view<GaussianComponent2DGS>();
         for (auto e: gaussianView) {
             // Wrap the entity to use our helper functions.
@@ -71,6 +110,7 @@ namespace VkRender {
                     auto &light = meshEntity.getOrAddComponent<LightSourceComponent>();
                     light.position = position;
                     light.normal = normal;
+                    emissiveGaussianEntity = gaussianEntity;
                 } else {
                     if (meshEntity.hasComponent<LightSourceComponent>())
                         meshEntity.removeComponent<LightSourceComponent>();
@@ -104,6 +144,163 @@ namespace VkRender {
                 material.specular = specular;
                 material.diffuse = diffuse;
                 material.albedo = gaussianComp.colors[i];
+            }
+        }
+
+        Entity quadricEntity;
+        auto quadricView = m_registry.view<MeshComponent>();
+        for (auto e: quadricView) {
+            // Wrap the entity to use our helper functions.
+            Entity entity(e, this);
+
+            auto &meshComponent = entity.getComponent<MeshComponent>();
+            if (meshComponent.meshDataType() == QUADRIC) {
+                quadricEntity = entity;
+            }
+        }
+
+        glm::vec3 g_hit(0.0f);
+        glm::vec3 e_d(0.0f);
+        auto rayView = m_registry.view<MeshComponent>();
+        for (auto e: rayView) {
+            Entity entity(e, this);
+            if (entity.getName() == "e_d") {
+                auto &emissiveRayTransform = entity.getComponent<TransformComponent>();
+                auto &emissiveRayMesh = entity.getComponent<MeshComponent>();
+                auto emissiveRayParams = std::dynamic_pointer_cast<CylinderMeshParameters>(
+                    emissiveRayMesh.meshParameters);
+
+                auto &quadricTransform = quadricEntity.getComponent<TransformComponent>();
+                auto quadricMesh = quadricEntity.getComponent<MeshComponent>();
+                auto quadricParams = std::dynamic_pointer_cast<QuadricMeshParameters>(quadricMesh.meshParameters);
+
+                float a = quadricParams->a;
+                float b = quadricParams->b;
+                float c = quadricParams->c;
+                float alpha_x = tanh(quadricParams->t_x);
+                float alpha_y = tanh(quadricParams->t_y);
+                glm::vec3 g_c = quadricTransform.getPosition();
+                glm::vec3 e_o = emissiveGaussianEntity.getComponent<TransformComponent>().getPosition();
+                e_d = glm::normalize(glm::vec3(-0.1f, 0.0f, -1.0f));
+                e_d = emissiveRayParams->direction;
+                e_o = emissiveRayParams->origin;
+                //emissiveRayParams->origin = e_o;
+                // = e_d;
+
+                // Compute the world hit point.
+                g_hit = computeWorldHitPoint(e_o, e_d, g_c, a, b, c, alpha_x, alpha_y);
+                float length = glm::length(g_hit - e_o);
+                emissiveRayParams->magnitude = length;
+                emissiveRayMesh.updateMeshData = true;
+
+                break; // We only need to compute g_hit once.
+            }
+        }
+
+        // Second pass: process the aperture ray ("a_d") using the computed g_hit.
+        for (auto e: rayView) {
+            Entity entity(e, this);
+
+            if (entity.getName() == "a_d") {
+                auto &apertureRayTransform = entity.getComponent<TransformComponent>();
+                auto &apertureRayMesh = entity.getComponent<MeshComponent>();
+                auto apertureRayParams = std::dynamic_pointer_cast<CylinderMeshParameters>(
+                    apertureRayMesh.meshParameters);
+
+                apertureRayParams->origin = g_hit;
+
+                glm::vec3 a_c(0.0f);
+                TransformComponent cameraTransform;
+                auto apertureView = m_registry.view<CameraComponent>();
+                for (auto ent: apertureView) {
+                    auto entt = Entity(ent, this);
+                    a_c = entt.getComponent<TransformComponent>().getPosition();
+                    cameraTransform = entt.getComponent<TransformComponent>();
+                    break;
+                }
+
+                glm::vec3 a_d = glm::normalize(a_c - g_hit);
+                apertureRayParams->direction = a_d;
+
+                auto camera2World = cameraTransform.getTransform();
+                glm::vec3 cameraNormal = glm::normalize(glm::mat3(camera2World) * glm::vec3(0.0f, 0.0f, -1.0f));
+                glm::vec3 cameraPlanePointWorld = glm::vec3(camera2World * glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
+                glm::vec3 f = cameraPlanePointWorld;
+                glm::vec3 f_n = cameraNormal;
+
+                float a_tmin = glm::dot(f - g_hit, f_n) / glm::dot(a_d, f_n);
+                apertureRayParams->magnitude = a_tmin;
+                apertureRayMesh.updateMeshData = true;
+            }
+
+            if (entity.getName() == "g_hit") {
+                auto &quadricTransform = quadricEntity.getComponent<TransformComponent>();
+                auto quadricMesh = quadricEntity.getComponent<MeshComponent>();
+                auto quadricParams = std::dynamic_pointer_cast<QuadricMeshParameters>(quadricMesh.meshParameters);
+
+                auto &gHitRayTransform = entity.getComponent<TransformComponent>();
+                auto &gHitRayMesh = entity.getComponent<MeshComponent>();
+                auto gHitRayParams = std::dynamic_pointer_cast<CylinderMeshParameters>(gHitRayMesh.meshParameters);
+                float alpha_x = tanh(quadricParams->t_x);
+                float alpha_y = tanh(quadricParams->t_y);
+                // 7) Compute local normal from gradient: ∇f(x,y,z) = (2*c*alphaX*x/a^2, 2*c*alphaY*y/b^2, -1)
+                glm::vec3 gradLocal(
+                    2.0f * quadricParams->c * alpha_x * g_hit.x / (quadricParams->a * quadricParams->a),
+                    2.0f * quadricParams->c * alpha_y * g_hit.y / (quadricParams->b * quadricParams->b),
+                    -1.0f
+                );
+                // 8) Transform the local normal to world space
+                //    If your transform is just rotation+translation (orthonormal),
+                //    you can multiply by the rotation part. For a general affine transform,
+                //    the correct approach is n_world = normalize( inverseTranspose(M) * n_local ).
+                glm::mat3 mat = glm::mat3(quadricTransform.getTransform());
+                // Now safe to compute:
+                glm::mat3 invT = glm::inverseTranspose(mat);
+                glm::vec3 normalW = glm::normalize(invT * gradLocal);
+
+                if (glm::dot(normalW, e_d) > 0.0f)
+                    normalW = -normalW;
+
+
+                gHitRayParams->origin = g_hit;
+                gHitRayParams->direction = normalW;
+                gHitRayParams->magnitude = 1.0f;
+                gHitRayMesh.updateMeshData = true;
+            }
+            if (entity.getName() == "p") {
+                auto &quadricTransform = quadricEntity.getComponent<TransformComponent>();
+                auto quadricMesh = quadricEntity.getComponent<MeshComponent>();
+                auto quadricParams = std::dynamic_pointer_cast<QuadricMeshParameters>(quadricMesh.meshParameters);
+
+                auto &pHitTransform = entity.getComponent<TransformComponent>();
+                auto &pHitMesh = entity.getComponent<MeshComponent>();
+                auto pHitParams = std::dynamic_pointer_cast<CylinderMeshParameters>(pHitMesh.meshParameters);
+
+                glm::vec3 a_c(0.0f);
+                TransformComponent cameraTransform;
+                auto apertureView = m_registry.view<CameraComponent>();
+                for (auto ent: apertureView) {
+                    auto entt = Entity(ent, this);
+                    a_c = entt.getComponent<TransformComponent>().getPosition();
+                    cameraTransform = entt.getComponent<TransformComponent>();
+                    break;
+                }
+
+                glm::vec3 a_d = glm::normalize(a_c - g_hit);
+                auto camera2World = cameraTransform.getTransform();
+                glm::vec3 cameraNormal = glm::normalize(glm::mat3(camera2World) * glm::vec3(0.0f, 0.0f, -1.0f));
+                glm::vec3 cameraPlanePointWorld = glm::vec3(camera2World * glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
+                glm::vec3 f = cameraPlanePointWorld;
+                glm::vec3 f_n = cameraNormal;
+
+                float a_tmin = glm::dot(f - g_hit, f_n) / glm::dot(a_d, f_n);
+
+                glm::vec3 p = g_hit + a_tmin * a_d;
+
+                pHitParams->origin = p;
+                pHitParams->direction = f_n;
+                //pHitParams->magnitude = 0.1f;
+                pHitMesh.updateMeshData = true;
             }
         }
     }
@@ -355,227 +552,228 @@ namespace VkRender {
 
     /** COMPONENT ADDED **/
 
-    template <>
+    template<>
     void Scene::onComponentAdded<IDComponent>(Entity entity, IDComponent &component) {
     }
 
-    template <>
+    template<>
     void Scene::onComponentAdded<MeshComponent>(Entity entity, MeshComponent &component) {
         notifyEditorsComponentAdded(entity, component);
     }
 
-    template <>
+    template<>
     void Scene::onComponentAdded<MaterialComponent>(Entity entity, MaterialComponent &component) {
         notifyEditorsComponentAdded(entity, component);
     }
 
-    template <>
+    template<>
 
     void Scene::onComponentAdded<PointCloudComponent>(Entity entity, PointCloudComponent &component) {
         notifyEditorsComponentAdded(entity, component);
     }
 
-    template <>
+    template<>
     void Scene::onComponentAdded<TransformComponent>(Entity entity, TransformComponent &component) {
     }
 
-    template <>
+    template<>
     void Scene::onComponentAdded<CameraComponent>(Entity entity, CameraComponent &component) {
     }
 
-    template <>
+    template<>
     void Scene::onComponentAdded<ScriptComponent>(Entity entity, ScriptComponent &component) {
     }
 
-    template <>
+    template<>
     void Scene::onComponentAdded<TagComponent>(Entity entity, TagComponent &component) {
     }
 
-    template <>
+    template<>
     void Scene::onComponentAdded<TextComponent>(Entity entity, TextComponent &component) {
     }
 
-    template <>
+    template<>
     void Scene::onComponentAdded<ImageComponent>(Entity entity, ImageComponent &component) {
     }
 
-    template <>
+    template<>
     void Scene::onComponentAdded<GaussianComponent>(Entity entity, GaussianComponent &component) {
     }
 
-    template <>
+    template<>
     void Scene::onComponentAdded<ParentComponent>(Entity entity, ParentComponent &component) {
     }
 
-    template <>
+    template<>
     void Scene::onComponentAdded<ChildrenComponent>(Entity entity, ChildrenComponent &component) {
     }
 
-    template <>
+    template<>
     void Scene::onComponentAdded<GroupComponent>(Entity entity, GroupComponent &component) {
     }
 
-    template <>
+    template<>
     void Scene::onComponentAdded<VisibleComponent>(Entity entity, VisibleComponent &component) {
     }
 
-    template <>
+    template<>
     void Scene::onComponentAdded<TemporaryComponent>(Entity entity, TemporaryComponent &component) {
     }
 
-    template <>
+    template<>
     void Scene::onComponentAdded<GaussianComponent2DGS>(Entity entity, GaussianComponent2DGS &component) {
     }
 
-    template <>
+    template<>
     void Scene::onComponentAdded<LightSourceComponent>(Entity entity, LightSourceComponent &component) {
     }
 
     /** COMPONENT REMOVE **/
 
-    template <>
+    template<>
     void Scene::onComponentRemoved<IDComponent>(Entity entity, IDComponent &component) {
     }
 
-    template <>
+    template<>
     void Scene::onComponentRemoved<MeshComponent>(Entity entity, MeshComponent &component) {
         notifyEditorsComponentRemoved(entity, component);
     }
 
-    template <>
+    template<>
     void Scene::onComponentRemoved<MaterialComponent>(Entity entity, MaterialComponent &component) {
         notifyEditorsComponentRemoved(entity, component);
     }
 
-    template <>
+    template<>
     void Scene::onComponentRemoved<PointCloudComponent>(Entity entity, PointCloudComponent &component) {
         notifyEditorsComponentRemoved(entity, component);
     }
 
-    template <>
+    template<>
     void Scene::onComponentRemoved<TransformComponent>(Entity entity, TransformComponent &component) {
     }
 
-    template <>
+    template<>
     void Scene::onComponentRemoved<CameraComponent>(Entity entity, CameraComponent &component) {
     }
 
-    template <>
+    template<>
     void Scene::onComponentRemoved<ScriptComponent>(Entity entity, ScriptComponent &component) {
     }
 
-    template <>
+    template<>
     void Scene::onComponentRemoved<TagComponent>(Entity entity, TagComponent &component) {
     }
 
-    template <>
+    template<>
     void Scene::onComponentRemoved<TextComponent>(Entity entity, TextComponent &component) {
     }
 
-    template <>
+    template<>
     void Scene::onComponentRemoved<ImageComponent>(Entity entity, ImageComponent &component) {
     }
 
-    template <>
+    template<>
     void Scene::onComponentRemoved<GaussianComponent>(Entity entity, GaussianComponent &component) {
     }
 
-    template <>
+    template<>
     void Scene::onComponentRemoved<ParentComponent>(Entity entity, ParentComponent &component) {
     }
 
-    template <>
+    template<>
     void Scene::onComponentRemoved<ChildrenComponent>(Entity entity, ChildrenComponent &component) {
     }
 
-    template <>
+    template<>
     void Scene::onComponentRemoved<GroupComponent>(Entity entity, GroupComponent &component) {
     }
 
-    template <>
+    template<>
     void Scene::onComponentRemoved<VisibleComponent>(Entity entity, VisibleComponent &component) {
     }
 
-    template <>
+    template<>
     void Scene::onComponentRemoved<TemporaryComponent>(Entity entity, TemporaryComponent &component) {
     }
 
-    template <>
+    template<>
     void Scene::onComponentRemoved<GaussianComponent2DGS>(Entity entity, GaussianComponent2DGS &component) {
     }
-    template <>
+
+    template<>
     void Scene::onComponentRemoved<LightSourceComponent>(Entity entity, LightSourceComponent &component) {
     }
 
     /** COMPONENT UPDATE **/
-    template <>
+    template<>
     void Scene::onComponentUpdated<IDComponent>(Entity entity, IDComponent &component) {
     }
 
-    template <>
+    template<>
     void Scene::onComponentUpdated<MeshComponent>(Entity entity, MeshComponent &component) {
         notifyEditorsComponentUpdated(entity, component);
     }
 
-    template <>
+    template<>
     void Scene::onComponentUpdated<MaterialComponent>(Entity entity, MaterialComponent &component) {
         notifyEditorsComponentUpdated(entity, component);
     }
 
-    template <>
+    template<>
     void Scene::onComponentUpdated<PointCloudComponent>(Entity entity, PointCloudComponent &component) {
         notifyEditorsComponentUpdated(entity, component);
     }
 
-    template <>
+    template<>
     void Scene::onComponentUpdated<TransformComponent>(Entity entity, TransformComponent &component) {
     }
 
-    template <>
+    template<>
     void Scene::onComponentUpdated<CameraComponent>(Entity entity, CameraComponent &component) {
     }
 
-    template <>
+    template<>
     void Scene::onComponentUpdated<ScriptComponent>(Entity entity, ScriptComponent &component) {
     }
 
-    template <>
+    template<>
     void Scene::onComponentUpdated<TagComponent>(Entity entity, TagComponent &component) {
     }
 
-    template <>
+    template<>
     void Scene::onComponentUpdated<TextComponent>(Entity entity, TextComponent &component) {
     }
 
-    template <>
+    template<>
     void Scene::onComponentUpdated<ImageComponent>(Entity entity, ImageComponent &component) {
     }
 
-    template <>
+    template<>
     void Scene::onComponentUpdated<GaussianComponent>(Entity entity, GaussianComponent &component) {
     }
 
-    template <>
+    template<>
     void Scene::onComponentUpdated<ParentComponent>(Entity entity, ParentComponent &component) {
     }
 
-    template <>
+    template<>
     void Scene::onComponentUpdated<ChildrenComponent>(Entity entity, ChildrenComponent &component) {
     }
 
-    template <>
+    template<>
     void Scene::onComponentUpdated<GroupComponent>(Entity entity, GroupComponent &component) {
     }
 
-    template <>
+    template<>
     void Scene::onComponentUpdated<VisibleComponent>(Entity entity, VisibleComponent &component) {
     }
 
-    template <>
+    template<>
     void Scene::onComponentUpdated<TemporaryComponent>(Entity entity, TemporaryComponent &component) {
     }
 
-    template <>
+    template<>
     void Scene::onComponentUpdated<GaussianComponent2DGS>(Entity entity, GaussianComponent2DGS &component) {
     }
 

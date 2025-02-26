@@ -492,7 +492,7 @@ namespace VkRender {
                 if (cylinderParams) {
                     bool paramsChanged = false;
                     paramsChanged |= drawVec3Control("Origin", cylinderParams->origin);
-                    paramsChanged |= drawVec3Control("Direction", cylinderParams->direction);
+                    paramsChanged |= drawVec3Control("Direction", cylinderParams->direction, 0.0f, 0.05f);
                     paramsChanged |= ImGui::SliderFloat("Magnitude", &cylinderParams->magnitude, 0.0f, 100.0f);
                     paramsChanged |= ImGui::SliderFloat("Radius", &cylinderParams->radius, 0.001f, 0.1f);
                     if (paramsChanged) {

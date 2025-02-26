@@ -343,8 +343,8 @@ namespace VkRender::PathTracer {
             // 5) Compute local hit point
             glm::vec3 hitLocal = o + d * closest_t;
 
-            if (hitLocal.x < quadric.min.x || hitLocal.x > quadric.max.x) return false;
-            if (hitLocal.y < quadric.min.y || hitLocal.y > quadric.max.y) return false;
+            //if (hitLocal.x < quadric.min.x || hitLocal.x > quadric.max.x) return false;
+            //if (hitLocal.y < quadric.min.y || hitLocal.y > quadric.max.y) return false;
 
             float R_general = std::sqrt(
                 std::fabs(alphaX) * (hitLocal.x * hitLocal.x) / (quadric.a * quadric.a) +

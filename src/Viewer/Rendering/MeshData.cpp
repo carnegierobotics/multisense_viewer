@@ -206,6 +206,7 @@ namespace VkRender {
             baseVertex.pos = origin + offset;
             baseVertex.normal = -direction;
             baseVertex.uv0 = glm::vec2(float(i) / segments, 0.0f);
+            baseVertex.color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f); // Red color for the base vertex
             baseCircleVertices.push_back(baseVertex);
 
             // Top vertex
@@ -213,6 +214,7 @@ namespace VkRender {
             topVertex.pos = endPoint + offset;
             topVertex.normal = direction;
             topVertex.uv0 = glm::vec2(float(i) / segments, 1.0f);
+            topVertex.color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f); // Red color for the base vertex
             topCircleVertices.push_back(topVertex);
         }
 

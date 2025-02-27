@@ -372,12 +372,12 @@ namespace VkRender::PathTracer {
             point.threshold = quadricsPtr[i * 8 + 6];
             point.kernelScale = quadricsPtr[i * 8 + 7];
 
-            point.min = glm::vec2(-1.0f);
-            point.max = glm::vec2(1.0f);
+            point.min = glm::vec2(-10.0f);
+            point.max = glm::vec2(10.0f);
 
             point.emission = 0.0f;
-            point.diffuse = 0.5f;
-            point.specular = 0.5f;
+            point.diffuse = 1.0f;
+            point.specular = 0.0f;
             point.phongExponent = 32.0f;
             point.color = glm::vec4(0.8f);
 

@@ -59,6 +59,8 @@ namespace VkRender::PathTracer {
             // For clarity, rename e_o = emissionOrigin, e_d = apertureSampleDir
             glm::vec3 e_o = m_gpuDataOutput[photonID].emissionOrigin;
             glm::vec3 e_d = m_gpuDataOutput[photonID].emissionDirection;
+            //e_o =glm::vec3(0.2, 0.2, 6);
+            //e_d = glm::normalize(glm::vec3(0.05, -0.05, -1));
 
             size_t gaussianID = m_gpuDataOutput[photonID].gaussianID;
             glm::vec3 e_c = m_gpuData.gaussianInputAssembly[gaussianID].position;
@@ -74,8 +76,7 @@ namespace VkRender::PathTracer {
                 return;
             }
 
-            //e_o = glm::vec3(0, 0, 6);
-            //e_d = glm::normalize(glm::vec3(-0.1, 0.0, -1));
+
 
             auto& quadric = m_gpuData.quadricInputAssembly[hitObjectID];
             glm::vec3 g_c = quadric.transform.getPosition();
@@ -102,9 +103,44 @@ namespace VkRender::PathTracer {
             if (discriminant < 0.0f) {
                 return;
             }
+            const float epsilon = 1e-6f;
+            float t_min = -1.0f;
 
-            // Solve for the smallest positive t (g_tmin)
-            float t_min = (-B + std::sqrt(discriminant)) / (2.0f * A);
+            // Check if A is nearly zero (linear case)
+            if (std::fabs(A) < epsilon) {
+                // Ensure B is not zero to avoid division by zero.
+                if (std::fabs(B) > epsilon) {
+                    t_min = -C / B;
+                } else {
+                    // No valid solution if both A and B are near zero.
+                    return;
+                }
+            } else {
+                // Compute the discriminant
+                float discriminant = B * B - 4.0f * A * C;
+                if (discriminant < 0.0f) {
+                    return; // No real roots, so return.
+                }
+                // Compute both roots
+                float sqrt_disc = std::sqrt(discriminant);
+                float t0 = (-B - sqrt_disc) / (2.0f * A);
+                float t1 = (-B + sqrt_disc) / (2.0f * A);
+
+                // Choose the smallest positive t_min
+                bool t0_valid = (t0 > 0);
+                bool t1_valid = (t1 > 0);
+
+                if (t0_valid && t1_valid) {
+                    t_min = (t0 < t1) ? t0 : t1;
+                } else if (t0_valid) {
+                    t_min = t0;
+                } else if (t1_valid) {
+                    t_min = t1;
+                } else {
+                    // Both t values are negative, so no valid intersection.
+                    return;
+                }
+            }
 
             // Calculate the hit point in the quadric's local space:
             // g_hit_local = e_d_local * t_min + e_o_local
@@ -139,8 +175,8 @@ namespace VkRender::PathTracer {
             float yPixel_gt = 0.0f;
             ////////// GT CALCULATION /&///////
             {
-                glm::vec3 e_d_gt = glm::normalize(g_c - e_o);
-                glm::vec3 e_o_local_gt = world2Quadric * (e_o - g_c);
+                glm::vec3 e_d_gt = glm::normalize(g_c - e_c);
+                glm::vec3 e_o_local_gt = world2Quadric * (e_c - g_c);
                 glm::vec3 e_d_local_gt = world2Quadric * e_d_gt;
 
                 // Compute quadratic coefficients (note: local vector components: x, y, z correspond to (1), (2), (3))
@@ -153,18 +189,44 @@ namespace VkRender::PathTracer {
                         + alpha_y * (e_o_local_gt.y * e_o_local_gt.y) / (quadric.b * quadric.b))
                     - e_o_local_gt.z;
 
-                // Compute the discriminant
-                float discriminant_gt = B_gt * B_gt - 4.0f * A_gt * C_gt;
-                if (discriminant_gt < 0.0f) {
-                    return;
-                }
 
-                // Solve for the smallest positive t (g_tmin)
-                float t_min_gt = 0.0f;
-                if (A <= 0.0f) {
-                    t_min_gt = -C/B;
+                float t_min_gt = -1.0f;
+
+                // Check if A is nearly zero (linear case)
+                if (std::fabs(A_gt) < epsilon) {
+                    // Ensure B is not zero to avoid division by zero.
+                    if (std::fabs(B_gt) > epsilon) {
+                        t_min_gt = -C_gt / B_gt;
+                    } else {
+                        // No valid solution if both A and B are near zero.
+                        return;
+                    }
                 } else {
-                    t_min_gt = (-B_gt + std::sqrt(discriminant_gt)) / (2.0f * A_gt);
+                    // Compute the discriminant
+                    float discriminant_gt = B_gt * B_gt - 4.0f * A_gt * C_gt;
+                    if (discriminant_gt < 0.0f) {
+                        return; // No real roots, so return.
+                    }
+
+                    // Compute both roots
+                    float sqrt_disc = std::sqrt(discriminant_gt);
+                    float t0 = (-B_gt - sqrt_disc) / (2.0f * A_gt);
+                    float t1 = (-B_gt + sqrt_disc) / (2.0f * A_gt);
+
+                    // Choose the smallest positive t_min_gt
+                    bool t0_valid = (t0 > 0);
+                    bool t1_valid = (t1 > 0);
+
+                    if (t0_valid && t1_valid) {
+                        t_min_gt = (t0 < t1) ? t0 : t1;
+                    } else if (t0_valid) {
+                        t_min_gt = t0;
+                    } else if (t1_valid) {
+                        t_min_gt = t1;
+                    } else {
+                        // Both t values are negative, so no valid intersection.
+                        return;
+                    }
                 }
 
                 // Calculate the hit point in the quadric's local space:

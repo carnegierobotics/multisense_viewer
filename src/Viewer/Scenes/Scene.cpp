@@ -49,7 +49,13 @@ namespace VkRender {
         // so the intersection parameter is computed as:
         float disc = (B * B) - 4 * A * C;
 
-        float g_tmin = (-B + sqrt(disc)) / (2 * A);
+        // Solve for the smallest positive t (g_tmin)
+        float g_tmin = 0.0f;
+        if (abs(A) <= 0.0f) {
+            g_tmin = -C/B;
+        } else {
+            g_tmin = (-B + std::sqrt(disc)) / (2.0f * A);
+        }
 
         // Compute the local hit point: g_hit,l,gt = e_d,l,gt * t + e_o,l,gt
         glm::vec3 g_hit_l = e_d_l * g_tmin + e_o_l;
@@ -161,6 +167,8 @@ namespace VkRender {
 
         glm::vec3 g_hit(0.0f);
         glm::vec3 e_d(0.0f);
+        glm::vec3 g_hit_gt(0.0f);
+        glm::vec3 e_d_gt(0.0f);
         auto rayView = m_registry.view<MeshComponent>();
         for (auto e: rayView) {
             Entity entity(e, this);
@@ -181,7 +189,7 @@ namespace VkRender {
                 float alpha_y = tanh(quadricParams->t_y);
                 glm::vec3 g_c = quadricTransform.getPosition();
                 glm::vec3 e_o = emissiveGaussianEntity.getComponent<TransformComponent>().getPosition();
-                e_d = glm::normalize(glm::vec3(-0.1f, 0.0f, -1.0f));
+                //e_d = glm::normalize(glm::vec3(-0.1f, 0.0f, -1.0f));
                 e_d = emissiveRayParams->direction;
                 e_o = emissiveRayParams->origin;
                 //emissiveRayParams->origin = e_o;
@@ -192,8 +200,34 @@ namespace VkRender {
                 float length = glm::length(g_hit - e_o);
                 emissiveRayParams->magnitude = length;
                 emissiveRayMesh.updateMeshData = true;
+            }
+            if (entity.getName() == "e_d_gt") {
+                auto &emissiveRayTransform = entity.getComponent<TransformComponent>();
+                auto &emissiveRayMesh = entity.getComponent<MeshComponent>();
+                auto emissiveRayParams = std::dynamic_pointer_cast<CylinderMeshParameters>(
+                    emissiveRayMesh.meshParameters);
 
-                break; // We only need to compute g_hit once.
+                auto &quadricTransform = quadricEntity.getComponent<TransformComponent>();
+                auto quadricMesh = quadricEntity.getComponent<MeshComponent>();
+                auto quadricParams = std::dynamic_pointer_cast<QuadricMeshParameters>(quadricMesh.meshParameters);
+
+                float a = quadricParams->a;
+                float b = quadricParams->b;
+                float c = quadricParams->c;
+                float alpha_x = tanh(quadricParams->t_x);
+                float alpha_y = tanh(quadricParams->t_y);
+                glm::vec3 g_c = quadricTransform.getPosition();
+                glm::vec3 e_o = emissiveGaussianEntity.getComponent<TransformComponent>().getPosition();
+                e_d_gt = glm::normalize(g_c - e_o);
+                // = e_d_gt;
+
+                // Compute the world hit point.
+                g_hit_gt = computeWorldHitPoint(e_o, e_d_gt, g_c, a, b, c, alpha_x, alpha_y);
+                float length = glm::length(g_hit_gt - e_o);
+                emissiveRayParams->direction = e_d_gt;
+                emissiveRayParams->origin = e_o;
+                emissiveRayParams->magnitude = length;
+                emissiveRayMesh.updateMeshData = true;
             }
         }
 
@@ -214,6 +248,8 @@ namespace VkRender {
                 auto apertureView = m_registry.view<CameraComponent>();
                 for (auto ent: apertureView) {
                     auto entt = Entity(ent, this);
+                    if (entt.getName() != "Camera1")
+                        continue;
                     a_c = entt.getComponent<TransformComponent>().getPosition();
                     cameraTransform = entt.getComponent<TransformComponent>();
                     break;
@@ -231,6 +267,40 @@ namespace VkRender {
                 float a_tmin = glm::dot(f - g_hit, f_n) / glm::dot(a_d, f_n);
                 apertureRayParams->magnitude = a_tmin;
                 apertureRayMesh.updateMeshData = true;
+            }
+
+            if (entity.getName() == "a_d_gt") {
+                auto &apertureRayGTTransform = entity.getComponent<TransformComponent>();
+                auto &apertureRayGTMesh = entity.getComponent<MeshComponent>();
+                auto apertureRayGTParams = std::dynamic_pointer_cast<CylinderMeshParameters>(
+                    apertureRayGTMesh.meshParameters);
+
+                apertureRayGTParams->origin = g_hit_gt;
+
+                glm::vec3 a_c(0.0f);
+                TransformComponent cameraTransform;
+                auto apertureView = m_registry.view<CameraComponent>();
+                for (auto ent: apertureView) {
+                    auto entt = Entity(ent, this);
+                    if (entt.getName() != "Camera1")
+                        continue;
+                    a_c = entt.getComponent<TransformComponent>().getPosition();
+                    cameraTransform = entt.getComponent<TransformComponent>();
+                    break;
+                }
+
+                glm::vec3 a_d = glm::normalize(a_c - g_hit_gt);
+                apertureRayGTParams->direction = a_d;
+
+                auto camera2World = cameraTransform.getTransform();
+                glm::vec3 cameraNormal = glm::normalize(glm::mat3(camera2World) * glm::vec3(0.0f, 0.0f, -1.0f));
+                glm::vec3 cameraPlanePointWorld = glm::vec3(camera2World * glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
+                glm::vec3 f = cameraPlanePointWorld;
+                glm::vec3 f_n = cameraNormal;
+
+                float a_tmin = glm::dot(f - g_hit_gt, f_n) / glm::dot(a_d, f_n);
+                apertureRayGTParams->magnitude = a_tmin;
+                apertureRayGTMesh.updateMeshData = true;
             }
 
             if (entity.getName() == "g_hit") {

@@ -232,6 +232,7 @@ namespace VkRender {
         }
 
         // Second pass: process the aperture ray ("a_d") using the computed g_hit.
+        std::string cameraName = "Camera1";
         for (auto e: rayView) {
             Entity entity(e, this);
 
@@ -248,7 +249,7 @@ namespace VkRender {
                 auto apertureView = m_registry.view<CameraComponent>();
                 for (auto ent: apertureView) {
                     auto entt = Entity(ent, this);
-                    if (entt.getName() != "Camera1")
+                    if (entt.getName() != cameraName)
                         continue;
                     a_c = entt.getComponent<TransformComponent>().getPosition();
                     cameraTransform = entt.getComponent<TransformComponent>();
@@ -282,7 +283,7 @@ namespace VkRender {
                 auto apertureView = m_registry.view<CameraComponent>();
                 for (auto ent: apertureView) {
                     auto entt = Entity(ent, this);
-                    if (entt.getName() != "Camera1")
+                    if (entt.getName() != cameraName)
                         continue;
                     a_c = entt.getComponent<TransformComponent>().getPosition();
                     cameraTransform = entt.getComponent<TransformComponent>();

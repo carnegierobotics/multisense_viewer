@@ -632,19 +632,28 @@ namespace VkRender::PathTracer {
                                 sycl::memory_scope::device,
                                 sycl::access::address_space::global_space>
                             imageMemoryAtomic(m_gpuData.imageMemory[pixelIndex]);
+                    // Use atomic operations to safely update the pixel value.
+                    sycl::atomic_ref<float, sycl::memory_order::relaxed,
+                                sycl::memory_scope::device,
+                                sycl::access::address_space::global_space>
+                            imageMemoryCounterAtomic(m_gpuData.imageMemoryCounter[pixelIndex]);
+
+                    imageMemoryCounterAtomic.fetch_add(1.0f);
 
                     // Optionally, prevent saturation by clamping the pixel value to 1.0f.
-                    float currentValue = imageMemoryAtomic.load();
-                    float newValue = std::min(1.0f, currentValue + fluxToAdd);
-                    fluxToAdd = newValue - currentValue; // Adjust flux to the remaining margin.
+                    //float currentValue = imageMemoryAtomic.load();
+                    //float newValue = std::min(1.0f, currentValue + fluxToAdd);
+                    //fluxToAdd = newValue - currentValue; // Adjust flux to the remaining margin.
                     imageMemoryAtomic.fetch_add(fluxToAdd);
 
                     // 7. Atomically update the photon count.
+                    /*
                     sycl::atomic_ref<uint64_t, sycl::memory_order::relaxed,
                                 sycl::memory_scope::device,
                                 sycl::access::address_space::global_space>
                             photonsAccumulatedAtomic(m_gpuData.renderInformation->photonsAccumulated);
                     photonsAccumulatedAtomic.fetch_add(static_cast<uint64_t>(1));
+                    */
                 }
             };
             // 6. Distribute the corrected flux into the four neighboring pixels.

@@ -134,6 +134,8 @@ namespace VkRender::PathTracer {
         float * gradientImage = nullptr;
 
         float* imageMemory = nullptr;
+        float* imageMemoryCounter = nullptr;
+        float* imageMemoryPersistent = nullptr;
 
         PinholeCamera* pinholeCamera = nullptr;
         TransformComponent* cameraTransform = nullptr;

@@ -50,6 +50,11 @@ namespace VkRender::PathTracer {
             m_renderInformation->numBounces = m_pipelineSettings.numBounces;
             Log::Logger::getInstance()->trace("Path Tracer: Uploading Render Information");
 
+            queue.fill(m_gpu.imageMemoryCounter, static_cast<float>(0),
+           m_pipelineSettings.width * m_pipelineSettings.height);
+            queue.fill(m_gpu.imageMemory, static_cast<float>(0),
+           m_pipelineSettings.width * m_pipelineSettings.height);
+
             queue.memcpy(m_gpu.renderInformation, m_renderInformation.get(), sizeof(RenderInformation));
             queue.memcpy(m_gpu.pinholeCamera, &renderSettings.camera, sizeof(PinholeCamera));
             queue.memcpy(m_gpu.cameraTransform, &renderSettings.cameraTransform, sizeof(TransformComponent));
@@ -65,11 +70,32 @@ namespace VkRender::PathTracer {
                 });
             }
 
+            uint32_t imageSize = m_pipelineSettings.width * m_pipelineSettings.height;
+            queue.submit([&](sycl::handler& cgh) {
+                cgh.parallel_for<class AverageImageKernel>(
+                    sycl::range<1>(imageSize),
+                    [=](sycl::id<1> idx) {
+                        size_t pixelIndex = idx[0];
+                        // Read the counter value for the pixel.
+                        float count = m_gpu.imageMemoryCounter[pixelIndex];
+
+                        // Only average if the pixel was hit at least once.
+                        if (count > 0.0f) {
+                            float newContribution = m_gpu.imageMemory[pixelIndex] / count;
+                            m_gpu.imageMemoryPersistent[pixelIndex] += newContribution;
+                        } else {
+                            // Optionally, you can set pixels with no hits to 0.
+                            //m_gpu.imageMemory[pixelIndex] = 0.0f;
+                        }
+                    }
+                );
+            });
+
             queue.wait();
 
             // Retrieve updated information from GPU
             queue.memcpy(m_renderInformation.get(), m_gpu.renderInformation, sizeof(RenderInformation));
-            queue.memcpy(m_imageMemory, m_gpu.imageMemory,
+            queue.memcpy(m_imageMemory, m_gpu.imageMemoryPersistent,
                          m_pipelineSettings.width * m_pipelineSettings.height * sizeof(float));
             queue.wait();
 
@@ -125,6 +151,10 @@ namespace VkRender::PathTracer {
         auto& queue = m_pipelineSettings.device();
         queue.fill(m_gpu.imageMemory, static_cast<float>(0),
                    m_pipelineSettings.width * m_pipelineSettings.height).wait();
+        queue.fill(m_gpu.imageMemoryPersistent, static_cast<float>(0),
+                   m_pipelineSettings.width * m_pipelineSettings.height).wait();
+        queue.fill(m_gpu.imageMemoryCounter, static_cast<float>(0),
+                   m_pipelineSettings.width * m_pipelineSettings.height).wait();
         m_renderInformation->frameID = 0;
         m_renderInformation->photonsAccumulated = 0;
         m_renderInformation->totalPhotons = 0;
@@ -140,6 +170,16 @@ namespace VkRender::PathTracer {
         if (!m_gpu.imageMemory) {
             throw std::runtime_error("Device memory allocation failed.");
         }
+        // Allocate device memory for RGBA image (4 floats per pixel)
+        m_gpu.imageMemoryPersistent = sycl::malloc_device<float>(imageSize, queue);
+        if (!m_gpu.imageMemory) {
+            throw std::runtime_error("Device memory allocation failed.");
+        }
+        // Allocate device photon hit counter
+        m_gpu.imageMemoryCounter = sycl::malloc_device<float>(imageSize, queue);
+        if (!m_gpu.imageMemoryCounter) {
+            throw std::runtime_error("Device memory allocation failed.");
+        }
 
         m_gpu.renderInformation = sycl::malloc_device<RenderInformation>(1, queue);
         if (!m_gpu.renderInformation) {
@@ -148,6 +188,8 @@ namespace VkRender::PathTracer {
         queue.memcpy(m_gpu.renderInformation, m_renderInformation.get(), sizeof(RenderInformation));
         // Initialize device memory to 0
         queue.fill(m_gpu.imageMemory, 0.0f, imageSize).wait();
+        queue.fill(m_gpu.imageMemoryPersistent, 0.0f, imageSize).wait();
+        queue.fill(m_gpu.imageMemoryCounter, 0.0f, imageSize).wait();
         // Initialize host memory to 0
         // Initialize RNGs
         // Generate a random seed using std::random_device.
@@ -185,6 +227,16 @@ namespace VkRender::PathTracer {
         if (m_gpu.imageMemory) {
             sycl::free(m_gpu.imageMemory, queue);
             m_gpu.imageMemory = nullptr;
+            Log::Logger::getInstance()->trace("Freed GPU Memory: imageMemory");
+        }
+        if (m_gpu.imageMemoryCounter) {
+            sycl::free(m_gpu.imageMemoryCounter, queue);
+            m_gpu.imageMemoryCounter = nullptr;
+            Log::Logger::getInstance()->trace("Freed GPU Memory: imageMemory");
+        }
+        if (m_gpu.imageMemoryPersistent) {
+            sycl::free(m_gpu.imageMemoryPersistent, queue);
+            m_gpu.imageMemoryPersistent = nullptr;
             Log::Logger::getInstance()->trace("Freed GPU Memory: imageMemory");
         }
 

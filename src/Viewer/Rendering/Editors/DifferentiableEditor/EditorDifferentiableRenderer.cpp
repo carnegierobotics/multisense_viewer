@@ -129,7 +129,7 @@ namespace VkRender {
             // We pass in the parameters of our module (or custom parameter list)
             m_photonRebuildModule->parameters(),
             // Then define the Adam options, e.g. learning rate = 1e-3
-            torch::optim::AdamOptions(0.03f)
+            torch::optim::AdamOptions(0.01f)
         );
         m_accumulatedTensor = torch::Tensor();
         m_numAccumulated = 0;

@@ -319,13 +319,13 @@ namespace VkRender::PathTracer {
             // --- (13) Finally, gradient with respect to g_c ---
             // nabla_gc = (J_uv_gc)ᵀ * L_pix_d.
             glm::vec3 grad_geometry(0.0f);
-            grad_geometry.x = (L_pix_d.x * (J_uv_gc[0][0] ) + L_pix_d.y * (J_uv_gc[0][1] ));
-            grad_geometry.y = (L_pix_d.x * (J_uv_gc[1][0] ) + L_pix_d.y * (J_uv_gc[1][1] ));
+            //grad_geometry.x = (L_pix_d.x * (J_uv_gc[0][0] ) + L_pix_d.y * (J_uv_gc[0][1] ));
+            //grad_geometry.y = (L_pix_d.x * (J_uv_gc[1][0] ) + L_pix_d.y * (J_uv_gc[1][1] ));
             //grad_geometry.z = (L_pix_d.x * (J_uv_gc[2][0] ) + L_pix_d.y * (J_uv_gc[2][1] ));
 
             grad_geometry.x += (L_pix_d.x * (J_uv_gt_gc[0][0]) + L_pix_d.y * (J_uv_gt_gc[0][1]));
             grad_geometry.y += (L_pix_d.x * (J_uv_gt_gc[1][0]) + L_pix_d.y * (J_uv_gt_gc[1][1]));
-            //grad_geometry.z -= (L_pix_d.x * (J_uv_gt_gc[2][0]) + L_pix_d.y * (J_uv_gt_gc[2][1]));
+            grad_geometry.z += (L_pix_d.x * (J_uv_gt_gc[2][0]) + L_pix_d.y * (J_uv_gt_gc[2][1]));
 
             glm::vec3 total_gradient = grad_geometry * dLoss;
 

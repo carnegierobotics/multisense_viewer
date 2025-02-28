@@ -165,6 +165,7 @@ namespace VkRender {
             }
         }
 
+        bool updateOnEachFrame = false;
         glm::vec3 g_hit(0.0f);
         glm::vec3 e_d(0.0f);
         glm::vec3 g_hit_gt(0.0f);
@@ -199,7 +200,7 @@ namespace VkRender {
                 g_hit = computeWorldHitPoint(e_o, e_d, g_c, a, b, c, alpha_x, alpha_y);
                 float length = glm::length(g_hit - e_o);
                 emissiveRayParams->magnitude = length;
-                emissiveRayMesh.updateMeshData = true;
+                emissiveRayMesh.updateMeshData = updateOnEachFrame;
             }
             if (entity.getName() == "e_d_gt") {
                 auto &emissiveRayTransform = entity.getComponent<TransformComponent>();
@@ -227,7 +228,7 @@ namespace VkRender {
                 emissiveRayParams->direction = e_d_gt;
                 emissiveRayParams->origin = e_o;
                 emissiveRayParams->magnitude = length;
-                emissiveRayMesh.updateMeshData = true;
+                emissiveRayMesh.updateMeshData = updateOnEachFrame;
             }
         }
 
@@ -267,7 +268,7 @@ namespace VkRender {
 
                 float a_tmin = glm::dot(f - g_hit, f_n) / glm::dot(a_d, f_n);
                 apertureRayParams->magnitude = a_tmin;
-                apertureRayMesh.updateMeshData = true;
+                apertureRayMesh.updateMeshData = updateOnEachFrame;
             }
 
             if (entity.getName() == "a_d_gt") {
@@ -301,7 +302,7 @@ namespace VkRender {
 
                 float a_tmin = glm::dot(f - g_hit_gt, f_n) / glm::dot(a_d, f_n);
                 apertureRayGTParams->magnitude = a_tmin;
-                apertureRayGTMesh.updateMeshData = true;
+                apertureRayGTMesh.updateMeshData = updateOnEachFrame;
             }
 
             if (entity.getName() == "g_hit") {
@@ -336,7 +337,7 @@ namespace VkRender {
                 gHitRayParams->origin = g_hit;
                 gHitRayParams->direction = normalW;
                 gHitRayParams->magnitude = 1.0f;
-                gHitRayMesh.updateMeshData = true;
+                gHitRayMesh.updateMeshData = updateOnEachFrame;
             }
             if (entity.getName() == "p") {
                 auto &quadricTransform = quadricEntity.getComponent<TransformComponent>();
@@ -371,7 +372,7 @@ namespace VkRender {
                 pHitParams->origin = p;
                 pHitParams->direction = f_n;
                 //pHitParams->magnitude = 0.1f;
-                pHitMesh.updateMeshData = true;
+                pHitMesh.updateMeshData = updateOnEachFrame;
             }
         }
     }

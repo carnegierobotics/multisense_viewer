@@ -16,6 +16,7 @@ namespace VkRender{
         }
         if (meshComponent.data()) {
             auto meshData = meshComponent.data()->generateMeshData();
+            Log::Logger::getInstance()->info("MeshManager: Generating mesh data for mesh: {}", identifier);
             meshDataCache[identifier] = meshData;
             meshData->isDirty = true;
             return meshData;

@@ -44,6 +44,7 @@ namespace VkRender {
                 return;
 
             if (vertexBufferSize != meshInstance->vertexBuffer->m_size || indexBufferSize != meshInstance->indexBuffer->m_size) {
+                Log::Logger::getInstance()->info("MeshResourceManager: New Size! Recreating mesh instance for mesh: {}", identifier);
                 it->second = createMeshInstance(meshData, meshInstance->m_type);
                 meshInstance = it->second;
             }

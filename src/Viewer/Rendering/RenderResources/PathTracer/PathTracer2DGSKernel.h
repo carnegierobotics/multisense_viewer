@@ -255,152 +255,168 @@ namespace VkRender::PathTracer {
             return false;
         }
 
-        bool geometryIntersectionQuadric(
-            size_t gaussianID,
-            const glm::vec3 &rayOrigin,
-            const glm::vec3 &rayDir,
-            size_t &hitEntity,
-            float &closest_t,
-            glm::vec3 &hitPointWorld,
-            glm::vec3 &hitNormalWorld,
-            float& betaContribution
-        ) const {
-            // 1) Build M^-1 to transform the ray into local quadric coords
-            auto &quadric = m_gpuData.quadricInputAssembly[0];
-            auto transform = quadric.transform.getTransform();
-            float det = glm::determinant(transform);
-            if(fabs(det) < 1e-6f){
-            return false;
-            };
+bool geometryIntersectionQuadric(
+    size_t gaussianID,
+    const glm::vec3 &rayOrigin,
+    const glm::vec3 &rayDir,
+    size_t &hitEntity,
+    float &closest_t,
+    glm::vec3 &hitPointWorld,
+    glm::vec3 &hitNormalWorld,
+    float &betaContribution
+) const {
+    bool hitSomething = false;
+    float tMinGlobal = std::numeric_limits<float>::max();
+    glm::vec3 bestHitPoint, bestHitNormal;
+    float bestBetaContribution = std::numeric_limits<float>::lowest(); // or 0.0f
 
-            glm::mat4 localFromWorld = glm::inverse(transform);
+    // Iterate over each quadric
+    for (size_t i = 0; i < m_gpuData.numQuadrics; i++) {
+        auto &quadric = m_gpuData.quadricInputAssembly[i];
 
-            // Transform origin and direction:
-            glm::vec4 o4 = localFromWorld * glm::vec4(rayOrigin, 1.0f); // local-space origin
-            glm::vec4 d4 = localFromWorld * glm::vec4(rayDir, 0.0f); // local-space direction
-            glm::vec3 o = glm::vec3(o4) / o4.w; // if transform is affine, w=1 for origin
-            glm::vec3 d = glm::normalize(glm::vec3(d4));
+        // 1) Build M^-1 to transform the ray into local quadric coordinates
+        auto transform = quadric.transform.getTransform();
+        float det = glm::determinant(transform);
+        if (fabs(det) < 1e-6f)
+            continue; // skip invalid transform
 
-            // 2) Define short-hands
-            float alphaX = std::tanh(quadric.t_x);
-            float alphaY = std::tanh(quadric.t_y);
+        glm::mat4 localFromWorld = glm::inverse(transform);
 
-            // 3) Expand f(x(t), y(t), z(t)) = 0 => A t^2 + B t + C = 0
-            //    with  x(t) = o.x + d.x * t, etc.
-            float Ax = d.x;
-            float Ay = d.y;
-            float Az = d.z;
-            float Ox = o.x;
-            float Oy = o.y;
-            float Oz = o.z;
+        // Transform origin and direction
+        glm::vec4 o4 = localFromWorld * glm::vec4(rayOrigin, 1.0f); // local-space origin
+        glm::vec4 d4 = localFromWorld * glm::vec4(rayDir, 0.0f);      // local-space direction
+        glm::vec3 o = glm::vec3(o4) / o4.w; // for affine transforms, o4.w==1
+        glm::vec3 d = glm::normalize(glm::vec3(d4));
 
-            // A = c [ alphaX * dx^2 / a^2 + alphaY * dy^2 / b^2 ]
-            float A = quadric.c * (
-                          alphaX * (Ax * Ax) / (quadric.a * quadric.a) +
-                          alphaY * (Ay * Ay) / (quadric.b * quadric.b)
-                      );
-            // B = c [ 2 alphaX Ox dx / a^2 + 2 alphaY Oy dy / b^2 ] - dz
-            float B = quadric.c * (
-                          2.0f * alphaX * Ox * Ax / (quadric.a * quadric.a) +
-                          2.0f * alphaY * Oy * Ay / (quadric.b * quadric.b)
-                      ) - Az;
-            // C = c [ alphaX Ox^2 / a^2 + alphaY Oy^2 / b^2 ] - Oz
-            float C = quadric.c * (
-                          alphaX * (Ox * Ox) / (quadric.a * quadric.a) +
-                          alphaY * (Oy * Oy) / (quadric.b * quadric.b)
-                      ) - Oz;
+        // 2) Define shorthand parameters
+        float alphaX = std::tanh(quadric.t_x);
+        float alphaY = std::tanh(quadric.t_y);
 
-            // 4) Solve quadricratic
-            float eps = 1e-6f;
-            // special case: if A is extremely small, the surface might degenerate or
-            // or we might effectively have a linear equation. Usually, we expect A != 0
-            if (fabs(A) < eps) {
-                // Then the equation is B t + C = 0 => t = -C/B
-                if (fabs(B) < eps) return false;
-                float tLin = -C / B;
-                if (tLin > eps) {
-                    closest_t = tLin;
-                } else {
-                    return false;
-                }
+        // 3) Expand f(x(t), y(t), z(t)) = 0 into A t^2 + B t + C = 0
+        float Ax = d.x;
+        float Ay = d.y;
+        float Az = d.z;
+        float Ox = o.x;
+        float Oy = o.y;
+        float Oz = o.z;
+
+        float A = quadric.c * (
+            alphaX * (Ax * Ax) / (quadric.a * quadric.a) +
+            alphaY * (Ay * Ay) / (quadric.b * quadric.b)
+        );
+        float B = quadric.c * (
+            2.0f * alphaX * Ox * Ax / (quadric.a * quadric.a) +
+            2.0f * alphaY * Oy * Ay / (quadric.b * quadric.b)
+        ) - Az;
+        float C = quadric.c * (
+            alphaX * (Ox * Ox) / (quadric.a * quadric.a) +
+            alphaY * (Oy * Oy) / (quadric.b * quadric.b)
+        ) - Oz;
+
+        float eps = 1e-6f;
+        float tCandidate = std::numeric_limits<float>::max();
+
+        // 4) Solve the quadratic (or linear) equation for t
+        if (fabs(A) < eps) {
+            if (fabs(B) < eps)
+                continue; // no valid solution
+            float tLin = -C / B;
+            if (tLin > eps) {
+                tCandidate = tLin;
             } else {
-                float disc = (B * B) - 4.0f * A * C;
-                if (disc < 0.0f) return false; // no real solutions
-
-                float sqrtDisc = std::sqrt(disc);
-                float t1 = (-B - sqrtDisc) / (2.0f * A);
-                float t2 = (-B + sqrtDisc) / (2.0f * A);
-
-                // we want the smallest positive solution
-                float tMin = std::numeric_limits<float>::max();
-                if (t1 > eps && t1 < tMin) tMin = t1;
-                if (t2 > eps && t2 < tMin) tMin = t2;
-                if (tMin == std::numeric_limits<float>::max()) return false; // no positive solution
-
-                closest_t = tMin;
+                continue;
             }
+        } else {
+            float disc = (B * B) - 4.0f * A * C;
+            if (disc < 0.0f)
+                continue; // no real solutions
 
-            // 5) Compute local hit point
-            glm::vec3 hitLocal = o + d * closest_t;
+            float sqrtDisc = std::sqrt(disc);
+            float t1 = (-B - sqrtDisc) / (2.0f * A);
+            float t2 = (-B + sqrtDisc) / (2.0f * A);
 
-            //if (hitLocal.x < quadric.min.x || hitLocal.x > quadric.max.x) return false;
-            //if (hitLocal.y < quadric.min.y || hitLocal.y > quadric.max.y) return false;
+            float tMin = std::numeric_limits<float>::max();
+            if (t1 > eps && t1 < tMin)
+                tMin = t1;
+            if (t2 > eps && t2 < tMin)
+                tMin = t2;
+            if (tMin == std::numeric_limits<float>::max())
+                continue; // no positive solution
 
-            float R_general = std::sqrt(
-                std::fabs(alphaX) * (hitLocal.x * hitLocal.x) / (quadric.a * quadric.a) +
-                std::fabs(alphaY) * (hitLocal.y * hitLocal.y) / (quadric.b * quadric.b)
-            );
+            tCandidate = tMin;
+        }
 
-            // normalized radial coordinate r = R_general / kernelScale
-            float r = R_general / quadric.kernelScale;
+        // 5) Compute the local hit point and check bounds
+        glm::vec3 hitLocal = o + d * tCandidate;
+        if (hitLocal.x < quadric.min.x || hitLocal.x > quadric.max.x)
+            continue;
+        if (hitLocal.y < quadric.min.y || hitLocal.y > quadric.max.y)
+            continue;
 
-            auto betaKernel = [&](float r, float bExp){
-                // (1 - r^2)^(4 e^bExp), clipped if r>1
-                if (r > 1.0f) r = 1.0f;
-                return std::pow(1.0f - r*r, 4.0f * std::exp(bExp));
-            };
+        // 6) Compute the radial coordinate and evaluate the beta kernel
+        float R_general = std::sqrt(
+            std::fabs(alphaX) * (hitLocal.x * hitLocal.x) / (quadric.a * quadric.a) +
+            std::fabs(alphaY) * (hitLocal.y * hitLocal.y) / (quadric.b * quadric.b)
+        );
+        float r = R_general / quadric.kernelScale;
+        auto betaKernel = [&](float r, float bExp) {
+            if (r > 1.0f)
+                r = 1.0f;
+            return std::pow(1.0f - r * r, 4.0f * std::exp(bExp));
+        };
+        float bkValue = betaKernel(r, quadric.b_beta);
 
-            float bkValue = betaKernel(r, quadric.b_beta);
+        if (bkValue < quadric.threshold)
+            continue; // hit is not within the beta kernel threshold
 
-            bool insideBetaDist = (bkValue >= quadric.threshold);
-            if (!insideBetaDist) {
-                return false;
-            }
-
-            betaContribution = bkValue;
-            // 6) Transform local hit to world space
+        // 7) Check if this hit is the closest so far
+        if (tCandidate < tMinGlobal) {
+            tMinGlobal = tCandidate;
+            bestBetaContribution = bkValue;
+            // Transform local hit point back to world space
             glm::vec4 hitW4 = quadric.transform.getTransform() * glm::vec4(hitLocal, 1.0f);
             glm::vec3 hitW = glm::vec3(hitW4) / hitW4.w;
-            hitPointWorld = hitW;
+            bestHitPoint = hitW;
 
-            // 7) Compute local normal from gradient: ∇f(x,y,z) = (2*c*alphaX*x/a^2, 2*c*alphaY*y/b^2, -1)
+            // 8) Compute the local normal via the gradient
             glm::vec3 gradLocal(
                 2.0f * quadric.c * alphaX * hitLocal.x / (quadric.a * quadric.a),
                 2.0f * quadric.c * alphaY * hitLocal.y / (quadric.b * quadric.b),
                 -1.0f
             );
 
-            // 8) Transform the local normal to world space
-            //    If your transform is just rotation+translation (orthonormal),
-            //    you can multiply by the rotation part. For a general affine transform,
-            //    the correct approach is n_world = normalize( inverseTranspose(M) * n_local ).
+            if (glm::dot(gradLocal, d) > 0.0f) {
+                continue; // Discard this hit if it's on the backside.
+            }
+
+            // Transform the local normal to world space
             glm::mat3 mat = glm::mat3(quadric.transform.getTransform());
             float det2 = glm::determinant(mat);
-            if(fabs(det2) < 1e-6f)
-                return false;
-            // Now safe to compute:
+            if (fabs(det2) < 1e-6f)
+                continue;
             glm::mat3 invT = glm::inverseTranspose(mat);
-
             glm::vec3 normalW = glm::normalize(invT * gradLocal);
-
             if (glm::dot(normalW, rayDir) > 0.0f)
                 normalW = -normalW;
+            bestHitNormal = normalW;
 
-            hitNormalWorld = normalW;
-
-            hitEntity = 0;
-            return true;
+            hitEntity = i;
+            hitSomething = true;
         }
+    }
+
+    // If we found a valid hit among all quadrics, update the output parameters.
+    if (hitSomething) {
+        closest_t = tMinGlobal;
+        hitPointWorld = bestHitPoint;
+        hitNormalWorld = bestHitNormal;
+        betaContribution = bestBetaContribution;
+        return true;
+    }
+
+    return false;
+}
+
 
         bool geometryIntersection2DGS(
             size_t gaussianID,

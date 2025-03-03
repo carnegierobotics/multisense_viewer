@@ -31,7 +31,7 @@ namespace VkRender::PathTracer {
         torch::Tensor diffuse;
 
         // Quadrics:
-        torch::Tensor quadrics; // nx5 vectors
+        torch::Tensor quadrics; // nx8 vectors
         torch::Tensor quadricPositions;
 
     };

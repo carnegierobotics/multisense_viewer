@@ -165,7 +165,7 @@ namespace VkRender {
             }
         }
 
-        bool updateOnEachFrame = false;
+        bool updateOnEachFrame = true;
         glm::vec3 g_hit(0.0f);
         glm::vec3 e_d(0.0f);
         glm::vec3 g_hit_gt(0.0f);

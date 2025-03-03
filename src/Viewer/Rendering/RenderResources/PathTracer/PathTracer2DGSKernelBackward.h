@@ -189,10 +189,13 @@ namespace VkRender::PathTracer {
                                          static_cast<int>(m_camera->parameters().width),
                                          static_cast<int>(m_camera->parameters().height),
                                          xPixel, yPixel);
+            glm::mat3 w2c = glm::mat3(world2Camera);
+            glm::mat3 I = glm::mat3(1.0f);
 
             // ===== Backward Pass =====
             // We now compute the gradient (jacobian) of our hit point and subsequent losses with respect to g_c.
 
+            /*
             // --- (1) Gradients of B and C with respect to g_c ---
             // Because e_o_local = world2Quadric*(e_o - g_c), we have d(e_o_local)/d(g_c) = -world2Quadric.
             // Compute ∇ₑₒ B:
@@ -231,7 +234,6 @@ namespace VkRender::PathTracer {
             // --- (6) Derivative of a_d = normalize(a_c - g_hit) ---
             glm::vec3 v_tmp = a_c - g_hit;
             float v_len = glm::length(v_tmp);
-            glm::mat3 I = glm::mat3(1.0f);
             // The derivative of a normalized vector: (I/v_len - outer(v_tmp,v_tmp)/(v_len³))
             glm::mat3 J_ad_gc = (I / v_len - glm::outerProduct(v_tmp, v_tmp) / (v_len * v_len * v_len)) * (-d_ghit_dgc);
 
@@ -254,7 +256,7 @@ namespace VkRender::PathTracer {
 
             glm::mat3 J_p_gc = d_ghit_dgc + glm::outerProduct(a_d, nabla_atmin_gc) + a_tmin * J_ad_gc;
             // --- (9) Camera extrinsics: p_camera = R_w2c * p(g_c) ---
-            glm::mat3 w2c = glm::mat3(world2Camera);
+
 
             glm::mat3 J_pc_gc = w2c * J_p_gc;
             // --- (10) Pinhole projection derivative ---
@@ -272,6 +274,7 @@ namespace VkRender::PathTracer {
             // --- (11) Derivative of pixel coordinates with respect to g_c ---
             glm::mat3x3 J_uv_gc = J_uv_pcam * J_pc_gc;
 
+            */
             // Ground truth gradients
 
             glm::mat3 J_uv_gt_pcam(0.0f);
@@ -315,7 +318,7 @@ namespace VkRender::PathTracer {
             L_pix_d.x = 2.0f * (xPixel - xPixel_gt);
             L_pix_d.y = 2.0f * (yPixel - yPixel_gt);
 
-            J_uv_gc = -J_uv_gc;
+            //J_uv_gc = -J_uv_gc;
             // --- (13) Finally, gradient with respect to g_c ---
             // nabla_gc = (J_uv_gc)ᵀ * L_pix_d.
             glm::vec3 grad_geometry(0.0f);

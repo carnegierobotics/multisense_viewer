@@ -145,6 +145,8 @@ namespace VkRender::PathTracer {
         float* quadricsPtr = m_tensorData.quadrics.cpu().data_ptr<float>(); // shape: [numGaussians]
         float* quadricsPosPtr = m_tensorData.quadricPositions.cpu().data_ptr<float>(); // shape: [numGaussians]
 
+
+        // Update the optimization variables
         auto viewQuadric = scene->getRegistry().view<MeshComponent, MaterialComponent>();
         for (int i = 0; auto e : viewQuadric) {
             auto& component = Entity(e, scene.get()).getComponent<MeshComponent>();
@@ -158,22 +160,22 @@ namespace VkRender::PathTracer {
                 glm::vec3 translation = {quadricsPosPtr[i * 3 + 0], quadricsPosPtr[i * 3 + 1], quadricsPosPtr[i * 3 + 2]};
                 transform.setPosition(translation);
 
-                parameters->a = quadricsPtr[i * 8 + 0];
-                parameters->b = quadricsPtr[i * 8 + 1];
-                parameters->c = quadricsPtr[i * 8 + 2];
-                parameters->t_x = quadricsPtr[i * 8 + 3];
-                parameters->t_y = quadricsPtr[i * 8 + 4];
-                parameters->b_beta = quadricsPtr[i * 8 + 5];
-                parameters->threshold = quadricsPtr[i * 8 + 6];
-                parameters->kernelScale = quadricsPtr[i * 8 + 7];
+                //parameters->a = quadricsPtr[i * 8 + 0];
+                //parameters->b = quadricsPtr[i * 8 + 1];
+                //parameters->c = quadricsPtr[i * 8 + 2];
+                //parameters->t_x = quadricsPtr[i * 8 + 3];
+                //parameters->t_y = quadricsPtr[i * 8 + 4];
+                //parameters->b_beta = quadricsPtr[i * 8 + 5];
+                //parameters->threshold = quadricsPtr[i * 8 + 6];
+                //parameters->kernelScale = quadricsPtr[i * 8 + 7];
 
-                material.emission = 0.0f;
-                material.diffuse = 0.5f;
-                material.specular = 0.5f;
-                material.phongExponent = 32.0f;
-                material.albedo = glm::vec4(0.8f);
-                parameters->min = glm::vec2(-1.0f);
-                parameters->max = glm::vec2(1.0f);
+                //material.emission = 0.0f;
+                //material.diffuse = 0.5f;
+                //material.specular = 0.5f;
+                //material.phongExponent = 32.0f;
+                //material.albedo = glm::vec4(0.8f);
+                //parameters->min = glm::vec2(-1.0f);
+                //parameters->max = glm::vec2(1.0f);
 
                 i++;
             }

@@ -218,7 +218,7 @@ quadricPositions});
         pathTracer->m_backwardInfo.gradientImage = dLoss_dRenderedImage.data_ptr<float>();
         auto gradients = pathTracer->backward(iterationInfo->renderSettings);
 
-        glm::vec3 *grad = gradients.sumGradients;
+        glm::vec3 *grad = gradients.sumQuadricGradients;
 
         float grad_x = grad[0].x;
         float grad_y = grad[0].y;

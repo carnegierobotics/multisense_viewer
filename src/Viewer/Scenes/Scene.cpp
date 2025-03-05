@@ -160,12 +160,15 @@ namespace VkRender {
             Entity entity(e, this);
 
             auto &meshComponent = entity.getComponent<MeshComponent>();
-            if (meshComponent.meshDataType() == QUADRIC) {
+            if (meshComponent.meshDataType() == QUADRIC && entity.getName() == "Quadric2") {
                 quadricEntity = entity;
             }
         }
 
-        bool updateOnEachFrame = true;
+        bool updateOnEachFrame = false;
+        if (!updateOnEachFrame) {
+            return;
+        }
         glm::vec3 g_hit(0.0f);
         glm::vec3 e_d(0.0f);
         glm::vec3 g_hit_gt(0.0f);

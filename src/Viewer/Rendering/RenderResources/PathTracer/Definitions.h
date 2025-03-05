@@ -128,9 +128,11 @@ namespace VkRender::PathTracer {
         // Quadric
         QuadricInputAssembly* quadricInputAssembly = nullptr;
         size_t numQuadrics = 0;
+        size_t numEntities = 0;
 
         glm::vec3* gradients = nullptr;
-        glm::vec3* sumGradients = nullptr;
+        glm::vec3* quadricGradients = nullptr;
+        glm::vec3* gaussianGradients = nullptr;
         float * gradientImage = nullptr;
 
         float* imageMemory = nullptr;
@@ -161,10 +163,10 @@ namespace VkRender::PathTracer {
             size_t quadricID = UINT64_MAX;
             glm::vec3 hitPointWorld = glm::vec3(0.0f);
             glm::vec3 hitNormalWorld = glm::vec3(0.0f);
-
+            glm::vec3 outGoingDirection = glm::vec3(0.0f);
+            glm::vec3 outGoingOrigin = glm::vec3(0.0f);
             bool hitCamera = false;
-            glm::vec3 emissionOrigin = glm::vec3(0.0f);          // eo
-            glm::vec3 emissionDirection = glm::vec3(0.0f);       // ed
+            glm::vec3 apertureDirection = glm::vec3(0.0f);       // ed
             glm::vec3 apertureHitPoint = glm::vec3(0.0f);        // a
             glm::vec3 cameraHitPointLocal = glm::vec3(0.0f);     // p
             float emissionDirectionLength = 0.0f;     // etmin

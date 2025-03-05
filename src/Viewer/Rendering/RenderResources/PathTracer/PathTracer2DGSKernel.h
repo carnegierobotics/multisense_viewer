@@ -56,7 +56,8 @@ namespace VkRender::PathTracer {
             float apertureRadius = 0.0f;
 
             glm::mat4 entityTransform = m_cameraTransform->getTransform();
-            glm::vec3 cameraPlaneNormalWorld = glm::normalize(glm::mat3(entityTransform) * glm::vec3(0.0f, 0.0f, -1.0f));
+            glm::vec3 cameraPlaneNormalWorld =
+                    glm::normalize(glm::mat3(entityTransform) * glm::vec3(0.0f, 0.0f, -1.0f));
             m_gpuDataOutput[photonID].emissionDirection = rayDir;
 
 
@@ -176,15 +177,19 @@ namespace VkRender::PathTracer {
                                             newCamera_t
                     )) {
                         m_gpuDataOutput[photonID].bounce[bounce].hitCamera = true;
-                        m_gpuDataOutput[photonID].bounce[bounce].emissionDirection = newDirectLightDir;
-                        m_gpuDataOutput[photonID].bounce[bounce].emissionOrigin = newRayOrigin;
+                        m_gpuDataOutput[photonID].bounce[bounce].apertureDirection = newDirectLightDir;
                         m_gpuDataOutput[photonID].bounce[bounce].emissionDirectionLength = newCamera_t;
                         m_gpuDataOutput[photonID].bounce[bounce].apertureHitPoint = newApertureHitPoint;
                         m_gpuDataOutput[photonID].bounce[bounce].cameraHitPointLocal = newCameraHitPointLocal;
+                        if (bounce >= 1) {
+                            int interesting = 1;
+                        }
                     }
 
                     m_gpuDataOutput[photonID].bounce[bounce].hitPointWorld = hitPointWorld;
                     m_gpuDataOutput[photonID].bounce[bounce].hitNormalWorld = hitNormalWorld;
+                    m_gpuDataOutput[photonID].bounce[bounce].outGoingOrigin = newRayOrigin;
+                    m_gpuDataOutput[photonID].bounce[bounce].outGoingDirection = newRayOrigin;
                     m_gpuDataOutput[photonID].bounce[bounce].quadricID = hitEntity;
                     //glm::vec3 newDir = sampleRandomDirection(photonID);
                     rayOrigin = newRayOrigin; // Offset to prevent self-intersection
@@ -237,10 +242,13 @@ namespace VkRender::PathTracer {
                 size_t emissiveEntityID = 0;
                 float betaContribution = 0.0f;
                 // check intersection with geometry
-                bool hit = geometryIntersectionQuadric(emissiveEntityID, directLightingOrigin, directLightDir, hitEntity,
-                                                    closest_t, hitPointWorld, hitNormalWorld, betaContribution);
-                float tGeom = hit ? closest_t : FLT_MAX;
-                if (camera_t < tGeom) {
+                bool hit = geometryIntersectionQuadric(emissiveEntityID, directLightingOrigin, directLightDir,
+                                                       hitEntity,
+                                                       closest_t, hitPointWorld, hitNormalWorld, betaContribution);
+                float tGeom = hit ? glm::length(hitPointWorld - m_cameraTransform->getPosition()) : FLT_MAX;
+                float tAperture = glm::length(rayOrigin - m_cameraTransform->getPosition());
+                //float tGeom = hit ? closest_t : FLT_MAX;
+                if (tAperture < tGeom) {
                     glm::vec3 cameraHitPointWorld = directLightingOrigin + directLightDir * camera_t;
 
                     glm::mat4 worldToCamera = glm::inverse(m_cameraTransform->getTransform());
@@ -255,167 +263,168 @@ namespace VkRender::PathTracer {
             return false;
         }
 
-bool geometryIntersectionQuadric(
-    size_t gaussianID,
-    const glm::vec3 &rayOrigin,
-    const glm::vec3 &rayDir,
-    size_t &hitEntity,
-    float &closest_t,
-    glm::vec3 &hitPointWorld,
-    glm::vec3 &hitNormalWorld,
-    float &betaContribution
-) const {
-    bool hitSomething = false;
-    float tMinGlobal = std::numeric_limits<float>::max();
-    glm::vec3 bestHitPoint, bestHitNormal;
-    float bestBetaContribution = std::numeric_limits<float>::lowest(); // or 0.0f
+        bool geometryIntersectionQuadric(
+            size_t gaussianID,
+            const glm::vec3 &rayOrigin,
+            const glm::vec3 &rayDir,
+            size_t &hitEntity,
+            float &closest_t,
+            glm::vec3 &hitPointWorld,
+            glm::vec3 &hitNormalWorld,
+            float &betaContribution
+        ) const {
+            bool hitSomething = false;
+            float tMinGlobal = std::numeric_limits<float>::max();
+            glm::vec3 bestHitPoint(0.0f), bestHitNormal(0.0f);
+            float bestBetaContribution = std::numeric_limits<float>::lowest(); // or 0.0f
 
-    // Iterate over each quadric
-    for (size_t i = 0; i < m_gpuData.numQuadrics; i++) {
-        auto &quadric = m_gpuData.quadricInputAssembly[i];
+            // Iterate over each quadric
+            for (size_t i = 0; i < m_gpuData.numQuadrics; i++) {
+                auto &quadric = m_gpuData.quadricInputAssembly[i];
 
-        // 1) Build M^-1 to transform the ray into local quadric coordinates
-        auto transform = quadric.transform.getTransform();
-        float det = glm::determinant(transform);
-        if (fabs(det) < 1e-6f)
-            continue; // skip invalid transform
+                // 1) Build M^-1 to transform the ray into local quadric coordinates
+                auto transform = quadric.transform.getTransform();
+                float det = glm::determinant(transform);
+                if (fabs(det) < 1e-6f)
+                    continue; // skip invalid transform
 
-        glm::mat4 localFromWorld = glm::inverse(transform);
+                glm::mat4 localFromWorld = glm::inverse(transform);
 
-        // Transform origin and direction
-        glm::vec4 o4 = localFromWorld * glm::vec4(rayOrigin, 1.0f); // local-space origin
-        glm::vec4 d4 = localFromWorld * glm::vec4(rayDir, 0.0f);      // local-space direction
-        glm::vec3 o = glm::vec3(o4) / o4.w; // for affine transforms, o4.w==1
-        glm::vec3 d = glm::normalize(glm::vec3(d4));
+                // Transform origin and direction
+                glm::vec4 o4 = localFromWorld * glm::vec4(rayOrigin, 1.0f); // local-space origin
+                glm::vec4 d4 = localFromWorld * glm::vec4(rayDir, 0.0f); // local-space direction
+                glm::vec3 o = glm::vec3(o4); // for affine transforms, o4.w==1
+                glm::vec3 d = glm::vec3(d4);
 
-        // 2) Define shorthand parameters
-        float alphaX = std::tanh(quadric.t_x);
-        float alphaY = std::tanh(quadric.t_y);
+                // 2) Define shorthand parameters
+                float alphaX = std::tanh(quadric.t_x);
+                float alphaY = std::tanh(quadric.t_y);
 
-        // 3) Expand f(x(t), y(t), z(t)) = 0 into A t^2 + B t + C = 0
-        float Ax = d.x;
-        float Ay = d.y;
-        float Az = d.z;
-        float Ox = o.x;
-        float Oy = o.y;
-        float Oz = o.z;
+                // 3) Expand f(x(t), y(t), z(t)) = 0 into A t^2 + B t + C = 0
+                float Ax = d.x;
+                float Ay = d.y;
+                float Az = d.z;
+                float Ox = o.x;
+                float Oy = o.y;
+                float Oz = o.z;
 
-        float A = quadric.c * (
-            alphaX * (Ax * Ax) / (quadric.a * quadric.a) +
-            alphaY * (Ay * Ay) / (quadric.b * quadric.b)
-        );
-        float B = quadric.c * (
-            2.0f * alphaX * Ox * Ax / (quadric.a * quadric.a) +
-            2.0f * alphaY * Oy * Ay / (quadric.b * quadric.b)
-        ) - Az;
-        float C = quadric.c * (
-            alphaX * (Ox * Ox) / (quadric.a * quadric.a) +
-            alphaY * (Oy * Oy) / (quadric.b * quadric.b)
-        ) - Oz;
+                float A = quadric.c * (
+                              alphaX * (Ax * Ax) / (quadric.a * quadric.a) +
+                              alphaY * (Ay * Ay) / (quadric.b * quadric.b)
+                          );
+                float B = quadric.c * (
+                              2.0f * alphaX * Ox * Ax / (quadric.a * quadric.a) +
+                              2.0f * alphaY * Oy * Ay / (quadric.b * quadric.b)
+                          ) - Az;
+                float C = quadric.c * (
+                              alphaX * (Ox * Ox) / (quadric.a * quadric.a) +
+                              alphaY * (Oy * Oy) / (quadric.b * quadric.b)
+                          ) - Oz;
 
-        float eps = 1e-6f;
-        float tCandidate = std::numeric_limits<float>::max();
+                float eps = 1e-5f;
+                float tCandidate = std::numeric_limits<float>::max();
+                // 4) Solve the quadratic (or linear) equation for t
+                if (fabs(A) < eps) {
+                    if (fabs(B) < eps)
+                        continue; // no valid solution
+                    float tLin = -C / B;
+                    if (tLin > eps) {
+                        tCandidate = tLin;
+                    } else {
+                        continue;
+                    }
+                } else {
 
-        // 4) Solve the quadratic (or linear) equation for t
-        if (fabs(A) < eps) {
-            if (fabs(B) < eps)
-                continue; // no valid solution
-            float tLin = -C / B;
-            if (tLin > eps) {
-                tCandidate = tLin;
-            } else {
-                continue;
+                    float disc = (B * B) - 4.0f * A * C;
+                    if (disc < 0.0f)
+                        continue; // no real solutions
+
+                    float sqrtDisc = std::sqrt(disc);
+                    float t1 = (-B - sqrtDisc) / (2.0f * A);
+                    float t2 = (-B + sqrtDisc) / (2.0f * A);
+
+                    float tMin = std::numeric_limits<float>::max();
+                    if (t1 > eps && t1 < tMin)
+                        tMin = t1;
+                    if (t2 > eps && t2 < tMin)
+                        tMin = t2;
+                    if (tMin == std::numeric_limits<float>::max())
+                        continue; // no positive solution
+
+                    tCandidate = tMin;
+                }
+
+                // 5) Compute the local hit point and check bounds
+                glm::vec3 hitLocal = o + d * tCandidate;
+
+                glm::vec4 hitW4    = quadric.transform.getTransform() * glm::vec4(hitLocal, 1.f);
+                glm::vec3 hitWorld = glm::vec3(hitW4) / hitW4.w;
+
+
+                if (hitLocal.x < quadric.min.x || hitLocal.x > quadric.max.x)
+                    continue;
+                if (hitLocal.y < quadric.min.y || hitLocal.y > quadric.max.y)
+                    continue;
+
+                // 6) Compute the radial coordinate and evaluate the beta kernel
+                float R_general = std::sqrt(
+                    std::fabs(alphaX) * (hitLocal.x * hitLocal.x) / (quadric.a * quadric.a) +
+                    std::fabs(alphaY) * (hitLocal.y * hitLocal.y) / (quadric.b * quadric.b)
+                );
+                float r = R_general / quadric.kernelScale;
+                auto betaKernel = [&](float r, float bExp) {
+                    if (r > 1.0f)
+                        r = 1.0f;
+                    return std::pow(1.0f - r * r, 4.0f * std::exp(bExp));
+                };
+                float bkValue = betaKernel(r, quadric.b_beta);
+
+                if (bkValue < quadric.threshold)
+                    continue; // hit is not within the beta kernel threshold
+
+                // 7) Check if this hit is the closest so far
+                if (tCandidate < tMinGlobal) {
+                    tMinGlobal = tCandidate;
+                    bestBetaContribution = bkValue;
+                    // Transform local hit point back to world space
+                    glm::vec4 hitW4 = quadric.transform.getTransform() * glm::vec4(hitLocal, 1.0f);
+                    glm::vec3 hitW = glm::vec3(hitW4) / hitW4.w;
+                    bestHitPoint = hitW;
+
+                    // 8) Compute the local normal via the gradient
+                    glm::vec3 gradLocal(
+                        2.0f * quadric.c * alphaX * hitLocal.x / (quadric.a * quadric.a),
+                        2.0f * quadric.c * alphaY * hitLocal.y / (quadric.b * quadric.b),
+                        -1.0f
+                    );
+
+                    // Transform the local normal to world space
+                    glm::mat3 mat = glm::mat3(quadric.transform.getTransform());
+                    float det2 = glm::determinant(mat);
+                    if (fabs(det2) < 1e-6f)
+                        continue;
+                    glm::mat3 invT = glm::inverseTranspose(mat);
+                    glm::vec3 normalW = glm::normalize(invT * gradLocal);
+                    if (glm::dot(normalW, rayDir) > 0.0f)
+                        normalW = -normalW;
+                    bestHitNormal = normalW;
+
+                    hitEntity = i;
+                    hitSomething = true;
+                }
             }
-        } else {
-            float disc = (B * B) - 4.0f * A * C;
-            if (disc < 0.0f)
-                continue; // no real solutions
 
-            float sqrtDisc = std::sqrt(disc);
-            float t1 = (-B - sqrtDisc) / (2.0f * A);
-            float t2 = (-B + sqrtDisc) / (2.0f * A);
-
-            float tMin = std::numeric_limits<float>::max();
-            if (t1 > eps && t1 < tMin)
-                tMin = t1;
-            if (t2 > eps && t2 < tMin)
-                tMin = t2;
-            if (tMin == std::numeric_limits<float>::max())
-                continue; // no positive solution
-
-            tCandidate = tMin;
-        }
-
-        // 5) Compute the local hit point and check bounds
-        glm::vec3 hitLocal = o + d * tCandidate;
-        if (hitLocal.x < quadric.min.x || hitLocal.x > quadric.max.x)
-            continue;
-        if (hitLocal.y < quadric.min.y || hitLocal.y > quadric.max.y)
-            continue;
-
-        // 6) Compute the radial coordinate and evaluate the beta kernel
-        float R_general = std::sqrt(
-            std::fabs(alphaX) * (hitLocal.x * hitLocal.x) / (quadric.a * quadric.a) +
-            std::fabs(alphaY) * (hitLocal.y * hitLocal.y) / (quadric.b * quadric.b)
-        );
-        float r = R_general / quadric.kernelScale;
-        auto betaKernel = [&](float r, float bExp) {
-            if (r > 1.0f)
-                r = 1.0f;
-            return std::pow(1.0f - r * r, 4.0f * std::exp(bExp));
-        };
-        float bkValue = betaKernel(r, quadric.b_beta);
-
-        if (bkValue < quadric.threshold)
-            continue; // hit is not within the beta kernel threshold
-
-        // 7) Check if this hit is the closest so far
-        if (tCandidate < tMinGlobal) {
-            tMinGlobal = tCandidate;
-            bestBetaContribution = bkValue;
-            // Transform local hit point back to world space
-            glm::vec4 hitW4 = quadric.transform.getTransform() * glm::vec4(hitLocal, 1.0f);
-            glm::vec3 hitW = glm::vec3(hitW4) / hitW4.w;
-            bestHitPoint = hitW;
-
-            // 8) Compute the local normal via the gradient
-            glm::vec3 gradLocal(
-                2.0f * quadric.c * alphaX * hitLocal.x / (quadric.a * quadric.a),
-                2.0f * quadric.c * alphaY * hitLocal.y / (quadric.b * quadric.b),
-                -1.0f
-            );
-
-            if (glm::dot(gradLocal, d) > 0.0f) {
-                continue; // Discard this hit if it's on the backside.
+            // If we found a valid hit among all quadrics, update the output parameters.
+            if (hitSomething) {
+                closest_t = tMinGlobal;
+                hitPointWorld = bestHitPoint;
+                hitNormalWorld = bestHitNormal;
+                betaContribution = bestBetaContribution;
+                return true;
             }
 
-            // Transform the local normal to world space
-            glm::mat3 mat = glm::mat3(quadric.transform.getTransform());
-            float det2 = glm::determinant(mat);
-            if (fabs(det2) < 1e-6f)
-                continue;
-            glm::mat3 invT = glm::inverseTranspose(mat);
-            glm::vec3 normalW = glm::normalize(invT * gradLocal);
-            if (glm::dot(normalW, rayDir) > 0.0f)
-                normalW = -normalW;
-            bestHitNormal = normalW;
-
-            hitEntity = i;
-            hitSomething = true;
+            return false;
         }
-    }
-
-    // If we found a valid hit among all quadrics, update the output parameters.
-    if (hitSomething) {
-        closest_t = tMinGlobal;
-        hitPointWorld = bestHitPoint;
-        hitNormalWorld = bestHitNormal;
-        betaContribution = bestBetaContribution;
-        return true;
-    }
-
-    return false;
-}
 
 
         bool geometryIntersection2DGS(
@@ -540,7 +549,7 @@ bool geometryIntersectionQuadric(
             // Camera plane normal in world space
             glm::vec3 cameraPlaneNormalWorld = glm::normalize(entityRotation * glm::vec3(0.0f, 0.0f, -1.0f));
 
-            glm::vec4 cameraPlanePointWorld4 =  entityTransform * glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
+            glm::vec4 cameraPlanePointWorld4 = entityTransform * glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
 
             glm::vec3 cameraPlanePointWorld = glm::vec3(cameraPlanePointWorld4 / cameraPlanePointWorld4.w);
             // Ray-plane intersection
@@ -558,7 +567,7 @@ bool geometryIntersectionQuadric(
             glm::vec3 intersectionPoint = rayOriginWorld + t * rayDirWorld;
 
             float det = glm::determinant(entityTransform);
-            if(fabs(det) < 1e-6f){
+            if (fabs(det) < 1e-6f) {
                 return false;
             };
 
@@ -662,6 +671,7 @@ bool geometryIntersectionQuadric(
                     //fluxToAdd = newValue - currentValue; // Adjust flux to the remaining margin.
                     imageMemoryAtomic.fetch_add(fluxToAdd);
 
+                    hitSensor = true;
                     // 7. Atomically update the photon count.
                     /*
                     sycl::atomic_ref<uint64_t, sycl::memory_order::relaxed,
@@ -678,7 +688,7 @@ bool geometryIntersectionQuadric(
             addFluxToPixel(x0, y1, w01);
             addFluxToPixel(x1, y1, w11);
 
-            return true;
+            return hitSensor;
         }
 
         // ---------------------------------------------------------------------
@@ -689,7 +699,8 @@ bool geometryIntersectionQuadric(
             size_t count = 0;
             for (size_t entityIdx = 0; entityIdx < m_gpuData.numGaussians; ++entityIdx) {
                 if (m_gpuData.gaussianInputAssembly[entityIdx].emission > 0.f) {
-                    if (count < emissiveIndices.size()) { // ensure we don't write out-of-bounds
+                    if (count < emissiveIndices.size()) {
+                        // ensure we don't write out-of-bounds
                         emissiveIndices[count++] = entityIdx;
                     }
                 }

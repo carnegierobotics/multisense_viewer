@@ -26,8 +26,9 @@ namespace VkRender::PathTracer {
         uploadGaussianData(scene);
         uploadQuadricEntities(scene);
         pipelineSettings.device().wait();
+        m_gpu.numEntities = m_gpu.numQuadrics + m_gpu.numGaussians;
 
-        m_backwardInfo.sumGradients = new glm::vec3[m_gpu.numGaussians];
+        m_backwardInfo.sumQuadricGradients = new glm::vec3[m_gpu.numQuadrics];
         m_backwardInfo.gradients = new glm::vec3[pipelineSettings.photonCount];
 
         Log::Logger::getInstance()->info(
@@ -58,6 +59,10 @@ namespace VkRender::PathTracer {
             queue.memcpy(m_gpu.renderInformation, m_renderInformation.get(), sizeof(RenderInformation));
             queue.memcpy(m_gpu.pinholeCamera, &renderSettings.camera, sizeof(PinholeCamera));
             queue.memcpy(m_gpu.cameraTransform, &renderSettings.cameraTransform, sizeof(TransformComponent));
+
+            GPUDataOutput output{};
+            queue.fill(m_gpuDataOutput, output, m_pipelineSettings.photonCount);
+
             queue.wait();
             // Kernel Launch
             sycl::range<1> globalRange(m_pipelineSettings.photonCount);
@@ -126,6 +131,7 @@ namespace VkRender::PathTracer {
             queue.memcpy(m_gpu.renderInformation, m_renderInformation.get(), sizeof(RenderInformation));
             queue.memcpy(m_gpu.pinholeCamera, &renderSettings.camera, sizeof(PinholeCamera));
             queue.memcpy(m_gpu.cameraTransform, &renderSettings.cameraTransform, sizeof(TransformComponent));
+            queue.fill(m_gpu.quadricGradients, glm::vec3(0.0f), m_gpu.numQuadrics);
 
             queue.wait();
             sycl::range<1> globalRange(simulatePhotonCount);
@@ -137,7 +143,7 @@ namespace VkRender::PathTracer {
 
             queue.wait();
             queue.memcpy(m_backwardInfo.gradients, m_gpu.gradients, simulatePhotonCount * sizeof(glm::vec3));
-            queue.memcpy(m_backwardInfo.sumGradients, m_gpu.sumGradients, sizeof(glm::vec3) * m_gpu.numGaussians);
+            queue.memcpy(m_backwardInfo.sumQuadricGradients, m_gpu.quadricGradients, sizeof(glm::vec3) * m_gpu.numQuadrics);
             queue.wait();
         }
         catch (const std::exception& e) {
@@ -255,10 +261,10 @@ namespace VkRender::PathTracer {
             m_gpu.gradients = nullptr;
             Log::Logger::getInstance()->trace("Freed GPU Memory: gradients");
         }
-        if (m_gpu.sumGradients) {
-            sycl::free(m_gpu.sumGradients, queue);
-            m_gpu.sumGradients = nullptr;
-            Log::Logger::getInstance()->trace("Freed GPU Memory: sumGradients");
+        if (m_gpu.quadricGradients) {
+            sycl::free(m_gpu.quadricGradients, queue);
+            m_gpu.quadricGradients = nullptr;
+            Log::Logger::getInstance()->trace("Freed GPU Memory: quadricGradients");
         }
         if (m_gpu.gradientImage) {
             sycl::free(m_gpu.gradientImage, queue);
@@ -329,10 +335,10 @@ namespace VkRender::PathTracer {
                     "scales must have shape [N,2]");
 
         // 4) Get the number of gaussians (N)
-        const auto N = positionsCpu.size(0);
+        const auto numGaussians = positionsCpu.size(0);
 
         // 5) Create a host vector of GaussianInputAssembly
-        std::vector<GaussianInputAssembly> hostGaussians(N);
+        std::vector<GaussianInputAssembly> hostGaussians(numGaussians);
 
         // 6) Pointers to the underlying float data (on CPU).
         //    We'll read them row-by-row.
@@ -348,7 +354,7 @@ namespace VkRender::PathTracer {
 
         // 7) Fill the hostGaussians array
         //    (positions = 3 floats, normals = 3 floats, scale = 1 float, plus defaults)
-        for (int i = 0; i < N; ++i) {
+        for (int i = 0; i < numGaussians; ++i) {
             GaussianInputAssembly point{};
 
             // positions: [i,0..2]
@@ -386,25 +392,15 @@ namespace VkRender::PathTracer {
         }
 
         // 8) Allocate device memory and copy
-        m_gpu.gaussianInputAssembly = sycl::malloc_device<GaussianInputAssembly>(N, queue);
-        queue.memcpy(m_gpu.gaussianInputAssembly, hostGaussians.data(), N * sizeof(GaussianInputAssembly));
-
-        m_gpu.gradients = sycl::malloc_device<glm::vec3>(m_pipelineSettings.photonCount, queue);
-        queue.fill(m_gpu.gradients, glm::vec3(0.0f), m_pipelineSettings.photonCount);
-
-        m_gpu.sumGradients = sycl::malloc_device<glm::vec3>(N, queue);
-        queue.fill(m_gpu.sumGradients, glm::vec3(0.0f), N);
-
-        uint32_t imageSize = m_pipelineSettings.width * m_pipelineSettings.height;
-        m_gpu.gradientImage = sycl::malloc_device<float>(imageSize, queue);
-        queue.fill(m_gpu.gradientImage, 0.0f, imageSize);
+        m_gpu.gaussianInputAssembly = sycl::malloc_device<GaussianInputAssembly>(numGaussians, queue);
+        queue.memcpy(m_gpu.gaussianInputAssembly, hostGaussians.data(), numGaussians * sizeof(GaussianInputAssembly));
 
         // 9) Set number of gaussians
-        m_gpu.numGaussians = N;
+        m_gpu.numGaussians = numGaussians;
         queue.wait();
 
         // Log
-        Log::Logger::getInstance()->info("uploadFromTensors: Uploaded {} Gaussians", N);
+        Log::Logger::getInstance()->info("uploadFromTensors: Uploaded {} Gaussians", numGaussians);
 
         // Upload QUadrics
         float* quadricsPtr = data.quadrics.cpu().data_ptr<float>(); // shape: [numGaussians]
@@ -444,6 +440,20 @@ namespace VkRender::PathTracer {
         queue.memcpy(m_gpu.quadricInputAssembly, quadricInputAssembly.data(),
                      quadricInputAssembly.size() * sizeof(QuadricInputAssembly));
         m_gpu.numQuadrics = quadricInputAssembly.size(); // Number of entities for rendering
+
+        size_t numEntities = quadricInputAssembly.size() + numGaussians;
+        m_gpu.numEntities = numEntities;
+
+        m_gpu.gradients = sycl::malloc_device<glm::vec3>(m_pipelineSettings.photonCount, queue);
+        queue.fill(m_gpu.gradients, glm::vec3(0.0f), m_pipelineSettings.photonCount);
+
+        m_gpu.quadricGradients = sycl::malloc_device<glm::vec3>(numQuadrics, queue);
+        queue.fill(m_gpu.quadricGradients, glm::vec3(0.0f), numQuadrics);
+
+        uint32_t imageSize = m_pipelineSettings.width * m_pipelineSettings.height;
+        m_gpu.gradientImage = sycl::malloc_device<float>(imageSize, queue);
+        queue.fill(m_gpu.gradientImage, 0.0f, imageSize);
+
 
         Log::Logger::getInstance()->info("Uploaded  {} Quadrics to renderkernel from Tensor", m_gpu.numQuadrics);
         queue.wait();
@@ -669,9 +679,9 @@ namespace VkRender::PathTracer {
             delete[] m_backwardInfo.gradients;
             Log::Logger::getInstance()->trace("Freed CPU Memory: gradients");
         }
-        if (m_backwardInfo.sumGradients) {
-            delete[] m_backwardInfo.sumGradients;
-            Log::Logger::getInstance()->trace("Freed CPU Memory: sumGradients");
+        if (m_backwardInfo.sumQuadricGradients) {
+            delete[] m_backwardInfo.sumQuadricGradients;
+            Log::Logger::getInstance()->trace("Freed CPU Memory: sumQuadricGradients");
         }
         freeResources();
     }

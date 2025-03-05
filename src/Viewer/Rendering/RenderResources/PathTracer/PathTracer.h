@@ -54,7 +54,7 @@ namespace VkRender::PathTracer {
 
         struct BackwardInfo {
             glm::vec3* gradients = nullptr;
-            glm::vec3* sumGradients = nullptr;
+            glm::vec3* sumQuadricGradients = nullptr;
             float* gradientImage = nullptr;
         };
 

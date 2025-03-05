@@ -91,9 +91,9 @@ namespace VkRender {
         auto activeCamera = m_context->activeScene()->getActiveCamera();
         if (imageUI->switchKernelDevice || imageUI->resetPathTracer) {
             Log::Logger::getInstance()->info("Setting New Kernel Device");
-            SYCLDeviceType deviceType = SYCLDeviceType::CPU;
-            if (imageUI->kernelDevice == "GPU") {
-                deviceType = SYCLDeviceType::GPU;
+            SYCLDeviceType deviceType = SYCLDeviceType::GPU;
+            if (imageUI->kernelDevice == "CPU") {
+                deviceType = SYCLDeviceType::CPU;
             }
             auto syclDevice = m_context->getSyclDeviceSelector().getDevice(deviceType);
             uint32_t width = m_createInfo.width;

@@ -26,7 +26,8 @@ namespace VkRender::PathTracer {
             // Each thread traces one photon.
             //traceOnePhotonDirectLighting(photonID);
             //traceOnePhotonSingleBounceEmissiveGradient(photonID);
-            traceOnePhotonSingleBounceObjectGradient(photonID);
+            //traceOnePhotonSingleBounceObjectGradient(photonID);
+            traceOnePhotonSecondBounceObjectGradient(photonID);
         }
 
     private:
@@ -38,7 +39,53 @@ namespace VkRender::PathTracer {
         PinholeCamera *m_camera{};
 
         // ---------------------------------------------------------
-        // Single Photon Trace (Multi-Bounce)
+        // Second-Bounce Photon Trace (Multi-Bounce)
+        // ---------------------------------------------------------
+        void traceOnePhotonSecondBounceObjectGradient(size_t photonID) const {
+            GPUDataOutput::Bounce &object = m_gpuDataOutput[photonID].bounce[1];
+            size_t hitObjectID = object.quadricID;
+            if (hitObjectID > m_gpuData.numQuadrics) {
+                return;
+            }
+
+            if (!object.hitCamera)
+                return;
+            glm::vec3 e_o = m_gpuDataOutput[photonID].emissionOrigin;
+            glm::vec3 e_d = m_gpuDataOutput[photonID].emissionDirection;
+
+            auto &quadric = m_gpuData.quadricInputAssembly[hitObjectID];
+            glm::vec3 g_c = quadric.transform.getPosition();
+            glm::mat3 world2Quadric = quadric.transform.getTransform();
+            glm::vec3 e_o_local = world2Quadric * (e_o - g_c);
+
+            glm::vec3 hit = object.hitPointWorld;
+            glm::vec3 hitNormal = object.hitNormalWorld;
+
+            glm::vec3 rayOrigin = object.outGoingOrigin;
+            glm::vec3 rayDir = object.outGoingDirection;
+
+            glm::vec3 a_d = object.apertureDirection;
+            glm::vec3 p = object.apertureHitPoint;
+            glm::vec3 p_c = object.cameraHitPointLocal;
+            glm::vec3 g_hit2 = object.hitPointWorld;
+
+
+            GPUDataOutput::Bounce &prevBounce = m_gpuDataOutput[photonID].bounce[0];
+
+            glm::vec3 prev_hit = prevBounce.hitPointWorld;
+            glm::vec3 prev_hitNormal = prevBounce.hitNormalWorld;
+            glm::vec3 prev_rayOrigin = prevBounce.outGoingOrigin;
+            glm::vec3 prev_rayDir = prevBounce.outGoingDirection;
+            glm::vec3 prev_a_d = prevBounce.apertureDirection;
+            glm::vec3 prev_p = prevBounce.apertureHitPoint;
+            glm::vec3 prev_p_c = prevBounce.cameraHitPointLocal;
+            glm::vec3 prev_g_hit2 = prevBounce.hitPointWorld;
+
+            glm::vec3 e_d_local = world2Quadric * e_d;
+        }
+
+        // ---------------------------------------------------------
+        // Single Photon Trace (Single-Bounce)
         // ---------------------------------------------------------
         void traceOnePhotonSingleBounceObjectGradient(size_t photonID) const {
             GPUDataOutput::Bounce &object = m_gpuDataOutput[photonID].bounce[0];
@@ -72,7 +119,7 @@ namespace VkRender::PathTracer {
 
             glm::vec3 f = cameraPlanePointWorld; // e.g., defined in your camera parameters
             glm::vec3 f_n = cameraNormal; // e.g., (0,0,1) if the focal plane faces +Z
-            if (hitObjectID > m_gpuData.numQuadrics || gaussianID > m_gpuData.numGaussians || !object.hitCamera) {
+            if (!object.hitCamera) {
                 return;
             }
 
@@ -336,14 +383,19 @@ namespace VkRender::PathTracer {
             sycl::atomic_ref<float, sycl::memory_order::acq_rel,
                         sycl::memory_scope::device,
                         sycl::access::address_space::global_space>
-                    sum_x(m_gpuData.sumGradients[hitObjectID].x),
-                    sum_y(m_gpuData.sumGradients[hitObjectID].y),
-                    sum_z(m_gpuData.sumGradients[hitObjectID].z);
+                    sum_x(m_gpuData.quadricGradients[hitObjectID].x),
+                    sum_y(m_gpuData.quadricGradients[hitObjectID].y),
+                    sum_z(m_gpuData.quadricGradients[hitObjectID].z);
 
             sum_x.fetch_add(total_gradient.x);
             sum_y.fetch_add(total_gradient.y);
             sum_z.fetch_add(total_gradient.z);
 
+            if (quadric.kernelScale == 1) {
+                size_t interresting = m_gpuDataOutput[photonID].bounce[0].quadricID;
+                size_t interresting3 = m_gpuDataOutput[photonID].bounce[0].hitCamera;
+                size_t interresting2 = m_gpuDataOutput[photonID].bounce[0].quadricID;
+            }
             /*
             glm::vec3 g_c = newHitObject.position;
             glm::vec3 g_n = newHitObject.normal;
@@ -641,9 +693,9 @@ namespace VkRender::PathTracer {
             sycl::atomic_ref<float, sycl::memory_order::acq_rel,
                         sycl::memory_scope::device,
                         sycl::access::address_space::global_space>
-                    sum_x(m_gpuData.sumGradients[gaussianID].x),
-                    sum_y(m_gpuData.sumGradients[gaussianID].y),
-                    sum_z(m_gpuData.sumGradients[gaussianID].z);
+                    sum_x(m_gpuData.gaussianGradients[gaussianID].x),
+                    sum_y(m_gpuData.gaussianGradients[gaussianID].y),
+                    sum_z(m_gpuData.gaussianGradients[gaussianID].z);
 
             sum_x.fetch_add(total_gradient.x);
             sum_y.fetch_add(total_gradient.y);
@@ -841,9 +893,9 @@ namespace VkRender::PathTracer {
             sycl::atomic_ref<float, sycl::memory_order::acq_rel,
                         sycl::memory_scope::device,
                         sycl::access::address_space::global_space>
-                    sum_x(m_gpuData.sumGradients[gaussianID].x),
-                    sum_y(m_gpuData.sumGradients[gaussianID].y),
-                    sum_z(m_gpuData.sumGradients[gaussianID].z);
+                    sum_x(m_gpuData.gaussianGradients[gaussianID].x),
+                    sum_y(m_gpuData.gaussianGradients[gaussianID].y),
+                    sum_z(m_gpuData.gaussianGradients[gaussianID].z);
 
             if (photonID == 10000) {
                 int stop = 1;

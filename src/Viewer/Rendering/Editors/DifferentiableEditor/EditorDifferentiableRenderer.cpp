@@ -46,9 +46,9 @@ namespace VkRender {
         auto imageUI = std::dynamic_pointer_cast<EditorDifferentiableRendererLayerUI>(m_ui);
         auto activeCamera = m_context->activeScene()->getActiveCamera();
         Log::Logger::getInstance()->info("Setting New Kernel Device");
-        SYCLDeviceType deviceType = SYCLDeviceType::CPU;
-        if (imageUI->kernelDevice == "GPU") {
-            deviceType = SYCLDeviceType::GPU;
+        SYCLDeviceType deviceType = SYCLDeviceType::GPU;
+        if (imageUI->kernelDevice == "CPU") {
+            deviceType = SYCLDeviceType::CPU;
         }
         auto syclDevice = m_context->getSyclDeviceSelector().getDevice(deviceType);
         uint32_t width = m_createInfo.width;
@@ -129,7 +129,7 @@ namespace VkRender {
             // We pass in the parameters of our module (or custom parameter list)
             m_photonRebuildModule->parameters(),
             // Then define the Adam options, e.g. learning rate = 1e-3
-            torch::optim::AdamOptions(0.01f)
+            torch::optim::AdamOptions(0.03f)
         );
         m_accumulatedTensor = torch::Tensor();
         m_numAccumulated = 0;

@@ -505,7 +505,7 @@ namespace VkRender {
                 auto cylinderParams = std::dynamic_pointer_cast<QuadricMeshParameters>(component.meshParameters);
                 if (cylinderParams) {
                     bool paramsChanged = false;
-                    paramsChanged |= ImGui::SliderInt("GridResolution", &cylinderParams->gridResolution, 0.0f, 100.0f);
+                    paramsChanged |= ImGui::SliderInt("GridResolution", &cylinderParams->gridResolution, 0.0f, 10000.0f);
                     paramsChanged |= drawVec2Control("Min", cylinderParams->min);
                     paramsChanged |= drawVec2Control("Max", cylinderParams->max);
 

@@ -31,6 +31,7 @@ namespace VkRender::LayerUtils {
     typedef enum FileTypeLoadFlow {
         OBJ_FILE,
         PLY_3DGS,
+        PLY_QUADRATIC,
         PLY_MESH,
         TEXTURE_FILE,
         VERTEX_SHADER_FILE,

@@ -103,7 +103,11 @@ namespace VkRender {
             if (!hasComponent<ChildrenComponent>()) {
                 addComponent<ChildrenComponent>();
             }
-            getComponent<ChildrenComponent>().children.push_back((entt::entity)child);
+            auto& children = getComponent<ChildrenComponent>().children;
+            // Check if child is already added
+            if (std::find(children.begin(), children.end(), (entt::entity)child) == children.end()) {
+                children.push_back((entt::entity)child);
+            }
         }
 
         // Remove a child from this entity

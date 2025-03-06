@@ -52,6 +52,9 @@ namespace VkRender {
 
         bool
         drawVec2Control(const std::string &label, glm::vec2 &values, float resetValue, float speed, float columnWidth);
+        bool
+        drawQuatControl(const std::string &label, glm::quat &quat,  float resetValue = 0.0f,
+                                          float speed = 1.0f, float columnWidth = 100.0f);
     };
 }
 

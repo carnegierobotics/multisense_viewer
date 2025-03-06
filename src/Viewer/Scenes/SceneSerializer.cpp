@@ -8,6 +8,7 @@
 
 #include <Viewer/Application/ApplicationConfig.h>
 #include <Viewer/Rendering/Components/MaterialComponent.h>
+#include <Viewer/Rendering/Components/QuadricCollectionComponent.h>
 
 #include "Viewer/Scenes/Entity.h"
 #include "Viewer/Rendering/Components/Components.h"
@@ -16,18 +17,18 @@
 namespace VkRender::Serialize {
     static std::string polygonModeToString(VkPolygonMode mode) {
         switch (mode) {
-        case VK_POLYGON_MODE_FILL:
-            return "Fill";
-        case VK_POLYGON_MODE_LINE:
-            return "Line";
-        case VK_POLYGON_MODE_POINT:
-            return "Point";
-        default:
-            return "Unknown";
+            case VK_POLYGON_MODE_FILL:
+                return "Fill";
+            case VK_POLYGON_MODE_LINE:
+                return "Line";
+            case VK_POLYGON_MODE_POINT:
+                return "Point";
+            default:
+                return "Unknown";
         }
     }
 
-    static VkPolygonMode stringToPolygonMode(const std::string& modeStr) {
+    static VkPolygonMode stringToPolygonMode(const std::string &modeStr) {
         if (modeStr == "Fill")
             return VK_POLYGON_MODE_FILL;
         if (modeStr == "Line")
@@ -65,9 +66,9 @@ namespace VkRender::Serialize {
 }
 
 namespace YAML {
-    template <>
+    template<>
     struct convert<glm::vec3> {
-        static Node encode(const glm::vec3& rhs) {
+        static Node encode(const glm::vec3 &rhs) {
             Node node;
             node.push_back(rhs.x);
             node.push_back(rhs.y);
@@ -75,7 +76,7 @@ namespace YAML {
             return node;
         }
 
-        static bool decode(const Node& node, glm::vec3& rhs) {
+        static bool decode(const Node &node, glm::vec3 &rhs) {
             if (!node.IsSequence() || node.size() != 3) {
                 return false;
             }
@@ -86,9 +87,9 @@ namespace YAML {
         }
     };
 
-    template <>
+    template<>
     struct convert<glm::quat> {
-        static Node encode(const glm::quat& rhs) {
+        static Node encode(const glm::quat &rhs) {
             Node node;
             node.push_back(rhs.w);
             node.push_back(rhs.x);
@@ -97,7 +98,7 @@ namespace YAML {
             return node;
         }
 
-        static bool decode(const Node& node, glm::quat& rhs) {
+        static bool decode(const Node &node, glm::quat &rhs) {
             if (!node.IsSequence() || node.size() != 4) {
                 return false;
             }
@@ -109,9 +110,9 @@ namespace YAML {
         }
     };
 
-    template <>
+    template<>
     struct convert<glm::vec4> {
-        static Node encode(const glm::vec4& rhs) {
+        static Node encode(const glm::vec4 &rhs) {
             Node node;
             node.push_back(rhs.w);
             node.push_back(rhs.x);
@@ -120,7 +121,7 @@ namespace YAML {
             return node;
         }
 
-        static bool decode(const Node& node, glm::vec4& rhs) {
+        static bool decode(const Node &node, glm::vec4 &rhs) {
             if (!node.IsSequence() || node.size() != 4) {
                 return false;
             }
@@ -134,28 +135,28 @@ namespace YAML {
 }
 
 namespace VkRender {
-    YAML::Emitter& operator<<(YAML::Emitter& out, const glm::vec3& v) {
+    YAML::Emitter &operator<<(YAML::Emitter &out, const glm::vec3 &v) {
         out << YAML::Flow;
         out << YAML::BeginSeq << v.x << v.y << v.z << YAML::EndSeq;
         return out;
     }
 
-    YAML::Emitter& operator<<(YAML::Emitter& out, const glm::vec4& v) {
+    YAML::Emitter &operator<<(YAML::Emitter &out, const glm::vec4 &v) {
         out << YAML::Flow;
         out << YAML::BeginSeq << v.w << v.x << v.y << v.z << YAML::EndSeq;
         return out;
     }
 
-    YAML::Emitter& operator<<(YAML::Emitter& out, const glm::quat& v) {
+    YAML::Emitter &operator<<(YAML::Emitter &out, const glm::quat &v) {
         out << YAML::Flow;
         out << YAML::BeginSeq << v.w << v.x << v.y << v.z << YAML::EndSeq;
         return out;
     }
 
-    SceneSerializer::SceneSerializer(const std::shared_ptr<Scene>& scene) : m_scene(scene) {
+    SceneSerializer::SceneSerializer(const std::shared_ptr<Scene> &scene) : m_scene(scene) {
     }
 
-    static void SerializeEntity(YAML::Emitter& out, Entity entity) {
+    static void SerializeEntity(YAML::Emitter &out, Entity entity) {
         out << YAML::BeginMap;
         out << YAML::Key << "Entity";
         out << YAML::Value << entity.getUUID().operator std::string();
@@ -168,7 +169,7 @@ namespace VkRender {
         if (entity.hasComponent<TagComponent>()) {
             out << YAML::Key << "TagComponent";
             out << YAML::BeginMap;
-            auto& tag = entity.getComponent<TagComponent>().Tag;
+            auto &tag = entity.getComponent<TagComponent>().Tag;
             out << YAML::Key << "Tag";
             out << YAML::Value << tag;
             out << YAML::EndMap;
@@ -176,7 +177,7 @@ namespace VkRender {
         if (entity.hasComponent<TransformComponent>()) {
             out << YAML::Key << "TransformComponent";
             out << YAML::BeginMap;
-            auto& transform = entity.getComponent<TransformComponent>();
+            auto &transform = entity.getComponent<TransformComponent>();
             out << YAML::Key << "Position";
             out << YAML::Value << transform.getPosition();
             out << YAML::Key << "Rotation";
@@ -189,7 +190,7 @@ namespace VkRender {
         if (entity.hasComponent<VisibleComponent>()) {
             out << YAML::Key << "VisibleComponent";
             out << YAML::BeginMap;
-            auto& visible = entity.getComponent<VisibleComponent>().visible;
+            auto &visible = entity.getComponent<VisibleComponent>().visible;
             out << YAML::Key << "Visible";
             out << YAML::Value << visible;
             out << YAML::EndMap;
@@ -205,7 +206,7 @@ namespace VkRender {
         if (entity.hasComponent<LightSourceComponent>()) {
             out << YAML::Key << "LightSourceComponent";
             out << YAML::BeginMap;
-            auto& lightsource = entity.getComponent<LightSourceComponent>();
+            auto &lightsource = entity.getComponent<LightSourceComponent>();
             out << YAML::Key << "Position";
             out << YAML::Value << lightsource.position;
             out << YAML::Key << "Normal";
@@ -216,10 +217,9 @@ namespace VkRender {
         if (entity.hasComponent<MeshComponent>()) {
             out << YAML::Key << "MeshComponent";
             out << YAML::BeginMap;
-            auto& mesh = entity.getComponent<MeshComponent>();
+            auto &mesh = entity.getComponent<MeshComponent>();
             switch (mesh.meshDataType()) {
-            case OBJ_FILE:
-                {
+                case OBJ_FILE: {
                     auto params = std::dynamic_pointer_cast<OBJFileMeshParameters>(mesh.meshParameters);
                     out << YAML::Key << "ModelPath";
                     out << YAML::Value << params->path.string();
@@ -227,15 +227,13 @@ namespace VkRender {
                     out << YAML::Value << params->relativeAssetPath.string();
                 }
                 break;
-            case PLY_FILE:
-                {
+                case PLY_FILE: {
                     auto params = std::dynamic_pointer_cast<PLYFileMeshParameters>(mesh.meshParameters);
                     out << YAML::Key << "ModelPath";
                     out << YAML::Value << params->path.string();
                 }
                 break;
-            case CYLINDER:
-                {
+                case CYLINDER: {
                     auto params = std::dynamic_pointer_cast<CylinderMeshParameters>(mesh.meshParameters);
                     out << YAML::Key << "Origin";
                     out << YAML::Value << YAML::Flow << std::vector<float>{
@@ -254,8 +252,7 @@ namespace VkRender {
                     out << YAML::Value << params->radius;
                 }
                 break;
-            case QUADRIC:
-                {
+                case QUADRIC: {
                     // Cast to our quadric type.
                     auto params = std::dynamic_pointer_cast<QuadricMeshParameters>(mesh.meshParameters);
 
@@ -282,8 +279,8 @@ namespace VkRender {
                     out << YAML::Key << "KernelScale" << YAML::Value << params->kernelScale;
                 }
                 break;
-            default:
-                break;
+                default:
+                    break;
             }
             out << YAML::Key << "MeshDataType";
             out << YAML::Value << meshDataTypeToString(mesh.meshDataType());
@@ -296,7 +293,7 @@ namespace VkRender {
         if (entity.hasComponent<CameraComponent>()) {
             out << YAML::Key << "CameraComponent";
             out << YAML::BeginMap;
-            auto& camera = entity.getComponent<CameraComponent>();
+            auto &camera = entity.getComponent<CameraComponent>();
             auto type = camera.cameraType;
             // Serialize CameraType
             out << YAML::Key << "CameraType";
@@ -310,12 +307,11 @@ namespace VkRender {
 
             // Serialize based on CameraType
             switch (camera.cameraType) {
-            case CameraComponent::ARCBALL:
-                // ARCBALL-specific serialization (if any) can be added here
-                break;
-            case CameraComponent::PERSPECTIVE:
-                {
-                    auto& params = camera.baseCameraParameters;
+                case CameraComponent::ARCBALL:
+                    // ARCBALL-specific serialization (if any) can be added here
+                    break;
+                case CameraComponent::PERSPECTIVE: {
+                    auto &params = camera.baseCameraParameters;
                     out << YAML::Key << "ProjectionParameters";
                     out << YAML::BeginMap;
                     out << YAML::Key << "Near" << YAML::Value << params.near;
@@ -325,9 +321,8 @@ namespace VkRender {
                     out << YAML::EndMap;
                     break;
                 }
-            case CameraComponent::PINHOLE:
-                {
-                    auto& params = camera.pinholeParameters;
+                case CameraComponent::PINHOLE: {
+                    auto &params = camera.pinholeParameters;
                     out << YAML::Key << "PinHoleParameters";
                     out << YAML::BeginMap;
                     out << YAML::Key << "Height" << YAML::Value << params.height;
@@ -341,8 +336,8 @@ namespace VkRender {
                     out << YAML::EndMap;
                     break;
                 }
-            default:
-                Log::Logger::getInstance()->warning("Fallback: Cannot serialize camera type");
+                default:
+                    Log::Logger::getInstance()->warning("Fallback: Cannot serialize camera type");
             }
             out << YAML::EndMap;
         }
@@ -350,7 +345,7 @@ namespace VkRender {
         if (entity.hasComponent<MaterialComponent>()) {
             out << YAML::Key << "MaterialComponent";
             out << YAML::BeginMap;
-            auto& material = entity.getComponent<MaterialComponent>();
+            auto &material = entity.getComponent<MaterialComponent>();
             // Serialize baseColor (glm::vec4)
             out << YAML::Key << "BaseColor";
             out << YAML::Value << YAML::Flow << std::vector<float>{
@@ -381,7 +376,7 @@ namespace VkRender {
         if (entity.hasComponent<PointCloudComponent>()) {
             out << YAML::Key << "PointCloudComponent";
             out << YAML::BeginMap;
-            auto& component = entity.getComponent<PointCloudComponent>();
+            auto &component = entity.getComponent<PointCloudComponent>();
             out << YAML::Key << "PointSize";
             out << YAML::Value << component.pointSize;
             // Serialize the flag for video source
@@ -401,12 +396,12 @@ namespace VkRender {
         }
         if (entity.hasComponent<GaussianComponent2DGS>()) {
             out << YAML::Key << "GaussianComponent2DGS";
-            auto& component = entity.getComponent<GaussianComponent2DGS>();
+            auto &component = entity.getComponent<GaussianComponent2DGS>();
             out << YAML::BeginMap;
             // Serialize positions
             out << YAML::Key << "Positions";
             out << YAML::Value << YAML::BeginSeq;
-            for (const auto& position : component.positions) {
+            for (const auto &position: component.positions) {
                 out << YAML::Flow << YAML::BeginSeq << position.x << position.y << position.z << YAML::EndSeq;
             }
             out << YAML::EndSeq;
@@ -414,7 +409,7 @@ namespace VkRender {
             // Serialize normals
             out << YAML::Key << "Normals";
             out << YAML::Value << YAML::BeginSeq;
-            for (const auto& normal : component.normals) {
+            for (const auto &normal: component.normals) {
                 out << YAML::Flow << YAML::BeginSeq << normal.x << normal.y << normal.z << YAML::EndSeq;
             }
             out << YAML::EndSeq;
@@ -422,25 +417,25 @@ namespace VkRender {
             // Serialize scales
             out << YAML::Key << "Scales";
             out << YAML::Value << YAML::BeginSeq;
-            for (const auto& scale : component.scales) {
+            for (const auto &scale: component.scales) {
                 out << YAML::Flow << YAML::BeginSeq << scale.x << scale.y << YAML::EndSeq;
             }
             out << YAML::EndSeq;
 
             // Serialize float properties
-            auto serializeFloatArray = [&](const std::vector<float>& values, const std::string& key) {
+            auto serializeFloatArray = [&](const std::vector<float> &values, const std::string &key) {
                 out << YAML::Key << key;
                 out << YAML::Value << YAML::BeginSeq;
-                for (const auto& value : values) {
+                for (const auto &value: values) {
                     out << value;
                 }
                 out << YAML::EndSeq;
             };
             // Serialize float properties
-            auto serializeVec4Array = [&](const std::vector<glm::vec4>& values, const std::string& key) {
+            auto serializeVec4Array = [&](const std::vector<glm::vec4> &values, const std::string &key) {
                 out << YAML::Key << key;
                 out << YAML::Value << YAML::BeginSeq;
-                for (const auto& value : values) {
+                for (const auto &value: values) {
                     out << value;
                 }
                 out << YAML::EndSeq;
@@ -457,61 +452,64 @@ namespace VkRender {
             out << YAML::EndMap;
         }
 
-        if (entity.hasComponent<GaussianComponent>()) {
-            out << YAML::Key << "GaussianComponent";
+        if (entity.hasComponent<VkRender::QuadricCollectionComponent>()) {
+            out << YAML::Key << "QuadricCollectionComponent";
+            auto &component = entity.getComponent<VkRender::QuadricCollectionComponent>();
             out << YAML::BeginMap;
-            auto& component = entity.getComponent<GaussianComponent>();
 
-            // Serialize the means
-            out << YAML::Key << "Means";
+            // Serialize positions
+            out << YAML::Key << "Positions";
             out << YAML::Value << YAML::BeginSeq;
-            for (const auto& mean : component.means) {
-                out << YAML::Flow << YAML::BeginSeq << mean.x << mean.y << mean.z << YAML::EndSeq;
+            for (const auto &pos: component.positions) {
+                out << YAML::Flow << YAML::BeginSeq << pos.x << pos.y << pos.z << YAML::EndSeq;
             }
             out << YAML::EndSeq;
 
-            out << YAML::Key << "Scales";
-            out << YAML::Value << YAML::BeginSeq;
-            for (const auto& scale : component.scales) {
-                out << YAML::Flow << scale;
-            }
-            out << YAML::EndSeq;
-
+            // Serialize rotations (quaternions as: w, x, y, z)
             out << YAML::Key << "Rotations";
             out << YAML::Value << YAML::BeginSeq;
-            for (const auto& rotation : component.rotations) {
-                out << YAML::Flow << rotation;
+            for (const auto &rot: component.rotations) {
+                out << YAML::Flow << YAML::BeginSeq << rot.w << rot.x << rot.y << rot.z << YAML::EndSeq;
             }
             out << YAML::EndSeq;
 
-            // Serialize the amplitudes
-            out << YAML::Key << "Opacities";
-            out << YAML::Value << YAML::BeginSeq;
-            for (const auto& amplitude : component.opacities) {
-                out << amplitude;
-            }
-            out << YAML::EndSeq;
+            // Lambda to serialize float arrays
+            auto serializeFloatArray = [&](const std::vector<float> &values, const std::string &key) {
+                out << YAML::Key << key;
+                out << YAML::Value << YAML::BeginSeq;
+                for (const auto &value: values) {
+                    out << value;
+                }
+                out << YAML::EndSeq;
+            };
 
-            out << YAML::Key << "Colors";
-            out << YAML::Value << YAML::BeginSeq;
-            for (const auto& color : component.colors) {
-                out << YAML::Flow << color;
-            }
-            out << YAML::EndSeq;
+            // Serialize shape parameters
+            serializeFloatArray(component.a, "A");
+            serializeFloatArray(component.b, "B");
+            serializeFloatArray(component.c, "C");
+            serializeFloatArray(component.t_x, "T_x");
+            serializeFloatArray(component.t_y, "T_y");
+
+            // Serialize additional constants
+            serializeFloatArray(component.kernelScale, "KernelScale");
+            serializeFloatArray(component.threshold, "Threshold");
+            serializeFloatArray(component.beta, "Beta");
 
             out << YAML::EndMap;
         }
+
+
         if (entity.hasComponent<GroupComponent>()) {
             out << YAML::Key << "GroupComponent";
             out << YAML::BeginMap;
-            auto& groupComponent = entity.getComponent<GroupComponent>();
+            auto &groupComponent = entity.getComponent<GroupComponent>();
             out << YAML::EndMap;
         }
 
         out << YAML::EndMap;
     }
 
-    void SceneSerializer::serialize(const std::filesystem::path& filePath) {
+    void SceneSerializer::serialize(const std::filesystem::path &filePath) {
         // Ensure the directory exists
         if (filePath.has_parent_path()) {
             std::filesystem::create_directories(filePath.parent_path());
@@ -527,7 +525,7 @@ namespace VkRender {
 
         out << YAML::Key << "Entities";
         out << YAML::Value << YAML::BeginSeq;
-        for (auto entity : m_scene->m_registry.view<entt::entity>()) {
+        for (auto entity: m_scene->m_registry.view<entt::entity>()) {
             Entity e(entity, m_scene.get());
             if (!e || e.hasComponent<TemporaryComponent>())
                 continue;
@@ -541,12 +539,12 @@ namespace VkRender {
         Log::Logger::getInstance()->info("Saved scene: {} to {}", filePath.filename().string(), filePath.string());
     }
 
-    void SceneSerializer::serializeRuntime(const std::filesystem::path& filePath) {
+    void SceneSerializer::serializeRuntime(const std::filesystem::path &filePath) {
         throw std::runtime_error("Not implemented");
     }
 
 
-    bool SceneSerializer::deserialize(const std::filesystem::path& filePath) {
+    bool SceneSerializer::deserialize(const std::filesystem::path &filePath) {
         // TODO sanitize input
         std::ifstream stream(filePath);
         std::stringstream stringStream;
@@ -563,7 +561,7 @@ namespace VkRender {
         if (entities) {
             std::unordered_map<uint64_t, Entity> entityMap;
 
-            for (auto entity : entities) {
+            for (auto entity: entities) {
                 auto entityId = UUID(entity["Entity"].as<uint64_t>()); // todo uuid
                 std::string name = "Unnamed";
                 auto tagComponent = entity["TagComponent"];
@@ -574,7 +572,7 @@ namespace VkRender {
 
                 auto transformComponent = entity["TransformComponent"];
                 if (transformComponent) {
-                    auto& tc = deserializedEntity.getComponent<TransformComponent>();
+                    auto &tc = deserializedEntity.getComponent<TransformComponent>();
                     tc.setPosition(transformComponent["Position"].as<glm::vec3>());
                     tc.setRotationQuaternion(transformComponent["Rotation"].as<glm::quat>());
                     tc.setScale(transformComponent["Scale"].as<glm::vec3>());
@@ -583,20 +581,19 @@ namespace VkRender {
                 // Deserialize VisibleComponent
                 auto visibleComponentNode = entity["VisibleComponent"];
                 if (visibleComponentNode) {
-                    auto& visibleComponent = deserializedEntity.addComponent<VisibleComponent>();
+                    auto &visibleComponent = deserializedEntity.addComponent<VisibleComponent>();
                     visibleComponent.visible = visibleComponentNode["Visible"].as<bool>();
                 }
 
                 // Deserialize VisibleComponent
                 auto lightSourceNode = entity["LightSourceComponent"];
                 if (lightSourceNode) {
-                    auto& lightSourceComponent = deserializedEntity.addComponent<LightSourceComponent>();
+                    auto &lightSourceComponent = deserializedEntity.addComponent<LightSourceComponent>();
 
                     // Check if the "Position" attribute exists
                     if (lightSourceNode["Position"]) {
                         lightSourceComponent.position = lightSourceNode["Position"].as<glm::vec3>();
-                    }
-                    else {
+                    } else {
                         // Optionally, set a default value or handle the missing attribute appropriately
                         lightSourceComponent.position = glm::vec3(0.0f);
                     }
@@ -604,8 +601,7 @@ namespace VkRender {
                     // Check if the "Normal" attribute exists
                     if (lightSourceNode["Normal"]) {
                         lightSourceComponent.normal = lightSourceNode["Normal"].as<glm::vec3>();
-                    }
-                    else {
+                    } else {
                         // Optionally, set a default value or handle the missing attribute appropriately
                         lightSourceComponent.normal = glm::vec3(0.0f, 1.0f, 0.0f);
                     }
@@ -616,7 +612,7 @@ namespace VkRender {
 
                 auto cameraComponent = entity["CameraComponent"];
                 if (cameraComponent) {
-                    auto& camera = deserializedEntity.addComponent<CameraComponent>();
+                    auto &camera = deserializedEntity.addComponent<CameraComponent>();
 
                     // Deserialize CameraType
                     if (cameraComponent["CameraType"]) {
@@ -638,12 +634,11 @@ namespace VkRender {
 
                     // Deserialize based on CameraType
                     switch (camera.cameraType) {
-                    case CameraComponent::ARCBALL:
-                        // ARCBALL-specific deserialization (if any) can be added here
-                        break;
+                        case CameraComponent::ARCBALL:
+                            // ARCBALL-specific deserialization (if any) can be added here
+                            break;
 
-                    case CameraComponent::PERSPECTIVE:
-                        {
+                        case CameraComponent::PERSPECTIVE: {
                             auto projectionParams = cameraComponent["ProjectionParameters"];
                             if (projectionParams) {
                                 camera.baseCameraParameters.near = projectionParams["Near"].as<float>(0.1f);
@@ -655,8 +650,7 @@ namespace VkRender {
                             break;
                         }
 
-                    case CameraComponent::PINHOLE:
-                        {
+                        case CameraComponent::PINHOLE: {
                             auto pinholeParams = cameraComponent["PinHoleParameters"];
                             if (pinholeParams) {
                                 camera.pinholeParameters.height = pinholeParams["Height"].as<int>(720);
@@ -674,8 +668,8 @@ namespace VkRender {
                             break;
                         }
 
-                    default:
-                        Log::Logger::getInstance()->warning("Fallback: Cannot deserialize camera type");
+                        default:
+                            Log::Logger::getInstance()->warning("Fallback: Cannot deserialize camera type");
                     }
                     camera.updateParametersChanged();
                 }
@@ -688,27 +682,25 @@ namespace VkRender {
                     }
                     if (meshComponentNode["RelativeModelPath"]) {
                         path = std::filesystem::path(assetsPath) / std::filesystem::path(
-                            meshComponentNode["RelativeModelPath"].as<std::string>());
+                                   meshComponentNode["RelativeModelPath"].as<std::string>());
                     }
 
                     auto meshDataTypeStr = meshComponentNode["MeshDataType"].as<std::string>();
                     MeshDataType meshDataType = stringToMeshDataType(meshDataTypeStr);
 
                     // Add MeshComponent to the entity
-                    auto& mesh = deserializedEntity.addComponent<MeshComponent>(meshDataType, path);
+                    auto &mesh = deserializedEntity.addComponent<MeshComponent>(meshDataType, path);
                     // Deserialize PolygonMode
                     if (meshComponentNode["PolygonMode"] && meshComponentNode["PolygonMode"].IsScalar()) {
                         std::string polygonModeStr = meshComponentNode["PolygonMode"].as<std::string>();
                         mesh.polygonMode() = Serialize::stringToPolygonMode(polygonModeStr);
-                    }
-                    else {
+                    } else {
                         // Handle missing PolygonMode (optional: set default or throw error)
                         mesh.polygonMode() = VK_POLYGON_MODE_FILL; // Default value
                     }
 
                     switch (meshDataType) {
-                    case CYLINDER:
-                        {
+                        case CYLINDER: {
                             auto params = std::make_shared<CylinderMeshParameters>();
                             auto originNode = meshComponentNode["Origin"];
                             if (originNode && originNode.IsSequence() && originNode.size() == 3) {
@@ -735,8 +727,7 @@ namespace VkRender {
                         }
                         break;
 
-                    case QUADRIC:
-                        {
+                        case QUADRIC: {
                             auto params = std::make_shared<QuadricMeshParameters>();
 
                             if (meshComponentNode["a"])
@@ -746,7 +737,7 @@ namespace VkRender {
                             if (meshComponentNode["c"])
                                 params->c = meshComponentNode["c"].as<float>();
                             if (meshComponentNode["BBeta"])
-                                params->b_beta= meshComponentNode["BBeta"].as<float>();
+                                params->b_beta = meshComponentNode["BBeta"].as<float>();
                             if (meshComponentNode["Threshold"])
                                 params->threshold = meshComponentNode["Threshold"].as<float>();
                             if (meshComponentNode["KernelScale"])
@@ -780,46 +771,41 @@ namespace VkRender {
                             mesh.meshParameters = params;
                         }
 
-                    default: ;
+                        default: ;
                     }
                 }
 
                 auto materialComponent = entity["MaterialComponent"];
                 if (materialComponent) {
-                    auto& material = deserializedEntity.addComponent<MaterialComponent>();
+                    auto &material = deserializedEntity.addComponent<MaterialComponent>();
                     // Deserialize base color
-                    auto baseColor = materialComponent["BaseColor"].as<std::vector<float>>();
+                    auto baseColor = materialComponent["BaseColor"].as<std::vector<float> >();
                     if (baseColor.size() == 4) {
                         material.albedo = glm::vec4(baseColor[0], baseColor[1], baseColor[2], baseColor[3]);
                     }
                     if (materialComponent["Emission"]) {
                         material.emission = materialComponent["Emission"].as<float>();
-                    }
-                    else {
+                    } else {
                         material.emission = 0.0f; // Default value or handle as needed
                     }
                     if (materialComponent["Diffuse"]) {
                         material.diffuse = materialComponent["Diffuse"].as<float>();
-                    }
-                    else {
+                    } else {
                         material.diffuse = 0.0f; // Default value or handle as needed
                     }
                     if (materialComponent["Specular"]) {
                         material.specular = materialComponent["Specular"].as<float>();
-                    }
-                    else {
+                    } else {
                         material.specular = 0.0f; // Default value or handle as needed
                     }
                     if (materialComponent["PhongExponent"]) {
                         material.phongExponent = materialComponent["PhongExponent"].as<float>();
-                    }
-                    else {
+                    } else {
                         material.phongExponent = 32.0f; // Default value or handle as needed
                     }
                     if (materialComponent["UseVertexColor"]) {
                         material.useVertexColor = materialComponent["UseVertexColor"].as<bool>();
-                    }
-                    else {
+                    } else {
                         material.useVertexColor = false; // Default value or handle as needed
                     }
                     // Deserialize uses texture flag
@@ -836,7 +822,7 @@ namespace VkRender {
 
                 auto pointCloudComponent = entity["PointCloudComponent"];
                 if (pointCloudComponent) {
-                    auto& component = deserializedEntity.addComponent<PointCloudComponent>();
+                    auto &component = deserializedEntity.addComponent<PointCloudComponent>();
                     component.pointSize = pointCloudComponent["PointSize"].as<float>();
 
                     component.usesVideoSource = pointCloudComponent["UsesVideoSource"].as<bool>();
@@ -847,17 +833,17 @@ namespace VkRender {
                 }
                 auto groupComponent = entity["GroupComponent"];
                 if (groupComponent) {
-                    auto& component = deserializedEntity.addComponent<GroupComponent>();
+                    auto &component = deserializedEntity.addComponent<GroupComponent>();
                 }
 
                 auto gaussianComponentNode = entity["GaussianComponent"];
                 if (gaussianComponentNode) {
-                    auto& component = deserializedEntity.addComponent<GaussianComponent>();
+                    auto &component = deserializedEntity.addComponent<GaussianComponent>();
 
                     // Deserialize means
                     auto meansNode = gaussianComponentNode["Means"];
                     if (meansNode) {
-                        for (const auto& meanNode : meansNode) {
+                        for (const auto &meanNode: meansNode) {
                             glm::vec3 mean;
                             mean.x = meanNode[0].as<float>();
                             mean.y = meanNode[1].as<float>();
@@ -868,13 +854,13 @@ namespace VkRender {
 
                     auto covariancesNode = gaussianComponentNode["Scales"];
                     if (covariancesNode) {
-                        for (const auto& covNode : covariancesNode) {
+                        for (const auto &covNode: covariancesNode) {
                             component.scales.push_back(covNode.as<glm::vec3>());
                         }
                     }
                     auto rotationsNode = gaussianComponentNode["Rotations"];
                     if (rotationsNode) {
-                        for (const auto& rotNode : rotationsNode) {
+                        for (const auto &rotNode: rotationsNode) {
                             component.rotations.push_back(rotNode.as<glm::quat>());
                         }
                     }
@@ -882,7 +868,7 @@ namespace VkRender {
                     // Deserialize amplitudes
                     auto amplitudesNode = gaussianComponentNode["Opacities"];
                     if (amplitudesNode) {
-                        for (const auto& amplitudeNode : amplitudesNode) {
+                        for (const auto &amplitudeNode: amplitudesNode) {
                             float amplitude = amplitudeNode.as<float>();
                             component.opacities.push_back(amplitude);
                         }
@@ -890,7 +876,7 @@ namespace VkRender {
                     // Deserialize amplitudes
                     auto colorsNode = gaussianComponentNode["Colors"];
                     if (colorsNode) {
-                        for (const auto& colorNode : colorsNode) {
+                        for (const auto &colorNode: colorsNode) {
                             auto color = colorNode.as<glm::vec3>();
                             component.colors.push_back(color);
                         }
@@ -899,11 +885,11 @@ namespace VkRender {
 
                 auto gaussianComponent2DGSNode = entity["GaussianComponent2DGS"];
                 if (gaussianComponent2DGSNode) {
-                    auto& component = deserializedEntity.addComponent<GaussianComponent2DGS>();
-                    auto& node = gaussianComponent2DGSNode;
+                    auto &component = deserializedEntity.addComponent<GaussianComponent2DGS>();
+                    auto &node = gaussianComponent2DGSNode;
                     // Deserialize positions
                     if (node["Positions"]) {
-                        for (const auto& positionNode : node["Positions"]) {
+                        for (const auto &positionNode: node["Positions"]) {
                             glm::vec3 position(
                                 positionNode[0].as<float>(),
                                 positionNode[1].as<float>(),
@@ -915,7 +901,7 @@ namespace VkRender {
 
                     // Deserialize normals
                     if (node["Normals"]) {
-                        for (const auto& normalNode : node["Normals"]) {
+                        for (const auto &normalNode: node["Normals"]) {
                             glm::vec3 normal(
                                 normalNode[0].as<float>(),
                                 normalNode[1].as<float>(),
@@ -927,7 +913,7 @@ namespace VkRender {
 
                     // Deserialize scales
                     if (node["Scales"]) {
-                        for (const auto& scaleNode : node["Scales"]) {
+                        for (const auto &scaleNode: node["Scales"]) {
                             glm::vec2 scale(
                                 scaleNode[0].as<float>(),
                                 scaleNode[1].as<float>()
@@ -938,34 +924,32 @@ namespace VkRender {
 
 
                     // Deserialize float properties with default values
-                    auto deserializeFloatArray = [&](std::vector<float>& values, const std::string& key,
+                    auto deserializeFloatArray = [&](std::vector<float> &values, const std::string &key,
                                                      size_t defaultSize = 0, float defaultValue = 0.0f) {
                         if (node[key]) {
                             // Populate values from the node
-                            for (const auto& valueNode : node[key]) {
+                            for (const auto &valueNode: node[key]) {
                                 values.push_back(valueNode.as<float>());
                             }
-                        }
-                        else {
+                        } else {
                             // Populate default values if the key doesn't exist
                             values.resize(defaultSize, defaultValue);
                         }
                     };
                     // Deserialize float properties with default values
-                    auto deserializeVec4Array = [&](std::vector<glm::vec4>& values, const std::string& key,
+                    auto deserializeVec4Array = [&](std::vector<glm::vec4> &values, const std::string &key,
                                                     size_t defaultSize = 0,
                                                     glm::vec4 defaultValue = glm::vec4(glm::vec3(0.0f), 1.0f)) {
                         if (node[key]) {
                             // Populate values from the node
-                            for (const auto& valueNode : node[key]) {
+                            for (const auto &valueNode: node[key]) {
                                 if (valueNode.size() == 4)
                                     values.push_back(valueNode.as<glm::vec4>());
                                 else {
                                     values.push_back(defaultValue);
                                 }
                             }
-                        }
-                        else {
+                        } else {
                             // Populate default values if the key doesn't exist
                             values.resize(defaultSize, defaultValue);
                         }
@@ -978,9 +962,64 @@ namespace VkRender {
                     deserializeFloatArray(component.specular, "Specular", expectedSize, 0.5f);
                     deserializeFloatArray(component.phongExponents, "PhongExponents", expectedSize, 32.0f);
                 }
+
+                auto quadricNode = entity["QuadricCollectionComponent"];
+                if (quadricNode) {
+                    auto &component = deserializedEntity.addComponent<VkRender::QuadricCollectionComponent>();
+                    auto &node = quadricNode;
+
+                    // Deserialize positions
+                    if (node["Positions"]) {
+                        for (const auto &positionNode: node["Positions"]) {
+                            glm::vec3 position(
+                                positionNode[0].as<float>(),
+                                positionNode[1].as<float>(),
+                                positionNode[2].as<float>()
+                            );
+                            component.positions.push_back(position);
+                        }
+                    }
+
+                    // Deserialize rotations (assuming order: w, x, y, z)
+                    if (node["Rotations"]) {
+                        for (const auto &rotationNode: node["Rotations"]) {
+                            glm::quat rotation(
+                                rotationNode[0].as<float>(), // w
+                                rotationNode[1].as<float>(), // x
+                                rotationNode[2].as<float>(), // y
+                                rotationNode[3].as<float>() // z
+                            );
+                            component.rotations.push_back(rotation);
+                        }
+                    }
+
+                    // Helper lambda to deserialize float arrays.
+                    auto deserializeFloatArray = [&](std::vector<float> &values, const std::string &key,
+                                                     size_t defaultSize = 0, float defaultValue = 0.0f) {
+                        if (node[key]) {
+                            for (const auto &valueNode: node[key]) {
+                                values.push_back(valueNode.as<float>());
+                            }
+                        } else {
+                            values.resize(defaultSize, defaultValue);
+                        }
+                    };
+
+                    // Expected size from the positions array.
+                    size_t expectedSize = component.positions.size();
+
+                    deserializeFloatArray(component.a, "A", expectedSize, 1.0f);
+                    deserializeFloatArray(component.b, "B", expectedSize, 1.0f);
+                    deserializeFloatArray(component.c, "C", expectedSize, 1.0f);
+                    deserializeFloatArray(component.t_x, "T_x", expectedSize, 2.0f);
+                    deserializeFloatArray(component.t_y, "T_y", expectedSize, 2.0f);
+                    deserializeFloatArray(component.kernelScale, "KernelScale", expectedSize, 1.0f);
+                    deserializeFloatArray(component.threshold, "Threshold", expectedSize, 0.01f);
+                    deserializeFloatArray(component.beta, "Beta", expectedSize, 0.0f);
+                }
             }
 
-            for (auto entityNode : entities) {
+            for (auto entityNode: entities) {
                 uint64_t uuid = entityNode["Entity"].as<uint64_t>();
                 Entity deserializedEntity = entityMap[uuid];
 
@@ -991,8 +1030,7 @@ namespace VkRender {
                     if (entityMap.find(parentUUID) != entityMap.end()) {
                         Entity parentEntity = entityMap[parentUUID];
                         deserializedEntity.setParent(parentEntity);
-                    }
-                    else {
+                    } else {
                         Log::Logger::getInstance()->warning("Parent entity with UUID {} not found.", parentUUID);
                     }
                 }
@@ -1005,7 +1043,7 @@ namespace VkRender {
         return true;
     }
 
-    bool SceneSerializer::deserializeRuntime(const std::filesystem::path& filePath) {
+    bool SceneSerializer::deserializeRuntime(const std::filesystem::path &filePath) {
         // Not implement
         throw std::runtime_error("Not implemented");
         return false;

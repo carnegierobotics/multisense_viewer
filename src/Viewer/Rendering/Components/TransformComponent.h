@@ -25,8 +25,9 @@ namespace VkRender {
 
         // Constructors
         TransformComponent() = default;
+
         // Constructor that decomposes a transform matrix into translation, rotation, and scale.
-        explicit TransformComponent(const glm::mat4& transform) {
+        explicit TransformComponent(const glm::mat4 &transform) {
             // --- Translation ---
             // The translation is stored in the 4th column of the matrix.
             translation = glm::vec3(transform[3]);
@@ -57,7 +58,7 @@ namespace VkRender {
 
             if (m_flipUpAxis) {
                 glm::mat4 flipUpRotationMatrix = glm::rotate(
-                        glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+                    glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
                 rotMat = flipUpRotationMatrix * rotMat;
             }
 
@@ -69,6 +70,30 @@ namespace VkRender {
 
         void setMoving(bool state) {
             m_wasMoved = state;
+        }
+
+        void setTransform(const glm::mat4 &transform) {
+            // --- Translation ---
+            // The translation is stored in the 4th column of the matrix.
+            translation = glm::vec3(transform[3]);
+            // --- Scale ---
+            // The scale factors are the lengths of the first three columns.
+            scale.x = glm::length(glm::vec3(transform[0]));
+            scale.y = glm::length(glm::vec3(transform[1]));
+            scale.z = glm::length(glm::vec3(transform[2]));
+            // --- Rotation ---
+            // To extract the rotation, first remove the scaling from the matrix.
+            glm::mat3 rotationMatrix;
+            if (scale.x != 0) rotationMatrix[0] = glm::vec3(transform[0]) / scale.x;
+            else rotationMatrix[0] = glm::vec3(transform[0]);
+            if (scale.y != 0) rotationMatrix[1] = glm::vec3(transform[1]) / scale.y;
+            else rotationMatrix[1] = glm::vec3(transform[1]);
+            if (scale.z != 0) rotationMatrix[2] = glm::vec3(transform[2]) / scale.z;
+            else rotationMatrix[2] = glm::vec3(transform[2]);
+            // Convert the rotation matrix to a quaternion.
+            rotation = glm::quat_cast(rotationMatrix);
+            // Convert the quaternion to Euler angles (in degrees) for storage.
+            rotationEuler = glm::degrees(glm::eulerAngles(rotation));
         }
 
         // Set rotation using Euler angles (degrees)
@@ -129,6 +154,5 @@ namespace VkRender {
             return m_flipUpAxis;
         }
     };
-
 }
 #endif //TRANSFORMCOMPONENT_H

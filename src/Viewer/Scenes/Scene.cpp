@@ -16,6 +16,7 @@
 #include "Viewer/Rendering/Components/ImageComponent.h"
 #include "Viewer/Application/Application.h"
 #include "Viewer/Rendering/Components/PointCloudComponent.h"
+#include "Viewer/Rendering/Components/QuadricCollectionComponent.h"
 
 namespace VkRender {
     Scene::Scene(VkRender::Application *context) {
@@ -702,6 +703,9 @@ namespace VkRender {
     template<>
     void Scene::onComponentAdded<LightSourceComponent>(Entity entity, LightSourceComponent &component) {
     }
+    template<>
+    void Scene::onComponentAdded<QuadricCollectionComponent>(Entity entity, QuadricCollectionComponent &component) {
+    }
 
     /** COMPONENT REMOVE **/
 
@@ -779,6 +783,9 @@ namespace VkRender {
     template<>
     void Scene::onComponentRemoved<LightSourceComponent>(Entity entity, LightSourceComponent &component) {
     }
+    template<>
+    void Scene::onComponentRemoved<QuadricCollectionComponent>(Entity entity, QuadricCollectionComponent &component) {
+    }
 
     /** COMPONENT UPDATE **/
     template<>
@@ -855,6 +862,11 @@ namespace VkRender {
     template
     <>
     void Scene::onComponentUpdated<LightSourceComponent>(Entity entity, LightSourceComponent &component) {
+    }
+
+    template
+    <>
+    void Scene::onComponentUpdated<QuadricCollectionComponent>(Entity entity, QuadricCollectionComponent &component) {
     }
 
     DISABLE_WARNING_POP

@@ -100,8 +100,8 @@ namespace VkRender::PathTracer {
                     float specular = hitGaussianEntity.specular; // Specular coefficient
                     float shininess = hitGaussianEntity.phongExponent;
                     float diffuse = hitGaussianEntity.diffuse; // Diffuse coefficient
-                    float totalContribution = 1.0f;
                     float contributionRayContribution = 0.0f;
+                    float brdfFactor = 1.0f;
 
 
                     // ----------------------------------
@@ -114,41 +114,68 @@ namespace VkRender::PathTracer {
                     // TODO also calculate the contribution if I am sampling directly towards the camera instead of just reflecting along the surface normal
                     // Contribution Dir
 
-                    glm::vec3 a(0.0f);
-                    glm::vec3 contributionRayDir = sampleDirectionTowardAperture(
-                        hitPointWorld,
-                        m_cameraTransform->getPosition(), // center of aperture
-                        cameraPlaneNormalWorld, // might be -X if your camera faces X, or -Z, etc.
-                        a,
-                        apertureRadius,
-                        photonID
-                    );
+                    {
+                        glm::vec3 a(0.0f);
+                        glm::vec3 contributionRayDir = sampleDirectionTowardAperture(
+                            hitPointWorld,
+                            m_cameraTransform->getPosition(), // center of aperture
+                            cameraPlaneNormalWorld, // might be -X if your camera faces X, or -Z, etc.
+                            a,
+                            apertureRadius,
+                            photonID
+                        );
 
-                    float cosTheta = glm::dot(hitNormalWorld, -rayDir);
-                    cosTheta = glm::max(0.0f, cosTheta); // Clamp to 0 to prevent negative contributions
-                    float diffuseContribution = cosTheta * color / M_PIf;
+                        float cosTheta = glm::dot(hitNormalWorld, -rayDir);
+                        cosTheta = glm::max(0.0f, cosTheta); // Clamp to 0 to prevent negative contributions
+                        float diffuseContribution = cosTheta * color / M_PIf;
 
 
-                    glm::vec3 delta = -rayDir + contributionRayDir;
-                    glm::vec3 halfVector = delta / glm::length(delta);
-                    float cosAlpha = glm::dot(hitNormalWorld, halfVector);
-                    float cosAlphaMax = std::max(cosAlpha, 0.0f);
-                    float specularContribution = std::pow(cosAlphaMax, shininess) / M_PIf;
+                        glm::vec3 delta = -rayDir + contributionRayDir;
+                        glm::vec3 halfVector = delta / glm::length(delta);
+                        float cosAlpha = glm::dot(hitNormalWorld, halfVector);
+                        float cosAlphaMax = std::max(cosAlpha, 0.0f);
+                        float specularContribution = std::pow(cosAlphaMax, shininess) / M_PIf;
 
-                    float sumForWeights = diffuse + specular;
-                    if (sumForWeights > 0.0f) {
-                        float diffuseWeight = diffuse / sumForWeights;
-                        float specularWeight = specular / sumForWeights;
-                        // Weighted sum
-                        contributionRayContribution = diffuseWeight * diffuseContribution
-                                                      + specularWeight * specularContribution;
+                        float sumForWeights = diffuse + specular;
+                        if (sumForWeights > 0.0f) {
+                            float diffuseWeight = diffuse / sumForWeights;
+                            float specularWeight = specular / sumForWeights;
+                            // Weighted sum
+                            contributionRayContribution = diffuseWeight * diffuseContribution
+                                                          + specularWeight * specularContribution;
+                        }
                     }
 
-                    float contributionFlux = photonFlux * contributionRayContribution * betaContribution;
+                    // Sample new random outgoing direction
+                    glm::vec3 newDir = sampleCosineWeightedHemisphere(hitNormalWorld, photonID);
+                    {
+                        float cosTheta = glm::dot(hitNormalWorld, -rayDir);
+                        cosTheta = glm::max(0.0f, cosTheta); // Clamp to 0 to prevent negative contributions
+                        float diffuseContribution = cosTheta * color / M_PIf;
+
+
+                        glm::vec3 delta = -rayDir + newDir;
+                        glm::vec3 halfVector = delta / glm::length(delta);
+                        float cosAlpha = glm::dot(hitNormalWorld, halfVector);
+                        float cosAlphaMax = std::max(cosAlpha, 0.0f);
+                        float specularContribution = std::pow(cosAlphaMax, shininess) / M_PIf;
+
+                        float sumForWeights = diffuse + specular;
+                        if (sumForWeights > 0.0f) {
+                            float diffuseWeight = diffuse / sumForWeights;
+                            float specularWeight = specular / sumForWeights;
+                            // Weighted sum
+                            brdfFactor = diffuseWeight * diffuseContribution
+                                                          + specularWeight * specularContribution;
+                        }
+                    }
+
+                    //float contributionFlux = photonFlux * contributionRayContribution * betaContribution;
+                    float contributionFlux = photonFlux * contributionRayContribution;
                     // Finally, scale the photonFlux (or outgoing radiance) by total contribution
 
-                    photonFlux *= totalContribution;
-                    /*
+                    photonFlux *= brdfFactor;
+
                     // Russian Roulette termination
                     float rrProb = photonFlux;
                     float minProbability = 0.2f; // 20%
@@ -159,10 +186,9 @@ namespace VkRender::PathTracer {
                         return; // Photon terminated i.e. absorbed by the last surface
                     }
                     photonFlux = photonFlux / rrProb;
-                    */
+
 
                     // Sample new direction (Lambertian reflection)
-                    glm::vec3 newDir = sampleCosineWeightedHemisphere(hitNormalWorld, photonID);
                     glm::vec3 newRayOrigin = hitPointWorld + hitNormalWorld * 1e-4f;
                     // Offset to prevent self-intersection
 

@@ -9,6 +9,7 @@
 #include "Viewer/Rendering/Components/GaussianComponent.h"
 #include "Viewer/Rendering/Components/Components.h"
 #include "Viewer/Rendering/Components/PointCloudComponent.h"
+#include "Viewer/Rendering/Components/QuadricCollectionComponent.h"
 
 #include "Viewer/Rendering/ImGui/Layer.h"
 
@@ -219,6 +220,102 @@ namespace VkRender {
         return valueChanged;
     }
 
+    bool PropertiesLayer::drawQuatControl(const std::string &label, glm::quat &quat, float resetValue, float speed, float columnWidth)
+{
+    bool valueChanged = false;
+    ImGuiIO &io = ImGui::GetIO();
+    auto boldFont = io.Fonts->Fonts[0];
+
+    ImGui::PushID(label.c_str());
+
+    ImGui::Columns(2);
+    ImGui::SetColumnWidth(0, columnWidth);
+    ImGui::Text("%s", label.c_str());
+    ImGui::NextColumn();
+
+    // Prepare space for 4 controls (W, X, Y, Z)
+    ImGui::PushMultiItemsWidths(4, ImGui::CalcItemWidth());
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{0, 0});
+    float fontSize = ImGui::GetFontSize();
+    ImVec2 framePadding = ImGui::GetStyle().FramePadding;
+    float lineHeight = fontSize + framePadding.y * 2.0f;
+    ImVec2 buttonSize = { lineHeight + 3.0f, lineHeight };
+
+    // --- Component W ---
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.8f, 0.1f, 0.15f, 1.0f});
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{0.9f, 0.2f, 0.2f, 1.0f});
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{0.8f, 0.1f, 0.15f, 1.0f});
+    ImGui::PushFont(boldFont);
+    if (ImGui::Button("W", buttonSize)) {
+        quat.w = resetValue;
+        valueChanged = true;
+    }
+    ImGui::PopFont();
+    ImGui::PopStyleColor(3);
+    ImGui::SameLine();
+    if (ImGui::DragFloat("##W", &quat.w, 0.1f * speed, 0.0f, 0.0f, "%.2f"))
+        valueChanged = true;
+    ImGui::PopItemWidth();
+    ImGui::SameLine();
+
+    // --- Component X ---
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.2f, 0.7f, 0.2f, 1.0f});
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{0.3f, 0.8f, 0.3f, 1.0f});
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{0.2f, 0.7f, 0.2f, 1.0f});
+    ImGui::PushFont(boldFont);
+    if (ImGui::Button("X", buttonSize)) {
+        quat.x = resetValue;
+        valueChanged = true;
+    }
+    ImGui::PopFont();
+    ImGui::PopStyleColor(3);
+    ImGui::SameLine();
+    if (ImGui::DragFloat("##X", &quat.x, 0.1f * speed, 0.0f, 0.0f, "%.2f"))
+        valueChanged = true;
+    ImGui::PopItemWidth();
+    ImGui::SameLine();
+
+    // --- Component Y ---
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.1f, 0.25f, 0.8f, 1.0f});
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{0.2f, 0.35f, 0.9f, 1.0f});
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{0.1f, 0.25f, 0.8f, 1.0f});
+    ImGui::PushFont(boldFont);
+    if (ImGui::Button("Y", buttonSize)) {
+        quat.y = resetValue;
+        valueChanged = true;
+    }
+    ImGui::PopFont();
+    ImGui::PopStyleColor(3);
+    ImGui::SameLine();
+    if (ImGui::DragFloat("##Y", &quat.y, 0.1f * speed, 0.0f, 0.0f, "%.2f"))
+        valueChanged = true;
+    ImGui::PopItemWidth();
+    ImGui::SameLine();
+
+    // --- Component Z ---
+    ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{0.9f, 0.9f, 0.2f, 1.0f});
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{1.0f, 1.0f, 0.3f, 1.0f});
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{0.9f, 0.9f, 0.2f, 1.0f});
+    ImGui::PushFont(boldFont);
+    if (ImGui::Button("Z", buttonSize)) {
+        quat.z = resetValue;
+        valueChanged = true;
+    }
+    ImGui::PopFont();
+    ImGui::PopStyleColor(3);
+    ImGui::SameLine();
+    if (ImGui::DragFloat("##Z", &quat.z, 0.1f * speed, 0.0f, 0.0f, "%.2f"))
+        valueChanged = true;
+    ImGui::PopItemWidth();
+
+    ImGui::PopStyleVar();
+    ImGui::Columns(1);
+    ImGui::PopID();
+
+    return valueChanged;
+}
+
+
     template <typename T, typename UIFunction>
     void PropertiesLayer::drawComponent(const std::string& componentName, Entity entity, UIFunction uiFunction) {
         const ImGuiTreeNodeFlags treeNodeFlags =
@@ -270,11 +367,30 @@ namespace VkRender {
             displayAddComponentEntry<MeshComponent>("Mesh");
             displayAddComponentEntry<MaterialComponent>("Material");
             displayAddComponentEntry<PointCloudComponent>("PointCloud");
-            displayAddComponentEntry<GaussianComponent>("3DGS Model");
             displayAddComponentEntry<GaussianComponent2DGS>("2DGS Model");
+            displayAddComponentEntry<QuadricCollectionComponent>("Quadratic Collection");
 
             ImGui::EndPopup();
         }
+
+
+        drawComponent<TagComponent>("Tag", entity, [this](auto& component) {
+            ImGui::Text("Entity Name:");
+            ImGui::SameLine();
+            // Define a buffer large enough to hold the tag's content
+            // Copy the current tag content into the buffer
+            // Check if `m_tagBuffer` is initialized or if the entity's tag has changed
+            if (m_needsTagUpdate || strncmp(m_tagBuffer, component.getTag().c_str(), sizeof(m_tagBuffer)) != 0) {
+                strncpy(m_tagBuffer, component.getTag().c_str(), sizeof(m_tagBuffer));
+                m_tagBuffer[sizeof(m_tagBuffer) - 1] = '\0'; // Null-terminate to avoid overflow
+                m_needsTagUpdate = false; // Reset the flag after updating the buffer
+            }
+            // Use ImGui::InputText to allow editing
+            if (ImGui::InputText("##Tag", m_tagBuffer, sizeof(m_tagBuffer))) {
+                // If the input changes, update the component's tag
+                component.setTag(m_tagBuffer);
+            }
+        });
 
         drawComponent<TransformComponent>("Transform", entity, [](TransformComponent& component) {
             bool paramsChanged = false;
@@ -502,23 +618,23 @@ namespace VkRender {
                 break;
             }
             case MeshDataType::QUADRIC: {
-                auto cylinderParams = std::dynamic_pointer_cast<QuadricMeshParameters>(component.meshParameters);
-                if (cylinderParams) {
+                auto quadricParams = std::dynamic_pointer_cast<QuadricMeshParameters>(component.meshParameters);
+                if (quadricParams) {
                     bool paramsChanged = false;
-                    paramsChanged |= ImGui::SliderInt("GridResolution", &cylinderParams->gridResolution, 0.0f, 10000.0f);
-                    paramsChanged |= drawVec2Control("Min", cylinderParams->min);
-                    paramsChanged |= drawVec2Control("Max", cylinderParams->max);
+                    paramsChanged |= ImGui::SliderInt("GridResolution", &quadricParams->gridResolution, 0.0f, 10000.0f);
+                    paramsChanged |= drawVec2Control("Min", quadricParams->min);
+                    paramsChanged |= drawVec2Control("Max", quadricParams->max);
 
-                    paramsChanged |= ImGui::SliderFloat("tx", &cylinderParams->t_x, -5.0f, 5.0f);
-                    paramsChanged |= ImGui::SliderFloat("ty", &cylinderParams->t_y, -5.0f, 5.0f);
-                    paramsChanged |= ImGui::SliderFloat("a", &cylinderParams->a, -5.0f, 5.0f);
-                    paramsChanged |= ImGui::SliderFloat("b", &cylinderParams->b, -5.0f, 5.0f);
-                    paramsChanged |= ImGui::SliderFloat("c", &cylinderParams->c, -5.0f, 5.0f);
+                    paramsChanged |= ImGui::SliderFloat("tx", &quadricParams->t_x, -5.0f, 5.0f);
+                    paramsChanged |= ImGui::SliderFloat("ty", &quadricParams->t_y, -5.0f, 5.0f);
+                    paramsChanged |= ImGui::SliderFloat("a", &quadricParams->a, -5.0f, 5.0f);
+                    paramsChanged |= ImGui::SliderFloat("b", &quadricParams->b, -5.0f, 5.0f);
+                    paramsChanged |= ImGui::SliderFloat("c", &quadricParams->c, -5.0f, 5.0f);
                     ImGui::Separator();
                     ImGui::Text("Beta Kernel opts");
-                    paramsChanged |= ImGui::SliderFloat("b_beta", &cylinderParams->b_beta, -5.0f, 5.0f);
-                    paramsChanged |= ImGui::SliderFloat("threshold", &cylinderParams->threshold, 0.0f, 1.0f);
-                    paramsChanged |= ImGui::SliderFloat("scale", &cylinderParams->kernelScale, 0.0f, 10.0f);
+                    paramsChanged |= ImGui::SliderFloat("b_beta", &quadricParams->b_beta, -5.0f, 5.0f);
+                    paramsChanged |= ImGui::SliderFloat("threshold", &quadricParams->threshold, 0.0f, 1.0f);
+                    paramsChanged |= ImGui::SliderFloat("scale", &quadricParams->kernelScale, 0.0f, 10.0f);
                     if (paramsChanged) {
                         component.updateMeshData = true;
                     }
@@ -574,23 +690,6 @@ namespace VkRender {
         });
 
 
-        drawComponent<TagComponent>("Tag", entity, [this](auto& component) {
-            ImGui::Text("Entity Name:");
-            ImGui::SameLine();
-            // Define a buffer large enough to hold the tag's content
-            // Copy the current tag content into the buffer
-            // Check if `m_tagBuffer` is initialized or if the entity's tag has changed
-            if (m_needsTagUpdate || strncmp(m_tagBuffer, component.getTag().c_str(), sizeof(m_tagBuffer)) != 0) {
-                strncpy(m_tagBuffer, component.getTag().c_str(), sizeof(m_tagBuffer));
-                m_tagBuffer[sizeof(m_tagBuffer) - 1] = '\0'; // Null-terminate to avoid overflow
-                m_needsTagUpdate = false; // Reset the flag after updating the buffer
-            }
-            // Use ImGui::InputText to allow editing
-            if (ImGui::InputText("##Tag", m_tagBuffer, sizeof(m_tagBuffer))) {
-                // If the input changes, update the component's tag
-                component.setTag(m_tagBuffer);
-            }
-        });
 
         drawComponent<MaterialComponent>("Material", entity, [this, entity](MaterialComponent& component) {
             ImGui::Text("Material Properties");
@@ -651,6 +750,7 @@ namespace VkRender {
             }
             // Notify scene that material component has been updated
         });
+
         drawComponent<GaussianComponent2DGS>("Gaussian Model", entity, [this](GaussianComponent2DGS& component) {
             ImGui::Text("Gaussian Model Properties");
 
@@ -806,67 +906,241 @@ namespace VkRender {
             }
         });
 
-        drawComponent<GaussianComponent>("Gaussian Model", entity, [this](auto& component) {
-            ImGui::Text("Gaussian Model Properties");
+drawComponent<VkRender::QuadricCollectionComponent>("Quadratic Model", entity, [this, &entity](VkRender::QuadricCollectionComponent & component) {
+    if (!entity.hasComponent<MeshComponent>()) {
+        entity.addComponent<MeshComponent>();
+    }
+    if (!entity.hasComponent<GroupComponent>()) {
+        entity.addComponent<GroupComponent>();
+    }
 
-            // Display the number of Gaussians
-            ImGui::Text("Number of Gaussians: %zu", component.size());
+    auto& modelTransform = entity.getOrAddComponent<TransformComponent>();
 
-            ImGui::Separator();
+    ImGui::Text("Quadratic Model Properties");
 
-            // Button to add a new Gaussian
-            component.addToRenderer = ImGui::Button("Add Gaussian");
-            if (component.addToRenderer) {
-                // Default values for a new Gaussian
-                glm::vec3 defaultMean(0.0f, 0.0f, 0.0f);
-                glm::vec3 defaultScale(0.3f); // Identity matrix
-                glm::quat defaultQuat(1.0f, 0.0f, 0.0f, 0.0f); // Identity matrix
-                float defaultOpacity = 1.0f;
-                glm::vec3 color(1.0f, 0.0f, 0.0f);
-                component.addGaussian(defaultMean, defaultScale, defaultQuat, defaultOpacity, color);
-            }
-            ImGui::SameLine();
-            if (ImGui::Button("Load from file")) {
-                std::vector<std::string> types{".ply"};
-                EditorUtils::openImportFileDialog("Load 3DGS .ply file", types, LayerUtils::PLY_3DGS,
-                                                  &m_loadFileFuture);
-            }
+    // Display the number of quadrics
+    size_t quadricCount = component.size();
+    ImGui::Text("Number of Quadrics: %zu", quadricCount);
+    ImGui::Separator();
+
+    // Button to add a new Quadric with default values
+    if (ImGui::Button("Add Quadric")) {
+        glm::vec3 defaultPos(0.0f, 0.0f, 0.0f);
+        glm::quat defaultRot(1.0f, 0.0f, 0.0f, 0.0f); // Identity rotation
+        // Default shape parameters: a, b, c, t_x, t_y.
+        // For example, a and b = 1, c = 1 (curvature), t_x and t_y = 2 to push tanh toward 1.
+        float defaultA = 1.0f;
+        float defaultB = 1.0f;
+        float defaultC = 1.0f;
+        float defaultTx = -1.0f;
+        float defaultTy = 1.0f;
+        // Additional constants: kernelScale = 1, threshold = 0.01, beta = 0.
+        component.addQuadric(defaultPos, defaultRot, defaultA, defaultB, defaultC, defaultTx, defaultTy, 1.0f, 0.01f, 0.0f);
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Load from file")) {
+        std::vector<std::string> types{".ply"};
+        EditorUtils::openImportFileDialog("Load Quadratic .ply file", types, LayerUtils::PLY_QUADRATIC, &m_loadFileFuture);
+    }
+    if (ImGui::Button("Remove All")) {
+        for (int i = 0; i < component.size(); ++i) {
+            std::string quadricName = "Quadric " + std::to_string(i);
+            auto entityInstance = m_context->activeScene()->getOrCreateEntityByName(quadricName);
+            m_context->activeScene()->destroyEntityRecursively(entityInstance);
+        }
+        component.removeAllQuadrics();
+        quadricCount = component.size();
+    }
+
+    ImGui::SameLine();
+if (ImGui::Button("Update Transforms")) {
+
+    for (int i = 0; i < component.size(); ++i) { // TODO loop over parent entity' children instead of this
+        std::string quadricName = "Quadric " + std::to_string(i);
+        auto entityInstance = m_context->activeScene()->getOrCreateEntityByName(quadricName);
+        entityInstance.setParent(entity); // TODO verify that the selected entity is indeed the quadric collection
+        auto& transform = entityInstance.getOrAddComponent<TransformComponent>();
+        transform.setPosition(component.positions[i]);
+        transform.setRotationQuaternion(component.rotations[i]);
+        glm::mat4 parentMatrix = entity.getComponent<TransformComponent>().getTransform(); // Get parent's transformation matrix
+        glm::mat4 worldMatrix = parentMatrix * transform.getTransform();
+        transform.setTransform(worldMatrix);
 
 
-            ImGui::Spacing();
+    }
+}
+    ImGui::Spacing();
 
-            // Iterate over each Gaussian and provide controls to modify them
-            if (component.size() < 10) {
-                for (size_t i = 0; i < component.size(); ++i) {
-                    ImGui::PushID(static_cast<int>(i)); // Ensure unique ID for ImGui widgets
-                    // Collapsible header for each Gaussian
-                    if (ImGui::CollapsingHeader(("Gaussian " + std::to_string(i)).c_str())) {
-                        // Mean Position Controls
-                        component.addToRenderer |= drawVec3Control("Position", component.means[i], 0.0f);
-                        component.addToRenderer |= drawVec3Control("Scale", component.scales[i], 0.0f, 0.1f);
-                        component.addToRenderer |= drawVec3Control("Color", component.colors[i], 0.0f, 0.1f);
-                        // Amplitude Control
-                        ImGui::Text("Opacity");
+    // For a small number of quadrics, display all entries
+    if (quadricCount < 10) {
+        for (size_t i = 0; i < quadricCount; ++i) {
+            ImGui::PushID(static_cast<int>(i)); // Unique ID for ImGui widgets
+            std::string quadricName = "Quadric " + std::to_string(i);
+            auto entityInstance = m_context->activeScene()->getOrCreateEntityByName(quadricName);
+            entityInstance.setParent(entity);
+            auto& transform = entityInstance.getOrAddComponent<TransformComponent>();
+            transform.setPosition(component.positions[i]);
+            transform.setRotationQuaternion(component.rotations[i]);
+            glm::mat4 parentMatrix = modelTransform.getTransform(); // Get parent's transformation matrix
+            glm::mat4 worldMatrix = parentMatrix * transform.getTransform();
+            transform.setTransform(worldMatrix);
 
-                        component.addToRenderer |= ImGui::DragFloat("##Opacity", &component.opacities[i], 0.1f, 0.0f,
-                                                                    10.0f);
+            auto& mesh = entityInstance.getOrAddComponent<MeshComponent>(QUADRIC);
+            auto quadricParams = std::dynamic_pointer_cast<QuadricMeshParameters>(mesh.meshParameters);
+            mesh.updateMeshData = false;
+            auto& material = entityInstance.getOrAddComponent<MaterialComponent>();
+            material.useVertexColor = true;
+
+            if (ImGui::CollapsingHeader((quadricName).c_str())) {
+                bool update = false;
+                update |= drawVec3Control("Position", component.positions[i], 0.0f);
+                update |= drawQuatControl("Rotation", component.rotations[i]);
+                update |= drawFloatControl("a", component.a[i], 1.0f, 0.1f);
+                update |= drawFloatControl("b", component.b[i], 1.0f, 0.1f);
+                update |= drawFloatControl("c (Curvature)", component.c[i], 1.0f, 0.1f);
+                update |= drawFloatControl("t_x", component.t_x[i], 2.0f, 0.1f);
+                update |= drawFloatControl("t_y", component.t_y[i], 2.0f, 0.1f);
+                update |= drawFloatControl("Kernel Scale", component.kernelScale[i], 1.0f, 0.1f);
+                update |= drawFloatControl("Threshold", component.threshold[i], 0.01f, 0.001f);
+                update |= drawFloatControl("Beta", component.beta[i], 0.0f, 0.1f);
+                ImGui::Separator();
+                update |= ImGui::SliderInt("GridResolution", &quadricParams->gridResolution, 0.0f, 1000.0f);
 
 
-                        // Button to remove this Gaussian
-                        ImGui::Spacing();
-                        if (ImGui::Button("Remove Gaussian")) {
-                            component.means.erase(component.means.begin() + i);
-                            component.scales.erase(component.scales.begin() + i);
-                            component.opacities.erase(component.opacities.begin() + i);
-                            component.rotations.erase(component.rotations.begin() + i);
-                            --i; // Adjust index after removal
-                        }
-                    }
 
-                    ImGui::PopID(); // Pop ID for this Gaussian
+                ImGui::Spacing();
+                if (ImGui::Button("Remove Quadric")) {
+                    m_context->activeScene()->destroyEntityRecursively(entityInstance);
+                    component.positions.erase(component.positions.begin() + i);
+                    component.rotations.erase(component.rotations.begin() + i);
+                    component.a.erase(component.a.begin() + i);
+                    component.b.erase(component.b.begin() + i);
+                    component.c.erase(component.c.begin() + i);
+                    component.t_x.erase(component.t_x.begin() + i);
+                    component.t_y.erase(component.t_y.begin() + i);
+                    component.kernelScale.erase(component.kernelScale.begin() + i);
+                    component.threshold.erase(component.threshold.begin() + i);
+                    component.beta.erase(component.beta.begin() + i);
+                    --quadricCount;
+                    --i; // Adjust index after removal
                 }
+
+                if (update) {
+                    mesh.updateMeshData = true;
+                    quadricParams->a          = component.a[i];
+                    quadricParams->b          = component.b[i];
+                    quadricParams->c          = component.c[i];
+                    quadricParams->t_x        = component.t_x[i];
+                    quadricParams->t_y        = component.t_y[i];
+                    quadricParams->kernelScale = component.kernelScale[i];
+                    quadricParams->threshold   = component.threshold[i];
+                    quadricParams->b_beta        = component.beta[i];
+                }
+
             }
-        });
+
+
+            ImGui::PopID();
+        }
+
+        return;
+    }
+
+    // For a large number of quadrics, show a single "selected" quadric for editing.
+    static int selectedQuadricIndex = 0;
+    if (selectedQuadricIndex < 0)
+        selectedQuadricIndex = 0;
+    if (selectedQuadricIndex >= (int)quadricCount)
+        selectedQuadricIndex = (int)quadricCount - 1;
+
+    ImGui::Text("Edit a Single Quadric (Large Set)");
+    ImGui::PushItemWidth(120.0f);
+    ImGui::InputInt("Quadric Index", &selectedQuadricIndex);
+    ImGui::PopItemWidth();
+    if (selectedQuadricIndex < 0)
+        selectedQuadricIndex = 0;
+    if (selectedQuadricIndex >= (int)quadricCount)
+        selectedQuadricIndex = (int)quadricCount - 1;
+
+    ImGui::SameLine();
+    if (ImGui::ArrowButton("PrevQuadric", ImGuiDir_Left)) {
+        selectedQuadricIndex--;
+        if (selectedQuadricIndex < 0)
+            selectedQuadricIndex = 0;
+    }
+    ImGui::SameLine();
+    if (ImGui::ArrowButton("NextQuadric", ImGuiDir_Right)) {
+        selectedQuadricIndex++;
+        if (selectedQuadricIndex >= (int)quadricCount)
+            selectedQuadricIndex = (int)quadricCount - 1;
+    }
+    ImGui::Separator();
+
+    {
+
+        size_t i = static_cast<size_t>(selectedQuadricIndex);
+
+        std::string quadricName = "Quadric " + std::to_string(selectedQuadricIndex);
+        auto entityInstance = m_context->activeScene()->getOrCreateEntityByName(quadricName);
+        entityInstance.setParent(entity);
+        auto& transform = entityInstance.getOrAddComponent<TransformComponent>();
+        transform.setPosition(component.positions[i]);
+        transform.setRotationQuaternion(component.rotations[i]);
+        glm::mat4 parentMatrix = modelTransform.getTransform(); // Get parent's transformation matrix
+        glm::mat4 worldMatrix = parentMatrix * transform.getTransform();
+        transform.setTransform(worldMatrix);
+        auto& mesh = entityInstance.getOrAddComponent<MeshComponent>(QUADRIC);
+        auto quadricParams = std::dynamic_pointer_cast<QuadricMeshParameters>(mesh.meshParameters);
+        mesh.updateMeshData = false;
+        auto& material = entityInstance.getOrAddComponent<MaterialComponent>();
+        material.useVertexColor = true;
+
+
+        ImGui::Text("Selected Quadric %d", selectedQuadricIndex + 1);
+        bool update = false;
+        update |= drawVec3Control("Position", component.positions[i], 0.0f);
+        update |= drawQuatControl("Rotation", component.rotations[i]);
+        update |= drawFloatControl("a", component.a[i], 1.0f, 0.1f);
+        update |= drawFloatControl("b", component.b[i], 1.0f, 0.1f);
+        update |= drawFloatControl("c (Curvature)", component.c[i], 1.0f, 0.1f);
+        update |= drawFloatControl("t_x", component.t_x[i], 2.0f, 0.1f);
+        update |= drawFloatControl("t_y", component.t_y[i], 2.0f, 0.1f);
+        update |= drawFloatControl("Kernel Scale", component.kernelScale[i], 1.0f, 0.1f);
+        update |= drawFloatControl("Threshold", component.threshold[i], 0.01f, 0.001f);
+        update |= drawFloatControl("Beta", component.beta[i], 0.0f, 0.1f);
+        ImGui::Spacing();
+
+        if (ImGui::Button("Remove This Quadric")) {
+            m_context->activeScene()->destroyEntityRecursively(entityInstance);
+
+            component.positions.erase(component.positions.begin() + i);
+            component.rotations.erase(component.rotations.begin() + i);
+            component.a.erase(component.a.begin() + i);
+            component.b.erase(component.b.begin() + i);
+            component.c.erase(component.c.begin() + i);
+            component.t_x.erase(component.t_x.begin() + i);
+            component.t_y.erase(component.t_y.begin() + i);
+            component.kernelScale.erase(component.kernelScale.begin() + i);
+            component.threshold.erase(component.threshold.begin() + i);
+            component.beta.erase(component.beta.begin() + i);
+            if (i >= component.size() && component.size() > 0)
+                i = component.size() - 1;
+            selectedQuadricIndex = static_cast<int>(i);
+        }
+
+        if (update) {
+            mesh.updateMeshData = true;
+            quadricParams->a          = component.a[i];
+            quadricParams->b          = component.b[i];
+            quadricParams->c          = component.c[i];
+            quadricParams->t_x        = component.t_x[i];
+            quadricParams->t_y        = component.t_y[i];
+            quadricParams->kernelScale = component.kernelScale[i];
+            quadricParams->threshold   = component.threshold[i];
+            quadricParams->b_beta        = component.beta[i];
+        }
+    }
+});
 
 
         drawComponent<GroupComponent>("Group", entity, [this](auto& component) {
@@ -919,6 +1193,7 @@ namespace VkRender {
                 m_selectionContext.addComponent<T>();
                 ImGui::CloseCurrentPopup();
             }
+
         }
     }
 
@@ -944,6 +1219,44 @@ namespace VkRender {
                 if (m_selectionContext.hasComponent<GaussianComponent2DGS>()) {
                     auto& comp = m_selectionContext.getComponent<GaussianComponent2DGS>();
                     comp.addGaussiansFromFile(loadFileInfo.path);
+                }
+            }
+            break;
+            case LayerUtils::PLY_QUADRATIC: {
+                if (m_selectionContext.hasComponent<QuadricCollectionComponent>()) {
+                    auto& comp = m_selectionContext.getComponent<QuadricCollectionComponent>();
+                    comp.addQuadricsFromFile(loadFileInfo.path);
+
+                    // Now add quadrics to scene:
+
+                    for (int i = 0; i < comp.size(); ++i) {
+                        std::string quadricName = "Quadric " + std::to_string(i);
+                        auto entityInstance = m_context->activeScene()->getOrCreateEntityByName(quadricName);
+                        entityInstance.setParent(m_selectionContext); // TODO verify that the selected entity is indeed the quadric collection
+                        auto& transform = entityInstance.getOrAddComponent<TransformComponent>();
+                        transform.setPosition(comp.positions[i]);
+                        transform.setRotationQuaternion(comp.rotations[i]);
+
+                        glm::mat4 parentMatrix = m_selectionContext.getComponent<TransformComponent>().getTransform(); // Get parent's transformation matrix
+                        glm::mat4 worldMatrix = parentMatrix * transform.getTransform();
+                        transform.setTransform(worldMatrix);
+
+                        auto& mesh = entityInstance.getOrAddComponent<MeshComponent>(QUADRIC);
+                        auto quadricParams = std::dynamic_pointer_cast<QuadricMeshParameters>(mesh.meshParameters);
+                        mesh.updateMeshData = false;
+                        auto& material = entityInstance.getOrAddComponent<MaterialComponent>();
+                        material.useVertexColor = true;
+
+                        quadricParams->a          = comp.a[i];
+                        quadricParams->b          = comp.b[i];
+                        quadricParams->c          = comp.c[i];
+                        quadricParams->t_x        = comp.t_x[i];
+                        quadricParams->t_y        = comp.t_y[i];
+                        quadricParams->kernelScale = comp.kernelScale[i];
+                        quadricParams->threshold   = comp.threshold[i];
+                        quadricParams->b_beta        = comp.beta[i];
+
+                    }
                 }
             }
             break;

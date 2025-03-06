@@ -47,7 +47,7 @@ namespace VkRender {
         std::shared_ptr<Scene> m_activeScene;
         CameraComponent* m_lastActiveCamera = nullptr;
 
-        SYCLDeviceSelector m_deviceSelector; //= SyclDeviceSelector(SyclDeviceSelector::DeviceType::GPU);
+        SYCLDeviceSelector m_deviceSelector = SYCLDeviceSelector(SYCLDeviceType::Default); //= SyclDeviceSelector(SyclDeviceSelector::DeviceType::GPU);
         SYCLGaussian2D gaussianRenderer2D;
         SYCLGaussian3D gaussianRenderer3D;
 

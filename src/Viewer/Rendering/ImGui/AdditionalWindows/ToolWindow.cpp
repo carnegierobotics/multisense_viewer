@@ -52,7 +52,7 @@ namespace VkRender {
 
         // Begin a new ImGui window called "Debug Window".
         ImGui::Begin("Tool Window");
-        uint32_t numCameras = 30;
+        uint32_t numCameras = 60;
         auto scene = m_context->activeScene();
 
         // Create a button labeled "Generate Cameras".
@@ -88,9 +88,15 @@ namespace VkRender {
         ImGui::SliderInt("Num Forward Passes", &numForward, 1, 200);
 
 
-        if (ImGui::Checkbox("Render Dataset", &m_checkRenderDataset) && m_checkRenderDataset) {
-            pathTracerUI->switchKernelDevice = true;
-            pathTracerUI->useSceneCamera = true;
+        if (ImGui::Checkbox("Render Dataset", &m_checkRenderDataset)){
+
+            if (m_checkRenderDataset) {
+                pathTracerUI->switchKernelDevice = true;
+                pathTracerUI->useSceneCamera = true;
+            } else {
+                pathTracerUI->bypassSave = false;
+                pathTracerUI->toggleRendering = false;
+            }
         }
 
         ImGui::Spacing();
@@ -136,6 +142,8 @@ namespace VkRender {
                 nextCamera.isActiveCamera() = true;
                 camera.isActiveCamera() = false;
                 pathTracerUI->clearImageMemory = true;
+                pathTracerUI->bypassSave = false;
+
             }
 
             if (m_cameraID == cameraEntities.size()) {
@@ -154,6 +162,7 @@ namespace VkRender {
             pathTracerUI->toggleRendering = false;
             m_cameraID = 0;
             pathTracerUI->bypassSave = false;
+            m_checkRenderDataset = false;
         }
 
         ImGui::Spacing();
@@ -256,12 +265,14 @@ namespace VkRender {
             // Add and configure the camera component.
             auto &camera = entity.addComponent<CameraComponent>();
             camera.cameraType = CameraComponent::PINHOLE;
-            camera.pinholeParameters.fx = 600;
-            camera.pinholeParameters.fy = 600;
-            camera.pinholeParameters.cx = 300;
-            camera.pinholeParameters.cy = 300;
-            camera.pinholeParameters.width = 600;
-            camera.pinholeParameters.height = 600;
+            camera.pinholeParameters.width =  1920  ;
+            camera.pinholeParameters.height = 1080 ;
+
+            camera.pinholeParameters.fx =    1300 ;
+            camera.pinholeParameters.fy =    1300 ;
+            camera.pinholeParameters.cx =    960 ;
+            camera.pinholeParameters.cy =    540 ;
+
             camera.pinholeParameters.focalLength = 10;
             camera.pinholeParameters.fNumber = 4;
             camera.updateParametersChanged();

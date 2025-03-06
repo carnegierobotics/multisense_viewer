@@ -75,6 +75,7 @@ namespace VkRender::PathTracer {
                 });
             }
 
+            queue.wait();
             uint32_t imageSize = m_pipelineSettings.width * m_pipelineSettings.height;
             queue.submit([&](sycl::handler& cgh) {
                 cgh.parallel_for<class AverageImageKernel>(
@@ -542,7 +543,297 @@ namespace VkRender::PathTracer {
 
         Log::Logger::getInstance()->info("Uploaded  {} Quadrics to renderkernel", m_gpu.numQuadrics);
         queue.wait();
+
+        // Build BVH leaves from quadrics.
+        auto leaves = buildBVHLeaves(quadricInputAssembly);
+        // Build the BVH nodes.
+        auto bvhNodes = buildBVH(leaves);
+
+        // Allocate device memory for BVH nodes.
+        size_t bvhSize = bvhNodes.size();
+        m_gpu.bvhNodes = sycl::malloc_device<BVHNode>(bvhSize, queue);
+
+        // Copy the BVH nodes from host to device.
+        queue.memcpy(m_gpu.bvhNodes, bvhNodes.data(), bvhSize * sizeof(BVHNode));
+
+        m_gpu.numBVHNodes = bvhSize;
+        Log::Logger::getInstance()->info("Uploaded {} BVH nodes for Quadrics", bvhSize);
+        queue.wait();
     }
+
+
+    float PhotonTracer::computeLocalZ(float x, float y, const QuadricInputAssembly &quadric) {
+        // Example quadric function.
+        // Adjust this to your actual quadric function.
+        float alphaX = std::tanh(quadric.t_x);
+        float alphaY = std::tanh(quadric.t_y);
+        // A simple quadratic form—modify as needed.
+        return quadric.c * (alphaX * (x * x) / (quadric.a * quadric.a) +
+                            alphaY * (y * y) / (quadric.b * quadric.b));
+    }
+
+    PhotonTracer::AABB PhotonTracer::computeLocalAABB(const QuadricInputAssembly &quadric) {
+
+        /*
+        const int gridSamples = 3; // 3x3 sampling grid (can increase for tighter bounds)
+        glm::vec3 localMin( std::numeric_limits<float>::max() );
+        glm::vec3 localMax( std::numeric_limits<float>::lowest() );
+        for (int i = 0; i < gridSamples; ++i) {
+            for (int j = 0; j < gridSamples; ++j) {
+                float u = float(i) / (gridSamples - 1);
+                float v = float(j) / (gridSamples - 1);
+                // Linearly interpolate x and y in local domain
+                float x = glm::mix(quadric.min.x, quadric.max.x, u);
+                float y = glm::mix(quadric.min.y, quadric.max.y, v);
+                float z = computeLocalZ(x, y, quadric);
+
+
+                glm::vec3 pt(x, y, z);
+                localMin = glm::min(localMin, pt);
+                localMax = glm::max(localMax, pt);
+            }
+        }
+        */
+
+        glm::vec3 localMin(-0.5f, -0.5f, -0.05f);
+        glm::vec3 localMax( 0.5f,  0.5f,  0.05f);
+        return { localMin, localMax };
+    }
+
+    PhotonTracer::AABB transformAABB(const PhotonTracer::AABB &localBox, const glm::mat4 &transform) {
+        std::array<glm::vec3, 8> localCorners = {
+            glm::vec3(localBox.min.x, localBox.min.y, localBox.min.z),
+            glm::vec3(localBox.min.x, localBox.min.y, localBox.max.z),
+            glm::vec3(localBox.min.x, localBox.max.y, localBox.min.z),
+            glm::vec3(localBox.min.x, localBox.max.y, localBox.max.z),
+            glm::vec3(localBox.max.x, localBox.min.y, localBox.min.z),
+            glm::vec3(localBox.max.x, localBox.min.y, localBox.max.z),
+            glm::vec3(localBox.max.x, localBox.max.y, localBox.min.z),
+            glm::vec3(localBox.max.x, localBox.max.y, localBox.max.z)
+        };
+
+        glm::vec3 worldMin( std::numeric_limits<float>::max() );
+        glm::vec3 worldMax( std::numeric_limits<float>::lowest() );
+        for (const auto &corner : localCorners) {
+            glm::vec4 cornerWorld4 = transform * glm::vec4(corner, 1.0f);
+            glm::vec3 cornerWorld = glm::vec3(cornerWorld4) / cornerWorld4.w;
+            worldMin = glm::min(worldMin, cornerWorld);
+            worldMax = glm::max(worldMax, cornerWorld);
+        }
+        return { worldMin, worldMax };
+    }
+
+
+    int buildBVHNode(std::vector<BVHNode> &nodes,
+                 std::vector<PhotonTracer::BVHLeaf> &leaves,
+                 size_t start, size_t end) {
+    BVHNode node;
+    node.isLeaf = false;
+    node.leftChild = -1;
+    node.rightChild = -1;
+    node.quadricIndex = -1;
+
+    // Compute the bounding box over leaves[start, end)
+    glm::vec3 nodeMin( std::numeric_limits<float>::max() );
+    glm::vec3 nodeMax( std::numeric_limits<float>::lowest() );
+    for (size_t i = start; i < end; i++) {
+        nodeMin = glm::min(nodeMin, leaves[i].bboxMin);
+        nodeMax = glm::max(nodeMax, leaves[i].bboxMax);
+    }
+    node.bboxMin = nodeMin;
+    node.bboxMax = nodeMax;
+
+    size_t count = end - start;
+    if (count == 1) {
+        // Leaf node: store the single quadric index.
+        node.isLeaf = true;
+        node.quadricIndex = leaves[start].quadricIndex;
+        int nodeIndex = nodes.size();
+        nodes.push_back(node);
+        return nodeIndex;
+    }
+
+    // Choose the axis with the greatest extent.
+    glm::vec3 extent = nodeMax - nodeMin;
+    int axis = 0;
+    if (extent.y > extent.x && extent.y > extent.z)
+        axis = 1;
+    else if (extent.z > extent.x && extent.z > extent.y)
+        axis = 2;
+
+    // Compute the center along the chosen axis.
+    float mid = 0.0f;
+    for (size_t i = start; i < end; i++) {
+        glm::vec3 center = 0.5f * (leaves[i].bboxMin + leaves[i].bboxMax);
+        mid += center[axis];
+    }
+    mid /= count;
+
+    // Partition the leaves so that those with centers < mid come first.
+    size_t pivot = std::partition(leaves.begin() + start, leaves.begin() + end,
+        [axis, mid](const PhotonTracer::BVHLeaf &leaf) {
+            glm::vec3 center = 0.5f * (leaf.bboxMin + leaf.bboxMax);
+            return center[axis] < mid;
+        }
+    ) - leaves.begin();
+
+    // If the partition fails (all on one side), split in half.
+    if (pivot == start || pivot == end) {
+        pivot = start + count / 2;
+    }
+
+    int leftChild = buildBVHNode(nodes, leaves, start, pivot);
+    int rightChild = buildBVHNode(nodes, leaves, pivot, end);
+    node.leftChild = leftChild;
+    node.rightChild = rightChild;
+
+    int nodeIndex = nodes.size();
+    nodes.push_back(node);
+    return nodeIndex;
+}
+
+    std::vector<PhotonTracer::BVHLeaf> PhotonTracer::buildBVHLeaves(const std::vector<QuadricInputAssembly>& quadrics) {
+        std::vector<BVHLeaf> leaves;
+        for (size_t i = 0; i < quadrics.size(); i++) {
+            const auto &quad = quadrics[i];
+            // Compute local AABB by sampling the quadric's domain.
+            AABB localBox = computeLocalAABB(quad);
+            // Transform local AABB into world space.
+            AABB worldBox = transformAABB(localBox, quad.transform.getTransform());
+            BVHLeaf leaf{};
+            leaf.bboxMin = worldBox.min;
+            leaf.bboxMax = worldBox.max;
+            leaf.quadricIndex = i;
+            leaves.push_back(leaf);
+        }
+        return leaves;
+    }
+
+
+std::vector<BVHNode> PhotonTracer::buildBVH(const std::vector<BVHLeaf> &inputLeaves) {
+    std::vector<BVHLeaf> leaves = inputLeaves; // make a copy to allow reordering
+    std::vector<BVHNode> nodes;
+    buildBVHNode(nodes, leaves, 0, leaves.size());
+    return nodes;
+}
+
+
+    PhotonTracer::~PhotonTracer() {
+        if (m_imageMemory) {
+            delete[] m_imageMemory;
+            Log::Logger::getInstance()->trace("Freed CPU Memory: imageMemory");
+        }
+        if (m_backwardInfo.gradients) {
+            delete[] m_backwardInfo.gradients;
+            Log::Logger::getInstance()->trace("Freed CPU Memory: gradients");
+        }
+        if (m_backwardInfo.sumQuadricGradients) {
+            delete[] m_backwardInfo.sumQuadricGradients;
+            Log::Logger::getInstance()->trace("Freed CPU Memory: sumQuadricGradients");
+        }
+        freeResources();
+    }
+
+
+    /* Draw rays
+     {
+        auto view = m_scene->getRegistry().view<CameraComponent, TransformComponent, MeshComponent>();
+        for (auto e: view) {
+            Entity entity(e, m_scene.get());
+            auto &transform = entity.getComponent<TransformComponent>();
+            auto camera = std::dynamic_pointer_cast<PinholeCamera>(entity.getComponent<CameraComponent>().camera);
+            if (!camera || entity.getComponent<CameraComponent>().isActiveCamera())
+                continue;
+            float fx = camera->m_fx;
+            float fy = camera->m_fy;
+            float cx = camera->m_cx;
+            float cy = camera->m_cy;
+            float width = camera->m_width;
+            float height = camera->m_height;
+
+
+            // Helper lambda to create a ray entity
+            auto updateRayEntity = [&](Entity cornerEntity, float x, float y) {
+                MeshComponent *mesh;
+                if (!cornerEntity.hasComponent<MeshComponent>())
+                    mesh = &cornerEntity.addComponent<MeshComponent>(CYLINDER);
+                else
+                    mesh = &cornerEntity.getComponent<MeshComponent>();
+
+                if (!cornerEntity.hasComponent<TemporaryComponent>())
+                    cornerEntity.addComponent<TemporaryComponent>();
+
+
+                cornerEntity.getComponent<TransformComponent>() = transform;
+                auto cylinderParams = std::dynamic_pointer_cast<CylinderMeshParameters>(mesh->meshParameters);
+                // The cylinder magnitude is how long the cylinder is.
+                // Start the cylinder at the camera origin
+                cylinderParams->origin = glm::vec3(0.0f, 0.0f, 0.0f);
+
+                // Choose a plane at Z = -1 for visualization. Objects in front of the camera have negative Z.
+                float Z_plane = -1.0f;
+
+                auto mapPixelTo3D = [&](float u, float v) {
+                    float X = -(u - cx) * Z_plane / fx;
+                    float Y = -(v - cy) * Z_plane / fy; // Notice the minus sign before (v - cy)
+                    float Z = Z_plane;
+                    return glm::vec3(X, Y, Z);
+                };
+                glm::vec3 direction = mapPixelTo3D(x, y);
+
+
+                cylinderParams->direction = glm::normalize(direction);
+                cylinderParams->magnitude = glm::length(direction);
+                cylinderParams->radius = 0.01f;
+                mesh->updateMeshData = true;
+            };
+
+            auto groupEntity = m_scene->getOrCreateEntityByName("Rays");
+            if (!groupEntity.hasComponent<GroupComponent>())
+                groupEntity.addComponent<GroupComponent>();
+            if (!groupEntity.hasComponent<TemporaryComponent>())
+                groupEntity.addComponent<TemporaryComponent>();
+            if (!groupEntity.hasComponent<VisibleComponent>())
+                groupEntity.addComponent<VisibleComponent>(); // For visibility toggling
+
+            auto topLeftEntity = m_scene->getOrCreateEntityByName("TopLeft");
+            auto topRightEntity = m_scene->getOrCreateEntityByName("TopRight");
+
+            auto bottomLeftEntity = m_scene->getOrCreateEntityByName("BottomLeft");
+            auto bottomRightEntity = m_scene->getOrCreateEntityByName("BottomRight");
+
+
+            updateRayEntity(topLeftEntity, 0.0f, 0.0f);
+            updateRayEntity(topRightEntity, width, 0.0f);
+            updateRayEntity(bottomLeftEntity, width, height);
+            updateRayEntity(bottomRightEntity, 0.0f, height);
+
+            topLeftEntity.setParent(groupEntity);
+            topRightEntity.setParent(groupEntity);
+            bottomLeftEntity.setParent(groupEntity);
+            bottomRightEntity.setParent(groupEntity);
+
+            //auto centerRayEntity = m_scene->getOrCreateEntityByName("CenterRay");
+            //updateRayEntity(centerRayEntity, width / 2, height / 2);
+
+            // Generate rays for every 10th pixel
+            for (int x = 0; x < width; x += 100) {
+                for (int y = 0; y < height; y += 100) {
+                    // Create a unique name for the ray entity
+                    std::string rayEntityName = "Ray_" + std::to_string(x) + "_" + std::to_string(y);
+
+                    // Get or create the entity for this ray
+                    auto rayEntity = m_scene->getOrCreateEntityByName(rayEntityName);
+                    rayEntity.setParent(groupEntity);
+
+                    // Update the ray entity's position or other attributes based on the pixel coordinates
+                    updateRayEntity(rayEntity, static_cast<float>(x), static_cast<float>(y));
+                }
+            }
+        }
+    }
+    */
+
 
     void PhotonTracer::uploadVertexData(std::shared_ptr<Scene>& scene) {
         /*
@@ -668,121 +959,4 @@ namespace VkRender::PathTracer {
         m_gpu.numEntities = static_cast<uint32_t>(transformMatrices.size()); // Number of entities for rendering
         */
     }
-
-
-    PhotonTracer::~PhotonTracer() {
-        if (m_imageMemory) {
-            delete[] m_imageMemory;
-            Log::Logger::getInstance()->trace("Freed CPU Memory: imageMemory");
-        }
-        if (m_backwardInfo.gradients) {
-            delete[] m_backwardInfo.gradients;
-            Log::Logger::getInstance()->trace("Freed CPU Memory: gradients");
-        }
-        if (m_backwardInfo.sumQuadricGradients) {
-            delete[] m_backwardInfo.sumQuadricGradients;
-            Log::Logger::getInstance()->trace("Freed CPU Memory: sumQuadricGradients");
-        }
-        freeResources();
-    }
-
-
-    /* Draw rays
-     {
-        auto view = m_scene->getRegistry().view<CameraComponent, TransformComponent, MeshComponent>();
-        for (auto e: view) {
-            Entity entity(e, m_scene.get());
-            auto &transform = entity.getComponent<TransformComponent>();
-            auto camera = std::dynamic_pointer_cast<PinholeCamera>(entity.getComponent<CameraComponent>().camera);
-            if (!camera || entity.getComponent<CameraComponent>().isActiveCamera())
-                continue;
-            float fx = camera->m_fx;
-            float fy = camera->m_fy;
-            float cx = camera->m_cx;
-            float cy = camera->m_cy;
-            float width = camera->m_width;
-            float height = camera->m_height;
-
-
-            // Helper lambda to create a ray entity
-            auto updateRayEntity = [&](Entity cornerEntity, float x, float y) {
-                MeshComponent *mesh;
-                if (!cornerEntity.hasComponent<MeshComponent>())
-                    mesh = &cornerEntity.addComponent<MeshComponent>(CYLINDER);
-                else
-                    mesh = &cornerEntity.getComponent<MeshComponent>();
-
-                if (!cornerEntity.hasComponent<TemporaryComponent>())
-                    cornerEntity.addComponent<TemporaryComponent>();
-
-
-                cornerEntity.getComponent<TransformComponent>() = transform;
-                auto cylinderParams = std::dynamic_pointer_cast<CylinderMeshParameters>(mesh->meshParameters);
-                // The cylinder magnitude is how long the cylinder is.
-                // Start the cylinder at the camera origin
-                cylinderParams->origin = glm::vec3(0.0f, 0.0f, 0.0f);
-
-                // Choose a plane at Z = -1 for visualization. Objects in front of the camera have negative Z.
-                float Z_plane = -1.0f;
-
-                auto mapPixelTo3D = [&](float u, float v) {
-                    float X = -(u - cx) * Z_plane / fx;
-                    float Y = -(v - cy) * Z_plane / fy; // Notice the minus sign before (v - cy)
-                    float Z = Z_plane;
-                    return glm::vec3(X, Y, Z);
-                };
-                glm::vec3 direction = mapPixelTo3D(x, y);
-
-
-                cylinderParams->direction = glm::normalize(direction);
-                cylinderParams->magnitude = glm::length(direction);
-                cylinderParams->radius = 0.01f;
-                mesh->updateMeshData = true;
-            };
-
-            auto groupEntity = m_scene->getOrCreateEntityByName("Rays");
-            if (!groupEntity.hasComponent<GroupComponent>())
-                groupEntity.addComponent<GroupComponent>();
-            if (!groupEntity.hasComponent<TemporaryComponent>())
-                groupEntity.addComponent<TemporaryComponent>();
-            if (!groupEntity.hasComponent<VisibleComponent>())
-                groupEntity.addComponent<VisibleComponent>(); // For visibility toggling
-
-            auto topLeftEntity = m_scene->getOrCreateEntityByName("TopLeft");
-            auto topRightEntity = m_scene->getOrCreateEntityByName("TopRight");
-
-            auto bottomLeftEntity = m_scene->getOrCreateEntityByName("BottomLeft");
-            auto bottomRightEntity = m_scene->getOrCreateEntityByName("BottomRight");
-
-
-            updateRayEntity(topLeftEntity, 0.0f, 0.0f);
-            updateRayEntity(topRightEntity, width, 0.0f);
-            updateRayEntity(bottomLeftEntity, width, height);
-            updateRayEntity(bottomRightEntity, 0.0f, height);
-
-            topLeftEntity.setParent(groupEntity);
-            topRightEntity.setParent(groupEntity);
-            bottomLeftEntity.setParent(groupEntity);
-            bottomRightEntity.setParent(groupEntity);
-
-            //auto centerRayEntity = m_scene->getOrCreateEntityByName("CenterRay");
-            //updateRayEntity(centerRayEntity, width / 2, height / 2);
-
-            // Generate rays for every 10th pixel
-            for (int x = 0; x < width; x += 100) {
-                for (int y = 0; y < height; y += 100) {
-                    // Create a unique name for the ray entity
-                    std::string rayEntityName = "Ray_" + std::to_string(x) + "_" + std::to_string(y);
-
-                    // Get or create the entity for this ray
-                    auto rayEntity = m_scene->getOrCreateEntityByName(rayEntityName);
-                    rayEntity.setParent(groupEntity);
-
-                    // Update the ray entity's position or other attributes based on the pixel coordinates
-                    updateRayEntity(rayEntity, static_cast<float>(x), static_cast<float>(y));
-                }
-            }
-        }
-    }
-    */
 }

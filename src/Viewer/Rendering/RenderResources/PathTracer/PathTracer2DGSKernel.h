@@ -289,168 +289,220 @@ namespace VkRender::PathTracer {
             return false;
         }
 
-        bool geometryIntersectionQuadric(
-            size_t gaussianID,
-            const glm::vec3 &rayOrigin,
-            const glm::vec3 &rayDir,
-            size_t &hitEntity,
-            float &closest_t,
-            glm::vec3 &hitPointWorld,
-            glm::vec3 &hitNormalWorld,
-            float &betaContribution
-        ) const {
-            bool hitSomething = false;
-            float tMinGlobal = std::numeric_limits<float>::max();
-            glm::vec3 bestHitPoint(0.0f), bestHitNormal(0.0f);
-            float bestBetaContribution = std::numeric_limits<float>::lowest(); // or 0.0f
+   // Helper function: ray-AABB intersection (using the slab method)
+// Returns true if the ray (origin, dir) hits the AABB between t=0 and t_max.
+bool rayAABBIntersect(const glm::vec3 &origin, const glm::vec3 &dir,
+                             const glm::vec3 &bboxMin, const glm::vec3 &bboxMax,
+                             float t_max) const {
+    float tmin = 0.0f;
+    float tmax = t_max;
+    for (int i = 0; i < 3; i++) {
+        float invD = 1.0f / dir[i];
+        float t0 = (bboxMin[i] - origin[i]) * invD;
+        float t1 = (bboxMax[i] - origin[i]) * invD;
+        if (invD < 0.0f)
+            std::swap(t0, t1);
+        tmin = t0 > tmin ? t0 : tmin;
+        tmax = t1 < tmax ? t1 : tmax;
+        if (tmax <= tmin)
+            return false;
+    }
+    return true;
+}
 
-            // Iterate over each quadric
-            for (size_t i = 0; i < m_gpuData.numQuadrics; i++) {
-                auto &quadric = m_gpuData.quadricInputAssembly[i];
+// Helper function: performs detailed intersection test for one quadric.
+// Returns true if the ray (origin, dir) intersects the given quadric.
+// Fills tCandidate, hitWorld, hitNormal, and beta (the kernel value).
+inline bool intersectQuadricLeaf(const glm::vec3 &origin, const glm::vec3 &dir,
+                                 const QuadricInputAssembly &quadric,
+                                 float &tCandidate,
+                                 glm::vec3 &hitWorld,
+                                 glm::vec3 &hitNormal,
+                                 float &beta) const {
+    // Transform the ray into local space.
+    glm::mat4 transform = quadric.transform.getTransform();
+    float det = glm::determinant(transform);
+    if (fabs(det) < 1e-6f)
+        return false; // Invalid transform
 
-                // 1) Build M^-1 to transform the ray into local quadric coordinates
-                auto transform = quadric.transform.getTransform();
-                float det = glm::determinant(transform);
-                if (fabs(det) < 1e-6f)
-                    continue; // skip invalid transform
+    glm::mat4 localFromWorld = glm::inverse(transform);
+    glm::vec4 o4 = localFromWorld * glm::vec4(origin, 1.0f);
+    glm::vec4 d4 = localFromWorld * glm::vec4(dir, 0.0f);
+    glm::vec3 o = glm::vec3(o4);
+    glm::vec3 d = glm::vec3(d4);
 
-                glm::mat4 localFromWorld = glm::inverse(transform);
+    // Shorthand parameters.
+    float alphaX = std::tanh(quadric.t_x);
+    float alphaY = std::tanh(quadric.t_y);
 
-                // Transform origin and direction
-                glm::vec4 o4 = localFromWorld * glm::vec4(rayOrigin, 1.0f); // local-space origin
-                glm::vec4 d4 = localFromWorld * glm::vec4(rayDir, 0.0f); // local-space direction
-                glm::vec3 o = glm::vec3(o4); // for affine transforms, o4.w==1
-                glm::vec3 d = glm::vec3(d4);
+    // Solve quadratic: A*t^2 + B*t + C = 0.
+    float Ax = d.x;
+    float Ay = d.y;
+    float Az = d.z;
+    float Ox = o.x;
+    float Oy = o.y;
+    float Oz = o.z;
 
-                // 2) Define shorthand parameters
-                float alphaX = std::tanh(quadric.t_x);
-                float alphaY = std::tanh(quadric.t_y);
+    float A = quadric.c * (
+                alphaX * (Ax * Ax) / (quadric.a * quadric.a) +
+                alphaY * (Ay * Ay) / (quadric.b * quadric.b)
+              );
+    float B = quadric.c * (
+                2.0f * alphaX * Ox * Ax / (quadric.a * quadric.a) +
+                2.0f * alphaY * Oy * Ay / (quadric.b * quadric.b)
+              ) - Az;
+    float C = quadric.c * (
+                alphaX * (Ox * Ox) / (quadric.a * quadric.a) +
+                alphaY * (Oy * Oy) / (quadric.b * quadric.b)
+              ) - Oz;
 
-                // 3) Expand f(x(t), y(t), z(t)) = 0 into A t^2 + B t + C = 0
-                float Ax = d.x;
-                float Ay = d.y;
-                float Az = d.z;
-                float Ox = o.x;
-                float Oy = o.y;
-                float Oz = o.z;
+    float eps = 1e-5f;
+    tCandidate = std::numeric_limits<float>::max();
+    if (fabs(A) < eps) {
+        if (fabs(B) < eps)
+            return false; // No solution
+        float tLin = -C / B;
+        if (tLin > eps)
+            tCandidate = tLin;
+        else
+            return false;
+    } else {
+        float disc = (B * B) - 4.0f * A * C;
+        if (disc < 0.0f)
+            return false; // No real roots
 
-                float A = quadric.c * (
-                              alphaX * (Ax * Ax) / (quadric.a * quadric.a) +
-                              alphaY * (Ay * Ay) / (quadric.b * quadric.b)
-                          );
-                float B = quadric.c * (
-                              2.0f * alphaX * Ox * Ax / (quadric.a * quadric.a) +
-                              2.0f * alphaY * Oy * Ay / (quadric.b * quadric.b)
-                          ) - Az;
-                float C = quadric.c * (
-                              alphaX * (Ox * Ox) / (quadric.a * quadric.a) +
-                              alphaY * (Oy * Oy) / (quadric.b * quadric.b)
-                          ) - Oz;
+        float sqrtDisc = std::sqrt(disc);
+        float t1 = (-B - sqrtDisc) / (2.0f * A);
+        float t2 = (-B + sqrtDisc) / (2.0f * A);
+        float tMin = std::numeric_limits<float>::max();
+        if (t1 > eps && t1 < tMin)
+            tMin = t1;
+        if (t2 > eps && t2 < tMin)
+            tMin = t2;
+        if (tMin == std::numeric_limits<float>::max())
+            return false; // No valid solution
+        tCandidate = tMin;
+    }
 
-                float eps = 1e-5f;
-                float tCandidate = std::numeric_limits<float>::max();
-                // 4) Solve the quadratic (or linear) equation for t
-                if (fabs(A) < eps) {
-                    if (fabs(B) < eps)
-                        continue; // no valid solution
-                    float tLin = -C / B;
-                    if (tLin > eps) {
-                        tCandidate = tLin;
-                    } else {
-                        continue;
-                    }
-                } else {
+    // Compute the local hit point.
+    glm::vec3 hitLocal = o + d * tCandidate;
+    // Transform back to world space.
+    glm::vec4 hitW4 = quadric.transform.getTransform() * glm::vec4(hitLocal, 1.0f);
+    hitWorld = glm::vec3(hitW4) / hitW4.w;
 
-                    float disc = (B * B) - 4.0f * A * C;
-                    if (disc < 0.0f)
-                        continue; // no real solutions
+    // Check if hitLocal is within valid (x,y) bounds.
+    if (hitLocal.x < quadric.min.x || hitLocal.x > quadric.max.x)
+        return false;
+    if (hitLocal.y < quadric.min.y || hitLocal.y > quadric.max.y)
+        return false;
 
-                    float sqrtDisc = std::sqrt(disc);
-                    float t1 = (-B - sqrtDisc) / (2.0f * A);
-                    float t2 = (-B + sqrtDisc) / (2.0f * A);
+    // Evaluate the beta kernel.
+    float R_general = std::sqrt(
+        std::fabs(alphaX) * (hitLocal.x * hitLocal.x) / (quadric.a * quadric.a) +
+        std::fabs(alphaY) * (hitLocal.y * hitLocal.y) / (quadric.b * quadric.b)
+    );
+    float r = R_general / quadric.kernelScale;
+    auto betaKernel = [&](float r, float bExp) -> float {
+        if (r > 1.0f)
+            r = 1.0f;
+        return std::pow(1.0f - r * r, 4.0f * std::exp(bExp));
+    };
+    float bkValue = betaKernel(r, quadric.b_beta);
+    if (bkValue < quadric.threshold)
+        return false; // Not within threshold
 
-                    float tMin = std::numeric_limits<float>::max();
-                    if (t1 > eps && t1 < tMin)
-                        tMin = t1;
-                    if (t2 > eps && t2 < tMin)
-                        tMin = t2;
-                    if (tMin == std::numeric_limits<float>::max())
-                        continue; // no positive solution
+    // Compute the local normal via the gradient.
+    glm::vec3 gradLocal(
+        2.0f * quadric.c * alphaX * hitLocal.x / (quadric.a * quadric.a),
+        2.0f * quadric.c * alphaY * hitLocal.y / (quadric.b * quadric.b),
+        -1.0f
+    );
+    glm::mat3 mat = glm::mat3(quadric.transform.getTransform());
+    float det2 = glm::determinant(mat);
+    if (fabs(det2) < 1e-6f)
+        return false;
+    glm::mat3 invT = glm::inverseTranspose(mat);
+    glm::vec3 normalW = glm::normalize(invT * gradLocal);
+    if (glm::dot(normalW, dir) > 0.0f)
+        normalW = -normalW;
 
-                    tCandidate = tMin;
-                }
+    hitNormal = normalW;
+    beta = bkValue;
+    return true;
+}
 
-                // 5) Compute the local hit point and check bounds
-                glm::vec3 hitLocal = o + d * tCandidate;
+// Main function: BVH traversal version of geometryIntersectionQuadric.
+// Instead of iterating over all quadrics, we traverse the BVH stored in m_gpuData.bvhNodes.
+bool geometryIntersectionQuadric(
+    size_t gaussianID,
+    const glm::vec3 &rayOrigin,
+    const glm::vec3 &rayDir,
+    size_t &hitEntity,
+    float &closest_t,
+    glm::vec3 &hitPointWorld,
+    glm::vec3 &hitNormalWorld,
+    float &betaContribution
+) const {
+    // Set up initial values.
+    float tMinGlobal = std::numeric_limits<float>::max();
+    bool hitFound = false;
+    size_t bestQuadricIndex = 0;
+    glm::vec3 bestHitPoint(0.0f), bestHitNormal(0.0f);
+    float bestBeta = 0.0f;
 
-                glm::vec4 hitW4    = quadric.transform.getTransform() * glm::vec4(hitLocal, 1.f);
-                glm::vec3 hitWorld = glm::vec3(hitW4) / hitW4.w;
+    // Set up an iterative traversal stack.
+    const int MAX_STACK_SIZE = 64;
+    int stack[MAX_STACK_SIZE];
+    int stackPtr = 0;
+    // Push the BVH root index (assumed 0) onto the stack.
+    stack[stackPtr++] = 0;
 
+    // Traverse the BVH iteratively.
+    while (stackPtr > 0) {
+        int currentIndex = stack[--stackPtr];
+        const BVHNode &node = m_gpuData.bvhNodes[currentIndex];
 
-                if (hitLocal.x < quadric.min.x || hitLocal.x > quadric.max.x)
-                    continue;
-                if (hitLocal.y < quadric.min.y || hitLocal.y > quadric.max.y)
-                    continue;
+        // Test ray against node's bounding box.
+        if (!rayAABBIntersect(rayOrigin, rayDir, node.bboxMin, node.bboxMax, tMinGlobal))
+            continue;
 
-                // 6) Compute the radial coordinate and evaluate the beta kernel
-                float R_general = std::sqrt(
-                    std::fabs(alphaX) * (hitLocal.x * hitLocal.x) / (quadric.a * quadric.a) +
-                    std::fabs(alphaY) * (hitLocal.y * hitLocal.y) / (quadric.b * quadric.b)
-                );
-                float r = R_general / quadric.kernelScale;
-                auto betaKernel = [&](float r, float bExp) {
-                    if (r > 1.0f)
-                        r = 1.0f;
-                    return std::pow(1.0f - r * r, 4.0f * std::exp(bExp));
-                };
-                float bkValue = betaKernel(r, quadric.b_beta);
-
-                if (bkValue < quadric.threshold)
-                    continue; // hit is not within the beta kernel threshold
-
-                // 7) Check if this hit is the closest so far
+        if (node.isLeaf) {
+            // Leaf node: perform the detailed quadric intersection test.
+            float tCandidate;
+            glm::vec3 localHitPoint, localHitNormal;
+            float beta;
+            const QuadricInputAssembly &quadric = m_gpuData.quadricInputAssembly[node.quadricIndex];
+            if (intersectQuadricLeaf(rayOrigin, rayDir, quadric, tCandidate, localHitPoint, localHitNormal, beta)) {
                 if (tCandidate < tMinGlobal) {
                     tMinGlobal = tCandidate;
-                    bestBetaContribution = bkValue;
-                    // Transform local hit point back to world space
-                    glm::vec4 hitW4 = quadric.transform.getTransform() * glm::vec4(hitLocal, 1.0f);
-                    glm::vec3 hitW = glm::vec3(hitW4) / hitW4.w;
-                    bestHitPoint = hitW;
-
-                    // 8) Compute the local normal via the gradient
-                    glm::vec3 gradLocal(
-                        2.0f * quadric.c * alphaX * hitLocal.x / (quadric.a * quadric.a),
-                        2.0f * quadric.c * alphaY * hitLocal.y / (quadric.b * quadric.b),
-                        -1.0f
-                    );
-
-                    // Transform the local normal to world space
-                    glm::mat3 mat = glm::mat3(quadric.transform.getTransform());
-                    float det2 = glm::determinant(mat);
-                    if (fabs(det2) < 1e-6f)
-                        continue;
-                    glm::mat3 invT = glm::inverseTranspose(mat);
-                    glm::vec3 normalW = glm::normalize(invT * gradLocal);
-                    if (glm::dot(normalW, rayDir) > 0.0f)
-                        normalW = -normalW;
-                    bestHitNormal = normalW;
-
-                    hitEntity = i;
-                    hitSomething = true;
+                    bestQuadricIndex = node.quadricIndex;
+                    bestHitPoint = localHitPoint;
+                    bestHitNormal = localHitNormal;
+                    bestBeta = beta;
+                    hitFound = true;
                 }
             }
-
-            // If we found a valid hit among all quadrics, update the output parameters.
-            if (hitSomething) {
-                closest_t = tMinGlobal;
-                hitPointWorld = bestHitPoint;
-                hitNormalWorld = bestHitNormal;
-                betaContribution = bestBetaContribution;
-                return true;
+        } else {
+            // Internal node: push its child nodes onto the stack.
+            if (stackPtr + 2 < MAX_STACK_SIZE) {
+                stack[stackPtr++] = node.leftChild;
+                stack[stackPtr++] = node.rightChild;
             }
-
-            return false;
         }
+    }
+
+    // If a hit was found, update the output parameters.
+    if (hitFound) {
+        hitEntity = bestQuadricIndex;
+        closest_t = tMinGlobal;
+        hitPointWorld = bestHitPoint;
+        hitNormalWorld = bestHitNormal;
+        betaContribution = bestBeta;
+        return true;
+    }
+    return false;
+}
+
 
 
         bool geometryIntersection2DGS(

@@ -33,7 +33,6 @@ namespace VkRender::PathTracer {
         // Quadrics:
         torch::Tensor quadrics; // nx8 vectors
         torch::Tensor quadricPositions;
-
     };
 #else
     struct GPUDataTensors;
@@ -84,20 +83,20 @@ namespace VkRender::PathTracer {
 
     struct QuadricInputAssembly {
         // Quadric parameters
-        float a       = 1.0f;  // Scale in x
-        float b       = 1.0f;  // Scale in y
-        float c       = 1.0f;  // Curvature scale
-        float t_x     = 1.0f;  // Param controlling sign in x-direction
-        float t_y     = 1.0f;  // Param controlling sign in y-direction
+        float a = 1.0f; // Scale in x
+        float b = 1.0f; // Scale in y
+        float c = 1.0f; // Curvature scale
+        float t_x = 1.0f; // Param controlling sign in x-direction
+        float t_y = 1.0f; // Param controlling sign in y-direction
 
         // Sampling parameters
         glm::vec2 min = glm::vec2(-10.0f);
         glm::vec2 max = glm::vec2(10.0f);
 
         // Beta kernel parameters:
-        float b_beta      = 0.0f;   // exponent shift
-        float threshold   = 0.1f;   // radial kernel threshold
-        float kernelScale = 1.0f;   // normalizes the radial coordinate
+        float b_beta = 0.0f; // exponent shift
+        float threshold = 0.1f; // radial kernel threshold
+        float kernelScale = 1.0f; // normalizes the radial coordinate
 
         // Appearance
         float emission; // Emissive power
@@ -117,8 +116,18 @@ namespace VkRender::PathTracer {
         float gamma = 0.0f;
         uint32_t numBounces = 0;
         uint32_t frameID = 0;
-
     };
+
+    struct BVHNode {
+        glm::vec3 bboxMin = glm::vec3(0.0f);
+        glm::vec3 bboxMax = glm::vec3(0.0f);
+        int leftChild = -1; // index into BVH nodes array (or -1 if leaf)
+        int rightChild = -1; // index into BVH nodes array (or -1 if leaf)
+        // For leaf nodes, you can store the quadric index.
+        int quadricIndex = -1;
+        bool isLeaf = false;
+    };
+
 
     struct GPUData {
         // GS
@@ -129,11 +138,14 @@ namespace VkRender::PathTracer {
         QuadricInputAssembly* quadricInputAssembly = nullptr;
         size_t numQuadrics = 0;
         size_t numEntities = 0;
+        // QUadric BVH
+        BVHNode* bvhNodes = nullptr;
+        size_t numBVHNodes = 0;
 
         glm::vec3* gradients = nullptr;
         glm::vec3* quadricGradients = nullptr;
         glm::vec3* gaussianGradients = nullptr;
-        float * gradientImage = nullptr;
+        float* gradientImage = nullptr;
 
         float* imageMemory = nullptr;
         float* imageMemoryCounter = nullptr;
@@ -148,15 +160,15 @@ namespace VkRender::PathTracer {
     struct GPUDataOutput {
         // Direct lighting parameters
         bool hitCamera = false;
-        float emissionDirectionLength = 0.0f;     // etmin
+        float emissionDirectionLength = 0.0f; // etmin
 
         size_t gaussianID = UINT64_MAX;
 
-        glm::vec3 emissionOrigin = glm::vec3(0.0f);          // eo
-        glm::vec3 emissionDirection = glm::vec3(0.0f);       // ed
-        glm::vec3 apertureHitPoint = glm::vec3(0.0f);        // a
-        glm::vec3 cameraHitPointLocal = glm::vec3(0.0f);     // p
-        glm::vec3 directLightingDir = glm::vec3(0.0f);     // p
+        glm::vec3 emissionOrigin = glm::vec3(0.0f); // eo
+        glm::vec3 emissionDirection = glm::vec3(0.0f); // ed
+        glm::vec3 apertureHitPoint = glm::vec3(0.0f); // a
+        glm::vec3 cameraHitPointLocal = glm::vec3(0.0f); // p
+        glm::vec3 directLightingDir = glm::vec3(0.0f); // p
 
         struct Bounce {
             //Properties:
@@ -166,12 +178,10 @@ namespace VkRender::PathTracer {
             glm::vec3 outGoingDirection = glm::vec3(0.0f);
             glm::vec3 outGoingOrigin = glm::vec3(0.0f);
             bool hitCamera = false;
-            glm::vec3 apertureDirection = glm::vec3(0.0f);       // ed
-            glm::vec3 apertureHitPoint = glm::vec3(0.0f);        // a
-            glm::vec3 cameraHitPointLocal = glm::vec3(0.0f);     // p
-            float emissionDirectionLength = 0.0f;     // etmin
-
-
+            glm::vec3 apertureDirection = glm::vec3(0.0f); // ed
+            glm::vec3 apertureHitPoint = glm::vec3(0.0f); // a
+            glm::vec3 cameraHitPointLocal = glm::vec3(0.0f); // p
+            float emissionDirectionLength = 0.0f; // etmin
         };
 
         // 1 bounce
@@ -203,7 +213,7 @@ namespace VkRender::PathTracer {
 
         // Generate a random float in [0, 1)
         float nextFloat() {
-            return  static_cast<float>(nextUInt()) / static_cast<float>(UINT32_MAX);
+            return static_cast<float>(nextUInt()) / static_cast<float>(UINT32_MAX);
         }
     };
 }

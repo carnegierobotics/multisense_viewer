@@ -58,6 +58,19 @@ namespace VkRender::PathTracer {
             float* gradientImage = nullptr;
         };
 
+        struct BVHLeaf {
+            glm::vec3 bboxMin;
+            glm::vec3 bboxMax;
+            size_t quadricIndex;
+        };
+
+
+        struct AABB {
+            glm::vec3 min;
+            glm::vec3 max;
+        };
+
+
         PhotonTracer(Application* context, const PipelineSettings& pipelineSettings, std::shared_ptr<Scene> scene);
 
         void setExecutionDevice();
@@ -104,6 +117,10 @@ namespace VkRender::PathTracer {
         void uploadQuadricEntities(std::shared_ptr<Scene> &scene);
 
         void uploadVertexData(std::shared_ptr<Scene>& scene);
+        std::vector<BVHLeaf> buildBVHLeaves(const std::vector<QuadricInputAssembly>& quadrics);
+        std::vector<BVHNode> buildBVH(const std::vector<BVHLeaf>& inputLeaves);
+        float computeLocalZ(float x, float y, const QuadricInputAssembly& quadric);
+        AABB computeLocalAABB(const QuadricInputAssembly& quadric);
     };
 
 #else

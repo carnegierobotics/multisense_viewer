@@ -177,19 +177,23 @@ namespace VkRender {
 
                 std::random_device rd;
                 std::mt19937 gen(rd()); // Mersenne Twister RNG
-                std::normal_distribution<float> dist(0.0f, 0.1f); // Mean 0, standard deviation 0.01
+                std::normal_distribution<float> dist(0.0f, 0.15f); // Mean 0, standard deviation 0.01
 
                 // Convert and add each quadric.
                 for (size_t i = 0; i < count; ++i) {
+
                     glm::vec3 pos(
                         positionsPLY[i * 3 + 0] + dist(gen),
                         positionsPLY[i * 3 + 1] + dist(gen),
                         positionsPLY[i * 3 + 2] + dist(gen)
                     );
 
-                    //glm::vec3 pos( positionsPLY[i * 3 + 0],
+
+                    //glm::vec3 pos(
+                    //    positionsPLY[i * 3 + 0],
                     //    positionsPLY[i * 3 + 1],
-                    //    positionsPLY[i * 3 + 2]);
+                    //    positionsPLY[i * 3 + 2]
+                    //    );
 
                     positions.push_back(pos);
 

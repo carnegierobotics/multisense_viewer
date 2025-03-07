@@ -13,7 +13,7 @@
 #include "Viewer/Rendering/RenderResources/PathTracer/PathTracer2DGSKernelBackward.h"
 
 namespace VkRender::PathTracer {
-    PhotonTracer::PhotonTracer(Application* ctx, const PipelineSettings& pipelineSettings,
+    PhotonTracer::PhotonTracer(Application *ctx, const PipelineSettings &pipelineSettings,
                                std::shared_ptr<Scene> scene) : m_pipelineSettings(pipelineSettings),
                                                                m_context(ctx) {
         // Load the scene into gpu memory
@@ -37,12 +37,12 @@ namespace VkRender::PathTracer {
             m_pipelineSettings.height);
         Log::Logger::getInstance()->info("PathTracer on Device: {}",
                                          m_pipelineSettings.device().get_device().get_info<sycl::info::device::name>().
-                                                            c_str());
+                                         c_str());
     }
 
-    void PhotonTracer::update(RenderSettings& renderSettings) {
+    void PhotonTracer::update(RenderSettings &renderSettings) {
         try {
-            auto& queue = m_pipelineSettings.device();
+            auto &queue = m_pipelineSettings.device();
 
             // Update shared GPU/CPU render information
             m_renderInformation->frameID++;
@@ -52,9 +52,9 @@ namespace VkRender::PathTracer {
             Log::Logger::getInstance()->trace("Path Tracer: Uploading Render Information");
 
             queue.fill(m_gpu.imageMemoryCounter, static_cast<float>(0),
-           m_pipelineSettings.width * m_pipelineSettings.height);
+                       m_pipelineSettings.width * m_pipelineSettings.height);
             queue.fill(m_gpu.imageMemory, static_cast<float>(0),
-           m_pipelineSettings.width * m_pipelineSettings.height);
+                       m_pipelineSettings.width * m_pipelineSettings.height);
 
             queue.memcpy(m_gpu.renderInformation, m_renderInformation.get(), sizeof(RenderInformation));
             queue.memcpy(m_gpu.pinholeCamera, &renderSettings.camera, sizeof(PinholeCamera));
@@ -69,7 +69,7 @@ namespace VkRender::PathTracer {
             Log::Logger::getInstance()->trace("Path Tracer: Submitting Kernels");
 
             if (m_gpu.numGaussians > 0) {
-                queue.submit([&](sycl::handler& cgh) {
+                queue.submit([&](sycl::handler &cgh) {
                     LightTracerKernel kernel(m_gpu, m_gpuDataOutput, m_pcg32);
                     cgh.parallel_for(globalRange, kernel);
                 });
@@ -77,7 +77,7 @@ namespace VkRender::PathTracer {
 
             queue.wait();
             uint32_t imageSize = m_pipelineSettings.width * m_pipelineSettings.height;
-            queue.submit([&](sycl::handler& cgh) {
+            queue.submit([&](sycl::handler &cgh) {
                 cgh.parallel_for<class AverageImageKernel>(
                     sycl::range<1>(imageSize),
                     [=](sycl::id<1> idx) {
@@ -110,17 +110,16 @@ namespace VkRender::PathTracer {
             Log::Logger::getInstance()->trace(
                 "Path Tracer:  Simulated {}M photons. About {}k photons hit the sensor",
                 totalM, sensorK);
-        }
-        catch (const sycl::exception& e) {
+        } catch (const sycl::exception &e) {
             Log::Logger::getInstance()->warning("Caught exception: {}", e.what());
             std::cerr << "Exception: " << e.what() << std::endl;
             throw std::runtime_error("Caught exception");
         }
     }
 
-    PhotonTracer::BackwardInfo PhotonTracer::backward(RenderSettings& renderSettings) {
+    PhotonTracer::BackwardInfo PhotonTracer::backward(RenderSettings &renderSettings) {
         try {
-            auto& queue = m_pipelineSettings.device();
+            auto &queue = m_pipelineSettings.device();
             uint64_t simulatePhotonCount = m_pipelineSettings.photonCount;
             uint32_t imageSize = m_pipelineSettings.width * m_pipelineSettings.height;
 
@@ -136,7 +135,7 @@ namespace VkRender::PathTracer {
 
             queue.wait();
             sycl::range<1> globalRange(simulatePhotonCount);
-            queue.submit([&](sycl::handler& cgh) {
+            queue.submit([&](sycl::handler &cgh) {
                 // Capture GPUData, etc. by value or reference as needed
                 LightTracerKernelBackward kernel(m_gpu, m_gpuDataOutput, m_pcg32);
                 cgh.parallel_for(globalRange, kernel);
@@ -144,10 +143,10 @@ namespace VkRender::PathTracer {
 
             queue.wait();
             queue.memcpy(m_backwardInfo.gradients, m_gpu.gradients, simulatePhotonCount * sizeof(glm::vec3));
-            queue.memcpy(m_backwardInfo.sumQuadricGradients, m_gpu.quadricGradients, sizeof(glm::vec3) * m_gpu.numQuadrics);
+            queue.memcpy(m_backwardInfo.sumQuadricGradients, m_gpu.quadricGradients,
+                         sizeof(glm::vec3) * m_gpu.numQuadrics);
             queue.wait();
-        }
-        catch (const std::exception& e) {
+        } catch (const std::exception &e) {
             std::cerr << "Exception: " << e.what() << std::endl;
         }
         return m_backwardInfo;
@@ -155,7 +154,7 @@ namespace VkRender::PathTracer {
 
     void PhotonTracer::resetImage() {
         Log::Logger::getInstance()->trace("Resetting Image...");
-        auto& queue = m_pipelineSettings.device();
+        auto &queue = m_pipelineSettings.device();
         queue.fill(m_gpu.imageMemory, static_cast<float>(0),
                    m_pipelineSettings.width * m_pipelineSettings.height).wait();
         queue.fill(m_gpu.imageMemoryPersistent, static_cast<float>(0),
@@ -171,7 +170,7 @@ namespace VkRender::PathTracer {
 
     void PhotonTracer::prepareImageAndInfoBuffers() {
         uint32_t imageSize = m_pipelineSettings.width * m_pipelineSettings.height;
-        auto& queue = m_pipelineSettings.device();
+        auto &queue = m_pipelineSettings.device();
         // Allocate device memory for RGBA image (4 floats per pixel)
         m_gpu.imageMemory = sycl::malloc_device<float>(imageSize, queue);
         if (!m_gpu.imageMemory) {
@@ -227,7 +226,7 @@ namespace VkRender::PathTracer {
 
 
     void PhotonTracer::freeResources() {
-        auto& queue = m_pipelineSettings.device();
+        auto &queue = m_pipelineSettings.device();
         Log::Logger::getInstance()->info("Freeing Path tracer GPU/SYCL resources");
 
         queue.wait();
@@ -255,6 +254,11 @@ namespace VkRender::PathTracer {
         if (m_gpu.quadricInputAssembly) {
             sycl::free(m_gpu.quadricInputAssembly, queue);
             m_gpu.quadricInputAssembly = nullptr;
+            Log::Logger::getInstance()->trace("Freed GPU Memory: quadricInputAssembly");
+        }
+        if (m_gpu.bvhNodes) {
+            sycl::free(m_gpu.bvhNodes, queue);
+            m_gpu.bvhNodes = nullptr;
             Log::Logger::getInstance()->trace("Freed GPU Memory: quadricInputAssembly");
         }
         if (m_gpu.gradients) {
@@ -303,12 +307,12 @@ namespace VkRender::PathTracer {
     }
 
 
-    void PhotonTracer::uploadGaussiansFromTensors(GPUDataTensors& data) {
+    void PhotonTracer::uploadGaussiansFromTensors(GPUDataTensors &data) {
 #ifdef DIFF_RENDERER_ENABLED
         freeResources();
         prepareImageAndInfoBuffers();
 
-        auto& queue = m_pipelineSettings.device();
+        auto &queue = m_pipelineSettings.device();
         // 2) Move Tensors to CPU (if they aren't already) so we can extract values
         //    (SYCL can't just copy directly from a PyTorch CUDA device pointer.)
         //    If data is already on CPU, this .cpu() will be basically a no-op.
@@ -344,14 +348,14 @@ namespace VkRender::PathTracer {
         // 6) Pointers to the underlying float data (on CPU).
         //    We'll read them row-by-row.
         //    Example: positionsCpu.data_ptr<float>() returns a pointer to the 2D array in row-major order.
-        const float* posPtr = positionsCpu.data_ptr<float>();
-        const float* scalesPtr = scalesCpu.data_ptr<float>();
-        const float* normalsPtr = normalsCpu.data_ptr<float>();
+        const float *posPtr = positionsCpu.data_ptr<float>();
+        const float *scalesPtr = scalesCpu.data_ptr<float>();
+        const float *normalsPtr = normalsCpu.data_ptr<float>();
 
-        const float* emissionsPtr = emissionsCpu.data_ptr<float>();
-        const float* colorsPtr = colorsCpu.data_ptr<float>();
-        const float* specularPtr = specularCpu.data_ptr<float>();
-        const float* diffusePtr = diffuseCpu.data_ptr<float>();
+        const float *emissionsPtr = emissionsCpu.data_ptr<float>();
+        const float *colorsPtr = colorsCpu.data_ptr<float>();
+        const float *specularPtr = specularCpu.data_ptr<float>();
+        const float *diffusePtr = diffuseCpu.data_ptr<float>();
 
         // 7) Fill the hostGaussians array
         //    (positions = 3 floats, normals = 3 floats, scale = 1 float, plus defaults)
@@ -404,34 +408,40 @@ namespace VkRender::PathTracer {
         Log::Logger::getInstance()->info("uploadFromTensors: Uploaded {} Gaussians", numGaussians);
 
         // Upload QUadrics
-        float* quadricsPtr = data.quadrics.cpu().data_ptr<float>(); // shape: [numGaussians]
-        float* quadricsPosPtr = data.quadricPositions.cpu().data_ptr<float>(); // shape: [numGaussians]
+        float *quadricsPtr = data.quadrics.cpu().data_ptr<float>(); // shape: [numGaussians]
+        float *quadricsPosPtr = data.quadricPositions.cpu().data_ptr<float>(); // shape: [numGaussians]
+        float *quadricsRotPtr = data.quadricRotations.cpu().data_ptr<float>(); // shape: [numGaussians]
 
         const auto numQuadrics = data.quadricPositions.size(0);
 
         std::vector<QuadricInputAssembly> quadricInputAssembly;
         for (int i = 0; i < numQuadrics; ++i) {
             QuadricInputAssembly point{};
-            point.a = quadricsPtr[i * 8 + 0];
-            point.b = quadricsPtr[i * 8 + 1];
-            point.c = quadricsPtr[i * 8 + 2];
-            point.t_x = quadricsPtr[i * 8 + 3];
-            point.t_y = quadricsPtr[i * 8 + 4];
-            point.b_beta = quadricsPtr[i * 8 + 5];
-            point.threshold = quadricsPtr[i * 8 + 6];
-            point.kernelScale = quadricsPtr[i * 8 + 7];
+            point.a = quadricsPtr[i * 12 + 0];
+            point.b = quadricsPtr[i * 12 + 1];
+            point.c = quadricsPtr[i * 12 + 2];
+            point.t_x = quadricsPtr[i * 12 + 3];
+            point.t_y = quadricsPtr[i * 12 + 4];
+            point.b_beta = quadricsPtr[i * 12 + 5];
+            point.threshold = quadricsPtr[i * 12 + 6];
+            point.kernelScale = quadricsPtr[i * 12 + 7];
 
-            point.min = glm::vec2(-10.0f);
-            point.max = glm::vec2(10.0f);
+            point.min.x = quadricsPtr[i * 12 + 8];
+            point.max.x = quadricsPtr[i * 12 + 9];
+            point.min.y = quadricsPtr[i * 12 + 10];
+            point.max.y = quadricsPtr[i * 12 + 11];
+
 
             point.emission = 0.0f;
-            point.diffuse = 1.0f;
-            point.specular = 0.0f;
+            point.diffuse = 0.5f;
+            point.specular = 0.5f;
             point.phongExponent = 32.0f;
             point.color = glm::vec4(0.8f);
 
             glm::vec3 translation = {quadricsPosPtr[i * 3 + 0], quadricsPosPtr[i * 3 + 1], quadricsPosPtr[i * 3 + 2]};
             point.transform.setPosition(translation);
+            glm::quat quat = {quadricsRotPtr[i * 4 + 0], quadricsRotPtr[i * 4 + 1], quadricsRotPtr[i * 4 + 2], quadricsRotPtr[i * 4 + 3]};
+            point.transform.setRotationQuaternion(quat);
 
             quadricInputAssembly.push_back(point);
         }
@@ -459,17 +469,33 @@ namespace VkRender::PathTracer {
         Log::Logger::getInstance()->info("Uploaded  {} Quadrics to renderkernel from Tensor", m_gpu.numQuadrics);
         queue.wait();
 
+        // Build BVH leaves from quadrics.
+        auto leaves = buildBVHLeaves(quadricInputAssembly);
+        // Build the BVH nodes.
+        auto bvhNodes = buildBVH(leaves);
+
+        // Allocate device memory for BVH nodes.
+        size_t bvhSize = bvhNodes.size();
+        m_gpu.bvhNodes = sycl::malloc_device<BVHNode>(bvhSize, queue);
+
+        // Copy the BVH nodes from host to device.
+        queue.memcpy(m_gpu.bvhNodes, bvhNodes.data(), bvhSize * sizeof(BVHNode));
+
+        m_gpu.numBVHNodes = bvhSize;
+        Log::Logger::getInstance()->info("Uploaded {} BVH nodes for Quadrics", bvhSize);
+        queue.wait();
+
 #endif
     }
 
-    void PhotonTracer::uploadGaussianData(std::shared_ptr<Scene>& scene) {
-        auto& queue = m_pipelineSettings.device();
+    void PhotonTracer::uploadGaussianData(std::shared_ptr<Scene> &scene) {
+        auto &queue = m_pipelineSettings.device();
         std::vector<GaussianInputAssembly> gaussianInputAssembly;
         std::vector<TransformComponent> transformMatrices; // Transformation matrices for entities
         // Find all entities with GaussianComponent
         auto view = scene->getRegistry().view<GaussianComponent2DGS>();
-        for (auto e : view) {
-            auto& component = Entity(e, scene.get()).getComponent<GaussianComponent2DGS>();
+        for (auto e: view) {
+            auto &component = Entity(e, scene.get()).getComponent<GaussianComponent2DGS>();
             for (size_t i = 0; i < component.size(); ++i) {
                 GaussianInputAssembly point{};
                 point.position = component.positions[i];
@@ -483,7 +509,7 @@ namespace VkRender::PathTracer {
                 point.phongExponent = component.phongExponents[i];
                 gaussianInputAssembly.push_back(point);
             }
-            auto& transform = Entity(e, scene.get()).getComponent<TransformComponent>();
+            auto &transform = Entity(e, scene.get()).getComponent<TransformComponent>();
             transformMatrices.emplace_back(transform);
         }
 
@@ -496,15 +522,15 @@ namespace VkRender::PathTracer {
         queue.wait();
     }
 
-    void PhotonTracer::uploadQuadricEntities(std::shared_ptr<Scene>& scene) {
-        auto& queue = m_pipelineSettings.device();
+    void PhotonTracer::uploadQuadricEntities(std::shared_ptr<Scene> &scene) {
+        auto &queue = m_pipelineSettings.device();
         std::vector<QuadricInputAssembly> quadricInputAssembly;
         std::vector<TransformComponent> transformMatrices; // Transformation matrices for entities
         // Find all entities with GaussianComponent
         auto view = scene->getRegistry().view<MeshComponent, MaterialComponent>();
-        for (auto e : view) {
-            auto& component = Entity(e, scene.get()).getComponent<MeshComponent>();
-            auto& material = Entity(e, scene.get()).getComponent<MaterialComponent>();
+        for (auto e: view) {
+            auto &component = Entity(e, scene.get()).getComponent<MeshComponent>();
+            auto &material = Entity(e, scene.get()).getComponent<MaterialComponent>();
             if (component.meshDataType() == QUADRIC) {
                 auto parameters = std::dynamic_pointer_cast<QuadricMeshParameters>(component.meshParameters);
                 if (!parameters) {
@@ -528,11 +554,10 @@ namespace VkRender::PathTracer {
                 point.diffuse = material.diffuse;
                 point.specular = material.specular;
                 point.phongExponent = material.phongExponent;
-                auto& transform = Entity(e, scene.get()).getComponent<TransformComponent>();
+                auto &transform = Entity(e, scene.get()).getComponent<TransformComponent>();
                 point.transform = transform;
 
                 quadricInputAssembly.push_back(point);
-
             }
         }
 
@@ -573,31 +598,77 @@ namespace VkRender::PathTracer {
     }
 
     PhotonTracer::AABB PhotonTracer::computeLocalAABB(const QuadricInputAssembly &quadric) {
+        // Initialize the AABB bounds for the kept vertices.
+        glm::vec3 aabbMin(std::numeric_limits<float>::max());
+        glm::vec3 aabbMax(std::numeric_limits<float>::lowest());
 
-        /*
-        const int gridSamples = 3; // 3x3 sampling grid (can increase for tighter bounds)
-        glm::vec3 localMin( std::numeric_limits<float>::max() );
-        glm::vec3 localMax( std::numeric_limits<float>::lowest() );
-        for (int i = 0; i < gridSamples; ++i) {
-            for (int j = 0; j < gridSamples; ++j) {
-                float u = float(i) / (gridSamples - 1);
-                float v = float(j) / (gridSamples - 1);
-                // Linearly interpolate x and y in local domain
-                float x = glm::mix(quadric.min.x, quadric.max.x, u);
-                float y = glm::mix(quadric.min.y, quadric.max.y, v);
-                float z = computeLocalZ(x, y, quadric);
+        float scaleFactor = 1.0f;
+        // Helper lambda for Beta kernel:
+        auto betaKernel = [&](float r, float bExp) {
+            // (1 - r^2)^(4 e^bExp), clipped if r>1
+            if (r > 1.0f) r = 1.0f;
+            return std::pow(1.0f - r * r, 4.0f * std::exp(bExp));
+        };
 
+        int N = 100; // Grid resoltuion
+        float dx = (quadric.max.x - quadric.min.x) / float(N - 1);
+        float dy = (quadric.max.y - quadric.min.y) / float(N - 1);
 
-                glm::vec3 pt(x, y, z);
-                localMin = glm::min(localMin, pt);
-                localMax = glm::max(localMax, pt);
+        // Precompute the sign factors alpha_x, alpha_y
+        float alphaX = std::tanh(quadric.t_x);
+        float alphaY = std::tanh(quadric.t_y);
+
+        for (int i = 0; i < N; ++i) {
+            float x = quadric.min.x + i * dx; // domain from min.x to max.x
+            for (int j = 0; j < N; ++j) {
+                float y = quadric.min.y + j * dy; // domain from min.y to max.y
+
+                // Compute z = c * (alphaX*x^2/a^2 + alphaY*y^2/b^2)
+                float z = quadric.c * (
+                              (alphaX * x * x) / (quadric.a * quadric.a) +
+                              (alphaY * y * y) / (quadric.b * quadric.b)
+                          );
+
+                // Build position vector
+                glm::vec3 position(x, y, z);
+
+                // Apply scale factor if needed.
+                position *= scaleFactor;
+
+                // Compute radial coordinate for Beta kernel:
+                // R_general = sqrt(|alphaX|*x^2/a^2 + |alphaY|*y^2/b^2)
+                float R_general = std::sqrt(
+                    std::fabs(alphaX) * (x * x) / (quadric.a * quadric.a) +
+                    std::fabs(alphaY) * (y * y) / (quadric.b * quadric.b)
+                );
+
+                // Normalized radial coordinate r = R_general / kernelScale
+                float r = R_general / quadric.kernelScale;
+
+                // Evaluate the kernel
+                float bkValue = betaKernel(r, quadric.b_beta);
+
+                // Decide whether to keep the vertex based on the threshold
+                bool keepVertex = (bkValue >= quadric.threshold);
+                if (!keepVertex) {
+                    continue;
+                }
+
+                // Update the AABB using the current vertex's position.
+                aabbMin = glm::min(aabbMin, position);
+                aabbMax = glm::max(aabbMax, position);
             }
         }
-        */
 
-        glm::vec3 localMin(-0.5f, -0.5f, -0.05f);
-        glm::vec3 localMax( 0.5f,  0.5f,  0.05f);
-        return { localMin, localMax };
+        // If the quadric is planar (c == 0), the z extents collapse.
+        // Artificially expand the z bounds by an epsilon.
+        if (quadric.c == 0.0f) {
+            const float epsilon = 0.01f; // Adjust this value as needed.
+            aabbMin.z -= epsilon;
+            aabbMax.z += epsilon;
+        }
+        // The tightly bound AABB for the kept vertices.
+        return {aabbMin, aabbMax};
     }
 
     PhotonTracer::AABB transformAABB(const PhotonTracer::AABB &localBox, const glm::mat4 &transform) {
@@ -612,87 +683,87 @@ namespace VkRender::PathTracer {
             glm::vec3(localBox.max.x, localBox.max.y, localBox.max.z)
         };
 
-        glm::vec3 worldMin( std::numeric_limits<float>::max() );
-        glm::vec3 worldMax( std::numeric_limits<float>::lowest() );
-        for (const auto &corner : localCorners) {
+        glm::vec3 worldMin(std::numeric_limits<float>::max());
+        glm::vec3 worldMax(std::numeric_limits<float>::lowest());
+        for (const auto &corner: localCorners) {
             glm::vec4 cornerWorld4 = transform * glm::vec4(corner, 1.0f);
             glm::vec3 cornerWorld = glm::vec3(cornerWorld4) / cornerWorld4.w;
             worldMin = glm::min(worldMin, cornerWorld);
             worldMax = glm::max(worldMax, cornerWorld);
         }
-        return { worldMin, worldMax };
+        return {worldMin, worldMax};
     }
 
 
     int buildBVHNode(std::vector<BVHNode> &nodes,
-                 std::vector<PhotonTracer::BVHLeaf> &leaves,
-                 size_t start, size_t end) {
-    BVHNode node;
-    node.isLeaf = false;
-    node.leftChild = -1;
-    node.rightChild = -1;
-    node.quadricIndex = -1;
+                     std::vector<PhotonTracer::BVHLeaf> &leaves,
+                     size_t start, size_t end) {
+        BVHNode node;
+        node.isLeaf = false;
+        node.leftChild = -1;
+        node.rightChild = -1;
+        node.quadricIndex = -1;
 
-    // Compute the bounding box over leaves[start, end)
-    glm::vec3 nodeMin( std::numeric_limits<float>::max() );
-    glm::vec3 nodeMax( std::numeric_limits<float>::lowest() );
-    for (size_t i = start; i < end; i++) {
-        nodeMin = glm::min(nodeMin, leaves[i].bboxMin);
-        nodeMax = glm::max(nodeMax, leaves[i].bboxMax);
-    }
-    node.bboxMin = nodeMin;
-    node.bboxMax = nodeMax;
+        // Compute the bounding box over leaves[start, end)
+        glm::vec3 nodeMin(std::numeric_limits<float>::max());
+        glm::vec3 nodeMax(std::numeric_limits<float>::lowest());
+        for (size_t i = start; i < end; i++) {
+            nodeMin = glm::min(nodeMin, leaves[i].bboxMin);
+            nodeMax = glm::max(nodeMax, leaves[i].bboxMax);
+        }
+        node.bboxMin = nodeMin;
+        node.bboxMax = nodeMax;
 
-    size_t count = end - start;
-    if (count == 1) {
-        // Leaf node: store the single quadric index.
-        node.isLeaf = true;
-        node.quadricIndex = leaves[start].quadricIndex;
+        size_t count = end - start;
+        if (count == 1) {
+            // Leaf node: store the single quadric index.
+            node.isLeaf = true;
+            node.quadricIndex = leaves[start].quadricIndex;
+            int nodeIndex = nodes.size();
+            nodes.push_back(node);
+            return nodeIndex;
+        }
+
+        // Choose the axis with the greatest extent.
+        glm::vec3 extent = nodeMax - nodeMin;
+        int axis = 0;
+        if (extent.y > extent.x && extent.y > extent.z)
+            axis = 1;
+        else if (extent.z > extent.x && extent.z > extent.y)
+            axis = 2;
+
+        // Compute the center along the chosen axis.
+        float mid = 0.0f;
+        for (size_t i = start; i < end; i++) {
+            glm::vec3 center = 0.5f * (leaves[i].bboxMin + leaves[i].bboxMax);
+            mid += center[axis];
+        }
+        mid /= count;
+
+        // Partition the leaves so that those with centers < mid come first.
+        size_t pivot = std::partition(leaves.begin() + start, leaves.begin() + end,
+                                      [axis, mid](const PhotonTracer::BVHLeaf &leaf) {
+                                          glm::vec3 center = 0.5f * (leaf.bboxMin + leaf.bboxMax);
+                                          return center[axis] < mid;
+                                      }
+                       ) - leaves.begin();
+
+        // If the partition fails (all on one side), split in half.
+        if (pivot == start || pivot == end) {
+            pivot = start + count / 2;
+        }
+
+        int leftChild = buildBVHNode(nodes, leaves, start, pivot);
+        int rightChild = buildBVHNode(nodes, leaves, pivot, end);
+        node.leftChild = leftChild;
+        node.rightChild = rightChild;
+
         int nodeIndex = nodes.size();
         nodes.push_back(node);
         return nodeIndex;
     }
 
-    // Choose the axis with the greatest extent.
-    glm::vec3 extent = nodeMax - nodeMin;
-    int axis = 0;
-    if (extent.y > extent.x && extent.y > extent.z)
-        axis = 1;
-    else if (extent.z > extent.x && extent.z > extent.y)
-        axis = 2;
-
-    // Compute the center along the chosen axis.
-    float mid = 0.0f;
-    for (size_t i = start; i < end; i++) {
-        glm::vec3 center = 0.5f * (leaves[i].bboxMin + leaves[i].bboxMax);
-        mid += center[axis];
-    }
-    mid /= count;
-
-    // Partition the leaves so that those with centers < mid come first.
-    size_t pivot = std::partition(leaves.begin() + start, leaves.begin() + end,
-        [axis, mid](const PhotonTracer::BVHLeaf &leaf) {
-            glm::vec3 center = 0.5f * (leaf.bboxMin + leaf.bboxMax);
-            return center[axis] < mid;
-        }
-    ) - leaves.begin();
-
-    // If the partition fails (all on one side), split in half.
-    if (pivot == start || pivot == end) {
-        pivot = start + count / 2;
-    }
-
-    int leftChild = buildBVHNode(nodes, leaves, start, pivot);
-    int rightChild = buildBVHNode(nodes, leaves, pivot, end);
-    node.leftChild = leftChild;
-    node.rightChild = rightChild;
-
-    int nodeIndex = nodes.size();
-    nodes.push_back(node);
-    return nodeIndex;
-}
-
-    std::vector<PhotonTracer::BVHLeaf> PhotonTracer::buildBVHLeaves(const std::vector<QuadricInputAssembly>& quadrics) {
+    std::vector<PhotonTracer::BVHLeaf> PhotonTracer::buildBVHLeaves(const std::vector<QuadricInputAssembly> &quadrics) {
         std::vector<BVHLeaf> leaves;
         for (size_t i = 0; i < quadrics.size(); i++) {
             const auto &quad = quadrics[i];
@@ -710,12 +781,13 @@ namespace VkRender::PathTracer {
     }
 
 
-std::vector<BVHNode> PhotonTracer::buildBVH(const std::vector<BVHLeaf> &inputLeaves) {
-    std::vector<BVHLeaf> leaves = inputLeaves; // make a copy to allow reordering
-    std::vector<BVHNode> nodes;
-    buildBVHNode(nodes, leaves, 0, leaves.size());
-    return nodes;
-}
+    std::vector<BVHNode> PhotonTracer::buildBVH(const std::vector<BVHLeaf> &inputLeaves) {
+        std::vector<BVHLeaf> leaves = inputLeaves; // make a copy to allow reordering
+        std::vector<BVHNode> nodes;
+        if (!leaves.empty())
+            buildBVHNode(nodes, leaves, 0, leaves.size());
+        return nodes;
+    }
 
 
     PhotonTracer::~PhotonTracer() {
@@ -835,7 +907,7 @@ std::vector<BVHNode> PhotonTracer::buildBVH(const std::vector<BVHLeaf> &inputLea
     */
 
 
-    void PhotonTracer::uploadVertexData(std::shared_ptr<Scene>& scene) {
+    void PhotonTracer::uploadVertexData(std::shared_ptr<Scene> &scene) {
         /*
         std::vector<InputAssembly> vertexData;
         std::vector<uint32_t> indices;

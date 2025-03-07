@@ -40,7 +40,8 @@ namespace VkRender::PathTracer {
             torch::Tensor specular,
             torch::Tensor diffuse,
             torch::Tensor quadrics,
-            torch::Tensor quadricPositions
+            torch::Tensor quadricPositions,
+            torch::Tensor quadricRotations
         );
         /**
          * backward()

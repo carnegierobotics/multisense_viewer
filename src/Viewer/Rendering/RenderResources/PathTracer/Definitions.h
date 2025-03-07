@@ -31,8 +31,9 @@ namespace VkRender::PathTracer {
         torch::Tensor diffuse;
 
         // Quadrics:
-        torch::Tensor quadrics; // nx8 vectors
-        torch::Tensor quadricPositions;
+        torch::Tensor quadrics; // nx12
+        torch::Tensor quadricPositions; // 3 elems (pos)
+        torch::Tensor quadricRotations; // 4 elems (Quat)
     };
 #else
     struct GPUDataTensors;

@@ -86,14 +86,14 @@ namespace VkRender {
             imageUI->clearImageMemory = true;
         }
 
-        const int sliderMin = 1000;
+        const int sliderMin = 1;
         const int sliderMax = 10000000;
 
         ImGui::SetNextItemWidth(150);
         if (ImGui::SliderInt("PhotonCount", &imageUI->photonCount, sliderMin, sliderMax, "%d",
                              ImGuiSliderFlags_Logarithmic)) {
             // Normalize to the nearest 10,000 and ensure it's at least 1000
-            imageUI->photonCount = std::max((imageUI->photonCount + 5000) / 10000 * 10000, sliderMin);
+            //imageUI->photonCount = std::max((imageUI->photonCount + 5000) / 10000 * 10000, sliderMin);
         }
         ImGui::SameLine();
         ImGui::SetNextItemWidth(100);

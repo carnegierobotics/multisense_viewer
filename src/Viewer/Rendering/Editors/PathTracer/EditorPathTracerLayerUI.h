@@ -28,7 +28,7 @@ namespace VkRender {
         PathTracer::KernelType kernel = PathTracer::KERNEL_PATH_TRACER_2DGS;
         std::string kernelDevice = "";
         int selectedKernelIndex = PathTracer::KERNEL_PATH_TRACER_2DGS;
-        int selectedDeviceIndex = 1;
+        int selectedDeviceIndex = 1; // CPU: 0 | GPU: 1
         bool switchKernelDevice = false;
 
         int photonCount = 1e7; // 10 Million

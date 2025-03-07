@@ -74,6 +74,10 @@ namespace VkRender {
             }
         }
 
+        std::filesystem::path metricsFilePath = "metrics.csv";
+        if (std::filesystem::exists(metricsFilePath))
+            std::filesystem::remove(metricsFilePath.string().c_str());
+
         if (std::filesystem::exists(filePath)) {
             YAML::Node config = YAML::LoadFile(filePath);
             // Retrieve values from YAML nodes
@@ -129,7 +133,7 @@ namespace VkRender {
             // We pass in the parameters of our module (or custom parameter list)
             m_photonRebuildModule->parameters(),
             // Then define the Adam options, e.g. learning rate = 1e-3
-            torch::optim::AdamOptions(0.03f)
+            torch::optim::AdamOptions(0.001f)
         );
         m_accumulatedTensor = torch::Tensor();
         m_numAccumulated = 0;
@@ -249,9 +253,19 @@ namespace VkRender {
                     // Backward
                     loss.backward();
 
-                    // Example debug prints
-                    std::cout << "Loss: " << loss.item<float>() << std::endl;
-                    Log::Logger::getInstance()->info("Loss: {}", loss.item<float>());
+                    // Log loss
+                    float loss_val = loss.item<float>();
+                    std::cout << "Loss: " << loss_val << std::endl;
+                    Log::Logger::getInstance()->info("Loss: {}", loss_val);
+
+                    // Calculate PSNR (assuming images are normalized to [0,1])
+                    float psnr_val = 10.0f * std::log10(1.0f / loss_val);
+
+                    // Calculate SSIM
+                    float ssim_val = computeSSIM(targetTensor, m_accumulatedTensor);
+                    std::cout << "PSNR: " << psnr_val << ", SSIM: " << ssim_val << std::endl;
+                    Log::Logger::getInstance()->info("PSNR: {}, SSIM: {}", psnr_val, ssim_val);
+
                     // Gradient checks: positions, scales, normals
                     // (Make sure you've actually registered these as parameters in your module!)
                     auto positions = m_photonRebuildModule->m_tensorData.positions;
@@ -260,34 +274,11 @@ namespace VkRender {
                     auto gradScales = m_photonRebuildModule->m_tensorData.scales.grad();
                     auto gradNormals = m_photonRebuildModule->m_tensorData.normals.grad();
 
-                    m_lastIteration.positionGradient = glm::vec3(positions[0][0].item<float>(),
-                                                                 positions[0][1].item<float>(),
-                                                                 positions[0][2].item<float>());
+                    //m_lastIteration.positionGradient = glm::vec3(positions[0][0].item<float>(),
+                    //                                             positions[0][1].item<float>(),
+                    //                                             positions[0][2].item<float>());
 
-                    if (positions.defined()) {
-                        // Check for NaNs or Infs
-                        if (positions.isnan().any().item<bool>()) {
-                            std::cout << "positions contain NaNs!\n";
-                        }
-                        if (positions.isinf().any().item<bool>()) {
-                            std::cout << "positions contain Infs!\n";
-                        }
-                        std::cout << "Positions: ("
-                                << positions[0][0].item<float>() << ", "
-                                << positions[0][1].item<float>() << ", "
-                                << positions[0][2].item<float>() << ")"
-                                << std::endl;
 
-                        Log::Logger::getInstance()->info("eo Gradient: ({},{},{})",
-                                                         gradPositions[0][0].item<float>(),
-                                                         gradPositions[0][1].item<float>(),
-                                                         gradPositions[0][2].item<float>());
-
-                        Log::Logger::getInstance()->info("e0 Position: ({},{},{})",
-                                                         positions[0][0].item<float>(),
-                                                         positions[0][1].item<float>(),
-                                                         positions[0][2].item<float>());
-                    }
                     // Optimizer step
                     m_optimizer->step();
                     // Reset the accumulation if you only wanted to do a single backprop per accumulation
@@ -295,6 +286,22 @@ namespace VkRender {
                     m_numAccumulated = 0;
                     m_optimizer->zero_grad(); // Clear old gradients
                     m_stepIteration++;
+
+                    // Save metrics to a CSV file
+                    // The CSV header is: m_stepIteration, camera_id, Loss, SSIM, PSNR
+                    std::ofstream csvFile;
+                    // Open the file in append mode
+                    csvFile.open("metrics.csv", std::ios::out | std::ios::app);
+                    if (csvFile.tellp() == 0) {
+                        // File is empty, so write the header
+                        csvFile << "m_stepIteration, camera_id, Loss, SSIM, PSNR\n";
+                    }
+                    csvFile << m_stepIteration << ", "
+                            << m_context->activeScene()->getActiveCameraEntity().getName() << ", "
+                            << loss_val << ", "
+                            << ssim_val << ", "
+                            << psnr_val << "\n";
+                    csvFile.close();
                 }
             } else {
                 Log::Logger::getInstance()->warning("Image size Mismatch! Texture: {}x{}, Camera: {}x{}",
@@ -311,6 +318,40 @@ namespace VkRender {
                     m_context);
             }
         }
+    }
+
+
+    float EditorDifferentiableRenderer::computeSSIM(const torch::Tensor& img1, const torch::Tensor& img2) {
+        // Constants for SSIM
+        const float C1 = 0.01f * 0.01f;
+        const float C2 = 0.03f * 0.03f;
+
+        // Ensure the images have 4 dimensions: {N, C, H, W}
+        torch::Tensor X, Y;
+        if (img1.dim() == 2) {
+            X = img1.unsqueeze(0).unsqueeze(0);
+            Y = img2.unsqueeze(0).unsqueeze(0);
+        } else {
+            X = img1;
+            Y = img2;
+        }
+
+        // Use a 3x3 window for average pooling
+        auto avgPoolOptions = torch::nn::functional::AvgPool2dFuncOptions(3).stride(1).padding(1);
+        auto mu1 = torch::nn::functional::avg_pool2d(X, avgPoolOptions);
+        auto mu2 = torch::nn::functional::avg_pool2d(Y, avgPoolOptions);
+        auto mu1_sq = mu1 * mu1;
+        auto mu2_sq = mu2 * mu2;
+        auto mu1_mu2 = mu1 * mu2;
+
+        auto sigma1_sq = torch::nn::functional::avg_pool2d(X * X, avgPoolOptions) - mu1_sq;
+        auto sigma2_sq = torch::nn::functional::avg_pool2d(Y * Y, avgPoolOptions) - mu2_sq;
+        auto sigma12 = torch::nn::functional::avg_pool2d(X * Y, avgPoolOptions) - mu1_mu2;
+
+        auto ssim_map = ((2 * mu1_mu2 + C1) * (2 * sigma12 + C2)) /
+                        ((mu1_sq + mu2_sq + C1) * (sigma1_sq + sigma2_sq + C2));
+
+        return ssim_map.mean().item<float>();
     }
 
 

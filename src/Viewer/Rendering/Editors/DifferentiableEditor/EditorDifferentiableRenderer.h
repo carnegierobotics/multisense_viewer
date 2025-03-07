@@ -31,6 +31,8 @@ namespace VkRender
 
         void onUpdate() override;
 
+        float computeSSIM(const torch::Tensor &img1, const torch::Tensor &img2);
+
         void onRender(CommandBuffer& drawCmdBuffers) override;
         void collectRenderCommands(
             std::unordered_map<std::shared_ptr<DefaultGraphicsPipeline>, std::vector<RenderCommand>>& renderGroups,

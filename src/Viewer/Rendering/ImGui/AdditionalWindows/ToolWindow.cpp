@@ -273,6 +273,14 @@ namespace VkRender {
             camera.pinholeParameters.cx =    960 ;
             camera.pinholeParameters.cy =    540 ;
 
+            camera.pinholeParameters.width =  600;
+            camera.pinholeParameters.height = 600;
+            camera.pinholeParameters.fx =     600;
+            camera.pinholeParameters.fy =     600;
+            camera.pinholeParameters.cx =     300;
+            camera.pinholeParameters.cy =     300;
+
+
             camera.pinholeParameters.focalLength = 10;
             camera.pinholeParameters.fNumber = 4;
             camera.updateParametersChanged();

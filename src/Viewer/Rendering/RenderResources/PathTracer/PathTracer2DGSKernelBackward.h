@@ -6,6 +6,7 @@
 #define PATHTRACER2DGSKERNELBACKWARD_H
 
 #include "Viewer/Rendering/RenderResources/PathTracer/Definitions.h"
+#include "Viewer/Rendering/RenderResources/PathTracer/PathTracerKernelCommon.h"
 
 namespace VkRender::PathTracer {
     class LightTracerKernelBackward {
@@ -26,8 +27,8 @@ namespace VkRender::PathTracer {
             // Each thread traces one photon.
             //traceOnePhotonDirectLighting(photonID);
             //traceOnePhotonSingleBounceEmissiveGradient(photonID);
-            //traceOnePhotonSingleBounceObjectGradient(photonID);
-            traceOnePhotonSecondBounceObjectGradient(photonID);
+            traceOnePhotonSingleBounceObjectGradient(photonID);
+            //traceOnePhotonSecondBounceObjectGradient(photonID);
         }
 
     private:
@@ -238,6 +239,19 @@ namespace VkRender::PathTracer {
                                          xPixel, yPixel);
             glm::mat3 w2c = glm::mat3(world2Camera);
             glm::mat3 I = glm::mat3(1.0f);
+
+            float closest_t = FLT_MAX;
+            size_t hitEntity = 0;
+            glm::vec3 hitPointWorld(0.0f);
+            glm::vec3 hitNormalWorld(0.0f);
+            float betaContribution = 0.0f;
+            // check intersection with geometry
+            bool hit = geometryIntersectionQuadric(gaussianID, g_c, a_d_gt, hitEntity, closest_t,
+                                                   hitPointWorld,
+                                                   hitNormalWorld, betaContribution);
+            if (hit)
+                return;
+
 
             // ===== Backward Pass =====
             // We now compute the gradient (jacobian) of our hit point and subsequent losses with respect to g_c.
@@ -519,6 +533,79 @@ namespace VkRender::PathTracer {
 
             */
         }
+
+
+// Main function: BVH traversal version of geometryIntersectionQuadric.
+// Instead of iterating over all quadrics, we traverse the BVH stored in m_gpuData.bvhNodes.
+bool geometryIntersectionQuadric(
+    size_t gaussianID,
+    const glm::vec3 &rayOrigin,
+    const glm::vec3 &rayDir,
+    size_t &hitEntity,
+    float &closest_t,
+    glm::vec3 &hitPointWorld,
+    glm::vec3 &hitNormalWorld,
+    float &betaContribution
+)  const {
+    // Set up initial values.
+    float tMinGlobal = std::numeric_limits<float>::max();
+    bool hitFound = false;
+    size_t bestQuadricIndex = 0;
+    glm::vec3 bestHitPoint(0.0f), bestHitNormal(0.0f);
+    float bestBeta = 0.0f;
+
+    // Set up an iterative traversal stack.
+    const int MAX_STACK_SIZE = 64;
+    int stack[MAX_STACK_SIZE];
+    int stackPtr = 0;
+    // Push the BVH root index (assumed 0) onto the stack.
+    stack[stackPtr++] = m_gpuData.numBVHNodes - 1;
+
+    // Traverse the BVH iteratively.
+    while (stackPtr > 0) {
+        int currentIndex = stack[--stackPtr];
+        const BVHNode &node = m_gpuData.bvhNodes[currentIndex];
+
+        // Test ray against node's bounding box.
+        if (!rayAABBIntersect(rayOrigin, rayDir, node.bboxMin, node.bboxMax, tMinGlobal))
+            continue;
+
+        if (node.isLeaf) {
+            // Leaf node: perform the detailed quadric intersection test.
+            float tCandidate;
+            glm::vec3 localHitPoint, localHitNormal;
+            float beta;
+            const QuadricInputAssembly &quadric = m_gpuData.quadricInputAssembly[node.quadricIndex];
+            if (intersectQuadricLeaf(rayOrigin, rayDir, quadric, tCandidate, localHitPoint, localHitNormal, beta)) {
+                if (tCandidate < tMinGlobal) {
+                    tMinGlobal = tCandidate;
+                    bestQuadricIndex = node.quadricIndex;
+                    bestHitPoint = localHitPoint;
+                    bestHitNormal = localHitNormal;
+                    bestBeta = beta;
+                    hitFound = true;
+                }
+            }
+        } else {
+            // Internal node: push its child nodes onto the stack.
+            if (stackPtr + 2 < MAX_STACK_SIZE) {
+                stack[stackPtr++] = node.leftChild;
+                stack[stackPtr++] = node.rightChild;
+            }
+        }
+    }
+
+    // If a hit was found, update the output parameters.
+    if (hitFound) {
+        hitEntity = bestQuadricIndex;
+        closest_t = tMinGlobal;
+        hitPointWorld = bestHitPoint;
+        hitNormalWorld = bestHitNormal;
+        betaContribution = bestBeta;
+        return true;
+    }
+    return false;
+}
 
         // ---------------------------------------------------------
         // Single Photon Trace (Multi-Bounce)

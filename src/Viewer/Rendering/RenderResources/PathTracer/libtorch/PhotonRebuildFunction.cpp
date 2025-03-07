@@ -136,13 +136,14 @@ namespace VkRender::PathTracer {
                                                  torch::Tensor specular,
                                                  torch::Tensor diffuse,
                                                  torch::Tensor quadrics,
-                                                 torch::Tensor quadricPositions
+                                                 torch::Tensor quadricPositions,
+                                                 torch::Tensor quadricRotations
                                                  ) {
         // =================
         // 1) Save for backward any Tensors or scalar values you need
         //    to compute derivatives later. For example:
         ctx->save_for_backward({positions, scales, normals, emissions, colors, specular, diffuse, quadrics,
-quadricPositions});
+quadricPositions, quadricRotations});
         ctx->saved_data["pathTracer"] = reinterpret_cast<int64_t>(pathTracer);
 
         // If you have non-tensor data you want in backward(), you can store
@@ -206,6 +207,7 @@ quadricPositions});
         auto diffuse = saved[6];
         auto quadrics = saved[7];
         auto quadricPositions = saved[8];
+        auto quadricRotations = saved[9];
 
         // Retrieve the path tracer pointer
         auto pathTracerRaw = ctx->saved_data["pathTracer"].toInt();
@@ -275,6 +277,7 @@ quadricPositions});
             torch::Tensor(), // diffuse
             torch::Tensor(), // gradQuadApperance
             gradientQuadricPositions, // gradQUadPos
+            torch::Tensor() // gradQUadPos
         };
     }
 }

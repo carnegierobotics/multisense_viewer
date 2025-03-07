@@ -38,7 +38,8 @@ namespace VkRender::PathTracer {
             m_tensorData.specular,
             m_tensorData.diffuse,
             m_tensorData.quadrics,
-            m_tensorData.quadricPositions
+            m_tensorData.quadricPositions,
+            m_tensorData.quadricRotations
         );
 
         m_outputTensor = result.clone(); // Clone to ensure ownership
@@ -144,6 +145,7 @@ namespace VkRender::PathTracer {
 
         float* quadricsPtr = m_tensorData.quadrics.cpu().data_ptr<float>(); // shape: [numGaussians]
         float* quadricsPosPtr = m_tensorData.quadricPositions.cpu().data_ptr<float>(); // shape: [numGaussians]
+        float* quadricsRotPtr = m_tensorData.quadricRotations.cpu().data_ptr<float>(); // shape: [numGaussians]
 
 
         // Update the optimization variables
@@ -159,23 +161,29 @@ namespace VkRender::PathTracer {
                 }
                 glm::vec3 translation = {quadricsPosPtr[i * 3 + 0], quadricsPosPtr[i * 3 + 1], quadricsPosPtr[i * 3 + 2]};
                 transform.setPosition(translation);
+                glm::quat quat = glm::quat(quadricsRotPtr[i * 4 + 0], quadricsRotPtr[i * 4 + 1], quadricsRotPtr[i * 4 + 2], quadricsRotPtr[i * 4 + 3]);
+                transform.setRotationQuaternion(quat);
 
-                //parameters->a = quadricsPtr[i * 8 + 0];
-                //parameters->b = quadricsPtr[i * 8 + 1];
-                //parameters->c = quadricsPtr[i * 8 + 2];
-                //parameters->t_x = quadricsPtr[i * 8 + 3];
-                //parameters->t_y = quadricsPtr[i * 8 + 4];
-                //parameters->b_beta = quadricsPtr[i * 8 + 5];
-                //parameters->threshold = quadricsPtr[i * 8 + 6];
-                //parameters->kernelScale = quadricsPtr[i * 8 + 7];
+                parameters->a = quadricsPtr[i * 12 + 0];
+                parameters->b = quadricsPtr[i * 12 + 1];
+                parameters->c = quadricsPtr[i * 12 + 2];
+                parameters->t_x = quadricsPtr[i * 12 + 3];
+                parameters->t_y = quadricsPtr[i * 12 + 4];
+                parameters->b_beta = quadricsPtr[i * 12 + 5];
+                parameters->threshold = quadricsPtr[i * 12 + 6];
+                parameters->kernelScale = quadricsPtr[i * 12 + 7];
+                parameters->min.x = quadricsPtr[i * 12 + 8];
+                parameters->max.x = quadricsPtr[i * 12 + 9];
+                parameters->min.y = quadricsPtr[i * 12 + 10];
+                parameters->max.y = quadricsPtr[i * 12 + 11];
 
-                //material.emission = 0.0f;
-                //material.diffuse = 0.5f;
-                //material.specular = 0.5f;
-                //material.phongExponent = 32.0f;
-                //material.albedo = glm::vec4(0.8f);
-                //parameters->min = glm::vec2(-1.0f);
-                //parameters->max = glm::vec2(1.0f);
+                material.emission = 0.0f;
+                material.diffuse = 0.5f;
+                material.specular = 0.5f;
+                material.phongExponent = 32.0f;
+                material.albedo = glm::vec4(0.8f);
+                parameters->min = glm::vec2(-2.0f);
+                parameters->max = glm::vec2(2.0f);
 
                 i++;
             }
@@ -355,9 +363,9 @@ namespace VkRender::PathTracer {
                 quadricTransformMatrices.emplace_back(transform);
             }
         }
-        // 1) Convert to a tensor of shape [N, 8]
+        // 1) Convert to a tensor of shape [N, 12]
         std::vector<float> hostQuadrics;
-        hostQuadrics.reserve(quadricInputAssembly.size() * 8);
+        hostQuadrics.reserve(quadricInputAssembly.size() * 12);
 
         for (auto& item : quadricInputAssembly) {
             hostQuadrics.push_back(item.a);
@@ -368,17 +376,21 @@ namespace VkRender::PathTracer {
             hostQuadrics.push_back(item.b_beta);
             hostQuadrics.push_back(item.threshold);
             hostQuadrics.push_back(item.kernelScale);
+            hostQuadrics.push_back(item.min.x);
+            hostQuadrics.push_back(item.max.x);
+            hostQuadrics.push_back(item.min.y);
+            hostQuadrics.push_back(item.max.y);
         }
 
         // from_blob does not copy by default. Once we go out of scope, hostQuadrics might be freed.
         // Usually, we wrap it in a clone() call to own the data inside a Torch tensor:
         m_tensorData.quadrics = torch::from_blob(
             hostQuadrics.data(),
-            {static_cast<long>(quadricInputAssembly.size()), 8},
+            {static_cast<long>(quadricInputAssembly.size()), 12},
             torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCPU)
         ).clone().to(device).set_requires_grad(false);
 
-        // 1) Convert to a tensor of shape [N, 8]
+        // 1) Convert to a tensor of shape [N, 12]
         std::vector<float> hostQuadricPositions;
         hostQuadricPositions.reserve(quadricTransformMatrices.size() * 3);
 
@@ -396,8 +408,26 @@ namespace VkRender::PathTracer {
             torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCPU)
         ).clone().to(device).set_requires_grad(true);
 
+        // 1) Convert to a tensor of shape [N, 8]
+        std::vector<float> hostQuadricRotations;
+        hostQuadricRotations.reserve(quadricTransformMatrices.size() * 4);
+
+        for (auto& item : quadricTransformMatrices) {
+            hostQuadricRotations.push_back(item.getRotationQuaternion().w);
+            hostQuadricRotations.push_back(item.getRotationQuaternion().x);
+            hostQuadricRotations.push_back(item.getRotationQuaternion().y);
+            hostQuadricRotations.push_back(item.getRotationQuaternion().z);
+        }
+
+        m_tensorData.quadricRotations = torch::from_blob(
+            hostQuadricRotations.data(),
+            {static_cast<long>(quadricTransformMatrices.size()), 4},
+            torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCPU)
+        ).clone().to(device).set_requires_grad(false);
+
         register_parameter("quadrics", m_tensorData.quadrics);
         register_parameter("quadricPositions", m_tensorData.quadricPositions);
+        register_parameter("quadricRotations", m_tensorData.quadricRotations);
 
         Log::Logger::getInstance()->info("Registrered and Uploaded {} Quadrics from scene to Tensors",
                                          m_data.numQuadrics);

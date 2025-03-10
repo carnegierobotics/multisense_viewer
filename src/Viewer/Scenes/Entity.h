@@ -161,11 +161,13 @@ namespace VkRender {
         }
 
 
+        Scene* getScene() { return m_scene; }
     private:
         entt::entity m_entityHandle{ entt::null };
         Scene* m_scene = nullptr;
 
     };
+
 
 }
 

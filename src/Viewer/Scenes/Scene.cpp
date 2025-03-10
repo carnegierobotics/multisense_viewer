@@ -5,6 +5,7 @@
 #include "Viewer/Scenes/Entity.h"
 
 #include "Viewer/Scenes/Scene.h"
+#include "Viewer/Scenes/Controller.h"
 
 #include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtx/quaternion.hpp>
@@ -17,10 +18,19 @@
 #include "Viewer/Application/Application.h"
 #include "Viewer/Rendering/Components/PointCloudComponent.h"
 #include "Viewer/Rendering/Components/QuadricCollectionComponent.h"
+#include "Viewer/Rendering/Components/ScriptableComponent.h"
 
 namespace VkRender {
+
+
     Scene::Scene(VkRender::Application *context) {
         m_context = context;
+
+        auto entity = createEntity("NewEntity");
+        auto& mesh = entity.addComponent<MeshComponent>(QUADRIC);
+        entity.addComponent<MaterialComponent>();
+        entity.addComponent<ScriptableComponent>().bind<Controller>();
+
     }
 
     static glm::vec3 computeWorldHitPoint(const glm::vec3 &e_o, const glm::vec3 &e_d,
@@ -69,6 +79,20 @@ namespace VkRender {
     }
 
     void Scene::update() {
+
+        auto scriptView = m_registry.view<ScriptableComponent>();
+        for (auto e : scriptView) {
+            auto entity = Entity(e, this);
+            auto& script = entity.getComponent<ScriptableComponent>();
+
+            if (!script.instance) {
+                script.instance = script.instantiateScript();
+                script.instance->m_entity = entity;
+                script.instance->onCreate();
+            }
+            script.instance->onUpdate();
+        }
+
         auto cameraView = m_registry.view<CameraComponent>();
         for (auto e: cameraView) {
             auto entity = Entity(e, this);
@@ -485,6 +509,9 @@ namespace VkRender {
                                              entity.getUUID().operator std::string(), entity.getName());
             notifyComponentRemoval(entity);
 
+            if (entity.hasComponent<ScriptableComponent>()) {
+                entity.getComponent<ScriptableComponent>().instance->onDestroy();
+            }
             // Perform the deletion
             m_registry.destroy(entity);
         } else {
@@ -706,6 +733,9 @@ namespace VkRender {
     template<>
     void Scene::onComponentAdded<QuadricCollectionComponent>(Entity entity, QuadricCollectionComponent &component) {
     }
+    template<>
+    void Scene::onComponentAdded<ScriptableComponent>(Entity entity, ScriptableComponent &component) {
+    }
 
     /** COMPONENT REMOVE **/
 
@@ -785,6 +815,9 @@ namespace VkRender {
     }
     template<>
     void Scene::onComponentRemoved<QuadricCollectionComponent>(Entity entity, QuadricCollectionComponent &component) {
+    }
+    template<>
+    void Scene::onComponentRemoved<ScriptableComponent>(Entity entity, ScriptableComponent &component) {
     }
 
     /** COMPONENT UPDATE **/
@@ -867,6 +900,10 @@ namespace VkRender {
     template
     <>
     void Scene::onComponentUpdated<QuadricCollectionComponent>(Entity entity, QuadricCollectionComponent &component) {
+    }
+    template
+    <>
+    void Scene::onComponentUpdated<ScriptableComponent>(Entity entity, ScriptableComponent &component) {
     }
 
     DISABLE_WARNING_POP

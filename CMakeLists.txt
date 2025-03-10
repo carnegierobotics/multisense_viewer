@@ -222,6 +222,8 @@ set(SOURCE_FILES
         src/Viewer/Rendering/Core/VulkanTexture.h
         src/Viewer/Scenes/Entity.cpp
 
+        src/Viewer/Scripts/VectorScripts.cpp
+
         src/Viewer/Application/ApplicationConfig.cpp
         src/Viewer/Application/pch.cpp
         src/Viewer/Application/Application.cpp
@@ -244,6 +246,7 @@ set(SOURCE_FILES
         src/Viewer/Rendering/Components/PointCloudComponent.h
         src/Viewer/Rendering/Components/GaussianComponent.cpp
         src/Viewer/Rendering/Components/QuadricCollectionComponent.cpp
+        src/Viewer/Rendering/Components/ScriptableComponent.cpp
 
         src/Viewer/Rendering/ImGui/Widgets.cpp
         src/Viewer/Rendering/ImGui/GuiManager.cpp

@@ -256,7 +256,7 @@ namespace VkRender::PathTracer {
             // ===== Backward Pass =====
             // We now compute the gradient (jacobian) of our hit point and subsequent losses with respect to g_c.
 
-            /*
+
             // --- (1) Gradients of B and C with respect to g_c ---
             // Because e_o_local = world2Quadric*(e_o - g_c), we have d(e_o_local)/d(g_c) = -world2Quadric.
             // Compute ∇ₑₒ B:
@@ -335,7 +335,7 @@ namespace VkRender::PathTracer {
             // --- (11) Derivative of pixel coordinates with respect to g_c ---
             glm::mat3x3 J_uv_gc = J_uv_pcam * J_pc_gc;
 
-            */
+
             // Ground truth gradients
 
             glm::mat3 J_uv_gt_pcam(0.0f);

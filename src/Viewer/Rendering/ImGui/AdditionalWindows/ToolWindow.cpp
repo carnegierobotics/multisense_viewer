@@ -52,7 +52,7 @@ namespace VkRender {
 
         // Begin a new ImGui window called "Debug Window".
         ImGui::Begin("Tool Window");
-        uint32_t numCameras = 60;
+        uint32_t numCameras = 30;
         auto scene = m_context->activeScene();
 
         // Create a button labeled "Generate Cameras".

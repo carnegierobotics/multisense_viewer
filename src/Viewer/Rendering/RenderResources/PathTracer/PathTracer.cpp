@@ -65,30 +65,36 @@ namespace VkRender::PathTracer {
 
             queue.wait();
             // Kernel Launch
-            sycl::range<1> globalRange(m_pipelineSettings.photonCount);
             Log::Logger::getInstance()->trace("Path Tracer: Submitting Kernels");
 
             if (m_gpu.numGaussians > 0) {
-                queue.submit([&](sycl::handler &cgh) {
-                    LightTracerKernel kernel(m_gpu, m_gpuDataOutput, m_pcg32);
+                queue.submit([gpu = m_gpu, gpuOutput = m_gpuDataOutput, random = m_pcg32, photonCount = m_pipelineSettings.photonCount](sycl::handler &cgh) {
+                    sycl::range<1> globalRange(photonCount);
+
+                    LightTracerKernel kernel(gpu, gpuOutput, random);
                     cgh.parallel_for(globalRange, kernel);
                 });
             }
 
             queue.wait();
+
+
             uint32_t imageSize = m_pipelineSettings.width * m_pipelineSettings.height;
             queue.submit([&](sycl::handler &cgh) {
                 cgh.parallel_for<class AverageImageKernel>(
                     sycl::range<1>(imageSize),
-                    [=](sycl::id<1> idx) {
+                    [gpu = m_gpu, imageSize](sycl::id<1> idx) {
                         size_t pixelIndex = idx[0];
+                        if (pixelIndex > imageSize) {
+                            return;
+                        }
                         // Read the counter value for the pixel.
-                        float count = m_gpu.imageMemoryCounter[pixelIndex];
+                        float count = gpu.imageMemoryCounter[pixelIndex];
 
                         // Only average if the pixel was hit at least once.
                         if (count > 0.0f) {
-                            float newContribution = m_gpu.imageMemory[pixelIndex] / count;
-                            m_gpu.imageMemoryPersistent[pixelIndex] += newContribution;
+                            float newContribution = gpu.imageMemory[pixelIndex] / count;
+                            gpu.imageMemoryPersistent[pixelIndex] += newContribution;
                         } else {
                             // Optionally, you can set pixels with no hits to 0.
                             //m_gpu.imageMemory[pixelIndex] = 0.0f;
@@ -96,6 +102,7 @@ namespace VkRender::PathTracer {
                     }
                 );
             });
+
 
             queue.wait();
 

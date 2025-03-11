@@ -182,8 +182,7 @@ namespace VkRender::PathTracer {
                 material.specular = 0.5f;
                 material.phongExponent = 32.0f;
                 material.albedo = glm::vec4(0.8f);
-                parameters->min = glm::vec2(-2.0f);
-                parameters->max = glm::vec2(2.0f);
+
 
                 i++;
             }

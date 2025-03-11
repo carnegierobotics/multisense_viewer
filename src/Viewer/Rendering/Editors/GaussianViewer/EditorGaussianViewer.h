@@ -40,8 +40,6 @@ namespace VkRender {
         void onEditorResize() override;
         void onSceneLoad(std::shared_ptr<Scene> scene) override;
 
-        void onKeyCallback(const Input& input) override;
-
     private:
         std::shared_ptr<Camera> m_editorCamera;
         std::shared_ptr<Scene> m_activeScene;

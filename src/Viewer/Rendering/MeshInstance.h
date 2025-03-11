@@ -19,6 +19,7 @@ namespace VkRender {
         VkPrimitiveTopology topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         MeshDataType m_type{};
         bool usesVertexBuffers = false;
+        uint32_t lastUpdatedVersion = 0;
 
     };
 }

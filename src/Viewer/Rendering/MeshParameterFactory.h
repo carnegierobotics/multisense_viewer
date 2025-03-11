@@ -5,6 +5,8 @@
 #ifndef MESHPARAMETERFACTORY_H
 #define MESHPARAMETERFACTORY_H
 
+#include "MeshParameters.h"
+
 namespace VkRender {
     class MeshParameterFactory {
     public:

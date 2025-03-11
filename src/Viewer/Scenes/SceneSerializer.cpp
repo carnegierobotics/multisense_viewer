@@ -9,6 +9,12 @@
 #include <Viewer/Application/ApplicationConfig.h>
 #include <Viewer/Rendering/Components/MaterialComponent.h>
 #include <Viewer/Rendering/Components/QuadricCollectionComponent.h>
+#include <Viewer/Rendering/Components/ScriptableComponent.h>
+#include <Viewer/Scripts/VectorScripts.h>
+#include <Viewer/Scripts/Rays/ContributionRay.h>
+#include <Viewer/Scripts/Rays/Emitter.h>
+
+#include "Viewer/Scenes/CameraController.h"
 
 #include "Viewer/Scenes/Entity.h"
 #include "Viewer/Rendering/Components/Components.h"
@@ -214,6 +220,16 @@ namespace VkRender {
             // Add any group-specific serialization if needed
             out << YAML::EndMap;
         }
+
+        if (entity.hasComponent<ScriptableComponent>()) {
+            auto& scriptComp = entity.getComponent<ScriptableComponent>();
+            out << YAML::Key << "ScriptableComponent";
+            out << YAML::BeginMap;
+            out << YAML::Key << "ScriptName";
+            out << YAML::Value << scriptComp.scriptName;
+            out << YAML::EndMap;
+        }
+
         if (entity.hasComponent<MeshComponent>()) {
             out << YAML::Key << "MeshComponent";
             out << YAML::BeginMap;
@@ -606,8 +622,7 @@ namespace VkRender {
                         lightSourceComponent.normal = glm::vec3(0.0f, 1.0f, 0.0f);
                     }
                 }
-                // Store the entity in the map
-                entityMap[entityId] = deserializedEntity;
+
 
 
                 auto cameraComponent = entity["CameraComponent"];
@@ -1017,6 +1032,27 @@ namespace VkRender {
                     deserializeFloatArray(component.threshold, "Threshold", expectedSize, 0.01f);
                     deserializeFloatArray(component.beta, "Beta", expectedSize, 0.0f);
                 }
+
+
+                auto scriptNode = entity["ScriptableComponent"];
+                if (scriptNode) {
+                    auto& scriptComp = deserializedEntity.addComponent<ScriptableComponent>();
+                    std::string storedScriptName = scriptNode["ScriptName"].as<std::string>();
+
+                    if (storedScriptName == std::string(getTypeName<DefaultController>())) {
+                        scriptComp.bind<DefaultController>();
+                    } else if (storedScriptName == std::string(getTypeName<VectorScripts>())) {
+                        scriptComp.bind<VectorScripts>();
+                    } else if (storedScriptName == std::string(getTypeName<Emitter>())) {
+                        scriptComp.bind<Emitter>();
+                    }else if (storedScriptName == std::string(getTypeName<ContributionRay>())) {
+                        scriptComp.bind<ContributionRay>();
+                    }
+                }
+
+                // Store the entity in the map
+                entityMap[entityId] = deserializedEntity;
+
             }
 
             for (auto entityNode: entities) {
@@ -1035,6 +1071,8 @@ namespace VkRender {
                     }
                 }
             }
+
+
         }
 
 

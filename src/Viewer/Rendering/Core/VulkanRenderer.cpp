@@ -160,7 +160,7 @@ namespace VkRender {
                 instanceCreateInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
                 Log::Logger::getInstance()->info("Enabling Validation Layers");
                 m_setDebugUtilsObjectNameEXT = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(vkGetInstanceProcAddr(
-                    instance, "vkSetDebugUtilsObjectNameEXT"));
+                    m_instance, "vkSetDebugUtilsObjectNameEXT"));
             }
             else {
                 std::cerr << "Validation layer VK_LAYER_KHRONOS_validation not present, validation is disabled\n";
@@ -168,7 +168,7 @@ namespace VkRender {
             }
         }
 #endif
-        return vkCreateInstance(&instanceCreateInfo, nullptr, &instance);
+        return vkCreateInstance(&instanceCreateInfo, nullptr, &m_instance);
     }
 
     bool VulkanRenderer::initVulkan() {
@@ -187,24 +187,24 @@ namespace VkRender {
             // Additional flags include performance info, loader and layer debug messages, etc.
             VkDebugUtilsMessengerCreateInfoEXT createInfo;
             Validation::populateDebugMessengerCreateInfo(createInfo);
-            if (Validation::CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugUtilsMessenger) !=
+            if (Validation::CreateDebugUtilsMessengerEXT(m_instance, &createInfo, nullptr, &debugUtilsMessenger) !=
                 VK_SUCCESS) {
                 throw std::runtime_error("failed to set up debug messenger!");
             }
             m_setDebugUtilsObjectNameEXT = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(vkGetInstanceProcAddr(
-                instance, "vkSetDebugUtilsObjectNameEXT"));
+                m_instance, "vkSetDebugUtilsObjectNameEXT"));
         }
 
 #endif
         // Get list of devices and capabilities of each m_Device
         uint32_t gpuCount = 0;
-        err = vkEnumeratePhysicalDevices(instance, &gpuCount, nullptr);
+        err = vkEnumeratePhysicalDevices(m_instance, &gpuCount, nullptr);
         if (err != VK_SUCCESS or gpuCount == 0) {
             throw std::runtime_error("No m_Device with vulkan support found");
         }
         // Enumerate devices
         std::vector<VkPhysicalDevice> physicalDevices(gpuCount);
-        err = vkEnumeratePhysicalDevices(instance, &gpuCount, physicalDevices.data());
+        err = vkEnumeratePhysicalDevices(m_instance, &gpuCount, physicalDevices.data());
         if (err != VK_SUCCESS) {
             throw std::runtime_error("Could not enumerate physical devices");
         }
@@ -267,7 +267,7 @@ namespace VkRender {
         allocatorCreateInfo.vulkanApiVersion = apiVersion;
         allocatorCreateInfo.physicalDevice = physicalDevice;
         allocatorCreateInfo.device = device;
-        allocatorCreateInfo.instance = instance;
+        allocatorCreateInfo.instance = m_instance;
         allocatorCreateInfo.pVulkanFunctions = &vulkanFunctions;
 
         allocatorCreateInfo.flags =
@@ -314,7 +314,7 @@ namespace VkRender {
 
 #ifdef VKRENDER_MULTISENSE_VIEWER_DEBUG
         if (m_settings.validation)
-            Validation::DestroyDebugUtilsMessengerEXT(instance, debugUtilsMessenger, nullptr);
+            Validation::DestroyDebugUtilsMessengerEXT(m_instance, debugUtilsMessenger, nullptr);
         // Write to file
         char* statsString;
         vmaBuildStatsString(m_allocator, &statsString, VK_TRUE);
@@ -333,7 +333,7 @@ namespace VkRender {
         vmaDestroyAllocator(m_allocator);
 
         delete m_vulkanDevice; //Call to destructor for smart pointer destroy logical m_Device before instance
-        vkDestroyInstance(instance, nullptr);
+        vkDestroyInstance(m_instance, nullptr);
         // Cleanup GLFW Resources
         glfwDestroyCursor(m_cursors.arrow);
         glfwDestroyCursor(m_cursors.hand);
@@ -432,7 +432,7 @@ namespace VkRender {
 
     void VulkanRenderer::prepare() {
         VkRender::SwapChainCreateInfo info{};
-        info.instance = instance;
+        info.instance = m_instance;
         info.pWindow = window;
         info.physicalDevice = physicalDevice;
         info.device = device;
@@ -548,7 +548,7 @@ namespace VkRender {
             }
             auto tDiff = std::chrono::duration<double, std::milli>(
                 std::chrono::high_resolution_clock::now() - tStart).count();
-            frameTimer = static_cast<float>(tDiff) / 1000;
+            m_lastFrameTime = static_cast<float>(tDiff) / 1000;
 
             if (static_cast<float>(tDiff) > 33){
                 Log::Logger::getInstance()->info("Warning: Exceeding 33ms for render time. Time: {}", static_cast<float>(tDiff));
@@ -703,6 +703,7 @@ namespace VkRender {
         }
 #endif
 
+        /*
         if (action == GLFW_PRESS) {
             switch (key) {
             case GLFW_KEY_W:
@@ -745,6 +746,7 @@ namespace VkRender {
                 break;
             }
         }
+        */
 
         myApp->keyboardCallback(window, key, scancode, action, mods);
     }

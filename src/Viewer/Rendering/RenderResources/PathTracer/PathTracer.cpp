@@ -51,10 +51,8 @@ namespace VkRender::PathTracer {
             m_renderInformation->numBounces = m_pipelineSettings.numBounces;
             Log::Logger::getInstance()->trace("Path Tracer: Uploading Render Information");
 
-            queue.fill(m_gpu.imageMemoryCounter, static_cast<float>(0),
-                       m_pipelineSettings.width * m_pipelineSettings.height);
-            queue.fill(m_gpu.imageMemory, static_cast<float>(0),
-                       m_pipelineSettings.width * m_pipelineSettings.height);
+            queue.fill(m_gpu.imageMemoryCounter, 0.0f, m_pipelineSettings.width * m_pipelineSettings.height);
+            queue.fill(m_gpu.imageMemory, 0.0f, m_pipelineSettings.width * m_pipelineSettings.height);
 
             queue.memcpy(m_gpu.renderInformation, m_renderInformation.get(), sizeof(RenderInformation));
             queue.memcpy(m_gpu.pinholeCamera, &renderSettings.camera, sizeof(PinholeCamera));
@@ -65,6 +63,7 @@ namespace VkRender::PathTracer {
 
             queue.wait();
             // Kernel Launch
+            sycl::range<1> globalRange(m_pipelineSettings.photonCount);
             Log::Logger::getInstance()->trace("Path Tracer: Submitting Kernels");
 
             if (m_gpu.numGaussians > 0) {
@@ -77,8 +76,6 @@ namespace VkRender::PathTracer {
             }
 
             queue.wait();
-
-
             uint32_t imageSize = m_pipelineSettings.width * m_pipelineSettings.height;
             queue.submit([&](sycl::handler &cgh) {
                 cgh.parallel_for<class AverageImageKernel>(
@@ -102,6 +99,41 @@ namespace VkRender::PathTracer {
                     }
                 );
             });
+                            // Only average if the pixel was hit at least once.
+                            if (count > 0.0f) {
+                                float newContribution = m_gpu.imageMemory[pixelIndex] / count;
+
+                                // Check newContribution for invalid values.
+                                if (sycl::isnan(newContribution) || sycl::isinf(newContribution)) {
+                                    // Mark error code 1 for newContribution errors.
+                                    debugAcc[pixelIndex] = 1;
+                                } else {
+                                    // Add the valid newContribution.
+                                    m_gpu.imageMemoryPersistent[pixelIndex] += newContribution;
+
+                                    // Check the persistent value after accumulation.
+                                    float persistentValue = m_gpu.imageMemoryPersistent[pixelIndex];
+                                    if (sycl::isnan(persistentValue) || sycl::isinf(persistentValue)) {
+                                        // Mark error code 2 for persistent accumulation errors.
+                                        debugAcc[pixelIndex] = 2;
+                                    }
+                                }
+                            }
+                            // Optionally, you could also flag pixels with zero count if needed.
+                        }
+                    );
+                });
+                // Ensure the kernel execution has finished.
+                queue.wait();
+            }
+
+            // Now, inspect the debugData on the host.
+            for (size_t i = 0; i < imageSize; i++) {
+                if (debugData[i] != 0) {
+                    std::cout << "Invalid value detected at pixel index " << i
+                            << " with error code " << debugData[i] << std::endl;
+                }
+            }
 
 
             queue.wait();
@@ -111,6 +143,24 @@ namespace VkRender::PathTracer {
             queue.memcpy(m_imageMemory, m_gpu.imageMemoryPersistent,
                          m_pipelineSettings.width * m_pipelineSettings.height * sizeof(float));
             queue.wait();
+
+
+            bool foundInvalid = false;
+            for (uint32_t i = 0; i < imageSize; i++) {
+                float pixelValue = m_imageMemory[i];
+                if (std::isnan(pixelValue) || std::isinf(pixelValue)) {
+                    foundInvalid = true;
+                    // Optionally, print or log the index/value
+                    std::cout << "Invalid value at index " << i << ": " << pixelValue << std::endl;
+                    break;
+                }
+            }
+
+            if (foundInvalid) {
+                std::cerr << "Detected NaN or Inf values in imageMemoryPersistent." << std::endl;
+            } else {
+                std::cout << "All values in imageMemoryPersistent are valid." << std::endl;
+            }
 
             double totalM = static_cast<double>(m_renderInformation->totalPhotons) / 1e6;
             double sensorK = static_cast<double>(m_renderInformation->photonsAccumulated) / 1000.0;
@@ -447,7 +497,10 @@ namespace VkRender::PathTracer {
 
             glm::vec3 translation = {quadricsPosPtr[i * 3 + 0], quadricsPosPtr[i * 3 + 1], quadricsPosPtr[i * 3 + 2]};
             point.transform.setPosition(translation);
-            glm::quat quat = {quadricsRotPtr[i * 4 + 0], quadricsRotPtr[i * 4 + 1], quadricsRotPtr[i * 4 + 2], quadricsRotPtr[i * 4 + 3]};
+            glm::quat quat = {
+                quadricsRotPtr[i * 4 + 0], quadricsRotPtr[i * 4 + 1], quadricsRotPtr[i * 4 + 2],
+                quadricsRotPtr[i * 4 + 3]
+            };
             point.transform.setRotationQuaternion(quat);
 
             quadricInputAssembly.push_back(point);

@@ -172,7 +172,8 @@ namespace VkRender::PathTracer {
                     }
 
                     float contributionFlux = photonFlux * contributionRayContribution * betaContribution;
-                    //float contributionFlux = photonFlux * contributionRayContribution;
+                    contributionFlux = photonFlux * contributionRayContribution;
+                    contributionFlux = photonFlux;
                     // Finally, scale the photonFlux (or outgoing radiance) by total contribution
 
                     photonFlux *= brdfFactor;
@@ -229,7 +230,7 @@ namespace VkRender::PathTracer {
             // If we exit here, we used up all bounces w/o hitting sensor
         }
 
-        bool castContributionRay(const glm::vec3 &rayOrigin, const glm::vec3 &cameraPlaneNormalWorld,
+        bool castContributionRay(const glm::vec3 &directLightingOrigin, const glm::vec3 &cameraPlaneNormalWorld,
                                  float apertureRadius, size_t photonID, float photonFlux,
                                  glm::vec3 &directLightDir,
                                  glm::vec3 &apertureHitPoint,
@@ -239,7 +240,7 @@ namespace VkRender::PathTracer {
             // Calculate direct lighting
 
             directLightDir = sampleDirectionTowardAperture(
-                rayOrigin,
+                directLightingOrigin,
                 m_cameraTransform->getPosition(), // center of aperture
                 cameraPlaneNormalWorld, // might be -X if your camera faces X, or -Z, etc.
                 apertureHitPoint,
@@ -253,7 +254,6 @@ namespace VkRender::PathTracer {
                 return false;
             }
             // Check if contribution ray intersects geometry
-            glm::vec3 directLightingOrigin = rayOrigin;
 
             // Create contribution Rays and trace towards the camera
             // Trace our contribution ray
@@ -272,8 +272,9 @@ namespace VkRender::PathTracer {
                 bool hit = geometryIntersectionQuadric(emissiveEntityID, directLightingOrigin, directLightDir,
                                                        hitEntity,
                                                        closest_t, hitPointWorld, hitNormalWorld, betaContribution);
+
                 float tGeom = hit ? glm::length(hitPointWorld - m_cameraTransform->getPosition()) : FLT_MAX;
-                float tAperture = glm::length(rayOrigin - m_cameraTransform->getPosition());
+                float tAperture = glm::length(directLightingOrigin - m_cameraTransform->getPosition());
                 //float tGeom = hit ? closest_t : FLT_MAX;
                 if (tAperture < tGeom) {
                     glm::vec3 cameraHitPointWorld = directLightingOrigin + directLightDir * camera_t;
@@ -328,9 +329,9 @@ bool geometryIntersectionQuadric(
 
         if (node.isLeaf) {
             // Leaf node: perform the detailed quadric intersection test.
-            float tCandidate;
-            glm::vec3 localHitPoint, localHitNormal;
-            float beta;
+            float tCandidate = std::numeric_limits<float>::max();
+            glm::vec3 localHitPoint(0.0f), localHitNormal(0.0f);
+            float beta = 0.0f;
             const QuadricInputAssembly &quadric = m_gpuData.quadricInputAssembly[node.quadricIndex];
             if (intersectQuadricLeaf(rayOrigin, rayDir, quadric, tCandidate, localHitPoint, localHitNormal, beta)) {
                 if (tCandidate < tMinGlobal) {

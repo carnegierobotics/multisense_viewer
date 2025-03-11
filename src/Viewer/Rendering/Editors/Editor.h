@@ -153,8 +153,6 @@ namespace VkRender {
 
         virtual void onMouseScroll(float change) {}
 
-        virtual void onKeyCallback(const Input &input) {}
-
         virtual void onUpdate() {
         }
 

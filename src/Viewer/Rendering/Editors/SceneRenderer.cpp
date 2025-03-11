@@ -251,7 +251,7 @@ namespace VkRender {
             }
             // Use default descriptor set layout
 
-            std::shared_ptr<MeshData> meshData = m_meshManager.getMeshData(meshComponent);
+            auto meshData = VkRender::MeshManager::instance().getMeshData(meshComponent);
             if (!meshData)
                 continue;
             // Update meshData

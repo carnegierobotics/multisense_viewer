@@ -6,12 +6,16 @@
 #define MULTISENSE_VIEWER_MESHDATA_H
 
 
-#include "IMeshParameters.h"
 #include "Components/Components.h"
 #include "Viewer/Rendering/Core/RenderDefinitions.h"
 
 namespace VkRender {
+    class PLYFileMeshParameters;
+    class OBJFileMeshParameters;
+    class CameraGizmoPerspectiveMeshParameters;
+    class CameraGizmoPinholeMeshParameters;
     class CylinderMeshParameters;
+    class QuadricMeshParameters;
 
     enum MeshDataType : uint32_t {
         EMPTY = 0,
@@ -104,7 +108,6 @@ namespace VkRender {
 
 
         void generateQuadricMesh(const QuadricMeshParameters &parameters);
-
         void generateCylinderMesh(const CylinderMeshParameters& parameters);
         void generateCameraPinholeGizmoMesh(const CameraGizmoPinholeMeshParameters& parameters);
         void generateCameraPerspectiveGizmoMesh(const CameraGizmoPerspectiveMeshParameters& parameters);
@@ -112,9 +115,11 @@ namespace VkRender {
         void generatePLYMesh(const PLYFileMeshParameters& parameters);
 
         bool isDirty = true;
+        uint32_t version = 0;
         bool isDynamic = false;
 
         void computeNormals();
+
     };
 }
 

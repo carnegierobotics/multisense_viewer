@@ -114,7 +114,7 @@ namespace VkRender::PathTracer {
     struct RenderInformation {
         uint64_t photonsAccumulated = 0;
         uint64_t totalPhotons = 0;
-        float gamma = 0.0f;
+        float gamma = 1.0f;
         uint32_t numBounces = 0;
         uint32_t frameID = 0;
     };

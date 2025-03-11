@@ -226,7 +226,7 @@ namespace VkRender {
         ImGui::SetCurrentContext(m_imguiContext);
         /*
         //Log::Logger::getInstance()->trace("Set ImGUI Context {} and updating", reinterpret_cast<uint64_t>(m_imguiContext));
-        m_guiResourcesData.frameTimer = frameTimer;
+        m_guiResourcesData.m_lastFrameTime = m_lastFrameTime;
         m_guiResourcesData.firstFrame = updateFrameGraph;
         m_guiResourcesData.applicationWidth = static_cast<float>(editorUI.width);
         m_guiResourcesData.applicationHeight = static_cast<float>(editorUI.height);

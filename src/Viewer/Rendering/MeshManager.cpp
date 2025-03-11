@@ -11,14 +11,19 @@ namespace VkRender{
         std::lock_guard<std::mutex> lock(cacheMutex);
         std::string identifier = meshComponent.getCacheIdentifier();
         auto it = meshDataCache.find(identifier);
-        if (it != meshDataCache.end() && !meshComponent.updateMeshData) {
+        if (it != meshDataCache.end()) {
+            if (it->second->isDirty) {
+                auto meshData = meshComponent.data()->generateMeshData();
+                it->second = meshData;
+                it->second->isDirty = false;
+            }
+
             return it->second;
         }
         if (meshComponent.data()) {
             auto meshData = meshComponent.data()->generateMeshData();
             Log::Logger::getInstance()->info("MeshManager: Generating mesh data for mesh: {}", identifier);
             meshDataCache[identifier] = meshData;
-            meshData->isDirty = true;
             return meshData;
         }
         return nullptr;

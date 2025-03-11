@@ -36,6 +36,8 @@
 
 #include "Application.h"
 
+#include <Viewer/Rendering/Core/UbuntuKeyInput.h>
+
 #include "ProjectSerializer.h"
 #include "Viewer/Scenes/SceneSerializer.h"
 #include "Viewer/Rendering/Core/UUID.h"
@@ -43,7 +45,12 @@
 #include "Viewer/Rendering/Editors/EditorDefinitions.h"
 
 namespace VkRender {
+    Application* Application::s_instance = nullptr;
+
+
     Application::Application(const std::string& title) : VulkanRenderer(title) {
+        s_instance = this;
+
         ApplicationConfig& config = ApplicationConfig::getInstance();
         this->m_title = title;
         Log::Logger::getInstance()->setLogLevel(config.getLogLevel());
@@ -232,14 +239,15 @@ namespace VkRender {
     }
 
     void Application::updateUniformBuffers() {
+        Timestep ts(m_lastFrameTime);
         if (m_activeScene)
-            m_activeScene->update();
+            m_activeScene->update(ts);
         // update imgui io:
         Log::Logger::getInstance()->frameNumber = frameID;
 
         ImGui::SetCurrentContext(m_mainEditor->guiContext());
         ImGuiIO& mainIO = ImGui::GetIO();
-        mainIO.DeltaTime = frameTimer;
+        mainIO.DeltaTime = m_lastFrameTime;
         mainIO.WantCaptureMouse = true;
         mainIO.MousePos = ImVec2(mouse.x, mouse.y);
         mainIO.MouseDown[0] = mouse.left;
@@ -248,7 +256,7 @@ namespace VkRender {
         for (auto& editor : m_editors) {
             ImGui::SetCurrentContext(editor->guiContext());
             ImGuiIO& otherIO = ImGui::GetIO();
-            otherIO.DeltaTime = frameTimer;
+            otherIO.DeltaTime = m_lastFrameTime;
             otherIO.WantCaptureMouse = true;
             otherIO.MousePos = ImVec2(mouse.x - editor->getCreateInfo().x, mouse.y - editor->getCreateInfo().y);
             otherIO.MouseDown[0] = mouse.left;
@@ -683,8 +691,8 @@ namespace VkRender {
            */
 
     void Application::keyboardCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-        input.lastKeyPress = key;
-        input.action = action;
+        //input.lastKeyPress = key;
+        //input.action = action;
 
         if (key == GLFW_KEY_T && action == GLFW_PRESS) {
             m_mainEditor->ui()->showPlotsWindow = !m_mainEditor->ui()->showPlotsWindow;
@@ -700,7 +708,7 @@ namespace VkRender {
             key = ImGui_ImplGlfw_TranslateUntranslatedKey(key, scancode);
             ImGuiKey imgui_key = ImGui_ImplGlfw_KeyToImGuiKey(key);
             io.AddKeyEvent(imgui_key, (action == GLFW_PRESS) || (action == GLFW_REPEAT));
-            editor->onKeyCallback(input);
+            //editor->onKeyCallback(input);
         }
         ImGui::SetCurrentContext(m_mainEditor->guiContext());
         ImGuiIO& io = ImGui::GetIO();

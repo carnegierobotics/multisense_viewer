@@ -290,11 +290,6 @@ namespace VkRender {
         }
     }
 
-    void EditorPathTracer::onKeyCallback(const Input &input) {
-        if (input.lastKeyPress == GLFW_KEY_SPACE) {
-            m_editorCamera->setDefaultPosition({-90.0f, -60.0f}, 1.5f);
-        };
-    }
 
     void EditorPathTracer::onRender(CommandBuffer &commandBuffer) {
         std::unordered_map<std::shared_ptr<DefaultGraphicsPipeline>, std::vector<RenderCommand> > renderGroups;

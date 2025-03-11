@@ -66,6 +66,17 @@ namespace VkRender {
         ~Application() override = default;
 
         /**
+         * @brief Returns the singleton instance of the Application.
+         * @return Reference to the Application instance.
+         */
+        static Application& instance() {
+            // Ensure that the instance exists
+            if (!s_instance) {
+                throw std::runtime_error("Application instance is not initialized.");
+            }
+            return *s_instance;
+        }
+        /**
          * @brief runs the renderer loop
          */
         void run() {
@@ -97,8 +108,7 @@ namespace VkRender {
         std::shared_ptr<UsageMonitor> usageMonitor() { return m_usageMonitor; }
 
         // TODO we should collect per frame info like this somewhere
-        float deltaTime() { return frameTimer; }
-        const Input& getKeyInput(){return input;}
+        float deltaTime() { return m_lastFrameTime; }
 
         SceneRenderer *getSceneRendererByUUID(const UUID &uuid);
         SceneRenderer* getOrAddSceneRendererByUUID(const UUID &uuid,const EditorCreateInfo& ownerCreateInfo);
@@ -123,7 +133,7 @@ namespace VkRender {
             return m_setDebugUtilsObjectNameEXT;
         }
 
-        VkInstance& getInstance() {return instance;}
+        VkInstance& getInstance() {return m_instance;}
         GLFWwindow* getWindow() {return window;}
 
         SYCLDeviceManager& getSyclDeviceSelector(){return m_syclDeviceManager;}
@@ -131,6 +141,8 @@ namespace VkRender {
         std::vector<std::unique_ptr<Editor> > m_editors;
 
     private:
+        static Application* s_instance;
+
         void keyboardCallback(GLFWwindow *window, int key, int scancode, int action, int mods) override;
 
         void onRender() override;

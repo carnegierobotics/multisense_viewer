@@ -59,8 +59,7 @@ namespace VkRender {
 
         std::unordered_map<UUID, std::shared_ptr<MaterialInstance>> m_materialInstances;
 
-        std::unique_ptr<MeshResourceManager> m_meshResourceManager;
-        MeshManager m_meshManager;
+        std::unique_ptr<MeshResourceManager> m_meshResourceManager;  // TODO make static and global function
         std::vector<RenderCommand> m_renderGroups;
 
         struct EntityRenderData {

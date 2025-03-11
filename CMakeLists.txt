@@ -220,7 +220,8 @@ set(SOURCE_FILES
         src/Viewer/Rendering/Core/VulkanFramebuffer.cpp
         src/Viewer/Rendering/Core/VulkanTexture.cpp
         src/Viewer/Rendering/Core/VulkanTexture.h
-        src/Viewer/Scenes/Entity.cpp
+        src/Viewer/Rendering/Core/UbuntuKeyInput.cpp
+
 
         src/Viewer/Application/ApplicationConfig.cpp
         src/Viewer/Application/pch.cpp
@@ -235,15 +236,21 @@ set(SOURCE_FILES
         src/Viewer/Rendering/MeshData.cpp
         src/Viewer/Rendering/VulkanMeshResourceManager.cpp
         src/Viewer/Rendering/MeshManager.cpp
-        src/Viewer/Rendering/IMeshParameters.cpp
+        src/Viewer/Rendering/MeshParameters.cpp
 
         src/Viewer/Scenes/Scene.cpp
         src/Viewer/Scenes/SceneSerializer.cpp
+        src/Viewer/Scenes/Entity.cpp
+        src/Viewer/Scripts/Rays/Emitter.cpp
+        src/Viewer/Scripts/Rays/Ray.cpp
+        src/Viewer/Scripts/Rays/ContributionRay.cpp
+        src/Viewer/Scripts/VectorScripts.cpp
 
         src/Viewer/Rendering/Components/ImageComponent.cpp
         src/Viewer/Rendering/Components/PointCloudComponent.h
         src/Viewer/Rendering/Components/GaussianComponent.cpp
         src/Viewer/Rendering/Components/QuadricCollectionComponent.cpp
+        src/Viewer/Rendering/Components/ScriptableComponent.cpp
 
         src/Viewer/Rendering/ImGui/Widgets.cpp
         src/Viewer/Rendering/ImGui/GuiManager.cpp

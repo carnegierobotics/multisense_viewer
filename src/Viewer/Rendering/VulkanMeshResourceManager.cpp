@@ -15,8 +15,9 @@ namespace VkRender {
 
         auto it = meshInstanceCache.find(identifier);
         if (it != meshInstanceCache.end()) {
-            if (meshData->isDirty) {
+            if (meshData->version > it->second->lastUpdatedVersion) {
                 updateMeshInstance(identifier, meshData);
+                it->second->lastUpdatedVersion = meshData->version;
             }
             return it->second;
         }
@@ -24,6 +25,7 @@ namespace VkRender {
         // Create new MeshInstance
         auto meshInstance = createMeshInstance(meshData, meshType);
         if (meshInstance) {
+            meshInstance->lastUpdatedVersion = meshData->version;
             meshInstanceCache[identifier] = meshInstance;
         }
 
@@ -34,7 +36,7 @@ namespace VkRender {
         const std::string& identifier,
         const std::shared_ptr<MeshData>& meshData) {
         auto it = meshInstanceCache.find(identifier);
-        if (it != meshInstanceCache.end() && meshData->isDirty) {
+        if (it != meshInstanceCache.end()) {
             auto meshInstance = it->second;
 
             VkDeviceSize vertexBufferSize = meshData->vertices.size() * sizeof(Vertex);
@@ -108,9 +110,6 @@ namespace VkRender {
                     vkFreeMemory(m_context->vkDevice().m_LogicalDevice, indexStaging.memory, nullptr);
                 }
             }
-
-            // Reset the dirty flag
-            meshData->isDirty = false;
         }
     }
 

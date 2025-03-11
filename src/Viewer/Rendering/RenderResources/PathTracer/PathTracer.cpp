@@ -99,41 +99,6 @@ namespace VkRender::PathTracer {
                     }
                 );
             });
-                            // Only average if the pixel was hit at least once.
-                            if (count > 0.0f) {
-                                float newContribution = m_gpu.imageMemory[pixelIndex] / count;
-
-                                // Check newContribution for invalid values.
-                                if (sycl::isnan(newContribution) || sycl::isinf(newContribution)) {
-                                    // Mark error code 1 for newContribution errors.
-                                    debugAcc[pixelIndex] = 1;
-                                } else {
-                                    // Add the valid newContribution.
-                                    m_gpu.imageMemoryPersistent[pixelIndex] += newContribution;
-
-                                    // Check the persistent value after accumulation.
-                                    float persistentValue = m_gpu.imageMemoryPersistent[pixelIndex];
-                                    if (sycl::isnan(persistentValue) || sycl::isinf(persistentValue)) {
-                                        // Mark error code 2 for persistent accumulation errors.
-                                        debugAcc[pixelIndex] = 2;
-                                    }
-                                }
-                            }
-                            // Optionally, you could also flag pixels with zero count if needed.
-                        }
-                    );
-                });
-                // Ensure the kernel execution has finished.
-                queue.wait();
-            }
-
-            // Now, inspect the debugData on the host.
-            for (size_t i = 0; i < imageSize; i++) {
-                if (debugData[i] != 0) {
-                    std::cout << "Invalid value detected at pixel index " << i
-                            << " with error code " << debugData[i] << std::endl;
-                }
-            }
 
 
             queue.wait();

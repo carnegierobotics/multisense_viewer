@@ -312,11 +312,6 @@ namespace VkRender {
         }
     }
 
-    void Editor3DViewport::onKeyCallback(const Input &input) {
-        if (input.lastKeyPress == GLFW_KEY_SPACE) {
-            m_editorCamera->setDefaultPosition({-90.0f, -60.0f}, 1.5f);
-        };
-    }
 
     void Editor3DViewport::updateActiveCamera() {
         auto imageUI = std::dynamic_pointer_cast<Editor3DViewportUI>(m_ui);

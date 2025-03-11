@@ -37,7 +37,7 @@ namespace VkRender {
         void onMouseMove(const MouseButtons& mouse) override;
 
         void onMouseScroll(float change) override;
-        void onKeyCallback(const Input& input) override;
+
         std::shared_ptr<BaseCamera> getCamera() { return m_editorCamera; }
 
         void onRenderSettingsChanged();

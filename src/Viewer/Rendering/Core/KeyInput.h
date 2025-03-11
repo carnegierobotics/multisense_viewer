@@ -44,46 +44,61 @@
 #endif
 #include <GLFW/glfw3.h>
 
-struct Input {
+namespace VkRender {
+    class Input {
+    public:
+        virtual ~Input() = default;
 
-    Input(){
-        action = 0;
-        lastKeyPress = 0;
-    }
+        inline static bool isKeyPressed(int keyCode) {
+            return s_instance->isKeyPressedImpl(keyCode);
+        }
 
-    [[nodiscard]] bool getButtonDown(int key) const {
-        if (key == lastKeyPress && action == GLFW_PRESS)
-            return true;
+    protected:
+        virtual bool isKeyPressedImpl(int keyCode) =0;
 
-        return false;
-    }
+    private:
+        static Input *s_instance;
 
-    /**@brief Not currently implemented */
-    [[nodiscard]] bool getButtonUp(int key) const {
-        if (key == lastKeyPress && action == GLFW_RELEASE)
-            return true;
+        /*
+        Input(){
+            action = 0;
+            lastKeyPress = 0;
+        }
 
-        return false;
-    }
+        [[nodiscard]] bool getButtonDown(int key) const {
+            if (key == lastKeyPress && action == GLFW_PRESS)
+                return true;
 
-    [[nodiscard]] bool getButton(int key) const {
-        if (key == lastKeyPress)
-            return true;
+            return false;
+        }
 
-        return false;
-    }
+        [[nodiscard]] bool getButtonUp(int key) const {
+            if (key == lastKeyPress && action == GLFW_RELEASE)
+                return true;
 
-    int action;
-    int lastKeyPress;
+            return false;
+        }
 
-    struct keys{
-        bool up = false;
-        bool down = false;
-        bool left = false;
-        bool right = false;
-    }keys;
+        [[nodiscard]] bool getButton(int key) const {
+            if (key == lastKeyPress)
+                return true;
 
-};
+            return false;
+        }
 
+        int action;
+        int lastKeyPress;
+
+        struct keys{
+            bool up = false;
+            bool down = false;
+            bool left = false;
+            bool right = false;
+        }keys;
+    */
+    };
+
+
+}
 
 #endif //MULTISENSE_VIEWER_KEYINPUT_H

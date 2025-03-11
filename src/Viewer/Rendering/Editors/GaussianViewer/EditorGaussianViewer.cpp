@@ -238,15 +238,6 @@ namespace VkRender {
             m_editorCamera->setArcBallPosition((change > 0.0f) ? 0.95f : 1.05f);
     }
 
-    void EditorGaussianViewer::onKeyCallback(const Input &input) {
-
-        m_editorCamera->keys.up = input.keys.up;
-        m_editorCamera->keys.down = input.keys.down;
-        m_editorCamera->keys.left = input.keys.left;
-        m_editorCamera->keys.right = input.keys.right;
-
-    }
-
     std::shared_ptr<MeshInstance> EditorGaussianViewer::setupMesh() {
         std::vector<VkRender::ImageVertex> vertices = {
                 // Bottom-left corner

@@ -33,11 +33,6 @@ namespace VkRender {
     };
 
 
-    struct ScriptComponent {
-        std::string className;
-    };
-
-
     struct ParentComponent {
         entt::entity parent = entt::null;
     };

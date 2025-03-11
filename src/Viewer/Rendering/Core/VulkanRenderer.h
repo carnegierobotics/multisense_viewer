@@ -113,7 +113,7 @@ namespace VkRender {
         std::unique_ptr<VulkanImage> m_depthStencil;
 
         /** @brief Last frame time measured using a high performance timer (if available) in seconds */
-        float frameTimer = 1.0f;
+        float m_lastFrameTime = 1.0f;
         std::chrono::system_clock::time_point rendererStartTime;
         float runTime = 0.0f;
 
@@ -122,8 +122,6 @@ namespace VkRender {
         VkRender::MouseButtons mouse{};
         float mouseScrollSpeed = 0.1f;
         std::function<VkResult(VkDevice, const VkDebugUtilsObjectNameInfoEXT *)> m_setDebugUtilsObjectNameEXT = nullptr;
-
-        Input input;
 
         /** @brief Handle for UI updates and overlay */
 
@@ -178,7 +176,7 @@ namespace VkRender {
         // Window instance GLFW
         GLFWwindow *window;
         // Vulkan Instance, stores al per-application states
-        VkInstance instance{};
+        VkInstance m_instance{};
         // Physical Device that Vulkan will use
         VkPhysicalDevice physicalDevice{};
         //Physical m_Device m_Properties (m_Device limits etc..)

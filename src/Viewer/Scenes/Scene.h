@@ -6,8 +6,11 @@
 #define MULTISENSE_VIEWER_SCENE_H
 
 #include <entt/entt.hpp>
+
+#include <Viewer/Rendering/Components/CameraComponent.h>
 #include <Viewer/Rendering/Components/MaterialComponent.h>
 #include <Viewer/Rendering/Components/MeshComponent.h>
+#include <Viewer/Rendering/Core/Timestep.h>
 
 #include "Viewer/Rendering/Core/UUID.h"
 #include "Viewer/Rendering/Components/PointCloudComponent.h"
@@ -26,7 +29,7 @@ namespace VkRender {
         ~Scene() {
 
         }
-        void update();
+        void update(Timestep ts);
 
         entt::registry &getRegistry() { return m_registry; };
         const entt::registry &getRegistry() const {return m_registry;}

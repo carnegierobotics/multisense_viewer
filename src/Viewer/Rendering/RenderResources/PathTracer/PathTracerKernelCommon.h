@@ -108,11 +108,15 @@ inline bool intersectQuadricLeaf(const glm::vec3 &origin, const glm::vec3 &dir,
     glm::vec4 hitW4 = quadric.transform.getTransform() * glm::vec4(hitLocal, 1.0f);
     hitWorld = glm::vec3(hitW4) / hitW4.w;
 
+
+    /*
     // Check if hitLocal is within valid (x,y) bounds.
     if (hitLocal.x < quadric.min.x || hitLocal.x > quadric.max.x)
         return false;
     if (hitLocal.y < quadric.min.y || hitLocal.y > quadric.max.y)
         return false;
+    */
+
 
     // Evaluate the beta kernel.
     float R_general = std::sqrt(
@@ -126,8 +130,8 @@ inline bool intersectQuadricLeaf(const glm::vec3 &origin, const glm::vec3 &dir,
         return std::pow(1.0f - r * r, 4.0f * std::exp(bExp));
     };
     float bkValue = betaKernel(r, quadric.b_beta);
-    if (bkValue < quadric.threshold)
-        return false; // Not within threshold
+    //if (bkValue < quadric.threshold)
+    //    return false; // Not within threshold
 
     // Compute the local normal via the gradient.
     glm::vec3 gradLocal(

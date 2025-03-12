@@ -270,6 +270,10 @@ namespace VkRender {
         m_movedCamera = false;
         imageUI->clearImageMemory = false;
         m_previousSceneCamera = activeCamera;
+        if (Input::isKeyPressed(GLFW_KEY_SPACE)) {
+            m_editorCamera->setDefaultPosition({-90.0f, -60.0f}, 1.5f);
+            m_movedCamera = true;
+        }
     }
 
 

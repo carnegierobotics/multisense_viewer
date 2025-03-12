@@ -172,8 +172,8 @@ namespace VkRender::PathTracer {
                     }
 
                     float contributionFlux = photonFlux * contributionRayContribution * betaContribution;
-                    contributionFlux = photonFlux * contributionRayContribution;
-                    contributionFlux = photonFlux;
+                    //contributionFlux = photonFlux * contributionRayContribution;
+                    //contributionFlux = photonFlux;
                     // Finally, scale the photonFlux (or outgoing radiance) by total contribution
 
                     photonFlux *= brdfFactor;
@@ -191,9 +191,9 @@ namespace VkRender::PathTracer {
 
 
                     // Sample new direction (Lambertian reflection)
-                    glm::vec3 newRayOrigin = hitPointWorld + hitNormalWorld * 1e-4f;
+                    glm::vec3 newRayOrigin = hitPointWorld + hitNormalWorld * 1e-3f;
                     // Offset to prevent self-intersection
-
+                    float offsetDist = glm::length(newRayOrigin - hitPointWorld);
 
                     glm::vec3 newDirectLightDir(0.0f);
                     float newCamera_t = 0.0f;
@@ -209,9 +209,7 @@ namespace VkRender::PathTracer {
                         m_gpuDataOutput[photonID].bounce[bounce].emissionDirectionLength = newCamera_t;
                         m_gpuDataOutput[photonID].bounce[bounce].apertureHitPoint = newApertureHitPoint;
                         m_gpuDataOutput[photonID].bounce[bounce].cameraHitPointLocal = newCameraHitPointLocal;
-                        if (bounce >= 1) {
-                            int interesting = 1;
-                        }
+
                     }
 
                     m_gpuDataOutput[photonID].bounce[bounce].hitPointWorld = hitPointWorld;
@@ -271,7 +269,7 @@ namespace VkRender::PathTracer {
                 // check intersection with geometry
                 bool hit = geometryIntersectionQuadric(emissiveEntityID, directLightingOrigin, directLightDir,
                                                        hitEntity,
-                                                       closest_t, hitPointWorld, hitNormalWorld, betaContribution);
+                                                       closest_t, hitPointWorld, hitNormalWorld, betaContribution, true);
 
                 float tGeom = hit ? glm::length(hitPointWorld - m_cameraTransform->getPosition()) : FLT_MAX;
                 float tAperture = glm::length(directLightingOrigin - m_cameraTransform->getPosition());
@@ -302,7 +300,8 @@ bool geometryIntersectionQuadric(
     float &closest_t,
     glm::vec3 &hitPointWorld,
     glm::vec3 &hitNormalWorld,
-    float &betaContribution
+    float &betaContribution,
+    bool isContributionRay = false
 )  const {
     // Set up initial values.
     float tMinGlobal = std::numeric_limits<float>::max();
@@ -333,16 +332,24 @@ bool geometryIntersectionQuadric(
             glm::vec3 localHitPoint(0.0f), localHitNormal(0.0f);
             float beta = 0.0f;
             const QuadricInputAssembly &quadric = m_gpuData.quadricInputAssembly[node.quadricIndex];
-            if (intersectQuadricLeaf(rayOrigin, rayDir, quadric, tCandidate, localHitPoint, localHitNormal, beta)) {
-                if (tCandidate < tMinGlobal) {
-                    tMinGlobal = tCandidate;
-                    bestQuadricIndex = node.quadricIndex;
-                    bestHitPoint = localHitPoint;
-                    bestHitNormal = localHitNormal;
-                    bestBeta = beta;
+            if (isContributionRay) {
+                if (checkContributionCollision(rayOrigin, rayDir, quadric, localHitPoint)) {
                     hitFound = true;
+                    bestHitPoint = localHitPoint;
+                }
+            } else {
+                if (intersectQuadricLeaf(rayOrigin, rayDir, quadric, tCandidate, localHitPoint, localHitNormal, beta)) {
+                    if (tCandidate < tMinGlobal) {
+                        tMinGlobal = tCandidate;
+                        bestQuadricIndex = node.quadricIndex;
+                        bestHitPoint = localHitPoint;
+                        bestHitNormal = localHitNormal;
+                        bestBeta = beta;
+                        hitFound = true;
+                    }
                 }
             }
+
         } else {
             // Internal node: push its child nodes onto the stack.
             if (stackPtr + 2 < MAX_STACK_SIZE) {

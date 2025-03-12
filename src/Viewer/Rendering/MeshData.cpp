@@ -116,7 +116,7 @@ namespace VkRender {
                 // Evaluate kernel
                 float bkValue = betaKernel(r, params.b_beta);
 
-                bool keepVertex = (bkValue >= params.threshold);
+                bool keepVertex = (bkValue > params.threshold);
                 if (!keepVertex)
                 {
                     vertexMap[i*N + j] = -1;

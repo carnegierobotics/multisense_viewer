@@ -2,15 +2,15 @@
 // Created by magnus on 3/11/25.
 //
 
-#ifndef ContributionRAY_H
-#define ContributionRAY_H
+#ifndef SURFACE_NORMAL_RAY_H
+#define SURFACE_NORMAL_RAY_H
 
+
+#include "Emitter.h"
 #include "Viewer/Scenes/ScriptableEntity.h"
 
 namespace VkRender {
-    class Emitter;
-
-    class ContributionRay : ScriptableEntity {
+    class SurfaceNormal : ScriptableEntity {
         int quadricIndex = 0;
         Emitter* emitter = nullptr;
 
@@ -24,4 +24,4 @@ namespace VkRender {
 }
 
 
-#endif //ContributionRAY_H
+#endif //SURFACE_NORMAL_RAY_H

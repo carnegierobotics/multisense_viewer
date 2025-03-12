@@ -248,7 +248,7 @@ namespace VkRender::PathTracer {
             // check intersection with geometry
             bool hit = geometryIntersectionQuadric(gaussianID, g_c, a_d_gt, hitEntity, closest_t,
                                                    hitPointWorld,
-                                                   hitNormalWorld, betaContribution);
+                                                   hitNormalWorld, betaContribution, true);
             if (hit)
                 return;
 
@@ -545,7 +545,8 @@ bool geometryIntersectionQuadric(
     float &closest_t,
     glm::vec3 &hitPointWorld,
     glm::vec3 &hitNormalWorld,
-    float &betaContribution
+    float &betaContribution,
+    bool isContributionRay = false
 )  const {
     // Set up initial values.
     float tMinGlobal = std::numeric_limits<float>::max();
@@ -572,20 +573,27 @@ bool geometryIntersectionQuadric(
 
         if (node.isLeaf) {
             // Leaf node: perform the detailed quadric intersection test.
-            float tCandidate;
-            glm::vec3 localHitPoint, localHitNormal;
-            float beta;
+            float tCandidate = std::numeric_limits<float>::max();
+            glm::vec3 localHitPoint(0.0f), localHitNormal(0.0f);
+            float beta = 0.0f;
             const QuadricInputAssembly &quadric = m_gpuData.quadricInputAssembly[node.quadricIndex];
-            if (intersectQuadricLeaf(rayOrigin, rayDir, quadric, tCandidate, localHitPoint, localHitNormal, beta)) {
-                if (tCandidate < tMinGlobal) {
-                    tMinGlobal = tCandidate;
-                    bestQuadricIndex = node.quadricIndex;
-                    bestHitPoint = localHitPoint;
-                    bestHitNormal = localHitNormal;
-                    bestBeta = beta;
+            if (isContributionRay) {
+                if (checkContributionCollision(rayOrigin, rayDir, quadric, localHitPoint)) {
                     hitFound = true;
                 }
+            } else {
+                if (intersectQuadricLeaf(rayOrigin, rayDir, quadric, tCandidate, localHitPoint, localHitNormal, beta)) {
+                    if (tCandidate < tMinGlobal) {
+                        tMinGlobal = tCandidate;
+                        bestQuadricIndex = node.quadricIndex;
+                        bestHitPoint = localHitPoint;
+                        bestHitNormal = localHitNormal;
+                        bestBeta = beta;
+                        hitFound = true;
+                    }
+                }
             }
+
         } else {
             // Internal node: push its child nodes onto the stack.
             if (stackPtr + 2 < MAX_STACK_SIZE) {

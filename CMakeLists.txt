@@ -149,7 +149,7 @@ if (ENABLE_SYCL)
         if (CMAKE_BUILD_TYPE STREQUAL "Release")
             set(ACPP_TARGETS "generic")
         else ()
-            set(ACPP_TARGETS "generic")
+            set(ACPP_TARGETS "omp")
             target_compile_options(${PROJECT_NAME} PRIVATE -O0 -g)
             message(STATUS "[VkRenderINFO]: Compiling using AdaptiveCpp without optimization")
         endif ()
@@ -241,10 +241,11 @@ set(SOURCE_FILES
         src/Viewer/Scenes/Scene.cpp
         src/Viewer/Scenes/SceneSerializer.cpp
         src/Viewer/Scenes/Entity.cpp
+        src/Viewer/Scripts/VectorScripts.cpp
         src/Viewer/Scripts/Rays/Emitter.cpp
         src/Viewer/Scripts/Rays/Ray.cpp
         src/Viewer/Scripts/Rays/ContributionRay.cpp
-        src/Viewer/Scripts/VectorScripts.cpp
+        src/Viewer/Scripts/Rays/SurfaceNormal.cpp
 
         src/Viewer/Rendering/Components/ImageComponent.cpp
         src/Viewer/Rendering/Components/PointCloudComponent.h

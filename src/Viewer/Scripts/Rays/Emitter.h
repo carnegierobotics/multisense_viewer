@@ -14,6 +14,7 @@ namespace VkRender {
     public:
         int quadricIndex = 0;
         glm::vec3 hitPosition = glm::vec3(0.0f);
+        glm::vec3 hitNormal = glm::vec3(0.0f);
 
         void onUpdate(Timestep ts) override;
 

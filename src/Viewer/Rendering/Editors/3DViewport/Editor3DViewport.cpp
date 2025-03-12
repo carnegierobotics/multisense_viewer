@@ -179,6 +179,10 @@ namespace VkRender {
         vkUnmapMemory(m_context->vkDevice().m_LogicalDevice, m_shaderSelectionBuffer[frameIndex]->m_memory);
 
         m_sceneRenderer->update();
+
+        if (Input::isKeyPressed(GLFW_KEY_SPACE)) {
+            m_editorCamera->setDefaultPosition({-90.0f, -60.0f}, 1.5f);
+        }
     }
 
 

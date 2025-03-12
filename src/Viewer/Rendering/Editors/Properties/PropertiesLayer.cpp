@@ -11,6 +11,7 @@
 #include <Viewer/Scripts/VectorScripts.h>
 #include <Viewer/Scripts/Rays/ContributionRay.h>
 #include <Viewer/Scripts/Rays/Emitter.h>
+#include <Viewer/Scripts/Rays/SurfaceNormal.h>
 
 #include "Viewer/Rendering/Components/GaussianComponent.h"
 #include "Viewer/Rendering/Components/Components.h"
@@ -420,6 +421,7 @@ namespace VkRender {
             std::vector<std::string> controllers = {
                 "DefaultController",
                 "Emitter",
+                "SurfaceNormal",
                 "ContributionRay"
             };
 
@@ -453,6 +455,10 @@ namespace VkRender {
                     entity.getComponent<ScriptableComponent>().bind<Emitter>();
                 } else if (controllers[selectedIndex] == "ContributionRay") {
                     entity.getComponent<ScriptableComponent>().bind<ContributionRay>();
+                } else if (controllers[selectedIndex] == "ContributionRay") {
+                    entity.getComponent<ScriptableComponent>().bind<ContributionRay>();
+                } else if (controllers[selectedIndex] == "SurfaceNormal") {
+                    entity.getComponent<ScriptableComponent>().bind<SurfaceNormal>();
                 }
             }
         });

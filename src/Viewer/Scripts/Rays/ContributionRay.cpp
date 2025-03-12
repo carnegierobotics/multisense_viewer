@@ -7,14 +7,16 @@
 
 #include <Viewer/Rendering/Components/ScriptableComponent.h>
 #include <Viewer/Rendering/Core/KeyInput.h>
+#include <Viewer/Rendering/RenderResources/PathTracer/Definitions.h>
 
 #include "Emitter.h"
+#include "Helpers.h"
 
 namespace VkRender {
     struct ScriptableComponent;
 
     void ContributionRay::onUpdate(Timestep ts) {
-        auto &mesh = getComponent<MeshComponent>();
+        auto& mesh = getComponent<MeshComponent>();
         auto cylinder = std::dynamic_pointer_cast<CylinderMeshParameters>(mesh.meshParameters);
         if (!cylinder)
             return;
@@ -22,29 +24,71 @@ namespace VkRender {
         auto scene = m_entity.getScene();
 
         auto scriptView = scene->getRegistry().view<ScriptableComponent>();
-        for (auto e: scriptView) {
+        for (auto e : scriptView) {
             auto entity = Entity(e, scene);
-            auto &script = entity.getComponent<ScriptableComponent>();
+            auto& script = entity.getComponent<ScriptableComponent>();
             if (script.scriptName == "VkRender::Emitter")
             // TODO replace with a slots in properties view for which entity to attach to.
             {
-                emitter = reinterpret_cast<Emitter *>(script.instance);
+                emitter = reinterpret_cast<Emitter*>(script.instance);
             }
         }
         if (!emitter)
             return;
 
-        glm::vec3 position = emitter->hitPosition;
+
         auto cameraEntity = scene->getEntityByName("Camera1"); // TODO replace with connectable slot in Properties view
 
 
         if (cameraEntity) {
-            auto &camera = cameraEntity.getComponent<CameraComponent>();
-            glm::vec3 &cameraPosition = cameraEntity.getComponent<TransformComponent>().getPosition();
-            cylinder->setOrigin(position);
-            glm::vec3 delta = cameraPosition - position;
-            cylinder->setDirection(glm::normalize(delta));
-            cylinder->setMagnitude(glm::length(delta));
+            auto& camera = cameraEntity.getComponent<CameraComponent>();
+            glm::vec3& cameraPosition = cameraEntity.getComponent<TransformComponent>().getPosition();
+
+            glm::vec3 hitPosition = emitter->hitPosition;
+            glm::vec3 hitNormal = emitter->hitNormal;
+
+            glm::vec3 newRayOrigin = hitPosition + hitNormal * 1e-3f;
+
+
+            glm::vec3 delta = cameraPosition - hitPosition;
+            glm::vec3 direction = glm::normalize(delta);
+            float magnitude = glm::length(delta);
+
+
+            bool occluded = false;
+
+            auto quadricCollection = scene->getEntityByName("QuadricCollection");
+            if (quadricCollection && quadricCollection.hasChildren()) {
+                auto children = quadricCollection.getChildren();
+
+                for (auto quadricEntity : children) {
+                    auto& mesh = quadricEntity.getComponent<MeshComponent>();
+                    auto& transform = quadricEntity.getComponent<TransformComponent>();
+                    auto quadric = std::dynamic_pointer_cast<QuadricMeshParameters>(mesh.meshParameters);
+                    glm::vec3 occludedHitPosition, occludedhitPosition;
+
+                    PathTracer::QuadricInputAssembly quad;
+                    quad.a = quadric->a;
+                    quad.b = quadric->b;
+                    quad.c = quadric->c;
+                    quad.t_x = quadric->t_x;
+                    quad.t_y = quadric->t_y;
+                    quad.transform = transform;
+                    float beta = 0.0f;
+                    if (RayHelpers::checkContributionCollision(newRayOrigin, direction, quad, occludedhitPosition, occludedHitPosition, beta)) {
+                        occluded = true;
+                    }
+                }
+            }
+
+            if (occluded) {
+                cylinder->setOrigin({-99, 0, 0});
+            } else {
+                cylinder->setOrigin(hitPosition);
+                cylinder->setDirection(direction);
+                cylinder->setMagnitude(magnitude);
+            }
+
         }
     }
 

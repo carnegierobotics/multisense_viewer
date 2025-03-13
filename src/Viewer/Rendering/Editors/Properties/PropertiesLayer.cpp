@@ -1389,6 +1389,7 @@ namespace VkRender {
                             transform.setTransform(worldMatrix);
 
                             auto &mesh = entityInstance.getOrAddComponent<MeshComponent>(QUADRIC);
+                            mesh.polygonMode() = VK_POLYGON_MODE_LINE;
                             auto quadricParams = std::dynamic_pointer_cast<QuadricMeshParameters>(mesh.meshParameters);
                             auto &material = entityInstance.getOrAddComponent<MaterialComponent>();
                             material.useVertexColor = true;

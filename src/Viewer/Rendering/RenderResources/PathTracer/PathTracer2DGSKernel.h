@@ -172,7 +172,7 @@ namespace VkRender::PathTracer {
                     }
 
                     float contributionFlux = photonFlux * contributionRayContribution * betaContribution;
-                    //contributionFlux = photonFlux * contributionRayContribution;
+                    contributionFlux = photonFlux * contributionRayContribution;
                     //contributionFlux = photonFlux;
                     // Finally, scale the photonFlux (or outgoing radiance) by total contribution
 

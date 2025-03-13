@@ -177,7 +177,7 @@ namespace VkRender {
 
                 std::random_device rd;
                 std::mt19937 gen(rd()); // Mersenne Twister RNG
-                std::normal_distribution<float> dist(0.0f, 0.1f); // Mean 0, standard deviation 0.01
+                std::normal_distribution<float> dist(0.0f, 0.0f); // Mean 0, standard deviation 0.01
 
                 // Convert and add each quadric.
                 for (size_t i = 0; i < count; ++i) {

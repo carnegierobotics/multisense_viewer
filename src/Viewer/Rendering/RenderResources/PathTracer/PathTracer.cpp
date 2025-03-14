@@ -49,6 +49,7 @@ namespace VkRender::PathTracer {
             m_renderInformation->totalPhotons += m_pipelineSettings.photonCount;
             m_renderInformation->gamma = renderSettings.gammaCorrection;
             m_renderInformation->numBounces = m_pipelineSettings.numBounces;
+            m_renderInformation->applyBetaWeight = renderSettings.applyBetaContribution;
             Log::Logger::getInstance()->trace("Path Tracer: Uploading Render Information");
 
             queue.fill(m_gpu.imageMemoryCounter, 0.0f, m_pipelineSettings.width * m_pipelineSettings.height);

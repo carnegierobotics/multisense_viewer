@@ -30,6 +30,9 @@ namespace VkRender {
 
         void drawComponents(Entity entity);
 
+        bool m_tmp = false; // TODO remove
+        bool m_visibility = true;
+
         Entity m_selectionContext;
         std::future<LayerUtils::LoadFileInfo> m_loadFileFuture;
         std::future<LayerUtils::LoadFileInfo> m_loadFolderFuture;

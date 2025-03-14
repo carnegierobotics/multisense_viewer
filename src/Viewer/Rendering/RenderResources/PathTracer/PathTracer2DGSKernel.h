@@ -171,8 +171,10 @@ namespace VkRender::PathTracer {
                         }
                     }
 
-                    float contributionFlux = photonFlux * contributionRayContribution * betaContribution;
-                    contributionFlux = photonFlux * contributionRayContribution;
+                    float contributionFlux = photonFlux * contributionRayContribution;
+                    if (m_gpuData.renderInformation->applyBetaWeight)
+                        contributionFlux *= betaContribution;
+
                     //contributionFlux = photonFlux;
                     // Finally, scale the photonFlux (or outgoing radiance) by total contribution
 

@@ -54,6 +54,7 @@ namespace VkRender
 
         uint32_t m_stepIteration = 0;
         uint32_t m_numAccumulated = 0;
+        PathTracer::PhotonTracer::RenderSettings m_renderSettings;
 
     private:
         std::vector<std::unique_ptr<Buffer>> m_shaderSelectionBuffer;
@@ -71,7 +72,6 @@ namespace VkRender
         std::unique_ptr<torch::optim::Adam> m_optimizer; // Or any other optimizer in <torch/optim.h>
         torch::Tensor m_accumulatedTensor = torch::Tensor();
 
-        PathTracer::PhotonTracer::RenderSettings m_renderSettings;
 
         CameraComponent* m_previousSceneCamera = nullptr;
     };

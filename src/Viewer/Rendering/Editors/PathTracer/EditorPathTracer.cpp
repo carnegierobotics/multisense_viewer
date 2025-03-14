@@ -182,6 +182,7 @@ namespace VkRender {
             }
 
             renderSettings.gammaCorrection = imageUI->shaderSelection.gammaCorrection;
+            renderSettings.applyBetaContribution = imageUI->applyBetaContribution;
 
 
 

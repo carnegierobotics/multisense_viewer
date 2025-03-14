@@ -95,8 +95,8 @@ namespace VkRender {
         }
 
         // Load quadrics from a PLY file and append them
-        void addQuadricsFromFile(const std::filesystem::path &plyFilePath) {
-            loadFromPly(plyFilePath);
+        void addQuadricsFromFile(const std::filesystem::path &plyFilePath, bool addNoise = false) {
+            loadFromPly(plyFilePath, addNoise);
         }
 
         // Return the number of quadrics
@@ -109,7 +109,7 @@ namespace VkRender {
         // Expected properties (per vertex) are:
         // "x", "y", "z", "rot_0", "rot_1", "rot_2", "rot_3",
         // "a", "b", "c", "t_x", "t_y", "kernel_scale", "threshold", "beta"
-        void loadFromPly(const std::filesystem::path &path) {
+        void loadFromPly(const std::filesystem::path &path, bool addNoise) {
             try {
                 std::ifstream fileStream(path, std::ios::binary);
                 if (!fileStream.is_open())
@@ -177,23 +177,24 @@ namespace VkRender {
 
                 std::random_device rd;
                 std::mt19937 gen(rd()); // Mersenne Twister RNG
-                std::normal_distribution<float> dist(0.0f, 0.0f); // Mean 0, standard deviation 0.01
+                std::normal_distribution<float> dist(0.0f, 0.1f); // Mean 0, standard deviation 0.01
 
                 // Convert and add each quadric.
                 for (size_t i = 0; i < count; ++i) {
-
-                    glm::vec3 pos(
-                        positionsPLY[i * 3 + 0] + dist(gen),
-                        positionsPLY[i * 3 + 1] + dist(gen),
-                        positionsPLY[i * 3 + 2] + dist(gen)
-                    );
-
-
-                    //glm::vec3 pos(
-                    //    positionsPLY[i * 3 + 0],
-                    //    positionsPLY[i * 3 + 1],
-                    //    positionsPLY[i * 3 + 2]
-                    //    );
+                    glm::vec3 pos(0.0f);
+                    if (addNoise) {
+                        pos = glm::vec3(
+                            positionsPLY[i * 3 + 0] + dist(gen),
+                            positionsPLY[i * 3 + 1] + dist(gen),
+                            positionsPLY[i * 3 + 2] + dist(gen)
+                        );
+                    } else {
+                        pos = glm::vec3(
+                            positionsPLY[i * 3 + 0],
+                            positionsPLY[i * 3 + 1],
+                            positionsPLY[i * 3 + 2]
+                        );
+                    }
 
                     positions.push_back(pos);
 

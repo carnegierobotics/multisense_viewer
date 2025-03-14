@@ -373,6 +373,7 @@ namespace VkRender::PathTracer {
             glm::mat3 J_uv_gt_gc = J_uv_gt_pcam * J_pc_gt_gc;
 
 
+
             // --- (12) Pixel loss function and its derivative ---
             // L_pix = (u - u_gt)² + (v - v_gt)², so ∇L = [2*(u - u_gt), 2*(v - v_gt)].
             glm::vec2 L_pix_d(0.0f);
@@ -580,6 +581,7 @@ bool geometryIntersectionQuadric(
             if (isContributionRay) {
                 if (checkContributionCollision(rayOrigin, rayDir, quadric, localHitPoint)) {
                     hitFound = true;
+                    bestHitPoint = localHitPoint;
                 }
             } else {
                 if (intersectQuadricLeaf(rayOrigin, rayDir, quadric, tCandidate, localHitPoint, localHitNormal, beta)) {
@@ -614,7 +616,6 @@ bool geometryIntersectionQuadric(
     }
     return false;
 }
-
         // ---------------------------------------------------------
         // Single Photon Trace (Multi-Bounce)
         // ---------------------------------------------------------

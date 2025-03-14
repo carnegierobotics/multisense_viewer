@@ -6,6 +6,53 @@
 #define PATHTRACERKERNELCOMMON_H
 
 namespace VkRender::PathTracer {
+
+    inline float calculateGeodesic(const glm::vec3 hitLocal, const QuadricInputAssembly& quadric, float alphaX, float alphaY) {
+        float rho = sqrtf(std::pow(hitLocal.x, 2.0f) + std::pow(hitLocal.y, 2.0f));
+        float theta = atan2f(hitLocal.y, hitLocal.x);
+
+        // Compute a(theta) = c * ( (alphaX * cos²(theta))/(a²) + (alphaY * sin²(theta))/(b²) )
+        float a_theta = quadric.c * ((alphaX * std::cos(theta) * std::cos(theta)) / (quadric.a * quadric.a)
+                             + (alphaY * std::sin(theta) * std::sin(theta)) / (quadric.b * quadric.b));
+
+        // Compute the geodesic distance l(ρ) along the surface
+        const float epsilon = 1e-6f;
+
+        /*
+        if (std::fabs(a_theta) > epsilon) {
+            // l(ρ) = (ρ/2)*sqrt(1+4a(θ)²ρ²) + asinh(2a(θ)ρ)/(4a(θ))
+            float term1 = 0.5f * rho * std::sqrt(1.0f + 4.0f * a_theta * a_theta * rho * rho);
+            float term2 = std::asinh(2.0f * a_theta * rho) / (4.0f * a_theta);
+            geodesicDist = term1 + term2;
+        } else {
+            // When a(θ) is nearly zero, use Euclidean distance.
+            geodesicDist = rho;
+        }
+        */
+
+        float rho_x = std::fabs(hitLocal.x);
+        float rho_y = std::fabs(hitLocal.y);
+
+        float geodesic_x = 0.0f;
+        float geodesic_y = 0.0f;
+
+        if (std::fabs(a_theta) > epsilon) {
+            auto computeGeodesic = [&](float rho_val) -> float {
+                float term1 = 0.5f * rho_val * std::sqrt(1.0f + 4.0f * a_theta * a_theta * rho_val * rho_val);
+                float term2 = std::asinh(2.0f * a_theta * rho_val) / (4.0f * a_theta);
+                return term1 + term2;
+            };
+
+            geodesic_x = computeGeodesic(rho_x);
+            geodesic_y = computeGeodesic(rho_y);
+        } else {
+            // When a(θ) is nearly zero, use Euclidean distance.
+            geodesic_x = rho_x;
+            geodesic_y = rho_y;
+        }
+        float geodesicDist = std::max(geodesic_x, geodesic_y);
+        return geodesicDist;
+    }
     // Helper function: ray-AABB intersection (using the slab method)
     // Returns true if the ray (origin, dir) hits the AABB between t=0 and t_max.
     bool rayAABBIntersect(const glm::vec3& origin, const glm::vec3& dir,
@@ -117,11 +164,9 @@ namespace VkRender::PathTracer {
 
 
         // Evaluate the beta kernel.
-        float R_general = std::sqrt(
-            std::fabs(alphaX) * (hitLocal.x * hitLocal.x) / (quadric.a * quadric.a) +
-            std::fabs(alphaY) * (hitLocal.y * hitLocal.y) / (quadric.b * quadric.b)
-        );
-        float r = R_general / quadric.kernelScale;
+        float geodesicDist = calculateGeodesic(hitLocal, quadric, alphaX, alphaY);
+
+        float r = geodesicDist / quadric.kernelScale;
         auto betaKernel = [&](float r, float bExp) -> float {
             if (r > 1.0f)
                 r = 1.0f;
@@ -186,12 +231,14 @@ namespace VkRender::PathTracer {
             glm::vec4 hitW4 = transform * glm::vec4(hitLocal, 1.0f);
             hit = glm::vec3(hitW4) / hitW4.w;
 
-            // Evaluate the beta kernel.
-            float R_general = std::sqrt(
-                std::fabs(alphaX) * (hitLocal.x * hitLocal.x) / (quadric.a * quadric.a) +
-                std::fabs(alphaY) * (hitLocal.y * hitLocal.y) / (quadric.b * quadric.b)
-            );
-            float r = R_general / quadric.kernelScale;
+            // Check if hitLocal is within valid (x,y) bounds.
+            if (hitLocal.x < quadric.min.x || hitLocal.x > quadric.max.x)
+                return false;
+            if (hitLocal.y < quadric.min.y || hitLocal.y > quadric.max.y)
+                return false;
+
+            float geodesicDist = calculateGeodesic(hitLocal, quadric, alphaX, alphaY);
+            float r = geodesicDist / quadric.kernelScale;
             if (r > 1.0f)
                 r = 1.0f;
             float beta = std::pow(1.0f - r * r, 4.0f * std::exp(quadric.b_beta));

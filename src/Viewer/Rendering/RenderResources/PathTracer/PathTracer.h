@@ -32,6 +32,7 @@ namespace VkRender::PathTracer {
 
             // Render settings
             float gammaCorrection = 2.2f;
+            bool applyBetaContribution = false;
         };
 
         struct PipelineSettings {

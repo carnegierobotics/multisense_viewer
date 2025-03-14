@@ -114,6 +114,8 @@ namespace VkRender {
             // Slider for Gamma Correction.
             // The format "%.2f" shows the value with two decimals.
             ImGui::SliderFloat("Gamma Correction", &pathTracerUI->shaderSelection.gammaCorrection, 0.1f, 3.0f, "%.2f");
+
+            ImGui::Checkbox("Apply Beta Weight", &m_diffRenderer->m_renderSettings.applyBetaContribution);
         }
 
 

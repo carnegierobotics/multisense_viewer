@@ -36,6 +36,8 @@ namespace VkRender {
 
         bool resetPathTracer = false;
 
+        bool applyBetaContribution = false;
+
         struct ShaderSelection {
             int someVariable = 0;
             float gammaCorrection = 2.2f;

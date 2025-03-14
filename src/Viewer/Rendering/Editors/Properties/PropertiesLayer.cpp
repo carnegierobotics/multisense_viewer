@@ -998,6 +998,11 @@ namespace VkRender {
                         0.0f);
                 }
                 ImGui::SameLine();
+                ImGui::Checkbox("Add Noise", &m_tmp);
+                ImGui::SameLine();
+                ImGui::Checkbox("Visibility", &m_visibility);
+                ImGui::SameLine();
+
                 if (ImGui::Button("Load from file")) {
                     std::vector<std::string> types{".ply"};
                     EditorUtils::openImportFileDialog(
@@ -1370,30 +1375,40 @@ namespace VkRender {
                 case LayerUtils::PLY_QUADRATIC: {
                     if (m_selectionContext.hasComponent<QuadricCollectionComponent>()) {
                         auto &comp = m_selectionContext.getComponent<QuadricCollectionComponent>();
-                        comp.addQuadricsFromFile(loadFileInfo.path);
+                        comp.addQuadricsFromFile(loadFileInfo.path, m_tmp);
 
                         // Now add quadrics to scene:
 
-                        for (int i = 0; i < comp.size(); ++i) {
+                        int numEntities = comp.size();
+                        // Compute step such that we do not exceed 200 entities.
+                        auto& visibility = m_selectionContext.getOrAddComponent<VisibleComponent>();
+                        visibility.visible = m_visibility;
+
+                        for (int i = 0; i < numEntities; ++i) {
                             std::string quadricName = "Quadric " + std::to_string(i);
                             auto entityInstance = m_context->activeScene()->getOrCreateEntityByName(quadricName);
                             entityInstance.setParent(m_selectionContext);
-                            // TODO verify that the selected entity is indeed the quadric collection
+
+                            // Get or create TransformComponent and set position and rotation.
                             auto &transform = entityInstance.getOrAddComponent<TransformComponent>();
                             transform.setPosition(comp.positions[i]);
                             transform.setRotationQuaternion(comp.rotations[i]);
 
-                            glm::mat4 parentMatrix = m_selectionContext.getComponent<TransformComponent>().
-                                    getTransform(); // Get parent's transformation matrix
+                            // Apply parent's transformation.
+                            glm::mat4 parentMatrix = m_selectionContext.getComponent<TransformComponent>().getTransform();
                             glm::mat4 worldMatrix = parentMatrix * transform.getTransform();
                             transform.setTransform(worldMatrix);
 
+                            // Setup MeshComponent with quadric parameters.
                             auto &mesh = entityInstance.getOrAddComponent<MeshComponent>(QUADRIC);
                             mesh.polygonMode() = VK_POLYGON_MODE_LINE;
                             auto quadricParams = std::dynamic_pointer_cast<QuadricMeshParameters>(mesh.meshParameters);
+
+                            // Setup MaterialComponent.
                             auto &material = entityInstance.getOrAddComponent<MaterialComponent>();
                             material.useVertexColor = true;
 
+                            // Downsampled data.
                             quadricParams->a = comp.a[i];
                             quadricParams->b = comp.b[i];
                             quadricParams->c = comp.c[i];

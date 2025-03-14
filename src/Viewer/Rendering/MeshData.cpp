@@ -103,16 +103,59 @@ namespace VkRender {
                 // Apply scale factor if you like
                 position *= scaleFactor;
 
-                // Compute radial coordinate for Beta kernel
-                // R_general = sqrt(|alphaX| x^2 / a^2 + |alphaY| y^2 / b^2)
-                float R_general = std::sqrt(
-                    std::fabs(alphaX) * (x * x) / (params.a * params.a) +
-                    std::fabs(alphaY) * (y * y) / (params.b * params.b)
-                );
+                float rho = sqrtf(std::pow(x, 2.0f) + std::pow(y, 2.0f));
+                float theta = atan2f(y, x);
 
-                // normalized radial coordinate r = R_general / kernelScale
-                float r = R_general / params.kernelScale;
+                // Compute a(theta) = c * ( (alphaX * cos²(theta))/(a²) + (alphaY * sin²(theta))/(b²) )
+                float a_theta = params.c * ((alphaX * std::cos(theta) * std::cos(theta)) / (params.a * params.a)
+                                     + (alphaY * std::sin(theta) * std::sin(theta)) / (params.b * params.b));
 
+                /*
+                // Compute the geodesic distance l(ρ) along the surface
+                float geodesicDist = 0.0f;
+                if (std::fabs(a_theta) > epsilon) {
+                    // l(ρ) = (ρ/2)*sqrt(1+4a(θ)²ρ²) + asinh(2a(θ)ρ)/(4a(θ))
+                    float term1 = 0.5f * rho * std::sqrt(1.0f + 4.0f * a_theta * a_theta * rho * rho);
+                    float term2 = std::asinh(2.0f * a_theta * rho) / (4.0f * a_theta);
+                    geodesicDist = term1 + term2;
+                } else {
+                    // When a(θ) is nearly zero, use Euclidean distance.
+                    geodesicDist = rho;
+                }
+
+*/
+                const float epsilon = std::numeric_limits<float>::epsilon();
+
+                // Compute the geodesic distances separately along x and y
+                float rho_x = std::fabs(x);
+                float rho_y = std::fabs(y);
+
+                float geodesic_x = 0.0f;
+                float geodesic_y = 0.0f;
+
+                if (std::fabs(a_theta) > epsilon) {
+                    auto computeGeodesic = [&](float rho_val) -> float {
+                        float term1 = 0.5f * rho_val * std::sqrt(1.0f + 4.0f * a_theta * a_theta * rho_val * rho_val);
+                        float term2 = std::asinh(2.0f * a_theta * rho_val) / (4.0f * a_theta);
+                        return term1 + term2;
+                    };
+
+                    geodesic_x = computeGeodesic(rho_x);
+                    geodesic_y = computeGeodesic(rho_y);
+                } else {
+                    // When a(θ) is nearly zero, use Euclidean distance.
+                    geodesic_x = rho_x;
+                    geodesic_y = rho_y;
+                }
+
+                // Use max norm to enforce square-like level sets
+                float geodesicDist = std::max(geodesic_x, geodesic_y);
+
+                // Normalize the geodesic distance by kernelScale
+                float r = geodesicDist / params.kernelScale;
+
+
+                float minMaxNorm;
                 // Evaluate kernel
                 float bkValue = betaKernel(r, params.b_beta);
 

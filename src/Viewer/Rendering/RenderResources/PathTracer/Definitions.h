@@ -117,6 +117,7 @@ namespace VkRender::PathTracer {
         float gamma = 1.0f;
         uint32_t numBounces = 0;
         uint32_t frameID = 0;
+        bool applyBetaWeight = false;
     };
 
     struct BVHNode {

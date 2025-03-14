@@ -44,6 +44,12 @@ namespace VkRender {
 
         bool opened = ImGui::TreeNodeEx((void *) (uint64_t) (uint32_t) entity, flags, "%s", tag.c_str());
 
+
+        // Handle selection
+        if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
+            m_context->setSelectedEntity(entity);
+        }
+
         // Context menu
         bool entityDeleted = false;
         // Begin Popup Context for the current TreeNode (must match the TreeNode ID)
@@ -80,10 +86,6 @@ namespace VkRender {
             ImGui::PopStyleColor();
         }
 
-        // Handle selection
-        if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
-            m_context->setSelectedEntity(entity);
-        }
 
         // Drag-and-drop source
         if (ImGui::BeginDragDropSource()) {

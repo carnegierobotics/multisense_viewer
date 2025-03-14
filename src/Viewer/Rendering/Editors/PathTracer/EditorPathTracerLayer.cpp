@@ -107,11 +107,14 @@ namespace VkRender {
         ImGui::SameLine();
         imageUI->saveImage = ImGui::Button("Save");
 
+
         // new row
         auto *editor = dynamic_cast<EditorPathTracer *>(m_editor);
         if (editor && editor->getRenderInformation())
             ImGui::Text("Frame Number: %u", editor->getRenderInformation()->frameID);
 
+        ImGui::SameLine();
+        ImGui::Checkbox("Apply Beta dist.", &imageUI->applyBetaContribution);
 
         ImGui::End();
     }

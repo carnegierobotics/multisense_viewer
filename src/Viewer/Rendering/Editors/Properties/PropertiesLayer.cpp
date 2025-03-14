@@ -690,6 +690,7 @@ namespace VkRender {
                         paramsChanged |= ImGui::SliderFloat("b_beta", &quadricParams->b_beta, -5.0f, 5.0f);
                         paramsChanged |= ImGui::SliderFloat("threshold", &quadricParams->threshold, 0.0f, 1.0f);
                         paramsChanged |= ImGui::SliderFloat("scale", &quadricParams->kernelScale, 0.0f, 10.0f);
+                        paramsChanged |= ImGui::SliderFloat("circularity", &quadricParams->circularity, 0.0f, 1.0f);
                         if (paramsChanged) {
                             quadricParams->setDirty();
                         }

@@ -110,21 +110,21 @@ namespace VkRender {
                 float a_theta = params.c * ((alphaX * std::cos(theta) * std::cos(theta)) / (params.a * params.a)
                                      + (alphaY * std::sin(theta) * std::sin(theta)) / (params.b * params.b));
 
-                /*
+                const float epsilon = std::numeric_limits<float>::epsilon();
+
                 // Compute the geodesic distance l(ρ) along the surface
-                float geodesicDist = 0.0f;
+                float geodesicDistCircular = 0.0f;
                 if (std::fabs(a_theta) > epsilon) {
                     // l(ρ) = (ρ/2)*sqrt(1+4a(θ)²ρ²) + asinh(2a(θ)ρ)/(4a(θ))
                     float term1 = 0.5f * rho * std::sqrt(1.0f + 4.0f * a_theta * a_theta * rho * rho);
                     float term2 = std::asinh(2.0f * a_theta * rho) / (4.0f * a_theta);
-                    geodesicDist = term1 + term2;
+                    geodesicDistCircular = term1 + term2;
                 } else {
                     // When a(θ) is nearly zero, use Euclidean distance.
-                    geodesicDist = rho;
+                    geodesicDistCircular = rho;
                 }
 
-*/
-                const float epsilon = std::numeric_limits<float>::epsilon();
+
 
                 // Compute the geodesic distances separately along x and y
                 float rho_x = std::fabs(x);
@@ -149,8 +149,9 @@ namespace VkRender {
                 }
 
                 // Use max norm to enforce square-like level sets
-                float geodesicDist = std::max(geodesic_x, geodesic_y);
+                float geodesicDistSquare = std::max(geodesic_x, geodesic_y);
 
+                float geodesicDist = glm::mix(geodesicDistSquare, geodesicDistCircular, params.circularity);
                 // Normalize the geodesic distance by kernelScale
                 float r = geodesicDist / params.kernelScale;
 

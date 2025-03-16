@@ -88,11 +88,14 @@ namespace VkRender::PathTracer {
                         }
                         // Read the counter value for the pixel.
                         float count = gpu.imageMemoryCounter[pixelIndex];
-
                         // Only average if the pixel was hit at least once.
                         if (count > 0.0f) {
-                            float newContribution = gpu.imageMemory[pixelIndex] / count;
+                            //float newContribution = gpu.imageMemory[pixelIndex] / count;
+                            float newContribution = gpu.imageMemory[pixelIndex];
                             gpu.imageMemoryPersistent[pixelIndex] += newContribution;
+
+                            gpu.imageMemoryPersistent[pixelIndex] = std::min(gpu.imageMemoryPersistent[pixelIndex], 1.0f);
+
                         } else {
                             // Optionally, you can set pixels with no hits to 0.
                             //m_gpu.imageMemory[pixelIndex] = 0.0f;
@@ -110,23 +113,6 @@ namespace VkRender::PathTracer {
                          m_pipelineSettings.width * m_pipelineSettings.height * sizeof(float));
             queue.wait();
 
-
-            bool foundInvalid = false;
-            for (uint32_t i = 0; i < imageSize; i++) {
-                float pixelValue = m_imageMemory[i];
-                if (std::isnan(pixelValue) || std::isinf(pixelValue)) {
-                    foundInvalid = true;
-                    // Optionally, print or log the index/value
-                    std::cout << "Invalid value at index " << i << ": " << pixelValue << std::endl;
-                    break;
-                }
-            }
-
-            if (foundInvalid) {
-                std::cerr << "Detected NaN or Inf values in imageMemoryPersistent." << std::endl;
-            } else {
-                std::cout << "All values in imageMemoryPersistent are valid." << std::endl;
-            }
 
             double totalM = static_cast<double>(m_renderInformation->totalPhotons) / 1e6;
             double sensorK = static_cast<double>(m_renderInformation->photonsAccumulated) / 1000.0;

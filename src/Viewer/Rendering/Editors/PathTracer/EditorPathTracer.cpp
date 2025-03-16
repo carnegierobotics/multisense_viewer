@@ -201,30 +201,30 @@ namespace VkRender {
                     const size_t totalPixels = static_cast<size_t>(texWidth) * texHeight;
 
                     // Prepare a container for the final image (after optional denoising)
-                    float *finalImage = image;
-                    std::vector<float> denoisedImage; // only used if denoising is enabled
+                    float* finalImage = image;
+                    std::vector<float> denoisedImage; // Only used if denoising is enabled
 
-                    // Denoise if requested; otherwise, use the original image directly.
+                    // Denoise if requested
                     if (imageUI->denoise) {
                         denoiseImage(image, texWidth, texHeight, denoisedImage);
-                        // Use the denoised data if the denoising call was successful.
-                        finalImage = denoisedImage.data();
+                        if (!denoisedImage.empty()) {
+                            finalImage = denoisedImage.data();
+                        } else {
+                            Log::Logger::getInstance()->warning("Denoising failed, using original image.");
+                        }
                     }
-                    // Allocate the converted image buffer (RGBA: 4 channels per pixel) // TODO Make the shader accepts floating point images and clamp/convert it in shader instead
+                    // Allocate the converted image buffer (RGBA: 4 channels per pixel)
                     std::vector<uint8_t> convertedImage(totalPixels * 4);
-                    // Convert the final image from float [0, 1] to 8-bit RGBA.
-                    // We assume a grayscale image is stored in the red channel.
+                    // Convert the final image from float [0,1] to 8-bit RGBA
                     for (size_t i = 0; i < totalPixels; ++i) {
-                        // Clamp the float value and scale to 0-255.
-                        // (Multiplication by 255.0f and conversion to uint8_t)
-                        float clamped = std::clamp(finalImage[i], 0.0f, 1.0f);
-                        auto value = static_cast<uint8_t>(clamped * 255.0f);
+                        uint8_t value = static_cast<uint8_t>(finalImage[i] * 255.0f);  // Proper conversion
                         size_t offset = i * 4;
                         convertedImage[offset + 0] = value; // R
                         convertedImage[offset + 1] = value; // G
                         convertedImage[offset + 2] = value; // B
-                        convertedImage[offset + 3] = 255; // A (fully opaque)
+                        convertedImage[offset + 3] = 255;   // A (fully opaque)
                     }
+
                     // Upload the texture
                     Log::Logger::getInstance()->trace(
                         "Uploading Path Tracer Image to Color Texture. Size: {} bytes into {}",

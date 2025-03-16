@@ -1086,8 +1086,15 @@ namespace VkRender {
                             update |= drawVec3Control(
                                 "Position", component.positions[i],
                                 0.0f);
-                            update |= drawQuatControl(
-                                "Rotation", component.rotations[i]);
+
+                            glm::vec3 euler = glm::eulerAngles(component.rotations[i]);
+                            bool updated = drawVec3Control("Rotation", euler, 0.0f);
+                            if (updated)
+                            {
+                                component.rotations[i] = glm::quat(euler);
+                                update |= true;
+                            }
+
                             update |= drawFloatControl(
                                 "a", component.a[i], 1.0f, 0.1f);
                             update |= drawFloatControl(

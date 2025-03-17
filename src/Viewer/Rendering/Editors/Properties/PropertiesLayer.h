@@ -32,6 +32,7 @@ namespace VkRender {
 
         bool m_tmp = false; // TODO remove
         bool m_visibility = true;
+        float noiseSlider = 0.1f;
 
         Entity m_selectionContext;
         std::future<LayerUtils::LoadFileInfo> m_loadFileFuture;

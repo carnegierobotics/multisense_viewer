@@ -178,8 +178,8 @@ namespace VkRender::PathTracer {
                 parameters->max.y = quadricsPtr[i * 12 + 11];
 
                 material.emission = 0.0f;
-                material.diffuse = 0.5f;
-                material.specular = 0.5f;
+                material.diffuse = 1.0f;
+                material.specular = 0.0f;
                 material.phongExponent = 32.0f;
                 material.albedo = glm::vec4(0.8f);
 

@@ -7,6 +7,7 @@
 #include <random>
 #include <glm/gtx/quaternion.hpp>
 #include <OpenImageDenoise/oidn.hpp>
+#include <tiffio.h> // Make sure to include libtiff's header
 
 namespace VkRender::PathTracer {
     static void save_gradient_to_png(torch::Tensor gradient, const std::filesystem::path &filename) {
@@ -76,20 +77,84 @@ namespace VkRender::PathTracer {
     }
 
 
-    void printProgressBar(float progress) {
-        const int barWidth = 50; // Width of the progress bar
-        std::cout << "\r["; // Carriage return to overwrite the line
-        int pos = static_cast<int>(barWidth * progress);
-        for (int i = 0; i < barWidth; ++i) {
-            if (i < pos)
-                std::cout << "=";
-            else if (i == pos)
-                std::cout << ">";
-            else
-                std::cout << " ";
+    static void saveTIFF(const std::filesystem::path &filename, const float *image, uint32_t width,
+                         uint32_t height) {
+        // Create the directory if it doesn't exist.
+        std::filesystem::path dir = filename.parent_path();
+        if (!dir.empty() && !std::filesystem::exists(dir)) {
+            std::filesystem::create_directories(dir);
         }
-        std::cout << "] " << std::fixed << std::setprecision(2) << (progress * 100.0) << "%";
-        std::cout.flush();
+
+        // Open the TIFF file for writing.
+        TIFF *tif = TIFFOpen(filename.string().c_str(), "w");
+        if (!tif) {
+            throw std::runtime_error("Unable to open TIFF file for writing.");
+        }
+
+        // Set TIFF fields.
+        TIFFSetField(tif, TIFFTAG_IMAGEWIDTH, width);
+        TIFFSetField(tif, TIFFTAG_IMAGELENGTH, height);
+        TIFFSetField(tif, TIFFTAG_BITSPERSAMPLE, 32); // 32-bit float
+        TIFFSetField(tif, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_IEEEFP); // IEEE floating point
+        TIFFSetField(tif, TIFFTAG_SAMPLESPERPIXEL, 1); // Single channel
+        TIFFSetField(tif, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK); // Grayscale
+        TIFFSetField(tif, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
+        TIFFSetField(tif, TIFFTAG_ROWSPERSTRIP, height); // Write the whole image in one strip.
+
+        // Write the image row by row.
+        // TIFF expects each scanline to be contiguous in memory.
+        for (uint32_t row = 0; row < height; row++) {
+            // The starting pointer of the row in the image vector.
+            const float *rowData = &image[row * width];
+            if (TIFFWriteScanline(tif, (tdata_t) rowData, row, 0) < 0) {
+                TIFFClose(tif);
+                throw std::runtime_error("Failed to write TIFF scanline.");
+            }
+        }
+
+        TIFFClose(tif);
+    }
+
+    static void savePFM(const std::filesystem::path &filename, const std::vector<float> &image, uint32_t width,
+                        uint32_t height) {
+        std::filesystem::path dir = filename.parent_path();
+
+        // Create directory if it doesn't exist
+        if (!dir.empty() && !std::filesystem::exists(dir)) {
+            std::filesystem::create_directories(dir);
+        }
+
+
+        std::ofstream file(filename, std::ios::binary);
+        if (!file.is_open()) {
+            throw std::runtime_error("Unable to open file for writing.");
+        }
+
+        // Write the PFM header.
+        // "PF" indicates a color image. Use "Pf" for grayscale.
+        file << "PF\n" << width << " " << height << "\n-1.0\n";
+
+        // PFM expects the data in binary format, row by row from top to bottom.
+        // Here we assume that 'image' is a single-channel float image (size: width*height).
+        // We create a temporary buffer for RGB data.
+        std::vector<float> rgbData(width * height * 3);
+
+        for (uint32_t y = 0; y < height; ++y) {
+            for (uint32_t x = 0; x < width; ++x) {
+                uint32_t pixelIndex = y * width + x;
+                uint32_t rgbIndex = pixelIndex * 3;
+                // Duplicate the grayscale value across R, G, and B.
+                rgbData[rgbIndex + 0] = image[pixelIndex];
+                rgbData[rgbIndex + 1] = image[pixelIndex];
+                rgbData[rgbIndex + 2] = image[pixelIndex];
+            }
+        }
+
+        // PFM files expect the data to be written row by row from the top row to bottom.
+        // Depending on how your image is stored (top-to-bottom or bottom-to-top),
+        // you might need to flip the rows. Here we assume the 'image' vector is top-to-bottom.
+        file.write(reinterpret_cast<const char *>(rgbData.data()), rgbData.size() * sizeof(float));
+        file.close();
     }
 
     static void denoiseImage(float *singleChannelImage, uint32_t width, uint32_t height,
@@ -138,12 +203,14 @@ namespace VkRender::PathTracer {
                                                  torch::Tensor quadrics,
                                                  torch::Tensor quadricPositions,
                                                  torch::Tensor quadricRotations
-                                                 ) {
+    ) {
         // =================
         // 1) Save for backward any Tensors or scalar values you need
         //    to compute derivatives later. For example:
-        ctx->save_for_backward({positions, scales, normals, emissions, colors, specular, diffuse, quadrics,
-quadricPositions, quadricRotations});
+        ctx->save_for_backward({
+            positions, scales, normals, emissions, colors, specular, diffuse, quadrics,
+            quadricPositions, quadricRotations
+        });
         ctx->saved_data["pathTracer"] = reinterpret_cast<int64_t>(pathTracer);
 
         // If you have non-tensor data you want in backward(), you can store
@@ -190,7 +257,106 @@ quadricPositions, quadricRotations});
         return output;
     }
 
+    // Scharr operator kernels for x and y derivatives.
+    const int KERNEL_SIZE = 3;
+    const float scharrX[3][3] = {
+        {3, 0, -3},
+        {10, 0, -10},
+        {3, 0, -3}
+    };
 
+    const float scharrY[3][3] = {
+        {3, 10, 3},
+        {0, 0, 0},
+        {-3, -10, -3}
+    };
+
+    // Applies the Scharr filter to compute gradients.
+    // 'image' is a pointer to the image data of size (width * height).
+    // 'width' and 'height' are the dimensions of the image.
+    // The function outputs gradient images gradX and gradY.
+    static void applyScharrFilter(const float *image, int width, int height,
+                                  std::vector<float> &gradX, std::vector<float> &gradY) {
+        // Resize output vectors to hold the gradient images.
+        gradX.resize(width * height, 0.0f);
+        gradY.resize(width * height, 0.0f);
+
+        // Loop over the image pixels, skipping the boundary pixels.
+        for (int y = 1; y < height - 1; ++y) {
+            for (int x = 1; x < width - 1; ++x) {
+                float gx = 0.0f;
+                float gy = 0.0f;
+                // Convolve with the Scharr kernel.
+                for (int ky = -1; ky <= 1; ++ky) {
+                    for (int kx = -1; kx <= 1; ++kx) {
+                        int ix = x + kx;
+                        int iy = y + ky;
+                        float pixel = image[iy * width + ix];
+                        gx += pixel * scharrX[ky + 1][kx + 1];
+                        gy += pixel * scharrY[ky + 1][kx + 1];
+                    }
+                }
+                gradX[y * width + x] = gx;
+                gradY[y * width + x] = gy;
+            }
+        }
+    }
+
+static void saveLabelMaskAsPNG(const float* gradientImagePerObject, const std::filesystem::path& mseGradientImagePath, int width, int height) {
+    // Create an RGB image buffer (3 channels per pixel)
+    std::vector<unsigned char> colorImage(width * height * 3, 0);
+
+    // Define a color palette for up to 10 classes.
+    // Each class gets a unique RGB color.
+    const std::array<std::array<unsigned char, 3>, 10> classColors = {{
+        {255, 0,   0  },  // Class 0: Red
+        {0,   255, 0  },  // Class 1: Green
+        {0,   0,   255},  // Class 2: Blue
+        {255, 255, 0  },  // Class 3: Yellow
+        {255, 0,   255},  // Class 4: Magenta
+        {0,   255, 255},  // Class 5: Cyan
+        {128, 0,   0  },  // Class 6: Dark Red
+        {0,   128, 0  },  // Class 7: Dark Green
+        {0,   0,   128},  // Class 8: Dark Blue
+        {128, 128, 128}   // Class 9: Gray
+    }};
+
+    // Process each pixel in the input image.
+    for (int i = 0; i < width * height; ++i) {
+        float label = gradientImagePerObject[i];
+        // If no class is selected, label is FLT_MAX. Set to black.
+        if (label > 100) {
+            colorImage[i * 3 + 0] = 0;
+            colorImage[i * 3 + 1] = 0;
+            colorImage[i * 3 + 2] = 0;
+        } else {
+            // Convert the float label to an integer class index.
+            int classIndex = static_cast<int>(label);
+            if (classIndex >= 0 && classIndex < static_cast<int>(classColors.size())) {
+                colorImage[i * 3 + 0] = classColors[classIndex][0];
+                colorImage[i * 3 + 1] = classColors[classIndex][1];
+                colorImage[i * 3 + 2] = classColors[classIndex][2];
+            } else {
+                // If the label is outside the expected range, default to black.
+                colorImage[i * 3 + 0] = 0;
+                colorImage[i * 3 + 1] = 0;
+                colorImage[i * 3 + 2] = 0;
+            }
+        }
+    }
+
+        std::filesystem::path dir = mseGradientImagePath.parent_path();
+
+        // Create directory if it doesn't exist
+        if (!dir.empty() && !std::filesystem::exists(dir)) {
+            std::filesystem::create_directories(dir);
+        }
+
+
+        // Save as PNusing stb_image_write
+        stbi_write_png(mseGradientImagePath.c_str(), width, height, 3, colorImage.data(), width * 3);
+
+}
     torch::autograd::tensor_list PhotonRebuildFunction::backward(torch::autograd::AutogradContext *ctx,
                                                                  torch::autograd::tensor_list grad_outputs) {
         // Usually, the forward returned 1 tensor => grad_outputs.size() == 1
@@ -215,53 +381,76 @@ quadricPositions, quadricRotations});
         // Retrieve the path tracer pointer
         auto settingsPtr = ctx->saved_data["IterationInfo"].toInt();
         IterationInfo *iterationInfo = reinterpret_cast<IterationInfo *>(settingsPtr);
-        save_gradient_to_png(dLoss_dRenderedImage,
-                             "gradients/" + std::to_string(iterationInfo->iteration) + ".png");
+        std::filesystem::path mseGradientImagePath =
+                "./debug/mse_image/" + std::to_string(iterationInfo->iteration) + ".png";
+        save_gradient_to_png(dLoss_dRenderedImage, mseGradientImagePath);
         pathTracer->m_backwardInfo.gradientImage = dLoss_dRenderedImage.data_ptr<float>();
         auto gradients = pathTracer->backward(iterationInfo->renderSettings);
 
-        glm::vec3 *grad = gradients.sumQuadricGradients;
+        // d_I(u,v) / d_(u,v)
+        float *image = pathTracer->getImage();
+        auto &props = pathTracer->getPipelineSettings();
+        int width = props.width;
+        int height = props.height;
+        std::vector<float> gradX, gradY;
+        applyScharrFilter(image, width, height, gradX, gradY);
+        // Optionally, combine gradX and gradY to compute gradient magnitude:
+        std::vector<float> gradMag(width * height, 0.0f);
+        for (int i = 0; i < width * height; i++) {
+            gradMag[i] = std::sqrt(gradX[i] * gradX[i] + gradY[i] * gradY[i]);
+        }
+        std::filesystem::path gradientImagePath =
+                "debug/grad_image/" + std::to_string(iterationInfo->iteration) + ".tiff";
+        // Save the gradient magnitude image as a PFM file.
+        saveTIFF(gradientImagePath, gradMag.data(), width, height);
 
-        float grad_x = grad[0].x;
-        float grad_y = grad[0].y;
-        float grad_z = grad[0].z;
+        // Get the pointer to the loss gradient image (size: width*height)
+        float *dLoss_dI = dLoss_dRenderedImage.data_ptr<float>();
 
-        float grad2_x = grad[1].x;
-        float grad2_y = grad[1].y;
-        float grad2_z = grad[1].z;
+        float *gradientImagePerObject = gradients.gradientImagePerObject;
 
-        Log::Logger::getInstance()->info("Gradients: First: {},{},{}, Second: {},{},{}", grad_x, grad_y, grad_z,
-                                         grad2_x, grad2_y, grad2_z);
+        std::filesystem::path gradientPerPixelContributionPath =
+                "debug/grad_id_image/" + std::to_string(iterationInfo->iteration) + ".png";
+        // Save the gradient magnitude image as a PFM file.
+        saveLabelMaskAsPNG(gradientImagePerObject, gradientPerPixelContributionPath, width, height);
 
         auto posA = positions.accessor<float, 2>();
-
-        Log::Logger::getInstance()->info("Positions: First: {},{},{}, Second: {},{},{}", posA[0][0], posA[0][2],
-                                         posA[0][3], posA[1][0], posA[1][2], posA[1][3]);
-
         auto gradientEmissivePositions = torch::zeros_like(positions);
-
         auto gradientQuadricPositions = torch::zeros_like(quadricPositions);
-
         auto gradPosA = gradientEmissivePositions.accessor<float, 2>();
         auto gradQuadPosA = gradientQuadricPositions.accessor<float, 2>();
 
-        for (int i = 0; i < gradientQuadricPositions.size(0); ++i) {
-            float gx = grad[i].x;
-            float gy = grad[i].y;
-            float gz = grad[i].z;
 
-            if (std::isnan(gx) ||
-                std::isnan(gy) ||
-                std::isnan(gz)) {
-                gx = 0.0f;
-                gy = 0.0f;
-                gz = 0.0f;
-                Log::Logger::getInstance()->warning(" NaN warning in Gradients: {}", gx);
+        for (int i = 0; i < gradientQuadricPositions.size(0); ++i) {
+            // Allocate vectors to hold per-pixel contributions for u and v.
+            std::vector<float> combinedU(width * height, 0.0f);
+            std::vector<float> combinedV(width * height, 0.0f);
+            // For each pixel, multiply the loss gradient with the image gradient
+            for (int idx = 0; idx < width * height; idx++) {
+                if (static_cast<int>(gradientImagePerObject[idx]) == i) {
+                    combinedU[idx] = dLoss_dI[idx] * gradX[idx]; // contribution for u direction
+                    combinedV[idx] = dLoss_dI[idx] * gradY[idx]; // contribution for v direction
+                }
             }
-            // Replace NaNs with zero (or another fallback value)
-            gradQuadPosA[i][0] =  gx;
-            gradQuadPosA[i][1] =  gy;
-            gradQuadPosA[i][2] =  gz;
+            // Sum over all pixels to aggregate to a single scalar for each coordinate.
+            float sumU = std::accumulate(combinedU.begin(), combinedU.end(), 0.0f);
+            float sumV = std::accumulate(combinedV.begin(), combinedV.end(), 0.0f);
+
+            glm::mat3 grad = gradients.sumQuadricGradients[i];
+
+            glm::vec3 dU_dPos = {grad[0][0], grad[1][0], grad[2][0]};
+            glm::vec3 dV_dPos = {grad[0][1], grad[1][1], grad[2][1]};
+            // Finally, combine the contributions:
+            // dL/dpos = (sumU) * d(u)/d(pos) + (sumV) * d(v)/d(pos)
+            glm::vec3 final_grad_pos_x = sumU * dU_dPos;
+            glm::vec3 final_grad_pos_y = sumV * dV_dPos;
+            glm::vec3 finalGradient = final_grad_pos_x + final_grad_pos_y;
+            float x = finalGradient.x;
+            float y = finalGradient.y;
+            float z = finalGradient.z;
+            gradQuadPosA[i][0] = finalGradient.x;
+            gradQuadPosA[i][1] = finalGradient.y;
+            gradQuadPosA[i][2] = finalGradient.z;
         }
 
         // Return them in the same order as forward inputs

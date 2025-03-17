@@ -209,16 +209,41 @@ namespace VkRender::PathTracer {
             float xPixel = (fx * px / pz) + cx;
             float yPixel = (fy * py / pz) + cy;
 
-            if (xPixel > m_camera->m_parameters.width || yPixel > m_camera->m_parameters.height || xPixel < 0.0f ||
-                yPixel < 0.0f) {
-                return;
-            }
+            int x0 = static_cast<int>(std::floor(xPixel));
+            int y0 = static_cast<int>(std::floor(yPixel));
+            float dx = xPixel - x0;
+            float dy = yPixel - y0;
+            int x1 = x0 + 1;
+            int y1 = y0 + 1;
 
-            float xPixel_gt = 0.0f;
-            float yPixel_gt = 0.0f;
+            // 3. Compute the bilinear weights for the 4 pixels.
+            float w00 = (1.0f - dx) * (1.0f - dy); // weight for pixel at (x0, y0)
+            float w10 = dx * (1.0f - dy); // weight for pixel at (x1, y0)
+            float w01 = (1.0f - dx) * dy; // weight for pixel at (x0, y1)
+            float w11 = dx * dy; // weight for pixel at (x1, y1)
+
+            // 5. Retrieve image dimensions.
+            const size_t imageWidth = m_camera->parameters().width;
+            const size_t imageHeight = m_camera->parameters().height;
+
+            // Helper lambda to add the weighted flux contribution to a given pixel.
+            auto addFluxToPixel = [&](int px, int py, float weight) {
+                // Only update if the pixel is inside the image bounds.
+                if (px >= 0 && px < static_cast<int>(imageWidth) &&
+                    py >= 0 && py < static_cast<int>(imageHeight)) {
+                    size_t pixelIndex = static_cast<size_t>(py) * imageWidth + static_cast<size_t>(px);
+
+                    m_gpuData.gradientImagePerObject[pixelIndex] = static_cast<float>(hitObjectID);
+                    }
+            };
+            // 6. Distribute the corrected flux into the four neighboring pixels.
+            addFluxToPixel(x0, y0, w00);
+            addFluxToPixel(x1, y0, w10);
+            addFluxToPixel(x0, y1, w01);
+            addFluxToPixel(x1, y1, w11);
+
+
             ////////// GT CALCULATION /&///////
-
-
             // Transform the local hit point back to world space.
             // If quadric.transform is orthonormal, its inverse is its transpose.
             glm::vec3 a_d_gt = glm::normalize(a_c - g_c);
@@ -229,21 +254,15 @@ namespace VkRender::PathTracer {
             float px_gt = hitPointCam_gt.x;
             float py_gt = hitPointCam_gt.y;
             float pz_gt = hitPointCam_gt.z;
-            xPixel_gt = (fx * px_gt / pz_gt) + cx;
-            yPixel_gt = (fy * py_gt / pz_gt) + cy;
 
-
-            float dLoss = bilinearSample(m_gpuData.gradientImage,
-                                         static_cast<int>(m_camera->parameters().width),
-                                         static_cast<int>(m_camera->parameters().height),
-                                         xPixel, yPixel);
             glm::mat3 w2c = glm::mat3(world2Camera);
             glm::mat3 I = glm::mat3(1.0f);
-
             float closest_t = FLT_MAX;
             size_t hitEntity = 0;
             glm::vec3 hitPointWorld(0.0f);
             glm::vec3 hitNormalWorld(0.0f);
+
+            /*
             float betaContribution = 0.0f;
             // check intersection with geometry
             bool hit = geometryIntersectionQuadric(gaussianID, g_c, a_d_gt, hitEntity, closest_t,
@@ -251,10 +270,12 @@ namespace VkRender::PathTracer {
                                                    hitNormalWorld, betaContribution, true);
             if (hit)
                 return;
-
-
+            */
             // ===== Backward Pass =====
             // We now compute the gradient (jacobian) of our hit point and subsequent losses with respect to g_c.
+
+            /*
+
 
 
             // --- (1) Gradients of B and C with respect to g_c ---
@@ -313,12 +334,14 @@ namespace VkRender::PathTracer {
             glm::mat3 term2 = glm::transpose(glm::outerProduct(nabla_atmin_gc, a_d));
             glm::mat3 term3 = a_tmin * J_ad_gc;
 
+            */
             //glm::mat3 J_p_gc =term1 + term2 + term3;
 
-            glm::mat3 J_p_gc = d_ghit_dgc + glm::outerProduct(a_d, nabla_atmin_gc) + a_tmin * J_ad_gc;
+            //glm::mat3 J_p_gc = d_ghit_dgc + glm::outerProduct(a_d, nabla_atmin_gc) + a_tmin * J_ad_gc;
             // --- (9) Camera extrinsics: p_camera = R_w2c * p(g_c) ---
 
 
+            /*
             glm::mat3 J_pc_gc = w2c * J_p_gc;
             // --- (10) Pinhole projection derivative ---
             // For a camera point p_camera = (px,py,pz), the projection is:
@@ -334,6 +357,7 @@ namespace VkRender::PathTracer {
             J_uv_pcam = glm::transpose(J_uv_pcam);
             // --- (11) Derivative of pixel coordinates with respect to g_c ---
             glm::mat3x3 J_uv_gc = J_uv_pcam * J_pc_gc;
+            */
 
 
             // Ground truth gradients
@@ -372,45 +396,24 @@ namespace VkRender::PathTracer {
 
             glm::mat3 J_uv_gt_gc = J_uv_gt_pcam * J_pc_gt_gc;
 
+            glm::mat3 total_gradient = J_uv_gt_gc;
 
-
-            // --- (12) Pixel loss function and its derivative ---
-            // L_pix = (u - u_gt)² + (v - v_gt)², so ∇L = [2*(u - u_gt), 2*(v - v_gt)].
-            glm::vec2 L_pix_d(0.0f);
-            L_pix_d.x = 2.0f * (xPixel - xPixel_gt);
-            L_pix_d.y = 2.0f * (yPixel - yPixel_gt);
-
-            //J_uv_gc = -J_uv_gc;
-            // --- (13) Finally, gradient with respect to g_c ---
-            // nabla_gc = (J_uv_gc)ᵀ * L_pix_d.
-            glm::vec3 grad_geometry(0.0f);
-            //grad_geometry.x = (L_pix_d.x * (J_uv_gc[0][0] ) + L_pix_d.y * (J_uv_gc[0][1] ));
-            //grad_geometry.y = (L_pix_d.x * (J_uv_gc[1][0] ) + L_pix_d.y * (J_uv_gc[1][1] ));
-            //grad_geometry.z = (L_pix_d.x * (J_uv_gc[2][0] ) + L_pix_d.y * (J_uv_gc[2][1] ));
-
-            grad_geometry.x += (L_pix_d.x * (J_uv_gt_gc[0][0]) + L_pix_d.y * (J_uv_gt_gc[0][1]));
-            grad_geometry.y += (L_pix_d.x * (J_uv_gt_gc[1][0]) + L_pix_d.y * (J_uv_gt_gc[1][1]));
-            grad_geometry.z += (L_pix_d.x * (J_uv_gt_gc[2][0]) + L_pix_d.y * (J_uv_gt_gc[2][1]));
-
-            glm::vec3 total_gradient = grad_geometry * dLoss;
 
             // Atomically accum ulate the gradient.
-            sycl::atomic_ref<float, sycl::memory_order::acq_rel,
-                        sycl::memory_scope::device,
-                        sycl::access::address_space::global_space>
-                    sum_x(m_gpuData.quadricGradients[hitObjectID].x),
-                    sum_y(m_gpuData.quadricGradients[hitObjectID].y),
-                    sum_z(m_gpuData.quadricGradients[hitObjectID].z);
-
-            sum_x.fetch_add(total_gradient.x);
-            sum_y.fetch_add(total_gradient.y);
-            sum_z.fetch_add(total_gradient.z);
-
-            if (quadric.kernelScale == 1) {
-                size_t interresting = m_gpuDataOutput[photonID].bounce[0].quadricID;
-                size_t interresting3 = m_gpuDataOutput[photonID].bounce[0].hitCamera;
-                size_t interresting2 = m_gpuDataOutput[photonID].bounce[0].quadricID;
+            for (int i = 0; i < 3; ++i) {
+                for (int j = 0; j < 3; ++j) {
+                    sycl::atomic_ref<float,
+                                       sycl::memory_order::acq_rel,
+                                       sycl::memory_scope::device,
+                                       sycl::access::address_space::global_space>
+                        atom(m_gpuData.quadricGradients[hitObjectID][i][j]);
+                    atom.store(total_gradient[i][j]);
+                }
             }
+
+
+
+
             /*
             glm::vec3 g_c = newHitObject.position;
             glm::vec3 g_n = newHitObject.normal;

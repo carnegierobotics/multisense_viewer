@@ -58,7 +58,7 @@ namespace VkRender {
         // Create a button labeled "Generate Cameras".
         if (ImGui::Button("Generate Cameras")) {
             // When the button is clicked, retrieve the active scene and call generateCameras.
-            generateCameras(scene.get(), numCameras, 10);
+            generateCameras(scene.get(), numCameras, 6);
         }
 
 

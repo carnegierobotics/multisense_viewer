@@ -1010,6 +1010,9 @@ namespace VkRender {
                         "Load Quadratic .ply file", types,
                         LayerUtils::PLY_QUADRATIC, &m_loadFileFuture);
                 }
+
+                ImGui::SliderFloat("Noise", &noiseSlider, 0.0f, 3.0f);
+
                 if (ImGui::Button("Remove All")) {
                     for (int i = 0; i < component.size(); ++i) {
                         std::string quadricName =
@@ -1047,6 +1050,24 @@ namespace VkRender {
                         transform.setTransform(worldMatrix);
                     }
                 }
+                ImGui::SameLine();
+                if (ImGui::Button("Add Positional Noise")) {
+                    for (int i = 0; i < component.size(); ++i) {
+                        std::string quadricName =
+                                "Quadric " + std::to_string(i);
+                      auto position = component.positions[i];
+
+                        std::random_device rd;
+                        std::mt19937 gen(rd()); // Mersenne Twister RNG
+                        std::normal_distribution<float> dist(0.0f, noiseSlider); // Mean 0, standard deviation 0.01
+
+                        position.x += dist(gen);
+                        position.y += dist(gen);
+                        position.z += dist(gen);
+                        component.positions[i] = position;
+                    }
+                }
+
                 ImGui::Spacing();
 
                 // For a small number of quadrics, display all entries
@@ -1383,7 +1404,7 @@ namespace VkRender {
                 case LayerUtils::PLY_QUADRATIC: {
                     if (m_selectionContext.hasComponent<QuadricCollectionComponent>()) {
                         auto &comp = m_selectionContext.getComponent<QuadricCollectionComponent>();
-                        comp.addQuadricsFromFile(loadFileInfo.path, m_tmp);
+                        comp.addQuadricsFromFile(loadFileInfo.path, m_tmp, noiseSlider);
 
                         // Now add quadrics to scene:
 

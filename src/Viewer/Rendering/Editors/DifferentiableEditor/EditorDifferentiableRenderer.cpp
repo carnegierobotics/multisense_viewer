@@ -133,7 +133,7 @@ namespace VkRender {
             // We pass in the parameters of our module (or custom parameter list)
             m_photonRebuildModule->parameters(),
             // Then define the Adam options, e.g. learning rate = 1e-3
-            torch::optim::AdamOptions(0.010f)
+            torch::optim::AdamOptions(0.015f)
         );
         m_accumulatedTensor = torch::Tensor();
         m_numAccumulated = 0;
@@ -195,6 +195,7 @@ namespace VkRender {
                                   static_cast<uint32_t>(m_renderSettings.camera.m_parameters.height) == m_colorTexture
                                   ->height();
             if (imageSizeMatch) {
+                //m_renderSettings.applyBetaContribution = true;
                 // Upload path tracer with the new parameters
                 PathTracer::IterationInfo pathTracerIterationInfo;
                 pathTracerIterationInfo.renderSettings = m_renderSettings;

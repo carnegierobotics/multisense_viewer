@@ -52,13 +52,17 @@ namespace VkRender {
 
         // Begin a new ImGui window called "Debug Window".
         ImGui::Begin("Tool Window");
-        uint32_t numCameras = 30;
         auto scene = m_context->activeScene();
+
+        static int numCameras = 5;
+        static float radius = 6.0f;
+        ImGui::SliderInt("Num Cameras", &numCameras, 1, 60);
+        ImGui::SliderFloat("Radius", &radius, 1, 20);
 
         // Create a button labeled "Generate Cameras".
         if (ImGui::Button("Generate Cameras")) {
             // When the button is clicked, retrieve the active scene and call generateCameras.
-            generateCameras(scene.get(), numCameras, 6);
+            generateCameras(scene.get(), numCameras, radius);
         }
 
 

@@ -300,50 +300,86 @@ namespace VkRender::PathTracer {
                 gradY[y * width + x] = gy;
             }
         }
+
+        // Define a simple 3x3 Gaussian blur kernel
+        constexpr float gaussianKernel5x5[5][5] = {
+            {1.0f / 273,  4.0f / 273,  7.0f / 273,  4.0f / 273, 1.0f / 273},
+            {4.0f / 273, 16.0f / 273, 26.0f / 273, 16.0f / 273, 4.0f / 273},
+            {7.0f / 273, 26.0f / 273, 41.0f / 273, 26.0f / 273, 7.0f / 273},
+            {4.0f / 273, 16.0f / 273, 26.0f / 273, 16.0f / 273, 4.0f / 273},
+            {1.0f / 273,  4.0f / 273,  7.0f / 273,  4.0f / 273, 1.0f / 273}
+        };
+
+
+        // Apply 5x5 Gaussian blur to smooth the gradient images
+        auto applyGaussianBlur = [&](std::vector<float> &image) {
+            std::vector<float> temp(image.size(), 0.0f);
+            for (int y = 2; y < height - 2; ++y) {  // Adjusted for 5x5 kernel
+                for (int x = 2; x < width - 2; ++x) {
+                    float sum = 0.0f;
+                    for (int ky = -2; ky <= 2; ++ky) {  // 5x5 kernel range
+                        for (int kx = -2; kx <= 2; ++kx) {
+                            int ix = x + kx;
+                            int iy = y + ky;
+                            sum += image[iy * width + ix] * gaussianKernel5x5[ky + 2][kx + 2];
+                        }
+                    }
+                    temp[y * width + x] = sum;
+                }
+            }
+            image.swap(temp); // Replace original with blurred version
+        };
+
+        // Blur both gradient images
+        //applyGaussianBlur(gradX);
+        //applyGaussianBlur(gradY);
     }
 
-static void saveLabelMaskAsPNG(const float* gradientImagePerObject, const std::filesystem::path& mseGradientImagePath, int width, int height) {
-    // Create an RGB image buffer (3 channels per pixel)
-    std::vector<unsigned char> colorImage(width * height * 3, 0);
+    static void saveLabelMaskAsPNG(const float *gradientImagePerObject,
+                                   const std::filesystem::path &mseGradientImagePath, int width, int height) {
+        // Create an RGB image buffer (3 channels per pixel)
+        std::vector<unsigned char> colorImage(width * height * 3, 0);
 
-    // Define a color palette for up to 10 classes.
-    // Each class gets a unique RGB color.
-    const std::array<std::array<unsigned char, 3>, 10> classColors = {{
-        {255, 0,   0  },  // Class 0: Red
-        {0,   255, 0  },  // Class 1: Green
-        {0,   0,   255},  // Class 2: Blue
-        {255, 255, 0  },  // Class 3: Yellow
-        {255, 0,   255},  // Class 4: Magenta
-        {0,   255, 255},  // Class 5: Cyan
-        {128, 0,   0  },  // Class 6: Dark Red
-        {0,   128, 0  },  // Class 7: Dark Green
-        {0,   0,   128},  // Class 8: Dark Blue
-        {128, 128, 128}   // Class 9: Gray
-    }};
+        // Define a color palette for up to 10 classes.
+        // Each class gets a unique RGB color.
+        const std::array<std::array<unsigned char, 3>, 10> classColors = {
+            {
+                {255, 0, 0}, // Class 0: Red
+                {0, 255, 0}, // Class 1: Green
+                {0, 0, 255}, // Class 2: Blue
+                {255, 255, 0}, // Class 3: Yellow
+                {255, 0, 255}, // Class 4: Magenta
+                {0, 255, 255}, // Class 5: Cyan
+                {128, 0, 0}, // Class 6: Dark Red
+                {0, 128, 0}, // Class 7: Dark Green
+                {0, 0, 128}, // Class 8: Dark Blue
+                {128, 128, 128} // Class 9: Gray
+            }
+        };
 
-    // Process each pixel in the input image.
-    for (int i = 0; i < width * height; ++i) {
-        float label = gradientImagePerObject[i];
-        // If no class is selected, label is FLT_MAX. Set to black.
-        if (label > 100) {
-            colorImage[i * 3 + 0] = 0;
-            colorImage[i * 3 + 1] = 0;
-            colorImage[i * 3 + 2] = 0;
-        } else {
-            // Convert the float label to an integer class index.
-            int classIndex = static_cast<int>(label);
-            if (classIndex >= 0 && classIndex < static_cast<int>(classColors.size())) {
-                colorImage[i * 3 + 0] = classColors[classIndex][0];
-                colorImage[i * 3 + 1] = classColors[classIndex][1];
-                colorImage[i * 3 + 2] = classColors[classIndex][2];
-            } else {
-                // If the label is outside the expected range, default to black.
+        // Process each pixel in the input image.
+        for (int i = 0; i < width * height; ++i) {
+            float label = gradientImagePerObject[i];
+            // If no class is selected, label is FLT_MAX. Set to black.
+            if (label > 100) {
                 colorImage[i * 3 + 0] = 0;
                 colorImage[i * 3 + 1] = 0;
                 colorImage[i * 3 + 2] = 0;
+            } else {
+                // Convert the float label to an integer class index.
+                int classIndex = static_cast<int>(label);
+                if (classIndex >= 0 && classIndex < static_cast<int>(classColors.size())) {
+                    colorImage[i * 3 + 0] = classColors[classIndex][0];
+                    colorImage[i * 3 + 1] = classColors[classIndex][1];
+                    colorImage[i * 3 + 2] = classColors[classIndex][2];
+                } else {
+                    // If the label is outside the expected range, default to black.
+                    colorImage[i * 3 + 0] = 0;
+                    colorImage[i * 3 + 1] = 0;
+                    colorImage[i * 3 + 2] = 0;
+                }
             }
         }
-    }
 
         std::filesystem::path dir = mseGradientImagePath.parent_path();
 
@@ -355,8 +391,8 @@ static void saveLabelMaskAsPNG(const float* gradientImagePerObject, const std::f
 
         // Save as PNusing stb_image_write
         stbi_write_png(mseGradientImagePath.c_str(), width, height, 3, colorImage.data(), width * 3);
+    }
 
-}
     torch::autograd::tensor_list PhotonRebuildFunction::backward(torch::autograd::AutogradContext *ctx,
                                                                  torch::autograd::tensor_list grad_outputs) {
         // Usually, the forward returned 1 tensor => grad_outputs.size() == 1
@@ -381,8 +417,9 @@ static void saveLabelMaskAsPNG(const float* gradientImagePerObject, const std::f
         // Retrieve the path tracer pointer
         auto settingsPtr = ctx->saved_data["IterationInfo"].toInt();
         IterationInfo *iterationInfo = reinterpret_cast<IterationInfo *>(settingsPtr);
+        std::string cameraName = iterationInfo->cameraName;
         std::filesystem::path mseGradientImagePath =
-                "./debug/mse_image/" + std::to_string(iterationInfo->iteration) + ".png";
+                "./debug/mse_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + ".png";
         save_gradient_to_png(dLoss_dRenderedImage, mseGradientImagePath);
         pathTracer->m_backwardInfo.gradientImage = dLoss_dRenderedImage.data_ptr<float>();
         auto gradients = pathTracer->backward(iterationInfo->renderSettings);
@@ -400,7 +437,7 @@ static void saveLabelMaskAsPNG(const float* gradientImagePerObject, const std::f
             gradMag[i] = std::sqrt(gradX[i] * gradX[i] + gradY[i] * gradY[i]);
         }
         std::filesystem::path gradientImagePath =
-                "debug/grad_image/" + std::to_string(iterationInfo->iteration) + ".tiff";
+                "debug/grad_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + ".tiff";
         // Save the gradient magnitude image as a PFM file.
         saveTIFF(gradientImagePath, gradMag.data(), width, height);
 
@@ -410,7 +447,7 @@ static void saveLabelMaskAsPNG(const float* gradientImagePerObject, const std::f
         float *gradientImagePerObject = gradients.gradientImagePerObject;
 
         std::filesystem::path gradientPerPixelContributionPath =
-                "debug/grad_id_image/" + std::to_string(iterationInfo->iteration) + ".png";
+                "debug/grad_id_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + ".png";
         // Save the gradient magnitude image as a PFM file.
         saveLabelMaskAsPNG(gradientImagePerObject, gradientPerPixelContributionPath, width, height);
 
@@ -437,6 +474,10 @@ static void saveLabelMaskAsPNG(const float* gradientImagePerObject, const std::f
             float sumV = std::accumulate(combinedV.begin(), combinedV.end(), 0.0f);
 
             glm::mat3 grad = gradients.sumQuadricGradients[i];
+
+            if (glm::any(glm::isnan(grad[0])) || glm::any(glm::isnan(grad[1])) || glm::any(glm::isnan(grad[2]))) {
+                Log::Logger::getInstance()->error("Error: NaN detected in gradient matrix!");
+            }
 
             glm::vec3 dU_dPos = {grad[0][0], grad[1][0], grad[2][0]};
             glm::vec3 dV_dPos = {grad[0][1], grad[1][1], grad[2][1]};

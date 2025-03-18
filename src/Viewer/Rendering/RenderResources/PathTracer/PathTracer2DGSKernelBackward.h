@@ -55,9 +55,9 @@ namespace VkRender::PathTracer {
             glm::vec3 e_d = m_gpuDataOutput[photonID].emissionDirection;
 
             auto &quadric = m_gpuData.quadricInputAssembly[hitObjectID];
-            glm::vec3 g_c = quadric.transform.getPosition();
+            glm::vec3 q_c = quadric.transform.getPosition();
             glm::mat3 world2Quadric = quadric.transform.getTransform();
-            glm::vec3 e_o_local = world2Quadric * (e_o - g_c);
+            glm::vec3 e_o_local = world2Quadric * (e_o - q_c);
 
             glm::vec3 hit = object.hitPointWorld;
             glm::vec3 hitNormal = object.hitNormalWorld;
@@ -104,19 +104,9 @@ namespace VkRender::PathTracer {
             glm::vec3 a_c = m_cameraTransform->getPosition(); // center of aperture
 
 
-            // For clarity, rename e_o = emissionOrigin, e_d = apertureSampleDir
-            glm::vec3 e_o = m_gpuDataOutput[photonID].emissionOrigin;
-            glm::vec3 e_d = m_gpuDataOutput[photonID].emissionDirection;
-            //e_o = glm::vec3(0.0, 0.0, 6);
-            //e_d = glm::normalize(glm::vec3(-0.1, 0.1, -1));
-
             size_t gaussianID = m_gpuDataOutput[photonID].gaussianID;
             glm::vec3 e_c = m_gpuData.gaussianInputAssembly[gaussianID].position;
-            // Camera intrinsics
-            float fx = m_camera->parameters().fx;
-            float fy = m_camera->parameters().fy;
-            float cx = m_camera->parameters().cx;
-            float cy = m_camera->parameters().cy;
+
 
             glm::vec3 f = cameraPlanePointWorld; // e.g., defined in your camera parameters
             glm::vec3 f_n = cameraNormal; // e.g., (0,0,1) if the focal plane faces +Z
@@ -124,90 +114,18 @@ namespace VkRender::PathTracer {
                 return;
             }
 
-
-            auto &quadric = m_gpuData.quadricInputAssembly[hitObjectID];
-            glm::vec3 g_c = quadric.transform.getPosition();
-            glm::mat3 world2Quadric = quadric.transform.getTransform();
-            glm::vec3 e_o_local = world2Quadric * (e_o - g_c);
-            glm::vec3 e_d_local = world2Quadric * e_d;
-
-            // Compute alpha_x and alpha_y using hyperbolic tangent
-            float alpha_x = std::tanh(quadric.t_x);
-            float alpha_y = std::tanh(quadric.t_y);
-
-            // Compute quadratic coefficients (note: local vector components: x, y, z correspond to (1), (2), (3))
-            float A = quadric.c * (alpha_x * (e_d_local.x * e_d_local.x) / (quadric.a * quadric.a)
-                                   + alpha_y * (e_d_local.y * e_d_local.y) / (quadric.b * quadric.b));
-            float B = quadric.c * (2.0f * alpha_x * e_o_local.x * e_d_local.x / (quadric.a * quadric.a)
-                                   + 2.0f * alpha_y * e_o_local.y * e_d_local.y / (quadric.b * quadric.b))
-                      - e_d_local.z;
-            float C = quadric.c * (alpha_x * (e_o_local.x * e_o_local.x) / (quadric.a * quadric.a)
-                                   + alpha_y * (e_o_local.y * e_o_local.y) / (quadric.b * quadric.b))
-                      - e_o_local.z;
-
-            // Compute the discriminant
-            float discriminant = B * B - 4.0f * A * C;
-            if (discriminant < 0.0f) {
-                return;
-            }
-            const float epsilon = 1e-6f;
-            float t_min = -1.0f;
-
-            // Check if A is nearly zero (linear case)
-            if (std::fabs(A) < epsilon) {
-                // Ensure B is not zero to avoid division by zero.
-                if (std::fabs(B) > epsilon) {
-                    t_min = -C / B;
-                } else {
-                    // No valid solution if both A and B are near zero.
-                    return;
-                }
-            } else {
-                // Compute the discriminant
-                float discriminant = B * B - 4.0f * A * C;
-                if (discriminant < 0.0f) {
-                    return; // No real roots, so return.
-                }
-                // Compute both roots
-                float sqrt_disc = std::sqrt(discriminant);
-                float t0 = (-B - sqrt_disc) / (2.0f * A);
-                float t1 = (-B + sqrt_disc) / (2.0f * A);
-
-                // Choose the smallest positive t_min
-                bool t0_valid = (t0 > 0);
-                bool t1_valid = (t1 > 0);
-
-                if (t0_valid && t1_valid) {
-                    t_min = (t0 < t1) ? t0 : t1;
-                } else if (t0_valid) {
-                    t_min = t0;
-                } else if (t1_valid) {
-                    t_min = t1;
-                } else {
-                    // Both t values are negative, so no valid intersection.
-                    return;
-                }
-            }
-
-            // Calculate the hit point in the quadric's local space:
-            // g_hit_local = e_d_local * t_min + e_o_local
-            glm::vec3 g_hit_local = e_d_local * t_min + e_o_local;
-
-            // Transform the local hit point back to world space.
-            // If quadric.transform is orthonormal, its inverse is its transpose.
-            glm::mat3 quadric2World = glm::transpose(world2Quadric);
-            glm::vec3 g_hit = quadric2World * g_hit_local + g_c;
-
+            /*
             glm::vec3 a_d = glm::normalize(a_c - g_hit);
             float a_tmin = glm::dot((f - g_hit), f_n) / (glm::dot(a_d, f_n));
             glm::vec3 cameraHitPointWorld = g_hit + a_d * a_tmin;
             glm::vec4 hitPointCam = world2Camera * glm::vec4(cameraHitPointWorld, 1.0f);
             hitPointCam = hitPointCam / hitPointCam.w;
-            float px = hitPointCam.x;
-            float py = hitPointCam.y;
-            float pz = hitPointCam.z;
-            float xPixel = (fx * px / pz) + cx;
-            float yPixel = (fy * py / pz) + cy;
+            */
+
+            auto &quadric = m_gpuData.quadricInputAssembly[hitObjectID];
+
+            float xPixel = object.pixelCoordinate.x;
+            float yPixel = object.pixelCoordinate.y;
 
             int x0 = static_cast<int>(std::floor(xPixel));
             int y0 = static_cast<int>(std::floor(yPixel));
@@ -232,9 +150,8 @@ namespace VkRender::PathTracer {
                 if (px >= 0 && px < static_cast<int>(imageWidth) &&
                     py >= 0 && py < static_cast<int>(imageHeight)) {
                     size_t pixelIndex = static_cast<size_t>(py) * imageWidth + static_cast<size_t>(px);
-
                     m_gpuData.gradientImagePerObject[pixelIndex] = static_cast<float>(hitObjectID);
-                    }
+                }
             };
             // 6. Distribute the corrected flux into the four neighboring pixels.
             addFluxToPixel(x0, y0, w00);
@@ -244,109 +161,186 @@ namespace VkRender::PathTracer {
 
 
             ////////// GT CALCULATION /&///////
-            // Transform the local hit point back to world space.
+            ///            glm::vec3 q_c = quadric.transform.getPosition();
+
             // If quadric.transform is orthonormal, its inverse is its transpose.
-            glm::vec3 a_d_gt = glm::normalize(a_c - g_c);
-            float a_tmin_gt = glm::dot((f - g_c), f_n) / (glm::dot(a_d_gt, f_n));
-            glm::vec3 cameraHitPointWorld_gt = g_c + a_d_gt * a_tmin_gt;
+            /*
+            glm::vec3 a_d_gt = glm::normalize(a_c - q_c);
+            float a_tmin_gt = glm::dot((f - q_c), f_n) / (glm::dot(a_d_gt, f_n));
+            glm::vec3 cameraHitPointWorld_gt = q_c + a_d_gt * a_tmin_gt;
             glm::vec4 hitPointCam_gt = world2Camera * glm::vec4(cameraHitPointWorld_gt, 1.0f);
             hitPointCam_gt = hitPointCam_gt / hitPointCam_gt.w;
             float px_gt = hitPointCam_gt.x;
             float py_gt = hitPointCam_gt.y;
             float pz_gt = hitPointCam_gt.z;
 
+*/
             glm::mat3 w2c = glm::mat3(world2Camera);
             glm::mat3 I = glm::mat3(1.0f);
+
+            float alpha_x = tanhf(quadric.t_x);
+            float alpha_y = tanhf(quadric.t_y);
+            auto quadric2World = glm::mat3(quadric.transform.getTransform()); // mat4
+            glm::mat3 world2Quadric = glm::transpose(glm::mat3(quadric2World));
+
+            // ===== Backward Pass =====
+
+            glm::vec3 q_hit = object.hitPointWorld;
+            float px = object.cameraHitPointLocal.x;
+            float py = object.cameraHitPointLocal.y;
+            float pz = object.cameraHitPointLocal.z;
+            glm::vec3 a_d = object.apertureDirection;
+            float g_tmin = object.emissionDirectionLength;
+            float a_tmin = object.cameraDirectionLength;
+
+
+            glm::vec3 e_o = m_gpuDataOutput[photonID].emissionOrigin;
+            glm::vec3 e_d = m_gpuDataOutput[photonID].emissionDirection;
+
+            glm::vec3 e_d_local = world2Quadric * e_d;
+            glm::vec3 e_o_local = world2Quadric * e_o;
+
+            auto &quadInfo = object.quadInfo;
+            float A = quadInfo.A;
+            float B = quadInfo.B;
+            float discriminant = quadInfo.discriminant;
+
             float closest_t = FLT_MAX;
             size_t hitEntity = 0;
             glm::vec3 hitPointWorld(0.0f);
             glm::vec3 hitNormalWorld(0.0f);
 
-            /*
+            glm::vec3 delta = a_c - quadric.transform.getPosition();
+            glm::vec3 ad_qc = glm::normalize(delta);
             float betaContribution = 0.0f;
+            GPUDataOutput::QuadraticInfo info;
             // check intersection with geometry
-            bool hit = geometryIntersectionQuadric(gaussianID, g_c, a_d_gt, hitEntity, closest_t,
+
+            switch (hitObjectID) {
+                case 0: {
+                    int debug = 1;
+                }
+                break;
+                case 1: {
+                    int debug = 1;
+                }
+                break;
+                case 2: {
+                    int debug = 1;
+                }
+                break;
+                case 3: {
+                    int debug = 1;
+                }
+                break;
+                default: {
+                    int debug = 1;
+                }
+            }
+
+
+            bool hit = geometryIntersectionQuadric(gaussianID, quadric.transform.getPosition(), ad_qc, hitEntity,
+                                                   closest_t,
                                                    hitPointWorld,
-                                                   hitNormalWorld, betaContribution, true);
+                                                   hitNormalWorld, betaContribution, info, true);
             if (hit)
                 return;
-            */
-            // ===== Backward Pass =====
-            // We now compute the gradient (jacobian) of our hit point and subsequent losses with respect to g_c.
-
-            /*
 
 
-
-            // --- (1) Gradients of B and C with respect to g_c ---
-            // Because e_o_local = world2Quadric*(e_o - g_c), we have d(e_o_local)/d(g_c) = -world2Quadric.
-            // Compute ∇ₑₒ B:
+            // Transform the local hit point back to world space.
+            if (abs(A) < std::numeric_limits<float>::epsilon() || discriminant < std::numeric_limits<float>::epsilon()
+                || quadInfo.rootIndex == -1) {
+                /*
+                for (int i = 0; i < 3; ++i) {
+                    for (int j = 0; j < 3; ++j) {
+                        sycl::atomic_ref<float,
+                                           sycl::memory_order::acq_rel,
+                                           sycl::memory_scope::device,
+                                           sycl::access::address_space::global_space>
+                            atom(m_gpuData.quadricGradients[hitObjectID][i][j]);
+                        atom.store(NAN);
+                    }
+                }
+                */
+                return;
+            }
+            // We now compute the gradient (jacobian) of our hit point and subsequent losses with respect to q_c.
+            // --- (1) Gradients of B and C with respect to q_c ---
             glm::vec3 grad_B_eo;
-            grad_B_eo.x = quadric.c * 2.0f * alpha_x * e_d_local.x / (quadric.a * quadric.a);
-            grad_B_eo.y = quadric.c * 2.0f * alpha_y * e_d_local.y / (quadric.b * quadric.b);
+            grad_B_eo.x = quadric.c * (2.0f * alpha_x * e_d_local.x) / (quadric.a * quadric.a);
+            grad_B_eo.y = quadric.c * (2.0f * alpha_y * e_d_local.y) / (quadric.b * quadric.b);
             grad_B_eo.z = 0.0f; // B does not depend on e_o_local.z
 
-            // Thus, derivative of B with respect to g_c:
-            glm::vec3 dB_dgc = -glm::transpose(world2Quadric) * grad_B_eo;
+            // Thus, derivative of B with respect to q_c:
+            glm::vec3 dB_dqc = -glm::transpose(world2Quadric) * grad_B_eo;
 
-            // For C: C = c*(alpha_x*(e_o_local.x²)/a² + alpha_y*(e_o_local.y²)/b²) – e_o_local.z
             glm::vec3 grad_C_eo;
             grad_C_eo.x = quadric.c * 2.0f * alpha_x * e_o_local.x / (quadric.a * quadric.a);
             grad_C_eo.y = quadric.c * 2.0f * alpha_y * e_o_local.y / (quadric.b * quadric.b);
-            grad_C_eo.z = -1.0f;
-            glm::vec3 dC_dgc = -glm::transpose(world2Quadric) * grad_C_eo;
+            grad_C_eo.z = -1;
+            glm::vec3 dC_dqc = -glm::transpose(world2Quadric) * grad_C_eo;
 
             // --- (2) Derivatives of t_min with respect to B and C ---
-            float d_tmin_dB = 1.0f / (2.0f * A) * (1.0f + B / std::sqrt(discriminant));
-            float d_tmin_dC = -1.0f / std::sqrt(discriminant);
+            float sqrtDiscriminant = std::sqrt(discriminant);
+            float d_tmin_dB = 0.0f;
+            float inv2A = 1.0f / (2.0f * A);
+            float BoverDisc = B / sqrtDiscriminant;
 
-            // --- (3) Chain rule: derivative of t_min with respect to g_c ---
-            glm::vec3 dtmin_dgc = d_tmin_dB * dB_dgc + d_tmin_dC * dC_dgc;
+            if (quadInfo.rootIndex == 1)
+                d_tmin_dB = inv2A * (1 - BoverDisc);
+            else if (quadInfo.rootIndex == 2)
+                d_tmin_dB = inv2A * (1 + BoverDisc);
 
-            // --- (4) Derivative of g_hit_local with respect to g_c ---
-            // g_hit_local = e_d_local * t_min + e_o_local, with d(e_o_local)/d(g_c) = -world2Quadric.
-            // Using the outer–product, we write:
-            glm::mat3 d_hitLocal_dgc = -world2Quadric + glm::outerProduct(e_d_local, dtmin_dgc);
+            float d_tmin_dC = 0.0f;
 
-            // --- (5) Derivative of g_hit with respect to g_c ---
-            // Recall: g_hit = quadric2World * g_hit_local + g_c, so:
-            glm::mat3 d_ghit_dgc = glm::transpose(world2Quadric) * d_hitLocal_dgc + glm::mat3(1.0f);
-            // d_ghit_dgc is our J_ghit,gc.
+            if (quadInfo.rootIndex == 1)
+                d_tmin_dC = 1.0f / sqrtDiscriminant;
+            else if (quadInfo.rootIndex == 2)
+                d_tmin_dC = -1.0f / sqrtDiscriminant;
 
-            // --- (6) Derivative of a_d = normalize(a_c - g_hit) ---
-            glm::vec3 v_tmp = a_c - g_hit;
+            // --- (3) Chain rule: derivative of t_min with respect to q_c ---
+            glm::vec3 dtmin_dqc = d_tmin_dB * dB_dqc + d_tmin_dC * dC_dqc;
+
+            // --- (4) Derivative of q_hit_local ---
+            glm::mat3 d_hitLocal_dqc = glm::outerProduct(e_d_local, dtmin_dqc);
+
+            // --- (5) Derivative of q_hit with respect to q_c ---
+            // Recall: q_hit = quadric2World * q_hit_local + q_c, so:
+            glm::mat3 d_ghit_dqc = quadric2World * d_hitLocal_dqc + glm::mat3(1.0f);
+            // d_ghit_dqc is our J_ghit,qc.
+
+            // --- (6) Derivative of a_d = normalize(a_c - q_hit) ---
+            glm::vec3 v_tmp = a_c - q_hit;
             float v_len = glm::length(v_tmp);
             // The derivative of a normalized vector: (I/v_len - outer(v_tmp,v_tmp)/(v_len³))
-            glm::mat3 J_ad_gc = (I / v_len - glm::outerProduct(v_tmp, v_tmp) / (v_len * v_len * v_len)) * (-d_ghit_dgc);
+            glm::mat3 J_ad_qc = (I / v_len - glm::outerProduct(v_tmp, v_tmp) / (v_len * v_len * v_len)) * (-d_ghit_dqc);
 
-            // --- (7) Derivative of a_tmin = ((f - g_hit) ⋅ f_n) / (a_d ⋅ f_n) ---
-            float n_val = glm::dot(f - g_hit, f_n);
+            // --- (7) Derivative of a_tmin = ((f - q_hit) ⋅ f_n) / (a_d ⋅ f_n) ---
+            float n_val = glm::dot(f - q_hit, f_n);
             float d_val = glm::dot(a_d, f_n);
-            // d(n)/d(g_c) = - (transpose(J_ad_gc) * f_n)
-            glm::vec3 d_n = glm::transpose(J_ad_gc) * (-f_n);
-            // d(d)/d(g_c) = (transpose(J_ad_gc) * f_n)
-            glm::vec3 d_d = glm::transpose(J_ad_gc) * f_n;
-            glm::vec3 nabla_atmin_gc = (d_val * d_n - n_val * d_d) / (d_val * d_val);
+            // d(n)/d(q_c) = - (transpose(J_ad_qc) * f_n)
+            glm::vec3 d_n = glm::transpose(J_ad_qc) * (-f_n);
+            // d(d)/d(q_c) = (transpose(J_ad_qc) * f_n)
+            glm::vec3 d_d = glm::transpose(J_ad_qc) * f_n;
+            glm::vec3 nabla_atmin_qc = (d_val * d_n - n_val * d_d) / (d_val * d_val);
 
-            // --- (8) Derivative of the focal plane intersection p(g_c) = g_hit + a_tmin * a_d ---
+            // --- (8) Derivative of the focal plane intersection p(q_c) = q_hit + a_tmin * a_d ---
             // Using the product rule:
-            glm::mat3 term1 = d_ghit_dgc;
-            glm::mat3 term2 = glm::transpose(glm::outerProduct(nabla_atmin_gc, a_d));
-            glm::mat3 term3 = a_tmin * J_ad_gc;
+            glm::mat3 term1 = d_ghit_dqc;
+            glm::mat3 term2 = glm::transpose(glm::outerProduct(nabla_atmin_qc, a_d));
+            glm::mat3 term3 = a_tmin * J_ad_qc;
+            glm::mat3 J_p_qc = term1 + term2 + term3;
 
-            */
-            //glm::mat3 J_p_gc =term1 + term2 + term3;
+            //glm::mat3 J_p_qc = d_ghit_dqc + glm::outerProduct(a_d, nabla_atmin_qc) + a_tmin * J_ad_qc;
+            // --- (9) Camera extrinsics: p_camera = R_w2c * p(q_c) ---
 
-            //glm::mat3 J_p_gc = d_ghit_dgc + glm::outerProduct(a_d, nabla_atmin_gc) + a_tmin * J_ad_gc;
-            // --- (9) Camera extrinsics: p_camera = R_w2c * p(g_c) ---
-
-
-            /*
-            glm::mat3 J_pc_gc = w2c * J_p_gc;
+            glm::mat3 J_pc_qc = w2c * J_p_qc;
             // --- (10) Pinhole projection derivative ---
             // For a camera point p_camera = (px,py,pz), the projection is:
             // u = fx * px / pz + cx, v = fy * py / pz + cy.
             // Its Jacobian (2×3) is:
+            float fx = m_camera->parameters().fx;
+            float fy = m_camera->parameters().fy;
             glm::mat3 J_uv_pcam(0.0f);
             J_uv_pcam[0][0] = fx / pz;
             J_uv_pcam[0][1] = 0.0f;
@@ -355,13 +349,25 @@ namespace VkRender::PathTracer {
             J_uv_pcam[1][1] = fy / pz;
             J_uv_pcam[1][2] = -fy * py / (pz * pz);
             J_uv_pcam = glm::transpose(J_uv_pcam);
-            // --- (11) Derivative of pixel coordinates with respect to g_c ---
-            glm::mat3x3 J_uv_gc = J_uv_pcam * J_pc_gc;
-            */
+            // --- (11) Derivative of pixel coordinates with respect to q_c ---
+            glm::mat3x3 J_uv_qc = J_uv_pcam * J_pc_qc;
+            glm::mat3 total_gradient = J_uv_qc; // Scale with the beta contribution for some reason
+            // Atomically accum ulate the gradient.
+            for (int i = 0; i < 3; ++i) {
+                for (int j = 0; j < 3; ++j) {
+                    sycl::atomic_ref<float,
+                                sycl::memory_order::acq_rel,
+                                sycl::memory_scope::device,
+                                sycl::access::address_space::global_space>
+                            atom(m_gpuData.quadricGradients[hitObjectID][i][j]);
+                    atom.store(total_gradient[i][j]);
+                }
+            }
 
 
-            // Ground truth gradients
+            // Center Quadric gradients
 
+            /*
             glm::mat3 J_uv_gt_pcam(0.0f);
             J_uv_gt_pcam[0][0] = fx / pz_gt;
             J_uv_gt_pcam[0][1] = 0.0f;
@@ -371,60 +377,44 @@ namespace VkRender::PathTracer {
             J_uv_gt_pcam[1][2] = -fy * py_gt / (pz_gt * pz_gt);
             J_uv_gt_pcam = glm::transpose(J_uv_gt_pcam);
 
-            // --- (6) Derivative of a_d = normalize(a_c - g_hit) ---
-            glm::vec3 v_tmp_gt = a_c - g_c;
+            // --- (6) Derivative of a_d = normalize(a_c - q_hit) ---
+            glm::vec3 v_tmp_gt = a_c - q_c;
             float v_len_gt = glm::length(v_tmp_gt);
             // The derivative of a normalized vector: (I/v_len_gt - outer(v_tmp_gt,v_tmp_gt)/(v_len_gt³))
-            glm::mat3 J_ad_gt_gc = (I / v_len_gt - glm::outerProduct(v_tmp_gt, v_tmp_gt) / (
+            glm::mat3 J_ad_gt_qc = (I / v_len_gt - glm::outerProduct(v_tmp_gt, v_tmp_gt) / (
                                         v_len_gt * v_len_gt * v_len_gt)) * (-I);
 
 
-            // --- (7) Derivative of a_tmin = ((f - g_hit) ⋅ f_n) / (a_d ⋅ f_n) ---
-            float num = glm::dot(f - g_c, f_n);
+            // --- (7) Derivative of a_tmin = ((f - q_hit) ⋅ f_n) / (a_d ⋅ f_n) ---
+            float num = glm::dot(f - q_c, f_n);
             float den = glm::dot(a_d_gt, f_n);
-            // d(n)/d(g_c) = - (transpose(J_ad_gc) * f_n)
+            // d(n)/d(q_c) = - (transpose(J_ad_qc) * f_n)
             glm::vec3 d_num = -f_n;
-            // d(d)/d(g_c) = (transpose(J_ad_gt_gc) * f_n)
-            glm::vec3 d_den = glm::transpose(J_ad_gt_gc) * f_n;
-            glm::vec3 grad_atmin_gt_gc = (den * d_num - num * d_den) / (den * den);
+            // d(d)/d(q_c) = (transpose(J_ad_gt_qc) * f_n)
+            glm::vec3 d_den = glm::transpose(J_ad_gt_qc) * f_n;
+            glm::vec3 grad_atmin_gt_qc = (den * d_num - num * d_den) / (den * den);
 
-            glm::mat3 term2_gt = glm::transpose(glm::outerProduct(grad_atmin_gt_gc, a_d_gt));
-            glm::mat3 term3_gt = a_tmin_gt * J_ad_gt_gc;
-            glm::mat3 J_p_gt_gc = I + term2_gt + term3_gt;
+            glm::mat3 term2_gt = glm::transpose(glm::outerProduct(grad_atmin_gt_qc, a_d_gt));
+            glm::mat3 term3_gt = a_tmin_gt * J_ad_gt_qc;
+            glm::mat3 J_p_gt_qc = I + term2_gt + term3_gt;
 
-            glm::mat3 J_pc_gt_gc = w2c * J_p_gt_gc;
+            glm::mat3 J_pc_gt_qc = w2c * J_p_gt_qc;
 
-            glm::mat3 J_uv_gt_gc = J_uv_gt_pcam * J_pc_gt_gc;
-
-            glm::mat3 total_gradient = J_uv_gt_gc;
-
-
-            // Atomically accum ulate the gradient.
-            for (int i = 0; i < 3; ++i) {
-                for (int j = 0; j < 3; ++j) {
-                    sycl::atomic_ref<float,
-                                       sycl::memory_order::acq_rel,
-                                       sycl::memory_scope::device,
-                                       sycl::access::address_space::global_space>
-                        atom(m_gpuData.quadricGradients[hitObjectID][i][j]);
-                    atom.store(total_gradient[i][j]);
-                }
-            }
-
-
+            glm::mat3 J_uv_gt_qc = J_uv_gt_pcam * J_pc_gt_qc;
+            */
 
 
             /*
-            glm::vec3 g_c = newHitObject.position;
+            glm::vec3 q_c = newHitObject.position;
             glm::vec3 g_n = newHitObject.normal;
-            float t_g = glm::dot((g_c - e_o), g_n) / glm::dot(e_d, g_n);
-            glm::vec3 g_hit = e_o + t_g * e_d;
-            float tg_gt = glm::dot((g_c - e_c), g_n) / glm::dot(e_d, g_n);
-            glm::vec3 g_hit_gt = e_c + tg_gt * e_d;
+            float t_g = glm::dot((q_c - e_o), g_n) / glm::dot(e_d, g_n);
+            glm::vec3 q_hit = e_o + t_g * e_d;
+            float tg_gt = glm::dot((q_c - e_c), g_n) / glm::dot(e_d, g_n);
+            glm::vec3 q_hit_gt = e_c + tg_gt * e_d;
 
             glm::vec3 apertureHitPoint(0.0f);
             glm::vec3 a_d_gt = sampleDirectionTowardAperture(
-                g_hit_gt,
+                q_hit_gt,
                 a_c,
                 cameraNormal,
                 apertureHitPoint,
@@ -435,13 +425,13 @@ namespace VkRender::PathTracer {
             glm::vec3 camHit(0.0f);
             float a_tmin_gt = 0.0f;
             float incidentAngle = 0.0f;
-            bool cameraHit = checkCameraPlaneIntersection(g_hit_gt, a_d_gt, camHit,
+            bool cameraHit = checkCameraPlaneIntersection(q_hit_gt, a_d_gt, camHit,
                                                           a_tmin_gt, incidentAngle);
-            glm::vec3 cameraHitPointWorldGT = g_hit_gt + a_d_gt * a_tmin_gt;
+            glm::vec3 cameraHitPointWorldGT = q_hit_gt + a_d_gt * a_tmin_gt;
 
-            glm::vec3 a_d = glm::normalize(a_c - g_hit);
-            float a_tmin = glm::dot((f - g_hit), f_n) / (glm::dot(a_d, f_n));
-            glm::vec3 cameraHitPointWorld = g_hit + a_d * a_tmin;
+            glm::vec3 a_d = glm::normalize(a_c - q_hit);
+            float a_tmin = glm::dot((f - q_hit), f_n) / (glm::dot(a_d, f_n));
+            glm::vec3 cameraHitPointWorld = q_hit + a_d * a_tmin;
             glm::vec4 hitPointCam = world2Camera * glm::vec4(cameraHitPointWorld, 1.0f);
             hitPointCam = hitPointCam / hitPointCam.w;
             float px = hitPointCam.x;
@@ -467,10 +457,10 @@ namespace VkRender::PathTracer {
 
 
             // Intersection derivative from light source
-            glm::mat3 J_ghit_gc = (1 / glm::dot(e_d, g_n)) * glm::outerProduct(e_d, g_n);
+            glm::mat3 J_ghit_qc = (1 / glm::dot(e_d, g_n)) * glm::outerProduct(e_d, g_n);
 
             // outgoing direction derivative to camera
-            glm::vec3 v_tmp = a_c - g_hit;
+            glm::vec3 v_tmp = a_c - q_hit;
             float v_len = glm::length(v_tmp);
 
             //
@@ -478,30 +468,30 @@ namespace VkRender::PathTracer {
             glm::mat3 bracket = glm::mat3(1.0f) * (1.0f / v_len);
             bracket -= (glm::outerProduct(v_tmp, v_tmp) / (v_len * v_len * v_len));
 
-            // Then multiply by -J_ghit_gc:
-            glm::mat3 J_ad_gc = bracket * (-J_ghit_gc);
+            // Then multiply by -J_ghit_qc:
+            glm::mat3 J_ad_qc = bracket * (-J_ghit_qc);
 
             // intersection parameter to camera
             float n = glm::dot((f - a_d), f_n);
-            glm::vec3 d_n = (-f_n) * J_ad_gc;
+            glm::vec3 d_n = (-f_n) * J_ad_qc;
 
             float d = glm::dot(a_d, f_n);
-            glm::vec3 d_d = f_n * J_ad_gc;
+            glm::vec3 d_d = f_n * J_ad_qc;
 
             glm::vec3 tmp_numerator = (d * d_n) - (n * d_d);
             float tmp_denom = d * d;
 
-            glm::vec3 grad_atmin_gc = tmp_numerator / tmp_denom;
+            glm::vec3 grad_atmin_qc = tmp_numerator / tmp_denom;
 
             // Focal Plane intersection coordinates:
-            glm::mat3 tmp_term_2 = glm::outerProduct(a_d, grad_atmin_gc);
-            glm::mat3 tmp_term_3 = a_tmin * J_ad_gc;
-            glm::mat3 J_p_gc = J_ghit_gc + tmp_term_2 + tmp_term_3;
+            glm::mat3 tmp_term_2 = glm::outerProduct(a_d, grad_atmin_qc);
+            glm::mat3 tmp_term_3 = a_tmin * J_ad_qc;
+            glm::mat3 J_p_qc = J_ghit_qc + tmp_term_2 + tmp_term_3;
 
             // Camera extrinsics gradients:
 
             glm::mat3 w2c = glm::mat3(world2Camera);
-            glm::mat3 J_pc_gc = w2c * J_p_gc;
+            glm::mat3 J_pc_qc = w2c * J_p_qc;
 
             // Construct Jacobian matrix J_(u,v),p (2x3)
             float px_camera = hitPointCam.x;
@@ -519,7 +509,7 @@ namespace VkRender::PathTracer {
             J_uv_p[1][1] = fy * inv_pz; // ∂v/∂py
             J_uv_p[1][2] = -fy * py_camera * inv_pz2; // ∂v/∂pz
 
-            glm::mat3 J_uv_eo = glm::transpose(J_uv_p) * J_pc_gc;
+            glm::mat3 J_uv_eo = glm::transpose(J_uv_p) * J_pc_qc;
 
             // 1) Evaluate the pixel mismatch:
             float du = (xPixel - gtPixelU);
@@ -538,87 +528,85 @@ namespace VkRender::PathTracer {
             */
         }
 
+        bool geometryIntersectionQuadric(
+            size_t gaussianID,
+            const glm::vec3 &rayOrigin,
+            const glm::vec3 &rayDir,
+            size_t &hitEntity,
+            float &closest_t,
+            glm::vec3 &hitPointWorld,
+            glm::vec3 &hitNormalWorld,
+            float &betaContribution,
+            GPUDataOutput::QuadraticInfo &quadraticInfo,
+            bool isContributionRay = false
+        ) const {
+            // Set up initial values.
+            float tMinGlobal = std::numeric_limits<float>::max();
+            bool hitFound = false;
+            size_t bestQuadricIndex = 0;
+            glm::vec3 bestHitPoint(0.0f), bestHitNormal(0.0f);
+            float bestBeta = 0.0f;
+            // Set up an iterative traversal stack.
+            const int MAX_STACK_SIZE = 64;
+            int stack[MAX_STACK_SIZE];
+            int stackPtr = 0;
+            // Push the BVH root index (assumed 0) onto the stack.
+            stack[stackPtr++] = m_gpuData.numBVHNodes - 1;
 
-// Main function: BVH traversal version of geometryIntersectionQuadric.
-// Instead of iterating over all quadrics, we traverse the BVH stored in m_gpuData.bvhNodes.
-bool geometryIntersectionQuadric(
-    size_t gaussianID,
-    const glm::vec3 &rayOrigin,
-    const glm::vec3 &rayDir,
-    size_t &hitEntity,
-    float &closest_t,
-    glm::vec3 &hitPointWorld,
-    glm::vec3 &hitNormalWorld,
-    float &betaContribution,
-    bool isContributionRay = false
-)  const {
-    // Set up initial values.
-    float tMinGlobal = std::numeric_limits<float>::max();
-    bool hitFound = false;
-    size_t bestQuadricIndex = 0;
-    glm::vec3 bestHitPoint(0.0f), bestHitNormal(0.0f);
-    float bestBeta = 0.0f;
+            // Traverse the BVH iteratively.
+            while (stackPtr > 0) {
+                int currentIndex = stack[--stackPtr];
+                const BVHNode &node = m_gpuData.bvhNodes[currentIndex];
 
-    // Set up an iterative traversal stack.
-    const int MAX_STACK_SIZE = 64;
-    int stack[MAX_STACK_SIZE];
-    int stackPtr = 0;
-    // Push the BVH root index (assumed 0) onto the stack.
-    stack[stackPtr++] = m_gpuData.numBVHNodes - 1;
+                // Test ray against node's bounding box.
+                if (!rayAABBIntersect(rayOrigin, rayDir, node.bboxMin, node.bboxMax, tMinGlobal))
+                    continue;
 
-    // Traverse the BVH iteratively.
-    while (stackPtr > 0) {
-        int currentIndex = stack[--stackPtr];
-        const BVHNode &node = m_gpuData.bvhNodes[currentIndex];
-
-        // Test ray against node's bounding box.
-        if (!rayAABBIntersect(rayOrigin, rayDir, node.bboxMin, node.bboxMax, tMinGlobal))
-            continue;
-
-        if (node.isLeaf) {
-            // Leaf node: perform the detailed quadric intersection test.
-            float tCandidate = std::numeric_limits<float>::max();
-            glm::vec3 localHitPoint(0.0f), localHitNormal(0.0f);
-            float beta = 0.0f;
-            const QuadricInputAssembly &quadric = m_gpuData.quadricInputAssembly[node.quadricIndex];
-            if (isContributionRay) {
-                if (checkContributionCollision(rayOrigin, rayDir, quadric, localHitPoint)) {
-                    hitFound = true;
-                    bestHitPoint = localHitPoint;
-                }
-            } else {
-                if (intersectQuadricLeaf(rayOrigin, rayDir, quadric, tCandidate, localHitPoint, localHitNormal, beta)) {
-                    if (tCandidate < tMinGlobal) {
-                        tMinGlobal = tCandidate;
-                        bestQuadricIndex = node.quadricIndex;
-                        bestHitPoint = localHitPoint;
-                        bestHitNormal = localHitNormal;
-                        bestBeta = beta;
-                        hitFound = true;
+                if (node.isLeaf) {
+                    // Leaf node: perform the detailed quadric intersection test.
+                    float tCandidate = std::numeric_limits<float>::max();
+                    glm::vec3 localHitPoint(0.0f), localHitNormal(0.0f);
+                    float beta = 0.0f;
+                    const QuadricInputAssembly &quadric = m_gpuData.quadricInputAssembly[node.quadricIndex];
+                    if (isContributionRay) {
+                        if (checkContributionCollision(rayOrigin, rayDir, quadric, localHitPoint)) {
+                            hitFound = true;
+                            bestHitPoint = localHitPoint;
+                        }
+                    } else {
+                        if (intersectQuadricLeaf(rayOrigin, rayDir, quadric, tCandidate, localHitPoint, localHitNormal,
+                                                 beta, quadraticInfo)) {
+                            if (tCandidate < tMinGlobal) {
+                                tMinGlobal = tCandidate;
+                                bestQuadricIndex = node.quadricIndex;
+                                bestHitPoint = localHitPoint;
+                                bestHitNormal = localHitNormal;
+                                bestBeta = beta;
+                                hitFound = true;
+                            }
+                        }
+                    }
+                } else {
+                    // Internal node: push its child nodes onto the stack.
+                    if (stackPtr + 2 < MAX_STACK_SIZE) {
+                        stack[stackPtr++] = node.leftChild;
+                        stack[stackPtr++] = node.rightChild;
                     }
                 }
             }
 
-        } else {
-            // Internal node: push its child nodes onto the stack.
-            if (stackPtr + 2 < MAX_STACK_SIZE) {
-                stack[stackPtr++] = node.leftChild;
-                stack[stackPtr++] = node.rightChild;
+            // If a hit was found, update the output parameters.
+            if (hitFound) {
+                hitEntity = bestQuadricIndex;
+                closest_t = tMinGlobal;
+                hitPointWorld = bestHitPoint;
+                hitNormalWorld = bestHitNormal;
+                betaContribution = bestBeta;
+                return true;
             }
+            return false;
         }
-    }
 
-    // If a hit was found, update the output parameters.
-    if (hitFound) {
-        hitEntity = bestQuadricIndex;
-        closest_t = tMinGlobal;
-        hitPointWorld = bestHitPoint;
-        hitNormalWorld = bestHitNormal;
-        betaContribution = bestBeta;
-        return true;
-    }
-    return false;
-}
         // ---------------------------------------------------------
         // Single Photon Trace (Multi-Bounce)
         // ---------------------------------------------------------

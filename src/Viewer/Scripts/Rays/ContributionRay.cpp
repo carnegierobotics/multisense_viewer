@@ -86,7 +86,7 @@ namespace VkRender {
             } else {
                 cylinder->setOrigin(hitPosition);
                 cylinder->setDirection(direction);
-                cylinder->setMagnitude(magnitude);
+                cylinder->setMagnitude(magnitude + 1.0f);
             }
 
         }

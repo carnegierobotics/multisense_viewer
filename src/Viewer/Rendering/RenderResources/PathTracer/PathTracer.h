@@ -56,6 +56,7 @@ namespace VkRender::PathTracer {
         struct BackwardInfo {
             glm::vec3* gradients = nullptr;
             glm::mat3* sumQuadricGradients = nullptr;
+            std::vector<glm::mat3> quadricGradients;
             float* gradientImage = nullptr;
             float* gradientImagePerObject = nullptr;
         };
@@ -158,6 +159,7 @@ namespace VkRender::PathTracer {
         PathTracer::PhotonTracer::RenderSettings renderSettings;
         uint32_t iteration = 0;
         bool denoise = false;
+        std::string cameraName;
     };
 }
 

@@ -173,9 +173,19 @@ namespace VkRender::PathTracer {
         glm::vec3 cameraHitPointLocal = glm::vec3(0.0f); // p
         glm::vec3 directLightingDir = glm::vec3(0.0f); // p
 
+        struct QuadraticInfo {
+            float A = 0.0f;
+            float B = 0.0f;
+            float C = 0.0f;
+            float discriminant = 0.0f;
+            int rootIndex = -1; //-1 is no root, 1 is negative root, 2 is positive root
+            float geodesic = -1.0f;
+            float betaContribution = 0.0f;
+        };
         struct Bounce {
             //Properties:
             size_t quadricID = UINT64_MAX;
+            QuadraticInfo quadInfo;
             glm::vec3 hitPointWorld = glm::vec3(0.0f);
             glm::vec3 hitNormalWorld = glm::vec3(0.0f);
             glm::vec3 outGoingDirection = glm::vec3(0.0f);
@@ -184,6 +194,9 @@ namespace VkRender::PathTracer {
             glm::vec3 apertureDirection = glm::vec3(0.0f); // ed
             glm::vec3 apertureHitPoint = glm::vec3(0.0f); // a
             glm::vec3 cameraHitPointLocal = glm::vec3(0.0f); // p
+            float cameraDirectionLength = 0.0f; // etmin
+
+            glm::vec2 pixelCoordinate = glm::vec2(0.0f);
             float emissionDirectionLength = 0.0f; // etmin
         };
 

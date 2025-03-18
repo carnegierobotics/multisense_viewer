@@ -450,8 +450,8 @@ namespace VkRender::PathTracer {
 
 
             point.emission = 0.0f;
-            point.diffuse = 0.5f;
-            point.specular = 0.5f;
+            point.diffuse = 1.0f;
+            point.specular = 0.0f;
             point.phongExponent = 32.0f;
             point.color = glm::vec4(0.8f);
 

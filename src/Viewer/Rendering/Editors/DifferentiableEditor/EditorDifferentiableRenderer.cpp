@@ -133,7 +133,8 @@ namespace VkRender {
             // We pass in the parameters of our module (or custom parameter list)
             m_photonRebuildModule->parameters(),
             // Then define the Adam options, e.g. learning rate = 1e-3
-            torch::optim::AdamOptions(0.015f)
+            torch::optim::AdamOptions(0.01f)
+
         );
         m_accumulatedTensor = torch::Tensor();
         m_numAccumulated = 0;
@@ -200,6 +201,7 @@ namespace VkRender {
                 PathTracer::IterationInfo pathTracerIterationInfo;
                 pathTracerIterationInfo.renderSettings = m_renderSettings;
                 pathTracerIterationInfo.iteration = m_stepIteration;
+                pathTracerIterationInfo.cameraName = m_context->activeScene()->getActiveCameraEntity().getName();
                 pathTracerIterationInfo.denoise = imageUI->denoise;
                 // Forward pass (autograd-compatible)
                 m_accumulatedTensor = m_photonRebuildModule->forward(pathTracerIterationInfo);
@@ -246,6 +248,7 @@ namespace VkRender {
                     Log::Logger::getInstance()->info("Rendered iteration: {}: gt file: {}", m_stepIteration,
                                                      gtFileName.string());
                     torch::Tensor targetTensor = loadPFM(gtFileName, width, height);
+
 
                     // Compute loss
                     //auto loss = torch::mean(torch::abs(targetTensor - m_accumulatedTensor));

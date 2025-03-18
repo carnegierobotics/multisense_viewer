@@ -18,7 +18,8 @@ namespace VkRender::PathTracer {
         // Compute the geodesic distance l(ρ) along the surface
         const float epsilon = 1e-6f;
 
-        /*
+
+        float geodesicDist = FLT_MAX;
         if (std::fabs(a_theta) > epsilon) {
             // l(ρ) = (ρ/2)*sqrt(1+4a(θ)²ρ²) + asinh(2a(θ)ρ)/(4a(θ))
             float term1 = 0.5f * rho * std::sqrt(1.0f + 4.0f * a_theta * a_theta * rho * rho);
@@ -28,8 +29,10 @@ namespace VkRender::PathTracer {
             // When a(θ) is nearly zero, use Euclidean distance.
             geodesicDist = rho;
         }
-        */
+        return geodesicDist;
 
+        // Square distance function
+        /*
         float rho_x = std::fabs(hitLocal.x);
         float rho_y = std::fabs(hitLocal.y);
 
@@ -52,6 +55,7 @@ namespace VkRender::PathTracer {
         }
         float geodesicDist = std::max(geodesic_x, geodesic_y);
         return geodesicDist;
+        */
     }
     // Helper function: ray-AABB intersection (using the slab method)
     // Returns true if the ray (origin, dir) hits the AABB between t=0 and t_max.
@@ -82,7 +86,8 @@ namespace VkRender::PathTracer {
                                      float& tCandidate,
                                      glm::vec3& hitWorld,
                                      glm::vec3& hitNormal,
-                                     float& beta) {
+                                     float& beta,
+                                     GPUDataOutput::QuadraticInfo& quadraticInfo) {
         // Transform the ray into local space.
         glm::mat4 transform = quadric.transform.getTransform();
         float det = glm::determinant(transform);
@@ -126,8 +131,11 @@ namespace VkRender::PathTracer {
             if (fabs(B) < eps)
                 return false; // No solution
             float tLin = -C / B;
-            if (tLin > eps)
+            if (tLin > eps) {
                 tCandidate = tLin;
+                quadraticInfo.B = B;
+                quadraticInfo.C = C;
+            }
             else
                 return false;
         }
@@ -136,14 +144,23 @@ namespace VkRender::PathTracer {
             if (disc < 0.0f)
                 return false; // No real roots
 
+            quadraticInfo.A = A;
+            quadraticInfo.B = B;
+            quadraticInfo.C = C;
+            quadraticInfo.discriminant = disc;
+
             float sqrtDisc = std::sqrt(disc);
             float t1 = (-B - sqrtDisc) / (2.0f * A);
             float t2 = (-B + sqrtDisc) / (2.0f * A);
             float tMin = std::numeric_limits<float>::max();
-            if (t1 > eps && t1 < tMin)
+            if (t1 > eps && t1 < tMin) {
                 tMin = t1;
-            if (t2 > eps && t2 < tMin)
+                quadraticInfo.rootIndex = 1;
+            }
+            if (t2 > eps && t2 < tMin) {
                 tMin = t2;
+                quadraticInfo.rootIndex = 2;
+            }
             if (tMin == std::numeric_limits<float>::max())
                 return false; // No valid solution
             tCandidate = tMin;
@@ -166,6 +183,7 @@ namespace VkRender::PathTracer {
         // Evaluate the beta kernel.
         float geodesicDist = calculateGeodesic(hitLocal, quadric, alphaX, alphaY);
 
+        quadraticInfo.geodesic = geodesicDist;
         float r = geodesicDist / quadric.kernelScale;
         auto betaKernel = [&](float r, float bExp) -> float {
             if (r > 1.0f)
@@ -176,6 +194,7 @@ namespace VkRender::PathTracer {
         if (bkValue < quadric.threshold)
             return false; // Not within threshold
 
+        quadraticInfo.betaContribution = bkValue;
         // Compute the local normal via the gradient.
         glm::vec3 gradLocal(
             2.0f * quadric.c * alphaX * hitLocal.x / (quadric.a * quadric.a),

@@ -53,23 +53,28 @@ namespace VkRender::PathTracer {
             glm::vec3 rayDir = sampleCosineWeightedHemisphere(emitNormalLocal, photonID);
             glm::vec3 rayOrigin = emitPosLocal;
 
+            //rayOrigin = glm::vec3(0.0f, 0.0f, 3);
+            //rayDir = glm::normalize(glm::vec3(0.1f, 0.1f, -1.0f));
+
             float apertureDiameter = (m_camera->parameters().focalLength / m_camera->parameters().fNumber) / 1000;
             float apertureRadius = 0.0f;
 
             glm::mat4 entityTransform = m_cameraTransform->getTransform();
             glm::vec3 cameraPlaneNormalWorld =
                     glm::normalize(glm::mat3(entityTransform) * glm::vec3(0.0f, 0.0f, -1.0f));
+            m_gpuDataOutput[photonID].emissionOrigin = rayOrigin;
             m_gpuDataOutput[photonID].emissionDirection = rayDir;
-
+            m_gpuDataOutput[photonID].gaussianID = gaussianID;
 
             glm::vec3 directLightDir(0.0f);
             float camera_t = 0.0f;
             glm::vec3 apertureHitPoint(0.0f);
             glm::vec3 cameraHitPointLocal(0.0f);
             float scalePowerDirectLighting = 0.00000001 * photonFlux;
+            glm::vec2 pixelCoordHit = glm::vec2(0.0f);
             if (castContributionRay(rayOrigin, cameraPlaneNormalWorld, apertureRadius, photonID,
                                     scalePowerDirectLighting
-                                    , directLightDir, apertureHitPoint, cameraHitPointLocal, camera_t
+                                    , directLightDir, apertureHitPoint, cameraHitPointLocal, pixelCoordHit, camera_t
             )) {
                 m_gpuDataOutput[photonID].directLightingDir = directLightDir;
                 m_gpuDataOutput[photonID].emissionDirectionLength = camera_t;
@@ -78,8 +83,7 @@ namespace VkRender::PathTracer {
                 m_gpuDataOutput[photonID].hitCamera = true;
                 m_gpuDataOutput[photonID].emissionDirection = directLightDir;
             }
-            m_gpuDataOutput[photonID].gaussianID = gaussianID;
-            m_gpuDataOutput[photonID].emissionOrigin = rayOrigin;
+
             // 3) Multi-bounce loop
             for (uint32_t bounce = 0; bounce < m_gpuData.renderInformation->numBounces; ++bounce) {
                 // A) Intersect with the scene
@@ -88,10 +92,12 @@ namespace VkRender::PathTracer {
                 glm::vec3 hitPointWorld(0.0f);
                 glm::vec3 hitNormalWorld(0.0f);
                 float betaContribution = 0.0f;
+
+                GPUDataOutput::QuadraticInfo quadraticInfo{};
                 // check intersection with geometry
                 bool hit = geometryIntersectionQuadric(gaussianID, rayOrigin, rayDir, hitEntity, closest_t,
                                                        hitPointWorld,
-                                                       hitNormalWorld, betaContribution);
+                                                       hitNormalWorld, betaContribution, quadraticInfo);
 
                 // If we hit some geometry then calculate the bounce
                 if (hit) {
@@ -148,8 +154,7 @@ namespace VkRender::PathTracer {
                     }
 
                     // Sample new random outgoing direction
-                    glm::vec3 newDir = sampleCosineWeightedHemisphere(hitNormalWorld, photonID);
-                    {
+                    glm::vec3 newDir = sampleCosineWeightedHemisphere(hitNormalWorld, photonID); {
                         float cosTheta = glm::dot(hitNormalWorld, -rayDir);
                         cosTheta = glm::max(0.0f, cosTheta); // Clamp to 0 to prevent negative contributions
                         float diffuseContribution = cosTheta * color / M_PIf;
@@ -167,7 +172,7 @@ namespace VkRender::PathTracer {
                             float specularWeight = specular / sumForWeights;
                             // Weighted sum
                             brdfFactor = diffuseWeight * diffuseContribution
-                                                          + specularWeight * specularContribution;
+                                         + specularWeight * specularContribution;
                         }
                     }
 
@@ -201,17 +206,21 @@ namespace VkRender::PathTracer {
                     float newCamera_t = 0.0f;
                     glm::vec3 newApertureHitPoint(0.0f);
                     glm::vec3 newCameraHitPointLocal(0.0f);
+                    glm::vec2 pixelCoordinates(0.0f);
                     if (castContributionRay(newRayOrigin, cameraPlaneNormalWorld, apertureRadius, photonID,
                                             contributionFlux
                                             , newDirectLightDir, newApertureHitPoint, newCameraHitPointLocal,
+                                            pixelCoordinates,
                                             newCamera_t
                     )) {
                         m_gpuDataOutput[photonID].bounce[bounce].hitCamera = true;
                         m_gpuDataOutput[photonID].bounce[bounce].apertureDirection = newDirectLightDir;
-                        m_gpuDataOutput[photonID].bounce[bounce].emissionDirectionLength = newCamera_t;
+                        m_gpuDataOutput[photonID].bounce[bounce].emissionDirectionLength = closest_t;
+                        m_gpuDataOutput[photonID].bounce[bounce].cameraDirectionLength = newCamera_t;
                         m_gpuDataOutput[photonID].bounce[bounce].apertureHitPoint = newApertureHitPoint;
                         m_gpuDataOutput[photonID].bounce[bounce].cameraHitPointLocal = newCameraHitPointLocal;
-
+                        m_gpuDataOutput[photonID].bounce[bounce].pixelCoordinate = pixelCoordinates;
+                        m_gpuDataOutput[photonID].bounce[bounce].quadInfo = quadraticInfo;
                     }
 
                     m_gpuDataOutput[photonID].bounce[bounce].hitPointWorld = hitPointWorld;
@@ -235,6 +244,7 @@ namespace VkRender::PathTracer {
                                  glm::vec3 &directLightDir,
                                  glm::vec3 &apertureHitPoint,
                                  glm::vec3 &cameraHitPointLocal,
+                                 glm::vec2 &pixelCoordinates,
                                  float &camera_t
         ) const {
             // Calculate direct lighting
@@ -269,9 +279,11 @@ namespace VkRender::PathTracer {
                 size_t emissiveEntityID = 0;
                 float betaContribution = 0.0f;
                 // check intersection with geometry
+                GPUDataOutput::QuadraticInfo quadraticInfo(0.0f);
                 bool hit = geometryIntersectionQuadric(emissiveEntityID, directLightingOrigin, directLightDir,
                                                        hitEntity,
-                                                       closest_t, hitPointWorld, hitNormalWorld, betaContribution, true);
+                                                       closest_t, hitPointWorld, hitNormalWorld, betaContribution,
+                                                       quadraticInfo, true);
 
                 float tGeom = hit ? glm::length(hitPointWorld - m_cameraTransform->getPosition()) : FLT_MAX;
                 float tAperture = glm::length(directLightingOrigin - m_cameraTransform->getPosition());
@@ -283,7 +295,7 @@ namespace VkRender::PathTracer {
                     glm::vec4 hitPointCam4 = worldToCamera * glm::vec4(cameraHitPointWorld, 1.0f);
                     cameraHitPointLocal = hitPointCam4 / hitPointCam4.w;
 
-                    if (accumulateOnSensor(photonID, cameraHitPointLocal, photonFlux)) {
+                    if (accumulateOnSensor(photonID, cameraHitPointLocal, photonFlux, pixelCoordinates)) {
                         return true;
                     }
                 }
@@ -292,86 +304,86 @@ namespace VkRender::PathTracer {
         }
 
 
-// Main function: BVH traversal version of geometryIntersectionQuadric.
-// Instead of iterating over all quadrics, we traverse the BVH stored in m_gpuData.bvhNodes.
-bool geometryIntersectionQuadric(
-    size_t gaussianID,
-    const glm::vec3 &rayOrigin,
-    const glm::vec3 &rayDir,
-    size_t &hitEntity,
-    float &closest_t,
-    glm::vec3 &hitPointWorld,
-    glm::vec3 &hitNormalWorld,
-    float &betaContribution,
-    bool isContributionRay = false
-)  const {
-    // Set up initial values.
-    float tMinGlobal = std::numeric_limits<float>::max();
-    bool hitFound = false;
-    size_t bestQuadricIndex = 0;
-    glm::vec3 bestHitPoint(0.0f), bestHitNormal(0.0f);
-    float bestBeta = 0.0f;
+        // Main function: BVH traversal version of geometryIntersectionQuadric.
+        // Instead of iterating over all quadrics, we traverse the BVH stored in m_gpuData.bvhNodes.
+        bool geometryIntersectionQuadric(
+            size_t gaussianID,
+            const glm::vec3 &rayOrigin,
+            const glm::vec3 &rayDir,
+            size_t &hitEntity,
+            float &closest_t,
+            glm::vec3 &hitPointWorld,
+            glm::vec3 &hitNormalWorld,
+            float &betaContribution,
+            GPUDataOutput::QuadraticInfo &quadraticInfo,
+            bool isContributionRay = false
+        ) const {
+            // Set up initial values.
+            float tMinGlobal = std::numeric_limits<float>::max();
+            bool hitFound = false;
+            size_t bestQuadricIndex = 0;
+            glm::vec3 bestHitPoint(0.0f), bestHitNormal(0.0f);
+            float bestBeta = 0.0f;
+            // Set up an iterative traversal stack.
+            const int MAX_STACK_SIZE = 64;
+            int stack[MAX_STACK_SIZE];
+            int stackPtr = 0;
+            // Push the BVH root index (assumed 0) onto the stack.
+            stack[stackPtr++] = m_gpuData.numBVHNodes - 1;
 
-    // Set up an iterative traversal stack.
-    const int MAX_STACK_SIZE = 64;
-    int stack[MAX_STACK_SIZE];
-    int stackPtr = 0;
-    // Push the BVH root index (assumed 0) onto the stack.
-    stack[stackPtr++] = m_gpuData.numBVHNodes - 1;
+            // Traverse the BVH iteratively.
+            while (stackPtr > 0) {
+                int currentIndex = stack[--stackPtr];
+                const BVHNode &node = m_gpuData.bvhNodes[currentIndex];
 
-    // Traverse the BVH iteratively.
-    while (stackPtr > 0) {
-        int currentIndex = stack[--stackPtr];
-        const BVHNode &node = m_gpuData.bvhNodes[currentIndex];
+                // Test ray against node's bounding box.
+                if (!rayAABBIntersect(rayOrigin, rayDir, node.bboxMin, node.bboxMax, tMinGlobal))
+                    continue;
 
-        // Test ray against node's bounding box.
-        if (!rayAABBIntersect(rayOrigin, rayDir, node.bboxMin, node.bboxMax, tMinGlobal))
-            continue;
-
-        if (node.isLeaf) {
-            // Leaf node: perform the detailed quadric intersection test.
-            float tCandidate = std::numeric_limits<float>::max();
-            glm::vec3 localHitPoint(0.0f), localHitNormal(0.0f);
-            float beta = 0.0f;
-            const QuadricInputAssembly &quadric = m_gpuData.quadricInputAssembly[node.quadricIndex];
-            if (isContributionRay) {
-                if (checkContributionCollision(rayOrigin, rayDir, quadric, localHitPoint)) {
-                    hitFound = true;
-                    bestHitPoint = localHitPoint;
-                }
-            } else {
-                if (intersectQuadricLeaf(rayOrigin, rayDir, quadric, tCandidate, localHitPoint, localHitNormal, beta)) {
-                    if (tCandidate < tMinGlobal) {
-                        tMinGlobal = tCandidate;
-                        bestQuadricIndex = node.quadricIndex;
-                        bestHitPoint = localHitPoint;
-                        bestHitNormal = localHitNormal;
-                        bestBeta = beta;
-                        hitFound = true;
+                if (node.isLeaf) {
+                    // Leaf node: perform the detailed quadric intersection test.
+                    float tCandidate = std::numeric_limits<float>::max();
+                    glm::vec3 localHitPoint(0.0f), localHitNormal(0.0f);
+                    float beta = 0.0f;
+                    const QuadricInputAssembly &quadric = m_gpuData.quadricInputAssembly[node.quadricIndex];
+                    if (isContributionRay) {
+                        if (checkContributionCollision(rayOrigin, rayDir, quadric, localHitPoint)) {
+                            hitFound = true;
+                            bestHitPoint = localHitPoint;
+                        }
+                    } else {
+                        if (intersectQuadricLeaf(rayOrigin, rayDir, quadric, tCandidate, localHitPoint, localHitNormal,
+                                                 beta, quadraticInfo)) {
+                            if (tCandidate < tMinGlobal) {
+                                tMinGlobal = tCandidate;
+                                bestQuadricIndex = node.quadricIndex;
+                                bestHitPoint = localHitPoint;
+                                bestHitNormal = localHitNormal;
+                                bestBeta = beta;
+                                hitFound = true;
+                            }
+                        }
+                    }
+                } else {
+                    // Internal node: push its child nodes onto the stack.
+                    if (stackPtr + 2 < MAX_STACK_SIZE) {
+                        stack[stackPtr++] = node.leftChild;
+                        stack[stackPtr++] = node.rightChild;
                     }
                 }
             }
 
-        } else {
-            // Internal node: push its child nodes onto the stack.
-            if (stackPtr + 2 < MAX_STACK_SIZE) {
-                stack[stackPtr++] = node.leftChild;
-                stack[stackPtr++] = node.rightChild;
+            // If a hit was found, update the output parameters.
+            if (hitFound) {
+                hitEntity = bestQuadricIndex;
+                closest_t = tMinGlobal;
+                hitPointWorld = bestHitPoint;
+                hitNormalWorld = bestHitNormal;
+                betaContribution = bestBeta;
+                return true;
             }
+            return false;
         }
-    }
-
-    // If a hit was found, update the output parameters.
-    if (hitFound) {
-        hitEntity = bestQuadricIndex;
-        closest_t = tMinGlobal;
-        hitPointWorld = bestHitPoint;
-        hitNormalWorld = bestHitNormal;
-        betaContribution = bestBeta;
-        return true;
-    }
-    return false;
-}
 
         bool geometryIntersection2DGS(
             size_t gaussianID,
@@ -545,7 +557,8 @@ bool geometryIntersectionQuadric(
         // ---------------------------------------------------------------------
         //  accumulateOnSensor
         // ---------------------------------------------------------------------
-        bool accumulateOnSensor(size_t photonID, const glm::vec3 &hitPointCam, float photonFlux) const {
+        bool accumulateOnSensor(size_t photonID, const glm::vec3 &hitPointCam, float photonFlux,
+                                glm::vec2 &pixelCoordinatesOut) const {
             // 2. Project to the image plane using pinhole intrinsics:
             // Important: Z_cam should be > 0 for a point in front of the camera.
             //
@@ -561,6 +574,8 @@ bool geometryIntersectionQuadric(
             float xPixel = (fx * X / Z) + cx;
             float yPixel = (fy * Y / Z) + cy;
 
+            pixelCoordinatesOut.x = xPixel;
+            pixelCoordinatesOut.y = yPixel;
 
             // 5. Retrieve image dimensions.
             const size_t imageWidth = m_camera->parameters().width;

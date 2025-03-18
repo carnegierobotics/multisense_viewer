@@ -59,7 +59,6 @@ namespace VkRender {
                 auto &mesh = quadricEntity.getComponent<MeshComponent>();
                 auto &transform = quadricEntity.getComponent<TransformComponent>();
                 auto quadric = std::dynamic_pointer_cast<QuadricMeshParameters>(mesh.meshParameters);
-
                 PathTracer::QuadricInputAssembly quad;
                 quad.a = quadric->a;
                 quad.b = quadric->b;
@@ -67,7 +66,6 @@ namespace VkRender {
                 quad.t_x = quadric->t_x;
                 quad.t_y = quadric->t_y;
                 quad.transform = transform;
-
                 float beta = 0.0f;
                 if (RayHelpers::computeWorldHitPoint(position, direction, quad, hitPosition, hitNormal, beta)) {
                     cylinder->setMagnitude(glm::length(hitPosition - position));
@@ -77,9 +75,31 @@ namespace VkRender {
                     cylinder->setOrigin(hitPosition);
 
                 }
+            }
+        }
 
+        if (!quadricCollection) {
+             auto quadricEntity = scene->getEntityByName("Quadric");
+            if (quadricEntity) {
+                auto &mesh = quadricEntity.getComponent<MeshComponent>();
+                auto &transform = quadricEntity.getComponent<TransformComponent>();
+                auto quadric = std::dynamic_pointer_cast<QuadricMeshParameters>(mesh.meshParameters);
+                PathTracer::QuadricInputAssembly quad;
+                quad.a = quadric->a;
+                quad.b = quadric->b;
+                quad.c = quadric->c;
+                quad.t_x = quadric->t_x;
+                quad.t_y = quadric->t_y;
+                quad.transform = transform;
+                float beta = 0.0f;
+                if (RayHelpers::computeWorldHitPoint(position, direction, quad, hitPosition, hitNormal, beta)) {
+                    cylinder->setMagnitude(glm::length(hitPosition - position));
+                    cylinder->setOrigin(position);
+                } else {
+                    hitPosition = {-99.0f, 0.0f, 0.0f};
+                    cylinder->setOrigin(hitPosition);
 
-
+                }
             }
         }
     }

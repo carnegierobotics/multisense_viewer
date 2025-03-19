@@ -146,6 +146,7 @@ namespace VkRender::PathTracer {
 
         glm::vec3* gradients = nullptr;
         glm::mat3* quadricGradients = nullptr;
+        glm::mat3* photonIDGradient = nullptr;
         glm::vec3* gaussianGradients = nullptr;
         float* gradientImage = nullptr;
         float* gradientImagePerObject = nullptr;
@@ -181,6 +182,9 @@ namespace VkRender::PathTracer {
             int rootIndex = -1; //-1 is no root, 1 is negative root, 2 is positive root
             float geodesic = -1.0f;
             float betaContribution = 0.0f;
+
+            glm::vec3 localRayOrigin = glm::vec3(0.0f);
+            glm::vec3 localRayDirection = glm::vec3(0.0f);
         };
         struct Bounce {
             //Properties:

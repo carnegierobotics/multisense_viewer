@@ -100,6 +100,9 @@ namespace VkRender::PathTracer {
         glm::vec3 o = glm::vec3(o4);
         glm::vec3 d = glm::vec3(d4);
 
+        quadraticInfo.localRayOrigin = o;
+        quadraticInfo.localRayDirection = d;
+
         // Shorthand parameters.
         float alphaX = std::tanh(quadric.t_x);
         float alphaY = std::tanh(quadric.t_y);

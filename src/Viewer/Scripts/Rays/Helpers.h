@@ -8,6 +8,69 @@
 #include "Viewer/Rendering/RenderResources/PathTracer/Definitions.h"
 
 namespace RayHelpers {
+
+
+            static bool checkCameraPlaneIntersection(
+            const glm::vec3 &rayOriginWorld,
+            const glm::vec3 &rayDirWorld,
+            glm::vec3 &hitPointCam, // out: intersection in camera space
+            float &tIntersect, // out: parameter t
+            float &contributionScore,
+            const glm::mat4& entityTransform,
+            const VkRender::PinholeParameters& parameters// out: parameter contributionScore
+        ) {
+            // 1) Transform to camera space
+            glm::mat3 entityRotation = glm::mat3(entityTransform);
+            // Camera plane normal in world space
+            glm::vec3 cameraPlaneNormalWorld = glm::normalize(entityRotation * glm::vec3(0.0f, 0.0f, -1.0f));
+
+            glm::vec4 cameraPlanePointWorld4 = entityTransform * glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
+
+            glm::vec3 cameraPlanePointWorld = glm::vec3(cameraPlanePointWorld4 / cameraPlanePointWorld4.w);
+            // Ray-plane intersection
+
+            // Ray-plane intersection calculation
+            float denom = glm::dot(cameraPlaneNormalWorld, rayDirWorld);
+            if (std::abs(denom) < 1e-6) {
+                return false; // Ray is parallel to the plane
+            }
+            glm::vec3 p0l0 = cameraPlanePointWorld - rayOriginWorld;
+            float t = glm::dot(p0l0, cameraPlaneNormalWorld) / denom;
+            if (t < 1e-6) {
+                return false; // Intersection is behind the ray origin
+            }
+            glm::vec3 intersectionPoint = rayOriginWorld + t * rayDirWorld;
+
+            float det = glm::determinant(entityTransform);
+            if (fabs(det) < 1e-6f) {
+                return false;
+            };
+
+            glm::mat4 view = glm::inverse(entityTransform);
+            glm::vec4 intersectionPointCamera = view * glm::vec4(intersectionPoint, 1.0f);
+            glm::vec3 intersectionCamSpace = glm::vec3(intersectionPointCamera) / intersectionPointCamera.w;
+
+            // Sensor plane bounds in camera space
+            float halfW = (parameters.width * 0.5f) / parameters.fx;
+            float halfH = (parameters.height * 0.5f) / parameters.fy;
+
+            // Check bounds
+            if (intersectionCamSpace.x < -halfW || intersectionCamSpace.x > halfW ||
+                intersectionCamSpace.y < -halfH || intersectionCamSpace.y > halfH) {
+                return false; // Outside sensor bounds
+            }
+
+            float cosAngle = std::abs(glm::dot(cameraPlaneNormalWorld, rayDirWorld)); // Ensure positive cosine
+            contributionScore = cosAngle; // Higher cosine means closer to perpendicular
+
+
+            // If we reach here, the ray intersects the camera plane within bounds
+            hitPointCam = intersectionPoint; // Intersection point in camera space
+            tIntersect = t; // Distance along the ray to the intersection
+            return true;
+        }
+
+
     static bool checkContributionCollision(const glm::vec3& e_o, const glm::vec3& e_d,
                                                  const VkRender::PathTracer::QuadricInputAssembly& quadric,
                                                  glm::vec3& hit,

@@ -183,9 +183,10 @@ namespace VkRender::PathTracer {
             auto quadric2World = glm::mat3(quadric.transform.getTransform()); // mat4
             glm::mat3 world2Quadric = glm::transpose(glm::mat3(quadric2World));
 
+            auto world2QuadricTransform = glm::inverse(quadric.transform.getTransform());
             // ===== Backward Pass =====
 
-            glm::vec3 q_hit = object.hitPointWorld;
+            glm::vec3 q_hit_world = object.hitPointWorld;
             float px = object.cameraHitPointLocal.x;
             float py = object.cameraHitPointLocal.y;
             float pz = object.cameraHitPointLocal.z;
@@ -197,8 +198,8 @@ namespace VkRender::PathTracer {
             glm::vec3 e_o = m_gpuDataOutput[photonID].emissionOrigin;
             glm::vec3 e_d = m_gpuDataOutput[photonID].emissionDirection;
 
-            glm::vec3 e_d_local = world2Quadric * e_d;
-            glm::vec3 e_o_local = world2Quadric * e_o;
+            glm::vec3 e_d_local = object.quadInfo.localRayDirection;
+            glm::vec3 e_o_local = object.quadInfo.localRayOrigin;
 
             auto &quadInfo = object.quadInfo;
             float A = quadInfo.A;
@@ -215,29 +216,6 @@ namespace VkRender::PathTracer {
             float betaContribution = 0.0f;
             GPUDataOutput::QuadraticInfo info;
             // check intersection with geometry
-
-            switch (hitObjectID) {
-                case 0: {
-                    int debug = 1;
-                }
-                break;
-                case 1: {
-                    int debug = 1;
-                }
-                break;
-                case 2: {
-                    int debug = 1;
-                }
-                break;
-                case 3: {
-                    int debug = 1;
-                }
-                break;
-                default: {
-                    int debug = 1;
-                }
-            }
-
 
             bool hit = geometryIntersectionQuadric(gaussianID, quadric.transform.getPosition(), ad_qc, hitEntity,
                                                    closest_t,
@@ -282,27 +260,27 @@ namespace VkRender::PathTracer {
 
             // --- (2) Derivatives of t_min with respect to B and C ---
             float sqrtDiscriminant = std::sqrt(discriminant);
-            float d_tmin_dB = 0.0f;
             float inv2A = 1.0f / (2.0f * A);
             float BoverDisc = B / sqrtDiscriminant;
 
-            if (quadInfo.rootIndex == 1)
-                d_tmin_dB = inv2A * (1 - BoverDisc);
-            else if (quadInfo.rootIndex == 2)
-                d_tmin_dB = inv2A * (1 + BoverDisc);
-
             float d_tmin_dC = 0.0f;
+            float d_tmin_dB = 0.0f;
 
-            if (quadInfo.rootIndex == 1)
-                d_tmin_dC = 1.0f / sqrtDiscriminant;
-            else if (quadInfo.rootIndex == 2)
+            if (quadInfo.rootIndex == 1) {
+                // minus‑root
+                d_tmin_dB = -inv2A * (1.0f + BoverDisc);
+                d_tmin_dC =  1.0f / sqrtDiscriminant;
+            } else {
+                // plus‑root
+                d_tmin_dB =  inv2A * (-1.0f + BoverDisc);
                 d_tmin_dC = -1.0f / sqrtDiscriminant;
+            }
 
             // --- (3) Chain rule: derivative of t_min with respect to q_c ---
             glm::vec3 dtmin_dqc = d_tmin_dB * dB_dqc + d_tmin_dC * dC_dqc;
 
             // --- (4) Derivative of q_hit_local ---
-            glm::mat3 d_hitLocal_dqc = glm::outerProduct(e_d_local, dtmin_dqc);
+            glm::mat3 d_hitLocal_dqc = -world2Quadric + glm::outerProduct(e_d_local, dtmin_dqc);
 
             // --- (5) Derivative of q_hit with respect to q_c ---
             // Recall: q_hit = quadric2World * q_hit_local + q_c, so:
@@ -310,16 +288,16 @@ namespace VkRender::PathTracer {
             // d_ghit_dqc is our J_ghit,qc.
 
             // --- (6) Derivative of a_d = normalize(a_c - q_hit) ---
-            glm::vec3 v_tmp = a_c - q_hit;
+            glm::vec3 v_tmp = a_c - q_hit_world;
             float v_len = glm::length(v_tmp);
             // The derivative of a normalized vector: (I/v_len - outer(v_tmp,v_tmp)/(v_len³))
-            glm::mat3 J_ad_qc = (I / v_len - glm::outerProduct(v_tmp, v_tmp) / (v_len * v_len * v_len)) * (-d_ghit_dqc);
+            glm::mat3 J_ad_qc = (I / v_len - (glm::outerProduct(v_tmp, v_tmp) / (v_len * v_len * v_len))) * (-d_ghit_dqc);
 
             // --- (7) Derivative of a_tmin = ((f - q_hit) ⋅ f_n) / (a_d ⋅ f_n) ---
-            float n_val = glm::dot(f - q_hit, f_n);
+            float n_val = glm::dot(f - q_hit_world, f_n);
             float d_val = glm::dot(a_d, f_n);
             // d(n)/d(q_c) = - (transpose(J_ad_qc) * f_n)
-            glm::vec3 d_n = glm::transpose(J_ad_qc) * (-f_n);
+            glm::vec3 d_n = glm::transpose(d_ghit_dqc) * (-f_n);
             // d(d)/d(q_c) = (transpose(J_ad_qc) * f_n)
             glm::vec3 d_d = glm::transpose(J_ad_qc) * f_n;
             glm::vec3 nabla_atmin_qc = (d_val * d_n - n_val * d_d) / (d_val * d_val);
@@ -353,17 +331,32 @@ namespace VkRender::PathTracer {
             glm::mat3x3 J_uv_qc = J_uv_pcam * J_pc_qc;
             glm::mat3 total_gradient = J_uv_qc; // Scale with the beta contribution for some reason
             // Atomically accum ulate the gradient.
-            for (int i = 0; i < 3; ++i) {
-                for (int j = 0; j < 3; ++j) {
-                    sycl::atomic_ref<float,
-                                sycl::memory_order::acq_rel,
-                                sycl::memory_scope::device,
-                                sycl::access::address_space::global_space>
-                            atom(m_gpuData.quadricGradients[hitObjectID][i][j]);
-                    atom.store(total_gradient[i][j]);
+            m_gpuData.quadricGradients[hitObjectID] = total_gradient;
+            m_gpuData.photonIDGradient[photonID] = total_gradient;
+
+
+
+            switch (hitObjectID) {
+                case 0: {
+                    int debug = 1;
+                }
+                break;
+                case 1: {
+                    int debug = 1;
+                }
+                break;
+                case 2: {
+                    int debug = 1;
+                }
+                break;
+                case 3: {
+                    int debug = 1;
+                }
+                break;
+                default: {
+                    int debug = 1;
                 }
             }
-
 
             // Center Quadric gradients
 

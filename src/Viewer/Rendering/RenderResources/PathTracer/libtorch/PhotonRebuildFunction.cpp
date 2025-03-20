@@ -525,13 +525,8 @@ namespace VkRender::PathTracer {
 
 
         int numEntities = gradientQuadricPositions.size(0);
-        struct EntityGradient {
-            // Assume there are 'width*height' pixels.
-            std::vector<glm::vec3> pixelGradientSum;
-            std::vector<int> pixelGradientCount;
-        };
-        std::vector<EntityGradient> entityGradients(numEntities);
-        // Loop over each photon.
+        std::vector<glm::vec3 > gradientPerEntity(gradientQuadricPositions.size(0));
+        int numGradientsSummed = 0;
         for (int i = 0; i < pathTracer->getPipelineSettings().photonCount; ++i) {
             glm::mat3 grad = gradients.photonIDGradient[i];
             glm::vec2 gradCoords = gradients.gradientPixelCoordinates[i];
@@ -539,62 +534,37 @@ namespace VkRender::PathTracer {
             glm::vec3 dU_dPos = {grad[0][0], grad[1][0], grad[2][0]};
             glm::vec3 dV_dPos = {grad[0][1], grad[1][1], grad[2][1]};
 
-            // Bilinear interpolation could be applied here instead of rounding,
-            // but for simplicity we show rounding:
             int x = std::round(gradCoords.x);
             int y = std::round(gradCoords.y);
+
             size_t pixelIndex = x + y * width;
 
-            // Determine which entity this pixel belongs to.
             int entityID = gradientImagePerObject[pixelIndex];
-            if (entityID < 0 || entityID >= numEntities)
-                continue; // Skip if invalid.
-
-            if (entityGradients[entityID].pixelGradientSum.empty()) {
-                entityGradients[entityID].pixelGradientSum = std::vector<glm::vec3>(width * height, glm::vec3(0.0f));
-                entityGradients[entityID].pixelGradientCount = std::vector<int>(width * height, 0);
-            }
-
-            // Retrieve loss and image gradients for this pixel.
+            if (entityID >= gradientPerEntity.size())
+                continue;
             float mseLoss = dLoss_dI[pixelIndex];
             float u_grad = gradX[pixelIndex];
             float v_grad = gradY[pixelIndex];
-
             glm::vec3 final_grad_pos_x = mseLoss * u_grad * dU_dPos;
             glm::vec3 final_grad_pos_y = mseLoss * v_grad * dV_dPos;
-            glm::vec3 finalGradient = final_grad_pos_x + final_grad_pos_y;
+            glm::vec3 finalGradient = (final_grad_pos_x + final_grad_pos_y);
 
-            // Accumulate per-pixel.
-            entityGradients[entityID].pixelGradientSum[pixelIndex] += finalGradient;
-            entityGradients[entityID].pixelGradientCount[pixelIndex] += 1;
+            // Now, add the transformed gradient to the entity's gradient accumulator:
+            gradientPerEntity[entityID] += finalGradient;
+
+            collectedGradients[i] = finalGradient;
+            summedGradient += finalGradient;
+            numGradientsSummed++;
         }
 
-        // Now, compute per-pixel averaged gradients.
-        for (int entityIDX = 0; auto &entityGradient: entityGradients) {
-            std::vector<glm::vec3> pixelGradientAvg(width * height, glm::vec3(0.0f));
-            for (size_t i = 0; i < entityGradient.pixelGradientSum.size(); ++i) {
-                if (entityGradient.pixelGradientCount[i] > 0)
-                    pixelGradientAvg[i] = entityGradient.pixelGradientSum[i] / static_cast<float>(entityGradient.
-                                              pixelGradientCount[i]);
-                else
-                    pixelGradientAvg[i] = glm::vec3(0.0f);
-            }
+        for (int i = 0; i < gradientQuadricPositions.size(0); ++i) {
+            float grad_x = gradientPerEntity[i].x / numGradientsSummed;
+            float grad_y = gradientPerEntity[i].y / numGradientsSummed;
+            float grad_z = gradientPerEntity[i].z / numGradientsSummed;
+            gradQuadPosA[i][0] = grad_x;
+            gradQuadPosA[i][1] = grad_y;
+            gradQuadPosA[i][2] = grad_z;
 
-            // Finally, combine per-pixel gradients into the final gradient over the scene parameter.
-            // This depends on how your loss is defined; for an MSE loss defined as an average, you would
-            // sum (or average) over all pixels.
-            glm::vec3 finalGradScene(0.0f);
-            int totalCount = 0;
-            for (size_t i = 0; i < pixelGradientAvg.size(); ++i) {
-                finalGradScene += pixelGradientAvg[i];
-                totalCount++;
-            }
-            finalGradScene /= totalCount;
-
-            gradQuadPosA[entityIDX][0] = finalGradScene.x;
-            gradQuadPosA[entityIDX][1] = finalGradScene.y;
-            gradQuadPosA[entityIDX][2] = finalGradScene.z;
-            entityIDX++;
         }
 
 

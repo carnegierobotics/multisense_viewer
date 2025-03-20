@@ -257,19 +257,36 @@ namespace VkRender::PathTracer {
         return output;
     }
 
-    // Scharr operator kernels for x and y derivatives.
-    const int KERNEL_SIZE = 3;
-    const float scharrX[3][3] = {
-        {3, 0, -3},
-        {10, 0, -10},
-        {3, 0, -3}
-    };
 
-    const float scharrY[3][3] = {
-        {3, 10, 3},
-        {0, 0, 0},
-        {-3, -10, -3}
-    };
+    static void applyBoxBlur(const float *input, int width, int height, int kernelSize, std::vector<float> &output) {
+        // Ensure kernelSize is odd.
+        assert(kernelSize % 2 == 1);
+        output.resize(width * height, 0.0f);
+        int half = kernelSize / 2;
+
+        // Loop over each pixel in the image.
+        for (int y = 0; y < height; ++y) {
+            for (int x = 0; x < width; ++x) {
+                float sum = 0.0f;
+                int count = 0;
+                // Iterate over the kernel window.
+                for (int ky = -half; ky <= half; ++ky) {
+                    int iy = y + ky;
+                    if (iy < 0 || iy >= height)
+                        continue;
+                    for (int kx = -half; kx <= half; ++kx) {
+                        int ix = x + kx;
+                        if (ix < 0 || ix >= width)
+                            continue;
+                        sum += input[iy * width + ix];
+                        ++count;
+                    }
+                }
+                // Average over the valid pixels.
+                output[y * width + x] = sum / static_cast<float>(count);
+            }
+        }
+    }
 
     // Applies the Scharr filter to compute gradients.
     // 'image' is a pointer to the image data of size (width * height).
@@ -280,6 +297,19 @@ namespace VkRender::PathTracer {
         // Resize output vectors to hold the gradient images.
         gradX.resize(width * height, 0.0f);
         gradY.resize(width * height, 0.0f);
+
+        // Scharr operator kernels for x and y derivatives.
+        const float scharrX[3][3] = {
+            {3, 0, -3},
+            {10, 0, -10},
+            {3, 0, -3}
+        };
+
+        const float scharrY[3][3] = {
+            {3, 10, 3},
+            {0, 0, 0},
+            {-3, -10, -3}
+        };
 
         // Loop over the image pixels, skipping the boundary pixels.
         for (int y = 1; y < height - 1; ++y) {
@@ -301,38 +331,26 @@ namespace VkRender::PathTracer {
             }
         }
 
-        // Define a simple 3x3 Gaussian blur kernel
-        constexpr float gaussianKernel5x5[5][5] = {
-            {1.0f / 273,  4.0f / 273,  7.0f / 273,  4.0f / 273, 1.0f / 273},
-            {4.0f / 273, 16.0f / 273, 26.0f / 273, 16.0f / 273, 4.0f / 273},
-            {7.0f / 273, 26.0f / 273, 41.0f / 273, 26.0f / 273, 7.0f / 273},
-            {4.0f / 273, 16.0f / 273, 26.0f / 273, 16.0f / 273, 4.0f / 273},
-            {1.0f / 273,  4.0f / 273,  7.0f / 273,  4.0f / 273, 1.0f / 273}
-        };
+        int kernelSize = 9;
+        std::vector<float> blurredGradX, blurredGradY;
+        applyBoxBlur(gradX.data(), width, height, kernelSize, blurredGradX);
+        applyBoxBlur(gradY.data(), width, height, kernelSize, blurredGradY);
+
+        gradX = blurredGradX;
+        gradY = blurredGradY;
+    }
+
+    static void saveAsPng(std::filesystem::path filePath, int width, int height, void *data) {
+        std::filesystem::path dir = filePath.parent_path();
+
+        // Create directory if it doesn't exist
+        if (!dir.empty() && !std::filesystem::exists(dir)) {
+            std::filesystem::create_directories(dir);
+        }
 
 
-        // Apply 5x5 Gaussian blur to smooth the gradient images
-        auto applyGaussianBlur = [&](std::vector<float> &image) {
-            std::vector<float> temp(image.size(), 0.0f);
-            for (int y = 2; y < height - 2; ++y) {  // Adjusted for 5x5 kernel
-                for (int x = 2; x < width - 2; ++x) {
-                    float sum = 0.0f;
-                    for (int ky = -2; ky <= 2; ++ky) {  // 5x5 kernel range
-                        for (int kx = -2; kx <= 2; ++kx) {
-                            int ix = x + kx;
-                            int iy = y + ky;
-                            sum += image[iy * width + ix] * gaussianKernel5x5[ky + 2][kx + 2];
-                        }
-                    }
-                    temp[y * width + x] = sum;
-                }
-            }
-            image.swap(temp); // Replace original with blurred version
-        };
-
-        // Blur both gradient images
-        //applyGaussianBlur(gradX);
-        //applyGaussianBlur(gradY);
+        // Save as PNusing stb_image_write
+        stbi_write_png(filePath.c_str(), width, height, 3, data, width * 3);
     }
 
     static void saveLabelMaskAsPNG(const float *gradientImagePerObject,
@@ -381,17 +399,58 @@ namespace VkRender::PathTracer {
             }
         }
 
-        std::filesystem::path dir = mseGradientImagePath.parent_path();
+        saveAsPng(mseGradientImagePath, width, height, colorImage.data());
+    }
 
-        // Create directory if it doesn't exist
-        if (!dir.empty() && !std::filesystem::exists(dir)) {
-            std::filesystem::create_directories(dir);
+    static void saveGradientAsPng(std::filesystem::path gradientImagePath, int width, int height, float *data) {
+        // Compute a normalization factor (max absolute gradient value)
+        float maxAbs = 0.0f;
+        for (int i = 0; i < width * height; i++) {
+            float v = data[i]; // grad[i] is the gradient value at pixel i
+            if (fabs(v) > maxAbs)
+                maxAbs = fabs(v);
+        }
+        if (maxAbs < 1e-6f)
+            maxAbs = 1.0f; // Avoid division by zero if all gradients are nearly zero
+
+        // Create an RGB image buffer (unsigned char per channel)
+        std::vector<unsigned char> colorImage(width * height * 3, 0);
+
+        for (int i = 0; i < width * height; i++) {
+            // Normalize the gradient to [-1, +1]
+            float v = data[i] / maxAbs;
+
+            // We'll choose a simple linear mapping:
+            // At v = -1: full blue: (0, 0, 255)
+            // At v = 0: neutral gray: (128, 128, 128)
+            // At v = +1: full red: (255, 0, 0)
+            unsigned char r, g, b;
+            if (v < 0.0f) {
+                // Map negative values: as v goes from 0 to -1, interpolate from neutral to blue.
+                float t = -v; // t in [0,1]
+                r = static_cast<unsigned char>((1.0f - t) * 128.0f);
+                g = static_cast<unsigned char>((1.0f - t) * 128.0f);
+                b = static_cast<unsigned char>(t * 255.0f + (1.0f - t) * 128.0f);
+            } else if (v > 0.0f) {
+                // Map positive values: as v goes from 0 to 1, interpolate from neutral to red.
+                float t = v; // t in [0,1]
+                r = static_cast<unsigned char>(t * 255.0f + (1.0f - t) * 128.0f);
+                g = static_cast<unsigned char>((1.0f - t) * 128.0f);
+                b = static_cast<unsigned char>((1.0f - t) * 128.0f);
+            } else {
+                // For zero, use the neutral color.
+                r = 128;
+                g = 128;
+                b = 128;
+            }
+            colorImage[i * 3 + 0] = r;
+            colorImage[i * 3 + 1] = g;
+            colorImage[i * 3 + 2] = b;
         }
 
-
-        // Save as PNusing stb_image_write
-        stbi_write_png(mseGradientImagePath.c_str(), width, height, 3, colorImage.data(), width * 3);
+        saveAsPng(gradientImagePath, width, height, colorImage.data());
     }
+
 
     torch::autograd::tensor_list PhotonRebuildFunction::backward(torch::autograd::AutogradContext *ctx,
                                                                  torch::autograd::tensor_list grad_outputs) {
@@ -432,15 +491,19 @@ namespace VkRender::PathTracer {
         std::vector<float> gradX, gradY;
         applyScharrFilter(image, width, height, gradX, gradY);
         // Optionally, combine gradX and gradY to compute gradient magnitude:
-        std::vector<float> gradMag(width * height, 0.0f);
-        for (int i = 0; i < width * height; i++) {
-            gradMag[i] = std::sqrt(gradX[i] * gradX[i] + gradY[i] * gradY[i]);
-        }
-        std::filesystem::path gradientImagePath =
-                "debug/grad_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + ".tiff";
+        //std::vector<float> gradMag(width * height, 0.0f);
+        //for (int i = 0; i < width * height; i++) {
+        //    gradMag[i] = std::sqrt(gradX[i] * gradX[i] + gradY[i] * gradY[i]);
+        //}
+        std::filesystem::path gradientImagePathX =
+                "debug/grad_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + "_x.png";
+        std::filesystem::path gradientImagePathY =
+                "debug/grad_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + "_y.png";
         // Save the gradient magnitude image as a PFM file.
-        saveTIFF(gradientImagePath, gradMag.data(), width, height);
+        //saveTIFF(gradientImagePath, gradMag.data(), width, height);
 
+        saveGradientAsPng(gradientImagePathX, width, height, gradX.data());
+        saveGradientAsPng(gradientImagePathY, width, height, gradY.data());
         // Get the pointer to the loss gradient image (size: width*height)
         float *dLoss_dI = dLoss_dRenderedImage.data_ptr<float>();
 
@@ -457,7 +520,98 @@ namespace VkRender::PathTracer {
         auto gradPosA = gradientEmissivePositions.accessor<float, 2>();
         auto gradQuadPosA = gradientQuadricPositions.accessor<float, 2>();
 
+        std::vector<glm::vec3> collectedGradients(pathTracer->getPipelineSettings().photonCount);
+        glm::vec3 summedGradient = glm::vec3(0.0f);
 
+
+        int numEntities = gradientQuadricPositions.size(0);
+        struct EntityGradient {
+            // Assume there are 'width*height' pixels.
+            std::vector<glm::vec3> pixelGradientSum;
+            std::vector<int> pixelGradientCount;
+        };
+        std::vector<EntityGradient> entityGradients(numEntities);
+        // Loop over each photon.
+        for (int i = 0; i < pathTracer->getPipelineSettings().photonCount; ++i) {
+            glm::mat3 grad = gradients.photonIDGradient[i];
+            glm::vec2 gradCoords = gradients.gradientPixelCoordinates[i];
+
+            glm::vec3 dU_dPos = {grad[0][0], grad[1][0], grad[2][0]};
+            glm::vec3 dV_dPos = {grad[0][1], grad[1][1], grad[2][1]};
+
+            // Bilinear interpolation could be applied here instead of rounding,
+            // but for simplicity we show rounding:
+            int x = std::round(gradCoords.x);
+            int y = std::round(gradCoords.y);
+            size_t pixelIndex = x + y * width;
+
+            // Determine which entity this pixel belongs to.
+            int entityID = gradientImagePerObject[pixelIndex];
+            if (entityID < 0 || entityID >= numEntities)
+                continue; // Skip if invalid.
+
+            if (entityGradients[entityID].pixelGradientSum.empty()) {
+                entityGradients[entityID].pixelGradientSum = std::vector<glm::vec3>(width * height, glm::vec3(0.0f));
+                entityGradients[entityID].pixelGradientCount = std::vector<int>(width * height, 0);
+            }
+
+            // Retrieve loss and image gradients for this pixel.
+            float mseLoss = dLoss_dI[pixelIndex];
+            float u_grad = gradX[pixelIndex];
+            float v_grad = gradY[pixelIndex];
+
+            glm::vec3 final_grad_pos_x = mseLoss * u_grad * dU_dPos;
+            glm::vec3 final_grad_pos_y = mseLoss * v_grad * dV_dPos;
+            glm::vec3 finalGradient = final_grad_pos_x + final_grad_pos_y;
+
+            // Accumulate per-pixel.
+            entityGradients[entityID].pixelGradientSum[pixelIndex] += finalGradient;
+            entityGradients[entityID].pixelGradientCount[pixelIndex] += 1;
+        }
+
+        // Now, compute per-pixel averaged gradients.
+        for (int entityIDX = 0; auto &entityGradient: entityGradients) {
+            std::vector<glm::vec3> pixelGradientAvg(width * height, glm::vec3(0.0f));
+            for (size_t i = 0; i < entityGradient.pixelGradientSum.size(); ++i) {
+                if (entityGradient.pixelGradientCount[i] > 0)
+                    pixelGradientAvg[i] = entityGradient.pixelGradientSum[i] / static_cast<float>(entityGradient.
+                                              pixelGradientCount[i]);
+                else
+                    pixelGradientAvg[i] = glm::vec3(0.0f);
+            }
+
+            // Finally, combine per-pixel gradients into the final gradient over the scene parameter.
+            // This depends on how your loss is defined; for an MSE loss defined as an average, you would
+            // sum (or average) over all pixels.
+            glm::vec3 finalGradScene(0.0f);
+            int totalCount = 0;
+            for (size_t i = 0; i < pixelGradientAvg.size(); ++i) {
+                finalGradScene += pixelGradientAvg[i];
+                totalCount++;
+            }
+            finalGradScene /= totalCount;
+
+            gradQuadPosA[entityIDX][0] = finalGradScene.x;
+            gradQuadPosA[entityIDX][1] = finalGradScene.y;
+            gradQuadPosA[entityIDX][2] = finalGradScene.z;
+            entityIDX++;
+        }
+
+
+        //finalGradScene /= static_cast<float>(totalCount);
+        // or sum, if your loss derivative already includes a 1/N factor.
+        //summedGradient.y = 0;
+
+
+        /*
+        for (int i = 0; i < gradientQuadricPositions.size(0); ++i) {
+            gradQuadPosA[i][0] = gradientPerEntity[i].x / numGradientsSummed;
+            gradQuadPosA[i][1] = gradientPerEntity[i].y / numGradientsSummed;
+            gradQuadPosA[i][2] = gradientPerEntity[i].z / numGradientsSummed;
+        }
+        */
+
+        /*
         for (int i = 0; i < gradientQuadricPositions.size(0); ++i) {
             // Allocate vectors to hold per-pixel contributions for u and v.
             std::vector<float> combinedU(width * height, 0.0f);
@@ -473,7 +627,8 @@ namespace VkRender::PathTracer {
             float sumU = std::accumulate(combinedU.begin(), combinedU.end(), 0.0f);
             float sumV = std::accumulate(combinedV.begin(), combinedV.end(), 0.0f);
 
-            glm::mat3 grad = gradients.sumQuadricGradients[i];
+            glm::mat3 grad = gradients.photonIDGradient[i];
+            glm::vec2 gradCoords = gradients.gradientPixelCoordinates[i];
 
             if (glm::any(glm::isnan(grad[0])) || glm::any(glm::isnan(grad[1])) || glm::any(glm::isnan(grad[2]))) {
                 Log::Logger::getInstance()->error("Error: NaN detected in gradient matrix!");
@@ -489,10 +644,9 @@ namespace VkRender::PathTracer {
             float x = finalGradient.x;
             float y = finalGradient.y;
             float z = finalGradient.z;
-            gradQuadPosA[i][0] = finalGradient.x;
-            gradQuadPosA[i][1] = finalGradient.y;
-            gradQuadPosA[i][2] = finalGradient.z;
+
         }
+        */
 
         // Return them in the same order as forward inputs
         return {

@@ -54,7 +54,7 @@ namespace VkRender::PathTracer {
             glm::vec3 rayOrigin = emitPosLocal;
 
             //rayOrigin = glm::vec3(0.0f, 0.0f, 3);
-            //rayDir = glm::normalize(glm::vec3(0.1f, 0.2f, -1.0f));
+            //rayDir = glm::normalize(glm::vec3(-0.05f, 0.0f, -1.0f));
 
             float apertureDiameter = (m_camera->parameters().focalLength / m_camera->parameters().fNumber) / 1000;
             float apertureRadius = 0.0f;
@@ -180,22 +180,6 @@ namespace VkRender::PathTracer {
                     if (m_gpuData.renderInformation->applyBetaWeight)
                         contributionFlux *= betaContribution;
 
-                    //contributionFlux = photonFlux;
-                    // Finally, scale the photonFlux (or outgoing radiance) by total contribution
-
-                    photonFlux *= brdfFactor;
-
-                    // Russian Roulette termination
-                    float rrProb = photonFlux;
-                    float minProbability = 0.2f; // 20%
-                    float maxProbability = 0.9f; // 90%
-                    rrProb = glm::clamp(rrProb, minProbability, maxProbability);
-                    float rnd = m_rng[photonID].nextFloat();
-                    if (rnd > rrProb) {
-                        return; // Photon terminated i.e. absorbed by the last surface
-                    }
-                    photonFlux = photonFlux / rrProb;
-
 
                     // Sample new direction (Lambertian reflection)
                     glm::vec3 newRayOrigin = hitPointWorld + hitNormalWorld * 1e-3f;
@@ -228,6 +212,22 @@ namespace VkRender::PathTracer {
                     m_gpuDataOutput[photonID].bounce[bounce].outGoingOrigin = newRayOrigin;
                     m_gpuDataOutput[photonID].bounce[bounce].outGoingDirection = newRayOrigin;
                     m_gpuDataOutput[photonID].bounce[bounce].quadricID = hitEntity;
+
+                    // Finally, scale the photonFlux (or outgoing radiance) by total contribution
+
+                    photonFlux *= brdfFactor;
+
+                    // Russian Roulette termination
+                    float rrProb = photonFlux;
+                    float minProbability = 0.2f; // 20%
+                    float maxProbability = 0.9f; // 90%
+                    rrProb = glm::clamp(rrProb, minProbability, maxProbability);
+                    float rnd = m_rng[photonID].nextFloat();
+                    if (rnd > rrProb) {
+                        return; // Photon terminated i.e. absorbed by the last surface
+                    }
+                    photonFlux = photonFlux / rrProb;
+
                     //glm::vec3 newDir = sampleRandomDirection(photonID);
                     rayOrigin = newRayOrigin; // Offset to prevent self-intersection
                     rayDir = glm::normalize(newDir);

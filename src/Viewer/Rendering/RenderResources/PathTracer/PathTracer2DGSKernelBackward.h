@@ -269,11 +269,13 @@ namespace VkRender::PathTracer {
             if (quadInfo.rootIndex == 1) {
                 // minus‑root
                 d_tmin_dB = -inv2A * (1.0f + BoverDisc);
-                d_tmin_dC =  1.0f / sqrtDiscriminant;
-            } else {
+                d_tmin_dC = 1.0f / sqrtDiscriminant;
+            } else if (quadInfo.rootIndex == 2) {
                 // plus‑root
-                d_tmin_dB =  inv2A * (-1.0f + BoverDisc);
+                d_tmin_dB = inv2A * (-1.0f + BoverDisc);
                 d_tmin_dC = -1.0f / sqrtDiscriminant;
+            } else {
+                return;
             }
 
             // --- (3) Chain rule: derivative of t_min with respect to q_c ---
@@ -291,7 +293,8 @@ namespace VkRender::PathTracer {
             glm::vec3 v_tmp = a_c - q_hit_world;
             float v_len = glm::length(v_tmp);
             // The derivative of a normalized vector: (I/v_len - outer(v_tmp,v_tmp)/(v_len³))
-            glm::mat3 J_ad_qc = (I / v_len - (glm::outerProduct(v_tmp, v_tmp) / (v_len * v_len * v_len))) * (-d_ghit_dqc);
+            glm::mat3 J_ad_qc = (I / v_len - (glm::outerProduct(v_tmp, v_tmp) / (v_len * v_len * v_len))) * (-
+                                    d_ghit_dqc);
 
             // --- (7) Derivative of a_tmin = ((f - q_hit) ⋅ f_n) / (a_d ⋅ f_n) ---
             float n_val = glm::dot(f - q_hit_world, f_n);
@@ -331,9 +334,8 @@ namespace VkRender::PathTracer {
             glm::mat3x3 J_uv_qc = J_uv_pcam * J_pc_qc;
             glm::mat3 total_gradient = J_uv_qc; // Scale with the beta contribution for some reason
             // Atomically accum ulate the gradient.
-            m_gpuData.quadricGradients[hitObjectID] = total_gradient;
+            m_gpuData.gradientPixelCoordinates[photonID] = glm::vec2(xPixel, yPixel);
             m_gpuData.photonIDGradient[photonID] = total_gradient;
-
 
 
             switch (hitObjectID) {

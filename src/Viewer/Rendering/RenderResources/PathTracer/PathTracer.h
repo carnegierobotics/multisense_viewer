@@ -32,7 +32,7 @@ namespace VkRender::PathTracer {
 
             // Render settings
             float gammaCorrection = 2.2f;
-            bool applyBetaContribution = false;
+            bool applyBetaContribution = true;
         };
 
         struct PipelineSettings {
@@ -55,7 +55,8 @@ namespace VkRender::PathTracer {
 
         struct BackwardInfo {
             glm::vec3* gradients = nullptr;
-            glm::mat3* sumQuadricGradients = nullptr;
+            glm::mat3* photonIDGradient = nullptr;
+            glm::vec2* gradientPixelCoordinates = nullptr;
             std::vector<glm::mat3> quadricGradients;
             float* gradientImage = nullptr;
             float* gradientImagePerObject = nullptr;

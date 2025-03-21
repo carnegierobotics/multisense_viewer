@@ -465,27 +465,26 @@ namespace VkRender {
         }
         // Write the PFM header
         // "PF" indicates a color image. Use "Pf" for grayscale.
-        file << "PF\n" << width << " " << height << "\n-1.0\n";
+        file << "Pf\n" << width << " " << height << "\n-1.0\n";
 
         // PFM expects the data in binary format, row by row from top to bottom
         // Assuming your m_imageMemory is in RGBA format with floats
 
         // Allocate a temporary buffer for RGB data
-        std::vector<float> rgbData(width * height * 3);
+        std::vector<float> grayscaleData(width * height);
 
-        for (uint32_t y = 0; y < height; ++y) {
+        // Fill grayscaleData bottom‑to‑top so PFM spec is satisfied
+        for (int y = height - 1; y >= 0; --y) {
+            int destRow = height - 1 - y;
             for (uint32_t x = 0; x < width; ++x) {
-                uint32_t pixelIndex = (y * width + x);
-                uint32_t rgbIndex = (y * width + x) * 3;
-
-                rgbData[rgbIndex + 0] = image[pixelIndex]; // R
-                rgbData[rgbIndex + 1] = image[pixelIndex]; // G
-                rgbData[rgbIndex + 2] = image[pixelIndex]; // B
+                uint32_t srcIndex = (y * width + x);
+                uint32_t dstIndex = (destRow * width + x);
+                grayscaleData[dstIndex] = image[srcIndex]; // R
             }
         }
 
         // Write the RGB float data
-        file.write(reinterpret_cast<const char *>(rgbData.data()), rgbData.size() * sizeof(float));
+        file.write(reinterpret_cast<const char *>(grayscaleData.data()), grayscaleData.size() * sizeof(float));
 
         if (!file) {
             throw std::runtime_error("Failed to write PFM data to file: " + filename.string());

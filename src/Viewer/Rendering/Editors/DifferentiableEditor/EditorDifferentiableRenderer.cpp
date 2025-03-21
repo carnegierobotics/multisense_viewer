@@ -251,8 +251,8 @@ namespace VkRender {
 
 
                     // Compute loss
-                    //auto loss = torch::mean(torch::abs(targetTensor - m_accumulatedTensor));
-                    auto loss = torch::mean(torch::pow(targetTensor - m_accumulatedTensor, 2));
+                    auto loss = torch::mean(torch::abs(targetTensor - m_accumulatedTensor));
+                    //auto loss = torch::mean(torch::pow(targetTensor - m_accumulatedTensor, 2));
 
                     // Backward
                     loss.backward();
@@ -483,8 +483,8 @@ namespace VkRender {
         // Read header: "PF", width, height, scale
         std::string header;
         file >> header;
-        if (header != "PF") {
-            throw std::runtime_error("Unsupported PFM format (only RGB 'PF' supported). Got: " + header);
+        if (header != "Pf") {
+            throw std::runtime_error("Unsupported PFM format (only RGB 'Pf' supported). Got: " + header);
         }
 
         int width, height;
@@ -505,7 +505,7 @@ namespace VkRender {
         bool needByteSwap = (fileIsLittleEndian != machineIsLittleEndian);
 
         // Allocate space (RGB => 3 channels)
-        std::vector<float> data(width * height * 3);
+        std::vector<float> data(width * height);
 
         // Read raw bytes
         file.read(reinterpret_cast<char *>(data.data()), data.size() * sizeof(float));
@@ -528,10 +528,12 @@ namespace VkRender {
         }
 
         // Create Torch tensor of shape [height, width, 3]
-        torch::Tensor tensor3D = torch::from_blob(data.data(), {height, width, 3}, torch::kFloat).clone();
+        torch::Tensor tensor2D = torch::from_blob(data.data(), {height, width}, torch::kFloat).clone();
+        // Flip rows so tensor[0,:,:] is the top scanline (PFM stores bottom→top)
+        tensor2D = tensor2D.flip({0});
 
         // If truly grayscale repeated in R/G/B, average them to get [height, width]
-        torch::Tensor tensor2D = tensor3D.mean(2);
+        //torch::Tensor tensor2D = tensor2D.mean(2);
 
 
         if (tensor2D.isnan().any().item<bool>()) {

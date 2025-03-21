@@ -5,11 +5,50 @@
 #include "Viewer/Rendering/RenderResources/PathTracer/libtorch/PhotonRebuildFunction.h"
 #include "stb_image_write.h"
 #include <random>
+#include <stb_image.h>
+
 #include <glm/gtx/quaternion.hpp>
 #include <OpenImageDenoise/oidn.hpp>
 #include <tiffio.h> // Make sure to include libtiff's header
 
 namespace VkRender::PathTracer {
+
+    static void saveImageAsPng(std::filesystem::path &filename, uint32_t width, uint32_t height, float* image) {
+        std::filesystem::path dir = filename.parent_path();
+
+        // Create directory if it doesn't exist
+        if (!dir.empty() && !std::filesystem::exists(dir)) {
+            std::filesystem::create_directories(dir);
+        }
+
+
+        std::vector<uint8_t> rgbDataPng(width * height * 3);
+
+        for (uint32_t y = 0; y < height; ++y) {
+            for (uint32_t x = 0; x < width; ++x) {
+                uint32_t pixelIndex = (y * width + x);
+                uint32_t rgbIndex = pixelIndex * 3;
+
+                // Assuming image is in RGBA format with float values in range [0.0, 1.0]
+                rgbDataPng[rgbIndex + 0] = static_cast<uint8_t>(image[pixelIndex] * 255.0f);
+                // R
+                rgbDataPng[rgbIndex + 1] = static_cast<uint8_t>(image[pixelIndex] * 255.0f);
+                // G
+                rgbDataPng[rgbIndex + 2] = static_cast<uint8_t>(image[pixelIndex] * 255.0f);
+                // B
+            }
+        }
+
+
+        // Write the image to a PNG file
+        if (!stbi_write_png(filename.replace_extension(".png").string().c_str(), width, height, 3,
+                            rgbDataPng.data(),
+                            width * 3)) {
+            throw std::runtime_error("Failed to write PNG file: " + filename.string());
+        }
+
+    }
+
     static void save_gradient_to_png(torch::Tensor gradient, const std::filesystem::path &filename) {
         std::filesystem::path dir = filename.parent_path();
 
@@ -452,6 +491,79 @@ namespace VkRender::PathTracer {
     }
 
 
+// Generic 2D convolution function.
+void convolve2D(const float* input, int width, int height,
+                const float* kernel, int kernelWidth, int kernelHeight,
+                std::vector<float>& output)
+{
+    // Resize the output array
+    output.resize(width * height, 0.0f);
+
+    // Offsets to handle kernel center
+    int halfKW = kernelWidth  / 2;
+    int halfKH = kernelHeight / 2;
+
+    // For each pixel in the output
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+
+            float sum = 0.0f;
+
+            // For each value in the kernel
+            for (int ky = 0; ky < kernelHeight; ++ky) {
+                for (int kx = 0; kx < kernelWidth; ++kx) {
+
+                    // Compute input image coordinates
+                    int inX = x + (kx - halfKW);
+                    int inY = y + (ky - halfKH);
+
+                    // Handle boundaries (zero-pad)
+                    if (inX < 0 || inX >= width ||
+                        inY < 0 || inY >= height) {
+                        continue;
+                    }
+
+                    float pixel   = input[inY * width + inX];
+                    float weight  = kernel[ky * kernelWidth + kx];
+                    sum += pixel * weight;
+                }
+            }
+
+            output[y * width + x] = sum;
+        }
+    }
+}
+
+// Sobel filter using the generic convolution
+void applySobelFilter(const float* image, int width, int height,
+                      std::vector<float>& gradX, std::vector<float>& gradY)
+{
+    // Define Sobel kernels as float arrays
+    float sobelX[9] = {
+        -1.f,  0.f,  1.f,
+        -2.f,  0.f,  2.f,
+        -1.f,  0.f,  1.f
+    };
+
+    float sobelY[9] = {
+        -1.f, -2.f, -1.f,
+         0.f,  0.f,  0.f,
+         1.f,  2.f,  1.f
+    };
+
+    // Convolve the image with sobelX
+    convolve2D(image, width, height,
+                sobelX, 3, 3,
+                gradX);
+
+    // Convolve the image with sobelY
+    convolve2D(image, width, height,
+                sobelY, 3, 3,
+                gradY);
+}
+
+
+
     torch::autograd::tensor_list PhotonRebuildFunction::backward(torch::autograd::AutogradContext *ctx,
                                                                  torch::autograd::tensor_list grad_outputs) {
         // Usually, the forward returned 1 tensor => grad_outputs.size() == 1
@@ -483,36 +595,94 @@ namespace VkRender::PathTracer {
         pathTracer->m_backwardInfo.gradientImage = dLoss_dRenderedImage.data_ptr<float>();
         auto gradients = pathTracer->backward(iterationInfo->renderSettings);
 
-        // d_I(u,v) / d_(u,v)
         float *image = pathTracer->getImage();
         auto &props = pathTracer->getPipelineSettings();
         int width = props.width;
         int height = props.height;
         std::vector<float> gradX, gradY;
-        applyScharrFilter(image, width, height, gradX, gradY);
-        // Optionally, combine gradX and gradY to compute gradient magnitude:
-        //std::vector<float> gradMag(width * height, 0.0f);
-        //for (int i = 0; i < width * height; i++) {
-        //    gradMag[i] = std::sqrt(gradX[i] * gradX[i] + gradY[i] * gradY[i]);
-        //}
+
+        std::string predictedPath = "/home/magnus/phd/project/pred.png";
+        std::string gtPath = "/home/magnus/phd/project/gt.png";
+        int channels = 0;
+        // Load as bytes
+        stbi_uc *predictedBytes = stbi_load(predictedPath.c_str(), &width, &height, &channels, STBI_grey);
+        stbi_uc *gtBytes        = stbi_load(gtPath.c_str(), &width, &height, &channels, STBI_grey);
+
+        if (!predictedBytes || !gtBytes) {
+            fprintf(stderr, "Error loading images\n");
+        }
+
+        int pixelCount = width * height;
+
+        // Allocate float buffers
+        float *predicted = new float[pixelCount];
+        float *gt        = new float[pixelCount];
+
+        // Copy (and implicitly convert) each byte → float
+        for (int i = 0; i < pixelCount; ++i) {
+            predicted[i] = predictedBytes[i] / 255.0f;
+            gt[i]        = gtBytes[i]        / 255.0f;
+        }
+
+        // Allocate the MSE image
+        float *residualImage = new float[pixelCount];
+        double *gradMSE = new double[pixelCount];
+
+        // Fill it with squared error per pixel
+        for (int i = 0; i < pixelCount; ++i) {
+            float diff = predicted[i] - gt[i];
+            residualImage[i] = diff;
+        }
+
+        // (Optional) Compute the overall MSE scalar
+        float sum = 0.0f;
+        for (int i = 0; i < pixelCount; ++i) {
+            sum += (residualImage[i] * residualImage[i]);
+        }
+        float overallMSE = sum / pixelCount;
+        printf("Overall MSE = %f\n", overallMSE);
+
+
+        for (int i = 0; i < pixelCount; ++i) {
+            gradMSE[i] = 2.0 / pixelCount * static_cast<double>(residualImage[i]);
+        }
+
+        // …use residualImage however you need…
+
+        // Cleanup
+
+        // Free the original byte buffers
+        stbi_image_free(predictedBytes);
+        stbi_image_free(gtBytes);
+
+        // d_I(u,v) / d_(u,v)
+
+        applySobelFilter(predicted, width, height, gradX, gradY);
+
         std::filesystem::path gradientImagePathX =
                 "debug/grad_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + "_x.png";
         std::filesystem::path gradientImagePathY =
                 "debug/grad_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + "_y.png";
+        std::filesystem::path gradientImagePathAvg =
+                "debug/grad_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + "_avg.png";
         // Save the gradient magnitude image as a PFM file.
         //saveTIFF(gradientImagePath, gradMag.data(), width, height);
 
         saveGradientAsPng(gradientImagePathX, width, height, gradX.data());
         saveGradientAsPng(gradientImagePathY, width, height, gradY.data());
         // Get the pointer to the loss gradient image (size: width*height)
-        float *dLoss_dI = dLoss_dRenderedImage.data_ptr<float>();
+        //float *dLoss_dI = dLoss_dRenderedImage.data_ptr<float>();
 
         float *gradientImagePerObject = gradients.gradientImagePerObject;
-
         std::filesystem::path gradientPerPixelContributionPath =
                 "debug/grad_id_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + ".png";
         // Save the gradient magnitude image as a PFM file.
         saveLabelMaskAsPNG(gradientImagePerObject, gradientPerPixelContributionPath, width, height);
+        std::filesystem::path renderedImagePath =
+               "debug/rendered_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + ".png";
+
+        saveImageAsPng(renderedImagePath, width, height, predicted);
+        saveTIFF(renderedImagePath.replace_extension("tiff"), image, width, height);
 
         auto posA = positions.accessor<float, 2>();
         auto gradientEmissivePositions = torch::zeros_like(positions);
@@ -542,31 +712,42 @@ namespace VkRender::PathTracer {
             int entityID = gradientImagePerObject[pixelIndex];
             if (entityID >= gradientPerEntity.size())
                 continue;
-            float mseLoss = dLoss_dI[pixelIndex];
-            float u_grad = gradX[pixelIndex];
-            float v_grad = gradY[pixelIndex];
-            glm::vec3 final_grad_pos_x = mseLoss * u_grad * dU_dPos;
-            glm::vec3 final_grad_pos_y = mseLoss * v_grad * dV_dPos;
-            glm::vec3 finalGradient = (final_grad_pos_x + final_grad_pos_y);
+
+            float mseLoss = gradMSE[pixelIndex];
+            float u_grad = -gradX[pixelIndex];
+            float v_grad = -gradY[pixelIndex];
+
+            glm::vec2 dI_duv(u_grad, v_grad);
+
+            glm::vec2 dL_duv = mseLoss * dI_duv;
+
+            glm::vec3 res;
+            res.x = dL_duv.x * dU_dPos.x + dL_duv.y * dV_dPos.x;
+            res.y = dL_duv.x * dU_dPos.y + dL_duv.y * dV_dPos.y;
+            res.z = dL_duv.x * dU_dPos.z + dL_duv.y * dV_dPos.z;
 
             // Now, add the transformed gradient to the entity's gradient accumulator:
-            gradientPerEntity[entityID] += finalGradient;
+            gradientPerEntity[entityID] += res;
 
-            collectedGradients[i] = finalGradient;
-            summedGradient += finalGradient;
+            collectedGradients[i] = res;
+            summedGradient += res;
             numGradientsSummed++;
         }
 
         for (int i = 0; i < gradientQuadricPositions.size(0); ++i) {
-            float grad_x = gradientPerEntity[i].x / numGradientsSummed;
-            float grad_y = gradientPerEntity[i].y / numGradientsSummed;
-            float grad_z = gradientPerEntity[i].z / numGradientsSummed;
+            float grad_x = gradientPerEntity[i].x ;
+            float grad_y = gradientPerEntity[i].y ;
+            float grad_z = gradientPerEntity[i].z ;
             gradQuadPosA[i][0] = grad_x;
             gradQuadPosA[i][1] = grad_y;
             gradQuadPosA[i][2] = grad_z;
 
         }
 
+        delete[] predicted;
+        delete[] gt;
+        delete[] residualImage;
+        delete[] gradMSE;
 
         //finalGradScene /= static_cast<float>(totalCount);
         // or sum, if your loss derivative already includes a 1/N factor.

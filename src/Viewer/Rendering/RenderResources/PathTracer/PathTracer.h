@@ -58,7 +58,8 @@ namespace VkRender::PathTracer {
             glm::mat3* photonIDGradient = nullptr;
             glm::vec2* gradientPixelCoordinates = nullptr;
             std::vector<glm::mat3> quadricGradients;
-            float* gradientImage = nullptr;
+            float* gradientImageHoriz = nullptr;
+            float* gradientImageVert = nullptr;
             float* gradientImagePerObject = nullptr;
         };
 

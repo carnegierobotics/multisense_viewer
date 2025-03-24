@@ -32,6 +32,8 @@ namespace VkRender::PathTracer {
         m_backwardInfo.gradientPixelCoordinates = new glm::vec2[m_pipelineSettings.photonCount];
         m_backwardInfo.gradients = new glm::vec3[pipelineSettings.photonCount];
         m_backwardInfo.gradientImagePerObject =new float[pipelineSettings.width * pipelineSettings.height];
+        m_backwardInfo.gradientImageHoriz =new float[pipelineSettings.width * pipelineSettings.height];
+        m_backwardInfo.gradientImageVert =new float[pipelineSettings.width * pipelineSettings.height];
 
         Log::Logger::getInstance()->info(
             "PathTracer created, Propterties: PhotonCount: {}, Bounces: {}, Image Size: {}x{}",
@@ -134,7 +136,6 @@ namespace VkRender::PathTracer {
             uint64_t simulatePhotonCount = m_pipelineSettings.photonCount;
             uint32_t imageSize = m_pipelineSettings.width * m_pipelineSettings.height;
 
-            queue.memcpy(m_gpu.gradientImage, m_backwardInfo.gradientImage, sizeof(float) * imageSize);
 
             m_renderInformation->totalPhotons += m_pipelineSettings.photonCount;
             m_renderInformation->gamma = renderSettings.gammaCorrection;
@@ -145,6 +146,8 @@ namespace VkRender::PathTracer {
             queue.fill(m_gpu.photonIDGradient, glm::mat3(0.0f),  m_pipelineSettings.photonCount);
             queue.fill(m_gpu.gradientPixelCoordinates, glm::vec2(0.0f),  m_pipelineSettings.photonCount);
             queue.fill(m_gpu.gradientImagePerObject, FLT_MAX, imageSize);
+            queue.fill(m_gpu.gradientImageU, 0.0f, imageSize);
+            queue.fill(m_gpu.gradientImageV, 0.0f, imageSize);
 
             queue.wait();
             sycl::range<1> globalRange(simulatePhotonCount);
@@ -159,6 +162,9 @@ namespace VkRender::PathTracer {
             queue.memcpy(m_backwardInfo.gradients, m_gpu.gradients, simulatePhotonCount * sizeof(glm::vec3));
             queue.memcpy(m_backwardInfo.photonIDGradient, m_gpu.photonIDGradient, sizeof(glm::mat3) *  m_pipelineSettings.photonCount);
             queue.memcpy(m_backwardInfo.gradientPixelCoordinates, m_gpu.gradientPixelCoordinates, sizeof(glm::vec2) *  m_pipelineSettings.photonCount);
+            queue.memcpy(m_backwardInfo.gradientImageHoriz, m_gpu.gradientImageU, sizeof(float) * imageSize);
+            queue.memcpy(m_backwardInfo.gradientImageVert, m_gpu.gradientImageV, sizeof(float) * imageSize);
+
             queue.wait();
         } catch (const std::exception &e) {
             std::cerr << "Exception: " << e.what() << std::endl;
@@ -290,15 +296,20 @@ namespace VkRender::PathTracer {
             m_gpu.photonIDGradient = nullptr;
             Log::Logger::getInstance()->trace("Freed GPU Memory: photonIDGradient");
         }
-        if (m_gpu.gradientImage) {
-            sycl::free(m_gpu.gradientImage, queue);
-            m_gpu.gradientImage = nullptr;
-            Log::Logger::getInstance()->trace("Freed GPU Memory: gradientImage");
+        if (m_gpu.gradientImageU) {
+            sycl::free(m_gpu.gradientImageU, queue);
+            m_gpu.gradientImageU = nullptr;
+            Log::Logger::getInstance()->trace("Freed GPU Memory: gradientImageU");
+        }
+        if (m_gpu.gradientImageV) {
+            sycl::free(m_gpu.gradientImageV, queue);
+            m_gpu.gradientImageV = nullptr;
+            Log::Logger::getInstance()->trace("Freed GPU Memory: gradientImageV");
         }
         if (m_gpu.gradientImagePerObject) {
             sycl::free(m_gpu.gradientImagePerObject, queue);
             m_gpu.gradientImagePerObject = nullptr;
-            Log::Logger::getInstance()->trace("Freed GPU Memory: gradientImage");
+            Log::Logger::getInstance()->trace("Freed GPU Memory: gradientImagePerObject");
         }
         if (m_gpu.pinholeCamera) {
             sycl::free(m_gpu.pinholeCamera, queue);
@@ -492,8 +503,10 @@ namespace VkRender::PathTracer {
         queue.fill(m_gpu.gradientPixelCoordinates, glm::vec2(0.0f), m_pipelineSettings.photonCount);
 
         uint32_t imageSize = m_pipelineSettings.width * m_pipelineSettings.height;
-        m_gpu.gradientImage = sycl::malloc_device<float>(imageSize, queue);
-        queue.fill(m_gpu.gradientImage, 0.0f, imageSize);
+        m_gpu.gradientImageU = sycl::malloc_device<float>(imageSize, queue);
+        queue.fill(m_gpu.gradientImageU, 0.0f, imageSize);
+        m_gpu.gradientImageV = sycl::malloc_device<float>(imageSize, queue);
+        queue.fill(m_gpu.gradientImageV, 0.0f, imageSize);
         m_gpu.gradientImagePerObject = sycl::malloc_device<float>(imageSize, queue);
         queue.fill(m_gpu.gradientImagePerObject, 0.0f, imageSize);
 
@@ -842,6 +855,14 @@ namespace VkRender::PathTracer {
         if (m_backwardInfo.gradientImagePerObject) {
             delete[] m_backwardInfo.gradientImagePerObject;
             Log::Logger::getInstance()->trace("Freed CPU Memory: gradientImagePerObject");
+        }
+        if (m_backwardInfo.gradientImageHoriz) {
+            delete[] m_backwardInfo.gradientImageHoriz;
+            Log::Logger::getInstance()->trace("Freed CPU Memory: gradientImageHoriz");
+        }
+        if (m_backwardInfo.gradientImageVert) {
+            delete[] m_backwardInfo.gradientImageVert;
+            Log::Logger::getInstance()->trace("Freed CPU Memory: gradientImageVert");
         }
         freeResources();
     }

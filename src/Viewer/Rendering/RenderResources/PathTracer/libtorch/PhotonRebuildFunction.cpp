@@ -116,8 +116,8 @@ namespace VkRender::PathTracer {
     }
 
 
-    static void saveTIFF(const std::filesystem::path &filename, const float *image, uint32_t width,
-                         uint32_t height) {
+    static void saveTIFF(const std::filesystem::path &filename, uint32_t width,
+                         uint32_t height, const float *image) {
         // Create the directory if it doesn't exist.
         std::filesystem::path dir = filename.parent_path();
         if (!dir.empty() && !std::filesystem::exists(dir)) {
@@ -592,15 +592,14 @@ void applySobelFilter(const float* image, int width, int height,
         std::filesystem::path mseGradientImagePath =
                 "./debug/mse_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + ".png";
         save_gradient_to_png(dLoss_dRenderedImage, mseGradientImagePath);
-        pathTracer->m_backwardInfo.gradientImage = dLoss_dRenderedImage.data_ptr<float>();
         auto gradients = pathTracer->backward(iterationInfo->renderSettings);
-
+        float* mseImage = dLoss_dRenderedImage.data_ptr<float>();
         float *image = pathTracer->getImage();
         auto &props = pathTracer->getPipelineSettings();
         int width = props.width;
         int height = props.height;
-        std::vector<float> gradX, gradY;
 
+        /*
         std::string predictedPath = "/home/magnus/phd/project/pred.png";
         std::string gtPath = "/home/magnus/phd/project/gt.png";
         int channels = 0;
@@ -647,6 +646,7 @@ void applySobelFilter(const float* image, int width, int height,
             gradMSE[i] = 2.0 / pixelCount * static_cast<double>(residualImage[i]);
         }
 
+
         // …use residualImage however you need…
 
         // Cleanup
@@ -654,22 +654,23 @@ void applySobelFilter(const float* image, int width, int height,
         // Free the original byte buffers
         stbi_image_free(predictedBytes);
         stbi_image_free(gtBytes);
-
+        */
         // d_I(u,v) / d_(u,v)
 
-        applySobelFilter(predicted, width, height, gradX, gradY);
+        //applySobelFilter(predicted, width, height, gradX, gradY);
 
         std::filesystem::path gradientImagePathX =
-                "debug/grad_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + "_x.png";
+                "debug/grad_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + "_x.tiff";
         std::filesystem::path gradientImagePathY =
-                "debug/grad_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + "_y.png";
+                "debug/grad_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + "_y.tiff";
         std::filesystem::path gradientImagePathAvg =
                 "debug/grad_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + "_avg.png";
         // Save the gradient magnitude image as a PFM file.
         //saveTIFF(gradientImagePath, gradMag.data(), width, height);
 
-        saveGradientAsPng(gradientImagePathX, width, height, gradX.data());
-        saveGradientAsPng(gradientImagePathY, width, height, gradY.data());
+        saveTIFF(gradientImagePathX, width, height, gradients.gradientImageHoriz);
+        saveTIFF(gradientImagePathY, width, height, gradients.gradientImageVert);
+        //saveGradientAsPng(gradientImagePathY, width, height, gradY.data());
         // Get the pointer to the loss gradient image (size: width*height)
         //float *dLoss_dI = dLoss_dRenderedImage.data_ptr<float>();
 
@@ -681,8 +682,9 @@ void applySobelFilter(const float* image, int width, int height,
         std::filesystem::path renderedImagePath =
                "debug/rendered_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + ".png";
 
-        saveImageAsPng(renderedImagePath, width, height, predicted);
-        saveTIFF(renderedImagePath.replace_extension("tiff"), image, width, height);
+        //saveImageAsPng(renderedImagePath, width, height, predicted);
+        saveTIFF(renderedImagePath.replace_extension("tiff"), width, height, image);
+
 
         auto posA = positions.accessor<float, 2>();
         auto gradientEmissivePositions = torch::zeros_like(positions);
@@ -695,11 +697,12 @@ void applySobelFilter(const float* image, int width, int height,
 
 
         int numEntities = gradientQuadricPositions.size(0);
-        std::vector<glm::vec3 > gradientPerEntity(gradientQuadricPositions.size(0));
+        std::vector<glm::vec3 > gradientPerEntity(gradientQuadricPositions.size(0), glm::vec3(0.0f));
         int numGradientsSummed = 0;
         for (int i = 0; i < pathTracer->getPipelineSettings().photonCount; ++i) {
             glm::mat3 grad = gradients.photonIDGradient[i];
             glm::vec2 gradCoords = gradients.gradientPixelCoordinates[i];
+
 
             glm::vec3 dU_dPos = {grad[0][0], grad[1][0], grad[2][0]};
             glm::vec3 dV_dPos = {grad[0][1], grad[1][1], grad[2][1]};
@@ -713,11 +716,11 @@ void applySobelFilter(const float* image, int width, int height,
             if (entityID >= gradientPerEntity.size())
                 continue;
 
-            float mseLoss = gradMSE[pixelIndex];
-            float u_grad = -gradX[pixelIndex];
-            float v_grad = -gradY[pixelIndex];
+            float mseLoss = mseImage[pixelIndex];
+            float gradU = gradients.gradientImageHoriz[pixelIndex];
+            float gradV = gradients.gradientImageVert[pixelIndex];
 
-            glm::vec2 dI_duv(u_grad, v_grad);
+            glm::vec2 dI_duv(gradU, gradV);
 
             glm::vec2 dL_duv = mseLoss * dI_duv;
 
@@ -744,11 +747,13 @@ void applySobelFilter(const float* image, int width, int height,
 
         }
 
+        /*
         delete[] predicted;
         delete[] gt;
         delete[] residualImage;
         delete[] gradMSE;
 
+*/
         //finalGradScene /= static_cast<float>(totalCount);
         // or sum, if your loss derivative already includes a 1/N factor.
         //summedGradient.y = 0;

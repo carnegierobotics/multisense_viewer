@@ -48,16 +48,16 @@ namespace VkRender::PathTracer {
     } KernelType;
 
     // Function to map KernelType to a string
-    static const char* KernelTypeToString(KernelType kernel) {
+    static const char *KernelTypeToString(KernelType kernel) {
         switch (kernel) {
-        case KERNEL_PATH_TRACER_MESH: return "Path Tracer: Mesh";
-        case KERNEL_PATH_TRACER_2DGS: return "Path Tracer: 2DGS";
-        default: return "Unknown";
+            case KERNEL_PATH_TRACER_MESH: return "Path Tracer: Mesh";
+            case KERNEL_PATH_TRACER_2DGS: return "Path Tracer: 2DGS";
+            default: return "Unknown";
         }
     }
 
     // Function to map string to KernelType
-    static KernelType StringToKernelType(const char* str) {
+    static KernelType StringToKernelType(const char *str) {
         if (strcmp(str, "Path Tracer: Mesh") == 0) return KERNEL_PATH_TRACER_MESH;
         if (strcmp(str, "Path Tracer: 2DGS") == 0) return KERNEL_PATH_TRACER_2DGS;
         return KERNEL_TYPE_COUNT; // Invalid
@@ -133,32 +133,33 @@ namespace VkRender::PathTracer {
 
     struct GPUData {
         // GS
-        GaussianInputAssembly* gaussianInputAssembly = nullptr;
+        GaussianInputAssembly *gaussianInputAssembly = nullptr;
         size_t numGaussians = 0;
 
         // Quadric
-        QuadricInputAssembly* quadricInputAssembly = nullptr;
+        QuadricInputAssembly *quadricInputAssembly = nullptr;
         size_t numQuadrics = 0;
         size_t numEntities = 0;
         // QUadric BVH
-        BVHNode* bvhNodes = nullptr;
+        BVHNode *bvhNodes = nullptr;
         size_t numBVHNodes = 0;
 
-        glm::vec3* gradients = nullptr;
+        glm::vec3 *gradients = nullptr;
         //glm::mat3* quadricGradients = nullptr;
-        glm::mat3* photonIDGradient = nullptr;
-        glm::vec2* gradientPixelCoordinates = nullptr;
-        glm::vec3* gaussianGradients = nullptr;
-        float* gradientImage = nullptr;
-        float* gradientImagePerObject = nullptr;
+        glm::mat3 *photonIDGradient = nullptr;
+        glm::vec2 *gradientPixelCoordinates = nullptr;
+        glm::vec3 *gaussianGradients = nullptr;
+        float *gradientImageU = nullptr;
+        float *gradientImageV = nullptr;
+        float *gradientImagePerObject = nullptr;
 
-        float* imageMemory = nullptr;
-        float* imageMemoryCounter = nullptr;
-        float* imageMemoryPersistent = nullptr;
+        float *imageMemory = nullptr;
+        float *imageMemoryCounter = nullptr;
+        float *imageMemoryPersistent = nullptr;
 
-        PinholeCamera* pinholeCamera = nullptr;
-        TransformComponent* cameraTransform = nullptr;
-        RenderInformation* renderInformation = nullptr;
+        PinholeCamera *pinholeCamera = nullptr;
+        TransformComponent *cameraTransform = nullptr;
+        RenderInformation *renderInformation = nullptr;
     };
 
     // Stored per photon
@@ -184,9 +185,15 @@ namespace VkRender::PathTracer {
             float geodesic = -1.0f;
             float betaContribution = 0.0f;
 
+            float rho = 0.0f;
+            float theta = 0.0f;
+            float a_theta = 0.0f;
+
             glm::vec3 localRayOrigin = glm::vec3(0.0f);
             glm::vec3 localRayDirection = glm::vec3(0.0f);
+            glm::vec2 hitLocal = glm::vec2(0.0f);
         };
+
         struct Bounce {
             //Properties:
             size_t quadricID = UINT64_MAX;

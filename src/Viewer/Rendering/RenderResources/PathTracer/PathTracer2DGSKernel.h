@@ -53,8 +53,8 @@ namespace VkRender::PathTracer {
             glm::vec3 rayDir = sampleCosineWeightedHemisphere(emitNormalLocal, photonID);
             glm::vec3 rayOrigin = emitPosLocal;
 
-            rayOrigin = glm::vec3(0.0f, 0.0f, 3);
-            rayDir = glm::normalize(glm::vec3(0.16667f, 0.001f, -1.0f));
+            //rayOrigin = glm::vec3(0.0f, 0.0f, 5);
+            //rayDir = glm::normalize(glm::vec3(0.05, 0., -1));
 
             float apertureDiameter = (m_camera->parameters().focalLength / m_camera->parameters().fNumber) / 1000;
             float apertureRadius = 0.0f;

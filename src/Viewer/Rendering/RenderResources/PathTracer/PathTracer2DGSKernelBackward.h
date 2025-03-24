@@ -206,6 +206,58 @@ namespace VkRender::PathTracer {
             float B = quadInfo.B;
             float discriminant = quadInfo.discriminant;
 
+            // Beta kernel derivative:
+            float gd = quadInfo.geodesic;
+            float p_tmp = 4* exp(quadric.b_beta);
+            float db_dgd = -2 * p_tmp * gd * std::pow((1-(gd * gd)), p_tmp - 1);
+
+            // Local hit coordinates
+            float x = quadInfo.hitLocal.x;
+            float y = quadInfo.hitLocal.y;
+            float rho   = quadInfo.rho;
+            float theta = quadInfo.theta;
+
+            // Precompute common denominators
+            float denom = x*x + y*y;
+            float twoAtRho = 2.0f * quadInfo.a_theta * rho;
+            float sqrtTerm = std::sqrt(1.0f + twoAtRho*twoAtRho);
+
+            // 1) dρ/dx, dρ/dy
+            float d_rho_x   = x / rho;
+            float d_rho_y   = y / rho;
+
+            // 2) dθ/dx, dθ/dy
+            float d_theta_x = -y / denom;
+            float d_theta_y =  x / denom;
+
+            // 3) d(aθ)/dθ
+            float a       = quadric.a;
+            float b       = quadric.b;
+            float c       = quadric.c;
+            float d_aθ_dθ = 2.0f * c * std::cos(theta) * std::sin(theta) *
+                            (alpha_y/(b*b) - alpha_x/(a*a));
+
+            // 4) d(gd)/dρ
+            float d_gd_drho = 0.5f * sqrtTerm
+                            + (rho * (4.0f * quadInfo.a_theta*quadInfo.a_theta * rho)) / (4.0f * sqrtTerm)
+                            + 0.5f / sqrtTerm;
+
+            // 5) d(gd)/d(aθ)
+            float d_gd_daθ = -1.0f/(4.0f * quadInfo.a_theta * quadInfo.a_theta) * std::asinh(twoAtRho)
+                            + (0.5f * rho) / (quadInfo.a_theta * sqrtTerm);
+
+            // 6) d(gd)/dx, d(gd)/dy
+            float d_gd_x = d_theta_x * d_gd_daθ * d_aθ_dθ + d_rho_x * d_gd_drho;
+            float d_gd_y = d_theta_y * d_gd_daθ * d_aθ_dθ + d_rho_y * d_gd_drho;
+
+            // 7) dβ/dx, dβ/dy
+            float d_beta_x = db_dgd * d_gd_x;
+            float d_beta_y = db_dgd * d_gd_y;
+
+            // Final 2‑D gradient in local quadric coordinates
+            glm::vec2 nabla_beta_xy(d_beta_x, d_beta_y);
+
+
             float closest_t = FLT_MAX;
             size_t hitEntity = 0;
             glm::vec3 hitPointWorld(0.0f);
@@ -337,6 +389,38 @@ namespace VkRender::PathTracer {
             m_gpuData.gradientPixelCoordinates[photonID] = glm::vec2(xPixel, yPixel);
             m_gpuData.photonIDGradient[photonID] = total_gradient;
 
+            // Precompute dZ/dx, dZ/dy on the local surface
+            float dZdx = 2.0f * quadric.c * alpha_x * quadInfo.hitLocal.x / (quadric.a * quadric.a);
+            float dZdy = 2.0f * quadric.c * alpha_y * quadInfo.hitLocal.y / (quadric.b * quadric.b);
+
+            // 1) ∂P/∂x and ∂P/∂y in world space
+            glm::vec3 dPdx_world = quadric2World * glm::vec3(1.0f, 0.0f, dZdx);
+            glm::vec3 dPdy_world = quadric2World * glm::vec3(0.0f, 1.0f, dZdy);
+
+            // 2) Transform into camera space (treating these as direction vectors → w=0)
+            glm::vec3 dPdx_cam = world2Camera * glm::vec4(dPdx_world, 0.0f);
+            glm::vec3 dPdy_cam = world2Camera * glm::vec4(dPdy_world, 0.0f);
+
+            // 3) Project into pixel space via your 2×3 J_uv_p_camera
+            glm::vec2 duv_dx = J_uv_pcam * dPdx_cam;
+            glm::vec2 duv_dy = J_uv_pcam * dPdy_cam;
+
+            // Assemble the 2×2 Jacobian J_uv_xy
+            glm::mat2 J_uv_xy(
+                duv_dx.x, duv_dy.x,
+                duv_dx.y, duv_dy.y
+            );
+
+            // 4) Invert & multiply by -∇_{xy}β
+            glm::mat2 invJ = glm::inverse(J_uv_xy);
+            glm::vec2 nabla_uv_beta = glm::transpose(invJ) * nabla_beta_xy;
+
+
+            int xPixelInt = std::round(xPixel);
+            int yPixelInt = std::round(yPixel);
+            size_t pixelIndex = yPixelInt * imageWidth + xPixelInt;
+            m_gpuData.gradientImageU[pixelIndex] = nabla_uv_beta.x;
+            m_gpuData.gradientImageV[pixelIndex] = nabla_uv_beta.y;
 
             switch (hitObjectID) {
                 case 0: {
@@ -693,6 +777,7 @@ namespace VkRender::PathTracer {
             float gtPixelU = (fx * px_gt / pz_gt) + cx;
             float gtPixelV = (fy * py_gt / pz_gt) + cy;
 
+            /*
             float dLoss = bilinearSample(m_gpuData.gradientImage,
                                          static_cast<int>(m_camera->parameters().width),
                                          static_cast<int>(m_camera->parameters().height),
@@ -700,6 +785,7 @@ namespace VkRender::PathTracer {
 
             if (dLoss == 0.0f)
                 return;
+                */
             /// Finding gradient of pixel projection to e0
 
             glm::vec3 grad_tg = -g_n / (glm::dot(e_d, g_n));
@@ -769,7 +855,7 @@ namespace VkRender::PathTracer {
             grad_geometry.y = (dLdu * J_uv_eo[1][0] + dLdv * J_uv_eo[1][1]);
             grad_geometry.z = (dLdu * J_uv_eo[2][0] + dLdv * J_uv_eo[2][1]);
 
-            glm::vec3 total_gradient = grad_geometry * dLoss;
+            //glm::vec3 total_gradient = grad_geometry * dLoss;
 
             // Atomically accum ulate the gradient.
             sycl::atomic_ref<float, sycl::memory_order::acq_rel,
@@ -779,9 +865,9 @@ namespace VkRender::PathTracer {
                     sum_y(m_gpuData.gaussianGradients[gaussianID].y),
                     sum_z(m_gpuData.gaussianGradients[gaussianID].z);
 
-            sum_x.fetch_add(total_gradient.x);
-            sum_y.fetch_add(total_gradient.y);
-            sum_z.fetch_add(total_gradient.z);
+            //sum_x.fetch_add(total_gradient.x);
+            //sum_y.fetch_add(total_gradient.y);
+            //sum_z.fetch_add(total_gradient.z);
         }
 
 
@@ -791,6 +877,8 @@ namespace VkRender::PathTracer {
         void traceOnePhotonDirectLighting(size_t photonID) const {
             if (!m_gpuDataOutput[photonID].hitCamera)
                 return;
+
+            /*
 
             auto camera2World = m_cameraTransform->getTransform();
             glm::mat4 world2Camera = glm::inverse(camera2World);
@@ -986,6 +1074,8 @@ namespace VkRender::PathTracer {
             sum_x.fetch_add(grad_total.x);
             sum_y.fetch_add(grad_total.y);
             sum_z.fetch_add(grad_total.z);
+            */
+
         }
 
         /*

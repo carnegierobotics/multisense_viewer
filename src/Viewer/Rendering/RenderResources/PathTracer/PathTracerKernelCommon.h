@@ -7,7 +7,7 @@
 
 namespace VkRender::PathTracer {
 
-    inline float calculateGeodesic(const glm::vec3 hitLocal, const QuadricInputAssembly& quadric, float alphaX, float alphaY) {
+    inline float calculateGeodesic(const glm::vec3 hitLocal, const QuadricInputAssembly& quadric, float alphaX, float alphaY, GPUDataOutput::QuadraticInfo* quadInfo = nullptr) {
         float rho = sqrtf(std::pow(hitLocal.x, 2.0f) + std::pow(hitLocal.y, 2.0f));
         float theta = atan2f(hitLocal.y, hitLocal.x);
 
@@ -29,6 +29,14 @@ namespace VkRender::PathTracer {
             // When a(θ) is nearly zero, use Euclidean distance.
             geodesicDist = rho;
         }
+
+        if (quadInfo) {
+            quadInfo->rho = rho;
+            quadInfo->theta = theta;
+            quadInfo->a_theta = a_theta;
+            quadInfo->geodesic = geodesicDist;
+        }
+
         return geodesicDist;
 
         // Square distance function
@@ -175,6 +183,7 @@ namespace VkRender::PathTracer {
         glm::vec4 hitW4 = quadric.transform.getTransform() * glm::vec4(hitLocal, 1.0f);
         hitWorld = glm::vec3(hitW4) / hitW4.w;
 
+        quadraticInfo.hitLocal = {hitLocal.x, hitLocal.y};
 
         // Check if hitLocal is within valid (x,y) bounds.
         if (hitLocal.x < quadric.min.x || hitLocal.x > quadric.max.x)
@@ -182,11 +191,9 @@ namespace VkRender::PathTracer {
         if (hitLocal.y < quadric.min.y || hitLocal.y > quadric.max.y)
             return false;
 
-
         // Evaluate the beta kernel.
-        float geodesicDist = calculateGeodesic(hitLocal, quadric, alphaX, alphaY);
+        float geodesicDist = calculateGeodesic(hitLocal, quadric, alphaX, alphaY, &quadraticInfo);
 
-        quadraticInfo.geodesic = geodesicDist;
         float r = geodesicDist / quadric.kernelScale;
         auto betaKernel = [&](float r, float bExp) -> float {
             if (r > 1.0f)

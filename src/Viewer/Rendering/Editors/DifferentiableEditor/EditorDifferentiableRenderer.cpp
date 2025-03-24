@@ -251,8 +251,8 @@ namespace VkRender {
 
 
                     // Compute loss
-                    auto loss = torch::mean(torch::abs(targetTensor - m_accumulatedTensor));
-                    //auto loss = torch::mean(torch::pow(targetTensor - m_accumulatedTensor, 2));
+                    //auto loss = torch::mean(torch::abs(targetTensor - m_accumulatedTensor));
+                    auto loss = torch::mean(torch::pow(targetTensor - m_accumulatedTensor, 2));
 
                     // Backward
                     loss.backward();

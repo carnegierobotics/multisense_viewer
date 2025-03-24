@@ -34,6 +34,7 @@ namespace VkRender::PathTracer {
         m_backwardInfo.gradientImagePerObject =new float[pipelineSettings.width * pipelineSettings.height];
         m_backwardInfo.gradientImageHoriz =new float[pipelineSettings.width * pipelineSettings.height];
         m_backwardInfo.gradientImageVert =new float[pipelineSettings.width * pipelineSettings.height];
+        m_backwardInfo.pixelHitCounter =new float[pipelineSettings.width * pipelineSettings.height];
 
         Log::Logger::getInstance()->info(
             "PathTracer created, Propterties: PhotonCount: {}, Bounces: {}, Image Size: {}x{}",
@@ -113,8 +114,8 @@ namespace VkRender::PathTracer {
 
             // Retrieve updated information from GPU
             queue.memcpy(m_renderInformation.get(), m_gpu.renderInformation, sizeof(RenderInformation));
-            queue.memcpy(m_imageMemory, m_gpu.imageMemoryPersistent,
-                         m_pipelineSettings.width * m_pipelineSettings.height * sizeof(float));
+            queue.memcpy(m_imageMemory, m_gpu.imageMemoryPersistent, m_pipelineSettings.width * m_pipelineSettings.height * sizeof(float));
+            queue.memcpy(m_backwardInfo.pixelHitCounter, m_gpu.imageMemoryCounter, m_pipelineSettings.width * m_pipelineSettings.height * sizeof(float));
             queue.wait();
 
 
@@ -863,6 +864,10 @@ namespace VkRender::PathTracer {
         if (m_backwardInfo.gradientImageVert) {
             delete[] m_backwardInfo.gradientImageVert;
             Log::Logger::getInstance()->trace("Freed CPU Memory: gradientImageVert");
+        }
+        if (m_backwardInfo.pixelHitCounter) {
+            delete[] m_backwardInfo.pixelHitCounter;
+            Log::Logger::getInstance()->trace("Freed CPU Memory: pixelHitCounter");
         }
         freeResources();
     }

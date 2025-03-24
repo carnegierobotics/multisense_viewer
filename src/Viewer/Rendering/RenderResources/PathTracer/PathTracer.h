@@ -61,6 +61,7 @@ namespace VkRender::PathTracer {
             float* gradientImageHoriz = nullptr;
             float* gradientImageVert = nullptr;
             float* gradientImagePerObject = nullptr;
+            float* pixelHitCounter = nullptr;
         };
 
         struct BVHLeaf {

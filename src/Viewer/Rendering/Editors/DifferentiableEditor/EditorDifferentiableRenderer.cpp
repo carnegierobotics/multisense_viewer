@@ -9,6 +9,10 @@
 #include "Viewer/Rendering/Editors/DifferentiableEditor/EditorDifferentiableRendererLayerUI.h"
 
 #include <OpenImageDenoise/oidn.hpp>
+
+#include <Viewer/Rendering/Components/ScriptableComponent.h>
+#include <Viewer/Scripts/Rays/GradientRay.h>
+
 #include <yaml-cpp/yaml.h>
 
 namespace VkRender {
@@ -204,7 +208,7 @@ namespace VkRender {
                 pathTracerIterationInfo.cameraName = m_context->activeScene()->getActiveCameraEntity().getName();
                 pathTracerIterationInfo.denoise = imageUI->denoise;
                 // Forward pass (autograd-compatible)
-                m_accumulatedTensor = m_photonRebuildModule->forward(pathTracerIterationInfo);
+                m_accumulatedTensor = m_photonRebuildModule->forward(&pathTracerIterationInfo);
                 m_numAccumulated++;
 
                 // Optionally retrieve the float* for real-time display
@@ -226,7 +230,8 @@ namespace VkRender {
                     convertedImage[i * 4 + 3] = 255;
                 }
                 m_colorTexture->loadImage(convertedImage.data(), convertedImage.size());
-                Log::Logger::getInstance()->info("Forward pass no: {}/{}, Using Camera: {}",m_numAccumulated, m_pathTracer->getPipelineSettings().numFrames,
+                Log::Logger::getInstance()->info("Forward pass no: {}/{}, Using Camera: {}", m_numAccumulated,
+                                                 m_pathTracer->getPipelineSettings().numFrames,
                                                  m_context->activeScene()->getActiveCameraEntity().getName());
                 // Backpropagate -- OPTIMIZATION STEP --
 
@@ -278,6 +283,9 @@ namespace VkRender {
                     auto gradScales = m_photonRebuildModule->m_tensorData.scales.grad();
                     auto gradNormals = m_photonRebuildModule->m_tensorData.normals.grad();
 
+                    auto quadricPositions = m_photonRebuildModule->m_tensorData.quadricPositions.clone();
+                    auto quadricGradients = m_photonRebuildModule->m_tensorData.quadricPositions.grad().clone();
+
                     //m_lastIteration.positionGradient = glm::vec3(positions[0][0].item<float>(),
                     //                                             positions[0][1].item<float>(),
                     //                                             positions[0][2].item<float>());
@@ -306,6 +314,25 @@ namespace VkRender {
                             << ssim_val << ", "
                             << psnr_val << "\n";
                     csvFile.close();
+
+
+                    // Update the scene
+                    auto &gradients = pathTracerIterationInfo.gradients;
+                    auto vectors = m_context->activeScene()->getEntityByName("EntityGradients");
+                    if (vectors) {
+                        if (vectors.hasComponent<ScriptableComponent>()) {
+                            auto &script = vectors.getComponent<ScriptableComponent>();
+                            if (script.instance) {
+                                auto *gradientScript = reinterpret_cast<GradientRay *>(script.instance);
+                                gradientScript->ray = -glm::vec3(quadricGradients[0][0].item<float>(),
+                                                                   quadricGradients[0][1].item<float>(),
+                                                                   quadricGradients[0][2].item<float>());
+                                gradientScript->origin = glm::vec3(quadricPositions[0][0].item<float>(),
+                                                                   quadricPositions[0][1].item<float>(),
+                                                                   quadricPositions[0][2].item<float>());
+                            }
+                        }
+                    }
                 }
             } else {
                 Log::Logger::getInstance()->warning("Image size Mismatch! Texture: {}x{}, Camera: {}x{}",
@@ -322,11 +349,10 @@ namespace VkRender {
                     m_context);
             }
         }
-
     }
 
 
-    float EditorDifferentiableRenderer::computeSSIM(const torch::Tensor& img1, const torch::Tensor& img2) {
+    float EditorDifferentiableRenderer::computeSSIM(const torch::Tensor &img1, const torch::Tensor &img2) {
         // Constants for SSIM
         const float C1 = 0.01f * 0.01f;
         const float C2 = 0.03f * 0.03f;

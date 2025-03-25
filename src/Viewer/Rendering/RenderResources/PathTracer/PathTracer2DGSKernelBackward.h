@@ -124,6 +124,8 @@ namespace VkRender::PathTracer {
             */
 
             auto &quadric = m_gpuData.quadricInputAssembly[hitObjectID];
+
+            /*
             float closest_t = FLT_MAX;
             size_t hitEntity = 0;
             glm::vec3 hitPointWorld(0.0f);
@@ -140,6 +142,7 @@ namespace VkRender::PathTracer {
                                                    hitNormalWorld, betaContribution, info, true);
             if (hit)
                 return;
+            */
 
 
             float xPixel = object.pixelCoordinate.x;
@@ -330,6 +333,15 @@ namespace VkRender::PathTracer {
             float p_tmp = 4* exp(quadric.b_beta);
             float db_dgd = -2 * p_tmp * gd * std::pow((1-(gd * gd)), p_tmp - 1);
 
+
+            /*
+            if (base <= 0.0f) {
+                db_dgd = 0.0f;
+            } else {
+                float p_tmp = 4.0f * std::exp(quadric.b_beta);
+                db_dgd = -2.0f * p_tmp * gd * std::pow(base, p_tmp - 1.0f);
+            }
+            */
             // Local hit coordinates
             float x = quadInfo.hitLocal.x;
             float y = quadInfo.hitLocal.y;

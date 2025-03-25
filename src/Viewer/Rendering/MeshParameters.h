@@ -78,7 +78,7 @@ namespace VkRender {
         float threshold   = 0.1f;   // radial kernel threshold
         float kernelScale = 1.0f;   // normalizes the radial coordinate
 
-        float circularity = 0.0f;
+        float circularity = 1.0f;
 
         std::string getIdentifier() const override {
             // Generate a unique identifier based on parameters

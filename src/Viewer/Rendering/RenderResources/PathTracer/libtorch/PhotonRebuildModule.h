@@ -20,7 +20,7 @@ namespace VkRender::PathTracer {
 
 
         // forward() will trigger a ray trace and return an image tensor
-        torch::Tensor forward(IterationInfo i);
+        torch::Tensor forward(IterationInfo* i);
 
         float* getRenderedImage();
         void freeData();

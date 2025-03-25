@@ -13,6 +13,7 @@
 #include <Viewer/Scripts/VectorScripts.h>
 #include <Viewer/Scripts/Rays/ContributionRay.h>
 #include <Viewer/Scripts/Rays/Emitter.h>
+#include <Viewer/Scripts/Rays/GradientRay.h>
 #include <Viewer/Scripts/Rays/SurfaceNormal.h>
 
 #include "Viewer/Scenes/CameraController.h"
@@ -1050,6 +1051,8 @@ namespace VkRender {
                         scriptComp.bind<ContributionRay>();
                     }else if (storedScriptName == std::string(getTypeName<SurfaceNormal>())) {
                         scriptComp.bind<SurfaceNormal>();
+                    }else if (storedScriptName == std::string(getTypeName<GradientRay>())) {
+                        scriptComp.bind<GradientRay>();
                     }
                 }
 

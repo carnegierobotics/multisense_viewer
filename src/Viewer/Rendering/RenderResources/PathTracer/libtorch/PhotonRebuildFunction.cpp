@@ -233,7 +233,7 @@ namespace VkRender::PathTracer {
     }
 
     torch::Tensor PhotonRebuildFunction::forward(torch::autograd::AutogradContext *ctx,
-                                                 IterationInfo &iterationInfo, PhotonTracer *pathTracer,
+                                                 IterationInfo* iterationInfo, PhotonTracer *pathTracer,
                                                  torch::Tensor positions, torch::Tensor scales,
                                                  torch::Tensor normals, torch::Tensor emissions,
                                                  torch::Tensor colors,
@@ -254,7 +254,7 @@ namespace VkRender::PathTracer {
 
         // If you have non-tensor data you want in backward(), you can store
         // them as attributes:
-        ctx->saved_data["IterationInfo"] = reinterpret_cast<int64_t>(&iterationInfo); // example
+        ctx->saved_data["IterationInfo"] = reinterpret_cast<int64_t>(iterationInfo); // example
         // or store the pointer as a raw pointer or shared pointer if you prefer
         // (but be careful with lifetimes).
 
@@ -263,7 +263,7 @@ namespace VkRender::PathTracer {
 
         // Example pseudo-code:
 
-        pathTracer->update(iterationInfo.renderSettings);
+        pathTracer->update(iterationInfo->renderSettings);
 
 
         // For illustration:
@@ -273,7 +273,7 @@ namespace VkRender::PathTracer {
         float *rawImage = pathTracer->getImage();
 
         std::vector<float> denoisedImage;
-        if (iterationInfo.denoise) {
+        if (iterationInfo->denoise) {
             denoiseImage(rawImage, width, height, denoisedImage);
             rawImage = denoisedImage.data();
         }
@@ -695,11 +695,12 @@ void applySobelFilter(const float* image, int width, int height,
         std::vector<glm::vec3> collectedGradients(pathTracer->getPipelineSettings().photonCount);
         glm::vec3 summedGradient = glm::vec3(0.0f);
 
+        std::vector<glm::vec3 > gradientPerEntity(gradientQuadricPositions.size(0), glm::vec3(0.0f));
 
         int numEntities = gradientQuadricPositions.size(0);
-        std::vector<glm::vec3 > gradientPerEntity(gradientQuadricPositions.size(0), glm::vec3(0.0f));
         std::vector<int > pixelGradientsCounter;
         int numGradientsSummed = 0;
+        std::vector<glm::vec2> screenSpaceGradient(gradientQuadricPositions.size(0), glm::vec2(0.0f));
         for (int i = 0; i < pathTracer->getPipelineSettings().photonCount; ++i) {
             glm::mat3 grad = gradients.photonIDGradient[i];
             glm::vec2 gradCoords = gradients.gradientPixelCoordinates[i];
@@ -720,24 +721,27 @@ void applySobelFilter(const float* image, int width, int height,
             float mseLoss = mseImage[pixelIndex];
             float gradU = gradients.gradientImageHoriz[pixelIndex];
             float gradV = gradients.gradientImageVert[pixelIndex];
+            //float gradV = 0.0f;
 
             glm::vec2 dI_duv(gradU, gradV);
+            screenSpaceGradient[entityID] += dI_duv;
 
-            glm::vec2 dL_duv = mseLoss * dI_duv;
-
-            glm::vec3 res;
-            res.x = dL_duv.x * dU_dPos.x + dL_duv.y * dV_dPos.x;
-            res.y = dL_duv.x * dU_dPos.y + dL_duv.y * dV_dPos.y;
-            res.z = dL_duv.x * dU_dPos.z + dL_duv.y * dV_dPos.z;
-
+            glm::vec3 res(0.0f);
+            res.x = dI_duv.x * dU_dPos.x + dI_duv.y * dV_dPos.x;
+            res.y = dI_duv.x * dU_dPos.y + dI_duv.y * dV_dPos.y;
+            res.z = dI_duv.x * dU_dPos.z + dI_duv.y * dV_dPos.z;
             // Now, add the transformed gradient to the entity's gradient accumulator:
-            gradientPerEntity[entityID] += res;
+            gradientPerEntity[entityID] += res * mseLoss;
 
             collectedGradients[i] = res;
             summedGradient += res;
             numGradientsSummed++;
         }
 
+        // Save Screen Space Gradient:
+
+        iterationInfo->gradients.entityGradients.resize( gradientQuadricPositions.size(0));
+        iterationInfo->gradients.screenSpaceGradients.resize( gradientQuadricPositions.size(0));
         for (int i = 0; i < gradientQuadricPositions.size(0); ++i) {
             float grad_x = gradientPerEntity[i].x ;
             float grad_y = gradientPerEntity[i].y ;
@@ -745,6 +749,9 @@ void applySobelFilter(const float* image, int width, int height,
             gradQuadPosA[i][0] = grad_x;
             gradQuadPosA[i][1] = grad_y;
             gradQuadPosA[i][2] = grad_z;
+
+            iterationInfo->gradients.entityGradients[i] = gradientPerEntity[i];
+            iterationInfo->gradients.screenSpaceGradients[i] = screenSpaceGradient[i];
 
         }
 

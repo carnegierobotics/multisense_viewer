@@ -246,6 +246,7 @@ set(SOURCE_FILES
         src/Viewer/Scripts/Rays/Ray.cpp
         src/Viewer/Scripts/Rays/ContributionRay.cpp
         src/Viewer/Scripts/Rays/SurfaceNormal.cpp
+        src/Viewer/Scripts/Rays/GradientRay.cpp
 
         src/Viewer/Rendering/Components/ImageComponent.cpp
         src/Viewer/Rendering/Components/PointCloudComponent.h

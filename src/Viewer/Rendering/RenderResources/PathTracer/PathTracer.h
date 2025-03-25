@@ -158,11 +158,17 @@ namespace VkRender::PathTracer {
 #endif
 
 
+    struct GradientInfo {
+        std::vector<glm::vec2> screenSpaceGradients;
+        std::vector<glm::vec3> entityGradients;
+    };
     struct IterationInfo {
         PathTracer::PhotonTracer::RenderSettings renderSettings;
         uint32_t iteration = 0;
         bool denoise = false;
         std::string cameraName;
+
+        GradientInfo gradients;
     };
 }
 

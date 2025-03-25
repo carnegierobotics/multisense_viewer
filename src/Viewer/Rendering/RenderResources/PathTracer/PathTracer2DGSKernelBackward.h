@@ -114,6 +114,7 @@ namespace VkRender::PathTracer {
                 return;
             }
 
+
             /*
             glm::vec3 a_d = glm::normalize(a_c - g_hit);
             float a_tmin = glm::dot((f - g_hit), f_n) / (glm::dot(a_d, f_n));
@@ -123,6 +124,23 @@ namespace VkRender::PathTracer {
             */
 
             auto &quadric = m_gpuData.quadricInputAssembly[hitObjectID];
+            float closest_t = FLT_MAX;
+            size_t hitEntity = 0;
+            glm::vec3 hitPointWorld(0.0f);
+            glm::vec3 hitNormalWorld(0.0f);
+
+            glm::vec3 delta = a_c - quadric.transform.getPosition();
+            glm::vec3 ad_qc = glm::normalize(delta);
+            float betaContribution = 0.0f;
+            GPUDataOutput::QuadraticInfo info;
+            // check intersection with geometry
+            bool hit = geometryIntersectionQuadric(gaussianID, quadric.transform.getPosition(), ad_qc, hitEntity,
+                                                   closest_t,
+                                                   hitPointWorld,
+                                                   hitNormalWorld, betaContribution, info, true);
+            if (hit)
+                return;
+
 
             float xPixel = object.pixelCoordinate.x;
             float yPixel = object.pixelCoordinate.y;
@@ -205,95 +223,13 @@ namespace VkRender::PathTracer {
             float A = quadInfo.A;
             float B = quadInfo.B;
             float discriminant = quadInfo.discriminant;
-
-            // Beta kernel derivative:
-            float gd = quadInfo.geodesic;
-            float p_tmp = 4* exp(quadric.b_beta);
-            float db_dgd = -2 * p_tmp * gd * std::pow((1-(gd * gd)), p_tmp - 1);
-
-            // Local hit coordinates
-            float x = quadInfo.hitLocal.x;
-            float y = quadInfo.hitLocal.y;
-            float rho   = quadInfo.rho;
-            float theta = quadInfo.theta;
-
-            // Precompute common denominators
-            float denom = x*x + y*y;
-            float twoAtRho = 2.0f * quadInfo.a_theta * rho;
-            float sqrtTerm = std::sqrt(1.0f + twoAtRho*twoAtRho);
-
-            // 1) dρ/dx, dρ/dy
-            float d_rho_x   = x / rho;
-            float d_rho_y   = y / rho;
-
-            // 2) dθ/dx, dθ/dy
-            float d_theta_x = -y / denom;
-            float d_theta_y =  x / denom;
-
-            // 3) d(aθ)/dθ
-            float a       = quadric.a;
-            float b       = quadric.b;
-            float c       = quadric.c;
-            float d_aθ_dθ = 2.0f * c * std::cos(theta) * std::sin(theta) *
-                            (alpha_y/(b*b) - alpha_x/(a*a));
-
-            // 4) d(gd)/dρ
-            float d_gd_drho = 0.5f * sqrtTerm
-                            + (rho * (4.0f * quadInfo.a_theta*quadInfo.a_theta * rho)) / (4.0f * sqrtTerm)
-                            + 0.5f / sqrtTerm;
-
-            // 5) d(gd)/d(aθ)
-            float d_gd_daθ = -1.0f/(4.0f * quadInfo.a_theta * quadInfo.a_theta) * std::asinh(twoAtRho)
-                            + (0.5f * rho) / (quadInfo.a_theta * sqrtTerm);
-
-            // 6) d(gd)/dx, d(gd)/dy
-            float d_gd_x = d_theta_x * d_gd_daθ * d_aθ_dθ + d_rho_x * d_gd_drho;
-            float d_gd_y = d_theta_y * d_gd_daθ * d_aθ_dθ + d_rho_y * d_gd_drho;
-
-            // 7) dβ/dx, dβ/dy
-            float d_beta_x = db_dgd * d_gd_x;
-            float d_beta_y = db_dgd * d_gd_y;
-
-            // Final 2‑D gradient in local quadric coordinates
-            glm::vec2 nabla_beta_xy(d_beta_x, d_beta_y);
-
-
-            float closest_t = FLT_MAX;
-            size_t hitEntity = 0;
-            glm::vec3 hitPointWorld(0.0f);
-            glm::vec3 hitNormalWorld(0.0f);
-
-            glm::vec3 delta = a_c - quadric.transform.getPosition();
-            glm::vec3 ad_qc = glm::normalize(delta);
-            float betaContribution = 0.0f;
-            GPUDataOutput::QuadraticInfo info;
-            // check intersection with geometry
-
-            bool hit = geometryIntersectionQuadric(gaussianID, quadric.transform.getPosition(), ad_qc, hitEntity,
-                                                   closest_t,
-                                                   hitPointWorld,
-                                                   hitNormalWorld, betaContribution, info, true);
-            if (hit)
-                return;
-
-
             // Transform the local hit point back to world space.
             if (abs(A) < std::numeric_limits<float>::epsilon() || discriminant < std::numeric_limits<float>::epsilon()
                 || quadInfo.rootIndex == -1) {
-                /*
-                for (int i = 0; i < 3; ++i) {
-                    for (int j = 0; j < 3; ++j) {
-                        sycl::atomic_ref<float,
-                                           sycl::memory_order::acq_rel,
-                                           sycl::memory_scope::device,
-                                           sycl::access::address_space::global_space>
-                            atom(m_gpuData.quadricGradients[hitObjectID][i][j]);
-                        atom.store(NAN);
-                    }
-                }
-                */
                 return;
-            }
+                }
+
+
             // We now compute the gradient (jacobian) of our hit point and subsequent losses with respect to q_c.
             // --- (1) Gradients of B and C with respect to q_c ---
             glm::vec3 grad_B_eo;
@@ -389,6 +325,57 @@ namespace VkRender::PathTracer {
             m_gpuData.gradientPixelCoordinates[photonID] = glm::vec2(xPixel, yPixel);
             m_gpuData.photonIDGradient[photonID] = total_gradient;
 
+                        // Beta kernel derivative:
+            float gd = quadInfo.geodesic;
+            float p_tmp = 4* exp(quadric.b_beta);
+            float db_dgd = -2 * p_tmp * gd * std::pow((1-(gd * gd)), p_tmp - 1);
+
+            // Local hit coordinates
+            float x = quadInfo.hitLocal.x;
+            float y = quadInfo.hitLocal.y;
+            float rho   = quadInfo.rho;
+            float theta = quadInfo.theta;
+
+            // Precompute common denominators
+            float denom = x*x + y*y;
+            float twoAtRho = 2.0f * quadInfo.a_theta * rho;
+            float sqrtTerm = std::sqrt(1.0f + twoAtRho*twoAtRho);
+
+            // 1) dρ/dx, dρ/dy
+            float d_rho_x   = x / rho;
+            float d_rho_y   = y / rho;
+
+            // 2) dθ/dx, dθ/dy
+            float d_theta_x = -y / denom;
+            float d_theta_y =  x / denom;
+
+            // 3) d(aθ)/dθ
+            float a       = quadric.a;
+            float b       = quadric.b;
+            float c       = quadric.c;
+            float d_aθ_dθ = 2.0f * c * std::cos(theta) * std::sin(theta) *
+                            (alpha_y/(b*b) - alpha_x/(a*a));
+
+            // 4) d(gd)/dρ
+            float d_gd_drho = 0.5f * sqrtTerm
+                            + (rho * (4.0f * quadInfo.a_theta*quadInfo.a_theta * rho)) / (4.0f * sqrtTerm)
+                            + 0.5f / sqrtTerm;
+
+            // 5) d(gd)/d(aθ)
+            float d_gd_daθ = -1.0f/(4.0f * quadInfo.a_theta * quadInfo.a_theta) * std::asinh(twoAtRho)
+                            + (0.5f * rho) / (quadInfo.a_theta * sqrtTerm);
+
+            // 6) d(gd)/dx, d(gd)/dy
+            float d_gd_x = d_theta_x * d_gd_daθ * d_aθ_dθ + d_rho_x * d_gd_drho;
+            float d_gd_y = d_theta_y * d_gd_daθ * d_aθ_dθ + d_rho_y * d_gd_drho;
+
+            // 7) dβ/dx, dβ/dy
+            float d_beta_x = db_dgd * d_gd_x;
+            float d_beta_y = db_dgd * d_gd_y;
+
+            // Final 2‑D gradient in local quadric coordinates
+            glm::vec2 nabla_beta_xy(d_beta_x, d_beta_y);
+
             // Precompute dZ/dx, dZ/dy on the local surface
             float dZdx = 2.0f * quadric.c * alpha_x * quadInfo.hitLocal.x / (quadric.a * quadric.a);
             float dZdy = 2.0f * quadric.c * alpha_y * quadInfo.hitLocal.y / (quadric.b * quadric.b);
@@ -413,7 +400,7 @@ namespace VkRender::PathTracer {
 
             // 4) Invert & multiply by -∇_{xy}β
             glm::mat2 invJ = glm::inverse(J_uv_xy);
-            glm::vec2 nabla_uv_beta = glm::transpose(invJ) * nabla_beta_xy;
+            glm::vec2 nabla_uv_beta = invJ * nabla_beta_xy;
 
 
             int xPixelInt = std::round(xPixel);
@@ -422,6 +409,9 @@ namespace VkRender::PathTracer {
             m_gpuData.gradientImageU[pixelIndex] = nabla_uv_beta.x;
             m_gpuData.gradientImageV[pixelIndex] = nabla_uv_beta.y;
 
+            if (nabla_uv_beta.x < -10.0f || nabla_uv_beta.y < -10.0f) {
+                int debug = 1;
+            }
             switch (hitObjectID) {
                 case 0: {
                     int debug = 1;

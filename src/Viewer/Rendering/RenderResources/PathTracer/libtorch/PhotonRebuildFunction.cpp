@@ -698,6 +698,7 @@ void applySobelFilter(const float* image, int width, int height,
 
         int numEntities = gradientQuadricPositions.size(0);
         std::vector<glm::vec3 > gradientPerEntity(gradientQuadricPositions.size(0), glm::vec3(0.0f));
+        std::vector<int > pixelGradientsCounter;
         int numGradientsSummed = 0;
         for (int i = 0; i < pathTracer->getPipelineSettings().photonCount; ++i) {
             glm::mat3 grad = gradients.photonIDGradient[i];

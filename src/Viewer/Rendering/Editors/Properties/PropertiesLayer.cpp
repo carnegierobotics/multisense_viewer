@@ -12,6 +12,7 @@
 #include <Viewer/Scripts/Rays/ContributionRay.h>
 #include <Viewer/Scripts/Rays/Emitter.h>
 #include <Viewer/Scripts/Rays/GradientRay.h>
+#include <Viewer/Scripts/Rays/IntensityGradientRay.h>
 #include <Viewer/Scripts/Rays/SurfaceNormal.h>
 
 #include "Viewer/Rendering/Components/GaussianComponent.h"
@@ -424,7 +425,8 @@ namespace VkRender {
                 "Emitter",
                 "SurfaceNormal",
                 "ContributionRay",
-                "GradientRay"
+                "GradientRay",
+                "IntensityGradientRay",
             };
 
             static int selectedIndex = 0; // holds the currently selected controller index
@@ -461,6 +463,8 @@ namespace VkRender {
                     entity.getComponent<ScriptableComponent>().bind<SurfaceNormal>();
                 } else if (controllers[selectedIndex] == "GradientRay") {
                     entity.getComponent<ScriptableComponent>().bind<GradientRay>();
+                } else if (controllers[selectedIndex] == "IntensityGradientRay") {
+                    entity.getComponent<ScriptableComponent>().bind<IntensityGradientRay>();
                 }
             }
         });

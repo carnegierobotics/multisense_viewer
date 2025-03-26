@@ -64,14 +64,11 @@ namespace VkRender {
         PathTracer::PhotonTracer::PipelineSettings pipelineSettings(syclDevice, width, height);
 
         //std::filesystem::path ;
-        std::filesystem::path datasetPath = "/home/magnus/datasets/PathTracingGS";
-        if (!std::filesystem::exists(datasetPath)) {
-            datasetPath = "/home/magnus-desktop/datasets/PhotonRebuild";
-        }
-        std::filesystem::path baseDir = datasetPath / "active";
+        std::filesystem::path datasetPath = "output/";
+
 
         std::filesystem::path filePath;
-        for (const auto &entry: std::filesystem::recursive_directory_iterator(baseDir)) {
+        for (const auto &entry: std::filesystem::directory_iterator(datasetPath)) {
             std::string filename = entry.path().filename().string();
             if (filename.find("render_info") != std::string::npos && filename.ends_with(".yaml")) {
                 filePath = entry.path(); // Return the first matching file
@@ -238,16 +235,11 @@ namespace VkRender {
                 if (m_numAccumulated >= m_pathTracer->getPipelineSettings().numFrames) {
                     // Load the target tensor
 
+                    std::filesystem::path datasetPath = "output/";
 
-                    std::filesystem::path datasetPath = "/home/magnus/datasets/PathTracingGS";
-                    if (!std::filesystem::exists(datasetPath)) {
-                        datasetPath = "/home/magnus-desktop/datasets/PhotonRebuild";
-                    }
-
-                    std::filesystem::path basePath = datasetPath / "active";
                     std::filesystem::path gtFileName;
 
-                    gtFileName = basePath / (m_context->activeScene()->getActiveCameraEntity().getName() + ".pfm");
+                    gtFileName = datasetPath / (m_context->activeScene()->getActiveCameraEntity().getName() + ".pfm");
 
 
                     Log::Logger::getInstance()->info("Rendered iteration: {}: gt file: {}", m_stepIteration,

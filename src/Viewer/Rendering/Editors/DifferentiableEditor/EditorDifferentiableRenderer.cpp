@@ -502,7 +502,7 @@ namespace VkRender {
         std::string header;
         file >> header;
         if (header != "Pf") {
-            throw std::runtime_error("Unsupported PFM format (only RGB 'Pf' supported). Got: " + header);
+            //throw std::runtime_error("Unsupported PFM format (only RGB 'Pf' supported). Got: " + header);
         }
 
         int width, height;

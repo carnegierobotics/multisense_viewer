@@ -14,8 +14,21 @@ namespace VkRender {
 
 
     bool UbuntuKeyInput::isKeyPressedImpl(int keyCode) {
-        auto glfwWindow = VkRender::Application::instance().getWindow();
+        auto glfwWindow = Application::instance().getWindow();
         auto state = glfwGetKey(glfwWindow, keyCode);
         return state == GLFW_PRESS || state == GLFW_REPEAT;
     }
+
+
+    bool UbuntuKeyInput::isKeyClickedImpl(int keyCode) {
+        auto glfwWindow = Application::instance().getWindow();
+        auto currentState = glfwGetKey(glfwWindow, keyCode) == GLFW_PRESS;
+
+        bool wasPressedBefore = previousKeyStates[keyCode];
+        previousKeyStates[keyCode] = currentState;
+
+        return currentState && !wasPressedBefore;
+    }
+
+
 }

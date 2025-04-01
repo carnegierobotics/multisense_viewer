@@ -113,6 +113,7 @@ namespace VkRender {
                 float xPixel = (fx * X / Z) + cx;
                 float yPixel = (fy * Y / Z) + cy;
 
+                uv0 = glm::vec2(xPixel, yPixel);
 
                 cylinder->setOrigin(hitPosition);
                 cylinder->setDirection(direction);

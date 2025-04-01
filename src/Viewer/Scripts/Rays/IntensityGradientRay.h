@@ -10,8 +10,16 @@
 #include "Viewer/Scenes/ScriptableEntity.h"
 
 namespace VkRender {
+    class ContributionRay;
+}
+
+namespace VkRender {
     class IntensityGradientRay : ScriptableEntity {
         TransformComponent *transform = nullptr;
+
+        ContributionRay *contributionRay = nullptr;
+        glm::vec3 directionCamera = glm::vec3(0.0f);
+        glm::vec2 uv0 = glm::vec2(0.0f);
 
     public:
         void onUpdate(Timestep ts) override;

@@ -52,9 +52,13 @@ namespace VkRender {
         inline static bool isKeyPressed(int keyCode) {
             return s_instance->isKeyPressedImpl(keyCode);
         }
+        inline static bool isKeyClicked(int keyCode) {
+            return s_instance->isKeyClickedImpl(keyCode);
+        }
 
-    protected:
+    private:
         virtual bool isKeyPressedImpl(int keyCode) =0;
+        virtual bool isKeyClickedImpl(int keyCode) =0;
 
     private:
         static Input *s_instance;

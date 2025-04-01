@@ -5,15 +5,18 @@
 #ifndef UBUNTUKEYINPUT_H
 #define UBUNTUKEYINPUT_H
 
+#include <unordered_map>
+
 #include "Viewer/Rendering/Core/KeyInput.h"
 
 
 namespace VkRender {
     class UbuntuKeyInput : public Input {
-    public:
 
-    protected:
+    std::unordered_map<int, bool> previousKeyStates;
+
         bool isKeyPressedImpl(int keyCode) override;
+        bool isKeyClickedImpl(int keyCode) override;
     };
 }
 

@@ -14,7 +14,10 @@ namespace VkRender {
         int quadricIndex = 0;
         Emitter* emitter = nullptr;
 
+
     public:
+        glm::vec2 uv0 = glm::vec2(0.0f);
+
         void onUpdate(Timestep ts) override;
 
         void onDestroy() override;

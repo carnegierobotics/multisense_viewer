@@ -592,6 +592,11 @@ void applySobelFilter(const float* image, int width, int height,
         std::filesystem::path mseGradientImagePath =
                 "./debug/mse_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + ".png";
         save_gradient_to_png(dLoss_dRenderedImage, mseGradientImagePath);
+
+        std::filesystem::path mseGradientImagePath2 =
+        "./debug/mse_image/all/" + std::to_string(iterationInfo->iteration) + ".png";
+        save_gradient_to_png(dLoss_dRenderedImage, mseGradientImagePath2);
+
         auto gradients = pathTracer->backward(iterationInfo->renderSettings);
         float* mseImage = dLoss_dRenderedImage.data_ptr<float>();
         float *image = pathTracer->getImage();
@@ -599,65 +604,6 @@ void applySobelFilter(const float* image, int width, int height,
         int width = props.width;
         int height = props.height;
 
-        /*
-        std::string predictedPath = "/home/magnus/phd/project/pred.png";
-        std::string gtPath = "/home/magnus/phd/project/gt.png";
-        int channels = 0;
-        // Load as bytes
-        stbi_uc *predictedBytes = stbi_load(predictedPath.c_str(), &width, &height, &channels, STBI_grey);
-        stbi_uc *gtBytes        = stbi_load(gtPath.c_str(), &width, &height, &channels, STBI_grey);
-
-        if (!predictedBytes || !gtBytes) {
-            fprintf(stderr, "Error loading images\n");
-        }
-
-        int pixelCount = width * height;
-
-        // Allocate float buffers
-        float *predicted = new float[pixelCount];
-        float *gt        = new float[pixelCount];
-
-        // Copy (and implicitly convert) each byte → float
-        for (int i = 0; i < pixelCount; ++i) {
-            predicted[i] = predictedBytes[i] / 255.0f;
-            gt[i]        = gtBytes[i]        / 255.0f;
-        }
-
-        // Allocate the MSE image
-        float *residualImage = new float[pixelCount];
-        double *gradMSE = new double[pixelCount];
-
-        // Fill it with squared error per pixel
-        for (int i = 0; i < pixelCount; ++i) {
-            float diff = predicted[i] - gt[i];
-            residualImage[i] = diff;
-        }
-
-        // (Optional) Compute the overall MSE scalar
-        float sum = 0.0f;
-        for (int i = 0; i < pixelCount; ++i) {
-            sum += (residualImage[i] * residualImage[i]);
-        }
-        float overallMSE = sum / pixelCount;
-        printf("Overall MSE = %f\n", overallMSE);
-
-
-        for (int i = 0; i < pixelCount; ++i) {
-            gradMSE[i] = 2.0 / pixelCount * static_cast<double>(residualImage[i]);
-        }
-
-
-        // …use residualImage however you need…
-
-        // Cleanup
-
-        // Free the original byte buffers
-        stbi_image_free(predictedBytes);
-        stbi_image_free(gtBytes);
-        */
-        // d_I(u,v) / d_(u,v)
-
-        //applySobelFilter(predicted, width, height, gradX, gradY);
 
         std::filesystem::path gradientImagePathX =
                 "debug/grad_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + "_x.tiff";
@@ -679,6 +625,12 @@ void applySobelFilter(const float* image, int width, int height,
                 "debug/grad_id_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + ".png";
         // Save the gradient magnitude image as a PFM file.
         saveLabelMaskAsPNG(gradientImagePerObject, gradientPerPixelContributionPath, width, height);
+
+        std::filesystem::path gradientPerPixelContributionPathAll =
+                "debug/grad_id_image/all/" + std::to_string(iterationInfo->iteration) + ".png";
+        // Save the gradient magnitude image as a PFM file.
+        saveLabelMaskAsPNG(gradientImagePerObject, gradientPerPixelContributionPathAll, width, height);
+
         std::filesystem::path renderedImagePath =
                "debug/rendered_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + ".png";
 
@@ -692,50 +644,33 @@ void applySobelFilter(const float* image, int width, int height,
         auto gradPosA = gradientEmissivePositions.accessor<float, 2>();
         auto gradQuadPosA = gradientQuadricPositions.accessor<float, 2>();
 
-        std::vector<glm::vec3> collectedGradients(pathTracer->getPipelineSettings().photonCount);
-        glm::vec3 summedGradient = glm::vec3(0.0f);
 
         std::vector<glm::vec3 > gradientPerEntity(gradientQuadricPositions.size(0), glm::vec3(0.0f));
-
-        int numEntities = gradientQuadricPositions.size(0);
-        std::vector<int > pixelGradientsCounter;
-        int numGradientsSummed = 0;
-        std::vector<glm::vec2> screenSpaceGradient(gradientQuadricPositions.size(0), glm::vec2(0.0f));
         for (int i = 0; i < pathTracer->getPipelineSettings().photonCount; ++i) {
             glm::mat3 grad = gradients.photonIDGradient[i];
+            glm::vec3 gradient = {grad[0][0], grad[1][0], grad[2][0]};
+
+
+            if (glm::any(glm::isnan(gradient)))
+                continue;
+
             glm::vec2 gradCoords = gradients.gradientPixelCoordinates[i];
 
-
-            glm::vec3 dU_dPos = {grad[0][0], grad[1][0], grad[2][0]};
-            glm::vec3 dV_dPos = {grad[0][1], grad[1][1], grad[2][1]};
-
-            int x = std::round(gradCoords.x);
-            int y = std::round(gradCoords.y);
+            int x = static_cast<int>(std::round(gradCoords.x));
+            int y = static_cast<int>(std::round(gradCoords.y));
 
             size_t pixelIndex = x + y * width;
+
 
             int entityID = gradientImagePerObject[pixelIndex];
             if (entityID >= gradientPerEntity.size())
                 continue;
 
             float mseLoss = mseImage[pixelIndex];
-            float gradU = gradients.gradientImageHoriz[pixelIndex];
-            float gradV = gradients.gradientImageVert[pixelIndex];
-            //float gradV = 0.0f;
 
-            glm::vec2 dI_duv(gradU, gradV);
-            screenSpaceGradient[entityID] += dI_duv;
-
-            glm::vec3 res(0.0f);
-            res.x = dI_duv.x * dU_dPos.x + dI_duv.y * dV_dPos.x;
-            res.y = dI_duv.x * dU_dPos.y + dI_duv.y * dV_dPos.y;
-            res.z = dI_duv.x * dU_dPos.z + dI_duv.y * dV_dPos.z;
+            glm::vec3 L_mse_qc = -mseLoss * gradient;
             // Now, add the transformed gradient to the entity's gradient accumulator:
-            gradientPerEntity[entityID] += res * mseLoss;
-
-            collectedGradients[i] = res;
-            summedGradient += res;
-            numGradientsSummed++;
+            gradientPerEntity[entityID] += L_mse_qc;
         }
 
         // Save Screen Space Gradient:
@@ -751,66 +686,8 @@ void applySobelFilter(const float* image, int width, int height,
             gradQuadPosA[i][2] = grad_z;
 
             iterationInfo->gradients.entityGradients[i] = gradientPerEntity[i];
-            iterationInfo->gradients.screenSpaceGradients[i] = screenSpaceGradient[i];
-
         }
 
-        /*
-        delete[] predicted;
-        delete[] gt;
-        delete[] residualImage;
-        delete[] gradMSE;
-
-*/
-        //finalGradScene /= static_cast<float>(totalCount);
-        // or sum, if your loss derivative already includes a 1/N factor.
-        //summedGradient.y = 0;
-
-
-        /*
-        for (int i = 0; i < gradientQuadricPositions.size(0); ++i) {
-            gradQuadPosA[i][0] = gradientPerEntity[i].x / numGradientsSummed;
-            gradQuadPosA[i][1] = gradientPerEntity[i].y / numGradientsSummed;
-            gradQuadPosA[i][2] = gradientPerEntity[i].z / numGradientsSummed;
-        }
-        */
-
-        /*
-        for (int i = 0; i < gradientQuadricPositions.size(0); ++i) {
-            // Allocate vectors to hold per-pixel contributions for u and v.
-            std::vector<float> combinedU(width * height, 0.0f);
-            std::vector<float> combinedV(width * height, 0.0f);
-            // For each pixel, multiply the loss gradient with the image gradient
-            for (int idx = 0; idx < width * height; idx++) {
-                if (static_cast<int>(gradientImagePerObject[idx]) == i) {
-                    combinedU[idx] = dLoss_dI[idx] * gradX[idx]; // contribution for u direction
-                    combinedV[idx] = dLoss_dI[idx] * gradY[idx]; // contribution for v direction
-                }
-            }
-            // Sum over all pixels to aggregate to a single scalar for each coordinate.
-            float sumU = std::accumulate(combinedU.begin(), combinedU.end(), 0.0f);
-            float sumV = std::accumulate(combinedV.begin(), combinedV.end(), 0.0f);
-
-            glm::mat3 grad = gradients.photonIDGradient[i];
-            glm::vec2 gradCoords = gradients.gradientPixelCoordinates[i];
-
-            if (glm::any(glm::isnan(grad[0])) || glm::any(glm::isnan(grad[1])) || glm::any(glm::isnan(grad[2]))) {
-                Log::Logger::getInstance()->error("Error: NaN detected in gradient matrix!");
-            }
-
-            glm::vec3 dU_dPos = {grad[0][0], grad[1][0], grad[2][0]};
-            glm::vec3 dV_dPos = {grad[0][1], grad[1][1], grad[2][1]};
-            // Finally, combine the contributions:
-            // dL/dpos = (sumU) * d(u)/d(pos) + (sumV) * d(v)/d(pos)
-            glm::vec3 final_grad_pos_x = sumU * dU_dPos;
-            glm::vec3 final_grad_pos_y = sumV * dV_dPos;
-            glm::vec3 finalGradient = final_grad_pos_x + final_grad_pos_y;
-            float x = finalGradient.x;
-            float y = finalGradient.y;
-            float z = finalGradient.z;
-
-        }
-        */
 
         // Return them in the same order as forward inputs
         return {

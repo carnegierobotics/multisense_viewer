@@ -54,7 +54,7 @@ namespace VkRender::PathTracer {
             glm::vec3 rayOrigin = emitPosLocal;
 
             //rayOrigin = glm::vec3(0.0f, 0.0f, 5.0f);
-            //rayDir = glm::normalize(glm::vec3(0.05f, -0.1f, -1.0f));
+            //rayDir = glm::normalize(glm::vec3(0.05f, 0.05f, -1.0f));
 
             float apertureDiameter = (m_camera->parameters().focalLength / m_camera->parameters().fNumber) / 1000;
             float apertureRadius = 0.0f;
@@ -191,7 +191,7 @@ namespace VkRender::PathTracer {
                     glm::vec3 newApertureHitPoint(0.0f);
                     glm::vec3 newCameraHitPointLocal(0.0f);
                     glm::vec2 pixelCoordinates(0.0f);
-                    if (castContributionRay(newRayOrigin, cameraPlaneNormalWorld, apertureRadius, photonID,
+                    if (castContributionRay(hitPointWorld, cameraPlaneNormalWorld, apertureRadius, photonID,
                                             contributionFlux
                                             , newDirectLightDir, newApertureHitPoint, newCameraHitPointLocal,
                                             pixelCoordinates,

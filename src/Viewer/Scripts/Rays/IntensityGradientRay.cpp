@@ -52,19 +52,19 @@ namespace VkRender {
                     updateDirection = true;
                 }
 
-                if (UbuntuKeyInput::isKeyClicked(GLFW_KEY_UP)) {
+                if (UbuntuKeyInput::isKeyPressed(GLFW_KEY_UP)) {
                     uv0.y -= 1.0f;
                     updateDirection = true;
                 }
-                if (UbuntuKeyInput::isKeyClicked(GLFW_KEY_RIGHT)) {
+                if (UbuntuKeyInput::isKeyPressed(GLFW_KEY_RIGHT)) {
                     uv0.x += 1.0f;
                     updateDirection = true;
                 }
-                if (UbuntuKeyInput::isKeyClicked(GLFW_KEY_DOWN)) {
+                if (UbuntuKeyInput::isKeyPressed(GLFW_KEY_DOWN)) {
                     uv0.y += 1.0f;
                     updateDirection = true;
                 }
-                if (UbuntuKeyInput::isKeyClicked(GLFW_KEY_LEFT)) {
+                if (UbuntuKeyInput::isKeyPressed(GLFW_KEY_LEFT)) {
                     uv0.x -= 1.0f;
                     updateDirection = true;
                 }

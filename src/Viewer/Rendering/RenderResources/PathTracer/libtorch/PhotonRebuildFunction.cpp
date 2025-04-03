@@ -609,13 +609,19 @@ void applySobelFilter(const float* image, int width, int height,
                 "debug/grad_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + "_x.tiff";
         std::filesystem::path gradientImagePathY =
                 "debug/grad_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + "_y.tiff";
-        std::filesystem::path gradientImagePathAvg =
-                "debug/grad_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + "_avg.png";
+
+        std::filesystem::path gradientImagePathXAll =
+                "debug/grad_image/all/" + std::to_string(iterationInfo->iteration) + "_x.tiff";
+        std::filesystem::path gradientImagePathYAll =
+                "debug/grad_image/all/" + std::to_string(iterationInfo->iteration) + "_y.tiff";
+
         // Save the gradient magnitude image as a PFM file.
         //saveTIFF(gradientImagePath, gradMag.data(), width, height);
 
         saveTIFF(gradientImagePathX, width, height, gradients.gradientImageHoriz);
         saveTIFF(gradientImagePathY, width, height, gradients.gradientImageVert);
+        saveTIFF(gradientImagePathXAll, width, height, gradients.gradientImageHoriz);
+        saveTIFF(gradientImagePathYAll, width, height, gradients.gradientImageVert);
         //saveGradientAsPng(gradientImagePathY, width, height, gradY.data());
         // Get the pointer to the loss gradient image (size: width*height)
         //float *dLoss_dI = dLoss_dRenderedImage.data_ptr<float>();
@@ -644,8 +650,27 @@ void applySobelFilter(const float* image, int width, int height,
         auto gradPosA = gradientEmissivePositions.accessor<float, 2>();
         auto gradQuadPosA = gradientQuadricPositions.accessor<float, 2>();
 
+        auto& settings = pathTracer->getPipelineSettings();
 
         std::vector<glm::vec3 > gradientPerEntity(gradientQuadricPositions.size(0), glm::vec3(0.0f));
+
+
+        /*
+        for (int i = 0; i < settings.width * settings.height; i++) {
+            glm::mat3 grad = gradients.photonIDGradient[i];
+            glm::vec3 gradient = {grad[0][0], grad[1][0], grad[2][0]};
+
+            if (glm::any(glm::isnan(gradient)))
+                continue;
+
+            float mseLoss = mseImage[i];
+            glm::vec3 L_mse_qc = -mseLoss * gradient;
+            // Now, add the transformed gradient to the entity's gradient accumulator:
+            gradientPerEntity[0] += L_mse_qc;
+        }
+        */
+
+
         for (int i = 0; i < pathTracer->getPipelineSettings().photonCount; ++i) {
             glm::mat3 grad = gradients.photonIDGradient[i];
             glm::vec3 gradient = {grad[0][0], grad[1][0], grad[2][0]};
@@ -672,6 +697,7 @@ void applySobelFilter(const float* image, int width, int height,
             // Now, add the transformed gradient to the entity's gradient accumulator:
             gradientPerEntity[entityID] += L_mse_qc;
         }
+
 
         // Save Screen Space Gradient:
 

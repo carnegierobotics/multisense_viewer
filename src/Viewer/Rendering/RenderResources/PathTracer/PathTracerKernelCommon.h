@@ -166,8 +166,7 @@ namespace VkRender::PathTracer {
             float tMin = std::numeric_limits<float>::max();
             if (t1 > eps && t1 < tMin) {
                 tMin = t1;
-                tMin = std::numeric_limits<float>::max();;
-                //quadraticInfo.rootIndex = 1;
+                quadraticInfo.rootIndex = 1;
             }
             if (t2 > eps && t2 < tMin) {
                 tMin = t2;

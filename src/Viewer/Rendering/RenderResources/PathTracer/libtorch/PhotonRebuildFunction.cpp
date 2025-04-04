@@ -57,7 +57,6 @@ namespace VkRender::PathTracer {
             std::filesystem::create_directories(dir);
         }
 
-
         // Ensure the tensor is on CPU and in float32
         gradient = gradient.detach().cpu().to(torch::kFloat32);
 
@@ -296,89 +295,6 @@ namespace VkRender::PathTracer {
         return output;
     }
 
-
-    static void applyBoxBlur(const float *input, int width, int height, int kernelSize, std::vector<float> &output) {
-        // Ensure kernelSize is odd.
-        assert(kernelSize % 2 == 1);
-        output.resize(width * height, 0.0f);
-        int half = kernelSize / 2;
-
-        // Loop over each pixel in the image.
-        for (int y = 0; y < height; ++y) {
-            for (int x = 0; x < width; ++x) {
-                float sum = 0.0f;
-                int count = 0;
-                // Iterate over the kernel window.
-                for (int ky = -half; ky <= half; ++ky) {
-                    int iy = y + ky;
-                    if (iy < 0 || iy >= height)
-                        continue;
-                    for (int kx = -half; kx <= half; ++kx) {
-                        int ix = x + kx;
-                        if (ix < 0 || ix >= width)
-                            continue;
-                        sum += input[iy * width + ix];
-                        ++count;
-                    }
-                }
-                // Average over the valid pixels.
-                output[y * width + x] = sum / static_cast<float>(count);
-            }
-        }
-    }
-
-    // Applies the Scharr filter to compute gradients.
-    // 'image' is a pointer to the image data of size (width * height).
-    // 'width' and 'height' are the dimensions of the image.
-    // The function outputs gradient images gradX and gradY.
-    static void applyScharrFilter(const float *image, int width, int height,
-                                  std::vector<float> &gradX, std::vector<float> &gradY) {
-        // Resize output vectors to hold the gradient images.
-        gradX.resize(width * height, 0.0f);
-        gradY.resize(width * height, 0.0f);
-
-        // Scharr operator kernels for x and y derivatives.
-        const float scharrX[3][3] = {
-            {3, 0, -3},
-            {10, 0, -10},
-            {3, 0, -3}
-        };
-
-        const float scharrY[3][3] = {
-            {3, 10, 3},
-            {0, 0, 0},
-            {-3, -10, -3}
-        };
-
-        // Loop over the image pixels, skipping the boundary pixels.
-        for (int y = 1; y < height - 1; ++y) {
-            for (int x = 1; x < width - 1; ++x) {
-                float gx = 0.0f;
-                float gy = 0.0f;
-                // Convolve with the Scharr kernel.
-                for (int ky = -1; ky <= 1; ++ky) {
-                    for (int kx = -1; kx <= 1; ++kx) {
-                        int ix = x + kx;
-                        int iy = y + ky;
-                        float pixel = image[iy * width + ix];
-                        gx += pixel * scharrX[ky + 1][kx + 1];
-                        gy += pixel * scharrY[ky + 1][kx + 1];
-                    }
-                }
-                gradX[y * width + x] = gx;
-                gradY[y * width + x] = gy;
-            }
-        }
-
-        int kernelSize = 9;
-        std::vector<float> blurredGradX, blurredGradY;
-        applyBoxBlur(gradX.data(), width, height, kernelSize, blurredGradX);
-        applyBoxBlur(gradY.data(), width, height, kernelSize, blurredGradY);
-
-        gradX = blurredGradX;
-        gradY = blurredGradY;
-    }
-
     static void saveAsPng(std::filesystem::path filePath, int width, int height, void *data) {
         std::filesystem::path dir = filePath.parent_path();
 
@@ -386,6 +302,7 @@ namespace VkRender::PathTracer {
         if (!dir.empty() && !std::filesystem::exists(dir)) {
             std::filesystem::create_directories(dir);
         }
+
 
 
         // Save as PNusing stb_image_write
@@ -491,79 +408,63 @@ namespace VkRender::PathTracer {
     }
 
 
-// Generic 2D convolution function.
-void convolve2D(const float* input, int width, int height,
-                const float* kernel, int kernelWidth, int kernelHeight,
-                std::vector<float>& output)
-{
-    // Resize the output array
-    output.resize(width * height, 0.0f);
 
-    // Offsets to handle kernel center
-    int halfKW = kernelWidth  / 2;
-    int halfKH = kernelHeight / 2;
+    void saveArrowFieldJson(std::filesystem::path filePath,
+                            size_t photons,
+                            const std::vector<glm::vec3> &origins,
+                            const std::vector<glm::vec3> &directions)
+    {
 
-    // For each pixel in the output
-    for (int y = 0; y < height; ++y) {
-        for (int x = 0; x < width; ++x) {
+        std::filesystem::path dir = filePath.parent_path();
 
-            float sum = 0.0f;
-
-            // For each value in the kernel
-            for (int ky = 0; ky < kernelHeight; ++ky) {
-                for (int kx = 0; kx < kernelWidth; ++kx) {
-
-                    // Compute input image coordinates
-                    int inX = x + (kx - halfKW);
-                    int inY = y + (ky - halfKH);
-
-                    // Handle boundaries (zero-pad)
-                    if (inX < 0 || inX >= width ||
-                        inY < 0 || inY >= height) {
-                        continue;
-                    }
-
-                    float pixel   = input[inY * width + inX];
-                    float weight  = kernel[ky * kernelWidth + kx];
-                    sum += pixel * weight;
-                }
-            }
-
-            output[y * width + x] = sum;
+        // Create directory if it doesn't exist
+        if (!dir.empty() && !std::filesystem::exists(dir)) {
+            std::filesystem::create_directories(dir);
         }
+
+        nlohmann::json j;
+        j["size"] = photons;
+
+        // Use a small epsilon to decide if a vector is "zero"
+        const float epsilon = std::numeric_limits<float>::epsilon();
+
+        // Reserve space for the flattened arrays: 3 floats per arrow.
+        std::vector<float> origins_flat;
+        origins_flat.reserve(photons * 3);
+        std::vector<float> directions_flat;
+        directions_flat.reserve(photons * 3);
+
+        // Iterate once over all photons (gradients)
+        for (size_t i = 0; i < photons; ++i) {
+            // Skip if either origin or direction is near zero.
+            if (glm::length(origins[i]) < epsilon)
+                continue;
+            if ( glm::length(directions[i]) < epsilon)
+                continue;
+
+            // Append origin (3 floats)
+            origins_flat.push_back(origins[i].x);
+            origins_flat.push_back(origins[i].y);
+            origins_flat.push_back(origins[i].z);
+
+            // Append direction (3 floats)
+            directions_flat.push_back(directions[i].x);
+            directions_flat.push_back(directions[i].y);
+            directions_flat.push_back(directions[i].z);
+        }
+
+        j["origins"] = origins_flat;
+        j["directions"] = directions_flat;
+
+        // Write the JSON to file
+        std::ofstream outFile(filePath.string());
+        if (!outFile) {
+            throw std::runtime_error("Could not open " + filePath.string() + " for writing JSON");
+        }
+        outFile << j.dump(2) << std::endl;
+        outFile.close();
+        std::cout << "Saved arrow field to " << filePath.string() << std::endl;
     }
-}
-
-// Sobel filter using the generic convolution
-void applySobelFilter(const float* image, int width, int height,
-                      std::vector<float>& gradX, std::vector<float>& gradY)
-{
-    // Define Sobel kernels as float arrays
-    float sobelX[9] = {
-        -1.f,  0.f,  1.f,
-        -2.f,  0.f,  2.f,
-        -1.f,  0.f,  1.f
-    };
-
-    float sobelY[9] = {
-        -1.f, -2.f, -1.f,
-         0.f,  0.f,  0.f,
-         1.f,  2.f,  1.f
-    };
-
-    // Convolve the image with sobelX
-    convolve2D(image, width, height,
-                sobelX, 3, 3,
-                gradX);
-
-    // Convolve the image with sobelY
-    convolve2D(image, width, height,
-                sobelY, 3, 3,
-                gradY);
-}
-
-
-
     torch::autograd::tensor_list PhotonRebuildFunction::backward(torch::autograd::AutogradContext *ctx,
                                                                  torch::autograd::tensor_list grad_outputs) {
         // Usually, the forward returned 1 tensor => grad_outputs.size() == 1
@@ -670,14 +571,15 @@ void applySobelFilter(const float* image, int width, int height,
         }
         */
 
+        std::vector<glm::vec3> L_mse_qc(pathTracer->getPipelineSettings().photonCount, glm::vec3(0.0f));
+        std::vector<glm::vec3> L_Iuv_qc(pathTracer->getPipelineSettings().photonCount, glm::vec3(0.0f));
+        std::vector<glm::vec3> L_mse_qc_origin(pathTracer->getPipelineSettings().photonCount, glm::vec3(0.0f));
 
         for (int i = 0; i < pathTracer->getPipelineSettings().photonCount; ++i) {
             glm::mat3 grad = gradients.photonIDGradient[i];
             glm::vec3 gradient = {grad[0][0], grad[1][0], grad[2][0]};
+            glm::vec3 origin = {grad[0][1], grad[1][1], grad[2][1]};
 
-
-            if (glm::any(glm::isnan(gradient)))
-                continue;
 
             glm::vec2 gradCoords = gradients.gradientPixelCoordinates[i];
 
@@ -693,12 +595,42 @@ void applySobelFilter(const float* image, int width, int height,
 
             float mseLoss = mseImage[pixelIndex];
 
-            glm::vec3 L_mse_qc = -mseLoss * gradient;
+            glm::vec3 finalGradient = mseLoss * gradient;
+
+
+            L_mse_qc[i] =  mseLoss * gradient * 1.0f/fabsf(mseLoss);
+            L_Iuv_qc[i] =  gradient;
+            L_mse_qc_origin[i] = origin;
+
+            float x_dir = L_mse_qc[pixelIndex].x ;
+            float y_dir = L_mse_qc[pixelIndex].y ;
+            float z_dir = L_mse_qc[pixelIndex].z ;
+
+            float x_orig = L_mse_qc_origin[pixelIndex].x ;
+            float y_orig = L_mse_qc_origin[pixelIndex].y ;
+            float z_orig = L_mse_qc_origin[pixelIndex].z ;
+
             // Now, add the transformed gradient to the entity's gradient accumulator:
-            gradientPerEntity[entityID] += L_mse_qc;
+            gradientPerEntity[entityID] += finalGradient;
+        }
+        saveArrowFieldJson("debug/mse_grad_field/"+  std::to_string(iterationInfo->iteration) +"_debug_arrow_field.json", pathTracer->getPipelineSettings().photonCount, L_mse_qc_origin, L_mse_qc);
+        saveArrowFieldJson("debug/Iuv_grad_field/"+  std::to_string(iterationInfo->iteration) +"_debug_arrow_field.json", pathTracer->getPipelineSettings().photonCount, L_mse_qc_origin, L_Iuv_qc);
+
+        /*
+        std::vector<uint8_t> imageRGB8(width * height * 3);
+        for (int i = 0; i < width * height; ++i) {
+            glm::vec3 color = glm::clamp(mseWeightedImage[i], 0.0f, 1.0f);
+            imageRGB8[i * 3 + 0] = static_cast<uint8_t>(color.r * 255.0f);
+            imageRGB8[i * 3 + 1] = static_cast<uint8_t>(color.g * 255.0f);
+            imageRGB8[i * 3 + 2] = static_cast<uint8_t>(color.b * 255.0f);
         }
 
+        std::filesystem::path finalGradientImage =
+                "debug/grad_mse/all/" + std::to_string(iterationInfo->iteration) + ".png";
 
+
+        saveAsPng(finalGradientImage, width, height, imageRGB8.data());
+            */
         // Save Screen Space Gradient:
 
         iterationInfo->gradients.entityGradients.resize( gradientQuadricPositions.size(0));

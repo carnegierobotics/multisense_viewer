@@ -107,7 +107,6 @@ namespace VkRender::PathTracer {
             size_t gaussianID = m_gpuDataOutput[photonID].gaussianID;
             glm::vec3 e_c = m_gpuData.gaussianInputAssembly[gaussianID].position;
 
-
             glm::vec3 f = cameraPlanePointWorld; // e.g., defined in your camera parameters
             glm::vec3 f_n = cameraNormal; // e.g., (0,0,1) if the focal plane faces +Z
             if (!object.hitCamera) {
@@ -434,6 +433,10 @@ namespace VkRender::PathTracer {
             tmp[0][0] = J_Iuv_qc.x;
             tmp[1][0] = J_Iuv_qc.y;
             tmp[2][0] = J_Iuv_qc.z;
+
+            tmp[0][1] = q_hit_world.x;
+            tmp[1][1] = q_hit_world.y;
+            tmp[2][1] = q_hit_world.z;
             // Atomically accum ulate the gradient.|
             m_gpuData.gradientPixelCoordinates[photonID] = glm::vec2(u, v);
             m_gpuData.photonIDGradient[photonID] = tmp;

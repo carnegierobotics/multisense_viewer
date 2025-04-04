@@ -97,9 +97,24 @@ namespace VkRender {
             if (m_checkRenderDataset) {
                 pathTracerUI->switchKernelDevice = true;
                 pathTracerUI->useSceneCamera = true;
+                std::filesystem::path savePath = "output";
+
+                // Check if the folder exists
+                if (std::filesystem::exists(savePath) && std::filesystem::is_directory(savePath)) {
+                    for (const auto& entry : std::filesystem::directory_iterator(savePath)) {
+                        try {
+                            std::filesystem::remove_all(entry); // Removes files and subdirectories
+                        } catch (const std::filesystem::filesystem_error& e) {
+                            std::cerr << "Failed to remove " << entry.path() << ": " << e.what() << '\n';
+                        }
+                    }
+                }
+
             } else {
                 pathTracerUI->bypassSave = false;
                 pathTracerUI->toggleRendering = false;
+
+
             }
         }
 

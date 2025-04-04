@@ -84,8 +84,10 @@ namespace VkRender {
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{0.3f, 0.8f, 0.3f, 1.0f});
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{0.2f, 0.7f, 0.2f, 1.0f});
         ImGui::PushFont(boldFont);
-        if (ImGui::Button("Y", buttonSize))
+        if (ImGui::Button("Y", buttonSize)) {
             values.y = resetValue;
+            valueChanged = true;
+        }
         ImGui::PopFont();
         ImGui::PopStyleColor(3);
 
@@ -408,9 +410,14 @@ namespace VkRender {
             component.setMoving(paramsChanged);
 
             paramsChanged |= drawVec3Control("Translation", component.getPosition());
-            paramsChanged |= drawVec3Control("Rotation", component.getRotationEuler(), 0.0f, 2.0f);
-            paramsChanged |= drawVec3Control("Scale", component.getScale(), 1.0f);
+            glm::vec3 euler = component.rotationEuler;
+            paramsChanged |= drawVec3Control("Rotation", euler, 0.0f);
+            if (paramsChanged)
+            {
+                component.setRotationEuler(euler);
+            }
 
+            paramsChanged |= drawVec3Control("Scale", component.getScale(), 1.0f);
 
             if (paramsChanged) {
                 component.setMoving(paramsChanged);

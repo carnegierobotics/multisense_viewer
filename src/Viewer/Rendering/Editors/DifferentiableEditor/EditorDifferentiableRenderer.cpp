@@ -165,6 +165,19 @@ namespace VkRender {
             updatePathTracerSettings();
             imageUI->reloadRenderer = false;
             m_stepIteration = 0;
+
+            // Check if the folder exists
+            std::filesystem::path debugFolder ="debug";
+            if (std::filesystem::exists(debugFolder) && std::filesystem::is_directory(debugFolder)) {
+                for (const auto& entry : std::filesystem::directory_iterator(debugFolder)) {
+                    try {
+                        std::filesystem::remove_all(entry); // Removes files and subdirectories
+                    } catch (const std::filesystem::filesystem_error& e) {
+                        std::cerr << "Failed to remove " << entry.path() << ": " << e.what() << '\n';
+                    }
+                }
+            }
+
         }
 
 
@@ -244,12 +257,12 @@ namespace VkRender {
 
                     Log::Logger::getInstance()->info("Rendered iteration: {}: gt file: {}", m_stepIteration,
                                                      gtFileName.string());
-                    torch::Tensor targetTensor = loadPFM(gtFileName, width, height);
+                    torch::Tensor gtTensor = loadPFM(gtFileName, width, height);
 
 
                     // Compute loss
-                    //auto loss = torch::mean(torch::abs(targetTensor - m_accumulatedTensor));
-                    auto loss = torch::mean(torch::pow(targetTensor - m_accumulatedTensor, 2));
+                    //auto loss = torch::mean(torch::abs(m_accumulatedTensor - gtTensor));
+                    auto loss = torch::mean(torch::pow(m_accumulatedTensor - gtTensor, 2));
 
                     // Backward
                     loss.backward();
@@ -263,7 +276,7 @@ namespace VkRender {
                     float psnr_val = 10.0f * std::log10(1.0f / loss_val);
 
                     // Calculate SSIM
-                    float ssim_val = computeSSIM(targetTensor, m_accumulatedTensor);
+                    float ssim_val = computeSSIM(gtTensor, m_accumulatedTensor);
                     std::cout << "PSNR: " << psnr_val << ", SSIM: " << ssim_val << std::endl;
                     Log::Logger::getInstance()->info("PSNR: {}, SSIM: {}", psnr_val, ssim_val);
 

@@ -31,6 +31,7 @@ namespace VkRender {
             m_rotation.x += dx;
             m_rotation.y += dy;
 
+
             glm::quat orientation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
             // Adjust rotation based on the mouse movement
             glm::quat rotX = glm::angleAxis(glm::radians(m_rotation.x), glm::vec3(0.0f, 0.0f, 1.0f));
@@ -43,6 +44,8 @@ namespace VkRender {
             glm::mat4 transMatrix = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 3.0f) * m_zoomValue);
             glm::mat4 positionOffsetMatrix = glm::translate(glm::mat4(1.0f), m_positionOffset);
             glm::mat4 rotMatrix = glm::mat4_cast(orientation);
+
+
             auto trans = rotMatrix * transMatrix * positionOffsetMatrix;
             m_transform.setPosition(trans[3]);
             m_transform.setRotationQuaternion(glm::quat_cast(trans));

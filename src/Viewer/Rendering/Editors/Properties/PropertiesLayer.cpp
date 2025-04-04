@@ -1403,7 +1403,9 @@ namespace VkRender {
                     // Load into the active scene
                     if (m_selectionContext.hasComponent<MeshComponent>()) {
                         auto &meshComponent = m_selectionContext.getComponent<MeshComponent>();
-                        meshComponent.meshParameters = std::make_shared<OBJFileMeshParameters>(loadFileInfo.path);
+                        auto param = std::dynamic_pointer_cast<OBJFileMeshParameters>(meshComponent.meshParameters);
+                        param->path = loadFileInfo.path;
+                        param->setDirty();
                     }
 
                     break;

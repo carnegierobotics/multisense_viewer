@@ -79,7 +79,7 @@ namespace VkRender {
             float x = 1 / (tanHalfFovy * m_parameters.aspect);
             float y = 1 / tanHalfFovy;
             float A = m_parameters.far / (m_parameters.near - m_parameters.far);
-            float B = -(m_parameters.far * m_parameters.near) / (m_parameters.far - m_parameters.near);
+            float B = (m_parameters.far * m_parameters.near) / (m_parameters.near - m_parameters.far);
             matrices.projection = glm::mat4(
                     x, 0.0f, 0.0f, 0.0f,
                     0.0f, y, 0.0f, 0.0f,
@@ -87,20 +87,15 @@ namespace VkRender {
                     0.0f, 0.0f, B, 0.0f
             );
 
-            /*
+
+
             matrices.projection = glm::perspectiveRH_ZO(
-                glm::radians(m_fov),
-                m_aspectRatio,
-                m_zNear,
-                m_zFar
+                glm::radians(m_parameters.fov),
+                m_parameters.aspect,
+                m_parameters.near,
+                m_parameters.far
             );
-            */
-            if (m_settings.flipY) {
-                matrices.projection[1][1] *= -1;
-            }
-            if (m_settings.flipX) {
-                matrices.projection[0][0] *= -1; // Flip X-axis for left-to-right flipping
-            }
+
         };
 
         // Movement and rotation inputs now should affect the TransformComponent externally.

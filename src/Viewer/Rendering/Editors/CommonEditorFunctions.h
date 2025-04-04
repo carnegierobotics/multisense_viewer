@@ -153,20 +153,20 @@ namespace VkRender::EditorUtils {
 
     static std::shared_ptr<MeshInstance> setupMesh(Application* ctx, float scaleX = 1.0f, float scaleY = 1.0f) {
         std::vector<VkRender::ImageVertex> vertices = {
-            // Bottom-left corner
-            {glm::vec2{-1.0f * scaleX, -1.0f * scaleY}, glm::vec2{0.0f, 0.0f}},
-            // Bottom-right corner
-            {glm::vec2{1.0f * scaleX, -1.0f * scaleY}, glm::vec2{1.0f, 0.0f}},
-            // Top-right corner
-            {glm::vec2{1.0f * scaleX, 1.0f * scaleY}, glm::vec2{1.0f, 1.0f}},
-            // Top-left corner
-            {glm::vec2{-1.0f * scaleX, 1.0f * scaleY}, glm::vec2{0.0f, 1.0f}}
+            // Bottom-left corner becomes top-left in texture space
+            {glm::vec2{-1.0f * scaleX, -1.0f * scaleY}, glm::vec2{0.0f, 1.0f}},
+            // Bottom-right corner becomes top-right in texture space
+            {glm::vec2{1.0f * scaleX, -1.0f * scaleY}, glm::vec2{1.0f, 1.0f}},
+            // Top-right corner becomes bottom-right in texture space
+            {glm::vec2{1.0f * scaleX, 1.0f * scaleY}, glm::vec2{1.0f, 0.0f}},
+            // Top-left corner becomes bottom-left in texture space
+            {glm::vec2{-1.0f * scaleX, 1.0f * scaleY}, glm::vec2{0.0f, 0.0f}}
         };
 
         // Define the indices for two triangles that make up the quad
         std::vector<uint32_t> indices = {
-            0, 1, 2, // First triangle (bottom-left to top-right)
-            2, 3, 0 // Second triangle (top-right to bottom-left)
+            2, 1, 0, // First triangle (bottom-left to top-right)
+            0, 3, 2 // Second triangle (top-right to bottom-left)
         };
 
         auto meshInstance = std::make_shared<MeshInstance>();

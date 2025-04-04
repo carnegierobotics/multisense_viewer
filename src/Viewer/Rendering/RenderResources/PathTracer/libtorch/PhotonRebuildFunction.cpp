@@ -588,6 +588,8 @@ namespace VkRender::PathTracer {
 
             size_t pixelIndex = x + y * width;
 
+            L_Iuv_qc[i] =  gradient;
+            L_mse_qc_origin[i] = origin;
 
             int entityID = gradientImagePerObject[pixelIndex];
             if (entityID >= gradientPerEntity.size())
@@ -598,17 +600,8 @@ namespace VkRender::PathTracer {
             glm::vec3 finalGradient = mseLoss * gradient;
 
 
-            L_mse_qc[i] =  mseLoss * gradient * 1.0f/fabsf(mseLoss);
-            L_Iuv_qc[i] =  gradient;
-            L_mse_qc_origin[i] = origin;
+            L_mse_qc[i] =  mseLoss * gradient;
 
-            float x_dir = L_mse_qc[pixelIndex].x ;
-            float y_dir = L_mse_qc[pixelIndex].y ;
-            float z_dir = L_mse_qc[pixelIndex].z ;
-
-            float x_orig = L_mse_qc_origin[pixelIndex].x ;
-            float y_orig = L_mse_qc_origin[pixelIndex].y ;
-            float z_orig = L_mse_qc_origin[pixelIndex].z ;
 
             // Now, add the transformed gradient to the entity's gradient accumulator:
             gradientPerEntity[entityID] += finalGradient;
@@ -639,9 +632,11 @@ namespace VkRender::PathTracer {
             float grad_x = gradientPerEntity[i].x ;
             float grad_y = gradientPerEntity[i].y ;
             float grad_z = gradientPerEntity[i].z ;
-            gradQuadPosA[i][0] = grad_x;
-            gradQuadPosA[i][1] = grad_y;
-            gradQuadPosA[i][2] = grad_z;
+            gradQuadPosA[i][0] = -grad_x;
+            gradQuadPosA[i][1] = -grad_y;
+            gradQuadPosA[i][2] = -grad_z;
+
+            std::cout << "Final Gradient: (" << grad_x << ", " << grad_y << ", " << grad_z << ")" << std::endl;
 
             iterationInfo->gradients.entityGradients[i] = gradientPerEntity[i];
         }

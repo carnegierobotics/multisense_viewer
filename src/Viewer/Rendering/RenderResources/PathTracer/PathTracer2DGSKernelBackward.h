@@ -297,12 +297,16 @@ namespace VkRender::PathTracer {
             float cx = m_camera->parameters().cx;
             float cy = m_camera->parameters().cy;
             // Camera Ray in camera space
-            glm::vec3 d_c = glm::normalize(glm::vec3(-(u - cx) / fx, -(v - cy) / fy, -1.0f));
+            glm::vec3 d_ray = glm::normalize(glm::vec3((u - cx) / fx, (v - cy) / fy, 1.0f));
             // Camera Ray in World space
-            glm::vec3 d_w = glm::mat3(camera2World) * d_c;
+            glm::mat3 negI(-1.0f);
+            glm::vec3 d_c = negI * d_ray;
 
+            glm::vec3 d_w = glm::mat3(camera2World) * d_c;
             // Intersection with first scene object:
-            glm::vec3 a_l = world2Quadric * a_c;
+            glm::vec3 p_world = camera2World * glm::vec4(d_ray, 1.0f);
+            glm::vec3 q_c = quadric.transform.getPosition();
+            glm::vec3 a_l = world2Quadric * p_world + -glm::transpose(world2Quadric) * q_c;
             glm::vec3 d_l = world2Quadric * d_w;
 
             float tmin = FLT_MAX;
@@ -313,7 +317,7 @@ namespace VkRender::PathTracer {
 
             GPUDataOutput::QuadraticInfo quadraticInfo{};
             // check intersection with geometry
-            bool hit = geometryIntersectionQuadric(gaussianID, a_c, d_w, hitEntity, tmin,
+            bool hit = geometryIntersectionQuadric(gaussianID, p_world, d_w, hitEntity, tmin,
                                                    hitPointWorld,
                                                    hitNormalWorld, betaContribution, quadraticInfo);
 
@@ -323,12 +327,13 @@ namespace VkRender::PathTracer {
             glm::vec2 p_l = quadraticInfo.hitLocal;
 
             // Camera Ray Derivatives:
-
-            glm::vec3 d_dc_u = glm::vec3(-1 / fx, 0, 0);
+            glm::vec3 d_dray_u = glm::vec3(1 / fx, 0, 0);
+            glm::vec3 d_dc_u = d_dray_u * negI;
             glm::vec3 d_dw_u = glm::mat3(camera2World) * d_dc_u;
             glm::vec3 d_dl_u = world2Quadric * d_dw_u;
 
-            glm::vec3 d_dc_v = glm::vec3(0, -1 / fy, 0);
+            glm::vec3 d_dray_v = glm::vec3(0, 1 / fy, 0);
+            glm::vec3 d_dc_v = d_dray_v * negI;
             glm::vec3 d_dw_v = glm::mat3(camera2World) * d_dc_v;
             glm::vec3 d_dl_v = world2Quadric * d_dw_v;
 
@@ -368,6 +373,7 @@ namespace VkRender::PathTracer {
             J_xy_uv[0][1] = d_l.y * d_tmin_u + tmin * d_dl_u.y;
             J_xy_uv[1][1] = d_l.y * d_tmin_v + tmin * d_dl_v.y;
 
+            J_xy_uv = -J_xy_uv;
             /// Beta Kernel Derivative
             float gd = quadInfo.geodesic;
             float p_tmp = 4 * exp(quadric.b_beta);
@@ -428,7 +434,15 @@ namespace VkRender::PathTracer {
 
             glm::vec3 J_Iuv_qc = glm::vec3(J_beta_uv, 0.0f) * J_uv_qc;
 
-            //J_Iuv_qc = J_Iuv_qc * quadric2World;
+            /*
+            glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(quadric2World)));
+            glm::vec3 quadricNormal = glm::normalize(normalMatrix * glm::vec3(0.0f, 0.0f, 1.0f));
+            // Project out the part of J_Iuv_qc in the direction of quadricNormal
+            glm::vec3 projection = glm::dot(J_Iuv_qc, quadricNormal) * quadricNormal;
+
+            J_Iuv_qc = J_Iuv_qc - projection;
+            */
+
             glm::mat3 tmp = (0.0f);
             tmp[0][0] = J_Iuv_qc.x;
             tmp[1][0] = J_Iuv_qc.y;

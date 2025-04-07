@@ -580,6 +580,9 @@ namespace VkRender::PathTracer {
             glm::vec3 gradient = {grad[0][0], grad[1][0], grad[2][0]};
             glm::vec3 origin = {grad[0][1], grad[1][1], grad[2][1]};
 
+            if  (glm::any(glm::isnan(gradient))){
+                continue;
+            }
 
             glm::vec2 gradCoords = gradients.gradientPixelCoordinates[i];
 
@@ -606,8 +609,8 @@ namespace VkRender::PathTracer {
             // Now, add the transformed gradient to the entity's gradient accumulator:
             gradientPerEntity[entityID] += finalGradient;
         }
-        saveArrowFieldJson("debug/mse_grad_field/"+  std::to_string(iterationInfo->iteration) +"_debug_arrow_field.json", pathTracer->getPipelineSettings().photonCount, L_mse_qc_origin, L_mse_qc);
-        saveArrowFieldJson("debug/Iuv_grad_field/"+  std::to_string(iterationInfo->iteration) +"_debug_arrow_field.json", pathTracer->getPipelineSettings().photonCount, L_mse_qc_origin, L_Iuv_qc);
+        saveArrowFieldJson("debug/mse_grad_field/" + cameraName + "/" +  std::to_string(iterationInfo->iteration) +"_debug_arrow_field.json", pathTracer->getPipelineSettings().photonCount, L_mse_qc_origin, L_mse_qc);
+        saveArrowFieldJson("debug/Iuv_grad_field/" + cameraName + "/" +  std::to_string(iterationInfo->iteration) +"_debug_arrow_field.json", pathTracer->getPipelineSettings().photonCount, L_mse_qc_origin, L_Iuv_qc);
 
         /*
         std::vector<uint8_t> imageRGB8(width * height * 3);
@@ -632,9 +635,16 @@ namespace VkRender::PathTracer {
             float grad_x = gradientPerEntity[i].x ;
             float grad_y = gradientPerEntity[i].y ;
             float grad_z = gradientPerEntity[i].z ;
-            gradQuadPosA[i][0] = -grad_x;
-            gradQuadPosA[i][1] = -grad_y;
-            gradQuadPosA[i][2] = -grad_z;
+
+            if (std::isnan(grad_x) || std::isnan(grad_y) || std::isnan(grad_z)) {
+                std::cout << "NAN warning: Gradient: (" << grad_x << ", " << grad_y << ", " << grad_z << ")" << std::endl;
+                continue;
+
+            }
+
+            gradQuadPosA[i][0] = grad_x;
+            gradQuadPosA[i][1] = grad_y;
+            gradQuadPosA[i][2] = grad_z;
 
             std::cout << "Final Gradient: (" << grad_x << ", " << grad_y << ", " << grad_z << ")" << std::endl;
 

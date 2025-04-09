@@ -50,7 +50,7 @@ namespace VkRender{
             ImGui::Checkbox("Step##Toggle", &imageUI->toggleStep);
             ImGui::SameLine(0.0f, 10.0f);
 
-            ImGui::Checkbox("Denoise##Toggle", &imageUI->denoise);
+            ImGui::Checkbox("Save Debug Info##Toggle", &imageUI->saveDebugInfo);
             ImGui::SameLine();
             ImGui::SameLine(); // Dropdown for selecting render kernel
             const char* selections[] = {"CPU", "GPU"}; // TODO This should come from selectSyclDevices

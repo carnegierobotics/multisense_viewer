@@ -165,7 +165,7 @@ namespace VkRender::PathTracer {
     struct IterationInfo {
         PathTracer::PhotonTracer::RenderSettings renderSettings;
         uint32_t iteration = 0;
-        bool denoise = false;
+        bool saveDebugInfo = false;
         std::string cameraName;
 
         GradientInfo gradients;

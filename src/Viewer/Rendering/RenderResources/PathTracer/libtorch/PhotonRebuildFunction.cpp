@@ -271,13 +271,6 @@ namespace VkRender::PathTracer {
         int64_t width = photonTracerSettings.width;
         float *rawImage = pathTracer->getImage();
 
-        std::vector<float> denoisedImage;
-        if (iterationInfo->denoise) {
-            denoiseImage(rawImage, width, height, denoisedImage);
-            rawImage = denoisedImage.data();
-        }
-
-
         // Suppose the path tracer writes out to pathTracer->m_imageMemory,
         // with shape [height * width] or [height * width * channels].
         // We'll build a Torch tensor from that raw memory.
@@ -505,44 +498,15 @@ namespace VkRender::PathTracer {
         int width = props.width;
         int height = props.height;
 
-
-        std::filesystem::path gradientImagePathX =
-                "debug/grad_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + "_x.tiff";
-        std::filesystem::path gradientImagePathY =
-                "debug/grad_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + "_y.tiff";
-
-        std::filesystem::path gradientImagePathXAll =
-                "debug/grad_image/all/" + std::to_string(iterationInfo->iteration) + "_x.tiff";
-        std::filesystem::path gradientImagePathYAll =
-                "debug/grad_image/all/" + std::to_string(iterationInfo->iteration) + "_y.tiff";
-
         // Save the gradient magnitude image as a PFM file.
         //saveTIFF(gradientImagePath, gradMag.data(), width, height);
 
-        saveTIFF(gradientImagePathX, width, height, gradients.gradientImageHoriz);
-        saveTIFF(gradientImagePathY, width, height, gradients.gradientImageVert);
-        saveTIFF(gradientImagePathXAll, width, height, gradients.gradientImageHoriz);
-        saveTIFF(gradientImagePathYAll, width, height, gradients.gradientImageVert);
         //saveGradientAsPng(gradientImagePathY, width, height, gradY.data());
         // Get the pointer to the loss gradient image (size: width*height)
         //float *dLoss_dI = dLoss_dRenderedImage.data_ptr<float>();
 
         float *gradientImagePerObject = gradients.gradientImagePerObject;
-        std::filesystem::path gradientPerPixelContributionPath =
-                "debug/grad_id_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + ".png";
-        // Save the gradient magnitude image as a PFM file.
-        saveLabelMaskAsPNG(gradientImagePerObject, gradientPerPixelContributionPath, width, height);
 
-        std::filesystem::path gradientPerPixelContributionPathAll =
-                "debug/grad_id_image/all/" + std::to_string(iterationInfo->iteration) + ".png";
-        // Save the gradient magnitude image as a PFM file.
-        saveLabelMaskAsPNG(gradientImagePerObject, gradientPerPixelContributionPathAll, width, height);
-
-        std::filesystem::path renderedImagePath =
-               "debug/rendered_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + ".png";
-
-        //saveImageAsPng(renderedImagePath, width, height, predicted);
-        saveTIFF(renderedImagePath.replace_extension("tiff"), width, height, image);
 
 
         auto posA = positions.accessor<float, 2>();
@@ -609,12 +573,35 @@ namespace VkRender::PathTracer {
             // Now, add the transformed gradient to the entity's gradient accumulator:
             gradientPerEntity[entityID] += finalGradient;
         }
+        if (iterationInfo->saveDebugInfo) {
         saveArrowFieldJson("debug/mse_grad_field/" + cameraName + "/" +  std::to_string(iterationInfo->iteration) +"_debug_arrow_field.json", pathTracer->getPipelineSettings().photonCount, L_mse_qc_origin, L_mse_qc);
         saveArrowFieldJson("debug/Iuv_grad_field/" + cameraName + "/" +  std::to_string(iterationInfo->iteration) +"_debug_arrow_field.json", pathTracer->getPipelineSettings().photonCount, L_mse_qc_origin, L_Iuv_qc);
-
         saveArrowFieldJson("debug/Iuv_grad_field/all/" +  std::to_string(iterationInfo->iteration) +"_debug_arrow_field.json", pathTracer->getPipelineSettings().photonCount, L_mse_qc_origin, L_Iuv_qc);
         saveArrowFieldJson("debug/mse_grad_field/all/" +  std::to_string(iterationInfo->iteration) +"_debug_arrow_field.json", pathTracer->getPipelineSettings().photonCount, L_mse_qc_origin, L_mse_qc);
+        std::filesystem::path gradientImagePathX =
+                "debug/grad_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + "_x.tiff";
+        std::filesystem::path gradientImagePathY =
+                "debug/grad_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + "_y.tiff";
 
+        std::filesystem::path gradientImagePathXAll =
+                "debug/grad_image/all/" + std::to_string(iterationInfo->iteration) + "_x.tiff";
+        std::filesystem::path gradientImagePathYAll =
+                "debug/grad_image/all/" + std::to_string(iterationInfo->iteration) + "_y.tiff";
+
+        saveTIFF(gradientImagePathX, width, height, gradients.gradientImageHoriz);
+        saveTIFF(gradientImagePathY, width, height, gradients.gradientImageVert);
+        saveTIFF(gradientImagePathXAll, width, height, gradients.gradientImageHoriz);
+        saveTIFF(gradientImagePathYAll, width, height, gradients.gradientImageVert);
+        std::filesystem::path gradientPerPixelContributionPath =
+        "debug/grad_id_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + ".png";
+        saveLabelMaskAsPNG(gradientImagePerObject, gradientPerPixelContributionPath, width, height);
+        std::filesystem::path gradientPerPixelContributionPathAll =
+                "debug/grad_id_image/all/" + std::to_string(iterationInfo->iteration) + ".png";
+        saveLabelMaskAsPNG(gradientImagePerObject, gradientPerPixelContributionPathAll, width, height);
+        std::filesystem::path renderedImagePath =
+               "debug/rendered_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + ".png";
+        saveTIFF(renderedImagePath.replace_extension("tiff"), width, height, image);
+        }
         /*
         std::vector<uint8_t> imageRGB8(width * height * 3);
         for (int i = 0; i < width * height; ++i) {

@@ -216,7 +216,7 @@ namespace VkRender {
                 pathTracerIterationInfo.renderSettings = m_renderSettings;
                 pathTracerIterationInfo.iteration = m_stepIteration;
                 pathTracerIterationInfo.cameraName = m_context->activeScene()->getActiveCameraEntity().getName();
-                pathTracerIterationInfo.denoise = imageUI->denoise;
+                pathTracerIterationInfo.saveDebugInfo = imageUI->saveDebugInfo;
                 // Forward pass (autograd-compatible)
                 m_accumulatedTensor = m_photonRebuildModule->forward(&pathTracerIterationInfo);
                 m_numAccumulated++;
@@ -261,8 +261,8 @@ namespace VkRender {
 
 
                     // Compute loss
-                    auto loss = torch::mean(torch::abs(m_accumulatedTensor - gtTensor));
-                    //auto loss = torch::mean(torch::pow(m_accumulatedTensor - gtTensor, 2));
+                    //auto loss = torch::mean(torch::abs(m_accumulatedTensor - gtTensor));
+                    auto loss = torch::mean(torch::pow(m_accumulatedTensor - gtTensor, 2));
 
                     // Backward
                     loss.backward();
@@ -437,7 +437,7 @@ namespace VkRender {
             DescriptorManagerType::Viewport3DTexture).getDescriptorSetLayout();
         // Use default descriptor set layout
         key.vertexShaderName = "default2D.vert";
-        key.fragmentShaderName = "EditorImageViewportTexture.frag";
+        key.fragmentShaderName = "EditorPathTracerTexture.frag";
         key.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         key.polygonMode = VK_POLYGON_MODE_FILL;
         std::vector<VkVertexInputBindingDescription> vertexInputBinding = {

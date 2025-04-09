@@ -718,7 +718,7 @@ namespace VkRender::PathTracer {
             // 3. Offset the center by (x, y) in the plane spanned by (t1, t2).
             // ------------------------------------------------------------------
             glm::vec3 offset = x * t1 + y * t2;
-            outPos = gaussian.position;
+            outPos = gaussian.position + offset;
 
             // Normal remains the same as the Gaussian's normal
             outNormal = n;

@@ -612,6 +612,9 @@ namespace VkRender::PathTracer {
         saveArrowFieldJson("debug/mse_grad_field/" + cameraName + "/" +  std::to_string(iterationInfo->iteration) +"_debug_arrow_field.json", pathTracer->getPipelineSettings().photonCount, L_mse_qc_origin, L_mse_qc);
         saveArrowFieldJson("debug/Iuv_grad_field/" + cameraName + "/" +  std::to_string(iterationInfo->iteration) +"_debug_arrow_field.json", pathTracer->getPipelineSettings().photonCount, L_mse_qc_origin, L_Iuv_qc);
 
+        saveArrowFieldJson("debug/Iuv_grad_field/all/" +  std::to_string(iterationInfo->iteration) +"_debug_arrow_field.json", pathTracer->getPipelineSettings().photonCount, L_mse_qc_origin, L_Iuv_qc);
+        saveArrowFieldJson("debug/mse_grad_field/all/" +  std::to_string(iterationInfo->iteration) +"_debug_arrow_field.json", pathTracer->getPipelineSettings().photonCount, L_mse_qc_origin, L_mse_qc);
+
         /*
         std::vector<uint8_t> imageRGB8(width * height * 3);
         for (int i = 0; i < width * height; ++i) {

@@ -17,7 +17,7 @@ namespace VkRender {
         std::string kernelDevice = "";
         int selectedDeviceIndex = 1;
 
-        bool saveDebugInfo = false;
+        bool saveDebugInfo = true;
         // Constructor that copies everything from base EditorUI
         EditorDifferentiableRendererLayerUI(const EditorUI &baseUI) : EditorUI(baseUI) {}
     };

@@ -402,62 +402,97 @@ namespace VkRender::PathTracer {
 
 
 
-    void saveArrowFieldJson(std::filesystem::path filePath,
-                            size_t photons,
-                            const std::vector<glm::vec3> &origins,
-                            const std::vector<glm::vec3> &directions)
-    {
+#include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <vector>
+#include <stdexcept>
+#include <nlohmann/json.hpp>
+#include <glm/glm.hpp>
+#include <limits>
 
-        std::filesystem::path dir = filePath.parent_path();
+// Your EntityDebugInfo definition
+struct EntityDebugInfo {
+    std::vector<glm::vec3> L_mse_qc;
+    std::vector<glm::vec3> L_Iuv_qc;
+    std::vector<glm::vec3> L_mse_qc_origin;
 
-        // Create directory if it doesn't exist
-        if (!dir.empty() && !std::filesystem::exists(dir)) {
-            std::filesystem::create_directories(dir);
-        }
-
-        nlohmann::json j;
-        j["size"] = photons;
-
-        // Use a small epsilon to decide if a vector is "zero"
-        const float epsilon = std::numeric_limits<float>::epsilon();
-
-        // Reserve space for the flattened arrays: 3 floats per arrow.
-        std::vector<float> origins_flat;
-        origins_flat.reserve(photons * 3);
-        std::vector<float> directions_flat;
-        directions_flat.reserve(photons * 3);
-
-        // Iterate once over all photons (gradients)
-        for (size_t i = 0; i < photons; ++i) {
-            // Skip if either origin or direction is near zero.
-            if (glm::length(origins[i]) < epsilon)
-                continue;
-            if ( glm::length(directions[i]) < epsilon)
-                continue;
-
-            // Append origin (3 floats)
-            origins_flat.push_back(origins[i].x);
-            origins_flat.push_back(origins[i].y);
-            origins_flat.push_back(origins[i].z);
-
-            // Append direction (3 floats)
-            directions_flat.push_back(directions[i].x);
-            directions_flat.push_back(directions[i].y);
-            directions_flat.push_back(directions[i].z);
-        }
-
-        j["origins"] = origins_flat;
-        j["directions"] = directions_flat;
-
-        // Write the JSON to file
-        std::ofstream outFile(filePath.string());
-        if (!outFile) {
-            throw std::runtime_error("Could not open " + filePath.string() + " for writing JSON");
-        }
-        outFile << j.dump(2) << std::endl;
-        outFile.close();
-        std::cout << "Saved arrow field to " << filePath.string() << std::endl;
+    explicit EntityDebugInfo(size_t photonCount) {
+        L_mse_qc = std::vector<glm::vec3>(photonCount, glm::vec3(0.0f));
+        L_Iuv_qc = std::vector<glm::vec3>(photonCount, glm::vec3(0.0f));
+        L_mse_qc_origin = std::vector<glm::vec3>(photonCount, glm::vec3(0.0f));
     }
+};
+
+// New function to save the entire vector of EntityDebugInfo objects into one file.
+void saveEntityDebugInfoJson(const std::filesystem::path& filePath,
+                             const std::vector<EntityDebugInfo>& entityDebugInfos)
+{
+    // Create directory if needed
+    std::filesystem::path dir = filePath.parent_path();
+    if (!dir.empty() && !std::filesystem::exists(dir)) {
+        std::filesystem::create_directories(dir);
+    }
+
+    nlohmann::json j;
+    j["numEntities"] = entityDebugInfos.size();
+    j["entities"] = nlohmann::json::array();
+
+    // You can also use an epsilon if you want to filter out near-zero vectors,
+    // similar to your original function. For example:
+    const float epsilon = std::numeric_limits<float>::epsilon();
+
+    // For each EntityDebugInfo, group the three vector fields.
+    for (int i = 0; const auto& entity : entityDebugInfos) {
+        nlohmann::json entityJson;
+
+        std::vector<float> filtered_origin;
+        std::vector<float> filtered_mse;
+        std::vector<float> filtered_iuv;
+
+        // Iterate using indices to filter consistently for all groups.
+        for (size_t i = 0; i < entity.L_mse_qc_origin.size(); ++i) {
+            // Check if the origin vector is above epsilon.
+            if (glm::length(entity.L_mse_qc_origin[i]) < epsilon)
+                continue;
+
+            // Save the origin.
+            filtered_origin.push_back(entity.L_mse_qc_origin[i].x);
+            filtered_origin.push_back(entity.L_mse_qc_origin[i].y);
+            filtered_origin.push_back(entity.L_mse_qc_origin[i].z);
+
+            // Save the corresponding mse vector.
+            filtered_mse.push_back(entity.L_mse_qc[i].x);
+            filtered_mse.push_back(entity.L_mse_qc[i].y);
+            filtered_mse.push_back(entity.L_mse_qc[i].z);
+
+            // Save the corresponding Iuv vector.
+            filtered_iuv.push_back(entity.L_Iuv_qc[i].x);
+            filtered_iuv.push_back(entity.L_Iuv_qc[i].y);
+            filtered_iuv.push_back(entity.L_Iuv_qc[i].z);
+        }
+
+        entityJson["id"] = i;
+
+        entityJson["L_mse_qc_origin"] = filtered_origin;
+        entityJson["L_mse_qc"] = filtered_mse;
+        entityJson["L_Iuv_qc"] = filtered_iuv;
+
+        j["entities"].push_back(entityJson);
+        ++i;
+    }
+
+    // Write the JSON out to the file.
+    std::ofstream outFile(filePath);
+    if (!outFile) {
+        throw std::runtime_error("Could not open " + filePath.string() + " for writing JSON");
+    }
+    outFile << j.dump(2) << std::endl;
+    outFile.close();
+
+    std::cout << "Saved grouped EntityDebugInfo to " << filePath << std::endl;
+}
+
     torch::autograd::tensor_list PhotonRebuildFunction::backward(torch::autograd::AutogradContext *ctx,
                                                                  torch::autograd::tensor_list grad_outputs) {
         // Usually, the forward returned 1 tensor => grad_outputs.size() == 1
@@ -517,7 +552,8 @@ namespace VkRender::PathTracer {
 
         auto& settings = pathTracer->getPipelineSettings();
 
-        std::vector<glm::vec3 > gradientPerEntity(gradientQuadricPositions.size(0), glm::vec3(0.0f));
+        size_t numEntities = gradientQuadricPositions.size(0);
+        std::vector<glm::vec3 > gradientPerEntity(numEntities, glm::vec3(0.0f));
 
 
         /*
@@ -535,9 +571,8 @@ namespace VkRender::PathTracer {
         }
         */
 
-        std::vector<glm::vec3> L_mse_qc(pathTracer->getPipelineSettings().photonCount, glm::vec3(0.0f));
-        std::vector<glm::vec3> L_Iuv_qc(pathTracer->getPipelineSettings().photonCount, glm::vec3(0.0f));
-        std::vector<glm::vec3> L_mse_qc_origin(pathTracer->getPipelineSettings().photonCount, glm::vec3(0.0f));
+        std::vector<EntityDebugInfo> entityDebugInfo{numEntities, EntityDebugInfo(pathTracer->getPipelineSettings().photonCount)};
+
 
         for (int i = 0; i < pathTracer->getPipelineSettings().photonCount; ++i) {
             glm::mat3 grad = gradients.photonIDGradient[i];
@@ -555,8 +590,7 @@ namespace VkRender::PathTracer {
 
             size_t pixelIndex = x + y * width;
 
-            L_Iuv_qc[i] =  gradient;
-            L_mse_qc_origin[i] = origin;
+
 
             int entityID = gradientImagePerObject[pixelIndex];
             if (entityID >= gradientPerEntity.size())
@@ -567,17 +601,18 @@ namespace VkRender::PathTracer {
             glm::vec3 finalGradient = mseLoss * gradient;
 
 
-            L_mse_qc[i] =  mseLoss * gradient;
-
+            entityDebugInfo[entityID].L_mse_qc[i] =  mseLoss * gradient;
+            entityDebugInfo[entityID].L_Iuv_qc[i] =  gradient;
+            entityDebugInfo[entityID].L_mse_qc_origin[i] = origin;
 
             // Now, add the transformed gradient to the entity's gradient accumulator:
             gradientPerEntity[entityID] += finalGradient;
         }
         if (iterationInfo->saveDebugInfo) {
-        saveArrowFieldJson("debug/mse_grad_field/" + cameraName + "/" +  std::to_string(iterationInfo->iteration) +"_debug_arrow_field.json", pathTracer->getPipelineSettings().photonCount, L_mse_qc_origin, L_mse_qc);
-        saveArrowFieldJson("debug/Iuv_grad_field/" + cameraName + "/" +  std::to_string(iterationInfo->iteration) +"_debug_arrow_field.json", pathTracer->getPipelineSettings().photonCount, L_mse_qc_origin, L_Iuv_qc);
-        saveArrowFieldJson("debug/Iuv_grad_field/all/" +  std::to_string(iterationInfo->iteration) +"_debug_arrow_field.json", pathTracer->getPipelineSettings().photonCount, L_mse_qc_origin, L_Iuv_qc);
-        saveArrowFieldJson("debug/mse_grad_field/all/" +  std::to_string(iterationInfo->iteration) +"_debug_arrow_field.json", pathTracer->getPipelineSettings().photonCount, L_mse_qc_origin, L_mse_qc);
+        //saveArrowFieldJson("debug/mse_grad_field/" + cameraName + "/" +  std::to_string(iterationInfo->iteration) +"_debug_arrow_field.json", pathTracer->getPipelineSettings().photonCount, L_mse_qc_origin, L_mse_qc);
+        //saveArrowFieldJson("debug/Iuv_grad_field/" + cameraName + "/" +  std::to_string(iterationInfo->iteration) +"_debug_arrow_field.json", pathTracer->getPipelineSettings().photonCount, L_mse_qc_origin, L_Iuv_qc);
+        saveEntityDebugInfoJson("debug/vector_field/" +  std::to_string(iterationInfo->iteration) +"_entity_gradients.json", entityDebugInfo);
+
         std::filesystem::path gradientImagePathX =
                 "debug/grad_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + "_x.tiff";
         std::filesystem::path gradientImagePathY =
@@ -602,22 +637,6 @@ namespace VkRender::PathTracer {
                "debug/rendered_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + ".png";
         saveTIFF(renderedImagePath.replace_extension("tiff"), width, height, image);
         }
-        /*
-        std::vector<uint8_t> imageRGB8(width * height * 3);
-        for (int i = 0; i < width * height; ++i) {
-            glm::vec3 color = glm::clamp(mseWeightedImage[i], 0.0f, 1.0f);
-            imageRGB8[i * 3 + 0] = static_cast<uint8_t>(color.r * 255.0f);
-            imageRGB8[i * 3 + 1] = static_cast<uint8_t>(color.g * 255.0f);
-            imageRGB8[i * 3 + 2] = static_cast<uint8_t>(color.b * 255.0f);
-        }
-
-        std::filesystem::path finalGradientImage =
-                "debug/grad_mse/all/" + std::to_string(iterationInfo->iteration) + ".png";
-
-
-        saveAsPng(finalGradientImage, width, height, imageRGB8.data());
-            */
-        // Save Screen Space Gradient:
 
         iterationInfo->gradients.entityGradients.resize( gradientQuadricPositions.size(0));
         iterationInfo->gradients.screenSpaceGradients.resize( gradientQuadricPositions.size(0));
@@ -655,7 +674,7 @@ namespace VkRender::PathTracer {
             torch::Tensor(), // diffuse
             torch::Tensor(), // gradQuadApperance
             gradientQuadricPositions, // gradQUadPos
-            torch::Tensor() // gradQUadPos
+            torch::Tensor() // gradQUadRot
         };
     }
 }

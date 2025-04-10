@@ -351,9 +351,11 @@ namespace VkRender::PathTracer {
                                                    hitNormalWorld,
                                                    betaContribution,
                                                    quadraticInfo);
+
             if (!hit) {
                 return;
             }
+
             // local coords of that camera->quadric intersection
             glm::vec2 p_l = quadraticInfo.hitLocal;
 
@@ -424,7 +426,8 @@ namespace VkRender::PathTracer {
             float rho = quadraticInfo.rho;
             float theta = quadraticInfo.theta;
             float a_theta = quadraticInfo.a_theta;
-
+            if (g_d > 1.0f)
+                g_d = 1.0f;
             float p_tmp = 4;
             float exponent = p_tmp - 1.0f;
             float d_beta_dgd = -2.0f * p_tmp * g_d * std::pow((1 - g_d * g_d), exponent);

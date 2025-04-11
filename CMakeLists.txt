@@ -325,6 +325,7 @@ if (${ENABLE_PYTORCH})
     set(DIFF_RENDER_SOURCES
             src/Viewer/Rendering/RenderResources/PathTracer/libtorch/PhotonRebuildModule.cpp
             src/Viewer/Rendering/RenderResources/PathTracer/libtorch/PhotonRebuildFunction.cpp
+            src/Viewer/Rendering/RenderResources/PathTracer/libtorch/SparseAdam.cpp
             src/Viewer/Rendering/Editors/DifferentiableEditor/EditorDifferentiableRenderer.cpp
             src/Viewer/Rendering/Editors/DifferentiableEditor/EditorDifferentiableRendererLayer.cpp
             src/Viewer/Rendering/ImGui/AdditionalWindows/ToolWindow.cpp

@@ -130,11 +130,14 @@ namespace VkRender {
         m_photonRebuildModule = std::make_unique<PathTracer::PhotonRebuildModule>(
             m_pathTracer.get(), m_context->activeScene());
 
-        m_optimizer = std::make_unique<torch::optim::Adam>(
+        m_optimizer = std::make_unique<torch::optim::SparseAdam>(
             // We pass in the parameters of our module (or custom parameter list)
             m_photonRebuildModule->parameters(),
             // Then define the Adam options, e.g. learning rate = 1e-3
-            torch::optim::AdamOptions(0.01f)
+            torch::optim::SparseAdamOptions(0.001f).lr(0.005)
+            .betas(std::make_tuple(0.8, 0.95)) // Example
+            .eps(1e-8)
+            .maximize(false) // or true
 
         );
         m_accumulatedTensor = torch::Tensor();
@@ -167,17 +170,16 @@ namespace VkRender {
             m_stepIteration = 0;
 
             // Check if the folder exists
-            std::filesystem::path debugFolder ="debug";
+            std::filesystem::path debugFolder = "debug";
             if (std::filesystem::exists(debugFolder) && std::filesystem::is_directory(debugFolder)) {
-                for (const auto& entry : std::filesystem::directory_iterator(debugFolder)) {
+                for (const auto &entry: std::filesystem::directory_iterator(debugFolder)) {
                     try {
                         std::filesystem::remove_all(entry); // Removes files and subdirectories
-                    } catch (const std::filesystem::filesystem_error& e) {
+                    } catch (const std::filesystem::filesystem_error &e) {
                         std::cerr << "Failed to remove " << entry.path() << ": " << e.what() << '\n';
                     }
                 }
             }
-
         }
 
 
@@ -330,8 +332,8 @@ namespace VkRender {
                             if (script.instance) {
                                 auto *gradientScript = reinterpret_cast<GradientRay *>(script.instance);
                                 gradientScript->ray = -glm::vec3(quadricGradients[0][0].item<float>(),
-                                                                   quadricGradients[0][1].item<float>(),
-                                                                   quadricGradients[0][2].item<float>());
+                                                                 quadricGradients[0][1].item<float>(),
+                                                                 quadricGradients[0][2].item<float>());
                                 gradientScript->origin = glm::vec3(quadricPositions[0][0].item<float>(),
                                                                    quadricPositions[0][1].item<float>(),
                                                                    quadricPositions[0][2].item<float>());

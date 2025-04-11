@@ -12,8 +12,7 @@
 #include <tiffio.h> // Make sure to include libtiff's header
 
 namespace VkRender::PathTracer {
-
-    static void saveImageAsPng(std::filesystem::path &filename, uint32_t width, uint32_t height, float* image) {
+    static void saveImageAsPng(std::filesystem::path &filename, uint32_t width, uint32_t height, float *image) {
         std::filesystem::path dir = filename.parent_path();
 
         // Create directory if it doesn't exist
@@ -46,7 +45,6 @@ namespace VkRender::PathTracer {
                             width * 3)) {
             throw std::runtime_error("Failed to write PNG file: " + filename.string());
         }
-
     }
 
     static void save_gradient_to_png(torch::Tensor gradient, const std::filesystem::path &filename) {
@@ -232,7 +230,7 @@ namespace VkRender::PathTracer {
     }
 
     torch::Tensor PhotonRebuildFunction::forward(torch::autograd::AutogradContext *ctx,
-                                                 IterationInfo* iterationInfo, PhotonTracer *pathTracer,
+                                                 IterationInfo *iterationInfo, PhotonTracer *pathTracer,
                                                  torch::Tensor positions, torch::Tensor scales,
                                                  torch::Tensor normals, torch::Tensor emissions,
                                                  torch::Tensor colors,
@@ -295,7 +293,6 @@ namespace VkRender::PathTracer {
         if (!dir.empty() && !std::filesystem::exists(dir)) {
             std::filesystem::create_directories(dir);
         }
-
 
 
         // Save as PNusing stb_image_write
@@ -401,7 +398,6 @@ namespace VkRender::PathTracer {
     }
 
 
-
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -411,87 +407,86 @@ namespace VkRender::PathTracer {
 #include <glm/glm.hpp>
 #include <limits>
 
-// Your EntityDebugInfo definition
-struct EntityDebugInfo {
-    std::vector<glm::vec3> L_mse_qc;
-    std::vector<glm::vec3> L_Iuv_qc;
-    std::vector<glm::vec3> L_mse_qc_origin;
+    // Your EntityDebugInfo definition
+    struct EntityDebugInfo {
+        std::vector<glm::vec3> L_mse_qc;
+        std::vector<glm::vec3> L_Iuv_qc;
+        std::vector<glm::vec3> L_mse_qc_origin;
 
-    explicit EntityDebugInfo(size_t photonCount) {
-        L_mse_qc = std::vector<glm::vec3>(photonCount, glm::vec3(0.0f));
-        L_Iuv_qc = std::vector<glm::vec3>(photonCount, glm::vec3(0.0f));
-        L_mse_qc_origin = std::vector<glm::vec3>(photonCount, glm::vec3(0.0f));
-    }
-};
+        explicit EntityDebugInfo(size_t photonCount) {
+            L_mse_qc = std::vector<glm::vec3>(photonCount, glm::vec3(0.0f));
+            L_Iuv_qc = std::vector<glm::vec3>(photonCount, glm::vec3(0.0f));
+            L_mse_qc_origin = std::vector<glm::vec3>(photonCount, glm::vec3(0.0f));
+        }
+    };
 
-// New function to save the entire vector of EntityDebugInfo objects into one file.
-void saveEntityDebugInfoJson(const std::filesystem::path& filePath,
-                             const std::vector<EntityDebugInfo>& entityDebugInfos)
-{
-    // Create directory if needed
-    std::filesystem::path dir = filePath.parent_path();
-    if (!dir.empty() && !std::filesystem::exists(dir)) {
-        std::filesystem::create_directories(dir);
-    }
-
-    nlohmann::json j;
-    j["numEntities"] = entityDebugInfos.size();
-    j["entities"] = nlohmann::json::array();
-
-    // You can also use an epsilon if you want to filter out near-zero vectors,
-    // similar to your original function. For example:
-    const float epsilon = std::numeric_limits<float>::epsilon();
-
-    // For each EntityDebugInfo, group the three vector fields.
-    for (int i = 0; const auto& entity : entityDebugInfos) {
-        nlohmann::json entityJson;
-
-        std::vector<float> filtered_origin;
-        std::vector<float> filtered_mse;
-        std::vector<float> filtered_iuv;
-
-        // Iterate using indices to filter consistently for all groups.
-        for (size_t i = 0; i < entity.L_mse_qc_origin.size(); ++i) {
-            // Check if the origin vector is above epsilon.
-            if (glm::length(entity.L_mse_qc_origin[i]) < epsilon)
-                continue;
-
-            // Save the origin.
-            filtered_origin.push_back(entity.L_mse_qc_origin[i].x);
-            filtered_origin.push_back(entity.L_mse_qc_origin[i].y);
-            filtered_origin.push_back(entity.L_mse_qc_origin[i].z);
-
-            // Save the corresponding mse vector.
-            filtered_mse.push_back(entity.L_mse_qc[i].x);
-            filtered_mse.push_back(entity.L_mse_qc[i].y);
-            filtered_mse.push_back(entity.L_mse_qc[i].z);
-
-            // Save the corresponding Iuv vector.
-            filtered_iuv.push_back(entity.L_Iuv_qc[i].x);
-            filtered_iuv.push_back(entity.L_Iuv_qc[i].y);
-            filtered_iuv.push_back(entity.L_Iuv_qc[i].z);
+    // New function to save the entire vector of EntityDebugInfo objects into one file.
+    void saveEntityDebugInfoJson(const std::filesystem::path &filePath,
+                                 const std::vector<EntityDebugInfo> &entityDebugInfos) {
+        // Create directory if needed
+        std::filesystem::path dir = filePath.parent_path();
+        if (!dir.empty() && !std::filesystem::exists(dir)) {
+            std::filesystem::create_directories(dir);
         }
 
-        entityJson["id"] = i;
+        nlohmann::json j;
+        j["numEntities"] = entityDebugInfos.size();
+        j["entities"] = nlohmann::json::array();
 
-        entityJson["L_mse_qc_origin"] = filtered_origin;
-        entityJson["L_mse_qc"] = filtered_mse;
-        entityJson["L_Iuv_qc"] = filtered_iuv;
+        // You can also use an epsilon if you want to filter out near-zero vectors,
+        // similar to your original function. For example:
+        const float epsilon = std::numeric_limits<float>::epsilon();
 
-        j["entities"].push_back(entityJson);
-        ++i;
+        // For each EntityDebugInfo, group the three vector fields.
+        for (int i = 0; const auto &entity: entityDebugInfos) {
+            nlohmann::json entityJson;
+
+            std::vector<float> filtered_origin;
+            std::vector<float> filtered_mse;
+            std::vector<float> filtered_iuv;
+
+            // Iterate using indices to filter consistently for all groups.
+            for (size_t i = 0; i < entity.L_mse_qc_origin.size(); ++i) {
+                // Check if the origin vector is above epsilon.
+                if (glm::length(entity.L_mse_qc_origin[i]) < epsilon)
+                    continue;
+
+                // Save the origin.
+                filtered_origin.push_back(entity.L_mse_qc_origin[i].x);
+                filtered_origin.push_back(entity.L_mse_qc_origin[i].y);
+                filtered_origin.push_back(entity.L_mse_qc_origin[i].z);
+
+                // Save the corresponding mse vector.
+                filtered_mse.push_back(entity.L_mse_qc[i].x);
+                filtered_mse.push_back(entity.L_mse_qc[i].y);
+                filtered_mse.push_back(entity.L_mse_qc[i].z);
+
+                // Save the corresponding Iuv vector.
+                filtered_iuv.push_back(entity.L_Iuv_qc[i].x);
+                filtered_iuv.push_back(entity.L_Iuv_qc[i].y);
+                filtered_iuv.push_back(entity.L_Iuv_qc[i].z);
+            }
+
+            entityJson["id"] = i;
+
+            entityJson["L_mse_qc_origin"] = filtered_origin;
+            entityJson["L_mse_qc"] = filtered_mse;
+            entityJson["L_Iuv_qc"] = filtered_iuv;
+
+            j["entities"].push_back(entityJson);
+            ++i;
+        }
+
+        // Write the JSON out to the file.
+        std::ofstream outFile(filePath);
+        if (!outFile) {
+            throw std::runtime_error("Could not open " + filePath.string() + " for writing JSON");
+        }
+        outFile << j.dump(2) << std::endl;
+        outFile.close();
+
+        std::cout << "Saved grouped EntityDebugInfo to " << filePath << std::endl;
     }
-
-    // Write the JSON out to the file.
-    std::ofstream outFile(filePath);
-    if (!outFile) {
-        throw std::runtime_error("Could not open " + filePath.string() + " for writing JSON");
-    }
-    outFile << j.dump(2) << std::endl;
-    outFile.close();
-
-    std::cout << "Saved grouped EntityDebugInfo to " << filePath << std::endl;
-}
 
     torch::autograd::tensor_list PhotonRebuildFunction::backward(torch::autograd::AutogradContext *ctx,
                                                                  torch::autograd::tensor_list grad_outputs) {
@@ -523,11 +518,11 @@ void saveEntityDebugInfoJson(const std::filesystem::path& filePath,
         save_gradient_to_png(dLoss_dRenderedImage, mseGradientImagePath);
 
         std::filesystem::path mseGradientImagePath2 =
-        "./debug/mse_image/all/" + std::to_string(iterationInfo->iteration) + ".png";
+                "./debug/mse_image/all/" + std::to_string(iterationInfo->iteration) + ".png";
         save_gradient_to_png(dLoss_dRenderedImage, mseGradientImagePath2);
 
         auto gradients = pathTracer->backward(iterationInfo->renderSettings);
-        float* mseImage = dLoss_dRenderedImage.data_ptr<float>();
+        float *mseImage = dLoss_dRenderedImage.data_ptr<float>();
         float *image = pathTracer->getImage();
         auto &props = pathTracer->getPipelineSettings();
         int width = props.width;
@@ -543,43 +538,26 @@ void saveEntityDebugInfoJson(const std::filesystem::path& filePath,
         float *gradientImagePerObject = gradients.gradientImagePerObject;
 
 
-
         auto posA = positions.accessor<float, 2>();
         auto gradientEmissivePositions = torch::zeros_like(positions);
         auto gradientQuadricPositions = torch::zeros_like(quadricPositions);
         auto gradPosA = gradientEmissivePositions.accessor<float, 2>();
         auto gradQuadPosA = gradientQuadricPositions.accessor<float, 2>();
 
-        auto& settings = pathTracer->getPipelineSettings();
+        auto &settings = pathTracer->getPipelineSettings();
 
-        size_t numEntities = gradientQuadricPositions.size(0);
-        std::vector<glm::vec3 > gradientPerEntity(numEntities, glm::vec3(0.0f));
+        long numEntities = gradientQuadricPositions.size(0);
+        std::vector<glm::vec3> gradientPerEntity(numEntities, glm::vec3(0.0f));
 
-
-        /*
-        for (int i = 0; i < settings.width * settings.height; i++) {
-            glm::mat3 grad = gradients.photonIDGradient[i];
-            glm::vec3 gradient = {grad[0][0], grad[1][0], grad[2][0]};
-
-            if (glm::any(glm::isnan(gradient)))
-                continue;
-
-            float mseLoss = mseImage[i];
-            glm::vec3 L_mse_qc = -mseLoss * gradient;
-            // Now, add the transformed gradient to the entity's gradient accumulator:
-            gradientPerEntity[0] += L_mse_qc;
-        }
-        */
-
-        std::vector<EntityDebugInfo> entityDebugInfo{numEntities, EntityDebugInfo(pathTracer->getPipelineSettings().photonCount)};
-
-
+        std::vector<EntityDebugInfo> entityDebugInfo{
+            static_cast<size_t>(numEntities), EntityDebugInfo(pathTracer->getPipelineSettings().photonCount)
+        };
         for (int i = 0; i < pathTracer->getPipelineSettings().photonCount; ++i) {
             glm::mat3 grad = gradients.photonIDGradient[i];
             glm::vec3 gradient = {grad[0][0], grad[1][0], grad[2][0]};
             glm::vec3 origin = {grad[0][1], grad[1][1], grad[2][1]};
 
-            if  (glm::any(glm::isnan(gradient))){
+            if (glm::any(glm::isnan(gradient))) {
                 continue;
             }
 
@@ -591,9 +569,9 @@ void saveEntityDebugInfoJson(const std::filesystem::path& filePath,
             size_t pixelIndex = x + y * width;
 
 
+            auto entityID = static_cast<size_t>(gradientImagePerObject[pixelIndex]);
 
-            int entityID = gradientImagePerObject[pixelIndex];
-            if (entityID >= gradientPerEntity.size())
+            if (entityID >= numEntities)
                 continue;
 
             float mseLoss = mseImage[pixelIndex];
@@ -601,41 +579,41 @@ void saveEntityDebugInfoJson(const std::filesystem::path& filePath,
             glm::vec3 finalGradient = mseLoss * gradient;
 
 
-            entityDebugInfo[entityID].L_mse_qc[i] =  mseLoss * gradient;
-            entityDebugInfo[entityID].L_Iuv_qc[i] =  gradient;
+            entityDebugInfo[entityID].L_mse_qc[i] = mseLoss * gradient;
+            entityDebugInfo[entityID].L_Iuv_qc[i] = gradient;
             entityDebugInfo[entityID].L_mse_qc_origin[i] = origin;
 
             // Now, add the transformed gradient to the entity's gradient accumulator:
             gradientPerEntity[entityID] += finalGradient;
         }
         if (iterationInfo->saveDebugInfo) {
-        //saveArrowFieldJson("debug/mse_grad_field/" + cameraName + "/" +  std::to_string(iterationInfo->iteration) +"_debug_arrow_field.json", pathTracer->getPipelineSettings().photonCount, L_mse_qc_origin, L_mse_qc);
-        //saveArrowFieldJson("debug/Iuv_grad_field/" + cameraName + "/" +  std::to_string(iterationInfo->iteration) +"_debug_arrow_field.json", pathTracer->getPipelineSettings().photonCount, L_mse_qc_origin, L_Iuv_qc);
-        saveEntityDebugInfoJson("debug/vector_field/" +  std::to_string(iterationInfo->iteration) +"_entity_gradients.json", entityDebugInfo);
+            saveEntityDebugInfoJson(
+                "debug/vector_field/" + std::to_string(iterationInfo->iteration) + "_entity_gradients.json",
+                entityDebugInfo);
 
-        std::filesystem::path gradientImagePathX =
-                "debug/grad_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + "_x.tiff";
-        std::filesystem::path gradientImagePathY =
-                "debug/grad_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + "_y.tiff";
+            std::filesystem::path gradientImagePathX =
+                    "debug/grad_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + "_x.tiff";
+            std::filesystem::path gradientImagePathY =
+                    "debug/grad_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + "_y.tiff";
 
-        std::filesystem::path gradientImagePathXAll =
-                "debug/grad_image/all/" + std::to_string(iterationInfo->iteration) + "_x.tiff";
-        std::filesystem::path gradientImagePathYAll =
-                "debug/grad_image/all/" + std::to_string(iterationInfo->iteration) + "_y.tiff";
+            std::filesystem::path gradientImagePathXAll =
+                    "debug/grad_image/all/" + std::to_string(iterationInfo->iteration) + "_x.tiff";
+            std::filesystem::path gradientImagePathYAll =
+                    "debug/grad_image/all/" + std::to_string(iterationInfo->iteration) + "_y.tiff";
 
-        saveTIFF(gradientImagePathX, width, height, gradients.gradientImageHoriz);
-        saveTIFF(gradientImagePathY, width, height, gradients.gradientImageVert);
-        saveTIFF(gradientImagePathXAll, width, height, gradients.gradientImageHoriz);
-        saveTIFF(gradientImagePathYAll, width, height, gradients.gradientImageVert);
-        std::filesystem::path gradientPerPixelContributionPath =
-        "debug/grad_id_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + ".png";
-        saveLabelMaskAsPNG(gradientImagePerObject, gradientPerPixelContributionPath, width, height);
-        std::filesystem::path gradientPerPixelContributionPathAll =
-                "debug/grad_id_image/all/" + std::to_string(iterationInfo->iteration) + ".png";
-        saveLabelMaskAsPNG(gradientImagePerObject, gradientPerPixelContributionPathAll, width, height);
-        std::filesystem::path renderedImagePath =
-               "debug/rendered_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + ".png";
-        saveTIFF(renderedImagePath.replace_extension("tiff"), width, height, image);
+            saveTIFF(gradientImagePathX, width, height, gradients.gradientImageHoriz);
+            saveTIFF(gradientImagePathY, width, height, gradients.gradientImageVert);
+            saveTIFF(gradientImagePathXAll, width, height, gradients.gradientImageHoriz);
+            saveTIFF(gradientImagePathYAll, width, height, gradients.gradientImageVert);
+            std::filesystem::path gradientPerPixelContributionPath =
+                    "debug/grad_id_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + ".png";
+            saveLabelMaskAsPNG(gradientImagePerObject, gradientPerPixelContributionPath, width, height);
+            std::filesystem::path gradientPerPixelContributionPathAll =
+                    "debug/grad_id_image/all/" + std::to_string(iterationInfo->iteration) + ".png";
+            saveLabelMaskAsPNG(gradientImagePerObject, gradientPerPixelContributionPathAll, width, height);
+            std::filesystem::path renderedImagePath =
+                    "debug/rendered_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + ".png";
+            saveTIFF(renderedImagePath.replace_extension("tiff"), width, height, image);
         }
 
         iterationInfo->gradients.entityGradients.resize( gradientQuadricPositions.size(0));
@@ -660,12 +638,42 @@ void saveEntityDebugInfoJson(const std::filesystem::path& filePath,
             iterationInfo->gradients.entityGradients[i] = gradientPerEntity[i];
         }
 
+        // Assume gradientPerEntity is a vector<glm::vec3> where each glm::vec3 holds the gradient for an entity.
+        std::vector<int64_t> row_indices;
+        std::vector<int64_t> col_indices;
+        std::vector<float> sparse_values;
+
+        // Loop over all entities.
+        for (int i = 0; i < numEntities; ++i) {
+            float grad_x = gradientPerEntity[i].x;
+            float grad_y = gradientPerEntity[i].y;
+            float grad_z = gradientPerEntity[i].z;
+            // Only record if the entity has any non-zero gradient
+            if (!(grad_x == 0.0f && grad_y == 0.0f && grad_z == 0.0f)) {
+                // Add one entry per component:
+                row_indices.push_back(i); col_indices.push_back(0); sparse_values.push_back(grad_x);
+                row_indices.push_back(i); col_indices.push_back(1); sparse_values.push_back(grad_y);
+                row_indices.push_back(i); col_indices.push_back(2); sparse_values.push_back(grad_z);
+            }
+        }
+
+        // Now create a tensor for the indices: shape [2, n_nonzero]
+        auto options = positions.options();  // Use the same device/dtype as your positions
+        auto row_tensor = torch::tensor(row_indices, torch::dtype(torch::kInt64).device(options.device()));
+        auto col_tensor = torch::tensor(col_indices, torch::dtype(torch::kInt64).device(options.device()));
+        auto indicesTensor = torch::stack({row_tensor, col_tensor});
+
+        // Create the values tensor.
+        auto valuesTensor = torch::tensor(sparse_values, options);
+
+        // Finally build the sparse tensor with the intended size, e.g. [numEntities, 3]
+        auto sparseGrad = torch::sparse_coo_tensor(indicesTensor, valuesTensor, {numEntities, 3});
 
         // Return them in the same order as forward inputs
         return {
             torch::Tensor(), // wrt settings (not a Tensor)
             torch::Tensor(), // wrt pathTracer (not a Tensor)
-            gradientEmissivePositions, // wrt positions
+            torch::Tensor(), // wrt positions
             torch::Tensor(), // wrt scales
             torch::Tensor(), // wrt normals
             torch::Tensor(), // emission
@@ -673,7 +681,7 @@ void saveEntityDebugInfoJson(const std::filesystem::path& filePath,
             torch::Tensor(), // specular
             torch::Tensor(), // diffuse
             torch::Tensor(), // gradQuadApperance
-            gradientQuadricPositions, // gradQUadPos
+            sparseGrad, // gradQUadPos
             torch::Tensor() // gradQUadRot
         };
     }

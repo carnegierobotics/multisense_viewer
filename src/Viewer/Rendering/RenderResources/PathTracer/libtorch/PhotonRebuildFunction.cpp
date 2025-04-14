@@ -12,7 +12,7 @@
 #include <tiffio.h> // Make sure to include libtiff's header
 
 namespace VkRender::PathTracer {
-    static void saveImageAsPng(std::filesystem::path &filename, uint32_t width, uint32_t height, float *image) {
+    static void saveImageAsPng(std::filesystem::path& filename, uint32_t width, uint32_t height, float* image) {
         std::filesystem::path dir = filename.parent_path();
 
         // Create directory if it doesn't exist
@@ -47,7 +47,7 @@ namespace VkRender::PathTracer {
         }
     }
 
-    static void save_gradient_to_png(torch::Tensor gradient, const std::filesystem::path &filename) {
+    static void save_gradient_to_png(torch::Tensor gradient, const std::filesystem::path& filename) {
         std::filesystem::path dir = filename.parent_path();
 
         // Create directory if it doesn't exist
@@ -67,7 +67,7 @@ namespace VkRender::PathTracer {
         auto uint8_tensor = normalized.to(torch::kUInt8);
 
         // Get raw pointer
-        uint8_t *data = uint8_tensor.data_ptr<uint8_t>();
+        uint8_t* data = uint8_tensor.data_ptr<uint8_t>();
 
         // Get dimensions
         int width = gradient.size(1);
@@ -102,7 +102,7 @@ namespace VkRender::PathTracer {
         }
 
         // Write the RGB float data
-        file.write(reinterpret_cast<const char *>(rgbData.data()), rgbData.size() * sizeof(float));
+        file.write(reinterpret_cast<const char*>(rgbData.data()), rgbData.size() * sizeof(float));
 
         if (!file) {
             throw std::runtime_error(
@@ -113,8 +113,8 @@ namespace VkRender::PathTracer {
     }
 
 
-    static void saveTIFF(const std::filesystem::path &filename, uint32_t width,
-                         uint32_t height, const float *image) {
+    static void saveTIFF(const std::filesystem::path& filename, uint32_t width,
+                         uint32_t height, const float* image) {
         // Create the directory if it doesn't exist.
         std::filesystem::path dir = filename.parent_path();
         if (!dir.empty() && !std::filesystem::exists(dir)) {
@@ -122,7 +122,7 @@ namespace VkRender::PathTracer {
         }
 
         // Open the TIFF file for writing.
-        TIFF *tif = TIFFOpen(filename.string().c_str(), "w");
+        TIFF* tif = TIFFOpen(filename.string().c_str(), "w");
         if (!tif) {
             throw std::runtime_error("Unable to open TIFF file for writing.");
         }
@@ -141,8 +141,8 @@ namespace VkRender::PathTracer {
         // TIFF expects each scanline to be contiguous in memory.
         for (uint32_t row = 0; row < height; row++) {
             // The starting pointer of the row in the image vector.
-            const float *rowData = &image[row * width];
-            if (TIFFWriteScanline(tif, (tdata_t) rowData, row, 0) < 0) {
+            const float* rowData = &image[row * width];
+            if (TIFFWriteScanline(tif, (tdata_t)rowData, row, 0) < 0) {
                 TIFFClose(tif);
                 throw std::runtime_error("Failed to write TIFF scanline.");
             }
@@ -151,7 +151,7 @@ namespace VkRender::PathTracer {
         TIFFClose(tif);
     }
 
-    static void savePFM(const std::filesystem::path &filename, const std::vector<float> &image, uint32_t width,
+    static void savePFM(const std::filesystem::path& filename, const std::vector<float>& image, uint32_t width,
                         uint32_t height) {
         std::filesystem::path dir = filename.parent_path();
 
@@ -189,12 +189,12 @@ namespace VkRender::PathTracer {
         // PFM files expect the data to be written row by row from the top row to bottom.
         // Depending on how your image is stored (top-to-bottom or bottom-to-top),
         // you might need to flip the rows. Here we assume the 'image' vector is top-to-bottom.
-        file.write(reinterpret_cast<const char *>(rgbData.data()), rgbData.size() * sizeof(float));
+        file.write(reinterpret_cast<const char*>(rgbData.data()), rgbData.size() * sizeof(float));
         file.close();
     }
 
-    static void denoiseImage(float *singleChannelImage, uint32_t width, uint32_t height,
-                             std::vector<float> &output) {
+    static void denoiseImage(float* singleChannelImage, uint32_t width, uint32_t height,
+                             std::vector<float>& output) {
         // Initialize OIDN device and commit
         oidn::DeviceRef device = oidn::newDevice();
         device.commit();
@@ -218,7 +218,7 @@ namespace VkRender::PathTracer {
         filter.execute();
 
         // Check for errors from OIDN
-        const char *errorMessage;
+        const char* errorMessage;
         if (device.getError(errorMessage) != oidn::Error::None) {
             std::cerr << "OIDN Error: " << errorMessage << std::endl;
             return;
@@ -229,8 +229,8 @@ namespace VkRender::PathTracer {
         std::memcpy(output.data(), outputBuffer.getData(), imageSize * sizeof(float));
     }
 
-    torch::Tensor PhotonRebuildFunction::forward(torch::autograd::AutogradContext *ctx,
-                                                 IterationInfo *iterationInfo, PhotonTracer *pathTracer,
+    torch::Tensor PhotonRebuildFunction::forward(torch::autograd::AutogradContext* ctx,
+                                                 IterationInfo* iterationInfo, PhotonTracer* pathTracer,
                                                  torch::Tensor positions, torch::Tensor scales,
                                                  torch::Tensor normals, torch::Tensor emissions,
                                                  torch::Tensor colors,
@@ -264,10 +264,10 @@ namespace VkRender::PathTracer {
 
 
         // For illustration:
-        const PhotonTracer::PipelineSettings &photonTracerSettings = pathTracer->getPipelineSettings();
+        const PhotonTracer::PipelineSettings& photonTracerSettings = pathTracer->getPipelineSettings();
         int64_t height = photonTracerSettings.height;
         int64_t width = photonTracerSettings.width;
-        float *rawImage = pathTracer->getImage();
+        float* rawImage = pathTracer->getImage();
 
         // Suppose the path tracer writes out to pathTracer->m_imageMemory,
         // with shape [height * width] or [height * width * channels].
@@ -286,7 +286,7 @@ namespace VkRender::PathTracer {
         return output;
     }
 
-    static void saveAsPng(std::filesystem::path filePath, int width, int height, void *data) {
+    static void saveAsPng(std::filesystem::path filePath, int width, int height, void* data) {
         std::filesystem::path dir = filePath.parent_path();
 
         // Create directory if it doesn't exist
@@ -299,8 +299,8 @@ namespace VkRender::PathTracer {
         stbi_write_png(filePath.c_str(), width, height, 3, data, width * 3);
     }
 
-    static void saveLabelMaskAsPNG(const float *gradientImagePerObject,
-                                   const std::filesystem::path &mseGradientImagePath, int width, int height) {
+    static void saveLabelMaskAsPNG(const float* gradientImagePerObject,
+                                   const std::filesystem::path& mseGradientImagePath, int width, int height) {
         // Create an RGB image buffer (3 channels per pixel)
         std::vector<unsigned char> colorImage(width * height * 3, 0);
 
@@ -329,14 +329,16 @@ namespace VkRender::PathTracer {
                 colorImage[i * 3 + 0] = 0;
                 colorImage[i * 3 + 1] = 0;
                 colorImage[i * 3 + 2] = 0;
-            } else {
+            }
+            else {
                 // Convert the float label to an integer class index.
                 int classIndex = static_cast<int>(label);
                 if (classIndex >= 0 && classIndex < static_cast<int>(classColors.size())) {
                     colorImage[i * 3 + 0] = classColors[classIndex][0];
                     colorImage[i * 3 + 1] = classColors[classIndex][1];
                     colorImage[i * 3 + 2] = classColors[classIndex][2];
-                } else {
+                }
+                else {
                     // If the label is outside the expected range, default to black.
                     colorImage[i * 3 + 0] = 0;
                     colorImage[i * 3 + 1] = 0;
@@ -348,7 +350,7 @@ namespace VkRender::PathTracer {
         saveAsPng(mseGradientImagePath, width, height, colorImage.data());
     }
 
-    static void saveGradientAsPng(std::filesystem::path gradientImagePath, int width, int height, float *data) {
+    static void saveGradientAsPng(std::filesystem::path gradientImagePath, int width, int height, float* data) {
         // Compute a normalization factor (max absolute gradient value)
         float maxAbs = 0.0f;
         for (int i = 0; i < width * height; i++) {
@@ -377,13 +379,15 @@ namespace VkRender::PathTracer {
                 r = static_cast<unsigned char>((1.0f - t) * 128.0f);
                 g = static_cast<unsigned char>((1.0f - t) * 128.0f);
                 b = static_cast<unsigned char>(t * 255.0f + (1.0f - t) * 128.0f);
-            } else if (v > 0.0f) {
+            }
+            else if (v > 0.0f) {
                 // Map positive values: as v goes from 0 to 1, interpolate from neutral to red.
                 float t = v; // t in [0,1]
                 r = static_cast<unsigned char>(t * 255.0f + (1.0f - t) * 128.0f);
                 g = static_cast<unsigned char>((1.0f - t) * 128.0f);
                 b = static_cast<unsigned char>((1.0f - t) * 128.0f);
-            } else {
+            }
+            else {
                 // For zero, use the neutral color.
                 r = 128;
                 g = 128;
@@ -421,8 +425,8 @@ namespace VkRender::PathTracer {
     };
 
     // New function to save the entire vector of EntityDebugInfo objects into one file.
-    void saveEntityDebugInfoJson(const std::filesystem::path &filePath,
-                                 const std::vector<EntityDebugInfo> &entityDebugInfos) {
+    void saveEntityDebugInfoJson(const std::filesystem::path& filePath,
+                                 const std::vector<EntityDebugInfo>& entityDebugInfos) {
         // Create directory if needed
         std::filesystem::path dir = filePath.parent_path();
         if (!dir.empty() && !std::filesystem::exists(dir)) {
@@ -438,7 +442,7 @@ namespace VkRender::PathTracer {
         const float epsilon = std::numeric_limits<float>::epsilon();
 
         // For each EntityDebugInfo, group the three vector fields.
-        for (int i = 0; const auto &entity: entityDebugInfos) {
+        for (int i = 0; const auto& entity : entityDebugInfos) {
             nlohmann::json entityJson;
 
             std::vector<float> filtered_origin;
@@ -488,10 +492,16 @@ namespace VkRender::PathTracer {
         std::cout << "Saved grouped EntityDebugInfo to " << filePath << std::endl;
     }
 
-    torch::autograd::tensor_list PhotonRebuildFunction::backward(torch::autograd::AutogradContext *ctx,
+    torch::autograd::tensor_list PhotonRebuildFunction::backward(torch::autograd::AutogradContext* ctx,
                                                                  torch::autograd::tensor_list grad_outputs) {
         // Usually, the forward returned 1 tensor => grad_outputs.size() == 1
         // grad_outputs[0] is d(L)/d(output).
+
+
+        auto start = std::chrono::high_resolution_clock::now();
+
+        // Backward
+
 
         auto dLoss_dRenderedImage = grad_outputs[0];
         auto saved = ctx->get_saved_variables();
@@ -508,133 +518,69 @@ namespace VkRender::PathTracer {
 
         // Retrieve the path tracer pointer
         auto pathTracerRaw = ctx->saved_data["pathTracer"].toInt();
-        PhotonTracer *pathTracer = reinterpret_cast<PhotonTracer *>(pathTracerRaw);
+        PhotonTracer* pathTracer = reinterpret_cast<PhotonTracer*>(pathTracerRaw);
         // Retrieve the path tracer pointer
         auto settingsPtr = ctx->saved_data["IterationInfo"].toInt();
-        IterationInfo *iterationInfo = reinterpret_cast<IterationInfo *>(settingsPtr);
-        std::string cameraName = iterationInfo->cameraName;
-        std::filesystem::path mseGradientImagePath =
-                "./debug/mse_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + ".png";
-        save_gradient_to_png(dLoss_dRenderedImage, mseGradientImagePath);
+        IterationInfo* iterationInfo = reinterpret_cast<IterationInfo*>(settingsPtr);
 
-        std::filesystem::path mseGradientImagePath2 =
-                "./debug/mse_image/all/" + std::to_string(iterationInfo->iteration) + ".png";
-        save_gradient_to_png(dLoss_dRenderedImage, mseGradientImagePath2);
 
         auto gradients = pathTracer->backward(iterationInfo->renderSettings);
-        float *mseImage = dLoss_dRenderedImage.data_ptr<float>();
-        float *image = pathTracer->getImage();
-        auto &props = pathTracer->getPipelineSettings();
+        float* mseImage = dLoss_dRenderedImage.data_ptr<float>();
+        float* image = pathTracer->getImage();
+        auto& props = pathTracer->getPipelineSettings();
         int width = props.width;
         int height = props.height;
 
-        // Save the gradient magnitude image as a PFM file.
-        //saveTIFF(gradientImagePath, gradMag.data(), width, height);
-
-        //saveGradientAsPng(gradientImagePathY, width, height, gradY.data());
-        // Get the pointer to the loss gradient image (size: width*height)
-        //float *dLoss_dI = dLoss_dRenderedImage.data_ptr<float>();
-
-        float *gradientImagePerObject = gradients.gradientImagePerObject;
-
-
+        float* gradientImagePerObject = gradients.gradientImagePerObject;
         auto posA = positions.accessor<float, 2>();
         auto gradientEmissivePositions = torch::zeros_like(positions);
         auto gradientQuadricPositions = torch::zeros_like(quadricPositions);
         auto gradPosA = gradientEmissivePositions.accessor<float, 2>();
         auto gradQuadPosA = gradientQuadricPositions.accessor<float, 2>();
-
-        auto &settings = pathTracer->getPipelineSettings();
-
-        long numEntities = gradientQuadricPositions.size(0);
-        std::vector<glm::vec3> gradientPerEntity(numEntities, glm::vec3(0.0f));
-
+        auto& settings = pathTracer->getPipelineSettings();
+        long numQuadrics = gradientQuadricPositions.size(0);
+        std::vector<glm::vec3> gradientPerEntity(numQuadrics, glm::vec3(0.0f));
         std::vector<EntityDebugInfo> entityDebugInfo{
-            static_cast<size_t>(numEntities), EntityDebugInfo(pathTracer->getPipelineSettings().photonCount)
+            static_cast<size_t>(numQuadrics), EntityDebugInfo(pathTracer->getPipelineSettings().photonCount)
         };
         for (int i = 0; i < pathTracer->getPipelineSettings().photonCount; ++i) {
             glm::mat3 grad = gradients.photonIDGradient[i];
             glm::vec3 gradient = {grad[0][0], grad[1][0], grad[2][0]};
             glm::vec3 origin = {grad[0][1], grad[1][1], grad[2][1]};
-
             if (glm::any(glm::isnan(gradient))) {
                 continue;
             }
-
             glm::vec2 gradCoords = gradients.gradientPixelCoordinates[i];
-
             int x = static_cast<int>(std::round(gradCoords.x));
             int y = static_cast<int>(std::round(gradCoords.y));
-
             size_t pixelIndex = x + y * width;
-
-
             auto entityID = static_cast<size_t>(gradientImagePerObject[pixelIndex]);
 
-            if (entityID >= numEntities)
+            if (entityID >= numQuadrics)
                 continue;
 
             float mseLoss = mseImage[pixelIndex];
-
             glm::vec3 finalGradient = mseLoss * gradient;
-
-
             entityDebugInfo[entityID].L_mse_qc[i] = mseLoss * gradient;
             entityDebugInfo[entityID].L_Iuv_qc[i] = gradient;
             entityDebugInfo[entityID].L_mse_qc_origin[i] = origin;
-
-            // Now, add the transformed gradient to the entity's gradient accumulator:
             gradientPerEntity[entityID] += finalGradient;
         }
-        if (iterationInfo->saveDebugInfo) {
-            saveEntityDebugInfoJson(
-                "debug/vector_field/" + std::to_string(iterationInfo->iteration) + "_entity_gradients.json",
-                entityDebugInfo);
 
-            std::filesystem::path gradientImagePathX =
-                    "debug/grad_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + "_x.tiff";
-            std::filesystem::path gradientImagePathY =
-                    "debug/grad_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + "_y.tiff";
-
-            std::filesystem::path gradientImagePathXAll =
-                    "debug/grad_image/all/" + std::to_string(iterationInfo->iteration) + "_x.tiff";
-            std::filesystem::path gradientImagePathYAll =
-                    "debug/grad_image/all/" + std::to_string(iterationInfo->iteration) + "_y.tiff";
-
-            saveTIFF(gradientImagePathX, width, height, gradients.gradientImageHoriz);
-            saveTIFF(gradientImagePathY, width, height, gradients.gradientImageVert);
-            saveTIFF(gradientImagePathXAll, width, height, gradients.gradientImageHoriz);
-            saveTIFF(gradientImagePathYAll, width, height, gradients.gradientImageVert);
-            std::filesystem::path gradientPerPixelContributionPath =
-                    "debug/grad_id_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + ".png";
-            saveLabelMaskAsPNG(gradientImagePerObject, gradientPerPixelContributionPath, width, height);
-            std::filesystem::path gradientPerPixelContributionPathAll =
-                    "debug/grad_id_image/all/" + std::to_string(iterationInfo->iteration) + ".png";
-            saveLabelMaskAsPNG(gradientImagePerObject, gradientPerPixelContributionPathAll, width, height);
-            std::filesystem::path renderedImagePath =
-                    "debug/rendered_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + ".png";
-            saveTIFF(renderedImagePath.replace_extension("tiff"), width, height, image);
-        }
-
-        iterationInfo->gradients.entityGradients.resize( gradientQuadricPositions.size(0));
-        iterationInfo->gradients.screenSpaceGradients.resize( gradientQuadricPositions.size(0));
-        for (int i = 0; i < gradientQuadricPositions.size(0); ++i) {
-            float grad_x = gradientPerEntity[i].x ;
-            float grad_y = gradientPerEntity[i].y ;
-            float grad_z = gradientPerEntity[i].z ;
-
+        iterationInfo->gradients.entityGradients.resize(gradientQuadricPositions.size(0));
+        iterationInfo->gradients.screenSpaceGradients.resize(gradientQuadricPositions.size(0));
+        for (int i = 0; i < numQuadrics; ++i) {
+            float grad_x = gradientPerEntity[i].x;
+            float grad_y = gradientPerEntity[i].y;
+            float grad_z = gradientPerEntity[i].z;
             if (std::isnan(grad_x) || std::isnan(grad_y) || std::isnan(grad_z)) {
-                std::cout << "NAN warning: Gradient: (" << grad_x << ", " << grad_y << ", " << grad_z << ")" << std::endl;
+                std::cout << "NAN warning: Gradient: (" << grad_x << ", " << grad_y << ", " << grad_z << ")" <<
+                    std::endl;
                 continue;
-
             }
-
             gradQuadPosA[i][0] = grad_x;
             gradQuadPosA[i][1] = grad_y;
             gradQuadPosA[i][2] = grad_z;
-
-            std::cout << "Final Gradient: (" << grad_x << ", " << grad_y << ", " << grad_z << ")" << std::endl;
-
             iterationInfo->gradients.entityGradients[i] = gradientPerEntity[i];
         }
 
@@ -644,21 +590,27 @@ namespace VkRender::PathTracer {
         std::vector<float> sparse_values;
 
         // Loop over all entities.
-        for (int i = 0; i < numEntities; ++i) {
+        for (int i = 0; i < numQuadrics; ++i) {
             float grad_x = gradientPerEntity[i].x;
             float grad_y = gradientPerEntity[i].y;
             float grad_z = gradientPerEntity[i].z;
             // Only record if the entity has any non-zero gradient
             if (!(grad_x == 0.0f && grad_y == 0.0f && grad_z == 0.0f)) {
                 // Add one entry per component:
-                row_indices.push_back(i); col_indices.push_back(0); sparse_values.push_back(grad_x);
-                row_indices.push_back(i); col_indices.push_back(1); sparse_values.push_back(grad_y);
-                row_indices.push_back(i); col_indices.push_back(2); sparse_values.push_back(grad_z);
+                row_indices.push_back(i);
+                col_indices.push_back(0);
+                sparse_values.push_back(grad_x);
+                row_indices.push_back(i);
+                col_indices.push_back(1);
+                sparse_values.push_back(grad_y);
+                row_indices.push_back(i);
+                col_indices.push_back(2);
+                sparse_values.push_back(grad_z);
             }
         }
 
         // Now create a tensor for the indices: shape [2, n_nonzero]
-        auto options = positions.options();  // Use the same device/dtype as your positions
+        auto options = positions.options(); // Use the same device/dtype as your positions
         auto row_tensor = torch::tensor(row_indices, torch::dtype(torch::kInt64).device(options.device()));
         auto col_tensor = torch::tensor(col_indices, torch::dtype(torch::kInt64).device(options.device()));
         auto indicesTensor = torch::stack({row_tensor, col_tensor});
@@ -666,8 +618,51 @@ namespace VkRender::PathTracer {
         // Create the values tensor.
         auto valuesTensor = torch::tensor(sparse_values, options);
 
-        // Finally build the sparse tensor with the intended size, e.g. [numEntities, 3]
-        auto sparseGrad = torch::sparse_coo_tensor(indicesTensor, valuesTensor, {numEntities, 3});
+        // Finally build the sparse tensor with the intended size, e.g. [numQuadrics, 3]
+        auto sparseGrad = torch::sparse_coo_tensor(indicesTensor, valuesTensor, {numQuadrics, 3});
+
+        auto end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> duration = end - start;
+        std::cout << "Custom Backwards pass took " << duration.count() << " ms\n";
+
+        if (iterationInfo->saveDebugInfo) {
+            std::string cameraName = iterationInfo->cameraName;
+            std::filesystem::path mseGradientImagePath = "./debug/mse_image/" + cameraName + "/" + std::to_string(
+                iterationInfo->iteration) + ".png";
+            save_gradient_to_png(dLoss_dRenderedImage, mseGradientImagePath);
+
+            std::filesystem::path mseGradientImagePath2 = "./debug/mse_image/all/" + std::to_string(
+                iterationInfo->iteration) + ".png";
+            save_gradient_to_png(dLoss_dRenderedImage, mseGradientImagePath2);
+
+            saveEntityDebugInfoJson(
+                "debug/vector_field/" + std::to_string(iterationInfo->iteration) + "_entity_gradients.json",
+                entityDebugInfo);
+
+            std::filesystem::path gradientImagePathX =
+                "debug/grad_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + "_x.tiff";
+            std::filesystem::path gradientImagePathY =
+                "debug/grad_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + "_y.tiff";
+
+            std::filesystem::path gradientImagePathXAll =
+                "debug/grad_image/all/" + std::to_string(iterationInfo->iteration) + "_x.tiff";
+            std::filesystem::path gradientImagePathYAll =
+                "debug/grad_image/all/" + std::to_string(iterationInfo->iteration) + "_y.tiff";
+
+            saveTIFF(gradientImagePathX, width, height, gradients.gradientImageHoriz);
+            saveTIFF(gradientImagePathY, width, height, gradients.gradientImageVert);
+            saveTIFF(gradientImagePathXAll, width, height, gradients.gradientImageHoriz);
+            saveTIFF(gradientImagePathYAll, width, height, gradients.gradientImageVert);
+            std::filesystem::path gradientPerPixelContributionPath =
+                "debug/grad_id_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + ".png";
+            saveLabelMaskAsPNG(gradientImagePerObject, gradientPerPixelContributionPath, width, height);
+            std::filesystem::path gradientPerPixelContributionPathAll =
+                "debug/grad_id_image/all/" + std::to_string(iterationInfo->iteration) + ".png";
+            saveLabelMaskAsPNG(gradientImagePerObject, gradientPerPixelContributionPathAll, width, height);
+            std::filesystem::path renderedImagePath =
+                "debug/rendered_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + ".png";
+            saveTIFF(renderedImagePath.replace_extension("tiff"), width, height, image);
+        }
 
         // Return them in the same order as forward inputs
         return {

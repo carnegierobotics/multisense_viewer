@@ -23,6 +23,7 @@ namespace VkRender::PathTracer {
         m_renderInformation = std::make_unique<RenderInformation>();
         pipelineSettings.device().wait();
         prepareImageAndInfoBuffers();
+        prepareBackwardsBuffers();
         uploadGaussianData(scene);
         uploadQuadricEntities(scene);
         pipelineSettings.device().wait();
@@ -48,6 +49,7 @@ namespace VkRender::PathTracer {
     void PhotonTracer::update(RenderSettings &renderSettings) {
         try {
             auto &queue = m_pipelineSettings.device();
+            auto start = std::chrono::steady_clock::now();
 
             // Update shared GPU/CPU render information
             m_renderInformation->frameID++;
@@ -118,6 +120,9 @@ namespace VkRender::PathTracer {
             queue.memcpy(m_backwardInfo.pixelHitCounter, m_gpu.imageMemoryCounter, m_pipelineSettings.width * m_pipelineSettings.height * sizeof(float));
             queue.wait();
 
+            auto end = std::chrono::steady_clock::now();
+            std::cout << "SYCL kernel time: "
+                      << std::chrono::duration<double, std::milli>(end - start).count() << " ms\n";
 
             double totalM = static_cast<double>(m_renderInformation->totalPhotons) / 1e6;
             double sensorK = static_cast<double>(m_renderInformation->photonsAccumulated) / 1000.0;
@@ -133,22 +138,24 @@ namespace VkRender::PathTracer {
 
     PhotonTracer::BackwardInfo PhotonTracer::backward(RenderSettings &renderSettings) {
         try {
+            auto start = std::chrono::steady_clock::now();
+
             auto &queue = m_pipelineSettings.device();
             uint64_t simulatePhotonCount = m_pipelineSettings.photonCount;
             uint32_t imageSize = m_pipelineSettings.width * m_pipelineSettings.height;
 
 
-            m_renderInformation->totalPhotons += m_pipelineSettings.photonCount;
-            m_renderInformation->gamma = renderSettings.gammaCorrection;
-            m_renderInformation->numBounces = m_pipelineSettings.numBounces;
-            queue.memcpy(m_gpu.renderInformation, m_renderInformation.get(), sizeof(RenderInformation));
-            queue.memcpy(m_gpu.pinholeCamera, &renderSettings.camera, sizeof(PinholeCamera));
-            queue.memcpy(m_gpu.cameraTransform, &renderSettings.cameraTransform, sizeof(TransformComponent));
+            //m_renderInformation->totalPhotons += m_pipelineSettings.photonCount;
+            //m_renderInformation->gamma = renderSettings.gammaCorrection;
+            //m_renderInformation->numBounces = m_pipelineSettings.numBounces;
+            //queue.memcpy(m_gpu.renderInformation, m_renderInformation.get(), sizeof(RenderInformation));
+            //queue.memcpy(m_gpu.pinholeCamera, &renderSettings.camera, sizeof(PinholeCamera));
+            //queue.memcpy(m_gpu.cameraTransform, &renderSettings.cameraTransform, sizeof(TransformComponent));
             queue.fill(m_gpu.photonIDGradient, glm::mat3(0.0f),  m_pipelineSettings.photonCount);
             queue.fill(m_gpu.gradientPixelCoordinates, glm::vec2(0.0f),  m_pipelineSettings.photonCount);
             queue.fill(m_gpu.gradientImagePerObject, FLT_MAX, imageSize);
-            queue.fill(m_gpu.gradientImageU, 0.0f, imageSize);
-            queue.fill(m_gpu.gradientImageV, 0.0f, imageSize);
+            //queue.fill(m_gpu.gradientImageU, 0.0f, imageSize);
+            //queue.fill(m_gpu.gradientImageV, 0.0f, imageSize);
 
             queue.wait();
             sycl::range<1> globalRange(simulatePhotonCount);
@@ -160,13 +167,18 @@ namespace VkRender::PathTracer {
 
             queue.wait();
             queue.memcpy(m_backwardInfo.gradientImagePerObject, m_gpu.gradientImagePerObject, imageSize * sizeof(float));
-            queue.memcpy(m_backwardInfo.gradients, m_gpu.gradients, simulatePhotonCount * sizeof(glm::vec3));
+            //queue.memcpy(m_backwardInfo.gradients, m_gpu.gradients, simulatePhotonCount * sizeof(glm::vec3));
             queue.memcpy(m_backwardInfo.photonIDGradient, m_gpu.photonIDGradient, sizeof(glm::mat3) *  m_pipelineSettings.photonCount);
             queue.memcpy(m_backwardInfo.gradientPixelCoordinates, m_gpu.gradientPixelCoordinates, sizeof(glm::vec2) *  m_pipelineSettings.photonCount);
-            queue.memcpy(m_backwardInfo.gradientImageHoriz, m_gpu.gradientImageU, sizeof(float) * imageSize);
-            queue.memcpy(m_backwardInfo.gradientImageVert, m_gpu.gradientImageV, sizeof(float) * imageSize);
+            //queue.memcpy(m_backwardInfo.gradientImageHoriz, m_gpu.gradientImageU, sizeof(float) * imageSize);
+            //queue.memcpy(m_backwardInfo.gradientImageVert, m_gpu.gradientImageV, sizeof(float) * imageSize);
 
             queue.wait();
+
+            auto end = std::chrono::steady_clock::now();
+            std::cout << "SYCL Backwards kernel time: "
+                      << std::chrono::duration<double, std::milli>(end - start).count() << " ms\n";
+
         } catch (const std::exception &e) {
             std::cerr << "Exception: " << e.what() << std::endl;
         }
@@ -245,6 +257,26 @@ namespace VkRender::PathTracer {
         queue.wait();
     }
 
+    void PhotonTracer::prepareBackwardsBuffers() {
+        auto &queue = m_pipelineSettings.device();
+
+        m_gpu.gradients = sycl::malloc_device<glm::vec3>(m_pipelineSettings.photonCount, queue);
+        queue.fill(m_gpu.gradients, glm::vec3(0.0f), m_pipelineSettings.photonCount);
+
+        m_gpu.photonIDGradient = sycl::malloc_device<glm::mat3>(m_pipelineSettings.photonCount, queue);
+        queue.fill(m_gpu.photonIDGradient, glm::mat3(0.0f), m_pipelineSettings.photonCount);
+
+        m_gpu.gradientPixelCoordinates = sycl::malloc_device<glm::vec2>(m_pipelineSettings.photonCount, queue);
+        queue.fill(m_gpu.gradientPixelCoordinates, glm::vec2(0.0f), m_pipelineSettings.photonCount);
+
+        uint32_t imageSize = m_pipelineSettings.width * m_pipelineSettings.height;
+        m_gpu.gradientImageU = sycl::malloc_device<float>(imageSize, queue);
+        queue.fill(m_gpu.gradientImageU, 0.0f, imageSize);
+        m_gpu.gradientImageV = sycl::malloc_device<float>(imageSize, queue);
+        queue.fill(m_gpu.gradientImageV, 0.0f, imageSize);
+        m_gpu.gradientImagePerObject = sycl::malloc_device<float>(imageSize, queue);
+        queue.fill(m_gpu.gradientImagePerObject, 0.0f, imageSize).wait();
+    }
 
     void PhotonTracer::freeResources() {
         auto &queue = m_pipelineSettings.device();
@@ -494,23 +526,7 @@ namespace VkRender::PathTracer {
         size_t numEntities = quadricInputAssembly.size() + numGaussians;
         m_gpu.numEntities = numEntities;
 
-        m_gpu.gradients = sycl::malloc_device<glm::vec3>(m_pipelineSettings.photonCount, queue);
-        queue.fill(m_gpu.gradients, glm::vec3(0.0f), m_pipelineSettings.photonCount);
-
-        m_gpu.photonIDGradient = sycl::malloc_device<glm::mat3>(m_pipelineSettings.photonCount, queue);
-        queue.fill(m_gpu.photonIDGradient, glm::mat3(0.0f), m_pipelineSettings.photonCount);
-
-        m_gpu.gradientPixelCoordinates = sycl::malloc_device<glm::vec2>(m_pipelineSettings.photonCount, queue);
-        queue.fill(m_gpu.gradientPixelCoordinates, glm::vec2(0.0f), m_pipelineSettings.photonCount);
-
-        uint32_t imageSize = m_pipelineSettings.width * m_pipelineSettings.height;
-        m_gpu.gradientImageU = sycl::malloc_device<float>(imageSize, queue);
-        queue.fill(m_gpu.gradientImageU, 0.0f, imageSize);
-        m_gpu.gradientImageV = sycl::malloc_device<float>(imageSize, queue);
-        queue.fill(m_gpu.gradientImageV, 0.0f, imageSize);
-        m_gpu.gradientImagePerObject = sycl::malloc_device<float>(imageSize, queue);
-        queue.fill(m_gpu.gradientImagePerObject, 0.0f, imageSize);
-
+        prepareBackwardsBuffers();
 
         Log::Logger::getInstance()->info("Uploaded  {} Quadrics to renderkernel from Tensor", m_gpu.numQuadrics);
         queue.wait();
@@ -628,6 +644,7 @@ namespace VkRender::PathTracer {
         queue.memcpy(m_gpu.bvhNodes, bvhNodes.data(), bvhSize * sizeof(BVHNode));
 
         m_gpu.numBVHNodes = bvhSize;
+
         Log::Logger::getInstance()->info("Uploaded {} BVH nodes for Quadrics", bvhSize);
         queue.wait();
     }

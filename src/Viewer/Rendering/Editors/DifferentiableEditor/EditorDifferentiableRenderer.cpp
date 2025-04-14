@@ -134,10 +134,10 @@ namespace VkRender {
             // We pass in the parameters of our module (or custom parameter list)
             m_photonRebuildModule->parameters(),
             // Then define the Adam options, e.g. learning rate = 1e-3
-            torch::optim::SparseAdamOptions(0.001f).lr(0.005)
-            .betas(std::make_tuple(0.8, 0.95)) // Example
-            .eps(1e-8)
-            .maximize(false) // or true
+            torch::optim::SparseAdamOptions().lr(0.005)
+            //.betas(std::make_tuple(0.8, 0.95)) // Example
+            //.eps(1e-8)
+            //.maximize(false) // or true
 
         );
         m_accumulatedTensor = torch::Tensor();
@@ -266,12 +266,17 @@ namespace VkRender {
                     //auto loss = torch::mean(torch::abs(m_accumulatedTensor - gtTensor));
                     auto loss = torch::mean(torch::pow(m_accumulatedTensor - gtTensor, 2));
 
+                    auto start = std::chrono::high_resolution_clock::now();
+
                     // Backward
                     loss.backward();
+                    auto end = std::chrono::high_resolution_clock::now();
+                    std::chrono::duration<double, std::milli> duration = end - start;
+                    std::cout << "Backward pass took " << duration.count() << " ms\n";
 
                     // Log loss
                     float loss_val = loss.item<float>();
-                    std::cout << "Loss: " << loss_val << std::endl;
+                    //std::cout << "Loss: " << loss_val << std::endl;
                     Log::Logger::getInstance()->info("Loss: {}", loss_val);
 
                     // Calculate PSNR (assuming images are normalized to [0,1])
@@ -279,7 +284,7 @@ namespace VkRender {
 
                     // Calculate SSIM
                     float ssim_val = computeSSIM(gtTensor, m_accumulatedTensor);
-                    std::cout << "PSNR: " << psnr_val << ", SSIM: " << ssim_val << std::endl;
+                    //std::cout << "PSNR: " << psnr_val << ", SSIM: " << ssim_val << std::endl;
                     Log::Logger::getInstance()->info("PSNR: {}, SSIM: {}", psnr_val, ssim_val);
 
                     // Gradient checks: positions, scales, normals

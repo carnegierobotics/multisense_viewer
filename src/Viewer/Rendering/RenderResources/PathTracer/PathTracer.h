@@ -118,6 +118,7 @@ namespace VkRender::PathTracer {
         void saveAsPFM(const std::filesystem::path& filename) const;
         void freeResources();
         void prepareImageAndInfoBuffers();
+        void prepareBackwardsBuffers();
         void uploadGaussianData(std::shared_ptr<Scene>& scene);
 
         void uploadQuadricEntities(std::shared_ptr<Scene> &scene);

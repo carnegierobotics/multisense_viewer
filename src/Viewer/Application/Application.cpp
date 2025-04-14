@@ -49,22 +49,6 @@ namespace VkRender {
 
 
     Application::Application(const std::string& title) : VulkanRenderer(title) {
-        s_instance = this;
-
-        ApplicationConfig& config = ApplicationConfig::getInstance();
-        this->m_title = title;
-        Log::Logger::getInstance()->setLogLevel(config.getLogLevel());
-        VulkanRenderer::initVulkan();
-        VulkanRenderer::prepare();
-        Log::Logger::getInstance()->info("Initialized Backend");
-        config.setGpuDevice(physicalDevice);
-
-        m_usageMonitor = std::make_shared<UsageMonitor>();
-        m_usageMonitor->userStartSession(rendererStartTime);
-
-
-        m_guiResources = std::make_shared<GuiAssets>(this);
-
         auto& userSetting = ApplicationConfig::getInstance().getUserSetting();
         // Create a scene and load deserialize from file if a file exsits
         std::shared_ptr<Scene> scene = newScene();
@@ -74,6 +58,37 @@ namespace VkRender {
             userSetting.assetsPath = userSetting.lastActiveScenePath.parent_path();
         }
 
+
+        s_instance = this;
+        ApplicationConfig& config = ApplicationConfig::getInstance();
+        this->m_title = title;
+        Log::Logger::getInstance()->setLogLevel(config.getLogLevel());
+        VulkanRenderer::initVulkan();
+        {
+            auto types = {SYCLDeviceType::CPU, SYCLDeviceType::GPU};
+            for (auto type : types) {
+                Log::Logger::getInstance()->info("Warming kernel type {}", syclDeviceTypeToString(type));
+
+                auto syclDevice = getSyclDeviceSelector().getDevice(type);
+                PathTracer::PhotonTracer::PipelineSettings pipelineSettings(syclDevice, 600, 600);
+                pipelineSettings.photonCount = 1;
+                // Before surface creation initialize som stuff
+                auto tracerWarmup = PathTracer::PhotonTracer(this, pipelineSettings, this->activeScene());
+
+                PathTracer::PhotonTracer::RenderSettings renderSettings;
+                tracerWarmup.update(renderSettings);
+                tracerWarmup.backward(renderSettings);
+            }
+            Log::Logger::getInstance()->info("SYCL Warmup complete");
+
+        }
+        VulkanRenderer::prepare();
+        Log::Logger::getInstance()->info("Initialized Backend");
+        config.setGpuDevice(physicalDevice);
+
+        m_usageMonitor = std::make_shared<UsageMonitor>();
+        m_usageMonitor->userStartSession(rendererStartTime);
+        m_guiResources = std::make_shared<GuiAssets>(this);
 
         VulkanRenderPassCreateInfo passCreateInfo(m_vulkanDevice, &m_allocator);
         passCreateInfo.msaaSamples = msaaSamples;

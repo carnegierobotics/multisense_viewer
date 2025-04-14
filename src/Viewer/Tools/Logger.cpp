@@ -232,9 +232,9 @@ namespace Log {
         // Filter away the absolute file path given by std::source_location, both for anonymous and readable logs purpose.
         // Magic regex expression, courtesy of chatgpt4
 #ifdef WIN32
-        std::regex folderPathRegex(R"(^((?:[a-zA-Z]:[\\\/])?(?:[\w\s-]+[\\\/])+))");
+        std::regex folderPathRegex(R"(^.*/)");
 #else
-        std::regex folderPathRegex(R"(^((?:\/|\.\.\/|\.\/)?(?:[\w\s-]+\/)+))");
+        std::regex folderPathRegex(R"(^.*/)");
 #endif
         std::string result = std::regex_replace(input, folderPathRegex, "");
 

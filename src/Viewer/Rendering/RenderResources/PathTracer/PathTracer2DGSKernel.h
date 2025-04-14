@@ -699,7 +699,6 @@ namespace VkRender::PathTracer {
             //    them by (sigma_x, sigma_y), until they fall inside the ellipse.
 
             float x = 0.0f, y = 0.0f; // final offsets in local 2D coords
-
             // (a) Generate two uniform randoms in [0,1)
             float u1 = m_rng[photonID].nextFloat();
             float u2 = m_rng[photonID].nextFloat();

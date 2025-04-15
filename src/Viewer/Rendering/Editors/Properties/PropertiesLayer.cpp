@@ -382,9 +382,14 @@ namespace VkRender {
             displayAddComponentEntry<GaussianComponent2DGS>("2DGS Model");
             displayAddComponentEntry<QuadricCollectionComponent>("Quadratic Collection");
             displayAddComponentEntry<ScriptableComponent>("Scriptable Component");
+            displayAddComponentEntry<TemporaryComponent>("Temporary Component");
 
             ImGui::EndPopup();
         }
+
+        drawComponent<TemporaryComponent>("TemporaryComponent", entity, [this](auto &component) {
+
+        });
 
 
         drawComponent<TagComponent>("Tag", entity, [this](auto &component) {

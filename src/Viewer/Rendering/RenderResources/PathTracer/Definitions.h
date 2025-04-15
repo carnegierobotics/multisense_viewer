@@ -144,7 +144,6 @@ namespace VkRender::PathTracer {
         BVHNode *bvhNodes = nullptr;
         size_t numBVHNodes = 0;
 
-        glm::vec3 *gradients = nullptr;
         //glm::mat3* quadricGradients = nullptr;
         glm::mat3 *photonIDGradient = nullptr;
         glm::vec2 *gradientPixelCoordinates = nullptr;

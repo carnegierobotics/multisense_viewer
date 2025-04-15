@@ -582,6 +582,10 @@ namespace VkRender::PathTracer {
             gradQuadPosA[i][1] = grad_y;
             gradQuadPosA[i][2] = grad_z;
             iterationInfo->gradients.entityGradients[i] = gradientPerEntity[i];
+
+            std::cout << "Computed Gradient: " << i << " (" << grad_x << ", " << grad_y << ", " << grad_z << ")" <<  std::endl;
+
+
         }
 
         // Assume gradientPerEntity is a vector<glm::vec3> where each glm::vec3 holds the gradient for an entity.

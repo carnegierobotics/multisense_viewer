@@ -54,7 +54,6 @@ namespace VkRender::PathTracer {
         };
 
         struct BackwardInfo {
-            glm::vec3* gradients = nullptr;
             glm::mat3* photonIDGradient = nullptr;
             glm::vec2* gradientPixelCoordinates = nullptr;
             std::vector<glm::mat3> quadricGradients;
@@ -118,7 +117,6 @@ namespace VkRender::PathTracer {
         void saveAsPFM(const std::filesystem::path& filename) const;
         void freeResources();
         void prepareImageAndInfoBuffers();
-        void prepareBackwardsBuffers();
         void uploadGaussianData(std::shared_ptr<Scene>& scene);
 
         void uploadQuadricEntities(std::shared_ptr<Scene> &scene);

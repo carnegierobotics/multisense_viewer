@@ -11,6 +11,7 @@ namespace VkRender::PathTracer {
         float rho = sqrtf(std::pow(hitLocal.x, 2.0f) + std::pow(hitLocal.y, 2.0f));
         float theta = atan2f(hitLocal.y, hitLocal.x);
 
+
         // Compute a(theta) = c * ( (alphaX * cos²(theta))/(a²) + (alphaY * sin²(theta))/(b²) )
         float a_theta = quadric.c * ((alphaX * std::cos(theta) * std::cos(theta)) / (quadric.a * quadric.a)
                              + (alphaY * std::sin(theta) * std::sin(theta)) / (quadric.b * quadric.b));
@@ -30,17 +31,10 @@ namespace VkRender::PathTracer {
             geodesicDist = rho;
         }
 
-        if (quadInfo) {
-            quadInfo->rho = rho;
-            quadInfo->theta = theta;
-            quadInfo->a_theta = a_theta;
-            quadInfo->geodesic = geodesicDist;
-        }
 
-        return geodesicDist;
 
         // Square distance function
-        /*
+/*
         float rho_x = std::fabs(hitLocal.x);
         float rho_y = std::fabs(hitLocal.y);
 
@@ -62,8 +56,18 @@ namespace VkRender::PathTracer {
             geodesic_y = rho_y;
         }
         float geodesicDist = std::max(geodesic_x, geodesic_y);
-        return geodesicDist;
+
         */
+        if (quadInfo) {
+            quadInfo->rho = rho;
+            quadInfo->theta = theta;
+            quadInfo->a_theta = a_theta;
+            quadInfo->geodesic = geodesicDist;
+        }
+
+
+        return geodesicDist;
+
     }
     // Helper function: ray-AABB intersection (using the slab method)
     // Returns true if the ray (origin, dir) hits the AABB between t=0 and t_max.

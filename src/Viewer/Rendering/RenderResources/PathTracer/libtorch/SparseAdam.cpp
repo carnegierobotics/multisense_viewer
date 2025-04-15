@@ -51,126 +51,148 @@ bool operator==(const SparseAdamParamState& lhs, const SparseAdamParamState& rhs
 
 
 // ===== SparseAdam Optimizer Implementation =====
-torch::Tensor SparseAdam::step(LossClosure closure) {
-  // Disable gradient tracking for the update; enable only if calling closure.
-  at::NoGradGuard no_grad;
-  Tensor loss = {};
+#include <torch/torch.h>
+#include <vector>
+#include <iostream>
+#include <iomanip>  // for setting precision
+#include <unordered_map>
 
-  if (closure != nullptr) {
-    // Enable gradients within the closure.
-    at::AutoGradMode enable_grad(true);
+// Ensure you have this namespace for indexing.
+using namespace torch::indexing;
+
+torch::Tensor SparseAdam::step(LossClosure closure) {
+  torch::NoGradGuard no_grad;
+  torch::Tensor loss = {};
+
+  if (closure) {
+    torch::AutoGradMode enable_grad(true);
     loss = closure();
   }
 
-  // Iterate over each parameter group.
+  // Set high precision for debug output.
+  std::cout << std::fixed << std::setprecision(8);
+  std::cout << "[DEBUG] Optimizer step called with " << param_groups_.size() << " param groups." << std::endl;
+
+  // For each parameter group
   for (auto& group : param_groups_) {
-    // Retrieve options for this group. (Each group can override defaults if needed.)
     auto& group_options = static_cast<SparseAdamOptions&>(group.options());
-    double lr     = group_options.lr();
-    double eps    = group_options.eps();
-    bool maximize = group_options.maximize();
+    const double lr     = group_options.lr();
+    const double eps    = group_options.eps();
+    const bool maximize = group_options.maximize();
     double beta1, beta2;
     std::tie(beta1, beta2) = group_options.betas();
 
-    // For each parameter in that group:
+    std::cout << "[DEBUG] Processing param group with lr: " << lr
+              << ", eps: " << eps
+              << ", beta1: " << beta1
+              << ", beta2: " << beta2
+              << ", maximize: " << maximize << std::endl;
+
     for (auto& p : group.params()) {
-      // If param is not defined or has no gradient, skip.
       if (!p.defined() || !p.grad().defined()) {
-        continue;
+        std::cout << "[DEBUG] Skipping parameter because it or its grad is not defined." << std::endl;
+        continue; // skip
       }
 
-      // Check that the parameter itself is dense (like Python's check).
-      if (p.is_sparse()) {
-        TORCH_CHECK(false, "SparseAdam requires parameters to be dense. Parameter is sparse.");
-      }
-      // Check that the gradient is actually sparse.
-      if (!p.grad().is_sparse()) {
-        TORCH_CHECK(false, "SparseAdam requires sparse gradients, please consider Adam instead.");
-      }
+      TORCH_CHECK(!p.is_sparse(), "SparseAdam: parameter is sparse. Only dense params supported.");
+      TORCH_CHECK(p.grad().is_sparse(), "SparseAdam: gradient is not sparse (use Adam instead).");
 
-      // Grab the gradient
-      auto grad = p.grad();
-
-      // State initialization if missing
+      // Get or create state
       auto param_key = p.unsafeGetTensorImpl();
       if (state_.find(param_key) == state_.end()) {
+        std::cout << "[DEBUG] Creating optimizer state for new parameter." << std::endl;
         auto state = std::make_unique<SparseAdamParamState>();
-        // We'll keep the single "global" step if you want, or skip it entirely:
-        state->step(0);
-
-        // Make exp_avg, exp_avg_sq:
+        state->step() = 0;
         state->exp_avg() = torch::zeros_like(p, p.options().memory_format(torch::MemoryFormat::Preserve));
         state->exp_avg_sq() = torch::zeros_like(p, p.options().memory_format(torch::MemoryFormat::Preserve));
-
-        // row_steps is 1D, length p.size(0):
-        auto row_steps_opts = torch::TensorOptions()
-                                 .dtype(torch::kInt64)
-                                 .device(p.device());
-        state->row_steps() = torch::zeros({p.size(0)}, row_steps_opts);
-
         state_[param_key] = std::move(state);
+      } else {
+        std::cout << "[DEBUG] Using existing optimizer state for parameter." << std::endl;
       }
 
       auto& param_state = static_cast<SparseAdamParamState&>(*state_.at(param_key));
-      auto& exp_avg = param_state.exp_avg();
-      auto& exp_avg_sq = param_state.exp_avg_sq();
-      auto& row_steps = param_state.row_steps(); // 1D, length nRows
-      auto row_steps_accessor = row_steps.accessor<int64_t, 1>();
+      auto& exp_avg     = param_state.exp_avg();
+      auto& exp_avg_sq  = param_state.exp_avg_sq();
 
-      // Update step
-      param_state.step(param_state.step() + 1);
+      // Determine the sign for the gradient update.
+      const double sign = maximize ? -1.0 : 1.0;
 
-      // We only update the indices/values that appear in the sparse gradient
-      auto indices = grad._indices();  // shape: [rows, nnz]
-      auto values  = grad._values();   // shape: [nnz, ...] or [nnz] if 1D
-
-      // Number of non-zero entries in the gradient
-      int64_t nnz = values.size(0);
-
-      // For typical nn.Embedding, the 0th dim is the "row" index.
-      // We loop through each row in the gradient:
-      for (int64_t i = 0; i < nnz; i++) {
-        // The row in the first dimension:
-        int64_t row = indices[0][i].item<int64_t>();
-        row_steps_accessor[row] += 1;
-        int64_t local_step_for_this_row = row_steps_accessor[row];
-
-        // Select that row from param, exp_avg, exp_avg_sq.
-        // This works for typical 2D Embedding shapes:
-        auto param_slice = p.select(0, row);
-        auto exp_avg_slice = exp_avg.select(0, row);
-        auto exp_avg_sq_slice = exp_avg_sq.select(0, row);
-
-        // The gradient row
-        auto grad_slice = values[i];
-
-        // Update the first moment exp_avg
-        exp_avg_slice.mul_(beta1).add_(grad_slice, 1 - beta1);
-
-        // Update the second moment exp_avg_sq
-        exp_avg_sq_slice.mul_(beta2).addcmul_(grad_slice, grad_slice, 1 - beta2);
-
-        // Compute the denominator = sqrt(...) + eps
-        auto denom = exp_avg_sq_slice.sqrt().add_(eps);
-
-        double bias_correction1 = 1.0 - std::pow(beta1, local_step_for_this_row);
-        double bias_correction2 = 1.0 - std::pow(beta2, local_step_for_this_row);
-        double step_size = lr * std::sqrt(bias_correction2) / bias_correction1;
-
-        // The actual update
-        //  update = exp_avg_slice / denom
-        // Then param_slice -= step_size * update   (for normal Adam)
-        // or   param_slice += step_size * update   (for 'maximize' mode)
-        if (maximize) {
-          param_slice.addcdiv_(exp_avg_slice, denom, step_size);
-        } else {
-          param_slice.addcdiv_(exp_avg_slice, denom, -step_size);
-        }
+      // Coalesce the gradient so indices are unique.
+      auto grad_sparse = p.grad().coalesce();
+      auto grad_indices = grad_sparse._indices();  // shape: [dims, nnz]
+      auto grad_values  = grad_sparse._values();     // shape: [nnz, ...]
+      if (grad_values.numel() == 0) {
+        std::cout << "[DEBUG] Skipping parameter update; gradient tensor is empty." << std::endl;
+        continue;
       }
-    } // end for each param in group
-  }   // end for each group
+      // Increment the step counter and print it.
+      param_state.step(param_state.step() + 1);
+      const int64_t step = param_state.step();
+      std::cout << "[DEBUG] Parameter step count: " << step << std::endl;
+
+      // Bias corrections and step_size calculation.
+      const double bias_correction1 = 1.0 - std::pow(beta1, static_cast<double>(step));
+      const double bias_correction2 = 1.0 - std::pow(beta2, static_cast<double>(step));
+      const double step_size = (lr * std::sqrt(bias_correction2)) / bias_correction1;
+      std::cout << "[DEBUG] Bias correction 1: " << bias_correction1
+                << ", Bias correction 2: " << bias_correction2
+                << ", Step size: " << step_size << std::endl;
+
+      const int64_t nnz = grad_values.size(0);
+      std::cout << "[DEBUG] Number of nonzero gradient entries: " << nnz << std::endl;
+
+      // Update each element individually.
+      for (int64_t i = 0; i < nnz; i++) {
+        // Build full index vector from the sparse gradient indices.
+        std::vector<torch::indexing::TensorIndex> indices;
+        for (int64_t d = 0; d < grad_indices.size(0); d++) {
+          int64_t idx = grad_indices[d][i].item<int64_t>();
+          indices.push_back(idx);
+        }
+        // Debug print the indices being updated.
+        std::cout << "[DEBUG] Updating element at indices: ";
+        for (auto idx : indices) {
+          // If possible, print as int. (Note: if using TensorIndex wrapper, you may need to convert.)
+          std::cout << idx << " ";
+        }
+        std::cout << std::endl;
+
+        // Retrieve the parameter element and the corresponding state elements.
+        auto p_elem = p.index(indices);
+        auto exp_avg_elem = exp_avg.index(indices);
+        auto exp_avg_sq_elem = exp_avg_sq.index(indices);
+
+        // Print the current value.
+        std::cout << "[DEBUG] Parameter value before update: " << p_elem << std::endl;
+
+        // Get the gradient for this element.
+        auto g = grad_values[i].mul(sign);
+        std::cout << "[DEBUG] Gradient value: " << g << std::endl;
+
+        // Update the first moment: exp_avg = beta1 * exp_avg + (1 - beta1) * g
+        exp_avg_elem.mul_(beta1);
+        exp_avg_elem.add_(g, 1 - beta1);
+
+        // Update the second moment: exp_avg_sq = beta2 * exp_avg_sq + (1 - beta2) * g^2
+        exp_avg_sq_elem.mul_(beta2);
+        exp_avg_sq_elem.addcmul_(g, g, 1 - beta2);
+
+        // Compute the denominator: sqrt(exp_avg_sq) + eps
+        auto denom = exp_avg_sq_elem.sqrt().add_(eps);
+
+        // Update the parameter element: p_elem -= step_size * (exp_avg_elem / denom)
+        p_elem.addcdiv_(exp_avg_elem, denom, -step_size);
+
+        // Debug print the updated parameter value.
+        std::cout << "[DEBUG] Parameter value after update: " << p_elem << std::endl;
+      }
+    } // end for each param
+  } // end for each param group
+
   return loss;
 }
+
+
 
 
 } // namespace optim

@@ -74,8 +74,11 @@ public:
         0 <= std::get<1>(betas) && std::get<1>(betas) < 1.0,
         "Invalid beta parameter at index 1: ", std::get<1>(betas));
   }
+
+
   explicit SparseAdam(std::vector<Tensor> params, SparseAdamOptions defaults = {})
       : SparseAdam({OptimizerParamGroup(std::move(params))}, defaults) {}
+
 
 
   /// Performs a single optimization step.

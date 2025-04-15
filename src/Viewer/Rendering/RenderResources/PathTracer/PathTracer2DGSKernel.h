@@ -717,7 +717,7 @@ namespace VkRender::PathTracer {
             // 3. Offset the center by (x, y) in the plane spanned by (t1, t2).
             // ------------------------------------------------------------------
             glm::vec3 offset = x * t1 + y * t2;
-            outPos = gaussian.position + offset;
+            outPos = gaussian.position;
 
             // Normal remains the same as the Gaussian's normal
             outNormal = n;
@@ -750,7 +750,7 @@ namespace VkRender::PathTracer {
 
             // Emission power per sample
             // Distribute P_total across samples based on weight
-            emissionPower = P_total * weight;
+            emissionPower = P_total;
         }
 
 

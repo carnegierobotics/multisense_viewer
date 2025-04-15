@@ -153,9 +153,9 @@ namespace VkRender::PathTracer {
                     e_o = e_o;
                     break;
             }
-            if (facingCameraDot <= 0.5f || facingLightSourceDot <= 0.5f) {
-                return;
-            }
+            //if (facingCameraDot <= 0.1f || facingLightSourceDot <= 0.1f) {
+            //    return;
+            //}
 
 
             // Grab data from the forward pass
@@ -262,7 +262,7 @@ namespace VkRender::PathTracer {
             glm::mat3 outer_edl_dtmin = glm::outerProduct(e_d_local, dtmin_dqc); // (3×3)
             glm::mat3 d_qhitLocal_dqc = outer_edl_dtmin - world2Quadric;
 
-/*
+
             //-----------------------------------------------------------------------
             //
             // 4) Convert local derivative to world derivative:
@@ -361,14 +361,14 @@ namespace VkRender::PathTracer {
             glm::mat3 J_uv_qc = glm::transpose(J_uv_pcam) * J_pc_qc;
             // Logically that’s “2×3”, but we’re storing in a 3×3 with row #2 = zero.
 
-            //-----------------------------------------------------------------------
-            //
-            // 10) Next, we do the Beta kernel derivative in local quadric coords
-            //     We'll replicate your python code’s steps: J_beta_uv = J_beta_xy @ J_xy_uv
-            //     then J_Iuv_qc = J_beta_uv @ J_uv_qc
+
+
+            glm::vec3 d_ray = glm::vec3((u - cx) / fx, (v- cy) / fy, 1.0f);
+
             glm::mat4 cameraToWorld = m_cameraTransform->getTransform();
-            glm::vec4 hitPointCam4 = cameraToWorld * glm::vec4(object.cameraHitPointLocal, 1.0f);
+            glm::vec4 hitPointCam4 = cameraToWorld * glm::vec4(d_ray, 1.0f);
             glm::vec3 cameraRayOrigin = hitPointCam4 / hitPointCam4.w;
+
 
             glm::vec3 cameraRayDir = -a_d;
             // do geometry intersection again:
@@ -387,9 +387,15 @@ namespace VkRender::PathTracer {
                                                    betaContribution,
                                                    quadraticInfo);
 
-            if (!hit) {
-                return;
-            }
+
+            /*
+            //-----------------------------------------------------------------------
+            //
+            // 10) Next, we do the Beta kernel derivative in local quadric coords
+            //     We'll replicate your python code’s steps: J_beta_uv = J_beta_xy @ J_xy_uv
+            //     then J_Iuv_qc = J_beta_uv @ J_uv_qc
+
+
 
             // local coords of that camera->quadric intersection
             glm::vec2 p_l = quadraticInfo.hitLocal;
@@ -456,14 +462,13 @@ namespace VkRender::PathTracer {
             //-----------------------------------------------------------------------
             //
             // 11) Next, we do the Beta kernel derivative in Image Coordinates
-            float g_d = quadInfo.geodesic;
-            float x_local = quadInfo.hitLocal.x;
-            float y_local = quadInfo.hitLocal.y;
-            float rho = quadInfo.rho;
-            float theta = quadInfo.theta;
-            float a_theta = quadInfo.a_theta;
-            if (g_d > 1.0f)
-                g_d = 1.0f;
+            float g_d = quadraticInfo.geodesic;
+            float x_local = quadraticInfo.hitLocal.x;
+            float y_local = quadraticInfo.hitLocal.y;
+            float rho = quadraticInfo.rho;
+            float theta = quadraticInfo.theta;
+            float a_theta = quadraticInfo.a_theta;
+
             float p_tmp = 4;
             float exponent = p_tmp - 1.0f;
             float d_beta_dgd = -2.0f * p_tmp * g_d * std::pow((1 - g_d * g_d), exponent);
@@ -503,12 +508,15 @@ namespace VkRender::PathTracer {
             float d_gd_dy = d_rho_dy * sqrt_term + d_theta_dy * d_gd_daTheta * d_aTheta_dtheta;
 
             // Finally, compute the derivatives dβ/dx and dβ/dy.
-            float d_beta_dx = d_beta_dgd * d_gd_dx;
-            float d_beta_dy = d_beta_dgd * d_gd_dy;
+            float d_beta_dx = d_beta_dgd * d_gd_dx * -1.0f;
+            float d_beta_dy = d_beta_dgd * d_gd_dy * -1.0f;
 
             glm::vec3 J_beta_xy = glm::vec3(d_beta_dx, d_beta_dy, 0.0f);
 
             glm::mat3 J_xy_qc = glm::transpose(d_qhitLocal_dqc);
+
+            glm::vec3 projection = J_uv_qc * (-J_beta_xy);
+
             glm::vec3 J_beta_qc = J_xy_qc * J_beta_xy;
 
 
@@ -523,8 +531,8 @@ namespace VkRender::PathTracer {
             size_t pixelIndex = vInt * m_camera->m_parameters.width + uInt;
 
             // For demonstration, put the 2D partial dβ/du, dβ/dv in gradientImageU, gradientImageV
-            m_gpuData.gradientImageU[pixelIndex] = d_beta_dx;
-            m_gpuData.gradientImageV[pixelIndex] = d_beta_dy;
+            m_gpuData.gradientImageU[pixelIndex] = J_beta_xy.x;
+            m_gpuData.gradientImageV[pixelIndex] = J_beta_xy.y;
             m_gpuData.gradientImagePerObject[pixelIndex] = static_cast<float>(hitObjectID);
 
             // Also store the 3D partial J_Iuv_qc, plus maybe the q_hit_world in the same mat3
@@ -612,6 +620,7 @@ namespace VkRender::PathTracer {
             return false;
         }
 
+*/
 
         bool geometryIntersectionQuadric(
             size_t gaussianID,
@@ -692,6 +701,7 @@ namespace VkRender::PathTracer {
             return false;
         }
 
+        /*
         // ---------------------------------------------------------
         // Single Photon Trace (Multi-Bounce)
         // ---------------------------------------------------------

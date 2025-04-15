@@ -199,9 +199,11 @@ namespace VkRender::PathTracer {
         float geodesicDist = calculateGeodesic(hitLocal, quadric, alphaX, alphaY, &quadraticInfo);
 
         float r = geodesicDist / quadric.kernelScale;
+
+        if (r > 1.0f) {
+            return false; // Not within threshold
+        }
         auto betaKernel = [&](float r, float bExp) -> float {
-            if (r > 1.0f)
-                r = 1.0f;
             return std::pow(1.0f - r * r, 4.0f * std::exp(bExp));
         };
         float bkValue = betaKernel(r, quadric.b_beta);

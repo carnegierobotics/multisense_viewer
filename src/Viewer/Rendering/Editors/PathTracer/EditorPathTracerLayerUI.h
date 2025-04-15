@@ -31,7 +31,7 @@ namespace VkRender {
         int selectedDeviceIndex = 1; // CPU: 0 | GPU: 1
         bool switchKernelDevice = false;
 
-        int photonCount = 5e6; // 5 Million
+        int photonCount = 1e6; // 1 Million
         int numBounces = 1;
 
         bool resetPathTracer = false;

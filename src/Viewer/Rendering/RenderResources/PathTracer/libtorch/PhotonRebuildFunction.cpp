@@ -561,10 +561,11 @@ namespace VkRender::PathTracer {
 
             float mseLoss = mseImage[pixelIndex];
             glm::vec3 finalGradient = mseLoss * gradient;
-            entityDebugInfo[entityID].L_mse_qc[i] = mseLoss * gradient;
+            gradientPerEntity[entityID] += finalGradient;
+
+            entityDebugInfo[entityID].L_mse_qc[i] = finalGradient;
             entityDebugInfo[entityID].L_Iuv_qc[i] = gradient;
             entityDebugInfo[entityID].L_mse_qc_origin[i] = origin;
-            gradientPerEntity[entityID] += finalGradient;
         }
 
         iterationInfo->gradients.entityGradients.resize(gradientQuadricPositions.size(0));

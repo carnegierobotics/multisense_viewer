@@ -336,7 +336,7 @@ namespace VkRender {
                             auto &script = vectors.getComponent<ScriptableComponent>();
                             if (script.instance) {
                                 auto *gradientScript = reinterpret_cast<GradientRay *>(script.instance);
-                                gradientScript->ray = -glm::vec3(quadricGradients[0][0].item<float>(),
+                                gradientScript->ray = glm::vec3(quadricGradients[0][0].item<float>(),
                                                                  quadricGradients[0][1].item<float>(),
                                                                  quadricGradients[0][2].item<float>());
                                 gradientScript->origin = glm::vec3(quadricPositions[0][0].item<float>(),

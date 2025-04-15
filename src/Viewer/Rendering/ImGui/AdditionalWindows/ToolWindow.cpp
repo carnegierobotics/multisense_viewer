@@ -54,7 +54,7 @@ namespace VkRender {
         ImGui::Begin("Tool Window");
         auto scene = m_context->activeScene();
 
-        static int numCameras = 5;
+        static int numCameras = 10;
         static float radius = 6.0f;
         ImGui::SliderInt("Num Cameras", &numCameras, 1, 60);
         ImGui::SliderFloat("Radius", &radius, 1, 20);
@@ -88,7 +88,7 @@ namespace VkRender {
 
         ImGui::Spacing();
         ImGui::Spacing();
-        static int numForward = 10;
+        static int numForward = 25;
         ImGui::SliderInt("Num Forward Passes", &numForward, 1, 200);
 
 

@@ -83,11 +83,16 @@ namespace VkRender {
             for (int j = 0; j < N; ++j) {
                 float y = params.min.y + j * dy; // domain from min.y to max.y
 
+                /*
                 // z = c( alphaX*x^2/a^2 + alphaY*y^2/b^2 )
                 float z = params.c * (
                               (alphaX * x * x) / (params.a * params.a) +
                               (alphaY * y * y) / (params.b * params.b)
                           );
+                */
+
+                float zSquared = params.a * params.a *(x*x + y * y);
+                float z = -sqrtf(zSquared);
 
                 // Build position
                 glm::vec3 position(x, y, z);
@@ -103,6 +108,7 @@ namespace VkRender {
                 // Apply scale factor if you like
                 position *= scaleFactor;
 
+                /*
                 float rho = sqrtf(std::pow(x, 2.0f) + std::pow(y, 2.0f));
                 float theta = atan2f(y, x);
 
@@ -155,10 +161,14 @@ namespace VkRender {
                 // Normalize the geodesic distance by kernelScale
                 float r = geodesicDist / params.kernelScale;
 
+*/
+
+
+                float geodesic = sqrtf(std::pow(x, 2.0f) + std::pow(y, 2.0f) + std::pow(z, 2.0f));
 
                 float minMaxNorm;
                 // Evaluate kernel
-                float bkValue = betaKernel(r, params.b_beta);
+                float bkValue = betaKernel(geodesic, params.b_beta);
 
                 bool keepVertex = (bkValue > params.threshold);
                 if (!keepVertex)

@@ -54,7 +54,7 @@ namespace VkRender::PathTracer {
             glm::vec3 rayOrigin = emitPosLocal;
 
             //rayOrigin = glm::vec3(0.0f, 0.0f, 5.0f);
-            //rayDir = glm::normalize(glm::vec3(0.25f, 0.05f, -1.0f));
+            //rayDir = glm::normalize(glm::vec3(0.05f, 0.05f, -1.0f));
 
             float apertureDiameter = (m_camera->parameters().focalLength / m_camera->parameters().fNumber) / 1000;
             float apertureRadius = 0.0f;
@@ -717,7 +717,7 @@ namespace VkRender::PathTracer {
             // 3. Offset the center by (x, y) in the plane spanned by (t1, t2).
             // ------------------------------------------------------------------
             glm::vec3 offset = x * t1 + y * t2;
-            outPos = gaussian.position;
+            outPos = gaussian.position + offset;
 
             // Normal remains the same as the Gaussian's normal
             outNormal = n;

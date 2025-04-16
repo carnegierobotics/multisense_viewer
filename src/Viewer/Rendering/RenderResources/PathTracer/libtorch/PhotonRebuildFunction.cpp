@@ -416,11 +416,13 @@ namespace VkRender::PathTracer {
         std::vector<glm::vec3> L_mse_qc;
         std::vector<glm::vec3> L_Iuv_qc;
         std::vector<glm::vec3> L_mse_qc_origin;
+        std::vector<glm::vec3> J_beta_qc;
 
         explicit EntityDebugInfo(size_t photonCount) {
             L_mse_qc = std::vector<glm::vec3>(photonCount, glm::vec3(0.0f));
             L_Iuv_qc = std::vector<glm::vec3>(photonCount, glm::vec3(0.0f));
             L_mse_qc_origin = std::vector<glm::vec3>(photonCount, glm::vec3(0.0f));
+            J_beta_qc = std::vector<glm::vec3>(photonCount, glm::vec3(0.0f));
         }
     };
 
@@ -448,6 +450,7 @@ namespace VkRender::PathTracer {
             std::vector<float> filtered_origin;
             std::vector<float> filtered_mse;
             std::vector<float> filtered_iuv;
+            std::vector<float> filtered_J_beta_qc;
 
             // Iterate using indices to filter consistently for all groups.
             for (size_t i = 0; i < entity.L_mse_qc_origin.size(); ++i) {
@@ -469,6 +472,10 @@ namespace VkRender::PathTracer {
                 filtered_iuv.push_back(entity.L_Iuv_qc[i].x);
                 filtered_iuv.push_back(entity.L_Iuv_qc[i].y);
                 filtered_iuv.push_back(entity.L_Iuv_qc[i].z);
+                // Save the corresponding Iuv vector.
+                filtered_J_beta_qc.push_back(entity.J_beta_qc[i].x);
+                filtered_J_beta_qc.push_back(entity.J_beta_qc[i].y);
+                filtered_J_beta_qc.push_back(entity.J_beta_qc[i].z);
             }
 
             entityJson["id"] = i;
@@ -476,6 +483,7 @@ namespace VkRender::PathTracer {
             entityJson["L_mse_qc_origin"] = filtered_origin;
             entityJson["L_mse_qc"] = filtered_mse;
             entityJson["L_Iuv_qc"] = filtered_iuv;
+            entityJson["J_Iuv_qc"] = filtered_J_beta_qc;
 
             j["entities"].push_back(entityJson);
             ++i;
@@ -547,6 +555,7 @@ namespace VkRender::PathTracer {
             glm::mat3 grad = gradients.photonIDGradient[i];
             glm::vec3 gradient = {grad[0][0], grad[1][0], grad[2][0]};
             glm::vec3 origin = {grad[0][1], grad[1][1], grad[2][1]};
+            glm::vec3 debug = {grad[0][2], grad[1][2], grad[2][2]};
             if (glm::any(glm::isnan(gradient))) {
                 continue;
             }
@@ -566,6 +575,7 @@ namespace VkRender::PathTracer {
             entityDebugInfo[entityID].L_mse_qc[i] = finalGradient;
             entityDebugInfo[entityID].L_Iuv_qc[i] = gradient;
             entityDebugInfo[entityID].L_mse_qc_origin[i] = origin;
+            entityDebugInfo[entityID].J_beta_qc[i] = debug;
         }
 
         iterationInfo->gradients.entityGradients.resize(gradientQuadricPositions.size(0));

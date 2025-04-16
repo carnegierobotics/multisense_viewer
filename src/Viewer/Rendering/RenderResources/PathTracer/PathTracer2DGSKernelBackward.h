@@ -388,7 +388,7 @@ namespace VkRender::PathTracer {
                                                    quadraticInfo);
 
 
-            /*
+
             //-----------------------------------------------------------------------
             //
             // 10) Next, we do the Beta kernel derivative in local quadric coords
@@ -400,10 +400,8 @@ namespace VkRender::PathTracer {
             // local coords of that camera->quadric intersection
             glm::vec2 p_l = quadraticInfo.hitLocal;
 
-            /*
+
             glm::mat3 R_i2c(-1.0f);
-            glm::vec3 d_ray2 = -a_d;
-            glm::vec3 d_ray = glm::vec3((u - cx) / fx, (v - cy) / fy, 1.0f);
             float d_ray_len = glm::length(d_ray);
             glm::mat3 d_norm_ray = (I / d_ray_len) - (glm::outerProduct(d_ray, d_ray) / static_cast<float>(std::pow(
                 d_ray_len, 3)));
@@ -456,7 +454,7 @@ namespace VkRender::PathTracer {
 
             glm::mat2 J_xy_uv = glm::mat2(glm::vec2(d_x_u, d_y_u), glm::vec2(d_x_v, d_y_v));
             // Create a 2x3 matrix to hold the first two rows:
-            */
+
 
 
             //-----------------------------------------------------------------------
@@ -508,18 +506,27 @@ namespace VkRender::PathTracer {
             float d_gd_dy = d_rho_dy * sqrt_term + d_theta_dy * d_gd_daTheta * d_aTheta_dtheta;
 
             // Finally, compute the derivatives dβ/dx and dβ/dy.
-            float d_beta_dx = d_beta_dgd * d_gd_dx * -1.0f;
-            float d_beta_dy = d_beta_dgd * d_gd_dy * -1.0f;
+            float d_beta_dx = -d_beta_dgd * d_gd_dx;
+            float d_beta_dy = -d_beta_dgd * d_gd_dy;
 
-            glm::vec3 J_beta_xy = glm::vec3(d_beta_dx, d_beta_dy, 0.0f);
 
+            glm::vec2 J_beta_uv = glm::vec2(
+             d_beta_dx * J_xy_uv[0][0] +  d_beta_dy * J_xy_uv[0][1],
+            d_beta_dx * J_xy_uv[1][0] +  d_beta_dy * J_xy_uv[1][1]
+            );
+
+            glm::vec3 projection = glm::vec3(
+                 J_beta_uv[0] * J_uv_qc[0][0] +  J_beta_uv[1] * J_uv_qc[0][1],
+                J_beta_uv[0] * J_uv_qc[1][0] +  J_beta_uv[1] * J_uv_qc[1][1],
+                 J_beta_uv[0] * J_uv_qc[2][0] +  J_beta_uv[1] * J_uv_qc[2][1]
+                );
+
+
+            glm::vec3 J_beta_xy = -glm::vec3(d_beta_dx, d_beta_dy, 0.0f);
             glm::mat3 J_xy_qc = glm::transpose(d_qhitLocal_dqc);
-
-            glm::vec3 projection = J_uv_qc * (-J_beta_xy);
-
             glm::vec3 J_beta_qc = J_xy_qc * J_beta_xy;
 
-
+            //projection = projection + J_beta_qc;
             // Store final gradient results
             int uInt = (int) std::round(u);
             int vInt = (int) std::round(v);
@@ -538,9 +545,9 @@ namespace VkRender::PathTracer {
             // Also store the 3D partial J_Iuv_qc, plus maybe the q_hit_world in the same mat3
             glm::mat3 tmp(0.0f);
             // First column = derivative
-            tmp[0][0] = J_beta_qc.x;
-            tmp[1][0] = J_beta_qc.y;
-            tmp[2][0] = J_beta_qc.z;
+            tmp[0][0] = projection.x;
+            tmp[1][0] = projection.y;
+            tmp[2][0] = projection.z;
 
             // Second column = q_hit_world
             tmp[0][1] = q_hit_world.x;
@@ -548,9 +555,9 @@ namespace VkRender::PathTracer {
             tmp[2][1] = q_hit_world.z;
 
             // Third column left empty or used as you wish
-            // tmp[0][2] = ...
-            // tmp[1][2] = ...
-            // tmp[2][2] = ...
+            tmp[0][2] = J_beta_qc.x;
+            tmp[1][2] = J_beta_qc.y;
+            tmp[2][2] = J_beta_qc.z;
 
             // Store in GPU data
             m_gpuData.gradientPixelCoordinates[photonID] = glm::vec2(u, v);

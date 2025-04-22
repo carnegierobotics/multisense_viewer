@@ -176,8 +176,9 @@ namespace VkRender::PathTracer {
             auto &quadInfo = object.quadInfo;
             float A = quadInfo.A;
             float B = quadInfo.B;
+            float C = quadInfo.C;
             float discriminant = quadInfo.discriminant;
-            int rootIndex = quadInfo.rootIndex;
+            int rootIndex = quadInfo.rootSign;
             if (fabs(A) < 1e-14f || discriminant < 1e-14f || rootIndex < 1) {
                 return;
             }
@@ -361,168 +362,18 @@ namespace VkRender::PathTracer {
             glm::mat3 J_uv_qc = glm::transpose(J_uv_pcam) * J_pc_qc;
             // Logically that’s “2×3”, but we’re storing in a 3×3 with row #2 = zero.
 
-
-
-            glm::vec3 d_ray = glm::vec3((u - cx) / fx, (v- cy) / fy, 1.0f);
-
-            glm::mat4 cameraToWorld = m_cameraTransform->getTransform();
-            glm::vec4 hitPointCam4 = cameraToWorld * glm::vec4(d_ray, 1.0f);
-            glm::vec3 cameraRayOrigin = hitPointCam4 / hitPointCam4.w;
-
-
-            glm::vec3 cameraRayDir = -a_d;
-            // do geometry intersection again:
-            float tmin = FLT_MAX;
-            size_t hitEntity = 0;
-            glm::vec3 hitPointWorld(0.0f);
-            glm::vec3 hitNormalWorld(0.0f);
-            float betaContribution = 0.0f;
-            GPUDataOutput::QuadraticInfo quadraticInfo{};
-            bool hit = geometryIntersectionQuadric(gaussianID,
-                                                   cameraRayOrigin,
-                                                   cameraRayDir,
-                                                   hitEntity, tmin,
-                                                   hitPointWorld,
-                                                   hitNormalWorld,
-                                                   betaContribution,
-                                                   quadraticInfo);
-
-
-
             //-----------------------------------------------------------------------
             //
             // 10) Next, we do the Beta kernel derivative in local quadric coords
             //     We'll replicate your python code’s steps: J_beta_uv = J_beta_xy @ J_xy_uv
             //     then J_Iuv_qc = J_beta_uv @ J_uv_qc
 
+            float d_beta_dx = 0.0f;
+            float d_beta_dy = 0.0f;
+            float d_beta_dz = 0.0f;
 
 
-            // local coords of that camera->quadric intersection
-            glm::vec2 p_l = quadraticInfo.hitLocal;
-
-
-            glm::mat3 R_i2c(-1.0f);
-            float d_ray_len = glm::length(d_ray);
-            glm::mat3 d_norm_ray = (I / d_ray_len) - (glm::outerProduct(d_ray, d_ray) / static_cast<float>(std::pow(
-                d_ray_len, 3)));
-
-            glm::vec3 d_ray_u(1.0f / fx, 0.0f, 0.0f);
-            glm::vec3 d_ray_norm_u = d_norm_ray * d_ray_u;
-            glm::vec3 d_dc_u = R_i2c * d_ray_norm_u;
-            glm::vec3 d_dw_u = glm::mat3(camera2World) * d_dc_u;
-            glm::vec3 d_dl_u = world2Quadric * d_dw_u;
-
-            glm::vec3 d_dray_v(0.0f, 1.0f / fy, 0.0f);
-            glm::vec3 d_ray_norm_v = d_norm_ray * d_dray_v;
-            glm::vec3 d_dc_v = R_i2c * d_ray_norm_v;
-            glm::vec3 d_dw_v = glm::mat3(camera2World) * d_dc_v;
-            glm::vec3 d_dl_v = world2Quadric * d_dw_v;
-
-            float A_cam = quadraticInfo.A;
-            float B_cam = quadraticInfo.B;
-            float C_cam = quadraticInfo.C;
-            float disc_sqrt_cam = sycl::sqrt(quadraticInfo.discriminant);
-            // derivative wrt A_cam, B_cam for the chosen root
-            float numerator = -B_cam + disc_sqrt_cam;
-            float denominator = 2 * A_cam;
-            float d_numerator = +((-2 * C_cam) / disc_sqrt_cam);
-            float d_denominator = 2;
-
-            float d_tmin_A = 1 / (4 * A_cam * A_cam) * (denominator * d_numerator - numerator * d_denominator);
-            float d_tmin_B = 1 / (2 * A_cam) * (-1 + (B_cam / disc_sqrt_cam));
-
-            glm::vec3 d_l = quadraticInfo.localRayDirection;
-            glm::vec3 a_l = quadraticInfo.localRayOrigin;
-
-            float d_A_u = 2 * quadric.c * (alpha_x * d_dl_u[0] * d_l[0] / (quadric.a * quadric.a) + (alpha_y * d_dl_u[1]
-                * d_l[1]) / (quadric.b * quadric.b));
-            float d_B_u = 2 * quadric.c * (alpha_x * d_dl_u[0] * a_l[0] / (quadric.a * quadric.a) + (alpha_y * d_dl_u[1]
-                * a_l[1]) / (quadric.b * quadric.b)) - d_dl_u[2];
-
-            float d_A_v = 2 * quadric.c * (alpha_x * d_dl_v[0] * d_l[0] / (quadric.a * quadric.a) + (alpha_y * d_dl_v[1]
-                * d_l[1]) / (quadric.b * quadric.b));
-            float d_B_v = 2 * quadric.c * (alpha_x * d_dl_v[0] * a_l[0] / (quadric.a * quadric.a) + (alpha_y * d_dl_v[1]
-                * a_l[1]) / (quadric.b * quadric.b)) - d_dl_v[2];
-
-            float d_tmin_u = d_tmin_A * d_A_u + d_tmin_B * d_B_u;
-            float d_tmin_v = d_tmin_A * d_A_v + d_tmin_B * d_B_v;
-            // similarly handle rootIndexCam == 1, etc. (omitted for brevity)
-            float d_x_u = d_l[0] * d_tmin_u + tmin * d_dl_u[0];
-            float d_x_v = d_l[0] * d_tmin_v + tmin * d_dl_v[0];
-            float d_y_u = d_l[1] * d_tmin_u + tmin * d_dl_u[1];
-            float d_y_v = d_l[1] * d_tmin_v + tmin * d_dl_v[1];
-
-            glm::mat2 J_xy_uv = glm::mat2(glm::vec2(d_x_u, d_y_u), glm::vec2(d_x_v, d_y_v));
-            // Create a 2x3 matrix to hold the first two rows:
-
-
-
-            //-----------------------------------------------------------------------
-            //
-            // 11) Next, we do the Beta kernel derivative in Image Coordinates
-            float g_d = quadraticInfo.geodesic;
-            float x_local = quadraticInfo.hitLocal.x;
-            float y_local = quadraticInfo.hitLocal.y;
-            float rho = quadraticInfo.rho;
-            float theta = quadraticInfo.theta;
-            float a_theta = quadraticInfo.a_theta;
-
-            float p_tmp = 4;
-            float exponent = p_tmp - 1.0f;
-            float d_beta_dgd = -2.0f * p_tmp * g_d * std::pow((1 - g_d * g_d), exponent);
-
-            // Compute derivatives of rho.
-            float d_rho_dx = (rho != 0.0f) ? x_local / rho : 0.0f;
-            float d_rho_dy = (rho != 0.0f) ? y_local / rho : 0.0f;
-
-            // Compute derivatives of theta.
-            float denom = (x_local * x_local + y_local * y_local);
-            float d_theta_dx = (denom != 0.0f) ? -y_local / denom : 0.0f;
-            float d_theta_dy = (denom != 0.0f) ? x_local / denom : 0.0f;
-
-            // Compute derivative of aTheta with respect to theta.
-            // d_aTheta_dtheta = 2 * c * cos(theta) * sin(theta) * (alpha_y / (b^2) - alpha_x / (a^2))
-            float d_aTheta_dtheta = 2.0f * quadric.c * std::cos(theta) * std::sin(theta) *
-                                    ((alpha_y / (quadric.b * quadric.b)) - (alpha_x / (quadric.a * quadric.a)));
-
-            // Compute dg_d/drho.
-            // sqrt_term = sqrt(4 * a_theta^2 * rho^2 + 1)
-            float sqrt_term = std::sqrt(4.0f * a_theta * a_theta * rho * rho + 1.0f);
-            float d_gd_drho = sqrt_term;
-
-            // Compute dg_d/daTheta; if a_theta is zero, we use a derivative of zero.
-            float d_gd_daTheta = 0.0f;
-            if (a_theta != 0.0f) {
-                // term1 = (2 * a_theta * rho^3) / sqrt_term
-                float term1 = (2.0f * a_theta * std::pow(rho, 3)) / sqrt_term;
-                // term2 = - asinh(2 * a_theta * rho) / (4 * a_theta^2) + rho / (2 * a_theta * sqrt_term)
-                float term2 = -(std::asinh(2.0f * a_theta * rho)) / (4.0f * a_theta * a_theta) +
-                              (rho) / (2.0f * a_theta * sqrt_term);
-                d_gd_daTheta = term1 + term2;
-            }
-
-            // Chain rule for dg_d/dx and dg_d/dy.
-            float d_gd_dx = d_rho_dx * sqrt_term + d_theta_dx * d_gd_daTheta * d_aTheta_dtheta;
-            float d_gd_dy = d_rho_dy * sqrt_term + d_theta_dy * d_gd_daTheta * d_aTheta_dtheta;
-
-            // Finally, compute the derivatives dβ/dx and dβ/dy.
-            float d_beta_dx = -d_beta_dgd * d_gd_dx;
-            float d_beta_dy = -d_beta_dgd * d_gd_dy;
-
-
-            glm::vec2 J_beta_uv = glm::vec2(
-             d_beta_dx * J_xy_uv[0][0] +  d_beta_dy * J_xy_uv[0][1],
-            d_beta_dx * J_xy_uv[1][0] +  d_beta_dy * J_xy_uv[1][1]
-            );
-
-            glm::vec3 projection = glm::vec3(
-                 J_beta_uv[0] * J_uv_qc[0][0] +  J_beta_uv[1] * J_uv_qc[0][1],
-                J_beta_uv[0] * J_uv_qc[1][0] +  J_beta_uv[1] * J_uv_qc[1][1],
-                 J_beta_uv[0] * J_uv_qc[2][0] +  J_beta_uv[1] * J_uv_qc[2][1]
-                );
-
-
-            glm::vec3 J_beta_xy = -glm::vec3(d_beta_dx, d_beta_dy, 0.0f);
+            glm::vec3 J_beta_xy = -glm::vec3(d_beta_dx, d_beta_dy, d_beta_dz);
             glm::mat3 J_xy_qc = glm::transpose(d_qhitLocal_dqc);
             glm::vec3 J_beta_qc = J_xy_qc * J_beta_xy;
 
@@ -545,9 +396,9 @@ namespace VkRender::PathTracer {
             // Also store the 3D partial J_Iuv_qc, plus maybe the q_hit_world in the same mat3
             glm::mat3 tmp(0.0f);
             // First column = derivative
-            tmp[0][0] = projection.x;
-            tmp[1][0] = projection.y;
-            tmp[2][0] = projection.z;
+            tmp[0][0] = J_beta_qc.x;
+            tmp[1][0] = J_beta_qc.y;
+            tmp[2][0] = J_beta_qc.z;
 
             // Second column = q_hit_world
             tmp[0][1] = q_hit_world.x;

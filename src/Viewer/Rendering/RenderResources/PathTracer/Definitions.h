@@ -180,7 +180,7 @@ namespace VkRender::PathTracer {
             float B = 0.0f;
             float C = 0.0f;
             float discriminant = 0.0f;
-            int rootIndex = -1; //-1 is no root, 1 is negative root, 2 is positive root
+            int rootSign = -1; //-1 is no root, 1 is negative root, 2 is positive root
             float geodesic = -1.0f;
             float betaContribution = 0.0f;
 
@@ -190,7 +190,7 @@ namespace VkRender::PathTracer {
 
             glm::vec3 localRayOrigin = glm::vec3(0.0f);
             glm::vec3 localRayDirection = glm::vec3(0.0f);
-            glm::vec2 hitLocal = glm::vec2(0.0f);
+            glm::vec3 hitLocal = glm::vec3(0.0f);
         };
 
         struct Bounce {

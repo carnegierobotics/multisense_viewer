@@ -6,15 +6,17 @@
 #define PATHTRACERKERNELCOMMON_H
 
 namespace VkRender::PathTracer {
+    inline float calculateGeodesic(const glm::vec3 hitLocal, const QuadricInputAssembly &quadric, float alphaX,
+                                   float alphaY, GPUDataOutput::QuadraticInfo *quadInfo = nullptr) {
 
-    inline float calculateGeodesic(const glm::vec3 hitLocal, const QuadricInputAssembly& quadric, float alphaX, float alphaY, GPUDataOutput::QuadraticInfo* quadInfo = nullptr) {
+        /*
         float rho = sqrtf(std::pow(hitLocal.x, 2.0f) + std::pow(hitLocal.y, 2.0f));
         float theta = atan2f(hitLocal.y, hitLocal.x);
 
 
         // Compute a(theta) = c * ( (alphaX * cos²(theta))/(a²) + (alphaY * sin²(theta))/(b²) )
         float a_theta = quadric.c * ((alphaX * std::cos(theta) * std::cos(theta)) / (quadric.a * quadric.a)
-                             + (alphaY * std::sin(theta) * std::sin(theta)) / (quadric.b * quadric.b));
+                                     + (alphaY * std::sin(theta) * std::sin(theta)) / (quadric.b * quadric.b));
 
         // Compute the geodesic distance l(ρ) along the surface
         const float epsilon = 1e-6f;
@@ -34,45 +36,45 @@ namespace VkRender::PathTracer {
 
 
         // Square distance function
-/*
-        float rho_x = std::fabs(hitLocal.x);
-        float rho_y = std::fabs(hitLocal.y);
+        /*
+                float rho_x = std::fabs(hitLocal.x);
+                float rho_y = std::fabs(hitLocal.y);
 
-        float geodesic_x = 0.0f;
-        float geodesic_y = 0.0f;
+                float geodesic_x = 0.0f;
+                float geodesic_y = 0.0f;
 
-        if (std::fabs(a_theta) > epsilon) {
-            auto computeGeodesic = [&](float rho_val) -> float {
-                float term1 = 0.5f * rho_val * std::sqrt(1.0f + 4.0f * a_theta * a_theta * rho_val * rho_val);
-                float term2 = std::asinh(2.0f * a_theta * rho_val) / (4.0f * a_theta);
-                return term1 + term2;
-            };
+                if (std::fabs(a_theta) > epsilon) {
+                    auto computeGeodesic = [&](float rho_val) -> float {
+                        float term1 = 0.5f * rho_val * std::sqrt(1.0f + 4.0f * a_theta * a_theta * rho_val * rho_val);
+                        float term2 = std::asinh(2.0f * a_theta * rho_val) / (4.0f * a_theta);
+                        return term1 + term2;
+                    };
 
-            geodesic_x = computeGeodesic(rho_x);
-            geodesic_y = computeGeodesic(rho_y);
-        } else {
-            // When a(θ) is nearly zero, use Euclidean distance.
-            geodesic_x = rho_x;
-            geodesic_y = rho_y;
-        }
-        float geodesicDist = std::max(geodesic_x, geodesic_y);
+                    geodesic_x = computeGeodesic(rho_x);
+                    geodesic_y = computeGeodesic(rho_y);
+                } else {
+                    // When a(θ) is nearly zero, use Euclidean distance.
+                    geodesic_x = rho_x;
+                    geodesic_y = rho_y;
+                }
+                float geodesicDist = std::max(geodesic_x, geodesic_y);
 
-        */
+                */
+
+        float geodesicDist =   sqrtf(std::pow(hitLocal.x, 2.0f) + std::pow(hitLocal.y, 2.0f) + std::pow(hitLocal.z, 2.0f));
+
         if (quadInfo) {
-            quadInfo->rho = rho;
-            quadInfo->theta = theta;
-            quadInfo->a_theta = a_theta;
             quadInfo->geodesic = geodesicDist;
         }
 
 
         return geodesicDist;
-
     }
+
     // Helper function: ray-AABB intersection (using the slab method)
     // Returns true if the ray (origin, dir) hits the AABB between t=0 and t_max.
-    bool rayAABBIntersect(const glm::vec3& origin, const glm::vec3& dir,
-                          const glm::vec3& bboxMin, const glm::vec3& bboxMax,
+    bool rayAABBIntersect(const glm::vec3 &origin, const glm::vec3 &dir,
+                          const glm::vec3 &bboxMin, const glm::vec3 &bboxMax,
                           float t_max) {
         float tmin = 0.0f;
         float tmax = t_max;
@@ -93,13 +95,13 @@ namespace VkRender::PathTracer {
     // Helper function: performs detailed intersection test for one quadric.
     // Returns true if the ray (origin, dir) intersects the given quadric.
     // Fills tCandidate, hitWorld, hitNormal, and beta (the kernel value).
-    inline bool intersectQuadricLeaf(const glm::vec3& origin, const glm::vec3& dir,
-                                     const QuadricInputAssembly& quadric,
-                                     float& tCandidate,
-                                     glm::vec3& hitWorld,
-                                     glm::vec3& hitNormal,
-                                     float& beta,
-                                     GPUDataOutput::QuadraticInfo& quadraticInfo) {
+    inline bool intersectQuadricLeaf(const glm::vec3 &origin, const glm::vec3 &dir,
+                                     const QuadricInputAssembly &quadric,
+                                     float &tCandidate,
+                                     glm::vec3 &hitWorld,
+                                     glm::vec3 &hitNormal,
+                                     float &beta,
+                                     GPUDataOutput::QuadraticInfo &quadraticInfo) {
         // Transform the ray into local space.
         glm::mat4 transform = quadric.transform.getTransform();
         float det = glm::determinant(transform);
@@ -120,25 +122,16 @@ namespace VkRender::PathTracer {
         float alphaY = std::tanh(quadric.t_y);
 
         // Solve quadratic: A*t^2 + B*t + C = 0.
-        float Ax = d.x;
-        float Ay = d.y;
-        float Az = d.z;
-        float Ox = o.x;
-        float Oy = o.y;
-        float Oz = o.z;
+        float d_x = d.x;
+        float d_y = d.y;
+        float d_z = d.z;
+        float o_x = o.x;
+        float o_y = o.y;
+        float o_z = o.z;
 
-        float A = quadric.c * (
-            alphaX * (Ax * Ax) / (quadric.a * quadric.a) +
-            alphaY * (Ay * Ay) / (quadric.b * quadric.b)
-        );
-        float B = quadric.c * (
-            2.0f * alphaX * Ox * Ax / (quadric.a * quadric.a) +
-            2.0f * alphaY * Oy * Ay / (quadric.b * quadric.b)
-        ) - Az;
-        float C = quadric.c * (
-            alphaX * (Ox * Ox) / (quadric.a * quadric.a) +
-            alphaY * (Oy * Oy) / (quadric.b * quadric.b)
-        ) - Oz;
+        float A = (quadric.a * quadric.a) * (d_x * d_x + d_y * d_y) - (d_z * d_z);
+        float B = 2 * (quadric.a * quadric.a) * (o_x * d_x + o_y * d_y) - (o_z * d_z);
+        float C = (quadric.a * quadric.a) * (o_x * o_x + o_y * o_y) - (o_z * o_z);
 
         float eps = 1e-5f;
         tCandidate = std::numeric_limits<float>::max();
@@ -150,36 +143,38 @@ namespace VkRender::PathTracer {
                 tCandidate = tLin;
                 quadraticInfo.B = B;
                 quadraticInfo.C = C;
-            }
-            else
+                return false;
+            } else
                 return false;
         }
-        else {
-            float disc = (B * B) - 4.0f * A * C;
-            if (disc < 0.0f)
-                return false; // No real roots
 
-            quadraticInfo.A = A;
-            quadraticInfo.B = B;
-            quadraticInfo.C = C;
-            quadraticInfo.discriminant = disc;
+        float disc = (B * B) - 4.0f * A * C;
+        if (disc < 0.0f)
+            return false; // No real roots
 
-            float sqrtDisc = std::sqrt(disc);
-            float t1 = (-B - sqrtDisc) / (2.0f * A);
-            float t2 = (-B + sqrtDisc) / (2.0f * A);
-            float tMin = std::numeric_limits<float>::max();
-            if (t1 > eps && t1 < tMin) {
-                tMin = t1;
-                quadraticInfo.rootIndex = 1;
-            }
-            if (t2 > eps && t2 < tMin) {
-                tMin = t2;
-                quadraticInfo.rootIndex = 2;
-            }
-            if (tMin == std::numeric_limits<float>::max())
-                return false; // No valid solution
-            tCandidate = tMin;
+        quadraticInfo.A = A;
+        quadraticInfo.B = B;
+        quadraticInfo.C = C;
+        quadraticInfo.discriminant = disc;
+
+        float sqrtDisc = std::sqrt(disc);
+        float t1 = (-B - sqrtDisc) / (2.0f * A);
+        float t2 = (-B + sqrtDisc) / (2.0f * A);
+        float tMin = std::numeric_limits<float>::max();
+        if (t1 > eps && t1 < tMin) {
+            tMin = t1;
+            quadraticInfo.rootSign = -1;
         }
+        /*
+        if (t2 > eps && t2 < tMin) {
+            tMin = t2;
+            quadraticInfo.rootIndex = 2;
+        }
+        */
+        if (tMin == std::numeric_limits<float>::max())
+            return false; // No valid solution
+        tCandidate = tMin;
+
 
         // Compute the local hit point.
         glm::vec3 hitLocal = o + d * tCandidate;
@@ -187,7 +182,7 @@ namespace VkRender::PathTracer {
         glm::vec4 hitW4 = quadric.transform.getTransform() * glm::vec4(hitLocal, 1.0f);
         hitWorld = glm::vec3(hitW4) / hitW4.w;
 
-        quadraticInfo.hitLocal = {hitLocal.x, hitLocal.y};
+        quadraticInfo.hitLocal = hitLocal;
 
         // Check if hitLocal is within valid (x,y) bounds.
         if (hitLocal.x < quadric.min.x || hitLocal.x > quadric.max.x)
@@ -198,13 +193,13 @@ namespace VkRender::PathTracer {
         // Evaluate the beta kernel.
         float geodesicDist = calculateGeodesic(hitLocal, quadric, alphaX, alphaY, &quadraticInfo);
 
-        float r = geodesicDist / quadric.kernelScale;
+        float r = geodesicDist;
 
         if (r > 1.0f) {
             return false; // Not within threshold
         }
         auto betaKernel = [&](float r, float bExp) -> float {
-            return std::pow(1.0f - r * r, 4.0f * std::exp(bExp));
+            return std::pow(1.0f - (r * r), 4.0f * std::exp(bExp));
         };
         float bkValue = betaKernel(r, quadric.b_beta);
         if (bkValue < quadric.threshold)
@@ -231,8 +226,8 @@ namespace VkRender::PathTracer {
         return true;
     }
 
-    static bool checkContributionCollision(const glm::vec3& e_o, const glm::vec3& e_d,
-                                           const QuadricInputAssembly& quadric, glm::vec3& hit) {
+    static bool checkContributionCollision(const glm::vec3 &e_o, const glm::vec3 &e_d,
+                                           const QuadricInputAssembly &quadric, glm::vec3 &hit) {
         float eps = 1.0f * 1e-5f;
 
         // Transform the ray into the quadric’s local space.
@@ -252,11 +247,11 @@ namespace VkRender::PathTracer {
         float Ax = d.x, Ay = d.y, Az = d.z;
         float Ox = o.x, Oy = o.y, Oz = o.z;
         float A = quadric.c * (alphaX * (Ax * Ax) / (quadric.a * quadric.a) +
-            alphaY * (Ay * Ay) / (quadric.b * quadric.b));
+                               alphaY * (Ay * Ay) / (quadric.b * quadric.b));
         float B = quadric.c * (2.0f * alphaX * Ox * Ax / (quadric.a * quadric.a) +
-            2.0f * alphaY * Oy * Ay / (quadric.b * quadric.b)) - Az;
+                               2.0f * alphaY * Oy * Ay / (quadric.b * quadric.b)) - Az;
         float C = quadric.c * (alphaX * (Ox * Ox) / (quadric.a * quadric.a) +
-            alphaY * (Oy * Oy) / (quadric.b * quadric.b)) - Oz;
+                               alphaY * (Oy * Oy) / (quadric.b * quadric.b)) - Oz;
 
 
         // Helper lambda: Given a ray parameter t, compute the intersection, normal, and beta.

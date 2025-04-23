@@ -102,92 +102,40 @@ namespace VkRender::PathTracer {
                                      glm::vec3 &hitNormal,
                                      float &beta,
                                      GPUDataOutput::QuadraticInfo &quadraticInfo) {
-        // Transform the ray into local space.
+        // ---------------------------------------------------------------------------
+        // Ray–plane intersection – plane’s local normal is (0,0,1) and passes through
+        // the local origin (so dPlane = 0)
+        // ---------------------------------------------------------------------------
         glm::mat4 transform = quadric.transform.getTransform();
         float det = glm::determinant(transform);
         if (fabs(det) < 1e-6f)
-            return false; // Invalid transform
+            return false;                                   // non-invertible transform
 
         glm::mat4 localFromWorld = glm::inverse(transform);
-        glm::vec4 o4 = localFromWorld * glm::vec4(origin, 1.0f);
-        glm::vec4 d4 = localFromWorld * glm::vec4(dir, 0.0f);
-        glm::vec3 o = glm::vec3(o4);
-        glm::vec3 d = glm::vec3(d4);
 
-        quadraticInfo.localRayOrigin = o;
+        // local-space ray -----------------------------------------------------------
+        glm::vec3 o = glm::vec3(localFromWorld * glm::vec4(origin, 1.0f)); // q_o
+        glm::vec3 d = glm::vec3(localFromWorld * glm::vec4(dir,    0.0f)); // q_dir
+        quadraticInfo.localRayOrigin    = o;
         quadraticInfo.localRayDirection = d;
 
-        // Shorthand parameters.
-        float alphaX = std::tanh(quadric.t_x);
-        float alphaY = std::tanh(quadric.t_y);
+        // plane data ----------------------------------------------------------------
+        const glm::vec3 n(0.0f, 0.0f, 1.0f);   // unit normal  (local space)
+        const float     dPlane = 0.0f;         // plane offset (n·x + d = 0 ⇒ z = 0)
 
-        // Solve quadratic: A*t^2 + B*t + C = 0.
-        float d_x = d.x;
-        float d_y = d.y;
-        float d_z = d.z;
-        float o_x = o.x;
-        float o_y = o.y;
-        float o_z = o.z;
+        const float eps = 1e-6f;
+        float denom = glm::dot(n, d);          // n · d
+        if (fabs(denom) < eps)                 // ray parallel to plane
+            return false;
 
-        float A = (quadric.a * quadric.a) * (d_x * d_x + d_y * d_y) - (d_z * d_z);
-        float B = 2 * ((quadric.a * quadric.a) * (o_x * d_x + o_y * d_y) - (o_z * d_z));
-        float C = (quadric.a * quadric.a) * (o_x * o_x + o_y * o_y) - (o_z * o_z);
+        float numer = -(glm::dot(n, o) + dPlane);
+        float t     = numer / denom;           // t = -(n·o + d)/ (n·d)
+        if (t <= eps)                          // hit lies behind the origin
+            return false;
 
-        float eps = 1e-5f;
-        tCandidate = std::numeric_limits<float>::max();
-        if (fabs(A) < eps) {
-            if (fabs(B) < eps)
-                return false; // No solution
-            float tLin = -C / B;
-            if (tLin > eps) {
-                tCandidate = tLin;
-                quadraticInfo.B = B;
-                quadraticInfo.C = C;
-                return false;
-            } else
-                return false;
-        }
-
-        float disc = (B * B) - 4.0f * A * C;
-        if (disc < 0.0f)
-            return false; // No real roots
-
-        quadraticInfo.A = A;
-        quadraticInfo.B = B;
-        quadraticInfo.C = C;
-        quadraticInfo.discriminant = disc;
-
-        // the two candidate roots
-        float sqrtD = std::sqrt(disc);
-        float t1    = (-B - sqrtD)/(2*A);
-        float t2    = (-B + sqrtD)/(2*A);
-
-        // we only care about the cone at z<0 in local space, so:
-        glm::vec3 V(0.0f,0.0f,0.0f);  // apex
-        glm::vec3 D(0.0f,0.0f,1.0f); // axis so that D·(X−V)≥0 ⇔ X.z ≤ 0
-
-        // find the smallest *valid* t
-        float tMin = std::numeric_limits<float>::infinity();
-        auto testRoot = [&](float t, int sign){
-            if (t <= eps)
-                return;                       // behind the ray
-            glm::vec3 X = o + t*d;           // intersection point
-            if (glm::dot(D, X - V) < 0.0f)
-                return;                       // it's on the “wrong” nappe
-            // passed both tests → front‐facing, potential blocker
-            if (t < tMin) {
-                tMin = t;
-                quadraticInfo.rootSign = sign;
-            }
-        };
-
-        testRoot(t1, -1);
-        testRoot(t2, +2);
-
-        if (tMin == std::numeric_limits<float>::infinity())
-            return false;   // either no intersection or only on the discarded nappe
-
-        tCandidate = tMin;
+        // success -------------------------------------------------------------------
+        tCandidate                    = t;
+        quadraticInfo.hitLocal       = o + t * d;         // q_hit,l
 
 
         // Compute the local hit point.
@@ -205,7 +153,7 @@ namespace VkRender::PathTracer {
             return false;
 
         // Evaluate the beta kernel.
-        float geodesicDist = calculateGeodesic(hitLocal, quadric, alphaX, alphaY, &quadraticInfo);
+        float geodesicDist = calculateGeodesic(hitLocal, quadric, 0, 0, &quadraticInfo);
 
         float r = geodesicDist;
 
@@ -235,7 +183,7 @@ namespace VkRender::PathTracer {
         if (glm::dot(nWorld, -dir) < 0.0f)
             nWorld = -nWorld;
 
-        hitNormal = nWorld;
+        hitNormal = n;
         beta = bkValue;
         return true;
     }
@@ -243,74 +191,40 @@ namespace VkRender::PathTracer {
     static bool checkContributionCollision(const glm::vec3 &e_o, const glm::vec3 &e_d,
                                            const QuadricInputAssembly &quadric, glm::vec3 &hit) {
 
-        // Transform the ray into the quadric’s local space.
+        // ---------------------------------------------------------------------------
+        // Ray–plane intersection – plane’s local normal is (0,0,1) and passes through
+        // the local origin (so dPlane = 0)
+        // ---------------------------------------------------------------------------
         glm::mat4 transform = quadric.transform.getTransform();
+        float det = glm::determinant(transform);
+        if (fabs(det) < 1e-6f)
+            return false;                                   // non-invertible transform
 
         glm::mat4 localFromWorld = glm::inverse(transform);
-        glm::vec4 o4 = localFromWorld * glm::vec4(e_o, 1.0f);
-        glm::vec4 d4 = localFromWorld * glm::vec4(e_d, 0.0f);
-        glm::vec3 o = glm::vec3(o4);
-        glm::vec3 d = glm::vec3(d4);
 
-         // Solve quadratic: A*t^2 + B*t + C = 0.
-        float d_x = d.x;
-        float d_y = d.y;
-        float d_z = d.z;
-        float o_x = o.x;
-        float o_y = o.y;
-        float o_z = o.z;
-
-        float A = (quadric.a * quadric.a) * (d_x * d_x + d_y * d_y) - (d_z * d_z);
-        float B = 2 * ((quadric.a * quadric.a) * (o_x * d_x + o_y * d_y) - (o_z * d_z));
-        float C = (quadric.a * quadric.a) * (o_x * o_x + o_y * o_y) - (o_z * o_z);
+        // local-space ray -----------------------------------------------------------
+        glm::vec3 o = glm::vec3(localFromWorld * glm::vec4(e_o, 1.0f)); // q_o
+        glm::vec3 d = glm::vec3(localFromWorld * glm::vec4(e_d,    0.0f)); // q_dir
 
 
-       float eps = 1e-5f;
-        if (fabs(A) < eps) {
-            if (fabs(B) < eps)
-                return false; // No solution
-            float tLin = -C / B;
-            if (tLin > eps) {
-                return false;
-            } else
-                return false;
-        }
+        // plane data ----------------------------------------------------------------
+        const glm::vec3 n(0.0f, 0.0f, 1.0f);   // unit normal  (local space)
+        const float     dPlane = 0.0f;         // plane offset (n·x + d = 0 ⇒ z = 0)
 
-        float disc = (B * B) - 4.0f * A * C;
-        if (disc < 0.0f)
-            return false; // No real roots
+        const float eps = 1e-6f;
+        float denom = glm::dot(n, d);          // n · d
+        if (fabs(denom) < eps)                 // ray parallel to plane
+            return false;
 
-        // the two candidate roots
-        float sqrtD = std::sqrt(disc);
-        float t1    = (-B - sqrtD)/(2*A);
-        float t2    = (-B + sqrtD)/(2*A);
+        float numer = -(glm::dot(n, o) + dPlane);
+        float t     = numer / denom;           // t = -(n·o + d)/ (n·d)
+        if (t <= eps)                          // hit lies behind the origin
+            return false;
 
-        // we only care about the cone at z<0 in local space, so:
-        glm::vec3 V(0.0f,0.0f,0.0f);  // apex
-        glm::vec3 D(0.0f,0.0f,1.0f); // axis so that D·(X−V)≥0 ⇔ X.z ≤ 0
-
-        // find the smallest *valid* t
-        float tMin = std::numeric_limits<float>::infinity();
-        auto testRoot = [&](float t, int sign){
-            if (t <= eps)
-                return;                       // behind the ray
-            glm::vec3 X = o + t*d;           // intersection point
-            if (glm::dot(D, X - V) < 0.0f)
-                return;                       // it's on the “wrong” nappe
-            // passed both tests → front‐facing, potential blocker
-            if (t < tMin) {
-                tMin = t;
-            }
-        };
-
-        testRoot(t1, -1);
-        testRoot(t2, +2);
-
-        if (tMin == std::numeric_limits<float>::infinity())
-            return false;   // either no intersection or only on the discarded nappe
+        // success -------------------------------------------------------------------
 
         // Compute the local hit point.
-        glm::vec3 hitLocal = o + d * tMin;
+        glm::vec3 hitLocal = o + d * t;
         // Transform back to world space.
 
         // Check if hitLocal is within valid (x,y) bounds.

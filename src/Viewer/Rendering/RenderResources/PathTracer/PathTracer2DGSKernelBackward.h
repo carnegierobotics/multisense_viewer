@@ -12,8 +12,8 @@ namespace VkRender::PathTracer {
     class LightTracerKernelBackward {
     public:
         LightTracerKernelBackward(GPUData gpuData,
-                                  GPUDataOutput *gpuDataOutput,
-                                  PCG32 *rng)
+                                  GPUDataOutput* gpuDataOutput,
+                                  PCG32* rng)
             : m_gpuData(gpuData), m_gpuDataOutput(gpuDataOutput), m_rng(rng) {
             m_cameraTransform = m_gpuData.cameraTransform;
             m_camera = m_gpuData.pinholeCamera;
@@ -33,65 +33,65 @@ namespace VkRender::PathTracer {
 
     private:
         GPUData m_gpuData{};
-        GPUDataOutput *m_gpuDataOutput{};
+        GPUDataOutput* m_gpuDataOutput{};
 
-        PCG32 *m_rng;
-        TransformComponent *m_cameraTransform{};
-        PinholeCamera *m_camera{};
+        PCG32* m_rng;
+        TransformComponent* m_cameraTransform{};
+        PinholeCamera* m_camera{};
 
-/*
-        // ---------------------------------------------------------
-        // Second-Bounce Photon Trace (Multi-Bounce)
-        // ---------------------------------------------------------
-        void traceOnePhotonSecondBounceObjectGradient(size_t photonID) const {
-            GPUDataOutput::Bounce &object = m_gpuDataOutput[photonID].bounce[1];
-            size_t hitObjectID = object.quadricID;
-            if (hitObjectID > m_gpuData.numQuadrics) {
-                return;
-            }
+        /*
+                // ---------------------------------------------------------
+                // Second-Bounce Photon Trace (Multi-Bounce)
+                // ---------------------------------------------------------
+                void traceOnePhotonSecondBounceObjectGradient(size_t photonID) const {
+                    GPUDataOutput::Bounce &object = m_gpuDataOutput[photonID].bounce[1];
+                    size_t hitObjectID = object.quadricID;
+                    if (hitObjectID > m_gpuData.numQuadrics) {
+                        return;
+                    }
 
-            if (!object.hitCamera)
-                return;
-            glm::vec3 e_o = m_gpuDataOutput[photonID].emissionOrigin;
-            glm::vec3 e_d = m_gpuDataOutput[photonID].emissionDirection;
+                    if (!object.hitCamera)
+                        return;
+                    glm::vec3 e_o = m_gpuDataOutput[photonID].emissionOrigin;
+                    glm::vec3 e_d = m_gpuDataOutput[photonID].emissionDirection;
 
-            auto &quadric = m_gpuData.quadricInputAssembly[hitObjectID];
-            glm::vec3 q_c = quadric.transform.getPosition();
-            glm::mat3 world2Quadric = quadric.transform.getTransform();
-            glm::vec3 e_o_local = world2Quadric * (e_o - q_c);
+                    auto &quadric = m_gpuData.quadricInputAssembly[hitObjectID];
+                    glm::vec3 q_c = quadric.transform.getPosition();
+                    glm::mat3 world2Quadric = quadric.transform.getTransform();
+                    glm::vec3 e_o_local = world2Quadric * (e_o - q_c);
 
-            glm::vec3 hit = object.hitPointWorld;
-            glm::vec3 hitNormal = object.hitNormalWorld;
+                    glm::vec3 hit = object.hitPointWorld;
+                    glm::vec3 hitNormal = object.hitNormalWorld;
 
-            glm::vec3 rayOrigin = object.outGoingOrigin;
-            glm::vec3 rayDir = object.outGoingDirection;
+                    glm::vec3 rayOrigin = object.outGoingOrigin;
+                    glm::vec3 rayDir = object.outGoingDirection;
 
-            glm::vec3 a_d = object.apertureDirection;
-            glm::vec3 p = object.apertureHitPoint;
-            glm::vec3 p_c = object.cameraHitPointLocal;
-            glm::vec3 g_hit2 = object.hitPointWorld;
+                    glm::vec3 a_d = object.apertureDirection;
+                    glm::vec3 p = object.apertureHitPoint;
+                    glm::vec3 p_c = object.cameraHitPointLocal;
+                    glm::vec3 g_hit2 = object.hitPointWorld;
 
 
-            GPUDataOutput::Bounce &prevBounce = m_gpuDataOutput[photonID].bounce[0];
+                    GPUDataOutput::Bounce &prevBounce = m_gpuDataOutput[photonID].bounce[0];
 
-            glm::vec3 prev_hit = prevBounce.hitPointWorld;
-            glm::vec3 prev_hitNormal = prevBounce.hitNormalWorld;
-            glm::vec3 prev_rayOrigin = prevBounce.outGoingOrigin;
-            glm::vec3 prev_rayDir = prevBounce.outGoingDirection;
-            glm::vec3 prev_a_d = prevBounce.apertureDirection;
-            glm::vec3 prev_p = prevBounce.apertureHitPoint;
-            glm::vec3 prev_p_c = prevBounce.cameraHitPointLocal;
-            glm::vec3 prev_g_hit2 = prevBounce.hitPointWorld;
+                    glm::vec3 prev_hit = prevBounce.hitPointWorld;
+                    glm::vec3 prev_hitNormal = prevBounce.hitNormalWorld;
+                    glm::vec3 prev_rayOrigin = prevBounce.outGoingOrigin;
+                    glm::vec3 prev_rayDir = prevBounce.outGoingDirection;
+                    glm::vec3 prev_a_d = prevBounce.apertureDirection;
+                    glm::vec3 prev_p = prevBounce.apertureHitPoint;
+                    glm::vec3 prev_p_c = prevBounce.cameraHitPointLocal;
+                    glm::vec3 prev_g_hit2 = prevBounce.hitPointWorld;
 
-            glm::vec3 e_d_local = world2Quadric * e_d;
-        }
+                    glm::vec3 e_d_local = world2Quadric * e_d;
+                }
 
-*/
+        */
         // ---------------------------------------------------------
         // Single Photon Trace (Single-Bounce)
         // ---------------------------------------------------------
         void traceOnePhotonSingleBounceObjectGradient(size_t photonID) const {
-            GPUDataOutput::Bounce &object = m_gpuDataOutput[photonID].bounce[0];
+            GPUDataOutput::Bounce& object = m_gpuDataOutput[photonID].bounce[0];
             size_t hitObjectID = object.quadricID;
             if (hitObjectID > m_gpuData.numQuadrics) {
                 return;
@@ -123,19 +123,19 @@ namespace VkRender::PathTracer {
 
             float u = object.pixelCoordinate.x;
             float v = object.pixelCoordinate.y;
-            int uInt = (int) std::round(u);
-            int vInt = (int) std::round(v);
+            int uInt = (int)std::round(u);
+            int vInt = (int)std::round(v);
             if (uInt < 0 || vInt < 0 ||
-                uInt >= (int) m_camera->m_parameters.width ||
-                vInt >= (int) m_camera->m_parameters.height) {
+                uInt >= (int)m_camera->m_parameters.width ||
+                vInt >= (int)m_camera->m_parameters.height) {
                 return;
-                }
+            }
             size_t pixelIndex = vInt * m_camera->m_parameters.width + uInt;
 
 
             // The quadric in question
-            auto &quadric = m_gpuData.quadricInputAssembly[hitObjectID];
-            glm::vec3 quadricNormalLocal(0.0f, 0.0f, -1.0f);
+            auto& quadric = m_gpuData.quadricInputAssembly[hitObjectID];
+            glm::vec3 quadricNormalLocal(0.0f, 0.0f, 1.0f);
             // Extract the model matrix from your quadric transform.
             glm::mat4 modelMatrix = quadric.transform.getTransform();
             // When transforming normals, build the 3x3 normal matrix as the inverse transpose
@@ -147,106 +147,64 @@ namespace VkRender::PathTracer {
             float facingCameraDot = glm::dot(quadricNormalWorld, -cameraNormal);
             float facingLightSourceDot = glm::dot(quadricNormalWorld, -e_d);
             switch (hitObjectID) {
-                case 0:
-                    e_o = e_o;
-                    break;
-                case 1:
-                    e_d = e_d;
-                    break;
-                case 2:
-                    e_o = e_o;
-                    break;
+            case 0:
+                e_o = e_o;
+                break;
+            case 1:
+                e_d = e_d;
+                break;
+            case 2:
+                e_o = e_o;
+                break;
             }
-            if (facingCameraDot <= 0.25f || facingLightSourceDot <= 0.25f) {
-                return;
-            }
+            //if (facingCameraDot <= 0.25f || facingLightSourceDot <= 0.25f) {
+            //    return;
+            //}
             // Grab data from the forward pass
             // The transform for this quadric
-
-            // ———————————————————————————————————————————————————————————————
-            // 1) Unpack the forward‐pass data
-            // ———————————————————————————————————————————————————————————————
             auto& quadInfo = object.quadInfo;
-            float A = quadInfo.A;
-            float B = quadInfo.B;
-            float C = quadInfo.C;
-            float disc = quadInfo.discriminant;
 
-            // make sure these match your forward‐pass convention:
-            glm::vec3 o = quadInfo.localRayOrigin; // ray origin in quadric‐local space
-            glm::vec3 d = quadInfo.localRayDirection; // ray direction in quadric‐local space
+            glm::vec3 o = quadInfo.localRayOrigin; // q_o
+            glm::vec3 d = quadInfo.localRayDirection; // q_dir
 
-            // the “sign” of the root: +1 for the “+” branch, –1 for the “–” branch
-            float sign = (quadInfo.rootSign > 0 ? +1.0f : -1.0f);
-
-            // the world↔quadric rotation from your forward pass:
+            // world↔local rotation (orthonormal, det = +1)
             glm::mat3 R_q2w = glm::mat3(quadric.transform.getTransform());
-            glm::mat3 R_w2q = glm::inverse(R_q2w);
+            glm::mat3 R_w2q = glm::transpose(R_q2w); // faster than glm::inverse()
 
-            // ———————————————————————————————————————————————————————————————
-            // 2) Compute ∂t_min/∂B, ∂t_min/∂C
-            //    for t_min = (–B + sign·S) / (2 A),  S = sqrt(disc)
-            // ———————————————————————————————————————————————————————————————
-            float S = std::sqrt(disc);
-            float dt_dB = -(B - sign * S) / (2.0f * A * S);
-            float dt_dC = sign * -1.0f / (S);
+            // 2) Constants of the plane in *local* space --------------------------------
+            const glm::vec3 n(0.0f, 0.0f, 1.0f); // unit normal  (local)
+            const float tmp_denom = glm::dot(n, d); // n·d
+            const float eps = 1e-6f; // degeneracy guard
 
-            // ———————————————————————————————————————————————————————————————
-            // 3) ∇_o B  and  ∇_o C
-            //    B = 2 [ a²(d_x o_x + d_y o_y) – o_z d_z ]
-            //    C =    a²(o_x²     + o_y²    ) – o_z²
-            // ———————————————————————————————————————————————————————————————
-            float a = quadric.a;
-            glm::vec3 gradB(
-                2.0f * a * a * d.x,
-                2.0f * a * a * d.y,
-                -2.0f * d.z
-            );
-            glm::vec3 gradC(
-                2.0f * a * a * o.x,
-                2.0f * a * a * o.y,
-                -2.0f * o.z
-            );
 
-            // ———————————————————————————————————————————————————————————————
-            // 4) Chain‐rule:  ∇_o t_min
-            //    = dt_dB * ∇_o B  +  dt_dC * ∇_o C
-            // ———————————————————————————————————————————————————————————————
-            glm::vec3 grad_o = dt_dB * gradB + dt_dC * gradC;
+            // 3)   ∂t_min / ∂q_c  = ( R_w2qᵀ · n ) / ( n·d )
+            glm::vec3 d_tmin_qc = (glm::transpose(R_w2q) * n) / tmp_denom;
 
-            // ———————————————————————————————————————————————————————————————
-            // 5) ∂t_min / ∂q_c  =  (∂o/∂q_c)^T ∇_o t  =  – R_w2q^T ⋅ grad_o
-            // ———————————————————————————————————————————————————————————————
-            glm::vec3 dtmin_dqc = -glm::transpose(R_w2q) * grad_o;
-
-            // ———————————————————————————————————————————————————————————————
-            // 6) Finally:  J_qhit_qc_l = –R_w2q  +  d ⊗ (dtmin_dqc)
-            // ———————————————————————————————————————————————————————————————
-            glm::mat3 outer = glm::outerProduct(d, dtmin_dqc);
-            glm::mat3 J_qhit_qc_l = -R_w2q + outer;
+            // 4)   J_qhit_qc_l = –R_w2q  +  d  ⊗  (∂t_min/∂q_c)
+            glm::mat3 J_qhit_qc_l = -R_w2q + glm::outerProduct(d, d_tmin_qc);
 
 
             // Unpack the remaining forward‐pass quantities:
-            float g_d     = quadInfo.geodesic;
+            float g_d = quadInfo.geodesic;
             float x_local = quadInfo.hitLocal.x;
             float y_local = quadInfo.hitLocal.y;
             float z_local = quadInfo.hitLocal.z;
-            float b_beta  = quadric.b_beta;
+            float b_beta = quadric.b_beta;
 
             // Compute the constant factor
             float K = std::exp(b_beta);
 
             // First derivative (not used in the final override)
             // Override with your final formula:
-            float p_tmp    = 4.0f;
+            float p_tmp = 4.0f;
             float exponent = std::exp(b_beta);
-            float term1    = 1.0f - (g_d * g_d);
+            float term1 = 1.0f - (g_d * g_d);
             float d_beta_dgd =
                 -(8.0f * std::pow(term1, (4.0f * exponent)) * exponent * g_d)
-                 / (term1) * 0.1f;
+                / (term1) * 0.1f;
 
             // Compute ∇ₓ g_d  where g_d = ‖(x,y,z)‖
-            float denom = std::sqrt(x_local*x_local + y_local*y_local + z_local*z_local);
+            float denom = std::sqrt(x_local * x_local + y_local * y_local + z_local * z_local);
             float dgd_dx = x_local / denom;
             float dgd_dy = y_local / denom;
             float dgd_dz = z_local / denom;
@@ -357,14 +315,14 @@ namespace VkRender::PathTracer {
 
         bool geometryIntersectionQuadric(
             size_t gaussianID,
-            const glm::vec3 &rayOrigin,
-            const glm::vec3 &rayDir,
-            size_t &hitEntity,
-            float &closest_t,
-            glm::vec3 &hitPointWorld,
-            glm::vec3 &hitNormalWorld,
-            float &betaContribution,
-            GPUDataOutput::QuadraticInfo &quadraticInfo,
+            const glm::vec3& rayOrigin,
+            const glm::vec3& rayDir,
+            size_t& hitEntity,
+            float& closest_t,
+            glm::vec3& hitPointWorld,
+            glm::vec3& hitNormalWorld,
+            float& betaContribution,
+            GPUDataOutput::QuadraticInfo& quadraticInfo,
             bool isContributionRay = false
         ) const {
             // Set up initial values.
@@ -383,7 +341,7 @@ namespace VkRender::PathTracer {
             // Traverse the BVH iteratively.
             while (stackPtr > 0) {
                 int currentIndex = stack[--stackPtr];
-                const BVHNode &node = m_gpuData.bvhNodes[currentIndex];
+                const BVHNode& node = m_gpuData.bvhNodes[currentIndex];
 
                 // Test ray against node's bounding box.
                 if (!rayAABBIntersect(rayOrigin, rayDir, node.bboxMin, node.bboxMax, tMinGlobal))
@@ -394,13 +352,14 @@ namespace VkRender::PathTracer {
                     float tCandidate = std::numeric_limits<float>::max();
                     glm::vec3 localHitPoint(0.0f), localHitNormal(0.0f);
                     float beta = 0.0f;
-                    const QuadricInputAssembly &quadric = m_gpuData.quadricInputAssembly[node.quadricIndex];
+                    const QuadricInputAssembly& quadric = m_gpuData.quadricInputAssembly[node.quadricIndex];
                     if (isContributionRay) {
                         if (checkContributionCollision(rayOrigin, rayDir, quadric, localHitPoint)) {
                             hitFound = true;
                             bestHitPoint = localHitPoint;
                         }
-                    } else {
+                    }
+                    else {
                         if (intersectQuadricLeaf(rayOrigin, rayDir, quadric, tCandidate, localHitPoint, localHitNormal,
                                                  beta, quadraticInfo)) {
                             if (tCandidate < tMinGlobal) {
@@ -413,7 +372,8 @@ namespace VkRender::PathTracer {
                             }
                         }
                     }
-                } else {
+                }
+                else {
                     // Internal node: push its child nodes onto the stack.
                     if (stackPtr + 2 < MAX_STACK_SIZE) {
                         stack[stackPtr++] = node.leftChild;
@@ -620,7 +580,6 @@ namespace VkRender::PathTracer {
         }
 
 */
-
     };
 }
 

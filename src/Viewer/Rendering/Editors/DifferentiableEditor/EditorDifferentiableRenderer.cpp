@@ -188,11 +188,7 @@ namespace VkRender {
         // ----------------------------------------------------------
         if (m_photonRebuildModule && (imageUI->step || imageUI->toggleStep)) {
             // Store camera entities (assuming there are exactly two cameras)
-
-
             CameraComponent *activeCamera = m_context->activeScene()->getActiveCamera();
-
-
             // Prepare path tracer forward settings
             // Use the actual scene camera (pinhole) from your scene
             m_renderSettings.camera = *activeCamera->getPinholeCamera();
@@ -247,25 +243,21 @@ namespace VkRender {
                                                  m_context->activeScene()->getActiveCameraEntity().getName());
                 // Backpropagate -- OPTIMIZATION STEP --
 
-                if (m_numAccumulated >= m_pathTracer->getPipelineSettings().numFrames) {
+                const int numViews = 7;                       // <-- set this once
+
+
+                if (m_numAccumulated > 0 && m_numAccumulated % m_pathTracer->getPipelineSettings().numFrames == 0) {
                     // Load the target tensor
-
                     std::filesystem::path datasetPath = "output/";
-
                     std::filesystem::path gtFileName;
-
                     gtFileName = datasetPath / (m_context->activeScene()->getActiveCameraEntity().getName() + ".pfm");
-
-
                     Log::Logger::getInstance()->info("Rendered iteration: {}: gt file: {}", m_stepIteration,
                                                      gtFileName.string());
                     torch::Tensor gtTensor = loadPFM(gtFileName, width, height);
 
-
                     // Compute loss
                     //auto loss = torch::mean(torch::abs(m_accumulatedTensor - gtTensor));
-                    auto loss = torch::mean(torch::pow(m_accumulatedTensor - gtTensor, 2));
-
+                    auto loss = torch::mse_loss(m_accumulatedTensor, gtTensor) / numViews;
                     auto start = std::chrono::high_resolution_clock::now();
 
                     // Backward
@@ -287,30 +279,6 @@ namespace VkRender {
                     //std::cout << "PSNR: " << psnr_val << ", SSIM: " << ssim_val << std::endl;
                     Log::Logger::getInstance()->info("PSNR: {}, SSIM: {}", psnr_val, ssim_val);
 
-                    // Gradient checks: positions, scales, normals
-                    // (Make sure you've actually registered these as parameters in your module!)
-                    auto positions = m_photonRebuildModule->m_tensorData.positions;
-
-                    auto gradPositions = m_photonRebuildModule->m_tensorData.positions.grad();
-                    auto gradScales = m_photonRebuildModule->m_tensorData.scales.grad();
-                    auto gradNormals = m_photonRebuildModule->m_tensorData.normals.grad();
-
-                    auto quadricPositions = m_photonRebuildModule->m_tensorData.quadricPositions.clone();
-                    auto quadricGradients = m_photonRebuildModule->m_tensorData.quadricPositions.grad().clone();
-
-                    //m_lastIteration.positionGradient = glm::vec3(positions[0][0].item<float>(),
-                    //                                             positions[0][1].item<float>(),
-                    //                                             positions[0][2].item<float>());
-
-
-                    // Optimizer step
-                    m_optimizer->step();
-                    // Reset the accumulation if you only wanted to do a single backprop per accumulation
-                    m_accumulatedTensor = torch::Tensor();
-                    m_numAccumulated = 0;
-                    m_optimizer->zero_grad(); // Clear old gradients
-                    m_stepIteration++;
-
                     // Save metrics to a CSV file
                     // The CSV header is: m_stepIteration, camera_id, Loss, SSIM, PSNR
                     std::ofstream csvFile;
@@ -327,6 +295,18 @@ namespace VkRender {
                             << psnr_val << "\n";
                     csvFile.close();
 
+                    //m_lastIteration.positionGradient = glm::vec3(positions[0][0].item<float>(),
+                    //                                             positions[0][1].item<float>(),
+                    //                                             positions[0][2].item<float>());
+
+                    m_accumulatedTensor = torch::Tensor();
+                    m_stepIteration++;
+
+                }
+
+                if (m_numAccumulated == m_pathTracer->getPipelineSettings().numFrames * numViews) {
+                    // Optimizer step
+                    m_optimizer->step();
 
                     // Update the scene
                     auto &gradients = pathTracerIterationInfo.gradients;
@@ -335,8 +315,13 @@ namespace VkRender {
                         if (vectors.hasComponent<ScriptableComponent>()) {
                             auto &script = vectors.getComponent<ScriptableComponent>();
                             if (script.instance) {
+                                // Gradient checks: positions, scales, normals
+                                // (Make sure you've actually registered these as parameters in your module!)
+                                auto quadricPositions = m_photonRebuildModule->m_tensorData.quadricPositions.clone();
+                                auto quadricGradients = m_photonRebuildModule->m_tensorData.quadricPositions.grad().clone();
+
                                 auto *gradientScript = reinterpret_cast<GradientRay *>(script.instance);
-                                gradientScript->ray = glm::vec3(quadricGradients[0][0].item<float>(),
+                                gradientScript->ray = -glm::vec3(quadricGradients[0][0].item<float>(),
                                                                  quadricGradients[0][1].item<float>(),
                                                                  quadricGradients[0][2].item<float>());
                                 gradientScript->origin = glm::vec3(quadricPositions[0][0].item<float>(),
@@ -345,6 +330,9 @@ namespace VkRender {
                             }
                         }
                     }
+                    // Reset the accumulation if you only wanted to do a single backprop per accumulation
+                    m_optimizer->zero_grad(); // Clear old gradients
+                    m_numAccumulated = 0;
                 }
             } else {
                 Log::Logger::getInstance()->warning("Image size Mismatch! Texture: {}x{}, Camera: {}x{}",

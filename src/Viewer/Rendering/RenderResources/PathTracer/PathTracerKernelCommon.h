@@ -130,7 +130,7 @@ namespace VkRender::PathTracer {
         float o_z = o.z;
 
         float A = (quadric.a * quadric.a) * (d_x * d_x + d_y * d_y) - (d_z * d_z);
-        float B = 2 * (quadric.a * quadric.a) * (o_x * d_x + o_y * d_y) - (o_z * d_z);
+        float B = 2 * ((quadric.a * quadric.a) * (o_x * d_x + o_y * d_y) - (o_z * d_z));
         float C = (quadric.a * quadric.a) * (o_x * o_x + o_y * o_y) - (o_z * o_z);
 
         float eps = 1e-5f;
@@ -157,22 +157,36 @@ namespace VkRender::PathTracer {
         quadraticInfo.C = C;
         quadraticInfo.discriminant = disc;
 
-        float sqrtDisc = std::sqrt(disc);
-        float t1 = (-B - sqrtDisc) / (2.0f * A);
-        float t2 = (-B + sqrtDisc) / (2.0f * A);
-        float tMin = std::numeric_limits<float>::max();
-        if (t1 > eps && t1 < tMin) {
-            tMin = t1;
-            quadraticInfo.rootSign = -1;
-        }
-        /*
-        if (t2 > eps && t2 < tMin) {
-            tMin = t2;
-            quadraticInfo.rootIndex = 2;
-        }
-        */
-        if (tMin == std::numeric_limits<float>::max())
-            return false; // No valid solution
+        // the two candidate roots
+        float sqrtD = std::sqrt(disc);
+        float t1    = (-B - sqrtD)/(2*A);
+        float t2    = (-B + sqrtD)/(2*A);
+
+        // we only care about the cone at z<0 in local space, so:
+        glm::vec3 V(0.0f,0.0f,0.0f);  // apex
+        glm::vec3 D(0.0f,0.0f,1.0f); // axis so that D·(X−V)≥0 ⇔ X.z ≤ 0
+
+        // find the smallest *valid* t
+        float tMin = std::numeric_limits<float>::infinity();
+        auto testRoot = [&](float t, int sign){
+            if (t <= eps)
+                return;                       // behind the ray
+            glm::vec3 X = o + t*d;           // intersection point
+            if (glm::dot(D, X - V) < 0.0f)
+                return;                       // it's on the “wrong” nappe
+            // passed both tests → front‐facing, potential blocker
+            if (t < tMin) {
+                tMin = t;
+                quadraticInfo.rootSign = sign;
+            }
+        };
+
+        testRoot(t1, -1);
+        testRoot(t2, +2);
+
+        if (tMin == std::numeric_limits<float>::infinity())
+            return false;   // either no intersection or only on the discarded nappe
+
         tCandidate = tMin;
 
 
@@ -207,28 +221,27 @@ namespace VkRender::PathTracer {
 
         quadraticInfo.betaContribution = bkValue;
         // Compute the local normal via the gradient.
-        glm::vec3 gradLocal(
-            2.0f * quadric.c * alphaX * hitLocal.x / (quadric.a * quadric.a),
-            2.0f * quadric.c * alphaY * hitLocal.y / (quadric.b * quadric.b),
-            -1.0f
+        glm::vec3 nLocal(
+            2.0f * quadric.a * quadric.a * hitLocal.x,
+            2.0f * quadric.a * quadric.a * hitLocal.y,
+           -2.0f * hitLocal.z
         );
-        glm::mat3 mat = glm::mat3(quadric.transform.getTransform());
-        float det2 = glm::determinant(mat);
-        if (fabs(det2) < 1e-6f)
-            return false;
-        glm::mat3 invT = glm::inverseTranspose(mat);
-        glm::vec3 normalW = glm::normalize(invT * gradLocal);
-        if (glm::dot(normalW, -dir) < 0.0f)
-            normalW = -normalW;
+        nLocal = glm::normalize(nLocal);
 
-        hitNormal = normalW;
+        glm::mat3 mat = glm::mat3(quadric.transform.getTransform());
+        glm::mat3 worldNormalMat = glm::transpose(glm::inverse(mat));
+        glm::vec3 nWorld = glm::normalize(worldNormalMat * nLocal);
+
+        if (glm::dot(nWorld, -dir) < 0.0f)
+            nWorld = -nWorld;
+
+        hitNormal = nWorld;
         beta = bkValue;
         return true;
     }
 
     static bool checkContributionCollision(const glm::vec3 &e_o, const glm::vec3 &e_d,
                                            const QuadricInputAssembly &quadric, glm::vec3 &hit) {
-        float eps = 1.0f * 1e-5f;
 
         // Transform the ray into the quadric’s local space.
         glm::mat4 transform = quadric.transform.getTransform();
@@ -239,85 +252,92 @@ namespace VkRender::PathTracer {
         glm::vec3 o = glm::vec3(o4);
         glm::vec3 d = glm::vec3(d4);
 
-        // Shorthand for the quadric parameters.
-        float alphaX = std::tanh(quadric.t_x);
-        float alphaY = std::tanh(quadric.t_y);
+         // Solve quadratic: A*t^2 + B*t + C = 0.
+        float d_x = d.x;
+        float d_y = d.y;
+        float d_z = d.z;
+        float o_x = o.x;
+        float o_y = o.y;
+        float o_z = o.z;
 
-        // Set up the quadratic equation coefficients.
-        float Ax = d.x, Ay = d.y, Az = d.z;
-        float Ox = o.x, Oy = o.y, Oz = o.z;
-        float A = quadric.c * (alphaX * (Ax * Ax) / (quadric.a * quadric.a) +
-                               alphaY * (Ay * Ay) / (quadric.b * quadric.b));
-        float B = quadric.c * (2.0f * alphaX * Ox * Ax / (quadric.a * quadric.a) +
-                               2.0f * alphaY * Oy * Ay / (quadric.b * quadric.b)) - Az;
-        float C = quadric.c * (alphaX * (Ox * Ox) / (quadric.a * quadric.a) +
-                               alphaY * (Oy * Oy) / (quadric.b * quadric.b)) - Oz;
+        float A = (quadric.a * quadric.a) * (d_x * d_x + d_y * d_y) - (d_z * d_z);
+        float B = 2 * ((quadric.a * quadric.a) * (o_x * d_x + o_y * d_y) - (o_z * d_z));
+        float C = (quadric.a * quadric.a) * (o_x * o_x + o_y * o_y) - (o_z * o_z);
 
 
-        // Helper lambda: Given a ray parameter t, compute the intersection, normal, and beta.
-        auto computeIntersection = [&](float t) -> bool {
-            // Compute local hit point.
-            glm::vec3 hitLocal = o + d * t;
-            glm::vec4 hitW4 = transform * glm::vec4(hitLocal, 1.0f);
-            hit = glm::vec3(hitW4) / hitW4.w;
-
-            // Check if hitLocal is within valid (x,y) bounds.
-            if (hitLocal.x < quadric.min.x || hitLocal.x > quadric.max.x)
-                return false;
-            if (hitLocal.y < quadric.min.y || hitLocal.y > quadric.max.y)
-                return false;
-
-            float geodesicDist = calculateGeodesic(hitLocal, quadric, alphaX, alphaY);
-            float r = geodesicDist / quadric.kernelScale;
-            if (r > 1.0f)
-                r = 1.0f;
-            float beta = std::pow(1.0f - r * r, 4.0f * std::exp(quadric.b_beta));
-
-            // Compute the local gradient and transform it to world space.
-            glm::vec3 gradLocal(
-                2.0f * quadric.c * alphaX * hitLocal.x / (quadric.a * quadric.a),
-                2.0f * quadric.c * alphaY * hitLocal.y / (quadric.b * quadric.b),
-                -1.0f
-            );
-            glm::mat3 mat = glm::mat3(transform);
-            glm::mat3 invT = glm::inverseTranspose(mat);
-            glm::vec3 normal = glm::normalize(invT * gradLocal);
-            if (glm::dot(normal, -e_d) < 0.0f)
-                normal = -normal;
-            // For non-contribution rays, enforce the beta kernel threshold.
-            if (beta < quadric.threshold)
-                return false;
-
-            return true;
-        };
-
-        // Handle the degenerate (linear) case.
+       float eps = 1e-5f;
         if (fabs(A) < eps) {
             if (fabs(B) < eps)
-                return false; // No solution.
+                return false; // No solution
             float tLin = -C / B;
-            if (tLin <= eps)
+            if (tLin > eps) {
                 return false;
-            return computeIntersection(tLin);
+            } else
+                return false;
         }
 
-        // Solve the quadratic equation.
-        float discriminant = (B * B) - 4.0f * A * C;
-        if (discriminant < eps)
-            return false; // No real roots exist.
+        float disc = (B * B) - 4.0f * A * C;
+        if (disc < 0.0f)
+            return false; // No real roots
 
-        float sqrtDiscriminant = std::sqrt(discriminant);
-        float root1 = (-B - sqrtDiscriminant) / (2.0f * A);
-        float root2 = (-B + sqrtDiscriminant) / (2.0f * A);
+        // the two candidate roots
+        float sqrtD = std::sqrt(disc);
+        float t1    = (-B - sqrtD)/(2*A);
+        float t2    = (-B + sqrtD)/(2*A);
 
-        // Suppose we define a small scene-friendly epsilon
-        float sceneEps = eps;
+        // we only care about the cone at z<0 in local space, so:
+        glm::vec3 V(0.0f,0.0f,0.0f);  // apex
+        glm::vec3 D(0.0f,0.0f,1.0f); // axis so that D·(X−V)≥0 ⇔ X.z ≤ 0
 
-        // Solve for root1, root2
-        if (root1 > sceneEps && computeIntersection(root1)) return true;
-        if (root2 > sceneEps && computeIntersection(root2)) return true;
+        // find the smallest *valid* t
+        float tMin = std::numeric_limits<float>::infinity();
+        auto testRoot = [&](float t, int sign){
+            if (t <= eps)
+                return;                       // behind the ray
+            glm::vec3 X = o + t*d;           // intersection point
+            if (glm::dot(D, X - V) < 0.0f)
+                return;                       // it's on the “wrong” nappe
+            // passed both tests → front‐facing, potential blocker
+            if (t < tMin) {
+                tMin = t;
+            }
+        };
 
-        return false;
+        testRoot(t1, -1);
+        testRoot(t2, +2);
+
+        if (tMin == std::numeric_limits<float>::infinity())
+            return false;   // either no intersection or only on the discarded nappe
+
+        // Compute the local hit point.
+        glm::vec3 hitLocal = o + d * tMin;
+        // Transform back to world space.
+
+        // Check if hitLocal is within valid (x,y) bounds.
+        if (hitLocal.x < quadric.min.x || hitLocal.x > quadric.max.x)
+            return false;
+        if (hitLocal.y < quadric.min.y || hitLocal.y > quadric.max.y)
+            return false;
+
+        // Evaluate the beta kernel.
+        float alphaX = std::tanh(quadric.t_x);
+        float alphaY = std::tanh(quadric.t_y);
+        GPUDataOutput::QuadraticInfo quadInfo;
+        float geodesicDist = calculateGeodesic(hitLocal, quadric, alphaX, alphaY, &quadInfo);
+
+        float r = geodesicDist;
+
+        if (r > 1.0f) {
+            return false; // Not within threshold
+        }
+        auto betaKernel = [&](float r, float bExp) -> float {
+            return std::pow(1.0f - (r * r), 4.0f * std::exp(bExp));
+        };
+        float bkValue = betaKernel(r, quadric.b_beta);
+        if (bkValue < quadric.threshold)
+            return false; // Not within threshold
+
+        return true;
     }
 }
 #endif //PATHTRACERKERNELCOMMON_H

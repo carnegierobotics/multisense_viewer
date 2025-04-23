@@ -655,55 +655,62 @@ namespace VkRender::PathTracer {
             return std::pow(1.0f - r * r, 4.0f * std::exp(bExp));
         };
 
+        auto getVertex = [&](glm::vec3 v) {
+
+        };
+
         int N = 100; // Grid resoltuion
         float dx = (quadric.max.x - quadric.min.x) / float(N - 1);
         float dy = (quadric.max.y - quadric.min.y) / float(N - 1);
 
         // Precompute the sign factors alpha_x, alpha_y
-        float alphaX = std::tanh(quadric.t_x);
-        float alphaY = std::tanh(quadric.t_y);
 
         for (int i = 0; i < N; ++i) {
             float x = quadric.min.x + i * dx; // domain from min.x to max.x
             for (int j = 0; j < N; ++j) {
                 float y = quadric.min.y + j * dy; // domain from min.y to max.y
-
-                // Compute z = c * (alphaX*x^2/a^2 + alphaY*y^2/b^2)
-                float z = quadric.c * (
-                              (alphaX * x * x) / (quadric.a * quadric.a) +
-                              (alphaY * y * y) / (quadric.b * quadric.b)
-                          );
-
-                // Build position vector
+                float zSquared = quadric.a * quadric.a *(x*x + y * y);
+                float z = sqrtf(zSquared);
+                // Build position
                 glm::vec3 position(x, y, z);
-
                 // Apply scale factor if needed.
                 position *= scaleFactor;
-
                 // Compute radial coordinate for Beta kernel:
                 // R_general = sqrt(|alphaX|*x^2/a^2 + |alphaY|*y^2/b^2)
-                float R_general = std::sqrt(
-                    std::fabs(alphaX) * (x * x) / (quadric.a * quadric.a) +
-                    std::fabs(alphaY) * (y * y) / (quadric.b * quadric.b)
-                );
-
-                // Normalized radial coordinate r = R_general / kernelScale
-                float r = R_general / quadric.kernelScale;
-
-                // Evaluate the kernel
-                float bkValue = betaKernel(r, quadric.b_beta);
-
+                float geodesic = sqrtf(std::pow(x, 2.0f) + std::pow(y, 2.0f) + std::pow(z, 2.0f));
+                // Evaluate kernel
+                float bkValue = betaKernel(geodesic, quadric.b_beta);
                 // Decide whether to keep the vertex based on the threshold
-                bool keepVertex = (bkValue >= quadric.threshold);
+                bool keepVertex = (bkValue > quadric.threshold);
                 if (!keepVertex) {
                     continue;
                 }
-
                 // Update the AABB using the current vertex's position.
                 aabbMin = glm::min(aabbMin, position);
                 aabbMax = glm::max(aabbMax, position);
             }
         }
+
+        float x = 0; // domain from min.x to max.x
+        float y = 0; // domain from min.y to max.y
+        float zSquared = quadric.a * quadric.a *(x*x + y * y);
+        float z = sqrtf(zSquared);
+        // Build position
+        glm::vec3 position(x, y, z);
+        // Apply scale factor if needed.
+        position *= scaleFactor;
+        // Compute radial coordinate for Beta kernel:
+        // R_general = sqrt(|alphaX|*x^2/a^2 + |alphaY|*y^2/b^2)
+        float geodesic = sqrtf(std::pow(x, 2.0f) + std::pow(y, 2.0f) + std::pow(z, 2.0f));
+        // Evaluate kernel
+        float bkValue = betaKernel(geodesic, quadric.b_beta);
+        // Decide whether to keep the vertex based on the threshold
+        bool keepVertex = (bkValue > quadric.threshold);
+        if (keepVertex) {
+            aabbMin = glm::min(aabbMin, position);
+            aabbMax = glm::max(aabbMax, position);
+        }
+
 
         // If the quadric is planar (c == 0), the z extents collapse.
         // Artificially expand the z bounds by an epsilon.

@@ -113,8 +113,8 @@ namespace torch {
                     auto &exp_avg_sq = param_state.exp_avg_sq();
 
                     // Determine the sign for the gradient update.
-                    const double sign = maximize ? 1.0 : -1.0;
-                    //const double sign = maximize ? -1.0 : 1.0;
+                    //const double sign = maximize ? 1.0 : -1.0;
+                    const double sign = maximize ? -1.0 : 1.0;
                     std::cout << "[DEBUG] Maximize: 0 Minimize: 1, res:" << maximize << std::endl;
 
                     // Coalesce the gradient so indices are unique.

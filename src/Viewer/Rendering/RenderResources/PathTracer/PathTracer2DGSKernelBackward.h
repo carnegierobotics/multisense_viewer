@@ -111,10 +111,8 @@ namespace VkRender::PathTracer {
             glm::vec3 pinholePosition = m_cameraTransform->getPosition();
             glm::vec3 cameraPlanePointWorld = glm::vec3(camera2World * glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
 
-
             // Aperture center
             glm::vec3 a_c = m_cameraTransform->getPosition();
-
             // Scene (Gaussian) data
             size_t gaussianID = m_gpuDataOutput[photonID].gaussianID;
             glm::vec3 e_c = m_gpuData.gaussianInputAssembly[gaussianID].position; // emission center
@@ -123,25 +121,31 @@ namespace VkRender::PathTracer {
             glm::vec3 f = cameraPlanePointWorld; // “focal plane” point or just known plane
             glm::vec3 f_n = cameraNormal; // plane’s normal
 
+            float u = object.pixelCoordinate.x;
+            float v = object.pixelCoordinate.y;
+            int uInt = (int) std::round(u);
+            int vInt = (int) std::round(v);
+            if (uInt < 0 || vInt < 0 ||
+                uInt >= (int) m_camera->m_parameters.width ||
+                vInt >= (int) m_camera->m_parameters.height) {
+                return;
+                }
+            size_t pixelIndex = vInt * m_camera->m_parameters.width + uInt;
+
+
             // The quadric in question
-
             auto &quadric = m_gpuData.quadricInputAssembly[hitObjectID];
-            glm::vec3 quadricNormalLocal(0.0f, 0.0f, 1.0f);
-
+            glm::vec3 quadricNormalLocal(0.0f, 0.0f, -1.0f);
             // Extract the model matrix from your quadric transform.
             glm::mat4 modelMatrix = quadric.transform.getTransform();
-
             // When transforming normals, build the 3x3 normal matrix as the inverse transpose
             // of the upper-left 3x3 part of the model matrix.
             glm::mat3 normalMatrix = glm::transpose(glm::inverse(glm::mat3(modelMatrix)));
-
             // Transform the local normal into world space.
             glm::vec3 quadricNormalWorld = glm::normalize(normalMatrix * quadricNormalLocal);
-
             // Now you can compare with the camera normal.
             float facingCameraDot = glm::dot(quadricNormalWorld, -cameraNormal);
             float facingLightSourceDot = glm::dot(quadricNormalWorld, -e_d);
-
             switch (hitObjectID) {
                 case 0:
                     e_o = e_o;
@@ -153,245 +157,115 @@ namespace VkRender::PathTracer {
                     e_o = e_o;
                     break;
             }
-            //if (facingCameraDot <= 0.1f || facingLightSourceDot <= 0.1f) {
-            //    return;
-            //}
-
-
+            if (facingCameraDot <= 0.25f || facingLightSourceDot <= 0.25f) {
+                return;
+            }
             // Grab data from the forward pass
-            float u = object.pixelCoordinate.x;
-            float v = object.pixelCoordinate.y;
-            glm::vec3 q_hit_world = object.hitPointWorld; // the final quadric->camera intersection
-            float px = object.cameraHitPointLocal.x;
-            float py = object.cameraHitPointLocal.y;
-            float pz = object.cameraHitPointLocal.z;
+            // The transform for this quadric
 
-            glm::vec3 a_d = object.apertureDirection; // direction from q_hit_world -> aperture
-            float a_tmin = object.cameraDirectionLength; // that intersection t
-
-            glm::vec3 e_o_local = object.quadInfo.localRayOrigin;
-            glm::vec3 e_d_local = object.quadInfo.localRayDirection;
-
-            // Quadratic info from forward pass
-            auto &quadInfo = object.quadInfo;
+            // ———————————————————————————————————————————————————————————————
+            // 1) Unpack the forward‐pass data
+            // ———————————————————————————————————————————————————————————————
+            auto& quadInfo = object.quadInfo;
             float A = quadInfo.A;
             float B = quadInfo.B;
             float C = quadInfo.C;
-            float discriminant = quadInfo.discriminant;
-            int rootIndex = quadInfo.rootSign;
-            if (fabs(A) < 1e-14f || discriminant < 1e-14f || rootIndex < 1) {
-                return;
-            }
+            float disc = quadInfo.discriminant;
 
-            // The transform for this quadric
-            glm::mat4 Q2W_4x4 = quadric.transform.getTransform();
-            glm::mat3 quadric2World = glm::mat3(Q2W_4x4);
-            glm::mat3 world2Quadric = glm::inverse(quadric2World);
+            // make sure these match your forward‐pass convention:
+            glm::vec3 o = quadInfo.localRayOrigin; // ray origin in quadric‐local space
+            glm::vec3 d = quadInfo.localRayDirection; // ray direction in quadric‐local space
 
-            float alpha_x = tanhf(quadric.t_x);
-            float alpha_y = tanhf(quadric.t_y);
+            // the “sign” of the root: +1 for the “+” branch, –1 for the “–” branch
+            float sign = (quadInfo.rootSign > 0 ? +1.0f : -1.0f);
 
-            //-----------------------------------------------------------------------
-            //
-            // 1) Derivatives of B,C wrt quadric center q_c
-            //
-            //    B = dot(...) => partial wrt e_o_local
-            //    e_o_local depends on q_c via e_o_local = (world2Quadric)*(e_o) - ...
-            //-----------------------------------------------------------------------
-            glm::vec3 grad_B_eo;
-            grad_B_eo.x = quadric.c * (2.0f * alpha_x * e_d_local.x) / (quadric.a * quadric.a);
-            grad_B_eo.y = quadric.c * (2.0f * alpha_y * e_d_local.y) / (quadric.b * quadric.b);
-            grad_B_eo.z = 0.0f;
+            // the world↔quadric rotation from your forward pass:
+            glm::mat3 R_q2w = glm::mat3(quadric.transform.getTransform());
+            glm::mat3 R_w2q = glm::inverse(R_q2w);
 
-            glm::vec3 grad_C_eo;
-            grad_C_eo.x = quadric.c * 2.0f * alpha_x * e_o_local.x / (quadric.a * quadric.a);
-            grad_C_eo.y = quadric.c * 2.0f * alpha_y * e_o_local.y / (quadric.b * quadric.b);
-            grad_C_eo.z = -1.0f;
+            // ———————————————————————————————————————————————————————————————
+            // 2) Compute ∂t_min/∂B, ∂t_min/∂C
+            //    for t_min = (–B + sign·S) / (2 A),  S = sqrt(disc)
+            // ———————————————————————————————————————————————————————————————
+            float S = std::sqrt(disc);
+            float dt_dB = -(B - sign * S) / (2.0f * A * S);
+            float dt_dC = sign * -1.0f / (S);
 
-            // dB/dq_c = - (transpose(world2Quadric)) * grad_B_eo
-            glm::vec3 dB_dqc = -glm::transpose(world2Quadric) * grad_B_eo;
-            // dC/dq_c = ...
-            glm::vec3 dC_dqc = -glm::transpose(world2Quadric) * grad_C_eo;
+            // ———————————————————————————————————————————————————————————————
+            // 3) ∇_o B  and  ∇_o C
+            //    B = 2 [ a²(d_x o_x + d_y o_y) – o_z d_z ]
+            //    C =    a²(o_x²     + o_y²    ) – o_z²
+            // ———————————————————————————————————————————————————————————————
+            float a = quadric.a;
+            glm::vec3 gradB(
+                2.0f * a * a * d.x,
+                2.0f * a * a * d.y,
+                -2.0f * d.z
+            );
+            glm::vec3 gradC(
+                2.0f * a * a * o.x,
+                2.0f * a * a * o.y,
+                -2.0f * o.z
+            );
 
-            //-----------------------------------------------------------------------
-            //
-            // 2) Derivatives of t_min wrt B, C (the root chosen)
-            //
-            //-----------------------------------------------------------------------
-            float sqrtDisc = sqrtf(discriminant);
-            float inv2A = 1.0f / (2.0f * A);
-            float BoverDisc = B / sqrtDisc;
-            float d_tmin_dB = 0.0f;
-            float d_tmin_dC = 0.0f;
+            // ———————————————————————————————————————————————————————————————
+            // 4) Chain‐rule:  ∇_o t_min
+            //    = dt_dB * ∇_o B  +  dt_dC * ∇_o C
+            // ———————————————————————————————————————————————————————————————
+            glm::vec3 grad_o = dt_dB * gradB + dt_dC * gradC;
 
-            if (rootIndex == 1) {
-                // minus root =>  t = (B - sqrtDisc)/(2*A)
-                // Maple expansions => d_t/dB, d_t/dC
-                d_tmin_dB = -inv2A * (1.0f + BoverDisc);
-                d_tmin_dC = +1.0f / sqrtDisc;
-            } else if (rootIndex == 2) {
-                // plus root => t = ( -B + sqrtDisc)/(2*A)
-                d_tmin_dB = inv2A * (-1.0f + BoverDisc);
-                d_tmin_dC = -1.0f / sqrtDisc;
-            }
-            // else return, but we already checked rootIndex above
+            // ———————————————————————————————————————————————————————————————
+            // 5) ∂t_min / ∂q_c  =  (∂o/∂q_c)^T ∇_o t  =  – R_w2q^T ⋅ grad_o
+            // ———————————————————————————————————————————————————————————————
+            glm::vec3 dtmin_dqc = -glm::transpose(R_w2q) * grad_o;
 
-            // Chain rule to get dtmin/dq_c
-            glm::vec3 dtmin_dqc = d_tmin_dB * dB_dqc + d_tmin_dC * dC_dqc;
-
-            //-----------------------------------------------------------------------
-            //
-            // 3) q_hit_local = e_o_local + q_tmin* e_d_local => derivative wrt q_c
-            //    but there's also - R_w2q for the local shift, etc.
-            //    In your Python code: J_qhit_qc_l = outer(e_d_l, -dtmin_eol) - R_w2q
-            //    The minus sign arises from how e_o_local depends on q_c.
-            //    We'll replicate the same effect with: q_hit_local(dqc) = e_d_local * dtmin_dqc - world2Quadric
-            //
-            //-----------------------------------------------------------------------
-            // By your Maple expansions, you effectively have:
-            //    J_qhitLocal_qc = outer(e_d_local, dtmin_dqc) - d(e_o_local)/dq_c
-            // but d(e_o_local)/dq_c = world2Quadric * d(e_o)/d(q_c) = ...
-            //
-            // For clarity, here is the direct approach:
-            // q_hit_local = e_o_local + t_min * e_d_local
-            // => derivative wrt q_c => (d e_o_local / d q_c) + (d t_min / d q_c) e_d_local
-            // but d e_o_local / d q_c = - world2Quadric (assuming e_o_local = W2Q*( e_o - q_c ) ...).
-            //
-            // So the net is:
-            //   J_qhitLocal_qc = outer(e_d_local, dtmin_dqc) - world2Quadric
-            //-----------------------------------------------------------------------
-            glm::mat3 outer_edl_dtmin = glm::outerProduct(e_d_local, dtmin_dqc); // (3×3)
-            glm::mat3 d_qhitLocal_dqc = outer_edl_dtmin - world2Quadric;
+            // ———————————————————————————————————————————————————————————————
+            // 6) Finally:  J_qhit_qc_l = –R_w2q  +  d ⊗ (dtmin_dqc)
+            // ———————————————————————————————————————————————————————————————
+            glm::mat3 outer = glm::outerProduct(d, dtmin_dqc);
+            glm::mat3 J_qhit_qc_l = -R_w2q + outer;
 
 
-            //-----------------------------------------------------------------------
-            //
-            // 4) Convert local derivative to world derivative:
-            //    q_hit_world = quadric2World * q_hit_local + q_c
-            // => J_ghit_qc = quadric2World * J_qhitLocal_qc + Identity(3×3)
-            //
-            //-----------------------------------------------------------------------
-            glm::mat3 I(1.0f);
-            glm::mat3 d_ghit_dqc = quadric2World * d_qhitLocal_dqc + I;
+            // Unpack the remaining forward‐pass quantities:
+            float g_d     = quadInfo.geodesic;
+            float x_local = quadInfo.hitLocal.x;
+            float y_local = quadInfo.hitLocal.y;
+            float z_local = quadInfo.hitLocal.z;
+            float b_beta  = quadric.b_beta;
 
-            //-----------------------------------------------------------------------
-            //
-            // 5) a_d = normalize(a_c - q_hit_world)
-            // => J_ad_qc = d( normalize( v_tmp ) )/ d(q_c)
-            // where v_tmp = (a_c - q_hit_world).
-            // The standard derivative of normalize(x):
-            //   d( x / ||x|| ) = ( I/||x|| - ( x x^T )/||x||^3 ) * dx
-            //
-            //-----------------------------------------------------------------------
-            glm::vec3 v_tmp = a_c - q_hit_world;
-            float v_len = glm::length(v_tmp);
-            if (v_len < 1e-14f) return; // safety
-            glm::mat3 I3(1.0f);
-            glm::mat3 d_unit = (I3 / v_len) - (glm::outerProduct(v_tmp, v_tmp) / (v_len * v_len * v_len));
-            // chain rule => minus sign because v_tmp depends on q_hit_world => q_hit_world depends on q_c
-            glm::mat3 J_ad_qc = d_unit * (-d_ghit_dqc);
+            // Compute the constant factor
+            float K = std::exp(b_beta);
 
-            //-----------------------------------------------------------------------
-            //
-            // 6) a_tmin = ( (f - q_hit) · f_n ) / ( a_d · f_n )
-            // => we take partial wrt q_c
-            // Let n_val = (f - q_hit_world)·f_n
-            //     d_val = (a_d)·f_n
-            //-----------------------------------------------------------------------
-            float n_val = glm::dot(f - q_hit_world, f_n);
-            float d_val = glm::dot(a_d, f_n);
+            // First derivative (not used in the final override)
+            // Override with your final formula:
+            float p_tmp    = 4.0f;
+            float exponent = std::exp(b_beta);
+            float term1    = 1.0f - (g_d * g_d);
+            float d_beta_dgd =
+                -(8.0f * std::pow(term1, (4.0f * exponent)) * exponent * g_d)
+                 / (term1) * 0.1f;
 
-            // d(n_val)/d(q_c) = -(f_n^T) * J_ghit_qc
-            glm::vec3 d_n = -(glm::transpose(d_ghit_dqc) * f_n);
-            // d(d_val)/d(q_c) = (f_n^T) * J_ad_qc
-            glm::vec3 d_d = glm::transpose(J_ad_qc) * f_n;
+            // Compute ∇ₓ g_d  where g_d = ‖(x,y,z)‖
+            float denom = std::sqrt(x_local*x_local + y_local*y_local + z_local*z_local);
+            float dgd_dx = x_local / denom;
+            float dgd_dy = y_local / denom;
+            float dgd_dz = z_local / denom;
 
-            float denom2 = d_val * d_val;
-            glm::vec3 nabla_atmin_qc = (d_val * d_n - n_val * d_d) / denom2;
+            // Chain‐rule: ∇ₓ β = dβ/dg_d * ∇ₓ g_d
+            float d_beta_dx = d_beta_dgd * dgd_dx;
+            float d_beta_dy = d_beta_dgd * dgd_dy;
+            float d_beta_dz = d_beta_dgd * dgd_dz;
 
-            //-----------------------------------------------------------------------
-            //
-            // 7) p(q_c) = q_hit_world + a_tmin * a_d
-            // => J_p_qc = d_ghit_dqc + outer(a_d, nabla_atmin_qc) + a_tmin * J_ad_qc
-            //
-            //-----------------------------------------------------------------------
-            glm::mat3 J_p_qc = d_ghit_dqc
-                               + glm::outerProduct(a_d, nabla_atmin_qc)
-                               + (a_tmin * J_ad_qc);
+            // Pack it into a vector
+            glm::vec3 J_beta_xyz(d_beta_dx, d_beta_dy, d_beta_dz);
 
-            //-----------------------------------------------------------------------
-            //
-            // 8) p_camera = w2c * p(q_c).
-            // => J_pc_qc = w2c * J_p_qc
-            //
-            //-----------------------------------------------------------------------
-            glm::mat3 J_pc_qc = w2c * J_p_qc; // shape conceptually 3×3
-
-            //-----------------------------------------------------------------------
-            //
-            // 9) pinhole projection:
-            //   u = fx*(px/pz) + cx
-            //   v = fy*(py/pz) + cy
-            // => derivative wrt p_camera = 2×3
-            //-----------------------------------------------------------------------
-            float fx = m_camera->parameters().fx;
-            float fy = m_camera->parameters().fy;
-            float cx = m_camera->parameters().cx;
-            float cy = m_camera->parameters().cy;
-
-            // The forward pass's p_camera is (px,py,pz) = object.cameraHitPointLocal in camera space
-            // but let's confirm that’s the same as:
-            glm::vec3 p_cam(px, py, pz);
-            float invZ = 1.0f / p_cam.z;
-
-            // We'll embed the 2×3 in a 3×3, ignoring the last row:
-            // J_uv_pcam = [ [fx/pz, 0, -fx*(px/(pz^2))],
-            //               [0,     fy/pz, -fy*(py/(pz^2))],
-            //               [0,      0,          0        ] ]
-            glm::mat3 J_uv_pcam(0.0f);
-            J_uv_pcam[0][0] = fx * invZ; // partial of u wrt x_cam
-            J_uv_pcam[0][1] = 0.0f;
-            J_uv_pcam[0][2] = -fx * (p_cam.x * invZ * invZ); // partial of u wrt z_cam
-
-            J_uv_pcam[1][0] = 0.0f;
-            J_uv_pcam[1][1] = fy * invZ;
-            J_uv_pcam[1][2] = -fy * (p_cam.y * invZ * invZ);
-
-            // Multiply:  (2×3) = (2×3) * (3×3). We'll do it as a 3×3 but only first 2 rows matter.
-            // Let’s call it: J_uv_qc = J_uv_pcam * J_pc_qc
-            glm::mat3 J_uv_qc = glm::transpose(J_uv_pcam) * J_pc_qc;
-            // Logically that’s “2×3”, but we’re storing in a 3×3 with row #2 = zero.
-
-            //-----------------------------------------------------------------------
-            //
-            // 10) Next, we do the Beta kernel derivative in local quadric coords
-            //     We'll replicate your python code’s steps: J_beta_uv = J_beta_xy @ J_xy_uv
-            //     then J_Iuv_qc = J_beta_uv @ J_uv_qc
-
-            float d_beta_dx = 0.0f;
-            float d_beta_dy = 0.0f;
-            float d_beta_dz = 0.0f;
-
-
-            glm::vec3 J_beta_xy = -glm::vec3(d_beta_dx, d_beta_dy, d_beta_dz);
-            glm::mat3 J_xy_qc = glm::transpose(d_qhitLocal_dqc);
-            glm::vec3 J_beta_qc = J_xy_qc * J_beta_xy;
-
-            //projection = projection + J_beta_qc;
-            // Store final gradient results
-            int uInt = (int) std::round(u);
-            int vInt = (int) std::round(v);
-            if (uInt < 0 || vInt < 0 ||
-                uInt >= (int) m_camera->m_parameters.width ||
-                vInt >= (int) m_camera->m_parameters.height) {
-                return;
-            }
-            size_t pixelIndex = vInt * m_camera->m_parameters.width + uInt;
-
+            // Finally: J_{β,qc} = J_{β,xyz} · J_{xyz,qc}
+            // In Python:  J_beta_qc = np.dot(J_beta_xyz, J_qhit_qc_l)
+            // In C++/GLM we can do row‐vector*matrix via the transpose trick:
+            glm::vec3 J_beta_qc = glm::transpose(J_qhit_qc_l) * J_beta_xyz;
             // For demonstration, put the 2D partial dβ/du, dβ/dv in gradientImageU, gradientImageV
-            m_gpuData.gradientImageU[pixelIndex] = J_beta_xy.x;
-            m_gpuData.gradientImageV[pixelIndex] = J_beta_xy.y;
-            m_gpuData.gradientImagePerObject[pixelIndex] = static_cast<float>(hitObjectID);
+            //m_gpuData.gradientImageU[pixelIndex] = J_beta_xy.x;
+            //m_gpuData.gradientImageV[pixelIndex] = J_beta_xy.y;
 
             // Also store the 3D partial J_Iuv_qc, plus maybe the q_hit_world in the same mat3
             glm::mat3 tmp(0.0f);
@@ -401,17 +275,18 @@ namespace VkRender::PathTracer {
             tmp[2][0] = J_beta_qc.z;
 
             // Second column = q_hit_world
-            tmp[0][1] = q_hit_world.x;
-            tmp[1][1] = q_hit_world.y;
-            tmp[2][1] = q_hit_world.z;
+            tmp[0][1] = object.hitPointWorld.x;
+            tmp[1][1] = object.hitPointWorld.y;
+            tmp[2][1] = object.hitPointWorld.z;
 
             // Third column left empty or used as you wish
-            tmp[0][2] = J_beta_qc.x;
-            tmp[1][2] = J_beta_qc.y;
-            tmp[2][2] = J_beta_qc.z;
+            tmp[0][2] = J_beta_xyz.x;
+            tmp[1][2] = J_beta_xyz.y;
+            tmp[2][2] = J_beta_xyz.z;
 
             // Store in GPU data
             m_gpuData.gradientPixelCoordinates[photonID] = glm::vec2(u, v);
+            m_gpuData.gradientImagePerObject[pixelIndex] = static_cast<float>(hitObjectID);
 
             m_gpuData.photonIDGradient[photonID] = tmp;
         }

@@ -263,8 +263,8 @@ namespace VkRender {
 
 
                     // Compute loss
-                    auto loss = torch::mean(torch::abs(m_accumulatedTensor - gtTensor));
-                    //auto loss = torch::mean(torch::pow(m_accumulatedTensor - gtTensor, 2));
+                    //auto loss = torch::mean(torch::abs(m_accumulatedTensor - gtTensor));
+                    auto loss = torch::mean(torch::pow(m_accumulatedTensor - gtTensor, 2));
 
                     auto start = std::chrono::high_resolution_clock::now();
 

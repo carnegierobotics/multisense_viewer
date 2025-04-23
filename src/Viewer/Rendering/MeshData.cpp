@@ -83,19 +83,19 @@ namespace VkRender {
             for (int j = 0; j < N; ++j) {
                 float y = params.min.y + j * dy; // domain from min.y to max.y
 
-                /*
-                // z = c( alphaX*x^2/a^2 + alphaY*y^2/b^2 )
-                float z = params.c * (
-                              (alphaX * x * x) / (params.a * params.a) +
-                              (alphaY * y * y) / (params.b * params.b)
-                          );
-                */
-
                 float zSquared = params.a * params.a *(x*x + y * y);
-                float z = -sqrtf(zSquared);
+                float z = sqrtf(zSquared);
+
+                glm::vec3 V(0.0f);              // cone apex at the origin
+                glm::vec3 D(0.0f, 0.0f, -1.0f); // "up"‐axis when z>=0 half
 
                 // Build position
                 glm::vec3 position(x, y, z);
+                float h = glm::dot( D, position - V );
+                if (h > 0.0f) {
+                    vertexMap[i*N + j] = -1;
+                    continue;
+                }
 
                 // Evaluate gradient for normal
                 glm::vec3 grad(
@@ -104,9 +104,34 @@ namespace VkRender {
                     -1.0f
                 );
                 glm::vec3 normal = glm::normalize(grad);
-
                 // Apply scale factor if you like
                 position *= scaleFactor;
+
+                float geodesic = sqrtf(std::pow(x, 2.0f) + std::pow(y, 2.0f) + std::pow(z, 2.0f));
+                // Evaluate kernel
+                float bkValue = betaKernel(geodesic, params.b_beta);
+
+                bool keepVertex = (bkValue > params.threshold);
+                if (!keepVertex)
+                {
+                    vertexMap[i*N + j] = -1;
+                    continue;
+                }
+
+                // Construct vertex
+                Vertex v{};
+                v.color = glm::vec4(getViridisColor(bkValue), 1.0f);
+                v.pos = position;
+                v.normal = normal;
+                v.uv0 = glm::vec2(
+                    float(i) / float(N - 1),
+                    float(j) / float(N - 1)
+                );
+
+                int newIndex = static_cast<int>(tmpVertices.size());
+                vertexMap[i * N + j] = newIndex;
+                tmpVertices.push_back(v);
+
 
                 /*
                 float rho = sqrtf(std::pow(x, 2.0f) + std::pow(y, 2.0f));
@@ -163,33 +188,6 @@ namespace VkRender {
 
 */
 
-
-                float geodesic = sqrtf(std::pow(x, 2.0f) + std::pow(y, 2.0f) + std::pow(z, 2.0f));
-
-                float minMaxNorm;
-                // Evaluate kernel
-                float bkValue = betaKernel(geodesic, params.b_beta);
-
-                bool keepVertex = (bkValue > params.threshold);
-                if (!keepVertex)
-                {
-                    vertexMap[i*N + j] = -1;
-                    continue;
-                }
-
-                // Construct vertex
-                Vertex v{};
-                v.color = glm::vec4(getViridisColor(bkValue), 1.0f);
-                v.pos = position;
-                v.normal = normal;
-                v.uv0 = glm::vec2(
-                    float(i) / float(N - 1),
-                    float(j) / float(N - 1)
-                );
-
-                int newIndex = static_cast<int>(tmpVertices.size());
-                vertexMap[i * N + j] = newIndex;
-                tmpVertices.push_back(v);
             }
         }
 

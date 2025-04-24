@@ -6,7 +6,7 @@
 
 #include "Viewer/Rendering/RenderResources/PathTracer/PathTracer.h"
 #include "Viewer/Scenes/Entity.h"
-#include "Viewer/Rendering/Components/GaussianComponent.h"
+#include "Viewer/Rendering/Components/LightSourceComponent.h"
 #include "Viewer/Tools/SYCLDeviceSelector.h"
 
 #include "Viewer/Rendering/RenderResources/PathTracer/PathTracer2DGSKernel.h"
@@ -537,9 +537,9 @@ namespace VkRender::PathTracer {
         std::vector<GaussianInputAssembly> gaussianInputAssembly;
         std::vector<TransformComponent> transformMatrices; // Transformation matrices for entities
         // Find all entities with GaussianComponent
-        auto view = scene->getRegistry().view<GaussianComponent2DGS>();
+        auto view = scene->getRegistry().view<LightSourceComponent>();
         for (auto e: view) {
-            auto &component = Entity(e, scene.get()).getComponent<GaussianComponent2DGS>();
+            auto &component = Entity(e, scene.get()).getComponent<LightSourceComponent>();
             for (size_t i = 0; i < component.size(); ++i) {
                 GaussianInputAssembly point{};
                 point.position = component.positions[i];

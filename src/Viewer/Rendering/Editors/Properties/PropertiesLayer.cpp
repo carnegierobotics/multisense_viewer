@@ -15,7 +15,7 @@
 #include <Viewer/Scripts/Rays/IntensityGradientRay.h>
 #include <Viewer/Scripts/Rays/SurfaceNormal.h>
 
-#include "Viewer/Rendering/Components/GaussianComponent.h"
+#include "Viewer/Rendering/Components/LightSourceComponent.h"
 #include "Viewer/Rendering/Components/Components.h"
 #include "Viewer/Rendering/Components/PointCloudComponent.h"
 #include "Viewer/Rendering/Components/QuadricCollectionComponent.h"
@@ -374,15 +374,13 @@ namespace VkRender {
             ImGui::OpenPopup("AddComponent");
 
         if (ImGui::BeginPopup("AddComponent")) {
-            displayAddComponentEntry<CameraComponent>("Camera");
             displayAddComponentEntry<TransformComponent>("Transform");
+            displayAddComponentEntry<CameraComponent>("Camera");
             displayAddComponentEntry<MeshComponent>("Mesh");
             displayAddComponentEntry<MaterialComponent>("Material");
-            displayAddComponentEntry<PointCloudComponent>("PointCloud");
-            displayAddComponentEntry<GaussianComponent2DGS>("2DGS Model");
+            displayAddComponentEntry<LightSourceComponent>("Light Source");
             displayAddComponentEntry<QuadricCollectionComponent>("Quadratic Collection");
             displayAddComponentEntry<ScriptableComponent>("Scriptable Component");
-            displayAddComponentEntry<TemporaryComponent>("Temporary Component");
 
             ImGui::EndPopup();
         }
@@ -822,7 +820,7 @@ namespace VkRender {
             // Notify scene that material component has been updated
         });
 
-        drawComponent<GaussianComponent2DGS>("Gaussian Model", entity, [this](GaussianComponent2DGS &component) {
+        drawComponent<LightSourceComponent>("Gaussian Model", entity, [this](LightSourceComponent &component) {
             ImGui::Text("Gaussian Model Properties");
 
             // Display the number of Gaussians
@@ -1409,14 +1407,20 @@ namespace VkRender {
                     if (m_selectionContext.hasComponent<MeshComponent>()) {
                         auto &meshComponent = m_selectionContext.getComponent<MeshComponent>();
                         auto param = std::dynamic_pointer_cast<OBJFileMeshParameters>(meshComponent.meshParameters);
-                        param->path = loadFileInfo.path;
-                        param->setDirty();
+                        if (param) {
+                            param->path = loadFileInfo.path;
+                            param->setDirty();
+                        } else {
+                            m_selectionContext.removeComponent<MeshComponent>();
+                            auto &meshComponent = m_selectionContext.addComponent<MeshComponent>(OBJ_FILE, loadFileInfo.path);
+                        }
+
                     }
 
                     break;
                 case LayerUtils::PLY_3DGS: {
-                    if (m_selectionContext.hasComponent<GaussianComponent2DGS>()) {
-                        auto &comp = m_selectionContext.getComponent<GaussianComponent2DGS>();
+                    if (m_selectionContext.hasComponent<LightSourceComponent>()) {
+                        auto &comp = m_selectionContext.getComponent<LightSourceComponent>();
                         comp.addGaussiansFromFile(loadFileInfo.path);
                     }
                 }

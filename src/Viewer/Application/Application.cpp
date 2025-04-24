@@ -57,13 +57,13 @@ namespace VkRender {
             serializer.deserialize(userSetting.lastActiveScenePath);
             userSetting.assetsPath = userSetting.lastActiveScenePath.parent_path();
         }
-
-
         s_instance = this;
         ApplicationConfig& config = ApplicationConfig::getInstance();
         this->m_title = title;
         Log::Logger::getInstance()->setLogLevel(config.getLogLevel());
         VulkanRenderer::initVulkan();
+        // WARMUP SYCL Kernels
+#ifdef SYCL_ENABLED
         {
             auto types = {SYCLDeviceType::CPU, SYCLDeviceType::GPU};
             for (auto type : types) {
@@ -82,6 +82,8 @@ namespace VkRender {
             Log::Logger::getInstance()->info("SYCL Warmup complete");
 
         }
+#endif
+
         VulkanRenderer::prepare();
         Log::Logger::getInstance()->info("Initialized Backend");
         config.setGpuDevice(physicalDevice);
@@ -168,8 +170,7 @@ namespace VkRender {
 #ifdef DIFF_RENDERER_ENABLED
         m_mainEditor->addUI("ToolWindow"); // TODO suspicious add here, but it is because it relies on other editors
 #endif
-        m_multiSense = std::make_shared<MultiSense::MultiSenseRendererBridge>();
-        m_multiSense->setup();
+
     }
 
 
@@ -281,8 +282,6 @@ namespace VkRender {
 
         updateEditors();
         m_mainEditor->update();
-
-        m_multiSense->update();
     }
 
     SceneRenderer* Application::getSceneRendererByUUID(const UUID& uuid) {
@@ -371,7 +370,6 @@ namespace VkRender {
     }
 
     void Application::windowResized(int32_t dx, int32_t dy, double widthScale, double heightScale) {
-        Widgets::clear();
         if (dx != 0)
             Editor::windowResizeEditorsHorizontal(dx, widthScale, m_editors, m_width);
         if (dy != 0)

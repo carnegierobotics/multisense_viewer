@@ -47,6 +47,7 @@ namespace VkRender {
 
 
     void EditorDifferentiableRenderer::updatePathTracerSettings() {
+
         auto imageUI = std::dynamic_pointer_cast<EditorDifferentiableRendererLayerUI>(m_ui);
         auto activeCamera = m_context->activeScene()->getActiveCamera();
         Log::Logger::getInstance()->info("Setting New Kernel Device");
@@ -130,11 +131,11 @@ namespace VkRender {
         m_photonRebuildModule = std::make_unique<PathTracer::PhotonRebuildModule>(
             m_pathTracer.get(), m_context->activeScene());
 
-        m_optimizer = std::make_unique<torch::optim::SparseAdam>(
+        m_optimizer = std::make_unique<torch::optim::Adam>(
             // We pass in the parameters of our module (or custom parameter list)
             m_photonRebuildModule->parameters(),
             // Then define the Adam options, e.g. learning rate = 1e-3
-            torch::optim::SparseAdamOptions().lr(0.005)
+            torch::optim::AdamOptions().lr(0.005)
             //.betas(std::make_tuple(0.8, 0.95)) // Example
             //.eps(1e-8)
             //.maximize(false) // or true
@@ -243,9 +244,6 @@ namespace VkRender {
                                                  m_context->activeScene()->getActiveCameraEntity().getName());
                 // Backpropagate -- OPTIMIZATION STEP --
 
-                const int numViews = 7;                       // <-- set this once
-
-
                 if (m_numAccumulated > 0 && m_numAccumulated % m_pathTracer->getPipelineSettings().numFrames == 0) {
                     // Load the target tensor
                     std::filesystem::path datasetPath = "output/";
@@ -257,7 +255,7 @@ namespace VkRender {
 
                     // Compute loss
                     //auto loss = torch::mean(torch::abs(m_accumulatedTensor - gtTensor));
-                    auto loss = torch::mse_loss(m_accumulatedTensor, gtTensor) / numViews;
+                    auto loss = torch::mse_loss(m_accumulatedTensor, gtTensor) / m_numViewsOpt;
                     auto start = std::chrono::high_resolution_clock::now();
 
                     // Backward
@@ -304,7 +302,7 @@ namespace VkRender {
 
                 }
 
-                if (m_numAccumulated == m_pathTracer->getPipelineSettings().numFrames * numViews) {
+                if (m_numAccumulated == m_pathTracer->getPipelineSettings().numFrames * m_numViewsOpt) {
                     // Optimizer step
                     m_optimizer->step();
 

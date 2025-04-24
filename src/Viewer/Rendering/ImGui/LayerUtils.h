@@ -25,8 +25,6 @@ DISABLE_WARNING_POP
 #define IMGUI_DEFINE_MATH_OPERATORS
 #include <imgui.h>
 
-#include "Viewer/Rendering/ImGui/Widgets.h"
-
 namespace VkRender::LayerUtils {
     typedef enum FileTypeLoadFlow {
         OBJ_FILE,

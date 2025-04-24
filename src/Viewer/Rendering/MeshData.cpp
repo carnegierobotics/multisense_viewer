@@ -82,20 +82,14 @@ namespace VkRender {
             float x = params.min.x + i * dx; // domain from min.x to max.x
             for (int j = 0; j < N; ++j) {
                 float y = params.min.y + j * dy; // domain from min.y to max.y
+                float z = 0;
+                glm::vec3 position(x, y, z);
 
-                float zSquared = params.a * params.a *(x*x + y * y);
-                float z = sqrtf(zSquared);
-
-                glm::vec3 V(0.0f);              // cone apex at the origin
-                glm::vec3 D(0.0f, 0.0f, -1.0f); // "up"‐axis when z>=0 half
+                //float zSquared = params.a * params.a *(x*x + y * y);
+                //float z = sqrtf(zSquared);
 
                 // Build position
-                glm::vec3 position(x, y, z);
-                float h = glm::dot( D, position - V );
-                if (h > 0.0f) {
-                    vertexMap[i*N + j] = -1;
-                    continue;
-                }
+
 
                 // Evaluate gradient for normal
                 glm::vec3 grad(
@@ -505,128 +499,130 @@ namespace VkRender {
         isDynamic = true;
     }
 
-    void MeshData::generateOBJMesh(const OBJFileMeshParameters &parameters) {
-        tinyobj::ObjReaderConfig reader_config;
-        reader_config.mtl_search_path = "./"; // Path to material files
+void MeshData::generateOBJMesh(const OBJFileMeshParameters &parameters) {
+    tinyobj::ObjReaderConfig reader_config;
+    reader_config.mtl_search_path = "./";
+    reader_config.triangulate = false; // we’ll do it manually
 
-        tinyobj::ObjReader reader;
+    tinyobj::ObjReader reader;
+    if (!reader.ParseFromFile(parameters.path.string(), reader_config)) {
+        Log::Logger::getInstance()->error("Failed to load .OBJ file {}", parameters.path.string());
+        return;
+    }
+    if (!reader.Warning().empty()) {
+        Log::Logger::getInstance()->warning(".OBJ warning: {}", reader.Warning());
+    }
 
+    auto& attrib  = reader.GetAttrib();
+    auto& shapes  = reader.GetShapes();
 
-        if (!reader.ParseFromFile(parameters.path.string(), reader_config)) {
-            if (!reader.Error().empty()) {
-                //std::cerr << "TinyObjReader: " << reader.Error();
-                Log::Logger::getInstance()->error("Failed to load .OBJ file {}", parameters.path.string());
+    bool hasNormals   = !attrib.normals.empty();
+    bool hasTexcoords = !attrib.texcoords.empty();
+
+    // Estimate sizes
+    size_t estVerts = attrib.vertices.size() / 3;
+    size_t estIdxs  = 0;
+    for (auto &shape : shapes)
+        for (auto vcount : shape.mesh.num_face_vertices)
+            estIdxs += (vcount - 2) * 3;
+
+    vertices.clear();
+    indices.clear();
+    vertices.reserve(estVerts);
+    indices.reserve(estIdxs);
+
+    std::unordered_map<VkRender::Vertex,uint32_t> uniqueVerts;
+    uniqueVerts.reserve(estVerts);
+
+    // Helper lambda to add a single corner
+    auto addCorner = [&](const tinyobj::index_t &idx) {
+        VkRender::Vertex v{};
+        // POSITION
+        v.pos = {
+            attrib.vertices[3*idx.vertex_index + 0],
+            attrib.vertices[3*idx.vertex_index + 1],
+            attrib.vertices[3*idx.vertex_index + 2]
+        };
+        // NORMAL (or zero)
+        if (hasNormals && idx.normal_index >= 0) {
+            v.normal = {
+                attrib.normals[3*idx.normal_index + 0],
+                attrib.normals[3*idx.normal_index + 1],
+                attrib.normals[3*idx.normal_index + 2]
+            };
+        } else {
+            v.normal = {0.0f,0.0f,0.0f};
+        }
+        // UV (or zero)
+        if (hasTexcoords && idx.texcoord_index >= 0) {
+            v.uv0 = {
+                attrib.texcoords[2*idx.texcoord_index + 0],
+                1.0f - attrib.texcoords[2*idx.texcoord_index + 1]
+            };
+        } else {
+            v.uv0 = {0.0f,0.0f};
+        }
+        // De-dup
+        auto [it, inserted] = uniqueVerts.try_emplace(v, uint32_t(vertices.size()));
+        if (inserted) {
+            vertices.push_back(v);
+        }
+        return it->second;
+    };
+
+    // Build triangles
+    for (auto &shape : shapes) {
+        auto &mesh = shape.mesh;
+        size_t offset = 0;
+        for (size_t f = 0; f < mesh.num_face_vertices.size(); ++f) {
+            int fv = mesh.num_face_vertices[f];
+            // grab all the indices of this face
+            std::vector<tinyobj::index_t> faceCorners;
+            faceCorners.reserve(fv);
+            for (int k = 0; k < fv; ++k) {
+                faceCorners.push_back(mesh.indices[offset + k]);
             }
-            return;
-        }
-
-
-        if (!reader.Warning().empty()) {
-            Log::Logger::getInstance()->warning(".OBJ file empty {}", parameters.path.string());
-        }
-
-        auto &attrib = reader.GetAttrib();
-        auto &shapes = reader.GetShapes();
-        auto &materials = reader.GetMaterials();
-
-        // Pre-allocate memory for vertices and indices vectors
-        size_t estimatedVertexCount = attrib.vertices.size() / 3;
-        size_t estimatedIndexCount = 0;
-        for (const auto &shape: shapes) {
-            estimatedIndexCount += shape.mesh.indices.size();
-        }
-
-        std::unordered_map<VkRender::Vertex, uint32_t> uniqueVertices{};
-        uniqueVertices.reserve(estimatedVertexCount); // Reserve space for unique vertices
-
-        vertices.reserve(estimatedVertexCount); // Reserve space to avoid resizing
-        indices.reserve(estimatedIndexCount); // Reserve space to avoid resizing
-
-        std::vector<glm::vec3> tempNormals(vertices.size(), glm::vec3(0.0f));
-
-        bool calculateNormals = false;
-
-        // Build the mesh (vertices + indices)
-        for (const auto &shape: shapes) {
-            for (const auto &index: shape.mesh.indices) {
-                VkRender::Vertex vertex{};
-
-                // Position
-                vertex.pos = {
-                    attrib.vertices[3 * index.vertex_index + 0],
-                    attrib.vertices[3 * index.vertex_index + 1],
-                    attrib.vertices[3 * index.vertex_index + 2]
-                };
-
-                // Normal (if available). Otherwise, set to zero to mark that we need to compute it
-                if (index.normal_index > -1) {
-                    vertex.normal = {
-                        attrib.normals[3 * index.normal_index + 0],
-                        attrib.normals[3 * index.normal_index + 1],
-                        attrib.normals[3 * index.normal_index + 2]
-                    };
-                } else {
-                    vertex.normal = {0.0f, 0.0f, 0.0f}; // Will compute later
-                }
-
-                // UV
-                if (index.texcoord_index > -1) {
-                    vertex.uv0 = {
-                        attrib.texcoords[2 * index.texcoord_index + 0],
-                        1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
-                    };
-                }
-
-                // De-duplicate
-                auto [it, inserted] = uniqueVertices.try_emplace(vertex, static_cast<uint32_t>(vertices.size()));
-                if (inserted) {
-                    vertices.push_back(vertex);
-                }
-
-                indices.push_back(it->second);
+            // fan-triangulate: (0, k, k+1)
+            for (int k = 1; k + 1 < fv; ++k) {
+                indices.push_back(addCorner(faceCorners[0]));
+                indices.push_back(addCorner(faceCorners[k]));
+                indices.push_back(addCorner(faceCorners[k+1]));
             }
+            offset += fv;
         }
+    }
 
-        // Now compute normals for any vertices that have a zero normal
+    // if the OBJ had *no* normals, build them now
+    if (!hasNormals) {
         computeNormals();
     }
+}
 
-    void MeshData::computeNormals() {
-        // Accumulator array the same size as `vertices`
-        std::vector<glm::vec3> accumulators(vertices.size(), glm::vec3(0.0f));
+void MeshData::computeNormals() {
+    std::vector<glm::vec3> acc(vertices.size(), glm::vec3(0.0f));
 
-        // Accumulate face normals
-        for (size_t i = 0; i < indices.size(); i += 3) {
-            // Indices of the triangle
-            uint32_t i0 = indices[i + 0];
-            uint32_t i1 = indices[i + 1];
-            uint32_t i2 = indices[i + 2];
+    // accumulate face normals
+    for (size_t i = 0; i + 2 < indices.size(); i += 3) {
+        uint32_t i0 = indices[i+0],
+                 i1 = indices[i+1],
+                 i2 = indices[i+2];
+        auto &p0 = vertices[i0].pos;
+        auto &p1 = vertices[i1].pos;
+        auto &p2 = vertices[i2].pos;
 
-            // Positions of the triangle’s vertices
-            const glm::vec3 &p0 = vertices[i0].pos;
-            const glm::vec3 &p1 = vertices[i1].pos;
-            const glm::vec3 &p2 = vertices[i2].pos;
+        glm::vec3 fn = glm::normalize(glm::cross(p1 - p0, p2 - p0));
+        acc[i0] += fn;
+        acc[i1] += fn;
+        acc[i2] += fn;
+    }
 
-            // Compute face normal (using right-handed cross product)
-            glm::vec3 edge1 = p1 - p0;
-            glm::vec3 edge2 = p2 - p0;
-            glm::vec3 faceNormal = glm::normalize(glm::cross(edge1, edge2));
-
-            // Accumulate the face normal in each of the triangle’s vertices
-            accumulators[i0] += faceNormal;
-            accumulators[i1] += faceNormal;
-            accumulators[i2] += faceNormal;
-        }
-
-        // Assign / normalize
-        for (size_t i = 0; i < vertices.size(); i++) {
-            // If the vertex had a normal of (0,0,0) or we choose to override it,
-            // we use the accumulated normal. Otherwise, you can skip to retain existing normals.
-            if (glm::length(vertices[i].normal) < 1e-6f) {
-                vertices[i].normal = glm::normalize(accumulators[i]);
-            }
+    // normalize and assign only where we originally had no normal
+    for (size_t i = 0; i < vertices.size(); ++i) {
+        if (glm::length(vertices[i].normal) < 1e-6f) {
+            vertices[i].normal = glm::normalize(acc[i]);
         }
     }
+}
 
     void MeshData::generatePLYMesh(const PLYFileMeshParameters &parameters) {
         std::ifstream ss(parameters.path.string(), std::ios::binary);

@@ -55,6 +55,7 @@ namespace VkRender
 
         uint32_t m_stepIteration = 0;
         uint32_t m_numAccumulated = 0;
+        int m_numViewsOpt = 1;
         PathTracer::PhotonTracer::RenderSettings m_renderSettings;
 
     private:
@@ -70,7 +71,7 @@ namespace VkRender
 
         // Diff Renderer stuff
         std::unique_ptr<PathTracer::PhotonRebuildModule> m_photonRebuildModule = nullptr;
-        std::unique_ptr<torch::optim::SparseAdam> m_optimizer; // Or any other optimizer in <torch/optim.h>
+        std::unique_ptr<torch::optim::Adam> m_optimizer; // Or any other optimizer in <torch/optim.h>
         torch::Tensor m_accumulatedTensor = torch::Tensor();
 
 

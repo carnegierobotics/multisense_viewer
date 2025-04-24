@@ -8,7 +8,7 @@
 #include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtx/quaternion.hpp>
 
-#include <Viewer/Rendering/Components/GaussianComponent.h>
+#include <Viewer/Rendering/Components/LightSourceComponent.h>
 
 #include "Viewer/Scenes/ScriptableEntity.h"
 

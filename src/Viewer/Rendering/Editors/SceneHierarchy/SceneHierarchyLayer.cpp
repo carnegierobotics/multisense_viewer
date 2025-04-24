@@ -5,20 +5,18 @@
 
 #include "SceneHierarchyLayer.h"
 
+#include <Viewer/Rendering/Components/LightSourceComponent.h>
+
 #include "Viewer/Rendering/ImGui/IconsFontAwesome6.h"
 #include "Viewer/Rendering/Editors/CommonEditorFunctions.h"
 
 namespace VkRender {
-
-
     /** Called once upon this object creation**/
     void SceneHierarchyLayer::onAttach() {
-
     }
 
-/** Called after frame has finished rendered **/
+    /** Called after frame has finished rendered **/
     void SceneHierarchyLayer::onFinishedRender() {
-
     }
 
 
@@ -33,7 +31,6 @@ namespace VkRender {
             flags |= ImGuiTreeNodeFlags_Leaf;
 
         ImGui::PushID((void *) (uint64_t) (uint32_t) entity);
-
 
 
         // Display different color for groups
@@ -138,9 +135,34 @@ namespace VkRender {
 
             // Right-click on blank space to create entities or groups
             if (ImGui::BeginPopupContextWindow(0, 1)) {
-                if (ImGui::MenuItem("Create Empty Entity")) {
-                    m_context->activeScene()->createEntity("Empty Entity");
+                if (ImGui::BeginMenu("Add")) {
+                    if (ImGui::MenuItem("Empty Entity")) {
+                        auto entity = m_context->activeScene()->createEntity("Empty Entity");
+                    }
+                    if (ImGui::MenuItem("Light Source")) {
+                        auto entity = m_context->activeScene()->createEntity("Light");
+                        auto &lightSourceComponent = entity.addComponent<LightSourceComponent>();
+                    }
+                    if (ImGui::MenuItem("Default Entity")) {
+                        auto entity = m_context->activeScene()->createEntity("Default");
+                        auto &mesh = entity.addComponent<MeshComponent>(QUADRIC);
+                        auto &material = entity.addComponent<MaterialComponent>();
+                        material.useVertexColor = true;
+                    }
+
+                    if (ImGui::MenuItem("Camera")) {
+                        auto entity = m_context->activeScene()->createEntity("Camera");
+                        auto &mesh = entity.addComponent<MeshComponent>(CAMERA_GIZMO_PINHOLE);
+                        mesh.polygonMode() = VK_POLYGON_MODE_LINE;
+                        auto &material = entity.addComponent<MaterialComponent>();
+                        auto &camera = entity.addComponent<CameraComponent>();
+                        camera.cameraType = CameraComponent::CameraType::PINHOLE;
+                        camera.updateParametersChanged();
+                    }
+
+                    ImGui::EndMenu();
                 }
+
                 if (ImGui::MenuItem("Create Group")) {
                     auto groupEntity = m_context->activeScene()->createEntity("New Group");
                     groupEntity.addComponent<GroupComponent>();
@@ -152,14 +174,14 @@ namespace VkRender {
     }
 
 
-/** Handle the file path after selection is complete **/
+    /** Handle the file path after selection is complete **/
 
 
-/** Called once per frame **/
+    /** Called once per frame **/
     void SceneHierarchyLayer::onUIRender() {
         // Set window position and size
         ImVec2 window_pos = ImVec2(0.0f, m_editor->ui()->layoutConstants.uiYOffset); // Position (x, y)
-        ImVec2 window_size = ImVec2(m_editor->ui()->width, m_editor->ui()->height);  // Size (width, height)
+        ImVec2 window_size = ImVec2(m_editor->ui()->width, m_editor->ui()->height); // Size (width, height)
 
         // Set window flags to remove decorations
         ImGuiWindowFlags window_flags =
@@ -200,9 +222,7 @@ namespace VkRender {
         ImGui::End();
     }
 
-/** Called once upon this object destruction **/
+    /** Called once upon this object destruction **/
     void SceneHierarchyLayer::onDetach() {
-
     }
-
 }

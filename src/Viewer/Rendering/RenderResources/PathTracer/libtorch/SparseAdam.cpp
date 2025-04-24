@@ -113,9 +113,9 @@ namespace torch {
                     auto &exp_avg_sq = param_state.exp_avg_sq();
 
                     // Determine the sign for the gradient update.
-                    //const double sign = maximize ? 1.0 : -1.0;
-                    const double sign = maximize ? -1.0 : 1.0;
-                    std::cout << "[DEBUG] Maximize: 0 Minimize: 1, res:" << maximize << std::endl;
+                    const double sign = maximize ? 1.0 : -1.0;
+                    std::cout << "[DEBUG] maximize=" << maximize
+                              << ", gradient sign=" << sign << std::endl;
 
                     // Coalesce the gradient so indices are unique.
                     auto grad_sparse = p.grad().coalesce();
@@ -181,7 +181,7 @@ namespace torch {
                         auto denom = exp_avg_sq_elem.sqrt().add_(eps);
 
                         // Update the parameter element: p_elem -= step_size * (exp_avg_elem / denom)
-                        p_elem.addcdiv_(exp_avg_elem, denom, -step_size);
+                        p_elem.addcdiv_(exp_avg_elem, denom, step_size);
 
                         // Debug print the updated parameter value.
                         std::cout << "[DEBUG] Parameter value after update: " << p_elem << std::endl;

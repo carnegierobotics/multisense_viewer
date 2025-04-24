@@ -6,7 +6,7 @@
 #include "Emitter.h"
 #include "Helpers.h"
 
-#include <Viewer/Rendering/Components/GaussianComponent.h>
+#include <Viewer/Rendering/Components/LightSourceComponent.h>
 #include <Viewer/Rendering/Core/KeyInput.h>
 
 #include "imgui.h"
@@ -20,9 +20,9 @@ namespace VkRender {
         glm::vec3 position(0.0f);
         glm::vec3 direction(0.0f);
         if (gsEntity) {
-            for (int i = 0; auto &gs: gsEntity.getComponent<GaussianComponent2DGS>().emissions) {
+            for (int i = 0; auto &gs: gsEntity.getComponent<LightSourceComponent>().emissions) {
                 if (gs > 0.0f) {
-                    position = gsEntity.getComponent<GaussianComponent2DGS>().positions[i];
+                    position = gsEntity.getComponent<LightSourceComponent>().positions[i];
                 }
                 ++i;
             }

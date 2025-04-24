@@ -18,7 +18,6 @@ namespace VkRender {
         DifferentiableRenderer,
         ImageEditor,
         Properties,
-        GaussianViewer,
         SceneHierarchy,
         TestWindow,
         };
@@ -31,7 +30,6 @@ namespace VkRender {
                 EditorType::DifferentiableRenderer,
                 EditorType::ImageEditor,
                 EditorType::Properties,
-                EditorType::GaussianViewer,
                 EditorType::SceneHierarchy,
                 EditorType::TestWindow};
     };
@@ -41,7 +39,6 @@ namespace VkRender {
                 EditorType::PathTracer,
                 EditorType::DifferentiableRenderer,
                 EditorType::ImageEditor,
-                EditorType::GaussianViewer,
                 EditorType::Properties,
                 EditorType::SceneHierarchy,
                 EditorType::TestWindow
@@ -57,7 +54,6 @@ namespace VkRender {
             case EditorType::PathTracer: return "Path Tracer";
             case EditorType::DifferentiableRenderer: return "Differentiable Renderer";
             case EditorType::Properties: return "Properties";
-            case EditorType::GaussianViewer: return "Gaussian Viewer";
             case EditorType::ImageEditor: return "Image Editor";
             default: return "Unknown";
         }
@@ -72,7 +68,6 @@ namespace VkRender {
         if (str == "Path Tracer") return EditorType::PathTracer;
         if (str == "Differentiable Renderer") return EditorType::DifferentiableRenderer;
         if (str == "Properties") return EditorType::Properties;
-        if (str == "Gaussian Viewer") return EditorType::GaussianViewer;
         if (str == "Image Editor") return EditorType::ImageEditor;
         throw std::invalid_argument("Unknown editor type string");
     }

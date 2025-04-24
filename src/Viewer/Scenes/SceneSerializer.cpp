@@ -21,7 +21,7 @@
 
 #include "Viewer/Scenes/Entity.h"
 #include "Viewer/Rendering/Components/Components.h"
-#include "Viewer/Rendering/Components/GaussianComponent.h"
+#include "Viewer/Rendering/Components/LightSourceComponent.h"
 
 namespace VkRender::Serialize {
     static std::string polygonModeToString(VkPolygonMode mode) {
@@ -208,18 +208,6 @@ namespace VkRender {
         if (entity.hasComponent<GroupComponent>()) {
             out << YAML::Key << "GroupComponent";
             out << YAML::BeginMap;
-            // Add any group-specific serialization if needed
-            out << YAML::EndMap;
-        }
-        // Serialize LightSourceComponent
-        if (entity.hasComponent<LightSourceComponent>()) {
-            out << YAML::Key << "LightSourceComponent";
-            out << YAML::BeginMap;
-            auto &lightsource = entity.getComponent<LightSourceComponent>();
-            out << YAML::Key << "Position";
-            out << YAML::Value << lightsource.position;
-            out << YAML::Key << "Normal";
-            out << YAML::Value << lightsource.normal;
             // Add any group-specific serialization if needed
             out << YAML::EndMap;
         }
@@ -413,9 +401,9 @@ namespace VkRender {
 
             out << YAML::EndMap;
         }
-        if (entity.hasComponent<GaussianComponent2DGS>()) {
-            out << YAML::Key << "GaussianComponent2DGS";
-            auto &component = entity.getComponent<GaussianComponent2DGS>();
+        if (entity.hasComponent<LightSourceComponent>()) {
+            out << YAML::Key << "LightSourceComponent";
+            auto &component = entity.getComponent<LightSourceComponent>();
             out << YAML::BeginMap;
             // Serialize positions
             out << YAML::Key << "Positions";
@@ -603,30 +591,6 @@ namespace VkRender {
                     auto &visibleComponent = deserializedEntity.addComponent<VisibleComponent>();
                     visibleComponent.visible = visibleComponentNode["Visible"].as<bool>();
                 }
-
-                // Deserialize VisibleComponent
-                auto lightSourceNode = entity["LightSourceComponent"];
-                if (lightSourceNode) {
-                    auto &lightSourceComponent = deserializedEntity.addComponent<LightSourceComponent>();
-
-                    // Check if the "Position" attribute exists
-                    if (lightSourceNode["Position"]) {
-                        lightSourceComponent.position = lightSourceNode["Position"].as<glm::vec3>();
-                    } else {
-                        // Optionally, set a default value or handle the missing attribute appropriately
-                        lightSourceComponent.position = glm::vec3(0.0f);
-                    }
-
-                    // Check if the "Normal" attribute exists
-                    if (lightSourceNode["Normal"]) {
-                        lightSourceComponent.normal = lightSourceNode["Normal"].as<glm::vec3>();
-                    } else {
-                        // Optionally, set a default value or handle the missing attribute appropriately
-                        lightSourceComponent.normal = glm::vec3(0.0f, 1.0f, 0.0f);
-                    }
-                }
-
-
 
                 auto cameraComponent = entity["CameraComponent"];
                 if (cameraComponent) {
@@ -854,56 +818,9 @@ namespace VkRender {
                     auto &component = deserializedEntity.addComponent<GroupComponent>();
                 }
 
-                auto gaussianComponentNode = entity["GaussianComponent"];
-                if (gaussianComponentNode) {
-                    auto &component = deserializedEntity.addComponent<GaussianComponent>();
-
-                    // Deserialize means
-                    auto meansNode = gaussianComponentNode["Means"];
-                    if (meansNode) {
-                        for (const auto &meanNode: meansNode) {
-                            glm::vec3 mean;
-                            mean.x = meanNode[0].as<float>();
-                            mean.y = meanNode[1].as<float>();
-                            mean.z = meanNode[2].as<float>();
-                            component.means.push_back(mean);
-                        }
-                    }
-
-                    auto covariancesNode = gaussianComponentNode["Scales"];
-                    if (covariancesNode) {
-                        for (const auto &covNode: covariancesNode) {
-                            component.scales.push_back(covNode.as<glm::vec3>());
-                        }
-                    }
-                    auto rotationsNode = gaussianComponentNode["Rotations"];
-                    if (rotationsNode) {
-                        for (const auto &rotNode: rotationsNode) {
-                            component.rotations.push_back(rotNode.as<glm::quat>());
-                        }
-                    }
-
-                    // Deserialize amplitudes
-                    auto amplitudesNode = gaussianComponentNode["Opacities"];
-                    if (amplitudesNode) {
-                        for (const auto &amplitudeNode: amplitudesNode) {
-                            float amplitude = amplitudeNode.as<float>();
-                            component.opacities.push_back(amplitude);
-                        }
-                    }
-                    // Deserialize amplitudes
-                    auto colorsNode = gaussianComponentNode["Colors"];
-                    if (colorsNode) {
-                        for (const auto &colorNode: colorsNode) {
-                            auto color = colorNode.as<glm::vec3>();
-                            component.colors.push_back(color);
-                        }
-                    }
-                }
-
-                auto gaussianComponent2DGSNode = entity["GaussianComponent2DGS"];
+                auto gaussianComponent2DGSNode = entity["LightSourceComponent"];
                 if (gaussianComponent2DGSNode) {
-                    auto &component = deserializedEntity.addComponent<GaussianComponent2DGS>();
+                    auto &component = deserializedEntity.addComponent<LightSourceComponent>();
                     auto &node = gaussianComponent2DGSNode;
                     // Deserialize positions
                     if (node["Positions"]) {

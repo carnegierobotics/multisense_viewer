@@ -6,7 +6,7 @@
 
 #include <utility>
 
-#include "Viewer/Rendering/Components/GaussianComponent.h"
+#include "Viewer/Rendering/Components/LightSourceComponent.h"
 #include "Viewer/Scenes/Entity.h"
 
 namespace VkRender::PathTracer {
@@ -67,7 +67,7 @@ namespace VkRender::PathTracer {
 
     void PhotonRebuildModule::uploadSceneFromTensor(std::shared_ptr<Scene> scene) {
         // Get views of all the 2DGS Gaussian components in the scene.
-        auto gaussianView = scene->getRegistry().view<GaussianComponent2DGS>();
+        auto gaussianView = scene->getRegistry().view<LightSourceComponent>();
 
         // Get CPU copies of our tensors (if they aren’t already on CPU)
         auto positionsTensor = m_tensorData.positions.cpu();
@@ -91,12 +91,12 @@ namespace VkRender::PathTracer {
         float* specPtr = specularTensor.data_ptr<float>(); // shape: [numGaussians]
         float* diffPtr = diffuseTensor.data_ptr<float>(); // shape: [numGaussians]
 
-        // For each GaussianComponent2DGS in our scene, update its vectors with the tensor data.
+        // For each LightSourceComponent in our scene, update its vectors with the tensor data.
         // (Often in an ECS there is only one global component of a given type,
         //  but if there are multiple, they will all be updated identically.)
         for (auto entityID : gaussianView) {
             auto entity = Entity(entityID, scene.get());
-            auto& comp = entity.getComponent<GaussianComponent2DGS>();
+            auto& comp = entity.getComponent<LightSourceComponent>();
 
             // Resize the vectors to hold data for all gaussians.
             comp.positions.resize(numGaussians);
@@ -197,9 +197,9 @@ namespace VkRender::PathTracer {
         std::vector<TransformComponent> transformMatrices; // Transformation matrices for entities
         auto& registry = scenePtr->getRegistry();
         // Find all entities with GaussianComponent
-        auto view = registry.view<GaussianComponent2DGS>();
+        auto view = registry.view<LightSourceComponent>();
         for (auto e : view) {
-            auto& component = Entity(e, scenePtr.get()).getComponent<GaussianComponent2DGS>();
+            auto& component = Entity(e, scenePtr.get()).getComponent<LightSourceComponent>();
             for (size_t i = 0; i < component.size(); ++i) {
                 GaussianInputAssembly point{};
                 point.position = component.positions[i];
@@ -218,9 +218,9 @@ namespace VkRender::PathTracer {
         }
 
         m_data.gaussianInputAssembly = static_cast<GaussianInputAssembly*>(malloc(
-            sizeof(GaussianComponent2DGS) * gaussianInputAssembly.size()));
+            sizeof(LightSourceComponent) * gaussianInputAssembly.size()));
         memcpy(m_data.gaussianInputAssembly, gaussianInputAssembly.data(),
-               sizeof(GaussianComponent2DGS) * gaussianInputAssembly.size());
+               sizeof(LightSourceComponent) * gaussianInputAssembly.size());
 
         m_data.numGaussians = gaussianInputAssembly.size(); // Number of entities for rendering
 

@@ -49,10 +49,7 @@
 
 #include "Viewer/Tools/Utils.h"
 #include "Viewer/Rendering/Core/VulkanDevice.h"
-#include "Viewer/Rendering/Core/RenderDefinitions.h"
 #include "Viewer/Rendering/ImGui/Layer.h"
-#include "Viewer/Rendering/ImGui/Widgets.h"
-#include "Viewer/Rendering/ImGui/LayerFactory.h"
 #include "Viewer/Rendering/Editors/EditorIncludes.h"
 #include "GuiAssets.h"
 #include "Viewer/Rendering/Core/VulkanGraphicsPipeline.h"

@@ -251,11 +251,10 @@ set(SOURCE_FILES
 
         src/Viewer/Rendering/Components/ImageComponent.cpp
         src/Viewer/Rendering/Components/PointCloudComponent.h
-        src/Viewer/Rendering/Components/GaussianComponent.cpp
+        src/Viewer/Rendering/Components/LightSourceComponent.cpp
         src/Viewer/Rendering/Components/QuadricCollectionComponent.cpp
         src/Viewer/Rendering/Components/ScriptableComponent.cpp
 
-        src/Viewer/Rendering/ImGui/Widgets.cpp
         src/Viewer/Rendering/ImGui/GuiManager.cpp
         src/Viewer/Rendering/ImGui/AdditionalWindows/DebugWindow.h
         src/Viewer/Rendering/ImGui/LayerFactory.cpp
@@ -265,14 +264,11 @@ set(SOURCE_FILES
         src/Viewer/Rendering/Editors/3DViewport/Editor3DViewport.cpp
         src/Viewer/Rendering/Editors/ImageEditor/EditorImage.cpp
         src/Viewer/Rendering/Editors/MainContextLayer.h
-        src/Viewer/Rendering/Editors/MultiSenseViewer/Layers/LayoutSettingsLayer.h
-        src/Viewer/Rendering/Editors/Video/VideoSource.cpp
-        src/Viewer/Rendering/Editors/Video/VideoPlaybackSystem.cpp
         src/Viewer/Rendering/Editors/SceneRenderer.cpp
         src/Viewer/Rendering/Editors/SceneHierarchy/SceneHierarchyLayer.cpp
+        src/Viewer/Rendering/Editors/Properties/PropertiesLayer.cpp
 
         src/Viewer/Rendering/Core/PipelineKey.cpp
-        src/Viewer/Rendering/Editors/Properties/PropertiesLayer.cpp
         src/Viewer/Rendering/Core/PipelineManager.cpp
         src/Viewer/Rendering/Core/DescriptorSetManager.cpp
 
@@ -280,11 +276,6 @@ set(SOURCE_FILES
         src/Viewer/Tools/Logger.cpp
         src/Viewer/Tools/ThreadPool.h
 
-        src/Viewer/Modules/MultiSense/MultiSenseRendererBridge.cpp
-        src/Viewer/Modules/MultiSense/MultiSenseDevice.cpp
-        src/Viewer/Modules/MultiSense/CommonHeader.h
-        src/Viewer/Modules/MultiSense/MultiSenseTaskManager.cpp
-        src/Viewer/Modules/MultiSense/LibMultiSense/LibMultiSenseConnector.cpp
         src/Viewer/Application/ApplicationUserSettingsSerializer.cpp
         src/Viewer/Application/ApplicationUserSettingsSerializer.h
 )
@@ -309,7 +300,6 @@ if (ENABLE_SYCL)
     set(SYCL_SOURCES
             #src/Viewer/Rendering/RenderResources/2DGS/SYCLGaussian2D.cpp
             #src/Viewer/Rendering/RenderResources/3DGS/SYCLGaussian3D.cpp
-            src/Viewer/Rendering/Editors/GaussianViewer/EditorGaussianViewer.cpp
             src/Viewer/Rendering/RenderResources/PathTracer/PathTracer.cpp
             src/Viewer/Rendering/Editors/PathTracer/EditorPathTracer.cpp
             src/Viewer/Rendering/Editors/PathTracer/EditorPathTracerLayer.cpp

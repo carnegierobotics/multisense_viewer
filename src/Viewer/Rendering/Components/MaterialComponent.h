@@ -24,7 +24,6 @@ namespace VkRender {
         float specular = 0.0f;          // Specular coefficient
         float phongExponent = 32.0f;     // Shininess exponent
 
-        bool isSensor = false;
 
         bool reloadShader = false;
         bool useVertexColor = false;
@@ -32,11 +31,6 @@ namespace VkRender {
         std::filesystem::path vertexShaderName = "defaultBasic.vert";
         std::filesystem::path fragmentShaderName = "defaultPhongLight.frag";
         std::filesystem::path albedoTexturePath = "default.png";
-    };
-
-    struct LightSourceComponent {
-        glm::vec3 normal = glm::vec3(0.0f, 0.0f, -1.0f);
-        glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f);
     };
 
     struct MaterialInstance {

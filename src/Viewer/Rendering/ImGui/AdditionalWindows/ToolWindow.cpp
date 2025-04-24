@@ -224,6 +224,8 @@ namespace VkRender {
             }
         }
 
+        ImGui::SliderInt("Num Opt:", &m_diffRenderer->m_numViewsOpt, 0, numCameras);
+
         // Create a button labeled "Generate Cameras".
         if (ImGui::Button("Stop##Iterate")) {
             // When the button is clicked, retrieve the active scene and call generateCameras.

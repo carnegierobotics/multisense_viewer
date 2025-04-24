@@ -2,12 +2,15 @@
 #ifndef MULTISENSE_VIEWER_SYCLDEVICESELECTOR_H
 #define MULTISENSE_VIEWER_SYCLDEVICESELECTOR_H
 
-#ifdef SYCL_ENABLED
-#include <sycl/sycl.hpp>
 #include <memory>
 #include <mutex>
 #include <map>
 #include "Viewer/Tools/Logger.h"
+
+
+#ifdef SYCL_ENABLED
+#include <sycl/sycl.hpp>
+#endif
 
 namespace VkRender {
     enum class SYCLDeviceType {
@@ -37,6 +40,9 @@ namespace VkRender {
     }
 
 
+
+
+#ifdef SYCL_ENABLED
     class SYCLDeviceSelector {
     public:
         SYCLDeviceSelector() = delete;
@@ -44,8 +50,6 @@ namespace VkRender {
         ~SYCLDeviceSelector();
 
         sycl::queue &getQueue();
-
-
 
     private:
         sycl::queue m_queue;
@@ -65,20 +69,21 @@ namespace VkRender {
         std::mutex m_mutex;
         std::map<SYCLDeviceType, std::shared_ptr<SYCLDeviceSelector>> m_devices;
     };
-}
 
 #else
+    class SYCLDeviceSelector {
+    public:
+        SYCLDeviceSelector() = delete;
+        explicit SYCLDeviceSelector(SYCLDeviceType deviceType);
+        ~SYCLDeviceSelector();
 
-namespace VkRender {
-    enum class SYCLDeviceType {
-        GPU,
-        CPU,
-        Default
+    private:
+        bool selectDevice(SYCLDeviceType deviceType);
     };
 
-    class SYCLDeviceSelector;
     class SYCLDeviceManager {
     public:
+        SYCLDeviceManager() = default;
         static SYCLDeviceManager &getInstance();
         std::shared_ptr<SYCLDeviceSelector> getDevice(SYCLDeviceType type);
 
@@ -86,10 +91,12 @@ namespace VkRender {
         SYCLDeviceManager &operator=(const SYCLDeviceManager &) = delete;
 
     private:
-        SYCLDeviceManager();
+        std::mutex m_mutex;
+        std::map<SYCLDeviceType, std::shared_ptr<SYCLDeviceSelector>> m_devices;
     };
-}
 
 #endif
+
+}
 
 #endif //MULTISENSE_VIEWER_SYCLDEVICESELECTOR_H

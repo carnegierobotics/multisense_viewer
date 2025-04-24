@@ -691,7 +691,7 @@ namespace VkRender::PathTracer {
             torch::Tensor(), // specular
             torch::Tensor(), // diffuse
             torch::Tensor(), // gradQuadApperance
-            sparseGrad, // gradQUadPos
+            gradientQuadricPositions, // gradQUadPos
             torch::Tensor() // gradQUadRot
         };
     }

@@ -10,12 +10,12 @@
 
 namespace VkRender {
     struct PinholeParameters {
-        float height = 720; // Default image height
-        float width = 1280; // Default image width
-        float fx = 1280.0f; // Default horizontal focal length (pixels)
-        float fy = 720.0f; // Default vertical focal length (pixels)
-        float cx = 640.0f; // Default principal point x-coordinate (pixels)
-        float cy = 360.0f; // Default principal point y-coordinate (pixels)
+        float height = 600; // Default image height
+        float width = 600; // Default image width
+        float fx = 600.0f; // Default horizontal focal length (pixels)
+        float fy = 600.0f; // Default vertical focal length (pixels)
+        float cx = 300.0f; // Default principal point x-coordinate (pixels)
+        float cy = 300.0f; // Default principal point y-coordinate (pixels)
         float focalLength = 10.0f; // focal length in mm
         float fNumber = 4.0f; // focal length in mm
         float near = 0.01f;

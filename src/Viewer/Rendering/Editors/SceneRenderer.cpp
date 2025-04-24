@@ -4,6 +4,9 @@
 
 
 #include "Viewer/Rendering/Editors/SceneRenderer.h"
+
+#include <Viewer/Rendering/Components/LightSourceComponent.h>
+
 #include "Viewer/Rendering/Components/Components.h"
 #include "Viewer/Rendering/RenderResources/DefaultGraphicsPipeline.h"
 #include "Viewer/Rendering/Components/MeshComponent.h"
@@ -116,9 +119,12 @@ namespace VkRender {
                 matUBO.emissiveFactor = glm::vec4(material.emission);
                 matUBO.useVertexColor = material.useVertexColor;
 
+                matUBO.lightPosition[0] = glm::vec4(0.0f, 0.0f, 10.0f, 1.0f);
+                matUBO.lightNormal[0] = glm::vec4(0.0f, 0.0f, -1.0f, 1.0f);
+
                 for (int i = 0; i < lightSources.size(); ++i) {
-                    matUBO.lightPosition[i] = glm::vec4(lightSources[i].position, 1.0f);
-                    matUBO.lightNormal[i] =   glm::vec4(lightSources[i].normal, 1.0f);
+                    //matUBO.lightPosition[i] = glm::vec4(lightSources[i].positions.front(), 1.0f);
+                    //matUBO.lightNormal[i] =   glm::vec4(lightSources[i].normals.front(), 1.0f);
                 }
                 matUBO.numLightSources = static_cast<float>(lightSources.size());
                 assert(matUBO.numLightSources < 10);

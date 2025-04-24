@@ -6,7 +6,7 @@
 
 #include "Viewer/Scenes/Scene.h"
 
-#include "Viewer/Rendering/Components/GaussianComponent.h"
+#include "Viewer/Rendering/Components/LightSourceComponent.h"
 #include "Viewer/Rendering/Components/Components.h"
 #include "Viewer/Rendering/Components/MeshComponent.h"
 #include "Viewer/Rendering/Components/ImageComponent.h"
@@ -354,9 +354,6 @@ namespace VkRender {
     void Scene::onComponentAdded<ImageComponent>(Entity entity, ImageComponent &component) {
     }
 
-    template<>
-    void Scene::onComponentAdded<GaussianComponent>(Entity entity, GaussianComponent &component) {
-    }
 
     template<>
     void Scene::onComponentAdded<ParentComponent>(Entity entity, ParentComponent &component) {
@@ -379,12 +376,9 @@ namespace VkRender {
     }
 
     template<>
-    void Scene::onComponentAdded<GaussianComponent2DGS>(Entity entity, GaussianComponent2DGS &component) {
-    }
-
-    template<>
     void Scene::onComponentAdded<LightSourceComponent>(Entity entity, LightSourceComponent &component) {
     }
+
     template<>
     void Scene::onComponentAdded<QuadricCollectionComponent>(Entity entity, QuadricCollectionComponent &component) {
     }
@@ -434,10 +428,6 @@ namespace VkRender {
     }
 
     template<>
-    void Scene::onComponentRemoved<GaussianComponent>(Entity entity, GaussianComponent &component) {
-    }
-
-    template<>
     void Scene::onComponentRemoved<ParentComponent>(Entity entity, ParentComponent &component) {
     }
 
@@ -458,12 +448,9 @@ namespace VkRender {
     }
 
     template<>
-    void Scene::onComponentRemoved<GaussianComponent2DGS>(Entity entity, GaussianComponent2DGS &component) {
-    }
-
-    template<>
     void Scene::onComponentRemoved<LightSourceComponent>(Entity entity, LightSourceComponent &component) {
     }
+
     template<>
     void Scene::onComponentRemoved<QuadricCollectionComponent>(Entity entity, QuadricCollectionComponent &component) {
     }
@@ -512,10 +499,6 @@ namespace VkRender {
     }
 
     template<>
-    void Scene::onComponentUpdated<GaussianComponent>(Entity entity, GaussianComponent &component) {
-    }
-
-    template<>
     void Scene::onComponentUpdated<ParentComponent>(Entity entity, ParentComponent &component) {
     }
 
@@ -536,13 +519,9 @@ namespace VkRender {
     }
 
     template<>
-    void Scene::onComponentUpdated<GaussianComponent2DGS>(Entity entity, GaussianComponent2DGS &component) {
-    }
-
-    template
-    <>
     void Scene::onComponentUpdated<LightSourceComponent>(Entity entity, LightSourceComponent &component) {
     }
+
 
     template
     <>

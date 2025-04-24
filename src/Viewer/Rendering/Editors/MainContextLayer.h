@@ -6,8 +6,6 @@
 #define MULTISENSE_VIEWER_MAINCONTEXTLAYER_H
 
 #include "Viewer/Rendering/ImGui/Layer.h"
-#include "Viewer/Rendering/Editors/MultiSenseViewer/SidebarEditor/AddDevicePopup.h"
-
 /** Is attached to the renderer through the GuiManager and instantiated in the GuiManager Constructor through
  *         pushLayer<[LayerName]>();
  *
@@ -58,14 +56,6 @@ namespace VkRender {
             ImGui::Begin("EditorBorderWindow", nullptr, window_flags);
 
             ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, menuBarHeight));
-
-            /*
-            if (m_editor->ui()->shared->openAddDevicePopup) {
-                ImGui::OpenPopup("add_device_modal");
-            }
-            */
-
-            addPopup(m_context, m_editor);
             ImGui::End();
 
             ImGui::PopStyleVar(2);

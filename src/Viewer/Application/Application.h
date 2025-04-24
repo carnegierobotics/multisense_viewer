@@ -49,7 +49,6 @@
 #include "Viewer/Rendering/Editors/EditorFactory.h"
 #include "Viewer/Rendering/Editors/SceneRenderer.h"
 #include "Viewer/Scenes/Scene.h"
-#include "Viewer/Modules/MultiSense/MultiSenseRendererBridge.h"
 #include "Viewer/Tools/SYCLDeviceSelector.h"
 
 namespace VkRender {
@@ -104,7 +103,6 @@ namespace VkRender {
 
         VulkanDevice &vkDevice() { return *m_vulkanDevice; }
 
-        std::shared_ptr<MultiSense::MultiSenseRendererBridge> multiSense() { return m_multiSense; }
         std::shared_ptr<UsageMonitor> usageMonitor() { return m_usageMonitor; }
 
         // TODO we should collect per frame info like this somewhere
@@ -178,8 +176,6 @@ namespace VkRender {
         SYCLDeviceManager m_syclDeviceManager;
 
     private:
-        std::shared_ptr<MultiSense::MultiSenseRendererBridge> m_multiSense;
-
         friend class ApplicationConfig;
         friend class Scene;
 

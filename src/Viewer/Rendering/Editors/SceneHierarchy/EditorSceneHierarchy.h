@@ -24,6 +24,11 @@ namespace VkRender {
 
         }
 
+        void onFileDrop(const std::filesystem::path &path) override {
+            Log::Logger::getInstance()->info("File dropped in Scene Hierarchy: {}", path.string());
+
+        }
+
         void onUpdate() override {
 
         }

@@ -48,6 +48,7 @@
 #include <ranges>
 #include <utility>
 #include "Viewer/Rendering/ImGui/GuiManager.h"
+#include "Viewer/Rendering/ImGui/LayerFactory.h"
 #include "Viewer/Application/Application.h"
 
 

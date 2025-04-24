@@ -15,7 +15,6 @@
 #include "Viewer/Rendering/Editors/ImageEditor/EditorImage.h"
 #include "SceneRenderer.h"
 #ifdef SYCL_ENABLED
-#include "Viewer/Rendering/Editors/GaussianViewer/EditorGaussianViewer.h"
 #include "Viewer/Rendering/Editors/PathTracer/EditorPathTracer.h"
 #ifdef DIFF_RENDERER_ENABLED
 #include "Viewer/Rendering/Editors/DifferentiableEditor/EditorDifferentiableRenderer.h"
@@ -47,13 +46,9 @@ namespace VkRender {
                 return std::make_unique<EditorProperties>(ci, uuid);
             });
 #ifdef SYCL_ENABLED
-            registerEditor(EditorType::GaussianViewer, [](EditorCreateInfo &ci, UUID uuid) {
-                return std::make_unique<EditorGaussianViewer>(ci, uuid);
-            });
             registerEditor(EditorType::PathTracer, [](EditorCreateInfo &ci, UUID uuid) {
                 return std::make_unique<EditorPathTracer>(ci, uuid);
             });
-
 #ifdef DIFF_RENDERER_ENABLED
             registerEditor(EditorType::DifferentiableRenderer, [](EditorCreateInfo &ci, UUID uuid) {
                 return std::make_unique<EditorDifferentiableRenderer>(ci, uuid);

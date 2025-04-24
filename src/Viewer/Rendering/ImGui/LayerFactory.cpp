@@ -12,10 +12,6 @@
 #include "Viewer/Rendering/Editors/MenuLayer.h"
 #include "Viewer/Rendering/Editors/MainContextLayer.h"
 
-#include "Viewer/Rendering/Editors/MultiSenseViewer/ConfigurationEditor/WelcomeScreenLayer.h"
-#include "Viewer/Rendering/Editors/MultiSenseViewer/ConfigurationEditor/ConfigurationLayer.h"
-#include "Viewer/Rendering/Editors/MultiSenseViewer/SidebarEditor/SideBarLayer.h"
-
 #include "Viewer/Rendering/Editors/3DViewport/Editor3DLayer.h"
 #include "Viewer/Rendering/Editors/Properties/PropertiesLayer.h"
 #include "Viewer/Rendering/Editors/ImageEditor/EditorImageLayer.h"
@@ -29,8 +25,6 @@
 
 #endif
 #include "Viewer/Rendering/Editors/PathTracer/EditorPathTracerLayer.h"
-#include "Viewer/Rendering/Editors/GaussianViewer/EditorGaussianViewerLayer.h"
-
 #endif
 
 namespace VkRender {
@@ -38,21 +32,16 @@ namespace VkRender {
         if (layerName == "LayerExample") return std::make_shared<LayerExample>();
         if (layerName == "DebugWindow") return std::make_shared<DebugWindow>();
         if (layerName == "NewVersionAvailable") return std::make_shared<NewVersionAvailable>();
-        if (layerName == "WelcomeScreenLayer") return std::make_shared<WelcomeScreenLayer>();
-        if (layerName == "SideBarLayer") return std::make_shared<SideBarLayer>();
         if (layerName == "MenuLayer") return std::make_shared<MenuLayer>();
         if (layerName == "EditorUILayer") return std::make_shared<EditorUILayer>();
         if (layerName == "SceneHierarchyLayer") return std::make_shared<SceneHierarchyLayer>();
         if (layerName == "EditorTestLayer") return std::make_shared<EditorTestLayer>();
         if (layerName == "MainContextLayer") return std::make_shared<MainContextLayer>();
-        if (layerName == "ConfigurationLayer") return std::make_shared<ConfigurationLayer>();
         if (layerName == "Editor3DLayer") return std::make_shared<Editor3DLayer>();
         if (layerName == "PropertiesLayer") return std::make_shared<PropertiesLayer>();
         if (layerName == "EditorImageLayer") return std::make_shared<EditorImageLayer>();
-
 #ifdef SYCL_ENABLED
         if (layerName == "EditorPathTracerLayer") return std::make_shared<EditorPathTracerLayer>();
-        if (layerName == "EditorGaussianViewerLayer") return std::make_shared<EditorGaussianViewerLayer>();
 #ifdef DIFF_RENDERER_ENABLED
         if (layerName == "ToolWindow") return std::make_shared<ToolWindow>();
         if (layerName == "EditorDifferentiableRendererLayer") return std::make_shared<

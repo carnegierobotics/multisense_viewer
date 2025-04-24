@@ -5,11 +5,8 @@
 #ifndef MULTISENSE_VIEWER_EDITOR3DVIEWPORT_H
 #define MULTISENSE_VIEWER_EDITOR3DVIEWPORT_H
 
-#include <Viewer/Rendering/Core/DescriptorSetManager.h>
 #include <Viewer/Rendering/Core/DescriptorRegistry.h>
-#include <Viewer/Rendering/Editors/Video/VideoPlaybackSystem.h>
 #include <Viewer/Rendering/RenderResources/GraphicsPipeline2D.h>
-#include <Viewer/Rendering/Editors/PinholeCamera.h>
 #include <Viewer/Rendering/Editors/ArcballCamera.h>
 
 #include "Viewer/Rendering/Core/PipelineManager.h"

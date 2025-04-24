@@ -2,14 +2,14 @@
 // Created by magnus on 1/18/25.
 //
 
-#include "Viewer/Rendering/Components/GaussianComponent.h"
+#include "Viewer/Rendering/Components/LightSourceComponent.h"
 #include <cstring>
 
 
 namespace VkRender{
 
 
-    void GaussianComponent2DGS::loadFromPly(const std::filesystem::path &path) {
+    void LightSourceComponent::loadFromPly(const std::filesystem::path &path) {
         try {
             // Open the .ply file in binary mode
             std::ifstream fileStream(path, std::ios::binary);

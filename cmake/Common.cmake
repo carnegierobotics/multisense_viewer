@@ -147,6 +147,7 @@ else ()
 
     set(IMGUI_DIR external/imgui)
     set(IMPLOT3D_DIR external/implot3d)
+    set(IMGUIZMO_DIR external/ImGuizmo)
 
     target_sources(${PROJECT_NAME} PRIVATE
             ${IMGUI_DIR}/imgui.h
@@ -164,6 +165,8 @@ else ()
             ${IMPLOT3D_DIR}/implot3d_items.cpp
             ${IMPLOT3D_DIR}/implot3d_meshes.cpp
 
+            ${IMGUIZMO_DIR}/ImGuizmo.cpp
+
     )
     target_include_directories(${PROJECT_NAME} PRIVATE
             ${IMGUI_DIR}/
@@ -171,6 +174,7 @@ else ()
             ../src/Viewer/Rendering/ImGui/Custom
 
             ${IMPLOT3D_DIR}/
+            ${IMGUIZMO_DIR}/
     )
 
 

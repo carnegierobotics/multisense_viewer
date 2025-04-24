@@ -164,6 +164,7 @@ namespace VkRender {
         bool active = false;
         bool hovered = false;
         bool indirectlyActivated = false;
+        bool occludedByGizmo = false;
 
         // Selection menu
         std::string type;

@@ -6,6 +6,9 @@
 #define MULTISENSE_VIEWER_EDITOR3DLAYER_H
 
 
+#include <ImGuizmo.h>
+#include <glm/gtc/type_ptr.hpp>
+
 #include "Viewer/Rendering/ImGui/Layer.h"
 #include "Viewer/Rendering/ImGui/IconsFontAwesome6.h"
 #include "Viewer/Rendering/Editors/EditorDefinitions.h"
@@ -49,8 +52,11 @@ namespace VkRender {
         void onFinishedRender() override {
         }
 
+
         /** Called once per frame **/
         void onUIRender() override {
+            ImGuizmo::BeginFrame();
+
             // Set window position and size
             ImVec2 window_pos = ImVec2(m_editor->ui()->layoutConstants.uiXOffset, 0.0f); // Position (x, y)
             ImVec2 window_size = ImVec2(m_editor->ui()->width - window_pos.x,
@@ -142,6 +148,30 @@ namespace VkRender {
             } else {
                 imageUI->depthColorOption = DepthColorOption::None;
             }
+
+
+            // view gizmo
+            glm::mat4 viewMat = glm::mat4(1.0f);
+            auto* ptr = reinterpret_cast<Editor3DViewport *>(m_editor);
+            auto& matrices = ptr->getCamera()->matrices;
+            // 2) Transpose to row-major for ImGuizmo
+            glm::mat4 viewRow = glm::transpose(matrices.view);
+            float* viewPtr = glm::value_ptr(matrices.view);
+            float* projectionPtr = glm::value_ptr(matrices.projection);
+
+
+            static glm::mat4 matrix(1.0f);
+            static glm::mat4 identityMatrix(1.0f);
+            ImGuizmo::Enable(true);
+            ImGuizmo::SetOrthographic(false);
+            ImGuizmo::SetDrawlist();
+            ImGuizmo::SetRect(window_pos.x, window_pos.y, window_size.x, window_size.y);
+            ImGuizmo::ViewManipulate(viewPtr, 8.f, ImVec2(window_size.x - 128.0f, 0), ImVec2(128, 128), 0x10101010);
+
+
+            ImGuizmo::DrawCubes(viewPtr, projectionPtr, glm::value_ptr(matrix), 1);
+
+            m_editor->ui()->occludedByGizmo = true;
 
             ImGui::End();
         }

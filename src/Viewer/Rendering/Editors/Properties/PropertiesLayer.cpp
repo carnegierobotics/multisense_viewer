@@ -17,7 +17,6 @@
 
 #include "Viewer/Rendering/Components/LightSourceComponent.h"
 #include "Viewer/Rendering/Components/Components.h"
-#include "Viewer/Rendering/Components/PointCloudComponent.h"
 #include "Viewer/Rendering/Components/QuadricCollectionComponent.h"
 #include "Viewer/Rendering/Components/CameraComponent.h"
 
@@ -386,7 +385,6 @@ namespace VkRender {
         }
 
         drawComponent<TemporaryComponent>("TemporaryComponent", entity, [this](auto &component) {
-
         });
 
 
@@ -408,15 +406,14 @@ namespace VkRender {
             }
         });
 
-        drawComponent<TransformComponent>("Transform", entity, [](TransformComponent &component) {
+        drawComponent<TransformComponent>("Transform", entity, [this](TransformComponent &component) {
             bool paramsChanged = false;
             component.setMoving(paramsChanged);
 
             paramsChanged |= drawVec3Control("Translation", component.getPosition());
             glm::vec3 euler = component.rotationEuler;
             paramsChanged |= drawVec3Control("Rotation", euler, 0.0f);
-            if (paramsChanged)
-            {
+            if (paramsChanged) {
                 component.setRotationEuler(euler);
             }
 
@@ -426,6 +423,8 @@ namespace VkRender {
                 component.setMoving(paramsChanged);
                 component.updateFromEulerRotation();
             }
+
+
         });
 
         drawComponent<ScriptableComponent>("Scriptable", entity, [&entity](ScriptableComponent &component) {
@@ -547,9 +546,9 @@ namespace VkRender {
                                                         180.0f);
                     paramsChanged |= ImGui::SliderFloat("Aspect Ratio", &component.baseCameraParameters.aspect, 0.1f,
                                                         10.0f);
-                    paramsChanged |= ImGui::SliderFloat("Near Plane", &component.baseCameraParameters.near, 0.01f,
+                    paramsChanged |= ImGui::SliderFloat("Near Plane", &component.baseCameraParameters.nearPlane, 0.01f,
                                                         10.0f);
-                    paramsChanged |= ImGui::SliderFloat("Far Plane", &component.baseCameraParameters.far, 1.0f,
+                    paramsChanged |= ImGui::SliderFloat("Far Plane", &component.baseCameraParameters.farPlane, 1.0f,
                                                         1000.0f);
 
                     break;
@@ -660,7 +659,7 @@ namespace VkRender {
                     auto params = std::dynamic_pointer_cast<OBJFileMeshParameters>(component.meshParameters);
                     if (params) {
                         ImGui::Text("Mesh File:");
-                        ImGui::Text("%s", params->path.empty() ? "" : params->path.c_str());
+                        ImGui::Text("%s", params->path.empty() ? "" : params->path.string().c_str());
                     }
                 }
                 break;
@@ -668,7 +667,7 @@ namespace VkRender {
                     auto params = std::dynamic_pointer_cast<PLYFileMeshParameters>(component.meshParameters);
                     if (params) {
                         ImGui::Text("Mesh File:");
-                        ImGui::Text("%s", params->path.empty() ? "" : params->path.c_str());
+                        ImGui::Text("%s", params->path.empty() ? "" : params->path.string().c_str());
                     }
                 }
                 break;
@@ -724,7 +723,7 @@ namespace VkRender {
                             // Update focal point and check if it has changed
                             if (cameraGizmoParams->parameters != cameraParams) {
                                 cameraGizmoParams->parameters = cameraParams;
-                            cameraGizmoParams->setDirty();
+                                cameraGizmoParams->setDirty();
                             }
                         }
                     } else {
@@ -743,7 +742,7 @@ namespace VkRender {
                             // Update focal point and check if it has changed
                             if (cameraGizmoParams->parameters != cameraParams) {
                                 cameraGizmoParams->parameters = cameraParams;
-                            cameraGizmoParams->setDirty();
+                                cameraGizmoParams->setDirty();
                             }
                         }
                     } else {
@@ -1071,7 +1070,7 @@ namespace VkRender {
                     for (int i = 0; i < component.size(); ++i) {
                         std::string quadricName =
                                 "Quadric " + std::to_string(i);
-                      auto position = component.positions[i];
+                        auto position = component.positions[i];
 
                         std::random_device rd;
                         std::mt19937 gen(rd()); // Mersenne Twister RNG
@@ -1126,8 +1125,7 @@ namespace VkRender {
 
                             glm::vec3 euler = glm::eulerAngles(component.rotations[i]);
                             bool updated = drawVec3Control("Rotation", euler, 0.0f);
-                            if (updated)
-                            {
+                            if (updated) {
                                 component.rotations[i] = glm::quat(euler);
                                 update |= true;
                             }
@@ -1412,9 +1410,9 @@ namespace VkRender {
                             param->setDirty();
                         } else {
                             m_selectionContext.removeComponent<MeshComponent>();
-                            auto &meshComponent = m_selectionContext.addComponent<MeshComponent>(OBJ_FILE, loadFileInfo.path);
+                            auto &meshComponent = m_selectionContext.addComponent<MeshComponent>(
+                                OBJ_FILE, loadFileInfo.path);
                         }
-
                     }
 
                     break;
@@ -1434,7 +1432,7 @@ namespace VkRender {
 
                         int numEntities = comp.size();
                         // Compute step such that we do not exceed 200 entities.
-                        auto& visibility = m_selectionContext.getOrAddComponent<VisibleComponent>();
+                        auto &visibility = m_selectionContext.getOrAddComponent<VisibleComponent>();
                         visibility.visible = m_visibility;
 
                         for (int i = 0; i < numEntities; ++i) {
@@ -1448,7 +1446,8 @@ namespace VkRender {
                             transform.setRotationQuaternion(comp.rotations[i]);
 
                             // Apply parent's transformation.
-                            glm::mat4 parentMatrix = m_selectionContext.getComponent<TransformComponent>().getTransform();
+                            glm::mat4 parentMatrix = m_selectionContext.getComponent<TransformComponent>().
+                                    getTransform();
                             glm::mat4 worldMatrix = parentMatrix * transform.getTransform();
                             transform.setTransform(worldMatrix);
 

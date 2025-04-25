@@ -68,7 +68,7 @@ namespace VkRender {
                             bool isCurrentProject = m_context->isCurrentProject(
                                 projectFile.filename().replace_extension().string());
 
-                            if (ImGui::MenuItem(projectFile.filename().replace_extension().c_str(), nullptr,
+                            if (ImGui::MenuItem(projectFile.filename().replace_extension().string().c_str(), nullptr,
                                                 isCurrentProject)) {
                                 if (!isCurrentProject) {
                                     Project project;
@@ -193,7 +193,7 @@ namespace VkRender {
                 break;
                 case LayerUtils::SAVE_PROJECT_AS: {
                     auto project = m_context->getCurrentProject();
-                    project.projectName = loadFileInfo.path.filename().replace_extension();
+                    project.projectName = loadFileInfo.path.filename().replace_extension().string();
                     ProjectSerializer serializer(project);
                     serializer.serialize(loadFileInfo.path);
                     serializer.serialize(Utils::getProjectsPath() / loadFileInfo.path.filename());

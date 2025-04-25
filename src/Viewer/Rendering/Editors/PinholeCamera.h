@@ -18,8 +18,8 @@ namespace VkRender {
         float cy = 300.0f; // Default principal point y-coordinate (pixels)
         float focalLength = 10.0f; // focal length in mm
         float fNumber = 4.0f; // focal length in mm
-        float near = 0.01f;
-        float far = 100.0f;
+        float nearPlane = 0.01f;
+        float farPlane = 100.0f;
         // Overload equality operator
         bool operator==(const PinholeParameters &other) const {
             return height == other.height &&
@@ -54,8 +54,8 @@ namespace VkRender {
 
 
         void updateProjectionMatrix() override {
-            float A = m_parameters.far / (m_parameters.near - m_parameters.far);
-            float B = -(m_parameters.far * m_parameters.near) / (m_parameters.far - m_parameters.near);
+            float A = m_parameters.farPlane / (m_parameters.nearPlane - m_parameters.farPlane);
+            float B = -(m_parameters.farPlane * m_parameters.nearPlane) / (m_parameters.farPlane - m_parameters.nearPlane);
             float w = m_parameters.width;
             float h = m_parameters.height;
 

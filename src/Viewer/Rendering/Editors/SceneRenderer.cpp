@@ -22,7 +22,7 @@
 namespace VkRender {
     SceneRenderer::SceneRenderer(EditorCreateInfo &createInfo, UUID uuid) : Editor(createInfo, uuid) {
         m_renderToOffscreen = true;
-        m_activeCamera = std::make_shared<BaseCamera>(m_createInfo.width / m_createInfo.height);
+        m_activeCamera = std::make_shared<BaseCamera>(static_cast<float>(m_createInfo.width) / m_createInfo.height);
         descriptorRegistry.createManager(DescriptorManagerType::MVP, m_context->vkDevice());
         descriptorRegistry.createManager(DescriptorManagerType::Material, m_context->vkDevice());
         descriptorRegistry.createManager(DescriptorManagerType::DynamicCameraGizmo, m_context->vkDevice());

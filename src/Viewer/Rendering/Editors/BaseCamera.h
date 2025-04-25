@@ -13,15 +13,15 @@
 namespace VkRender {
 
     struct ProjectionParameters {
-        float near = 0.1f;
-        float far = 100.0f;
+        float nearPlane = 0.1f;
+        float farPlane = 100.0f;
         float aspect = 1.6f;
         float fov = 60.0f; // FOV in degrees
 
         // Overload equality operator
         bool operator==(const ProjectionParameters &other) const {
-            return near == other.near &&
-                   far == other.far &&
+            return nearPlane == other.nearPlane &&
+                   farPlane == other.farPlane &&
                    aspect == other.aspect &&
                    fov == other.fov;
         }
@@ -78,8 +78,8 @@ namespace VkRender {
             float tanHalfFovy = tanf(glm::radians(m_parameters.fov) * 0.5f);
             float x = 1 / (tanHalfFovy * m_parameters.aspect);
             float y = 1 / tanHalfFovy;
-            float A = m_parameters.far / (m_parameters.near - m_parameters.far);
-            float B = (m_parameters.far * m_parameters.near) / (m_parameters.near - m_parameters.far);
+            float A = m_parameters.farPlane / (m_parameters.nearPlane - m_parameters.farPlane);
+            float B = (m_parameters.farPlane * m_parameters.nearPlane) / (m_parameters.nearPlane - m_parameters.farPlane);
             matrices.projection = glm::mat4(
                     x, 0.0f, 0.0f, 0.0f,
                     0.0f, y, 0.0f, 0.0f,
@@ -92,8 +92,8 @@ namespace VkRender {
             matrices.projection = glm::perspectiveRH_ZO(
                 glm::radians(m_parameters.fov),
                 m_parameters.aspect,
-                m_parameters.near,
-                m_parameters.far
+                m_parameters.nearPlane,
+                m_parameters.farPlane
             );
 
         };

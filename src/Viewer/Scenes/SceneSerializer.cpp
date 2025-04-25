@@ -321,8 +321,8 @@ namespace VkRender {
                     auto &params = camera.baseCameraParameters;
                     out << YAML::Key << "ProjectionParameters";
                     out << YAML::BeginMap;
-                    out << YAML::Key << "Near" << YAML::Value << params.near;
-                    out << YAML::Key << "Far" << YAML::Value << params.far;
+                    out << YAML::Key << "Near" << YAML::Value << params.nearPlane;
+                    out << YAML::Key << "Far" << YAML::Value << params.farPlane;
                     out << YAML::Key << "Aspect" << YAML::Value << params.aspect;
                     out << YAML::Key << "FOV" << YAML::Value << params.fov;
                     out << YAML::EndMap;
@@ -528,7 +528,7 @@ namespace VkRender {
         out << YAML::Value << filePath.filename().string();
 
         out << YAML::Key << "Base Path";
-        out << YAML::Value << filePath.parent_path();
+        out << YAML::Value << filePath.parent_path().string();
 
         out << YAML::Key << "Entities";
         out << YAML::Value << YAML::BeginSeq;
@@ -561,7 +561,7 @@ namespace VkRender {
         if (!data["Scene"])
             return false;
         std::string sceneName = data["Scene"].as<std::string>();
-        std::string assetsPath = filePath.parent_path(); // TODO fix the relative assets path
+        std::string assetsPath = filePath.parent_path().string(); // TODO fix the relative assets path
 
         Log::Logger::getInstance()->info("Deserializing scene: {} from: {}", sceneName, filePath.string());
         auto entities = data["Entities"];
@@ -623,8 +623,8 @@ namespace VkRender {
                         case CameraComponent::PERSPECTIVE: {
                             auto projectionParams = cameraComponent["ProjectionParameters"];
                             if (projectionParams) {
-                                camera.baseCameraParameters.near = projectionParams["Near"].as<float>(0.1f);
-                                camera.baseCameraParameters.far = projectionParams["Far"].as<float>(100.0f);
+                                camera.baseCameraParameters.nearPlane = projectionParams["Near"].as<float>(0.1f);
+                                camera.baseCameraParameters.farPlane = projectionParams["Far"].as<float>(100.0f);
                                 camera.baseCameraParameters.aspect = projectionParams["Aspect"].as<float>(1.6f);
                                 camera.baseCameraParameters.fov = projectionParams["FOV"].as<float>(60.0f);
                                 camera.updateParametersChanged();

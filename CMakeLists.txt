@@ -188,7 +188,7 @@ find_package(Vulkan REQUIRED)
 
 # Include directories
 include_directories(src)
-include_directories(Resources/Assets)
+include_directories(Assets)
 include_directories(SYSTEM external/ffmpeg/include)
 include_directories(SYSTEM ${Vulkan_INCLUDE_DIRS})
 include_directories(SYSTEM src/Viewer/Rendering/ImGui/Custom)
@@ -262,6 +262,7 @@ set(SOURCE_FILES
 
         src/Viewer/Rendering/Editors/Editor.cpp
         src/Viewer/Rendering/Editors/3DViewport/Editor3DViewport.cpp
+        src/Viewer/Rendering/Editors/3DViewport/Editor3DLayer.cpp
         src/Viewer/Rendering/Editors/ImageEditor/EditorImage.cpp
         src/Viewer/Rendering/Editors/MainContextLayer.h
         src/Viewer/Rendering/Editors/SceneRenderer.cpp
@@ -298,8 +299,6 @@ set(LIBRARIES
 # Add SYCL-specific files
 if (ENABLE_SYCL)
     set(SYCL_SOURCES
-            #src/Viewer/Rendering/RenderResources/2DGS/SYCLGaussian2D.cpp
-            #src/Viewer/Rendering/RenderResources/3DGS/SYCLGaussian3D.cpp
             src/Viewer/Rendering/RenderResources/PathTracer/PathTracer.cpp
             src/Viewer/Rendering/Editors/PathTracer/EditorPathTracer.cpp
             src/Viewer/Rendering/Editors/PathTracer/EditorPathTracerLayer.cpp
@@ -333,17 +332,17 @@ if (PROPRIETARY_GIGEVISION_MODULE)
 endif ()
 
 #Custom command and target to copy assets if they have changed
-file(GLOB ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/Resources/Assets/*")
+file(GLOB ASSETS "${CMAKE_CURRENT_SOURCE_DIR}/Assets/*")
 add_custom_command(
-        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/Resources/Assets
-        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/Resources/Assets ${CMAKE_CURRENT_BINARY_DIR}/Resources/Assets
+        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/Assets
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/Assets ${CMAKE_CURRENT_BINARY_DIR}/Assets
         DEPENDS ${ASSETS}
         COMMENT "Copying assets..."
 )
 # Add custom target to copy both assets
 add_custom_target(copy_assets ALL
         DEPENDS
-        ${CMAKE_CURRENT_BINARY_DIR}/Resources/Assets
+        ${CMAKE_CURRENT_BINARY_DIR}/Assets
 )
 # Build configurations for different platforms
 if (UNIX)
@@ -371,7 +370,7 @@ if (UNIX)
 
     # Install configuration
     install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION ${INSTALL_DIRECTORY})
-    install(DIRECTORY ${CMAKE_SOURCE_DIR}/Resources/Assets CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
+    install(DIRECTORY ${CMAKE_SOURCE_DIR}/Assets CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
 
 elseif (WIN32)
     # Windows-specific settings
@@ -405,7 +404,7 @@ elseif (WIN32)
     install(TARGETS ${PROJECT_NAME} CONFIGURATIONS Release ARCHIVE DESTINATION ${INSTALL_DIRECTORY})
     install(TARGETS ${PROJECT_NAME} CONFIGURATIONS Release LIBRARY DESTINATION ${INSTALL_DIRECTORY})
     install(FILES ${CMAKE_BINARY_DIR}/MultiSense.dll CONFIGURATIONS Release ARCHIVE DESTINATION ${INSTALL_DIRECTORY})
-    install(DIRECTORY Resources/Assets CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
+    install(DIRECTORY Assets CONFIGURATIONS Release DESTINATION ${INSTALL_DIRECTORY})
 
 endif ()
 

@@ -147,7 +147,8 @@ namespace VkRender::EditorUtils {
                 openLocation = opts.lastOpenedImportModelFolderPath.remove_filename().string();
             }
 
-            *loadFolderFuture = std::async(VkRender::LayerUtils::saveFile, "Save as", type, openLocation, flow);
+            std::string dialogName = "Save as";
+            *loadFolderFuture = std::async(VkRender::LayerUtils::saveFile, dialogName, type, openLocation.string(), flow);
         }
     }
 

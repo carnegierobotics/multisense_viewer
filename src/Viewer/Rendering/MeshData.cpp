@@ -422,8 +422,8 @@ namespace VkRender {
     }
 
     void MeshData::generateCameraPerspectiveGizmoMesh(const CameraGizmoPerspectiveMeshParameters &perspective) {
-        float nearDist = perspective.parameters.near;
-        float farDist = perspective.parameters.far;
+        float nearDist = perspective.parameters.nearPlane;
+        float farDist = perspective.parameters.farPlane;
         float fovDegrees = perspective.parameters.fov;
         float aspect = perspective.parameters.aspect;
 

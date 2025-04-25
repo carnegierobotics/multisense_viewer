@@ -66,8 +66,8 @@ namespace VkRender::LayerUtils {
 
 #ifdef WIN32
 
-    static LoadFileInfo saveFile(const std::string &dialogName, const std::filesystem::path &setCurrentFolder,
-                                 LayerUtils::FileTypeLoadFlow flow) {
+    static LoadFileInfo saveFile(const std::string& dialogName,  const std::vector<std::string>& type, const std::string& setCurrentFolder, LayerUtils::FileTypeLoadFlow flow) {
+
         PWSTR path = nullptr;
         std::string filePath;
         HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
@@ -86,7 +86,7 @@ namespace VkRender::LayerUtils {
                 // Set the default folder
                 if (!setCurrentFolder.empty()) {
                     IShellItem *psiFolder;
-                    std::string tempFolderStr = setCurrentFolder.string();
+                    std::string tempFolderStr =setCurrentFolder;
                     std::wstring folderWStr(tempFolderStr.begin(), tempFolderStr.end());
                     hr = SHCreateItemFromParsingName(folderWStr.c_str(), nullptr, IID_PPV_ARGS(&psiFolder));
                     if (SUCCEEDED(hr)) {
@@ -188,8 +188,8 @@ namespace VkRender::LayerUtils {
         return {filePath, flow};
     }
 
-    static LoadFileInfo selectFolder(const std::string &dialogName, const std::string &setCurrentFolder,
-                                     LayerUtils::FileTypeLoadFlow flow) {
+       static  LoadFileInfo selectFolder(const std::string& dialogName, const std::filesystem::path& openLocation, LayerUtils::FileTypeLoadFlow flow) {
+
         PWSTR path = nullptr;
         std::string folderPath;
         HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
@@ -206,9 +206,9 @@ namespace VkRender::LayerUtils {
                 }
 
                 // Set the default folder
-                if (!setCurrentFolder.empty()) {
+                if (!openLocation.empty()) {
                     IShellItem *psiFolder;
-                    std::wstring folderWStr(setCurrentFolder.begin(), setCurrentFolder.end());
+                    std::wstring folderWStr(openLocation.string().begin(), openLocation.string().end());
                     hr = SHCreateItemFromParsingName(folderWStr.c_str(), nullptr, IID_PPV_ARGS(&psiFolder));
                     if (SUCCEEDED(hr)) {
                         pfd->SetFolder(psiFolder);

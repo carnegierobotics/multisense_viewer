@@ -50,10 +50,6 @@ namespace VkRender {
     }
 
     void MeshData::generateQuadricMesh(const QuadricMeshParameters &params) {
-        // Clear any existing data
-        m_vertices.clear();
-        m_indices.clear();
-
         int N = params.gridResolution;
         float dx = (params.max.x - params.min.x) / float(N - 1);
         float dy = (params.max.y - params.min.y) / float(N - 1);
@@ -88,8 +84,6 @@ namespace VkRender {
                 //float z = sqrtf(zSquared);
 
                 // Build position
-
-
                 // Evaluate gradient for normal
                 glm::vec3 grad(
                     2.0f * params.c * alphaX * x / (params.a * params.a),
@@ -113,12 +107,7 @@ namespace VkRender {
                 // Construct vertex
                 Vertex v{};
                 v.color = glm::vec4(getViridisColor(bkValue), 1.0f);
-                v.pos = position;
-                v.normal = normal;
-                v.uv0 = glm::vec2(
-                    float(i) / float(N - 1),
-                    float(j) / float(N - 1)
-                );
+                v.pos = glm::vec4(position, 0.0f);
 
                 int newIndex = static_cast<int>(tmpVertices.size());
                 vertexMap[i * N + j] = newIndex;
@@ -205,7 +194,6 @@ namespace VkRender {
 
         // Finalize
         m_vertices = std::move(tmpVertices);
-        isDynamic = true;
     }
 
 
@@ -224,8 +212,8 @@ namespace VkRender {
 
         // Generate the cylinder vertices and m_indices
         // Define the base circle and top circle vertices
-        std::vector<Vertex> baseCircleVertices;
-        std::vector<Vertex> topCircleVertices;
+        std::vector<DynamicVertex> baseCircleVertices;
+        std::vector<DynamicVertex> topCircleVertices;
 
         for (int i = 0; i < segments; ++i) {
             float theta = 2.0f * glm::pi<float>() * float(i) / float(segments);
@@ -242,26 +230,20 @@ namespace VkRender {
             offset = rotationQuat * offset;
 
             // Base vertex
-            Vertex baseVertex{};
-            baseVertex.pos = origin + offset;
-            baseVertex.normal = -direction;
-            baseVertex.uv0 = glm::vec2(float(i) / segments, 0.0f);
-            baseVertex.color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f); // Red color for the base vertex
+            DynamicVertex baseVertex{};
+            baseVertex.pos = glm::vec4(origin + offset, 0.0f);
             baseCircleVertices.push_back(baseVertex);
 
             // Top vertex
-            Vertex topVertex{};
-            topVertex.pos = endPoint + offset;
-            topVertex.normal = direction;
-            topVertex.uv0 = glm::vec2(float(i) / segments, 1.0f);
-            topVertex.color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f); // Red color for the base vertex
+            DynamicVertex topVertex{};
+            topVertex.pos = glm::vec4(endPoint + offset, 0.0f);
             topCircleVertices.push_back(topVertex);
         }
 
         // Combine vertices
-        m_vertices.reserve(segments * 2);
-        m_vertices.insert(m_vertices.end(), baseCircleVertices.begin(), baseCircleVertices.end());
-        m_vertices.insert(m_vertices.end(), topCircleVertices.begin(), topCircleVertices.end());
+        m_dynamicVertices.reserve(segments * 2);
+        m_dynamicVertices.insert(m_dynamicVertices.end(), baseCircleVertices.begin(), baseCircleVertices.end());
+        m_dynamicVertices.insert(m_dynamicVertices.end(), topCircleVertices.begin(), topCircleVertices.end());
 
         // Generate m_indices for the side faces
         for (int i = 0; i < segments; ++i) {
@@ -272,34 +254,32 @@ namespace VkRender {
             int nextTopIndex = next + segments;
 
             // First triangle of quad
-            m_indices.push_back(baseIndex);
-            m_indices.push_back(nextBaseIndex);
-            m_indices.push_back(topIndex);
+            m_dynamicIndices.push_back(baseIndex);
+            m_dynamicIndices.push_back(nextBaseIndex);
+            m_dynamicIndices.push_back(topIndex);
 
             // Second triangle of quad
-            m_indices.push_back(nextBaseIndex);
-            m_indices.push_back(nextTopIndex);
-            m_indices.push_back(topIndex);
+            m_dynamicIndices.push_back(nextBaseIndex);
+            m_dynamicIndices.push_back(nextTopIndex);
+            m_dynamicIndices.push_back(topIndex);
         }
 
-        // Generate m_indices for the base and top caps if desired
+        // Generate m_dynamicIndices for the base and top caps if desired
         // Base cap
 
         for (int i = 1; i < segments - 1; ++i) {
-            m_indices.push_back(0);
-            m_indices.push_back(i);
-            m_indices.push_back(i + 1);
+            m_dynamicIndices.push_back(0);
+            m_dynamicIndices.push_back(i);
+            m_dynamicIndices.push_back(i + 1);
         }
 
         // Top cap
         for (int i = 1; i < segments - 1; ++i) {
-            m_indices.push_back(segments);
-            m_indices.push_back(segments + i + 1);
-            m_indices.push_back(segments + i);
+            m_dynamicIndices.push_back(segments);
+            m_dynamicIndices.push_back(segments + i + 1);
+            m_dynamicIndices.push_back(segments + i);
         }
-
-
-        isDynamic = true;
+    isDynamic = false;
     }
 
 
@@ -404,7 +384,7 @@ namespace VkRender {
         }
 
         // This is a gizmo; often drawn as lines. Ensure rendering mode is line-friendly if needed.
-        isDynamic = true;
+        isDynamic = false;
     }
 
     void MeshData::generateCameraPerspectiveGizmoMesh(const CameraGizmoPerspectiveMeshParameters &perspective) {
@@ -472,7 +452,7 @@ namespace VkRender {
             m_dynamicVertices[i].color = glm::vec4(1.0f);
         }
 
-        isDynamic = true;
+        isDynamic = false;
     }
 
     void MeshData::generateOBJMesh(const OBJFileMeshParameters &parameters) {
@@ -667,13 +647,6 @@ namespace VkRender {
                 static_cast<float>(positions[3 * i + 2])
             };
 
-            // Convert color values from uint8 to float [0, 1]
-            vertex.color = {
-                colors[3 * i + 0] / 255.0f,
-                colors[3 * i + 1] / 255.0f,
-                colors[3 * i + 2] / 255.0f,
-                1.0f // Alpha channel set to 1.0
-            };
 
             vertex.normal = glm::vec3(0.0f);
             m_vertices.push_back(vertex);
@@ -727,15 +700,19 @@ namespace VkRender {
         // Up-vector normal for a Z-up world
         const glm::vec3 normal{0.0f, 0.0f, 1.0f};
 
-        // Default white RGBA
-        const glm::vec4 white{1.0f, 1.0f, 1.0f, 1.0f};
+        // matching “unit” UVs
+        const std::array<glm::vec2,4> uvs = {{
+            {0.0f, 0.0f},  // bottom-left
+            {1.0f, 0.0f},  // bottom-right
+            {1.0f, 1.0f},  // top-right
+            {0.0f, 1.0f}   // top-left
+        }};
 
-        // Emit the 4 vertices
         for (int i = 0; i < 4; ++i) {
             Vertex v{};
-            v.pos = corners[i];
+            v.pos    = corners[i];
             v.normal = normal;
-            v.color = white;
+            v.uv0    = uvs[i];
             m_vertices.push_back(v);
         }
 
@@ -796,7 +773,6 @@ namespace VkRender {
                 Vertex v;
                 v.pos    = O + corners[face.v[k]];
                 v.normal = normals[face.n];
-                v.color  = white;
                 m_vertices.push_back(v);
             }
 

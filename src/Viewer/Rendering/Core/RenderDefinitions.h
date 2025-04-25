@@ -77,9 +77,9 @@ namespace VkRender {
         glm::vec3 normal;   // 12 bytes + 4 bytes padding
         glm::vec2 uv0;      // 8 bytes + 8 bytes padding
         glm::vec2 uv1;      // 8 bytes + 8 bytes padding
-        glm::vec4 color;    // 16 bytes
+        glm::vec4 color;
         bool operator==(const Vertex &other) const {
-            return pos == other.pos && color == other.color && uv0 == other.uv0;
+            return pos == other.pos;
         }
     };
 
@@ -220,7 +220,7 @@ namespace std {
     struct hash<VkRender::Vertex> {
         size_t operator()(VkRender::Vertex const &vertex) const {
             return ((hash<glm::vec3>()(vertex.pos) ^
-                     (hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^
+                     (hash<glm::vec3>()(vertex.normal) << 1)) >> 1) ^
                    (hash<glm::vec2>()(vertex.uv0) << 1);
         }
     };

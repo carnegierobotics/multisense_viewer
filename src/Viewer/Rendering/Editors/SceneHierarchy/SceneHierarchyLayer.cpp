@@ -167,6 +167,16 @@ namespace VkRender {
 
                     ImGui::EndMenu();
                 }
+                if (ImGui::BeginMenu("Load")) {
+
+                    if (ImGui::MenuItem("Point Cloud (Quadric)")) {
+                        auto entity = m_context->activeScene()->createEntity("PointCloud");
+
+                    }
+
+
+                    ImGui::EndMenu();
+                }
 
                 if (ImGui::MenuItem("Create Group")) {
                     auto groupEntity = m_context->activeScene()->createEntity("New Group");
@@ -190,7 +200,7 @@ namespace VkRender {
 
         // Set window flags to remove decorations
         ImGuiWindowFlags window_flags =
-                ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
+                ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
                 ImGuiWindowFlags_NoBringToFrontOnFocus;
 
         // Set next window position and size

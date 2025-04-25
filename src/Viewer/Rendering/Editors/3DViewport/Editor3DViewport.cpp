@@ -203,6 +203,8 @@ namespace VkRender {
     void Editor3DViewport::collectRenderCommands(
             std::unordered_map<std::shared_ptr<DefaultGraphicsPipeline>, std::vector<RenderCommand>> &renderGroups,
             uint32_t frameIndex) {
+
+        /*
         if (!m_meshInstances) {
             m_meshInstances = EditorUtils::setupMesh(m_context);
             Log::Logger::getInstance()->info("Created MeshInstance for 3DViewport");
@@ -232,8 +234,8 @@ namespace VkRender {
         key.setLayouts[0] = m_descriptorRegistry.getManager(DescriptorManagerType::Viewport3DTexture).
                 getDescriptorSetLayout();
         // Use default descriptor set layout
-        key.vertexShaderName = "default2D.vert";
-        key.fragmentShaderName = "default2D.frag";
+        key.vertexShaderName = "Editors/default2D.vert";
+        key.fragmentShaderName = "Editors/default2D.frag";
         key.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         key.polygonMode = VK_POLYGON_MODE_FILL;
         std::vector<VkVertexInputBindingDescription> vertexInputBinding = {
@@ -262,6 +264,7 @@ namespace VkRender {
         command.descriptorSets[DescriptorManagerType::Viewport3DTexture] = descriptorSet; // Assign the descriptor set
         // Add to render group
         renderGroups[pipeline].push_back(command);
+        */
     }
 
     void Editor3DViewport::bindResourcesAndDraw(const CommandBuffer &commandBuffer, RenderCommand &command) {

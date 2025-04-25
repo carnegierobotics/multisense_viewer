@@ -8,8 +8,8 @@
 
 namespace VkRender {
     std::shared_ptr<MeshInstance> MeshResourceManager::getMeshInstance(
-        const std::string& identifier,
-        const std::shared_ptr<MeshData>& meshData,
+        const std::string &identifier,
+        const std::shared_ptr<MeshData> &meshData,
         MeshDataType meshType) {
         std::lock_guard lock(cacheMutex);
 
@@ -33,19 +33,18 @@ namespace VkRender {
     }
 
     void MeshResourceManager::updateMeshInstance(
-        const std::string& identifier,
-        const std::shared_ptr<MeshData>& meshData) {
+        const std::string &identifier,
+        const std::shared_ptr<MeshData> &meshData) {
         auto it = meshInstanceCache.find(identifier);
         if (it != meshInstanceCache.end()) {
             auto meshInstance = it->second;
 
             VkDeviceSize vertexBufferSize = 0;
-            VkDeviceSize indexBufferSize  = 0;
+            VkDeviceSize indexBufferSize = 0;
             if (meshData->isDynamic) {
                 vertexBufferSize = meshData->m_dynamicVertices.size() * sizeof(DynamicVertex);
                 indexBufferSize = meshData->m_dynamicIndices.size() * sizeof(uint32_t);
-            }
-            else {
+            } else {
                 vertexBufferSize = meshData->m_vertices.size() * sizeof(Vertex);
                 indexBufferSize = meshData->m_indices.size() * sizeof(uint32_t);
             }
@@ -53,14 +52,16 @@ namespace VkRender {
             if (vertexBufferSize == 0)
                 return;
 
-            if (vertexBufferSize != meshInstance->vertexBuffer->m_size || indexBufferSize != meshInstance->indexBuffer->m_size) {
-                Log::Logger::getInstance()->info("MeshResourceManager: New Size! Recreating mesh instance for mesh: {}", identifier);
+            if (vertexBufferSize != meshInstance->vertexBuffer->m_size || indexBufferSize != meshInstance->indexBuffer->
+                m_size) {
+                Log::Logger::getInstance()->info("MeshResourceManager: New Size! Recreating mesh instance for mesh: {}",
+                                                 identifier);
                 it->second = createMeshInstance(meshData, meshInstance->m_type);
                 meshInstance = it->second;
             }
 
             if (meshData->isDynamic) {
-                void* data;
+                void *data;
                 vkMapMemory(m_context->vkDevice().m_LogicalDevice, meshInstance->vertexBuffer->m_memory, 0,
                             vertexBufferSize, 0, &data);
                 memcpy(data, meshData->m_dynamicVertices.data(), static_cast<size_t>(vertexBufferSize));
@@ -72,8 +73,7 @@ namespace VkRender {
                     memcpy(data, meshData->m_dynamicIndices.data(), static_cast<size_t>(indexBufferSize));
                     vkUnmapMemory(m_context->vkDevice().m_LogicalDevice, meshInstance->indexBuffer->m_memory);
                 }
-            }
-            else {
+            } else {
                 // For static meshes, use staging buffers to update device local memory
                 struct StagingBuffer {
                     VkBuffer buffer;
@@ -123,14 +123,14 @@ namespace VkRender {
 
     void MeshResourceManager::clearCache() {
         std::lock_guard<std::mutex> lock(cacheMutex);
-        for (auto& pair : meshInstanceCache) {
+        for (auto &pair: meshInstanceCache) {
             // Resources will be cleaned up by MeshInstance destructors
             pair.second.reset();
         }
         meshInstanceCache.clear();
     }
 
-    void MeshResourceManager::removeMeshInstance(const std::string& identifier) {
+    void MeshResourceManager::removeMeshInstance(const std::string &identifier) {
         std::lock_guard<std::mutex> lock(cacheMutex);
         auto it = meshInstanceCache.find(identifier);
         if (it != meshInstanceCache.end()) {
@@ -140,19 +140,18 @@ namespace VkRender {
     }
 
     std::shared_ptr<MeshInstance> MeshResourceManager::createMeshInstance(
-        const std::shared_ptr<MeshData>& meshData,
+        const std::shared_ptr<MeshData> &meshData,
         MeshDataType meshType) {
         auto meshInstance = std::make_shared<MeshInstance>();
 
         VkDeviceSize vertexBufferSize = 0;
-        VkDeviceSize indexBufferSize  = 0;
+        VkDeviceSize indexBufferSize = 0;
         if (meshData->isDynamic) {
             vertexBufferSize = meshData->m_dynamicVertices.size() * sizeof(DynamicVertex);
             indexBufferSize = meshData->m_dynamicIndices.size() * sizeof(uint32_t);
             meshInstance->vertexCount = static_cast<uint32_t>(meshData->m_dynamicVertices.size());
             meshInstance->indexCount = static_cast<uint32_t>(meshData->m_dynamicIndices.size());
-        }
-        else {
+        } else {
             vertexBufferSize = meshData->m_vertices.size() * sizeof(Vertex);
             indexBufferSize = meshData->m_indices.size() * sizeof(uint32_t);
             meshInstance->vertexCount = static_cast<uint32_t>(meshData->m_vertices.size());
@@ -165,7 +164,8 @@ namespace VkRender {
         meshInstance->usesVertexBuffers = meshData->isDynamic == false;
         meshInstance->SSBO = meshData->isDynamic;
         if (meshInstance->SSBO) {
-            meshInstance->drawCount =  meshInstance->indexCount; // TODO Is not compatible if we use SSBO's with no. vertices as draw count
+            meshInstance->drawCount = meshInstance->indexCount;
+            // TODO Is not compatible if we use SSBO's with no. vertices as draw count
         }
         if (vertexBufferSize == 0)
             return nullptr;
@@ -178,8 +178,7 @@ namespace VkRender {
             // For dynamic meshes, use host-visible memory
             memoryProperties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
             usageFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-        }
-        else {
+        } else {
             // For static meshes, use device-local memory
             memoryProperties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
             usageFlags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
@@ -195,12 +194,12 @@ namespace VkRender {
             "MeshResourceManager:VertexBuffer",
             m_context->getDebugUtilsObjectNameFunction()));
 
+
         // Create index buffer if necessary
         if (indexBufferSize > 0) {
             if (meshData->isDynamic) {
                 usageFlags = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-            }
-            else {
+            } else {
                 usageFlags = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
             }
             CHECK_RESULT(m_context->vkDevice().createBuffer(
@@ -216,7 +215,7 @@ namespace VkRender {
         // Upload data to buffers
         if (meshData->isDynamic) {
             // Map memory and copy data directly
-            void* data;
+            void *data;
             vkMapMemory(m_context->vkDevice().m_LogicalDevice, meshInstance->vertexBuffer->m_memory, 0,
                         vertexBufferSize, 0, &data);
             memcpy(data, meshData->m_dynamicVertices.data(), static_cast<size_t>(vertexBufferSize));
@@ -228,8 +227,7 @@ namespace VkRender {
                 memcpy(data, meshData->m_dynamicIndices.data(), static_cast<size_t>(indexBufferSize));
                 vkUnmapMemory(m_context->vkDevice().m_LogicalDevice, meshInstance->indexBuffer->m_memory);
             }
-        }
-        else {
+        } else {
             // Use staging buffers for static meshes
             // Create staging buffers
             struct StagingBuffer {

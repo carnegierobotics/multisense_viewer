@@ -17,8 +17,8 @@ namespace VkRender {
           m_renderPassInfo(renderPassInfo) {
         m_numSwapChainImages = m_context.swapChainBuffers().size();
         m_vulkanDevice = m_context.vkDevice();
-        m_vertexShader = "default2D.vert";
-        m_fragmentShader = "default2D.frag";
+        m_vertexShader = "Editors/default2D.vert";
+        m_fragmentShader = "Editors/default2D.frag";
         m_renderData.resize(m_numSwapChainImages);
         std::vector<VkRender::ImageVertex> vertices = {
             // Bottom-left corner

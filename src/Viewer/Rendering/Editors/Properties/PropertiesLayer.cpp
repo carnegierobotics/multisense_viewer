@@ -423,8 +423,6 @@ namespace VkRender {
                 component.setMoving(paramsChanged);
                 component.updateFromEulerRotation();
             }
-
-
         });
 
         drawComponent<ScriptableComponent>("Scriptable", entity, [&entity](ScriptableComponent &component) {
@@ -790,7 +788,7 @@ namespace VkRender {
                 m_context->activeScene()->onComponentUpdated(entity, component);
             }
 
-            ImGui::Checkbox("Use Vertex Color", &component.useVertexColor);
+            ImGui::Checkbox("Apply Texture", &component.useTexture);
 
             ImGui::Dummy(ImVec2(5.0f, 5.0f));
             ImGui::PushFont(m_editor->guiResources().font15);
@@ -1120,7 +1118,7 @@ namespace VkRender {
 
                         auto &material = entityInstance.
                                 getOrAddComponent<MaterialComponent>();
-                        material.useVertexColor = true;
+                        material.useTexture = true;
 
                         if (ImGui::CollapsingHeader(
                             (quadricName).c_str())) {
@@ -1242,7 +1240,8 @@ namespace VkRender {
                     if (selectedQuadricIndex >= (int) quadricCount)
                         selectedQuadricIndex = (int) quadricCount - 1;
                 }
-                ImGui::Separator(); {
+                ImGui::Separator();
+                {
                     size_t i = static_cast<size_t>(
                         selectedQuadricIndex);
 
@@ -1269,7 +1268,7 @@ namespace VkRender {
                         QuadricMeshParameters>(mesh.meshParameters);
                     auto &material = entityInstance.getOrAddComponent<
                         MaterialComponent>();
-                    material.useVertexColor = true;
+                    material.useTexture = true;
 
 
                     ImGui::Text(
@@ -1352,10 +1351,12 @@ namespace VkRender {
     void PropertiesLayer::onUIRender() {
         m_selectionContext = m_context->getSelectedEntity();
         ImVec2 window_pos = ImVec2(0.0f, m_editor->ui()->layoutConstants.uiYOffset); // Position (x, y)
-        ImVec2 window_size = ImVec2(m_editor->ui()->width, m_editor->ui()->height); // Size (width, height)
+        ImVec2 window_size = ImVec2(m_editor->ui()->width, m_editor->ui()->height - window_pos.y);
+        // Size (width, height)
         // Set window flags to remove decorations
         ImGuiWindowFlags window_flags =
-                ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
+                ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove |
+                ImGuiWindowFlags_NoResize |
                 ImGuiWindowFlags_NoBringToFrontOnFocus;
 
         // Set next window position and size
@@ -1363,7 +1364,7 @@ namespace VkRender {
         ImGui::SetNextWindowSize(window_size, ImGuiCond_Always);
 
         // Create the parent window
-        ImGui::Begin("PropertiesLayer", NULL, window_flags);
+        ImGui::Begin("PropertiesLayer", nullptr, window_flags);
 
         ImGui::Text("Entity Properties");
         std::shared_ptr<Scene> scene = m_context->activeScene();
@@ -1464,7 +1465,7 @@ namespace VkRender {
 
                             // Setup MaterialComponent.
                             auto &material = entityInstance.getOrAddComponent<MaterialComponent>();
-                            material.useVertexColor = true;
+                            material.useTexture = true;
 
                             // Downsampled data.
                             quadricParams->a = comp.a[i];

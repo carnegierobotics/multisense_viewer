@@ -21,6 +21,7 @@ namespace VkRender{
             const std::vector<VkDescriptorSetLayoutBinding>& bindings,
             DescriptorManagerType descriptorManagerType,
             uint32_t maxDescriptorSets = 2000);
+
         ~DescriptorSetManager();
         VkDescriptorSetLayout& getDescriptorSetLayout(){return m_descriptorSetLayout;}
 

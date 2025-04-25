@@ -28,8 +28,8 @@ namespace VkRender {
 
         ~DefaultGraphicsPipeline() = default;
 
-        explicit DefaultGraphicsPipeline(Application &m_context, const RenderPassInfo &renderPassInfo,
-                                         const PipelineKey &key);
+        DefaultGraphicsPipeline(Application &m_context, const RenderPassInfo &renderPassInfo, const PipelineKey &key,
+                                const std::string& vertexShaderName, const std::string& fragmentShaderName);
 
         void bind(CommandBuffer &commandBuffer) const;
 

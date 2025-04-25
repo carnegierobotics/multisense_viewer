@@ -368,7 +368,7 @@ namespace VkRender {
             out << YAML::Key << "PhongExponent";
             out << YAML::Value << material.phongExponent;
             out << YAML::Key << "UseVertexColor";
-            out << YAML::Value << material.useVertexColor;
+            out << YAML::Value << material.useTexture;
             // Serialize vertex shader name (std::filesystem::path)
             out << YAML::Key << "VertexShader";
             out << YAML::Value << material.vertexShaderName.string(); // Convert path to string
@@ -786,9 +786,9 @@ namespace VkRender {
                         material.phongExponent = 32.0f; // Default value or handle as needed
                     }
                     if (materialComponent["UseVertexColor"]) {
-                        material.useVertexColor = materialComponent["UseVertexColor"].as<bool>();
+                        material.useTexture = materialComponent["UseVertexColor"].as<bool>();
                     } else {
-                        material.useVertexColor = false; // Default value or handle as needed
+                        material.useTexture = false; // Default value or handle as needed
                     }
                     // Deserialize uses texture flag
                     if (materialComponent["VertexShader"]) {

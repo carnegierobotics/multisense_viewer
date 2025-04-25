@@ -345,8 +345,8 @@ namespace VkRender {
         key.setLayouts[0] = m_descriptorRegistry.getManager(
             DescriptorManagerType::Viewport3DTexture).getDescriptorSetLayout();
         // Use default descriptor set layout
-        key.vertexShaderName = "default2D.vert";
-        key.fragmentShaderName = "EditorPathTracerTexture.frag";
+        key.vertexShaderName = "Editors/default2D.vert";
+        key.fragmentShaderName = "Editors/EditorPathTracerTexture.frag";
         key.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         key.polygonMode = VK_POLYGON_MODE_FILL;
         std::vector<VkVertexInputBindingDescription> vertexInputBinding = {

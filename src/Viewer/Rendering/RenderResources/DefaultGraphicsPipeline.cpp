@@ -9,22 +9,22 @@
 
 namespace VkRender {
     DefaultGraphicsPipeline::DefaultGraphicsPipeline(Application& m_context, const RenderPassInfo& renderPassInfo,
-                                                     const PipelineKey& key) : m_vulkanDevice(m_context.vkDevice()),
+                                                     const PipelineKey& key, const std::string& vertexShaderName, const std::string& fragmentShaderName) : m_vulkanDevice(m_context.vkDevice()),
                                                                                m_renderPassInfo(
-                                                                                   std::move(renderPassInfo)) {
+                                                                                   renderPassInfo) {
         m_numSwapChainImages = m_context.swapChainBuffers().size();
         m_vulkanDevice = m_context.vkDevice();
-        m_vertexShader = key.vertexShaderName;
-        m_fragmentShader = key.fragmentShaderName;
+        m_vertexShader = vertexShaderName;
+        m_fragmentShader = fragmentShaderName;
         // Vertex bindings an attributes
 
         VkPipelineVertexInputStateCreateInfo vertexInputStateCI{};
         vertexInputStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
-        vertexInputStateCI.pVertexBindingDescriptions = key.vertexInputBindingDescriptions.data();
-        vertexInputStateCI.pVertexAttributeDescriptions = key.vertexInputAttributes.data();
-        vertexInputStateCI.vertexAttributeDescriptionCount = static_cast<uint32_t>(key.vertexInputAttributes.size());
-        vertexInputStateCI.vertexBindingDescriptionCount = static_cast<uint32_t>(key.vertexInputBindingDescriptions.size());
+        vertexInputStateCI.pVertexBindingDescriptions = key.bindings.data();
+        vertexInputStateCI.pVertexAttributeDescriptions = key.attrs.data();
+        vertexInputStateCI.vertexAttributeDescriptionCount = static_cast<uint32_t>(key.attrs.size());
+        vertexInputStateCI.vertexBindingDescriptionCount = static_cast<uint32_t>(key.bindings.size());
 
 
         std::vector<VkPipelineShaderStageCreateInfo> shaderStages(2);
@@ -45,7 +45,7 @@ namespace VkRender {
             createInfo.descriptorSetLayouts.emplace_back(setLayout);
         }
         createInfo.vertexInputState = vertexInputStateCI;
-        createInfo.debugInfo = renderPassInfo.debugName +  key.vertexShaderName.string() + "|" + key.fragmentShaderName.string();
+        createInfo.debugInfo = renderPassInfo.debugName +  vertexShaderName + "|" + fragmentShaderName;
 
         m_graphicsPipeline = std::make_unique<VulkanGraphicsPipeline>(createInfo);
 

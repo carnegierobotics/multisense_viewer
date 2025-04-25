@@ -7,13 +7,13 @@
 
 
 namespace VkRender {
-    std::shared_ptr<DefaultGraphicsPipeline> PipelineManager::getOrCreatePipeline(const PipelineKey &key, const RenderPassInfo& renderPassInfo, Application* context) {
+    std::shared_ptr<DefaultGraphicsPipeline> PipelineManager::getOrCreatePipeline(const PipelineKey &key, const std::string& vertex, const std::string& fragment, const RenderPassInfo& renderPassInfo, Application* context) {
         auto it = m_pipelineCache.find(key);
         if (it != m_pipelineCache.end()) {
             return it->second;
         }
         // Create the graphics pipeline using the pipeline layout
-        auto pipeline = std::make_shared<DefaultGraphicsPipeline>(*context, renderPassInfo, key);
+        auto pipeline = std::make_shared<DefaultGraphicsPipeline>(*context, renderPassInfo, key, vertex , fragment);
         m_pipelineCache[key] = pipeline;
         return pipeline;
     }

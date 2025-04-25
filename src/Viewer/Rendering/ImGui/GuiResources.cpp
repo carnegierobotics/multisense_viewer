@@ -92,7 +92,7 @@ namespace VkRender {
 
         // setup graphics pipeline
         VkShaderModule vtxModule{};
-        Utils::loadShader((Utils::getShadersPath().append("Scene/imgui/ui.vert.spv")).string().c_str(),
+        Utils::loadShader((Utils::getShadersPath().append("imgui/ui.vert.spv")).string().c_str(),
                           device.m_LogicalDevice, &vtxModule);
         VkPipelineShaderStageCreateInfo vtxShaderStage = {};
         vtxShaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -103,7 +103,7 @@ namespace VkRender {
         shaderModules.push_back(vtxModule);
 
         VkShaderModule frgModule;
-        Utils::loadShader((Utils::getShadersPath().append("Scene/imgui/ui.frag.spv")).string().c_str(),
+        Utils::loadShader((Utils::getShadersPath().append("imgui/ui.frag.spv")).string().c_str(),
                           device.m_LogicalDevice, &frgModule);
         VkPipelineShaderStageCreateInfo fragShaderStage = {};
         fragShaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;

@@ -26,10 +26,10 @@ namespace VkRender {
 
 
         bool reloadShader = false;
-        bool useVertexColor = false;
+        bool useTexture = false;
 
-        std::filesystem::path vertexShaderName = "defaultBasic.vert";
-        std::filesystem::path fragmentShaderName = "defaultPhongLight.frag";
+        std::filesystem::path vertexShaderName = "BlinnPhongShaderInstanced.vert";
+        std::filesystem::path fragmentShaderName = "BlinnPhongShader.frag";
         std::filesystem::path albedoTexturePath = "default.png";
     };
 

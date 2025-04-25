@@ -23,7 +23,7 @@ namespace VkRender {
 
         m_descriptorRegistry.createManager(DescriptorManagerType::Viewport3DTexture, m_context->vkDevice());
         m_editorCamera = std::make_shared<ArcballCamera>();
-        m_editorCamera->setDefaultPosition({-90.0f, -60.0f}, 1.5f);
+        m_editorCamera->setDefaultPosition({-90.0f, 60.0f}, 1.5f);
 
         m_sceneRenderer = m_context->getOrAddSceneRendererByUUID(uuid, m_createInfo);
         VulkanTexture2DCreateInfo textureCreateInfo(m_context->vkDevice());
@@ -43,7 +43,7 @@ namespace VkRender {
     void Editor3DViewport::onEditorResize() {
         m_editorCamera = std::make_shared<ArcballCamera>(
                 static_cast<float>(m_createInfo.width) / static_cast<float>(m_createInfo.height));
-        m_editorCamera->setDefaultPosition({-90.0f, -60.0f}, 1.5f);
+        m_editorCamera->setDefaultPosition({-90.0f, 60.0f}, 1.5f);
         m_activeScene = m_context->activeScene();
 
         if (m_lastActiveCamera) {
@@ -98,7 +98,7 @@ namespace VkRender {
 
         m_editorCamera = std::make_shared<ArcballCamera>(
                 static_cast<float>(m_createInfo.width) / static_cast<float>(m_createInfo.height));
-        m_editorCamera->setDefaultPosition({-90.0f, -60.0f}, 1.5f);
+        m_editorCamera->setDefaultPosition({-90.0f, 60.0f}, 1.5f);
         m_activeScene = m_context->activeScene();
 
         if (m_lastActiveCamera) {
@@ -181,7 +181,7 @@ namespace VkRender {
         m_sceneRenderer->update();
 
         if (Input::isKeyPressed(GLFW_KEY_SPACE)) {
-            m_editorCamera->setDefaultPosition({-90.0f, -60.0f}, 1.5f);
+            m_editorCamera->setDefaultPosition({-90.0f, 60.0f}, 1.5f);
         }
     }
 

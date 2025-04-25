@@ -42,36 +42,25 @@ vec3 calculatePhongLighting(vec3 normal, vec3 viewDir, vec3 lightDir, vec3 specu
 
 void main()
 {
-    // Normalize the input normal
-    vec3 norm = normalize(inNormal);
 
-    // World-space fragment position
-    vec3 fragPosWorld = fragPos.xyz;
+    vec3 normal = normalize(inNormal);
+    vec3 vertPos = fragPos.xyz;
+    vec3 lightPos = info.lightPosition[0].xyz;
+    vec3 lightDir = normalize(lightPos - vertPos);
 
-    // Compute view direction from fragment to camera
-    vec3 viewDir = normalize(camera.position - fragPosWorld);
+    vec3 viewDir    = normalize(camera.position - vertPos);
 
-    // Determine specular color by mixing white and the base color
-    vec3 specularColor = mix(vec3(1.0), info.baseColor.rgb, info.specular);
+    vec3 halfwayDir = normalize(lightDir + viewDir);
 
-    // Compute shininess: higher diffuse weight gives lower shininess
-    float shininess = mix(256.0, 32.0, info.diffuse);
+    float spec = pow(max(dot(normal, halfwayDir), 0.0), 128);
+    vec3 specular = vec3(0.3) * spec;
 
-    // Define ambient lighting (applied once)
-    vec3 ambient = vec3(0.0);
+    vec3 ambient = 0.05 * info.baseColor.xyz;
 
-    vec3 lighting = ambient;
-    vec3 lightDir = normalize(info.lightPosition[0].rgb - fragPosWorld);
-    lighting += calculatePhongLighting(norm, viewDir, lightDir, specularColor, shininess);
+    float diff = max(dot(lightDir, normal), 0.0);
+    vec3 diffuse = diff * info.baseColor.xyz;
 
-    // Sample texture color
-    vec3 texColor = texture(samplerColorMap, inUV).rgb;
+    // use the gamma corrected color in the fragment
+    outColor =vec4(ambient + diffuse + specular + info.emissiveFactor.x, 1.0);
 
-    // Combine the material color and lighting. The mix here is based on the specular factor.
-    vec3 finalColor = mix(texColor * info.baseColor.rgb, lighting * texColor, info.specular);
-
-    // Add emissive component
-    finalColor += info.emissiveFactor.rgb;
-
-    outColor = vec4(finalColor, 1.0);
 }

@@ -264,7 +264,7 @@ namespace VkRender {
         ImGui::SetCurrentContext(m_mainEditor->guiContext());
         ImGuiIO& mainIO = ImGui::GetIO();
         mainIO.DeltaTime = m_lastFrameTime;
-        mainIO.WantCaptureMouse = true;
+        //mainIO.WantCaptureMouse = true;
         mainIO.MousePos = ImVec2(mouse.x, mouse.y);
         mainIO.MouseDown[0] = mouse.left;
         mainIO.MouseDown[1] = mouse.right;
@@ -273,7 +273,7 @@ namespace VkRender {
             ImGui::SetCurrentContext(editor->guiContext());
             ImGuiIO& otherIO = ImGui::GetIO();
             otherIO.DeltaTime = m_lastFrameTime;
-            otherIO.WantCaptureMouse = true;
+            //otherIO.WantCaptureMouse = true;
             otherIO.MousePos = ImVec2(mouse.x - editor->getCreateInfo().x, mouse.y - editor->getCreateInfo().y);
             otherIO.MouseDown[0] = mouse.left;
             otherIO.MouseDown[1] = mouse.right;
@@ -676,8 +676,12 @@ namespace VkRender {
     void Application::mouseScroll(float change) {
         ImGuiIO& io = ImGui::GetIO();
         io.MouseWheel += 0.5f * static_cast<float>(change);
+        mouse.wheel += change * mouseScrollSpeed;
         for (auto& editor : m_editors) {
             editor->onMouseScroll(change);
+            ImGui::SetCurrentContext(editor->guiContext());
+            ImGuiIO& otherIO = ImGui::GetIO();
+            otherIO.MouseWheel += 0.5f * static_cast<float>(change);
         }
         /*
         if (m_guiManager->handles.renderer3D) {

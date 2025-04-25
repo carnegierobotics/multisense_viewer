@@ -23,7 +23,6 @@ layout (binding = 1) uniform ModelUBO
 layout(location = 0) out vec2 outUV;
 layout(location = 1) out vec4 fragPos;
 layout(location = 2) out vec3 outNormal;
-layout(location = 3) out vec4 vertexColorOut;
 
 void main() {
 	// Transform the vertex position to world space

@@ -48,6 +48,9 @@
 #include <ranges>
 #include <utility>
 #include "Viewer/Rendering/ImGui/GuiManager.h"
+
+#include <ImGuizmo.h>
+
 #include "Viewer/Rendering/ImGui/LayerFactory.h"
 #include "Viewer/Application/Application.h"
 
@@ -244,6 +247,7 @@ namespace VkRender {
         //ImGui_ImplGlfw_NewFrame();
 
         ImGui::NewFrame();
+        ImGuizmo::BeginFrame();
 
 
         {

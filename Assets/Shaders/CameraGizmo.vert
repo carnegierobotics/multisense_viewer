@@ -17,10 +17,7 @@ layout (binding = 1) uniform ModelUBO
 
 
 struct VertexData {
-	vec3 position;   // Aligned to 16 bytes (std430 adds padding)
-	vec3 normal;     // Aligned to 16 bytes (std430 adds padding)
-	vec2 uv0;        // Aligned to 8 bytes but padded to 16
-	vec2 uv1;        // Same alignment rules as uv0
+	vec4 position;   // Aligned to 16 bytes (std430 adds padding)
 	vec4 color;      // Naturally aligned to 16 bytes
 };
 
@@ -38,10 +35,10 @@ layout(location = 0) out vec4 outColor;
 
 void main() {
 	int idx = int(indexBuffer.indices[gl_VertexIndex]);
-	vec3 position = vertexData.vertices[idx].position;
+	vec3 position = vertexData.vertices[idx].position.xyz;
 	outColor = vertexData.vertices[idx].color;
 
 	// Transform the vertex to world space and then to clip space
-	vec4 worldPos = ubo.model * vec4(position, 1.0);
+	vec4 worldPos = ubo.model * vec4(position, 1.0f);
 	gl_Position = camera.projection * camera.view * worldPos;
 }

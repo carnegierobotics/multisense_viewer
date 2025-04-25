@@ -11,10 +11,7 @@ layout (binding = 1) uniform ModelUBO {
 } ubo;
 
 struct VertexData {
-    vec3 position;
-    vec3 normal;
-    vec2 uv0;
-    vec2 uv1;
+    vec4 position;
     vec4 color;
 };
 
@@ -37,7 +34,7 @@ void main()
     // Now also fetch the per‐instance data:
     // gl_InstanceIndex gives us which instance we are currently drawing.
 
-    vec3 position = vertexData.vertices[idx].position;
+    vec4 position = vertexData.vertices[idx].position;
     vec4 color    = vertexData.vertices[idx].color;
 
     // Combine with (optional) "ubo.model".
@@ -46,7 +43,7 @@ void main()
     // and rely purely on the instance model.
 
     // Transform to world -> clip space
-    vec4 worldPos = ubo.model * vec4(position, 1.0);
+    vec4 worldPos = ubo.model * position;
     gl_Position = camera.projection * camera.view * worldPos;
 
     outColor = color;

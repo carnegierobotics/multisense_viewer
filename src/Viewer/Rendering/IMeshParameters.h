@@ -17,11 +17,7 @@ namespace VkRender {
         virtual std::string getIdentifier() const = 0;
         virtual std::shared_ptr<MeshData> generateMeshData() = 0;
 
-        void setDirty() const {
-            if (m_meshData) {
-                m_meshData->isDirty = true;
-            }
-        };
+        void setDirty() const;
 
     protected:
         UUID m_uuid;
@@ -29,7 +25,5 @@ namespace VkRender {
 
     };
 
-
-
-    }
+}
 #endif //IMESHPARAMETERS_H

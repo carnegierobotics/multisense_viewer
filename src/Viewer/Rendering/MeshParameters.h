@@ -13,14 +13,64 @@
 
 #include <Viewer/Application/ApplicationConfig.h>
 
-#include "MeshData.h"
 #include "IMeshParameters.h"
-
 #include "Editors/PinholeCamera.h"
 
 
 namespace VkRender {
+    class CubeMeshParameters : public IMeshParameters {
+    public:
+        glm::vec3 origin = glm::vec3(0.0f);
+        float size = 1.0f;
 
+        void setOrigin(const glm::vec3 &origin) {
+            if (this->origin != origin) {
+                this->origin = origin;
+                setDirty();
+            }
+        }
+
+        void setSize(const float &size) {
+            if (this->size != size) {
+                this->size = size;
+                setDirty();
+            }
+        }
+
+        std::string getIdentifier() const override {
+            // Generate a unique identifier based on parameters
+            return "CUBE_" + std::to_string(m_uuid);
+        }
+
+        std::shared_ptr<MeshData> generateMeshData() override;
+    };
+
+    class PlaneMeshParameters : public IMeshParameters {
+    public:
+        glm::vec3 origin = glm::vec3(0.0f);
+        float size = 1.0f;
+
+        void setOrigin(const glm::vec3 &origin) {
+            if (this->origin != origin) {
+                this->origin = origin;
+                setDirty();
+            }
+        }
+
+        void setSize(const float &size) {
+            if (this->size != size) {
+                this->size = size;
+                setDirty();
+            }
+        }
+
+        std::string getIdentifier() const override {
+            // Generate a unique identifier based on parameters
+            return "PLANE_" + std::to_string(m_uuid);
+        }
+
+        std::shared_ptr<MeshData> generateMeshData() override;
+    };
 
     class CylinderMeshParameters : public IMeshParameters {
     public:
@@ -29,53 +79,56 @@ namespace VkRender {
         float magnitude;
         float radius = 0.05f;
 
-        void setOrigin(const glm::vec3& origin) {
+        void setOrigin(const glm::vec3 &origin) {
             if (this->origin != origin) {
                 this->origin = origin;
                 setDirty();
             }
         }
-        void setDirection(const glm::vec3& direction) {
+
+        void setDirection(const glm::vec3 &direction) {
             if (this->direction != direction) {
                 this->direction = direction;
                 setDirty();
             }
         }
-        void setMagnitude(const float& magnitude) {
+
+        void setMagnitude(const float &magnitude) {
             if (this->magnitude != magnitude) {
                 this->magnitude = magnitude;
                 setDirty();
             }
         }
+
         std::string getIdentifier() const override {
             // Generate a unique identifier based on parameters
             return "Cylinder_" + std::to_string(m_uuid);
         }
 
         std::shared_ptr<MeshData> generateMeshData() override;
-
     };
+
 
     class QuadricMeshParameters : public IMeshParameters {
     public:
         // Quadric parameters
-        float a       =  1.0f;  // Scale in x
-        float b       =  1.0f;  // Scale in y
-        float c       =  1.0f;  // Curvature scale
-        float t_x     = -1.0f; // Param controlling sign in x-direction
-        float t_y     =  1.0f;  // Param controlling sign in y-direction
+        float a = 1.0f; // Scale in x
+        float b = 1.0f; // Scale in y
+        float c = 1.0f; // Curvature scale
+        float t_x = -1.0f; // Param controlling sign in x-direction
+        float t_y = 1.0f; // Param controlling sign in y-direction
 
 
         // Sampling parameters
-        int   gridResolution = 200;  // number of grid points in each dimension
+        int gridResolution = 200; // number of grid points in each dimension
         glm::vec2 min = glm::vec2(-2.0f);
         glm::vec2 max = glm::vec2(2.0f);
 
 
         // Beta-kernel parameters
-        float b_beta      = 0.0f;   // exponent shift
-        float threshold   = 0.1f;   // radial kernel threshold
-        float kernelScale = 1.0f;   // normalizes the radial coordinate
+        float b_beta = 0.0f; // exponent shift
+        float threshold = 0.1f; // radial kernel threshold
+        float kernelScale = 1.0f; // normalizes the radial coordinate
 
         float circularity = 1.0f;
 
@@ -90,25 +143,31 @@ namespace VkRender {
     class CameraGizmoPinholeMeshParameters : public IMeshParameters {
     public:
         PinholeParameters parameters;
+
         std::string getIdentifier() const override {
             return "CameraGizmoPinhole_" + std::to_string(m_uuid);
         }
+
         std::shared_ptr<MeshData> generateMeshData() override;
     };
 
     class CameraGizmoPerspectiveMeshParameters : public IMeshParameters {
     public:
         ProjectionParameters parameters;
+
         std::string getIdentifier() const override {
             return "CameraGizmoPerspective_" + std::to_string(m_uuid);
         }
+
         std::shared_ptr<MeshData> generateMeshData() override;
     };
+
     class OBJFileMeshParameters : public IMeshParameters {
     public:
-        explicit OBJFileMeshParameters(std::filesystem::path  path) : path(std::move(path)) {
+        explicit OBJFileMeshParameters(std::filesystem::path path) : path(std::move(path)) {
             std::filesystem::path assetsPath = ApplicationConfig::getInstance().getUserSetting().assetsPath;
         }
+
         std::filesystem::path path;
         std::filesystem::path relativeAssetPath; // TODO fix
 
@@ -121,7 +180,8 @@ namespace VkRender {
 
     class PLYFileMeshParameters : public IMeshParameters {
     public:
-        explicit PLYFileMeshParameters(std::filesystem::path  path) : path(std::move(path)) {}
+        explicit PLYFileMeshParameters(std::filesystem::path path) : path(std::move(path)) {
+        }
 
         std::filesystem::path path;
 
@@ -131,7 +191,6 @@ namespace VkRender {
 
         std::shared_ptr<MeshData> generateMeshData() override;
     };
-
 }
 
 #endif //MESHPARAMETERS_H

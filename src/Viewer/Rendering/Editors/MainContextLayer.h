@@ -14,7 +14,7 @@
 namespace VkRender {
 
 
-    class MainContextLayer : public VkRender::Layer {
+    class MainContextLayer : public Layer {
 
     public:
         /** Called once upon this object creation**/
@@ -26,8 +26,6 @@ namespace VkRender {
         void onFinishedRender() override {
 
         }
-
-
 
         /** Called once per frame **/
         void onUIRender() override {
@@ -44,7 +42,7 @@ namespace VkRender {
             ImGuiWindowFlags window_flags =
                     ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus |
                     ImGuiWindowFlags_NoFocusOnAppearing |
-                    ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs;
+                    ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoMouseInputs;
 
             // Set next window position and size
             ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always);

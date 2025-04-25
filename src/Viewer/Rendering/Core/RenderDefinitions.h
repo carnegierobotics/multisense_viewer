@@ -72,17 +72,20 @@ namespace VkRender {
     /**
      * @brief Default Vertex information
      */
-    struct alignas(16) Vertex {
+    struct Vertex {
         glm::vec3 pos;      // 12 bytes + 4 bytes padding
-        float _pad0;
         glm::vec3 normal;   // 12 bytes + 4 bytes padding
-        float _pad1;
         glm::vec2 uv0;      // 8 bytes + 8 bytes padding
         glm::vec2 uv1;      // 8 bytes + 8 bytes padding
         glm::vec4 color;    // 16 bytes
         bool operator==(const Vertex &other) const {
             return pos == other.pos && color == other.color && uv0 == other.uv0;
         }
+    };
+
+    struct DynamicVertex {
+        glm::vec4 pos;      // 12 bytes + 4 bytes padding
+        glm::vec4 color;    // 16 bytes
     };
 
     struct ImageVertex {

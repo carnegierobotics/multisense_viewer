@@ -39,8 +39,16 @@ namespace VkRender {
         if (it != meshInstanceCache.end()) {
             auto meshInstance = it->second;
 
-            VkDeviceSize vertexBufferSize = meshData->vertices.size() * sizeof(Vertex);
-            VkDeviceSize indexBufferSize = meshData->indices.size() * sizeof(uint32_t);
+            VkDeviceSize vertexBufferSize = 0;
+            VkDeviceSize indexBufferSize  = 0;
+            if (meshData->isDynamic) {
+                vertexBufferSize = meshData->m_dynamicVertices.size() * sizeof(DynamicVertex);
+                indexBufferSize = meshData->m_dynamicIndices.size() * sizeof(uint32_t);
+            }
+            else {
+                vertexBufferSize = meshData->m_vertices.size() * sizeof(Vertex);
+                indexBufferSize = meshData->m_indices.size() * sizeof(uint32_t);
+            }
 
             if (vertexBufferSize == 0)
                 return;
@@ -55,13 +63,13 @@ namespace VkRender {
                 void* data;
                 vkMapMemory(m_context->vkDevice().m_LogicalDevice, meshInstance->vertexBuffer->m_memory, 0,
                             vertexBufferSize, 0, &data);
-                memcpy(data, meshData->vertices.data(), static_cast<size_t>(vertexBufferSize));
+                memcpy(data, meshData->m_dynamicVertices.data(), static_cast<size_t>(vertexBufferSize));
                 vkUnmapMemory(m_context->vkDevice().m_LogicalDevice, meshInstance->vertexBuffer->m_memory);
 
                 if (indexBufferSize > 0) {
                     vkMapMemory(m_context->vkDevice().m_LogicalDevice, meshInstance->indexBuffer->m_memory, 0,
                                 indexBufferSize, 0, &data);
-                    memcpy(data, meshData->indices.data(), static_cast<size_t>(indexBufferSize));
+                    memcpy(data, meshData->m_dynamicIndices.data(), static_cast<size_t>(indexBufferSize));
                     vkUnmapMemory(m_context->vkDevice().m_LogicalDevice, meshInstance->indexBuffer->m_memory);
                 }
             }
@@ -78,7 +86,7 @@ namespace VkRender {
                     vertexBufferSize,
                     &vertexStaging.buffer,
                     &vertexStaging.memory,
-                    meshData->vertices.data()));
+                    meshData->m_vertices.data()));
 
                 if (indexBufferSize > 0) {
                     CHECK_RESULT(m_context->vkDevice().createBuffer(
@@ -87,7 +95,7 @@ namespace VkRender {
                         indexBufferSize,
                         &indexStaging.buffer,
                         &indexStaging.memory,
-                        meshData->indices.data()));
+                        meshData->m_indices.data()));
                 }
 
                 // Copy data from staging buffers to device local buffers
@@ -136,15 +144,24 @@ namespace VkRender {
         MeshDataType meshType) {
         auto meshInstance = std::make_shared<MeshInstance>();
 
+        VkDeviceSize vertexBufferSize = 0;
+        VkDeviceSize indexBufferSize  = 0;
+        if (meshData->isDynamic) {
+            vertexBufferSize = meshData->m_dynamicVertices.size() * sizeof(DynamicVertex);
+            indexBufferSize = meshData->m_dynamicIndices.size() * sizeof(uint32_t);
+            meshInstance->vertexCount = static_cast<uint32_t>(meshData->m_dynamicVertices.size());
+            meshInstance->indexCount = static_cast<uint32_t>(meshData->m_dynamicIndices.size());
+        }
+        else {
+            vertexBufferSize = meshData->m_vertices.size() * sizeof(Vertex);
+            indexBufferSize = meshData->m_indices.size() * sizeof(uint32_t);
+            meshInstance->vertexCount = static_cast<uint32_t>(meshData->m_vertices.size());
+            meshInstance->indexCount = static_cast<uint32_t>(meshData->m_indices.size());
+        }
+
 
         meshInstance->topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-
-        meshInstance->vertexCount = static_cast<uint32_t>(meshData->vertices.size());
-        meshInstance->indexCount = static_cast<uint32_t>(meshData->indices.size());
-        VkDeviceSize vertexBufferSize = meshInstance->vertexCount * sizeof(Vertex);
-        VkDeviceSize indexBufferSize = meshInstance->indexCount * sizeof(uint32_t);
         meshInstance->m_type = meshType;
-
         meshInstance->usesVertexBuffers = meshData->isDynamic == false;
         meshInstance->SSBO = meshData->isDynamic;
         if (meshInstance->SSBO) {
@@ -202,13 +219,13 @@ namespace VkRender {
             void* data;
             vkMapMemory(m_context->vkDevice().m_LogicalDevice, meshInstance->vertexBuffer->m_memory, 0,
                         vertexBufferSize, 0, &data);
-            memcpy(data, meshData->vertices.data(), static_cast<size_t>(vertexBufferSize));
+            memcpy(data, meshData->m_dynamicVertices.data(), static_cast<size_t>(vertexBufferSize));
             vkUnmapMemory(m_context->vkDevice().m_LogicalDevice, meshInstance->vertexBuffer->m_memory);
 
             if (indexBufferSize > 0) {
                 vkMapMemory(m_context->vkDevice().m_LogicalDevice, meshInstance->indexBuffer->m_memory, 0,
                             indexBufferSize, 0, &data);
-                memcpy(data, meshData->indices.data(), static_cast<size_t>(indexBufferSize));
+                memcpy(data, meshData->m_dynamicIndices.data(), static_cast<size_t>(indexBufferSize));
                 vkUnmapMemory(m_context->vkDevice().m_LogicalDevice, meshInstance->indexBuffer->m_memory);
             }
         }
@@ -226,7 +243,7 @@ namespace VkRender {
                 vertexBufferSize,
                 &vertexStaging.buffer,
                 &vertexStaging.memory,
-                meshData->vertices.data()));
+                meshData->m_vertices.data()));
 
             if (indexBufferSize > 0) {
                 CHECK_RESULT(m_context->vkDevice().createBuffer(
@@ -235,7 +252,7 @@ namespace VkRender {
                     indexBufferSize,
                     &indexStaging.buffer,
                     &indexStaging.memory,
-                    meshData->indices.data()));
+                    meshData->m_indices.data()));
             }
 
             // Copy data from staging buffers to device local buffers

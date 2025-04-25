@@ -638,6 +638,12 @@ namespace VkRender {
                             case MeshDataType::CAMERA_GIZMO_PERSPECTIVE:
                                 component.meshParameters = std::make_shared<CameraGizmoPerspectiveMeshParameters>();
                                 break;
+                            case MeshDataType::CUBE:
+                                component.meshParameters = std::make_shared<CubeMeshParameters>();
+                                break;
+                            case MeshDataType::PLANE:
+                                component.meshParameters = std::make_shared<PlaneMeshParameters>();
+                                break;
                             default:
                                 Log::Logger::getInstance()->error("Unknown mesh type!");
                                 break;

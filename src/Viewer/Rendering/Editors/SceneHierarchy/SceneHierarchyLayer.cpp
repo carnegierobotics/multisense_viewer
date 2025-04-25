@@ -142,12 +142,17 @@ namespace VkRender {
                     if (ImGui::MenuItem("Light Source")) {
                         auto entity = m_context->activeScene()->createEntity("Light");
                         auto &lightSourceComponent = entity.addComponent<LightSourceComponent>();
+                        auto &mesh = entity.addComponent<MeshComponent>(PLANE);
+                        auto &material = entity.addComponent<MaterialComponent>();
+                        material.emission = 1.0f;
+
                     }
                     if (ImGui::MenuItem("Default Entity")) {
                         auto entity = m_context->activeScene()->createEntity("Default");
-                        auto &mesh = entity.addComponent<MeshComponent>(QUADRIC);
+                        auto &mesh = entity.addComponent<MeshComponent>(CUBE);
                         auto &material = entity.addComponent<MaterialComponent>();
-                        material.useVertexColor = true;
+
+
                     }
 
                     if (ImGui::MenuItem("Camera")) {

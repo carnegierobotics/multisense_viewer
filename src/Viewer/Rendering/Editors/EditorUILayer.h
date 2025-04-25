@@ -110,7 +110,8 @@ namespace VkRender {
                                          ImVec2(window_size.x, window_size.y), border_color); // Right border
 
 
-                ImGui::BeginChild("ButtonContainer", ImVec2(0, 0), false, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
+                // Purely Visual ".." actual click event and editor updates are done by the backend
+                ImGui::BeginChild("DragNewViewportButtonWindow", ImVec2(0, 0), false, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs);
 
                 // Make the button background transparent
                 ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));           // Transparent background

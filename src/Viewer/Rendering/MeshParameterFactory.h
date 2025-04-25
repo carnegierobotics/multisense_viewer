@@ -12,6 +12,10 @@ namespace VkRender {
     public:
         static std::shared_ptr<IMeshParameters> createMeshParameters(MeshDataType type, std::filesystem::path path) {
             switch (type) {
+            case CUBE:
+                return std::make_shared<CubeMeshParameters>();
+            case PLANE:
+                return std::make_shared<PlaneMeshParameters>();
             case QUADRIC:
                 return std::make_shared<QuadricMeshParameters>();
             case CYLINDER:

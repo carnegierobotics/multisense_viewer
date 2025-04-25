@@ -36,7 +36,7 @@ namespace VkRender {
         }
 
         m_editorCamera = std::make_shared<ArcballCamera>();
-        m_editorCamera->setDefaultPosition({-90.0f, -60.0f}, 1.5f);
+        m_editorCamera->setDefaultPosition({-90.0f, 60.0f}, 1.5f);
     }
 
     void EditorPathTracer::onEditorResize() {
@@ -47,7 +47,7 @@ namespace VkRender {
 
         m_editorCamera = std::make_shared<ArcballCamera>(
             static_cast<float>(m_createInfo.width) / static_cast<float>(m_createInfo.height));
-        m_editorCamera->setDefaultPosition({-90.0f, -60.0f}, 1.5f);
+        m_editorCamera->setDefaultPosition({-90.0f, 60.0f}, 1.5f);
 
         auto imageUI = std::dynamic_pointer_cast<EditorPathTracerLayerUI>(m_ui);
 
@@ -75,7 +75,7 @@ namespace VkRender {
     void EditorPathTracer::onSceneLoad(std::shared_ptr<Scene> scene) {
         m_editorCamera = std::make_shared<ArcballCamera>(
             static_cast<float>(m_createInfo.width) / static_cast<float>(m_createInfo.height));
-        m_editorCamera->setDefaultPosition({-90.0f, -60.0f}, 1.5f);
+        m_editorCamera->setDefaultPosition({-90.0f, 60.0f}, 1.5f);
 
         m_colorTexture = EditorUtils::createEmptyTexture(m_createInfo.width, m_createInfo.height,
                                                          VK_FORMAT_R8G8B8A8_UNORM, m_context);
@@ -272,7 +272,7 @@ namespace VkRender {
         imageUI->clearImageMemory = false;
         m_previousSceneCamera = activeCamera;
         if (Input::isKeyPressed(GLFW_KEY_SPACE)) {
-            m_editorCamera->setDefaultPosition({-90.0f, -60.0f}, 1.5f);
+            m_editorCamera->setDefaultPosition({-90.0f, 60.0f}, 1.5f);
             m_movedCamera = true;
         }
     }

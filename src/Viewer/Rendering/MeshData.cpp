@@ -22,7 +22,6 @@
 
 
 namespace VkRender {
-
     static glm::vec3 getViridisColor(float t) {
         // Clamp t to [0, 1]
         t = glm::clamp(t, 0.0f, 1.0f);
@@ -33,11 +32,11 @@ namespace VkRender {
             glm::vec3 color;
         };
         static const ViridisPoint viridis[5] = {
-            {0.0f,  glm::vec3(0.267004f, 0.004874f, 0.329415f)},
+            {0.0f, glm::vec3(0.267004f, 0.004874f, 0.329415f)},
             {0.25f, glm::vec3(0.229739f, 0.322361f, 0.545706f)},
-            {0.5f,  glm::vec3(0.127568f, 0.566949f, 0.550556f)},
+            {0.5f, glm::vec3(0.127568f, 0.566949f, 0.550556f)},
             {0.75f, glm::vec3(0.369214f, 0.788888f, 0.382914f)},
-            {1.0f,  glm::vec3(0.993248f, 0.906157f, 0.143936f)}
+            {1.0f, glm::vec3(0.993248f, 0.906157f, 0.143936f)}
         };
 
         // Find the interval [viridis[i].t, viridis[i+1].t] that contains t.
@@ -52,8 +51,8 @@ namespace VkRender {
 
     void MeshData::generateQuadricMesh(const QuadricMeshParameters &params) {
         // Clear any existing data
-        vertices.clear();
-        indices.clear();
+        m_vertices.clear();
+        m_indices.clear();
 
         int N = params.gridResolution;
         float dx = (params.max.x - params.min.x) / float(N - 1);
@@ -63,7 +62,7 @@ namespace VkRender {
         float alphaX = std::tanh(params.t_x);
         float alphaY = std::tanh(params.t_y);
 
-        // We'll store a "map" of valid vertex indices. -1 means not used.
+        // We'll store a "map" of valid vertex m_indices. -1 means not used.
         std::vector<int> vertexMap(N * N, -1);
         std::vector<Vertex> tmpVertices;
         tmpVertices.reserve(N * N);
@@ -71,10 +70,10 @@ namespace VkRender {
         // If you want a final global scale (e.g. 0.1), define here
         float scaleFactor = 1.0f;
         // Helper lambda for Beta kernel:
-        auto betaKernel = [&](float r, float bExp){
+        auto betaKernel = [&](float r, float bExp) {
             // (1 - r^2)^(4 e^bExp), clipped if r>1
             if (r > 1.0f) r = 1.0f;
-            return std::pow(1.0f - r*r, 4.0f * std::exp(bExp));
+            return std::pow(1.0f - r * r, 4.0f * std::exp(bExp));
         };
 
         // Generate grid and compute vertices
@@ -106,9 +105,8 @@ namespace VkRender {
                 float bkValue = betaKernel(geodesic, params.b_beta);
 
                 bool keepVertex = (bkValue > params.threshold);
-                if (!keepVertex)
-                {
-                    vertexMap[i*N + j] = -1;
+                if (!keepVertex) {
+                    vertexMap[i * N + j] = -1;
                     continue;
                 }
 
@@ -181,7 +179,6 @@ namespace VkRender {
                 float r = geodesicDist / params.kernelScale;
 
 */
-
             }
         }
 
@@ -195,19 +192,19 @@ namespace VkRender {
 
                 // If valid, create two triangles
                 if (v0 >= 0 && v1 >= 0 && v2 >= 0 && v3 >= 0) {
-                    indices.push_back(v0);
-                    indices.push_back(v1);
-                    indices.push_back(v2);
+                    m_indices.push_back(v0);
+                    m_indices.push_back(v1);
+                    m_indices.push_back(v2);
 
-                    indices.push_back(v1);
-                    indices.push_back(v3);
-                    indices.push_back(v2);
+                    m_indices.push_back(v1);
+                    m_indices.push_back(v3);
+                    m_indices.push_back(v2);
                 }
             }
         }
 
         // Finalize
-        vertices = std::move(tmpVertices);
+        m_vertices = std::move(tmpVertices);
         isDynamic = true;
     }
 
@@ -225,7 +222,7 @@ namespace VkRender {
 
         glm::vec3 endPoint = origin + direction * height;
 
-        // Generate the cylinder vertices and indices
+        // Generate the cylinder vertices and m_indices
         // Define the base circle and top circle vertices
         std::vector<Vertex> baseCircleVertices;
         std::vector<Vertex> topCircleVertices;
@@ -262,11 +259,11 @@ namespace VkRender {
         }
 
         // Combine vertices
-        vertices.reserve(segments * 2);
-        vertices.insert(vertices.end(), baseCircleVertices.begin(), baseCircleVertices.end());
-        vertices.insert(vertices.end(), topCircleVertices.begin(), topCircleVertices.end());
+        m_vertices.reserve(segments * 2);
+        m_vertices.insert(m_vertices.end(), baseCircleVertices.begin(), baseCircleVertices.end());
+        m_vertices.insert(m_vertices.end(), topCircleVertices.begin(), topCircleVertices.end());
 
-        // Generate indices for the side faces
+        // Generate m_indices for the side faces
         for (int i = 0; i < segments; ++i) {
             int next = (i + 1) % segments;
             int baseIndex = i;
@@ -275,30 +272,30 @@ namespace VkRender {
             int nextTopIndex = next + segments;
 
             // First triangle of quad
-            indices.push_back(baseIndex);
-            indices.push_back(nextBaseIndex);
-            indices.push_back(topIndex);
+            m_indices.push_back(baseIndex);
+            m_indices.push_back(nextBaseIndex);
+            m_indices.push_back(topIndex);
 
             // Second triangle of quad
-            indices.push_back(nextBaseIndex);
-            indices.push_back(nextTopIndex);
-            indices.push_back(topIndex);
+            m_indices.push_back(nextBaseIndex);
+            m_indices.push_back(nextTopIndex);
+            m_indices.push_back(topIndex);
         }
 
-        // Generate indices for the base and top caps if desired
+        // Generate m_indices for the base and top caps if desired
         // Base cap
 
         for (int i = 1; i < segments - 1; ++i) {
-            indices.push_back(0);
-            indices.push_back(i);
-            indices.push_back(i + 1);
+            m_indices.push_back(0);
+            m_indices.push_back(i);
+            m_indices.push_back(i + 1);
         }
 
         // Top cap
         for (int i = 1; i < segments - 1; ++i) {
-            indices.push_back(segments);
-            indices.push_back(segments + i + 1);
-            indices.push_back(segments + i);
+            m_indices.push_back(segments);
+            m_indices.push_back(segments + i + 1);
+            m_indices.push_back(segments + i);
         }
 
 
@@ -383,38 +380,27 @@ namespace VkRender {
         // bottomRight -> bottomLeft
         // bottomLeft -> topLeft
 
-        indices = {
-            // Lines from pinhole (0) to image corners
-            0, 1,
-            0, 2,
-            0, 3,
-            0, 4,
+    m_dynamicIndices = {
+        // pyramid sides
+        0, 2, 1,
+        0, 3, 2,
+        0, 4, 3,
+        0, 1, 4,
 
-            // Image plane rectangle
-            1, 2,
-            2, 3,
-            3, 4,
-            4, 1,
+        // front image‐plane quad
+        1, 2, 3,
+        1, 3, 4,
 
-            // Lines from pinhole (0) to sensor corners
-            0, 5,
-            0, 6,
-            0, 7,
-            0, 8,
+        // back sensor‐plane quad
+        5, 7, 8,
+        5, 6, 7
+    };
 
-            // Image plane rectangle
-            5, 8, 7,
-            5, 7, 6,
 
-        };
-
-        vertices.resize(uboVertices.size());
+        m_dynamicVertices.resize(uboVertices.size());
         for (size_t i = 0; i < uboVertices.size(); ++i) {
-            vertices[i].pos = uboVertices[i];
-            vertices[i].normal = glm::vec3(0.0f, 0.0f, 1.0f); // Normal not very meaningful for a line gizmo
-            vertices[i].uv0 = glm::vec2(0.0f, 0.0f); // Placeholder UV
-            vertices[i].uv1 = glm::vec2(0.0f, 0.0f); // Placeholder UV
-            vertices[i].color = glm::vec4(1.0f); // White color
+            m_dynamicVertices[i].pos = glm::vec4(uboVertices[i], 0.0f);
+            m_dynamicVertices[i].color = glm::vec4(1.0f); // White color
         }
 
         // This is a gizmo; often drawn as lines. Ensure rendering mode is line-friendly if needed.
@@ -427,54 +413,49 @@ namespace VkRender {
         float fovDegrees = perspective.parameters.fov;
         float aspect = perspective.parameters.aspect;
 
-        // Convert FOV to radians if it's given in degrees
         float fovRadians = glm::radians(fovDegrees);
         float tanHalfFov = std::tan(fovRadians * 0.5f);
 
-        // Compute the half-widths and half-heights of the near and far planes
         float nearHeight = 2.0f * nearDist * tanHalfFov;
         float nearWidth = nearHeight * aspect;
 
         float farHeight = 2.0f * farDist * tanHalfFov;
         float farWidth = farHeight * aspect;
 
-        // Define the vertices for a frustum:
-        // Near plane corners (Z = nearDist)
-        // We'll assume the camera looks along +Z, with +X to the right and +Y up.
-        glm::vec3 NBL(-nearWidth * 0.5f, -nearHeight * 0.5f, -nearDist); // Near Bottom Left
-        glm::vec3 NBR(nearWidth * 0.5f, -nearHeight * 0.5f, -nearDist); // Near Bottom Right
-        glm::vec3 NTR(nearWidth * 0.5f, nearHeight * 0.5f, -nearDist); // Near Top Right
-        glm::vec3 NTL(-nearWidth * 0.5f, nearHeight * 0.5f, -nearDist); // Near Top Left
+        // Near‐plane corners (z = –nearDist)
+        glm::vec3 NBL(-nearWidth * 0.5f, -nearHeight * 0.5f, -nearDist);
+        glm::vec3 NBR(nearWidth * 0.5f, -nearHeight * 0.5f, -nearDist);
+        glm::vec3 NTR(nearWidth * 0.5f, nearHeight * 0.5f, -nearDist);
+        glm::vec3 NTL(-nearWidth * 0.5f, nearHeight * 0.5f, -nearDist);
 
-        // Far plane corners (Z = farDist)
-        glm::vec3 FBL(-farWidth * 0.5f, -farHeight * 0.5f, -farDist); // Far Bottom Left
-        glm::vec3 FBR(farWidth * 0.5f, -farHeight * 0.5f, -farDist); // Far Bottom Right
-        glm::vec3 FTR(farWidth * 0.5f, farHeight * 0.5f, -farDist); // Far Top Right
-        glm::vec3 FTL(-farWidth * 0.5f, farHeight * 0.5f, -farDist); // Far Top Left
+        // Far‐plane corners (z = –farDist)
+        glm::vec3 FBL(-farWidth * 0.5f, -farHeight * 0.5f, -farDist);
+        glm::vec3 FBR(farWidth * 0.5f, -farHeight * 0.5f, -farDist);
+        glm::vec3 FTR(farWidth * 0.5f, farHeight * 0.5f, -farDist);
+        glm::vec3 FTL(-farWidth * 0.5f, farHeight * 0.5f, -farDist);
 
         std::vector<glm::vec3> uboVertices = {
-            NBL, NBR, NTR, NTL, // 0-3 : Near plane
-            FBL, FBR, FTR, FTL // 4-7 : Far plane
+            NBL, NBR, NTR, NTL, // 0–3 near
+            FBL, FBR, FTR, FTL // 4–7 far
         };
 
-        // We will define the frustum as a closed mesh with 6 faces, each face made of two triangles.
-        // Indices order (triangles) for each quad is typically: (0,1,2) and (2,3,0).
-        indices = {
+        // Flip every triangle (a,b,c) → (a,c,b)
+        m_dynamicIndices = {
             // Near face
-            0, 1, 2,
-            2, 3, 0,
+            0, 2, 1,
+            0, 3, 2,
 
             // Far face
-            4, 5, 6,
-            6, 7, 4,
+            4, 6, 5,
+            4, 7, 6,
 
-            // Left face (NBL, NTL, FTL, FBL)
-            0, 3, 7,
-            7, 4, 0,
+            // Left face
+            0, 7, 3,
+            0, 4, 7,
 
-            // Right face (NBR, NTR, FTR, FBR)
-            1, 2, 6,
-            6, 5, 1,
+            // Right face
+            1, 6, 2,
+            1, 5, 6,
 
             // Top face (NTL, NTR, FTR, FTL)
             3, 2, 6,
@@ -485,144 +466,139 @@ namespace VkRender {
             5, 4, 0
         };
 
-        // Resize vertex array to match our vertex count
-        vertices.resize(uboVertices.size());
-
+        m_dynamicVertices.resize(uboVertices.size());
         for (size_t i = 0; i < uboVertices.size(); ++i) {
-            vertices[i].pos = uboVertices[i];
-            vertices[i].normal = glm::vec3(0.0f, 0.0f, 1.0f); // Placeholder normal
-            vertices[i].uv0 = glm::vec2(0.0f, 0.0f); // Placeholder UV
-            vertices[i].uv1 = glm::vec2(0.0f, 0.0f); // Placeholder UV
-            vertices[i].color = glm::vec4(1.0f); // White color
+            m_dynamicVertices[i].pos = glm::vec4(uboVertices[i], 0.0f);
+            m_dynamicVertices[i].color = glm::vec4(1.0f);
         }
 
         isDynamic = true;
     }
 
-void MeshData::generateOBJMesh(const OBJFileMeshParameters &parameters) {
-    tinyobj::ObjReaderConfig reader_config;
-    reader_config.mtl_search_path = "./";
-    reader_config.triangulate = false; // we’ll do it manually
+    void MeshData::generateOBJMesh(const OBJFileMeshParameters &parameters) {
+        tinyobj::ObjReaderConfig reader_config;
+        reader_config.mtl_search_path = "./";
+        reader_config.triangulate = false; // we’ll do it manually
 
-    tinyobj::ObjReader reader;
-    if (!reader.ParseFromFile(parameters.path.string(), reader_config)) {
-        Log::Logger::getInstance()->error("Failed to load .OBJ file {}", parameters.path.string());
-        return;
-    }
-    if (!reader.Warning().empty()) {
-        Log::Logger::getInstance()->warning(".OBJ warning: {}", reader.Warning());
-    }
+        tinyobj::ObjReader reader;
+        if (!reader.ParseFromFile(parameters.path.string(), reader_config)) {
+            Log::Logger::getInstance()->error("Failed to load .OBJ file {}", parameters.path.string());
+            return;
+        }
+        if (!reader.Warning().empty()) {
+            Log::Logger::getInstance()->warning(".OBJ warning: {}", reader.Warning());
+        }
 
-    auto& attrib  = reader.GetAttrib();
-    auto& shapes  = reader.GetShapes();
+        auto &attrib = reader.GetAttrib();
+        auto &shapes = reader.GetShapes();
 
-    bool hasNormals   = !attrib.normals.empty();
-    bool hasTexcoords = !attrib.texcoords.empty();
+        bool hasNormals = !attrib.normals.empty();
+        bool hasTexcoords = !attrib.texcoords.empty();
 
-    // Estimate sizes
-    size_t estVerts = attrib.vertices.size() / 3;
-    size_t estIdxs  = 0;
-    for (auto &shape : shapes)
-        for (auto vcount : shape.mesh.num_face_vertices)
-            estIdxs += (vcount - 2) * 3;
+        // Estimate sizes
+        size_t estVerts = attrib.vertices.size() / 3;
+        size_t estIdxs = 0;
+        for (auto &shape: shapes)
+            for (auto vcount: shape.mesh.num_face_vertices)
+                estIdxs += (vcount - 2) * 3;
 
-    vertices.clear();
-    indices.clear();
-    vertices.reserve(estVerts);
-    indices.reserve(estIdxs);
+        m_vertices.clear();
+        m_indices.clear();
+        m_vertices.reserve(estVerts);
+        m_indices.reserve(estIdxs);
 
-    std::unordered_map<VkRender::Vertex,uint32_t> uniqueVerts;
-    uniqueVerts.reserve(estVerts);
+        std::unordered_map<VkRender::Vertex, uint32_t> uniqueVerts;
+        uniqueVerts.reserve(estVerts);
 
-    // Helper lambda to add a single corner
-    auto addCorner = [&](const tinyobj::index_t &idx) {
-        VkRender::Vertex v{};
-        // POSITION
-        v.pos = {
-            attrib.vertices[3*idx.vertex_index + 0],
-            attrib.vertices[3*idx.vertex_index + 1],
-            attrib.vertices[3*idx.vertex_index + 2]
+        // Helper lambda to add a single corner
+        auto addCorner = [&](const tinyobj::index_t &idx) {
+            VkRender::Vertex v{};
+            // POSITION
+            v.pos = {
+                attrib.vertices[3 * idx.vertex_index + 0],
+                attrib.vertices[3 * idx.vertex_index + 1],
+                attrib.vertices[3 * idx.vertex_index + 2]
+            };
+            // NORMAL (or zero)
+            if (hasNormals && idx.normal_index >= 0) {
+                v.normal = {
+                    attrib.normals[3 * idx.normal_index + 0],
+                    attrib.normals[3 * idx.normal_index + 1],
+                    attrib.normals[3 * idx.normal_index + 2]
+                };
+            } else {
+                v.normal = {0.0f, 0.0f, 0.0f};
+            }
+            // UV (or zero)
+            if (hasTexcoords && idx.texcoord_index >= 0) {
+                v.uv0 = {
+                    attrib.texcoords[2 * idx.texcoord_index + 0],
+                    1.0f - attrib.texcoords[2 * idx.texcoord_index + 1]
+                };
+            } else {
+                v.uv0 = {0.0f, 0.0f};
+            }
+            // De-dup
+            auto [it, inserted] = uniqueVerts.try_emplace(v, uint32_t(m_vertices.size()));
+            if (inserted) {
+                m_vertices.push_back(v);
+            }
+            return it->second;
         };
-        // NORMAL (or zero)
-        if (hasNormals && idx.normal_index >= 0) {
-            v.normal = {
-                attrib.normals[3*idx.normal_index + 0],
-                attrib.normals[3*idx.normal_index + 1],
-                attrib.normals[3*idx.normal_index + 2]
-            };
-        } else {
-            v.normal = {0.0f,0.0f,0.0f};
-        }
-        // UV (or zero)
-        if (hasTexcoords && idx.texcoord_index >= 0) {
-            v.uv0 = {
-                attrib.texcoords[2*idx.texcoord_index + 0],
-                1.0f - attrib.texcoords[2*idx.texcoord_index + 1]
-            };
-        } else {
-            v.uv0 = {0.0f,0.0f};
-        }
-        // De-dup
-        auto [it, inserted] = uniqueVerts.try_emplace(v, uint32_t(vertices.size()));
-        if (inserted) {
-            vertices.push_back(v);
-        }
-        return it->second;
-    };
 
-    // Build triangles
-    for (auto &shape : shapes) {
-        auto &mesh = shape.mesh;
-        size_t offset = 0;
-        for (size_t f = 0; f < mesh.num_face_vertices.size(); ++f) {
-            int fv = mesh.num_face_vertices[f];
-            // grab all the indices of this face
-            std::vector<tinyobj::index_t> faceCorners;
-            faceCorners.reserve(fv);
-            for (int k = 0; k < fv; ++k) {
-                faceCorners.push_back(mesh.indices[offset + k]);
+        // Build triangles
+        for (auto &shape: shapes) {
+            auto &mesh = shape.mesh;
+            size_t offset = 0;
+            for (size_t f = 0; f < mesh.num_face_vertices.size(); ++f) {
+                int fv = mesh.num_face_vertices[f];
+                // grab all the indices of this face
+                std::vector<tinyobj::index_t> faceCorners;
+                faceCorners.reserve(fv);
+                for (int k = 0; k < fv; ++k) {
+                    faceCorners.push_back(mesh.indices[offset + k]);
+                }
+                // fan-triangulate: (0, k, k+1)
+                for (int k = 1; k + 1 < fv; ++k) {
+                    m_indices.push_back(addCorner(faceCorners[0]));
+                    m_indices.push_back(addCorner(faceCorners[k]));
+                    m_indices.push_back(addCorner(faceCorners[k + 1]));
+                }
+                offset += fv;
             }
-            // fan-triangulate: (0, k, k+1)
-            for (int k = 1; k + 1 < fv; ++k) {
-                indices.push_back(addCorner(faceCorners[0]));
-                indices.push_back(addCorner(faceCorners[k]));
-                indices.push_back(addCorner(faceCorners[k+1]));
+        }
+
+        // if the OBJ had *no* normals, build them now
+        if (!hasNormals) {
+            computeNormals();
+        }
+    }
+
+    void MeshData::computeNormals() {
+        std::vector<glm::vec3> acc(m_vertices.size(), glm::vec3(0.0f));
+
+        // accumulate face normals
+        for (size_t i = 0; i + 2 < m_indices.size(); i += 3) {
+            uint32_t i0 = m_indices[i + 0],
+                    i1 = m_indices[i + 1],
+                    i2 = m_indices[i + 2];
+            auto &p0 = m_vertices[i0].pos;
+            auto &p1 = m_vertices[i1].pos;
+            auto &p2 = m_vertices[i2].pos;
+
+            glm::vec3 fn = glm::normalize(glm::cross(p1 - p0, p2 - p0));
+            acc[i0] += fn;
+            acc[i1] += fn;
+            acc[i2] += fn;
+        }
+
+        // normalize and assign only where we originally had no normal
+        for (size_t i = 0; i < m_vertices.size(); ++i) {
+            if (glm::length(m_vertices[i].normal) < 1e-6f) {
+                m_vertices[i].normal = glm::normalize(acc[i]);
             }
-            offset += fv;
         }
     }
-
-    // if the OBJ had *no* normals, build them now
-    if (!hasNormals) {
-        computeNormals();
-    }
-}
-
-void MeshData::computeNormals() {
-    std::vector<glm::vec3> acc(vertices.size(), glm::vec3(0.0f));
-
-    // accumulate face normals
-    for (size_t i = 0; i + 2 < indices.size(); i += 3) {
-        uint32_t i0 = indices[i+0],
-                 i1 = indices[i+1],
-                 i2 = indices[i+2];
-        auto &p0 = vertices[i0].pos;
-        auto &p1 = vertices[i1].pos;
-        auto &p2 = vertices[i2].pos;
-
-        glm::vec3 fn = glm::normalize(glm::cross(p1 - p0, p2 - p0));
-        acc[i0] += fn;
-        acc[i1] += fn;
-        acc[i2] += fn;
-    }
-
-    // normalize and assign only where we originally had no normal
-    for (size_t i = 0; i < vertices.size(); ++i) {
-        if (glm::length(vertices[i].normal) < 1e-6f) {
-            vertices[i].normal = glm::normalize(acc[i]);
-        }
-    }
-}
 
     void MeshData::generatePLYMesh(const PLYFileMeshParameters &parameters) {
         std::ifstream ss(parameters.path.string(), std::ios::binary);
@@ -700,38 +676,135 @@ void MeshData::computeNormals() {
             };
 
             vertex.normal = glm::vec3(0.0f);
-            vertices.push_back(vertex);
+            m_vertices.push_back(vertex);
         }
 
         // Populate indices
         for (size_t i = 0; i < numFaces; ++i) {
-            indices.push_back(faces[3 * i + 0]);
-            indices.push_back(faces[3 * i + 1]);
-            indices.push_back(faces[3 * i + 2]);
+            m_indices.push_back(faces[3 * i + 0]);
+            m_indices.push_back(faces[3 * i + 1]);
+            m_indices.push_back(faces[3 * i + 2]);
         }
 
         // Compute face normals and accumulate them in each vertex normal
-        for (size_t i = 0; i < indices.size(); i += 3) {
-            uint32_t i0 = indices[i + 0];
-            uint32_t i1 = indices[i + 1];
-            uint32_t i2 = indices[i + 2];
+        for (size_t i = 0; i < m_indices.size(); i += 3) {
+            uint32_t i0 = m_indices[i + 0];
+            uint32_t i1 = m_indices[i + 1];
+            uint32_t i2 = m_indices[i + 2];
 
-            glm::vec3 v0 = vertices[i0].pos;
-            glm::vec3 v1 = vertices[i1].pos;
-            glm::vec3 v2 = vertices[i2].pos;
+            glm::vec3 v0 = m_vertices[i0].pos;
+            glm::vec3 v1 = m_vertices[i1].pos;
+            glm::vec3 v2 = m_vertices[i2].pos;
 
             glm::vec3 edge1 = v1 - v0;
             glm::vec3 edge2 = v2 - v0;
             glm::vec3 faceNormal = glm::normalize(glm::cross(edge1, edge2));
 
-            vertices[i0].normal += faceNormal;
-            vertices[i1].normal += faceNormal;
-            vertices[i2].normal += faceNormal;
+            m_vertices[i0].normal += faceNormal;
+            m_vertices[i1].normal += faceNormal;
+            m_vertices[i2].normal += faceNormal;
         }
 
         // Normalize all the vertex normals
-        for (auto &vertex: vertices) {
+        for (auto &vertex: m_vertices) {
             vertex.normal = glm::normalize(vertex.normal);
+        }
+    }
+
+    void MeshData::generatePlaneMesh(const PlaneMeshParameters &plane) {
+        // Origin in XYZ, and half-extents in X (width) and Y (height)
+        const glm::vec3 O = plane.origin;
+        const glm::vec2 half = glm::vec2(plane.size * 0.5f);
+
+        // Four corners in the XY plane (Z fixed at O.z), CCW when looking down +Z
+        const std::array<glm::vec3, 4> corners = {
+            glm::vec3{O.x - half.x, O.y - half.y, O.z},
+            glm::vec3{O.x + half.x, O.y - half.y, O.z},
+            glm::vec3{O.x + half.x, O.y + half.y, O.z},
+            glm::vec3{O.x - half.x, O.y + half.y, O.z}
+        };
+
+        // Up-vector normal for a Z-up world
+        const glm::vec3 normal{0.0f, 0.0f, 1.0f};
+
+        // Default white RGBA
+        const glm::vec4 white{1.0f, 1.0f, 1.0f, 1.0f};
+
+        // Emit the 4 vertices
+        for (int i = 0; i < 4; ++i) {
+            Vertex v{};
+            v.pos = corners[i];
+            v.normal = normal;
+            v.color = white;
+            m_vertices.push_back(v);
+        }
+
+        // Two triangles: (0,1,2) and (2,3,0)
+        m_indices = {
+            2, 1, 0,
+            0, 3, 2
+        };
+    }
+
+    void MeshData::generateCubeMesh(const CubeMeshParameters &cube) {
+        m_vertices.clear();
+        m_indices.clear();
+
+        const glm::vec3 half = glm::vec3(cube.size * 0.5f);
+        const glm::vec3 &O = cube.origin;
+
+        // same 8 corners
+        const std::array<glm::vec3, 8> corners = {{
+            {-half.x, -half.y, -half.z}, // 0
+            { half.x, -half.y, -half.z}, // 1
+            { half.x,  half.y, -half.z}, // 2
+            {-half.x,  half.y, -half.z}, // 3
+            {-half.x, -half.y,  half.z}, // 4
+            { half.x, -half.y,  half.z}, // 5
+            { half.x,  half.y,  half.z}, // 6
+            {-half.x,  half.y,  half.z}  // 7
+        }};
+
+        // corrected normals: bottom/top on Z, left/right on X, back/front on Y
+        const std::array<glm::vec3, 6> normals = {{
+            { 0,  0, -1}, // 0 → bottom (Z−)
+            { 0,  0,  1}, // 1 → top    (Z+)
+            {-1,  0,  0}, // 2 → left   (X−)
+            { 1,  0,  0}, // 3 → right  (X+)
+            { 0, -1,  0}, // 4 → back   (Y−)
+            { 0,  1,  0}  // 5 → front  (Y+)
+        }};
+
+        struct Face { uint8_t v[4], n; };
+        // assign each quad the correct normal-index
+        const std::array<Face, 6> faces = {{
+            {{0, 1, 2, 3}, 0}, // bottom (Z−)
+            {{4, 5, 6, 7}, 1}, // top    (Z+)
+            {{4, 0, 3, 7}, 2}, // left   (X−)
+            {{1, 5, 6, 2}, 3}, // right  (X+)
+            {{0, 4, 5, 1}, 4}, // back   (Y−)
+            {{3, 2, 6, 7}, 5}  // front  (Y+)
+        }};
+
+        const glm::vec4 white{1,1,1,1};
+
+        for (int f = 0; f < 6; ++f) {
+            const Face &face = faces[f];
+            uint32_t base = static_cast<uint32_t>(m_vertices.size());
+
+            for (int k = 0; k < 4; ++k) {
+                Vertex v;
+                v.pos    = O + corners[face.v[k]];
+                v.normal = normals[face.n];
+                v.color  = white;
+                m_vertices.push_back(v);
+            }
+
+            // CCW from outside
+            m_indices.insert(m_indices.end(), {
+                base+0, base+1, base+2,
+                base+2, base+3, base+0
+            });
         }
     }
 }

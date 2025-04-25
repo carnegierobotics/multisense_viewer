@@ -237,6 +237,7 @@ set(SOURCE_FILES
         src/Viewer/Rendering/VulkanMeshResourceManager.cpp
         src/Viewer/Rendering/MeshManager.cpp
         src/Viewer/Rendering/MeshParameters.cpp
+        src/Viewer/Rendering/IMeshParameters.cpp
 
         src/Viewer/Scenes/Scene.cpp
         src/Viewer/Scenes/SceneSerializer.cpp

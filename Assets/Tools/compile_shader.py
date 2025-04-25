@@ -29,8 +29,8 @@ def main():
         print(f"Compiling from Ubuntu: cwd: {os.getcwd()}")
         glslc = "/usr/bin/glslc"
 
-    scene_out_dir = os.path.join(project_path, "Resources/Assets/Shaders/spv/")
-    shader_dir = os.path.join(project_path, "Resources/Assets/Shaders")
+    scene_out_dir = os.path.join(project_path, "Assets/Shaders/spv/")
+    shader_dir = os.path.join(project_path, "Assets/Shaders")
 
     print(f"glslc path: {glslc}")
     print(f"Scene output directory: {scene_out_dir}")
@@ -69,7 +69,7 @@ def main():
 
     # Copy compiled shaders to each build directory
     for build_dir in build_dirs:
-        out_dir = os.path.join(build_dir, "Resources/Assets/Shaders/spv/")
+        out_dir = os.path.join(build_dir, "Assets/Shaders/spv/")
         if not os.path.exists(out_dir):
             os.makedirs(out_dir, exist_ok=True)
 

@@ -7,6 +7,34 @@
 #include "Viewer/Rendering/MeshData.h"
 
 namespace VkRender {
+    std::shared_ptr<MeshData> CubeMeshParameters::generateMeshData() {
+        // Generate mesh data for a cylinder
+        // maintain versioning
+        uint32_t version = 0;
+        if (m_meshData) {
+            version = m_meshData->version;
+        }
+        auto meshData = std::make_shared<MeshData>();
+        meshData->generateCubeMesh(*this);
+        m_meshData = meshData.get();
+        m_meshData->version = ++version;
+        return meshData;
+    }
+
+    std::shared_ptr<MeshData> PlaneMeshParameters::generateMeshData() {
+        // Generate mesh data for a cylinder
+        // maintain versioning
+        uint32_t version = 0;
+        if (m_meshData) {
+            version = m_meshData->version;
+        }
+        auto meshData = std::make_shared<MeshData>();
+        meshData->generatePlaneMesh(*this);
+        m_meshData = meshData.get();
+        m_meshData->version = ++version;
+        return meshData;
+    }
+
     std::shared_ptr<MeshData> CylinderMeshParameters::generateMeshData() {
         // Generate mesh data for a cylinder
         // maintain versioning

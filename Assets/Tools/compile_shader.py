@@ -24,7 +24,7 @@ def main():
     if is_windows:
         print(f"Compiling from Windows: cwd: {os.getcwd()}")
         print(f"Compiling from Windows: project path: {project_path}")
-        glslc = "Windows/glslc.exe"
+        glslc = "C:/glslc/bin/glslc.exe"
     else:
         print(f"Compiling from Ubuntu: cwd: {os.getcwd()}")
         glslc = "/usr/bin/glslc"

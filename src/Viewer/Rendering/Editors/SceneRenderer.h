@@ -8,6 +8,7 @@
 #include "BaseCamera.h"
 #include "Viewer/Rendering/Core/PipelineManager.h"
 #include "Viewer/Rendering/Core/DescriptorSetManager.h"
+#include "Viewer/Rendering/Core/GPUResourceCache.h"
 #include "Viewer/Rendering/VulkanMeshResourceManager.h"
 #include "Viewer/Rendering/MeshManager.h"
 
@@ -40,6 +41,7 @@ namespace VkRender {
         bool isEntityTreeVisible(Entity e) const;
 
         PipelineKey makeKey(MeshComponent &mc, const MeshInstance &mi, MaterialInstance *mat);
+        PipelineInfo makePipelineInfo(MaterialInstance *mat);
 
         void onSceneLoad(std::shared_ptr<Scene> scene) override;
         void onEditorResize() override;

@@ -77,7 +77,8 @@ namespace VkRender {
     }
 
     void EditorImage::onRender(CommandBuffer& commandBuffer) {
-        std::unordered_map<std::shared_ptr<DefaultGraphicsPipeline>, std::vector<RenderCommand>> renderGroups;
+        /*
+        std::unordered_map<std::shared_ptr<VulkanGraphicsPipeline>, std::vector<RenderCommand>> renderGroups;
         collectRenderCommands(renderGroups, commandBuffer.frameIndex);
 
         // Render each group
@@ -88,12 +89,12 @@ namespace VkRender {
                 bindResourcesAndDraw(commandBuffer, command);
             }
         }
+        */
     }
 
     void EditorImage::collectRenderCommands(
 
-        std::unordered_map<std::shared_ptr<DefaultGraphicsPipeline>, std::vector<RenderCommand>>& renderGroups,
-        uint32_t frameIndex) {
+        std::unordered_map<std::shared_ptr<VulkanGraphicsPipeline>, std::vector<RenderCommand>>& renderGroups,uint32_t frameIndex) {
 
         /*
         if (!m_meshInstances) {
@@ -169,14 +170,14 @@ namespace VkRender {
         }
 
         vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                          command.pipeline->pipeline()->getPipeline());
+                          command.pipeline->getPipeline());
 
 
         for (auto& [index, descriptorSet] : command.descriptorSets) {
             vkCmdBindDescriptorSets(
                 cmdBuffer,
                 VK_PIPELINE_BIND_POINT_GRAPHICS,
-                command.pipeline->pipeline()->getPipelineLayout(),
+                command.pipeline->getPipelineLayout(),
                 0, // TODO can't reuse the approach in SceneRenderer since we have different manager types
                 1,
                 &descriptorSet,

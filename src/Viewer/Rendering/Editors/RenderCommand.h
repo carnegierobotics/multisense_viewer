@@ -6,7 +6,6 @@
 #define MULTISENSE_VIEWER_RENDERCOMMAND_H
 #include <vulkan/vulkan_core.h>
 
-#include "Viewer/Rendering/RenderResources/DefaultGraphicsPipeline.h"
 #include "Viewer/Rendering/MeshInstance.h"
 #include "Viewer/Rendering/Components/MaterialComponent.h"
 #include "Viewer/Scenes/Entity.h"
@@ -17,7 +16,7 @@ namespace VkRender{
 
     struct RenderCommand {
         Entity entity{};
-        std::shared_ptr<DefaultGraphicsPipeline> pipeline = nullptr;
+        std::shared_ptr<VulkanGraphicsPipeline> pipeline = nullptr;
         MeshInstance* meshInstance = nullptr;             // GPU-specific mesh data
         MaterialInstance* materialInstance = nullptr;  // GPU-specific material data
         std::unordered_map<DescriptorManagerType, VkDescriptorSet> descriptorSets{}; // Add the descriptor set here

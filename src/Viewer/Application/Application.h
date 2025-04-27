@@ -174,6 +174,8 @@ namespace VkRender {
         Entity m_selectedEntity;
 
         SYCLDeviceManager m_syclDeviceManager;
+        std::shared_ptr<AssetManager> m_assetManager;
+        std::shared_ptr<GPUResourceCache> m_gpuResourcesCache;
 
     private:
         friend class ApplicationConfig;

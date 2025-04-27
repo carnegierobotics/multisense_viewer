@@ -21,10 +21,7 @@ namespace VkRender {
                polygonMode  == o.polygonMode&&
                vsCRC        == o.vsCRC      &&
                fsCRC        == o.fsCRC      &&
-               materialFlags== o.materialFlags &&
-               memcmp(&bindings   , &o.bindings , sizeof(bindings))    == 0 &&
-               attrCount   == o.attrCount &&
-               memcmp(attrs.data(), o.attrs.data(),
-                      attrCount * sizeof(VkVertexInputAttributeDescription)) == 0;
+               meshId       == o.meshId      &&
+               materialFlags== o.materialFlags;
     }
 }

@@ -9,10 +9,7 @@
 #include "Viewer/Rendering/Editors/ArcballCamera.h"
 #include "Viewer/Rendering/Editors/CommonEditorFunctions.h"
 #include "Viewer/Application/Application.h"
-#include "Viewer/Rendering/Components/Components.h"
-#include "Viewer/Rendering/RenderResources/DefaultGraphicsPipeline.h"
 #include "Viewer/Scenes/Entity.h"
-#include "Viewer/Rendering/Components/MeshComponent.h"
 
 namespace VkRender {
     Editor3DViewport::Editor3DViewport(EditorCreateInfo &createInfo, UUID uuid) : Editor(createInfo, uuid) {
@@ -187,32 +184,34 @@ namespace VkRender {
 
 
     void Editor3DViewport::onRender(CommandBuffer &commandBuffer) {
-        std::unordered_map<std::shared_ptr<DefaultGraphicsPipeline>, std::vector<RenderCommand>> renderGroups;
+        /*
+        std::unordered_map<std::shared_ptr<VulkanGraphicsPipeline>, std::vector<RenderCommand>> renderGroups;
         collectRenderCommands(renderGroups, commandBuffer.frameIndex);
 
         // Render each group
         for (auto &[pipeline, commands]: renderGroups) {
-            pipeline->bind(commandBuffer);
+            vkCmdBindPipeline(commandBuffer.getActiveBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->getPipeline());
+
+
             for (auto &command: commands) {
                 // Bind resources and draw
                 bindResourcesAndDraw(commandBuffer, command);
             }
         }
+        */
     }
 
     void Editor3DViewport::collectRenderCommands(
-            std::unordered_map<std::shared_ptr<DefaultGraphicsPipeline>, std::vector<RenderCommand>> &renderGroups,
+            std::unordered_map<std::shared_ptr<VulkanGraphicsPipeline>, std::vector<RenderCommand>> &renderGroups,
             uint32_t frameIndex) {
 
-        /*
+
         if (!m_meshInstances) {
             m_meshInstances = EditorUtils::setupMesh(m_context);
             Log::Logger::getInstance()->info("Created MeshInstance for 3DViewport");
         }
         if (!m_meshInstances)
             return;
-        PipelineKey key = {};
-        key.setLayouts.resize(1);
         if (m_ui->resizeActive) {
             m_descriptorRegistry.getManager(DescriptorManagerType::Viewport3DTexture).freeDescriptorSets();
         }
@@ -231,13 +230,29 @@ namespace VkRender {
         std::vector descriptorWrites = {writeDescriptors[0], writeDescriptors[1]};
         VkDescriptorSet descriptorSet = m_descriptorRegistry.getManager(DescriptorManagerType::Viewport3DTexture).
                 getOrCreateDescriptorSet(descriptorWrites);
-        key.setLayouts[0] = m_descriptorRegistry.getManager(DescriptorManagerType::Viewport3DTexture).
+
+        PipelineInfo pipelineInfo{};
+
+        pipelineInfo.setLayouts.resize(1);
+
+        pipelineInfo.setLayouts[0] = m_descriptorRegistry.getManager(DescriptorManagerType::Viewport3DTexture).
                 getDescriptorSetLayout();
         // Use default descriptor set layout
-        key.vertexShaderName = "Editors/default2D.vert";
-        key.fragmentShaderName = "Editors/default2D.frag";
+
+        if (!m_materialInstance)
+            m_materialInstance = initializeMaterial();
+
+
+        pipelineInfo.materialInstance = m_materialInstance.get();
+
+        PipelineKey key = {};
         key.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         key.polygonMode = VK_POLYGON_MODE_FILL;
+        std::string vertexName = "Editors/default2D.vert";
+        std::string fragName = "Editors/default2D.frag";
+        key.vsCRC = Utils::crc32(vertexName);
+        key.fsCRC = Utils::crc32(fragName);
+
         std::vector<VkVertexInputBindingDescription> vertexInputBinding = {
                 {0, sizeof(VkRender::ImageVertex), VK_VERTEX_INPUT_RATE_VERTEX}
         };
@@ -245,8 +260,8 @@ namespace VkRender {
                 {0, 0, VK_FORMAT_R32G32_SFLOAT, 0},
                 {1, 0, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 2},
         };
-        key.vertexInputBindingDescriptions = vertexInputBinding;
-        key.vertexInputAttributes = vertexInputAttributes;
+        pipelineInfo.bindings = vertexInputBinding;
+        pipelineInfo.attrs = vertexInputAttributes;
         auto imageUI = std::dynamic_pointer_cast<Editor3DViewportUI>(m_ui);
         if (imageUI->reloadViewportShader) {
             //m_pipelineManager.removePipeline(key);
@@ -256,7 +271,7 @@ namespace VkRender {
         renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
         renderPassInfo.renderPass = m_renderPass->getRenderPass();
         renderPassInfo.debugName = "Editor3DViewport::";
-        auto pipeline = m_pipelineManager.getOrCreatePipeline(key, renderPassInfo, m_context);
+        auto pipeline = m_pipelineManager.getOrCreatePipeline(key, pipelineInfo, renderPassInfo, m_context);
         // Create the render command
         RenderCommand command;
         command.pipeline = pipeline;
@@ -264,7 +279,7 @@ namespace VkRender {
         command.descriptorSets[DescriptorManagerType::Viewport3DTexture] = descriptorSet; // Assign the descriptor set
         // Add to render group
         renderGroups[pipeline].push_back(command);
-        */
+
     }
 
     void Editor3DViewport::bindResourcesAndDraw(const CommandBuffer &commandBuffer, RenderCommand &command) {
@@ -283,14 +298,14 @@ namespace VkRender {
         }
 
         vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                          command.pipeline->pipeline()->getPipeline());
+                          command.pipeline->getPipeline());
 
 
         for (auto &[index, descriptorSet]: command.descriptorSets) {
             vkCmdBindDescriptorSets(
                     cmdBuffer,
                     VK_PIPELINE_BIND_POINT_GRAPHICS,
-                    command.pipeline->pipeline()->getPipelineLayout(),
+                    command.pipeline->getPipelineLayout(),
                     0, // TODO can't reuse the approach in SceneRenderer since we have different manager types
                     1,
                     &descriptorSet,
@@ -302,6 +317,25 @@ namespace VkRender {
         if (command.meshInstance->indexCount > 0) {
             vkCmdDrawIndexed(cmdBuffer, command.meshInstance->indexCount, 1, 0, 0, 0);
         }
+    }
+
+    std::shared_ptr<MaterialInstance> Editor3DViewport::initializeMaterial() {
+        std::shared_ptr<MaterialInstance> materialInstance = std::make_shared<MaterialInstance>();
+        VkShaderModule vertModule{};
+        VkShaderModule fragModule{};
+
+        /*
+        materialInstance->shaderStages.resize(2);
+        std::string vertexName = "spv/Editors/default2D.vert";
+        std::string fragName = "spv/Editors/default2D.frag";
+        materialInstance->shaderStages[0] = Utils::loadShader(m_context->vkDevice().m_LogicalDevice, vertexName,
+                                            VK_SHADER_STAGE_VERTEX_BIT, &vertModule);
+        materialInstance->shaderStages[1] = Utils::loadShader(m_context->vkDevice().m_LogicalDevice, fragName,
+                                            VK_SHADER_STAGE_FRAGMENT_BIT, &fragModule);
+        materialInstance->shaderModules.emplace_back(vertModule);
+        materialInstance->shaderModules.emplace_back(fragModule);
+        */
+        return materialInstance;
     }
 
     void Editor3DViewport::onMouseMove(const MouseButtons &mouse) {

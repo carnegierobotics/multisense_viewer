@@ -115,8 +115,6 @@ namespace VkRender {
 
         shaders = std::vector<VkPipelineShaderStageCreateInfo>{vtxShaderStage, fragShaderStage};
 
-
-
     }
 
 

@@ -233,9 +233,9 @@ namespace VkRender {
         std::vector<VkPipelineShaderStageCreateInfo> shaderStages(2);
         VkShaderModule vertModule{};
         VkShaderModule fragModule{};
-        shaderStages[0] = Utils::loadShader(m_vulkanDevice.m_LogicalDevice, "spv/" + m_vertexShader,
+        shaderStages[0] = Utils::loadShader(m_vulkanDevice.m_LogicalDevice,  m_vertexShader,
                                             VK_SHADER_STAGE_VERTEX_BIT, &vertModule);
-        shaderStages[1] = Utils::loadShader(m_vulkanDevice.m_LogicalDevice, "spv/" + m_fragmentShader,
+        shaderStages[1] = Utils::loadShader(m_vulkanDevice.m_LogicalDevice,  m_fragmentShader,
                                             VK_SHADER_STAGE_FRAGMENT_BIT, &fragModule);
 
         VulkanGraphicsPipelineCreateInfo createInfo(m_renderPassInfo.renderPass, m_vulkanDevice);

@@ -297,7 +297,7 @@ namespace VkRender {
 
 
     void EditorPathTracer::onRender(CommandBuffer &commandBuffer) {
-        std::unordered_map<std::shared_ptr<DefaultGraphicsPipeline>, std::vector<RenderCommand> > renderGroups;
+        std::unordered_map<std::shared_ptr<VulkanGraphicsPipeline>, std::vector<RenderCommand> > renderGroups;
         collectRenderCommands(renderGroups, commandBuffer.frameIndex);
         Log::Logger::getInstance()->trace("Collected Drawing commands");
 
@@ -314,7 +314,7 @@ namespace VkRender {
     }
 
     void EditorPathTracer::collectRenderCommands(
-        std::unordered_map<std::shared_ptr<DefaultGraphicsPipeline>, std::vector<RenderCommand> > &renderGroups,
+        std::unordered_map<std::shared_ptr<VulkanGraphicsPipeline>, std::vector<RenderCommand> > &renderGroups,
         uint32_t frameIndex) {
         if (!m_meshInstances) {
             m_meshInstances = EditorUtils::setupMesh(m_context);

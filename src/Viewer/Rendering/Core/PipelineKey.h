@@ -9,6 +9,7 @@
 #include <vector>
 #include <filesystem>
 #include <array>
+#include <Viewer/Rendering/Components/MaterialComponent.h>
 #include <vulkan/vulkan.h> // For Vulkan types
 
 namespace VkRender {
@@ -20,6 +21,17 @@ namespace VkRender {
     };
 
 
+    struct PipelineInfo {
+        /* ───────── descriptor-set layouts (0..2) ─────── */
+        std::vector<VkDescriptorSetLayout> setLayouts  = {};
+
+        /* ───────── vertex format (binding 0+1) ───────── */
+        std::vector<VkVertexInputBindingDescription> bindings{};
+        std::vector<VkVertexInputAttributeDescription> attrs{};
+        uint32_t attrCount = 0;
+
+        MaterialInstance* materialInstance = nullptr;
+    };
     struct PipelineKey
     {
         /* ───────── fixed-function state ───────── */
@@ -32,14 +44,6 @@ namespace VkRender {
         uint32_t             vsCRC           = 0;         // 32-bit crc or hash of vertex shader path
         uint32_t             fsCRC           = 0;         // 32-bit crc of fragment shader path
         uint32_t             materialFlags   = 0;         // e.g. bit0 = hasTexture, bit1 = alphaTest …
-
-        /* ───────── descriptor-set layouts (0..2) ─────── */
-        std::vector<VkDescriptorSetLayout> setLayouts  = {};
-
-        /* ───────── vertex format (binding 0+1) ───────── */
-        std::array<VkVertexInputBindingDescription, 2> bindings{};
-        std::array<VkVertexInputAttributeDescription, 9> attrs{};
-        uint32_t attrCount = 0;
 
         bool operator==(const PipelineKey& other) const;
 
@@ -60,9 +64,8 @@ namespace VkRender {
             mix(k.polygonMode);
             mix(k.vsCRC);
             mix(k.fsCRC);
+            mix(k.meshId);
             mix(k.materialFlags);
-            mix(k.bindings[0].stride);         // binding 0 stride is enough here
-            mix(k.attrCount);
 
             return h;
         }

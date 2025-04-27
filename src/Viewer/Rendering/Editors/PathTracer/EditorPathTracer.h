@@ -29,7 +29,7 @@ namespace VkRender {
         void onRender(CommandBuffer &drawCmdBuffers) override;
 
         void collectRenderCommands(
-            std::unordered_map<std::shared_ptr<DefaultGraphicsPipeline>, std::vector<RenderCommand> > &renderGroups,
+            std::unordered_map<std::shared_ptr<VulkanGraphicsPipeline>, std::vector<RenderCommand> > &renderGroups,
             uint32_t frameIndex);
 
         void bindResourcesAndDraw(const CommandBuffer &commandBuffer, RenderCommand &command);

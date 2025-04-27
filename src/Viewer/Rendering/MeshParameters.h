@@ -39,7 +39,7 @@ namespace VkRender {
 
         std::string getIdentifier() const override {
             // Generate a unique identifier based on parameters
-            return "CUBE_" + std::to_string(m_uuid);
+            return "CUBE";
         }
 
         std::shared_ptr<MeshData> generateMeshData() override;
@@ -66,7 +66,7 @@ namespace VkRender {
 
         std::string getIdentifier() const override {
             // Generate a unique identifier based on parameters
-            return "PLANE_" + std::to_string(m_uuid);
+            return "PLANE";
         }
 
         std::shared_ptr<MeshData> generateMeshData() override;
@@ -102,7 +102,7 @@ namespace VkRender {
 
         std::string getIdentifier() const override {
             // Generate a unique identifier based on parameters
-            return "Cylinder_" + std::to_string(m_uuid);
+            return "Cylinder";
         }
 
         std::shared_ptr<MeshData> generateMeshData() override;
@@ -134,7 +134,7 @@ namespace VkRender {
 
         std::string getIdentifier() const override {
             // Generate a unique identifier based on parameters
-            return "Quadric" + std::to_string(m_uuid);
+            return "Quadric";
         }
 
         std::shared_ptr<MeshData> generateMeshData() override;
@@ -145,7 +145,7 @@ namespace VkRender {
         PinholeParameters parameters;
 
         std::string getIdentifier() const override {
-            return "CameraGizmoPinhole_" + std::to_string(m_uuid);
+            return "CameraGizmoPinhole";
         }
 
         std::shared_ptr<MeshData> generateMeshData() override;
@@ -156,7 +156,7 @@ namespace VkRender {
         ProjectionParameters parameters;
 
         std::string getIdentifier() const override {
-            return "CameraGizmoPerspective_" + std::to_string(m_uuid);
+            return "CameraGizmoPerspective";
         }
 
         std::shared_ptr<MeshData> generateMeshData() override;

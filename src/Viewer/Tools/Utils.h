@@ -69,7 +69,7 @@ namespace Utils {
     DISABLE_WARNING_UNREFERENCED_FUNCTION
 
     static std::filesystem::path getShadersPath() {
-        return {"Assets/Shaders"};
+        return {"Assets/Shaders/spv"};
     }
 
     static std::filesystem::path getFontsPath() {
@@ -561,6 +561,10 @@ namespace Utils {
             default:
                 throw std::runtime_error("Unsupported VkFormat for size calculation");
         }
+    }
+
+    static uint32_t crc32(const std::string &s) {
+        return static_cast<uint32_t>(std::hash<std::string>{}(s)); // ok for demo
     }
 }
 

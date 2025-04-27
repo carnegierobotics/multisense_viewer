@@ -36,6 +36,8 @@
 
 #include "Application.h"
 
+#include <Viewer/Assets/AssetManager.h>
+#include <Viewer/Assets/ShaderLoader.h>
 #include <Viewer/Rendering/Core/UbuntuKeyInput.h>
 
 #include "ProjectSerializer.h"
@@ -50,6 +52,10 @@ namespace VkRender {
 
     Application::Application(const std::string& title) : VulkanRenderer(title) {
         auto& userSetting = ApplicationConfig::getInstance().getUserSetting();
+
+        m_assetManager = std::make_shared<AssetManager>();
+        m_assetManager->registerLoader(std::make_unique<ShaderLoader>(device));
+
         // Create a scene and load deserialize from file if a file exsits
         std::shared_ptr<Scene> scene = newScene();
         if (std::filesystem::exists(userSetting.lastActiveScenePath)) {
@@ -85,6 +91,7 @@ namespace VkRender {
 #endif
 
         VulkanRenderer::prepare();
+        m_gpuResourcesCache = std::make_shared<GPUResourceCache>(vkDevice());
         Log::Logger::getInstance()->info("Initialized Backend");
         config.setGpuDevice(physicalDevice);
 
@@ -101,7 +108,7 @@ namespace VkRender {
         passCreateInfo.width = static_cast<int32_t>(m_width);
 
         EditorCreateInfo mainMenuEditor(m_guiResources, this, m_vulkanDevice, &m_allocator,
-                                        m_frameBuffers.data());
+                                        m_frameBuffers.data(), m_assetManager, m_gpuResourcesCache);
         mainMenuEditor.borderSize = 0;
         mainMenuEditor.editorTypeDescription = EditorType::None;
         mainMenuEditor.resizeable = false;
@@ -153,7 +160,7 @@ namespace VkRender {
             // add a dummy editor to get started
             auto sizeLimits = m_mainEditor->getSizeLimits();
             EditorCreateInfo otherEditorInfo(m_guiResources, this, m_vulkanDevice, &m_allocator,
-                                             m_frameBuffers.data());
+                                             m_frameBuffers.data(), m_assetManager, m_gpuResourcesCache);
             otherEditorInfo.pPassCreateInfo = passCreateInfo;
             otherEditorInfo.borderSize = 5;
             otherEditorInfo.height = static_cast<int32_t>(m_height) - sizeLimits.MENU_BAR_HEIGHT; //- 100;
@@ -184,7 +191,7 @@ namespace VkRender {
 
         // Apply editor settings
         for (const auto& editorConfig : project.editors) {
-            EditorCreateInfo createInfo(m_guiResources, this, m_vulkanDevice, &m_allocator, m_frameBuffers.data());
+            EditorCreateInfo createInfo(m_guiResources, this, m_vulkanDevice, &m_allocator, m_frameBuffers.data(), m_assetManager, m_gpuResourcesCache);
             // Calculate editor dimensions and positions
             int32_t mainMenuBarOffset = (editorConfig.y == 0) ? 25 : 0;
             createInfo.x = static_cast<int32_t>(editorConfig.x / 100.0f * m_width);
@@ -298,7 +305,7 @@ namespace VkRender {
 
     SceneRenderer* Application::addSceneRendererWithUUID(const UUID& uuid, const EditorCreateInfo& ownerCreateInfo) {
         EditorCreateInfo sceneRendererCreateInfo(m_guiResources, this, m_vulkanDevice, &m_allocator,
-                                                 m_frameBuffers.data());
+                                                 m_frameBuffers.data(), m_assetManager, m_gpuResourcesCache);
         VulkanRenderPassCreateInfo passCreateInfo(m_vulkanDevice, &m_allocator);
         passCreateInfo.msaaSamples = msaaSamples;
         passCreateInfo.swapchainImageCount = swapchain->imageCount;
@@ -544,7 +551,7 @@ namespace VkRender {
         auto& editor = m_editors[splitEditorIndex];
         EditorCreateInfo& editorCreateInfo = editor->getCreateInfo();
         EditorCreateInfo newEditorCreateInfo(m_guiResources, this, m_vulkanDevice, &m_allocator,
-                                             m_frameBuffers.data());
+                                             m_frameBuffers.data(), m_assetManager, m_gpuResourcesCache);
 
         EditorCreateInfo::copy(&newEditorCreateInfo, &editorCreateInfo);
 
@@ -631,7 +638,7 @@ namespace VkRender {
 
     EditorCreateInfo Application::getNewEditorCreateInfo(std::unique_ptr<Editor>& editor) {
         EditorCreateInfo newEditorCI(m_guiResources, this, m_vulkanDevice, &m_allocator,
-                                     m_frameBuffers.data());
+                                     m_frameBuffers.data(), m_assetManager, m_gpuResourcesCache);
         EditorCreateInfo::copy(&newEditorCI, &editor->getCreateInfo());
 
         switch (editor->ui()->lastClickedBorderType) {

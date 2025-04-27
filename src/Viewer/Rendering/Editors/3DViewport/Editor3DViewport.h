@@ -11,7 +11,7 @@
 
 #include "Viewer/Rendering/Core/PipelineManager.h"
 #include "Viewer/Rendering/Editors/Editor.h"
-#include "Viewer/Rendering/RenderResources/DefaultGraphicsPipeline.h"
+#include "Viewer/Rendering/Core/VulkanGraphicsPipeline.h"
 #include "Viewer/Rendering/Editors/SceneRenderer.h"
 
 #include "Viewer/Rendering/Editors/RenderCommand.h"
@@ -41,8 +41,10 @@ namespace VkRender {
 
         void bindResourcesAndDraw(const CommandBuffer& commandBuffer, RenderCommand& command);
 
+        std::shared_ptr<MaterialInstance> initializeMaterial();
+
         void collectRenderCommands(
-            std::unordered_map<std::shared_ptr<DefaultGraphicsPipeline>, std::vector<RenderCommand>>& renderGroups,
+            std::unordered_map<std::shared_ptr<VulkanGraphicsPipeline>, std::vector<RenderCommand>>& renderGroups,
             uint32_t
             frameIndex);
 
@@ -64,6 +66,7 @@ namespace VkRender {
         PipelineManager m_pipelineManager;
         DescriptorRegistry m_descriptorRegistry;
         std::shared_ptr<MeshInstance> m_meshInstances;
+        std::shared_ptr<MaterialInstance> m_materialInstance;
 
         void updateActiveCamera();
     };

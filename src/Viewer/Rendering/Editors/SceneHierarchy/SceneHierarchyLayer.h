@@ -6,11 +6,6 @@
 #define MULTISENSE_VIEWER_SCENEHIERARCHY_H
 
 #include "Viewer/Rendering/ImGui/Layer.h"
-#include "Viewer/Application/Application.h"
-#include "Viewer/Scenes/Entity.h"
-#include "Viewer/Rendering/ImGui/LayerUtils.h"
-#include "Viewer/Rendering/RenderResources/DefaultGraphicsPipeline.h"
-#include "Viewer/Rendering/Components/MeshComponent.h"
 
 namespace VkRender {
 

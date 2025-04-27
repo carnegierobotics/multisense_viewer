@@ -5,15 +5,46 @@
 
 #include "PipelineManager.h"
 
+#include <Viewer/Application/Application.h>
+
 
 namespace VkRender {
-    std::shared_ptr<DefaultGraphicsPipeline> PipelineManager::getOrCreatePipeline(const PipelineKey &key, const std::string& vertex, const std::string& fragment, const RenderPassInfo& renderPassInfo, Application* context) {
+    std::shared_ptr<VulkanGraphicsPipeline> PipelineManager::getOrCreatePipeline(const PipelineKey &key, const PipelineInfo& pipelineInfo, const RenderPassInfo& renderPassInfo, Application* context) {
         auto it = m_pipelineCache.find(key);
         if (it != m_pipelineCache.end()) {
             return it->second;
         }
+
+        // Vertex bindings an attributes
+        VkPipelineVertexInputStateCreateInfo vertexInputStateCI{};
+        vertexInputStateCI.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+
+        vertexInputStateCI.pVertexBindingDescriptions = pipelineInfo.bindings.data();
+        vertexInputStateCI.pVertexAttributeDescriptions = pipelineInfo.attrs.data();
+        vertexInputStateCI.vertexAttributeDescriptionCount = static_cast<uint32_t>(pipelineInfo.attrs.size());
+        vertexInputStateCI.vertexBindingDescriptionCount = static_cast<uint32_t>(pipelineInfo.bindings.size());
+
+        VulkanGraphicsPipelineCreateInfo createInfo(renderPassInfo.renderPass, context->vkDevice());
+        createInfo.rasterizationStateCreateInfo = Populate::pipelineRasterizationStateCreateInfo(
+            key.polygonMode, VK_CULL_MODE_NONE,
+            VK_FRONT_FACE_COUNTER_CLOCKWISE);
+        createInfo.msaaSamples = renderPassInfo.sampleCount;
+
+        std::vector<VkPipelineShaderStageCreateInfo> shadersStageInfo{};
+        auto shaders = pipelineInfo.materialInstance->shaders;
+        for (const auto& shader : shaders) {
+            shadersStageInfo.emplace_back(shader->stageInfo());
+        }
+        createInfo.shaders = shadersStageInfo;
+
+        for (auto& setLayout : pipelineInfo.setLayouts) {
+            createInfo.descriptorSetLayouts.emplace_back(setLayout);
+        }
+        createInfo.vertexInputState = vertexInputStateCI;
+        createInfo.debugInfo = renderPassInfo.debugName;
+
+        auto pipeline = std::make_shared<VulkanGraphicsPipeline>(createInfo);
         // Create the graphics pipeline using the pipeline layout
-        auto pipeline = std::make_shared<DefaultGraphicsPipeline>(*context, renderPassInfo, key, vertex , fragment);
         m_pipelineCache[key] = pipeline;
         return pipeline;
     }

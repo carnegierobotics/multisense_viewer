@@ -7,8 +7,7 @@
 
 #include <glm/glm.hpp>
 #include <filesystem>
-
-#include "Viewer/Rendering/Core/PipelineKey.h"
+#include <Viewer/Rendering/Core/VulkanShaderModule.h>
 #include "Viewer/Rendering/Core/VulkanTexture.h"
 
 namespace VkRender {
@@ -29,17 +28,22 @@ namespace VkRender {
         bool useTexture = false;
 
         std::filesystem::path vertexShaderName = "BlinnPhongShaderInstanced.vert";
-        std::filesystem::path fragmentShaderName = "BlinnPhongShader.frag";
+        std::filesystem::path fragmentShaderName = "BlinnPhongShaderInstanced.frag";
         std::filesystem::path albedoTexturePath = "default.png";
     };
 
     struct MaterialInstance {
-        RenderMode renderMode = RenderMode::Opaque;
         std::shared_ptr<VulkanTexture2D> baseColorTexture;
         // Rendering properties
         AlphaMode alphaMode = AlphaMode::Opaque;
         float alphaCutoff = 0.5f;  // Used if alphaMode is Mask
         bool doubleSided = false;
+
+
+        std::vector<std::shared_ptr<VulkanShaderModule>> shaders;
+        void addShader(VulkanShaderModuleCreateInfo info) {
+            shaders.push_back(std::make_shared<VulkanShaderModule>(info));
+        }
     };
 
 }

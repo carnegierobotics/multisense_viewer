@@ -6,9 +6,9 @@
 #include "Viewer/Rendering/Editors/SceneRenderer.h"
 
 #include <Viewer/Rendering/Components/LightSourceComponent.h>
+#include <Viewer/Rendering/Core/VulkanShaderModule.h>
 
 #include "Viewer/Rendering/Components/Components.h"
-#include "Viewer/Rendering/RenderResources/DefaultGraphicsPipeline.h"
 #include "Viewer/Rendering/Components/MeshComponent.h"
 #include "Viewer/Rendering/Editors/CommonEditorFunctions.h"
 
@@ -17,11 +17,8 @@
 #include "Viewer/Scenes/Entity.h"
 
 #include "Viewer/Rendering/MeshInstance.h"
+#include "Viewer/Assets/ShaderLoader.h"
 
-
-static uint32_t crc32(const std::string &s) {
-    return static_cast<uint32_t>(std::hash<std::string>{}(s)); // ok for demo
-}
 
 namespace VkRender {
     void MeshInstance::ensureInstanceBuffer(VkDeviceSize size, VulkanDevice &dev) {
@@ -44,11 +41,12 @@ namespace VkRender {
         descriptorRegistry.createManager(DescriptorManagerType::DynamicCameraGizmo, m_context->vkDevice());
 
         m_meshResourceManager = std::make_unique<MeshResourceManager>(m_context);
-
+        /*
         VkQueryPoolCreateInfo qp{VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO};
         qp.queryType = VK_QUERY_TYPE_TIMESTAMP;
         qp.queryCount = 2;
         vkCreateQueryPool(m_context->vkDevice().m_LogicalDevice, &qp, nullptr, &m_timestampPool);
+        */
     }
 
     void SceneRenderer::onEditorResize() {
@@ -172,21 +170,19 @@ namespace VkRender {
         m_stats.cpuCollectNs = tCollect.ns();
 
         /* ---------- 2. record timestamp before first draw --------------- */
-        VkCommandBuffer vkCB = commandBuffer.getActiveBuffer();
-        vkCmdResetQueryPool(vkCB, m_timestampPool, 0, 2);
-        vkCmdWriteTimestamp(vkCB, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                            m_timestampPool, 0); // start
+        //VkCommandBuffer vkCB = commandBuffer.getActiveBuffer();
+        //vkCmdResetQueryPool(vkCB, m_timestampPool, 0, 2);
+        //vkCmdWriteTimestamp(vkCB, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, m_timestampPool, 0); // start
 
         /* ---------- 3. record draw calls -------------------------------- */
-        CpuTimer tRecord;
-        tRecord.start();
+        //CpuTimer tRecord;
+        //tRecord.start();
         for (auto &rc: m_renderGroups)
             bindResourcesAndDraw(commandBuffer, rc);
-        m_stats.cpuRecordNs = tRecord.ns();
+        //m_stats.cpuRecordNs = tRecord.ns();
 
         /* ---------- 4. GPU timestamp after last draw -------------------- */
-        vkCmdWriteTimestamp(vkCB, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-                            m_timestampPool, 1); // end
+        //vkCmdWriteTimestamp(vkCB, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, m_timestampPool, 1); // end
 
 
         /* ---------- 5. gather GPU duration after submission ------------- */
@@ -219,13 +215,13 @@ namespace VkRender {
         /* --- pipeline & descriptor sets ----------------------------------- */
         vkCmdBindPipeline(cb,
                           VK_PIPELINE_BIND_POINT_GRAPHICS,
-                          cmd.pipeline->pipeline()->getPipeline());
+                          cmd.pipeline->getPipeline());
 
         for (auto &[setIndex, setHandle]: cmd.descriptorSets) {
             if (setHandle == VK_NULL_HANDLE) continue; // skip gaps
             vkCmdBindDescriptorSets(cb,
                                     VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                    cmd.pipeline->pipeline()->getPipelineLayout(),
+                                    cmd.pipeline->getPipelineLayout(),
                                     static_cast<uint32_t>(setIndex), 1, &setHandle,
                                     0, nullptr);
         }
@@ -295,7 +291,7 @@ namespace VkRender {
                 meshComponent.meshDataType());
             if (!meshInst) continue;
 
-            auto matInst = getMaterialInstance(entity);
+            std::shared_ptr<MaterialInstance> matInst = getMaterialInstance(entity);
 
 
             auto descriptors = buildCommonDescriptorSets(entity,
@@ -342,11 +338,11 @@ namespace VkRender {
                           batch.mesh->instanceBuffer->m_memory);
 
             batch.mesh->instanceCount = static_cast<uint32_t>(batch.cpuInstances.size());
+            PipelineInfo pipelineInfo = makePipelineInfo(batch.material.get());
 
             /* --- build the single draw command ------------------------------ */
             RenderCommand cmd;
-            cmd.pipeline = m_pipelineManager.getOrCreatePipeline(key, "BlinnPhongShaderInstanced.vert",
-                                                                 "BlinnPhongShaderInstanced.frag", rp, m_context);
+            cmd.pipeline = m_pipelineManager.getOrCreatePipeline(key, pipelineInfo, rp, m_context);
             cmd.meshInstance = batch.mesh.get();
             cmd.materialInstance = batch.material.get();
             cmd.descriptorSets = std::move(batch.sets);
@@ -394,29 +390,35 @@ namespace VkRender {
         k.polygonMode = mc.polygonMode();
 
         /* shared ids  */
-        k.vsCRC = crc32("BlinnPhongShaderInstanced.vert");
-        k.fsCRC = crc32("BlinnPhongShaderInstanced.frag");
+        k.meshId = Utils::crc32(mc.getCacheIdentifier());
+        k.vsCRC = Utils::crc32("BlinnPhongShaderInstanced.vert");
+        k.fsCRC = Utils::crc32("BlinnPhongShaderInstanced.frag");
         k.materialFlags = mat && mat->baseColorTexture ? 1u : 0u;
+        return k;
+    }
 
+    PipelineInfo SceneRenderer::makePipelineInfo(MaterialInstance *mat) {
+
+        PipelineInfo info{};
         /* descriptor set layouts */
-        k.setLayouts.resize(mat ? 2 : 1);
+        info.setLayouts.resize(mat ? 2 : 1);
 
-        k.setLayouts[0] = descriptorRegistry.getManager(DescriptorManagerType::MVP)
+        info.setLayouts[0] = descriptorRegistry.getManager(DescriptorManagerType::MVP)
                 .getDescriptorSetLayout();
-        k.setLayouts[1] = mat
+        info.setLayouts[1] = mat
                               ? descriptorRegistry.getManager(DescriptorManagerType::Material)
                               .getDescriptorSetLayout()
                               : VK_NULL_HANDLE;
 
         /* vertex input: binding 0 (mesh), binding 1 (instance) */
-        k.bindings = {
+        info.bindings = {
             {
                 {0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX},
                 {1, sizeof(InstanceData), VK_VERTEX_INPUT_RATE_INSTANCE}
             }
         };
 
-        k.attrs = {
+        info.attrs = {
             {
                 {0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0},
                 {1, 0, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3},
@@ -429,9 +431,11 @@ namespace VkRender {
                 {8, 1, VK_FORMAT_R32G32B32A32_SFLOAT, 48}
             }
         };
-        k.attrCount = 9;
+        info.attrCount = 9;
 
-        return k;
+        info.materialInstance = mat;
+
+        return info;
     }
 
     std::shared_ptr<MaterialInstance>
@@ -601,15 +605,31 @@ namespace VkRender {
             materialInstance->baseColorTexture = EditorUtils::createTextureFromFile(materialComponent.albedoTexturePath,
                 m_context);
         } else {
-            materialInstance->baseColorTexture = EditorUtils::createEmptyTexture(1280, 720, VK_FORMAT_R8G8B8A8_UNORM,
+            materialInstance->baseColorTexture = EditorUtils::createEmptyTexture(300, 300, VK_FORMAT_R8G8B8A8_UNORM,
                 m_context, VMA_MEMORY_USAGE_GPU_ONLY, true);
         }
+        // 1 Load Shader code
+        auto vsSPV = assetManager()->get<SPIRVAsset>(materialComponent.vertexShaderName.string());
+        auto fsSPV = assetManager()->get<SPIRVAsset>(materialComponent.fragmentShaderName.string());
+        // 2) Wrap into a GPU resource
+        VulkanShaderModuleCreateInfo vertexShaderCreateInfo(m_context->vkDevice(), vsSPV, VK_SHADER_STAGE_VERTEX_BIT, materialComponent.vertexShaderName.string());
+        VulkanShaderModuleCreateInfo vertexShaderCreateInfo2(m_context->vkDevice(), vsSPV, VK_SHADER_STAGE_VERTEX_BIT, materialComponent.vertexShaderName.string());
+        VulkanShaderModuleCreateInfo fragmentShaderCreateInfo(m_context->vkDevice(), fsSPV, VK_SHADER_STAGE_FRAGMENT_BIT, materialComponent.fragmentShaderName.string());
+        // 3) Later in pipeline creation:
+
+        // 3) Ask the GPU cache for shared modules:
+        auto vsModule = cache()->shaderModules.get(vertexShaderCreateInfo);
+        auto fsModule = cache()->shaderModules.get(fragmentShaderCreateInfo);
+
+        materialInstance->addShader(vertexShaderCreateInfo);
+        materialInstance->addShader(fragmentShaderCreateInfo);
+
         Log::Logger::getInstance()->info("Created Material for Entity: {}", entity.getName());
         return materialInstance;
     }
 
     void SceneRenderer::debugPrintStats() const {
-        Log::Logger::getInstance()->info(
+        Log::Logger::getInstance()->trace(
             "Frame: ent={}  batches={}  instances={}  draws={}  saved={}"
             " | CPU collect {:.2f} ms  record {:.2f} ms | GPU {:.2f} ms",
             m_stats.entityCount,

@@ -221,6 +221,7 @@ set(SOURCE_FILES
         src/Viewer/Rendering/Core/VulkanTexture.cpp
         src/Viewer/Rendering/Core/VulkanTexture.h
         src/Viewer/Rendering/Core/UbuntuKeyInput.cpp
+        src/Viewer/Rendering/Core/VulkanShaderModule.cpp
 
 
         src/Viewer/Application/ApplicationConfig.cpp
@@ -230,8 +231,8 @@ set(SOURCE_FILES
         src/Viewer/Application/ApplicationUserSettings.h
         src/Viewer/Application/ProjectSerializer.cpp
 
-        src/Viewer/Rendering/RenderResources/DefaultGraphicsPipeline.cpp
-        src/Viewer/Rendering/RenderResources/GraphicsPipeline2D.cpp
+        src/Viewer/Assets/AssetManager.cpp
+        src/Viewer/Assets/ShaderLoader.cpp
 
         src/Viewer/Rendering/MeshData.cpp
         src/Viewer/Rendering/VulkanMeshResourceManager.cpp

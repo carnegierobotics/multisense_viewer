@@ -19,6 +19,7 @@ public:
   ShaderModuleCache      shaderModules;
   //PipelineCache          pipelines;
   //DescriptorSetCache     descriptors;
+  //TextureCache textures;
 
   // ... other GPU‐side caches (framebuffers, samplers, etc.) ...
 };

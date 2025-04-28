@@ -184,7 +184,7 @@ namespace VkRender {
 
 
     void Editor3DViewport::onRender(CommandBuffer &commandBuffer) {
-        /*
+
         std::unordered_map<std::shared_ptr<VulkanGraphicsPipeline>, std::vector<RenderCommand>> renderGroups;
         collectRenderCommands(renderGroups, commandBuffer.frameIndex);
 
@@ -198,13 +198,12 @@ namespace VkRender {
                 bindResourcesAndDraw(commandBuffer, command);
             }
         }
-        */
+
     }
 
     void Editor3DViewport::collectRenderCommands(
             std::unordered_map<std::shared_ptr<VulkanGraphicsPipeline>, std::vector<RenderCommand>> &renderGroups,
             uint32_t frameIndex) {
-
 
         if (!m_meshInstances) {
             m_meshInstances = EditorUtils::setupMesh(m_context);
@@ -216,25 +215,17 @@ namespace VkRender {
             m_descriptorRegistry.getManager(DescriptorManagerType::Viewport3DTexture).freeDescriptorSets();
         }
         // Prepare descriptor writes based on your texture or other resources
-        std::array<VkWriteDescriptorSet, 2> writeDescriptors{};
+        std::vector<VkWriteDescriptorSet> writeDescriptors(1);
         writeDescriptors[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         writeDescriptors[0].dstBinding = 0; // Binding index
         writeDescriptors[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         writeDescriptors[0].descriptorCount = 1;
         writeDescriptors[0].pImageInfo = &m_colorTexture->getDescriptorInfo();
-        writeDescriptors[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        writeDescriptors[1].dstBinding = 1; // Binding index
-        writeDescriptors[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        writeDescriptors[1].descriptorCount = 1;
-        writeDescriptors[1].pBufferInfo = &m_shaderSelectionBuffer[frameIndex]->m_descriptorBufferInfo;
-        std::vector descriptorWrites = {writeDescriptors[0], writeDescriptors[1]};
         VkDescriptorSet descriptorSet = m_descriptorRegistry.getManager(DescriptorManagerType::Viewport3DTexture).
-                getOrCreateDescriptorSet(descriptorWrites);
+                getOrCreateDescriptorSet(writeDescriptors);
 
         PipelineInfo pipelineInfo{};
-
         pipelineInfo.setLayouts.resize(1);
-
         pipelineInfo.setLayouts[0] = m_descriptorRegistry.getManager(DescriptorManagerType::Viewport3DTexture).
                 getDescriptorSetLayout();
         // Use default descriptor set layout
@@ -242,14 +233,12 @@ namespace VkRender {
         if (!m_materialInstance)
             m_materialInstance = initializeMaterial();
 
-
         pipelineInfo.materialInstance = m_materialInstance.get();
-
         PipelineKey key = {};
         key.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         key.polygonMode = VK_POLYGON_MODE_FILL;
-        std::string vertexName = "Editors/default2D.vert";
-        std::string fragName = "Editors/default2D.frag";
+        std::string vertexName = "Editors/EditorViewport.vert";
+        std::string fragName = "Editors/EditorViewport3D.frag";
         key.vsCRC = Utils::crc32(vertexName);
         key.fsCRC = Utils::crc32(fragName);
 
@@ -271,7 +260,7 @@ namespace VkRender {
         renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
         renderPassInfo.renderPass = m_renderPass->getRenderPass();
         renderPassInfo.debugName = "Editor3DViewport::";
-        auto pipeline = m_pipelineManager.getOrCreatePipeline(key, pipelineInfo, renderPassInfo, m_context);
+        auto pipeline = m_pipelineManager.getOrCreatePipeline(key, pipelineInfo, renderPassInfo, VK_NULL_HANDLE, m_context);
         // Create the render command
         RenderCommand command;
         command.pipeline = pipeline;
@@ -300,7 +289,6 @@ namespace VkRender {
         vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                           command.pipeline->getPipeline());
 
-
         for (auto &[index, descriptorSet]: command.descriptorSets) {
             vkCmdBindDescriptorSets(
                     cmdBuffer,
@@ -321,20 +309,27 @@ namespace VkRender {
 
     std::shared_ptr<MaterialInstance> Editor3DViewport::initializeMaterial() {
         std::shared_ptr<MaterialInstance> materialInstance = std::make_shared<MaterialInstance>();
-        VkShaderModule vertModule{};
-        VkShaderModule fragModule{};
 
-        /*
-        materialInstance->shaderStages.resize(2);
-        std::string vertexName = "spv/Editors/default2D.vert";
-        std::string fragName = "spv/Editors/default2D.frag";
-        materialInstance->shaderStages[0] = Utils::loadShader(m_context->vkDevice().m_LogicalDevice, vertexName,
-                                            VK_SHADER_STAGE_VERTEX_BIT, &vertModule);
-        materialInstance->shaderStages[1] = Utils::loadShader(m_context->vkDevice().m_LogicalDevice, fragName,
-                                            VK_SHADER_STAGE_FRAGMENT_BIT, &fragModule);
-        materialInstance->shaderModules.emplace_back(vertModule);
-        materialInstance->shaderModules.emplace_back(fragModule);
-        */
+        std::string vertexName = std::string("Editors/EditorViewport.vert");
+        std::string fragName = std::string("Editors/EditorViewport3D.frag");
+        // 1 Load Shader code
+        auto vsSPV = assetManager()->get<SPIRVAsset>(vertexName);
+        auto fsSPV = assetManager()->get<SPIRVAsset>(fragName);
+        // 2) Wrap into a GPU resource
+        VulkanShaderModuleCreateInfo vertexShaderCreateInfo(m_context->vkDevice(), vsSPV, VK_SHADER_STAGE_VERTEX_BIT,
+                                                            vertexName);
+        VulkanShaderModuleCreateInfo fragmentShaderCreateInfo(m_context->vkDevice(), fsSPV,
+                                                              VK_SHADER_STAGE_FRAGMENT_BIT,
+                                                              fragName);
+        // 3) Later in pipeline creation:
+
+        // 3) Ask the GPU cache for shared modules:
+        auto vsModule = cache()->shaderModules.get(vertexShaderCreateInfo);
+        auto fsModule = cache()->shaderModules.get(fragmentShaderCreateInfo);
+
+        materialInstance->addShader(vertexShaderCreateInfo);
+        materialInstance->addShader(fragmentShaderCreateInfo);
+
         return materialInstance;
     }
 

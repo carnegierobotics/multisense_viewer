@@ -212,8 +212,8 @@ namespace VkRender {
 
         // Generate the cylinder vertices and m_indices
         // Define the base circle and top circle vertices
-        std::vector<DynamicVertex> baseCircleVertices;
-        std::vector<DynamicVertex> topCircleVertices;
+        std::vector<Vertex> baseCircleVertices;
+        std::vector<Vertex> topCircleVertices;
 
         for (int i = 0; i < segments; ++i) {
             float theta = 2.0f * glm::pi<float>() * float(i) / float(segments);
@@ -230,20 +230,20 @@ namespace VkRender {
             offset = rotationQuat * offset;
 
             // Base vertex
-            DynamicVertex baseVertex{};
+            Vertex baseVertex{};
             baseVertex.pos = glm::vec4(origin + offset, 0.0f);
             baseCircleVertices.push_back(baseVertex);
 
             // Top vertex
-            DynamicVertex topVertex{};
+            Vertex topVertex{};
             topVertex.pos = glm::vec4(endPoint + offset, 0.0f);
             topCircleVertices.push_back(topVertex);
         }
 
         // Combine vertices
-        m_dynamicVertices.reserve(segments * 2);
-        m_dynamicVertices.insert(m_dynamicVertices.end(), baseCircleVertices.begin(), baseCircleVertices.end());
-        m_dynamicVertices.insert(m_dynamicVertices.end(), topCircleVertices.begin(), topCircleVertices.end());
+        m_vertices.reserve(segments * 2);
+        m_vertices.insert(m_vertices.end(), baseCircleVertices.begin(), baseCircleVertices.end());
+        m_vertices.insert(m_vertices.end(), topCircleVertices.begin(), topCircleVertices.end());
 
         // Generate m_indices for the side faces
         for (int i = 0; i < segments; ++i) {
@@ -254,32 +254,32 @@ namespace VkRender {
             int nextTopIndex = next + segments;
 
             // First triangle of quad
-            m_dynamicIndices.push_back(baseIndex);
-            m_dynamicIndices.push_back(nextBaseIndex);
-            m_dynamicIndices.push_back(topIndex);
+            m_indices.push_back(baseIndex);
+            m_indices.push_back(nextBaseIndex);
+            m_indices.push_back(topIndex);
 
             // Second triangle of quad
-            m_dynamicIndices.push_back(nextBaseIndex);
-            m_dynamicIndices.push_back(nextTopIndex);
-            m_dynamicIndices.push_back(topIndex);
+            m_indices.push_back(nextBaseIndex);
+            m_indices.push_back(nextTopIndex);
+            m_indices.push_back(topIndex);
         }
 
-        // Generate m_dynamicIndices for the base and top caps if desired
+        // Generate m_indices for the base and top caps if desired
         // Base cap
 
         for (int i = 1; i < segments - 1; ++i) {
-            m_dynamicIndices.push_back(0);
-            m_dynamicIndices.push_back(i);
-            m_dynamicIndices.push_back(i + 1);
+            m_indices.push_back(0);
+            m_indices.push_back(i);
+            m_indices.push_back(i + 1);
         }
 
         // Top cap
         for (int i = 1; i < segments - 1; ++i) {
-            m_dynamicIndices.push_back(segments);
-            m_dynamicIndices.push_back(segments + i + 1);
-            m_dynamicIndices.push_back(segments + i);
+            m_indices.push_back(segments);
+            m_indices.push_back(segments + i + 1);
+            m_indices.push_back(segments + i);
         }
-    isDynamic = false;
+
     }
 
 
@@ -360,7 +360,7 @@ namespace VkRender {
         // bottomRight -> bottomLeft
         // bottomLeft -> topLeft
 
-    m_dynamicIndices = {
+    m_indices = {
         // pyramid sides
         0, 2, 1,
         0, 3, 2,
@@ -377,14 +377,13 @@ namespace VkRender {
     };
 
 
-        m_dynamicVertices.resize(uboVertices.size());
+        m_vertices.resize(uboVertices.size());
         for (size_t i = 0; i < uboVertices.size(); ++i) {
-            m_dynamicVertices[i].pos = glm::vec4(uboVertices[i], 0.0f);
-            m_dynamicVertices[i].color = glm::vec4(1.0f); // White color
+            m_vertices[i].pos = glm::vec4(uboVertices[i], 0.0f);
+            m_vertices[i].color = glm::vec4(1.0f); // White color
         }
 
         // This is a gizmo; often drawn as lines. Ensure rendering mode is line-friendly if needed.
-        isDynamic = false;
     }
 
     void MeshData::generateCameraPerspectiveGizmoMesh(const CameraGizmoPerspectiveMeshParameters &perspective) {
@@ -420,7 +419,7 @@ namespace VkRender {
         };
 
         // Flip every triangle (a,b,c) → (a,c,b)
-        m_dynamicIndices = {
+        m_indices = {
             // Near face
             0, 2, 1,
             0, 3, 2,
@@ -446,13 +445,11 @@ namespace VkRender {
             5, 4, 0
         };
 
-        m_dynamicVertices.resize(uboVertices.size());
+        m_vertices.resize(uboVertices.size());
         for (size_t i = 0; i < uboVertices.size(); ++i) {
-            m_dynamicVertices[i].pos = glm::vec4(uboVertices[i], 0.0f);
-            m_dynamicVertices[i].color = glm::vec4(1.0f);
+            m_vertices[i].pos = glm::vec4(uboVertices[i], 0.0f);
+            m_vertices[i].color = glm::vec4(1.0f);
         }
-
-        isDynamic = false;
     }
 
     void MeshData::generateOBJMesh(const OBJFileMeshParameters &parameters) {

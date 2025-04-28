@@ -11,7 +11,6 @@
 #include "Viewer/Rendering/Editors/Editor.h"
 #include "Viewer/Scenes/Scene.h"
 #include "Viewer/Rendering/Core/VulkanTexture.h"
-#include "Viewer/Rendering/RenderResources/GraphicsPipeline2D.h"
 
 #include "Viewer/Rendering/RenderResources/PathTracer/PathTracer.h"
 #include "Viewer/Rendering/Editors/RenderCommand.h"

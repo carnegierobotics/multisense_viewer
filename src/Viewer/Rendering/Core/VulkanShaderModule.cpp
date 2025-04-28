@@ -26,6 +26,8 @@ VulkanShaderModule::VulkanShaderModule(const VulkanShaderModuleCreateInfo& ci)
     m_stageInfo.stage  = ci.shaderStage;
     m_stageInfo.module = m_module;
     m_stageInfo.pName  = "main";
+
+    Log::Logger::getInstance()->info("Loading shader {}", m_debugInfo);
 }
 
 VulkanShaderModule::VulkanShaderModule(VulkanShaderModule&& other) noexcept {

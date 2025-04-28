@@ -9,7 +9,7 @@
 
 
 namespace VkRender {
-    std::shared_ptr<VulkanGraphicsPipeline> PipelineManager::getOrCreatePipeline(const PipelineKey &key, const PipelineInfo& pipelineInfo, const RenderPassInfo& renderPassInfo, Application* context) {
+    std::shared_ptr<VulkanGraphicsPipeline> PipelineManager::getOrCreatePipeline(const PipelineKey &key, const PipelineInfo& pipelineInfo, const RenderPassInfo& renderPassInfo, VkPipelineLayout globalPipelineLayout, Application* context) {
         auto it = m_pipelineCache.find(key);
         if (it != m_pipelineCache.end()) {
             return it->second;
@@ -42,6 +42,7 @@ namespace VkRender {
         }
         createInfo.vertexInputState = vertexInputStateCI;
         createInfo.debugInfo = renderPassInfo.debugName;
+        createInfo.globalPipelineLayout = globalPipelineLayout;
 
         auto pipeline = std::make_shared<VulkanGraphicsPipeline>(createInfo);
         // Create the graphics pipeline using the pipeline layout

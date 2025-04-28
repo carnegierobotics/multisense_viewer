@@ -32,6 +32,8 @@ namespace VkRender {
         VkPipelineVertexInputStateCreateInfo vertexInputState;
         bool depthTesting = VK_TRUE;
 
+        VkPipelineLayout globalPipelineLayout = VK_NULL_HANDLE;
+
         std::string debugInfo;
         VkPipelineRasterizationStateCreateInfo rasterizationStateCreateInfo;
     };

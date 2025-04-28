@@ -9,7 +9,7 @@
 #include "VulkanResourceManager.h"
 
 namespace VkRender {
-    VulkanGraphicsPipeline::VulkanGraphicsPipeline(const VulkanGraphicsPipelineCreateInfo& createInfo) : m_vulkanDevice(
+    VulkanGraphicsPipeline::VulkanGraphicsPipeline(const VulkanGraphicsPipelineCreateInfo &createInfo) : m_vulkanDevice(
         createInfo.vulkanDevice) {
         // Pipeline cache
         VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
@@ -20,20 +20,25 @@ namespace VkRender {
             throw std::runtime_error("Failed to create Pipeline Cache");
 
 
-        // Pipeline layout
-        // Push constants for UI rendering parameters
-        VkPushConstantRange pushConstantRange = Populate::pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT,
-                                                                            createInfo.pushConstBlockSize, 0);
-        VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = Populate::pipelineLayoutCreateInfo(
-            createInfo.descriptorSetLayouts.data(), createInfo.descriptorSetLayouts.size());
+        if (createInfo.globalPipelineLayout == VK_NULL_HANDLE) {
+            // Pipeline layout
+            // Push constants for UI rendering parameters
+            VkPushConstantRange pushConstantRange = Populate::pushConstantRange(VK_SHADER_STAGE_VERTEX_BIT,
+                createInfo.pushConstBlockSize, 0);
 
-        pipelineLayoutCreateInfo.pushConstantRangeCount = createInfo.pushConstBlockSize ? 1 : 0;
-        pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
-        if (
-            vkCreatePipelineLayout(m_vulkanDevice.m_LogicalDevice, &pipelineLayoutCreateInfo, nullptr,
-                                   &m_pipelineLayout) !=
-            VK_SUCCESS)
-            throw std::runtime_error("Failed to create m_Pipeline layout");
+            VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = Populate::pipelineLayoutCreateInfo(
+                createInfo.descriptorSetLayouts.data(), createInfo.descriptorSetLayouts.size());
+
+            pipelineLayoutCreateInfo.pushConstantRangeCount = createInfo.pushConstBlockSize ? 1 : 0;
+            pipelineLayoutCreateInfo.pPushConstantRanges = &pushConstantRange;
+            if (
+                vkCreatePipelineLayout(m_vulkanDevice.m_LogicalDevice, &pipelineLayoutCreateInfo, nullptr,
+                                       &m_pipelineLayout) !=
+                VK_SUCCESS)
+                throw std::runtime_error("Failed to create m_Pipeline layout");
+        } else
+
+            m_pipelineLayout = createInfo.globalPipelineLayout;
 
         VALIDATION_DEBUG_NAME(m_vulkanDevice.m_LogicalDevice,
                               reinterpret_cast<uint64_t>(m_pipelineLayout), VK_OBJECT_TYPE_PIPELINE_LAYOUT,
@@ -41,15 +46,15 @@ namespace VkRender {
 
         // Setup graphics pipeline for UI rendering
         VkPipelineInputAssemblyStateCreateInfo inputAssemblyState =
-            Populate::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0,
-                                                           VK_FALSE);
+                Populate::pipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST, 0,
+                                                               VK_FALSE);
 
         // Enable blending
         VkPipelineColorBlendAttachmentState blendAttachmentState{};
         blendAttachmentState.blendEnable = VK_TRUE;
         blendAttachmentState.colorWriteMask =
-            VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
-            VK_COLOR_COMPONENT_A_BIT;
+                VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
+                VK_COLOR_COMPONENT_A_BIT;
         blendAttachmentState.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
         blendAttachmentState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
         blendAttachmentState.colorBlendOp = VK_BLEND_OP_ADD;
@@ -58,7 +63,7 @@ namespace VkRender {
         blendAttachmentState.alphaBlendOp = VK_BLEND_OP_ADD;
 
         VkPipelineColorBlendStateCreateInfo colorBlendState =
-            Populate::pipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
+                Populate::pipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
 
         VkPipelineDepthStencilStateCreateInfo depthStencilState = Populate::pipelineDepthStencilStateCreateInfo(
             createInfo.depthTesting,
@@ -66,20 +71,20 @@ namespace VkRender {
             VK_COMPARE_OP_LESS_OR_EQUAL);
 
         VkPipelineViewportStateCreateInfo viewportState =
-            Populate
-            ::pipelineViewportStateCreateInfo(1, 1, 0);
+                Populate
+                ::pipelineViewportStateCreateInfo(1, 1, 0);
 
         VkPipelineMultisampleStateCreateInfo multisampleState =
-            Populate
-            ::pipelineMultisampleStateCreateInfo(createInfo.msaaSamples);
+                Populate
+                ::pipelineMultisampleStateCreateInfo(createInfo.msaaSamples);
 
         std::vector<VkDynamicState> dynamicStateEnables = {
             VK_DYNAMIC_STATE_VIEWPORT,
             VK_DYNAMIC_STATE_SCISSOR
         };
         VkPipelineDynamicStateCreateInfo dynamicState =
-            Populate
-            ::pipelineDynamicStateCreateInfo(dynamicStateEnables);
+                Populate
+                ::pipelineDynamicStateCreateInfo(dynamicStateEnables);
 
         VkGraphicsPipelineCreateInfo pipelineCreateInfo = Populate::pipelineCreateInfo(m_pipelineLayout,
             createInfo.renderPass);
@@ -105,8 +110,8 @@ namespace VkRender {
             throw std::runtime_error("Failed to create graphics m_Pipeline");
 
         VALIDATION_DEBUG_NAME(m_vulkanDevice.m_LogicalDevice,
-                      reinterpret_cast<uint64_t>(m_pipeline), VK_OBJECT_TYPE_PIPELINE,
-                      createInfo.debugInfo + ":Pipeline");
+                              reinterpret_cast<uint64_t>(m_pipeline), VK_OBJECT_TYPE_PIPELINE,
+                              createInfo.debugInfo + ":Pipeline");
     }
 
     VulkanGraphicsPipeline::~VulkanGraphicsPipeline() {

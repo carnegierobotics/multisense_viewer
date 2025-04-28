@@ -173,19 +173,6 @@ namespace VkRender {
                           command.pipeline->getPipeline());
 
 
-        for (auto& [index, descriptorSet] : command.descriptorSets) {
-            vkCmdBindDescriptorSets(
-                cmdBuffer,
-                VK_PIPELINE_BIND_POINT_GRAPHICS,
-                command.pipeline->getPipelineLayout(),
-                0, // TODO can't reuse the approach in SceneRenderer since we have different manager types
-                1,
-                &descriptorSet,
-                0,
-                nullptr
-            );
-        }
-
         if (command.meshInstance->indexCount > 0) {
             vkCmdDrawIndexed(cmdBuffer, command.meshInstance->indexCount, 1, 0, 0, 0);
         }

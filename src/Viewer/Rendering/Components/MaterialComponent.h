@@ -7,6 +7,8 @@
 
 #include <glm/glm.hpp>
 #include <filesystem>
+
+#include <Viewer/Rendering/Core/RenderDefinitions.h>
 #include <Viewer/Rendering/Core/VulkanShaderModule.h>
 #include "Viewer/Rendering/Core/VulkanTexture.h"
 
@@ -27,8 +29,8 @@ namespace VkRender {
         bool reloadShader = false;
         bool useTexture = false;
 
-        std::filesystem::path vertexShaderName = "BlinnPhongShaderInstanced.vert";
-        std::filesystem::path fragmentShaderName = "BlinnPhongShaderInstanced.frag";
+        std::filesystem::path vertexShaderName = "BlinnPhongShader.vert";
+        std::filesystem::path fragmentShaderName = "BlinnPhongShader.frag";
         std::filesystem::path albedoTexturePath = "default.png";
     };
 
@@ -44,8 +46,22 @@ namespace VkRender {
         void addShader(VulkanShaderModuleCreateInfo info) {
             shaders.push_back(std::make_shared<VulkanShaderModule>(info));
         }
+        void addShader(std::shared_ptr<VulkanShaderModule> shader) {
+            shaders.push_back(shader);
+        }
     };
 
+    static MaterialBufferObject makeMaterialBuffer(const MaterialComponent& c)
+    {
+        MaterialBufferObject mbo{};
+        mbo.baseColor      = c.albedo;
+        mbo.specular       = c.specular;
+        mbo.diffuse        = c.diffuse;
+        mbo.emissiveFactor = glm::vec4(glm::vec3(c.emission), 1.0f);
+        mbo.useVertexColor = c.useTexture ? 1.0f : 0.0f;
+        // note: we no longer fill light data here, that’s in the global UBO
+        return mbo;
+    }
 }
 
 #endif //MATERIALCOMPONENT_H

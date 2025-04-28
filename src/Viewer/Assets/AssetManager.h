@@ -5,8 +5,9 @@
 #ifndef ASSETMANAGER_H
 #define ASSETMANAGER_H
 
-#include "IAssetLoader.h"
+#include "Viewer/Assets/IAssetLoader.h"
 #include <memory>
+#include <vector>
 #include <unordered_map>
 #include <mutex>
 #include <type_traits>

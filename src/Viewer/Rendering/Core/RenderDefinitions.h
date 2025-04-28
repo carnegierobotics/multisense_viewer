@@ -58,6 +58,10 @@
 
 namespace VkRender {
 
+    constexpr uint32_t kMaxEntities       = 16'384;   // grow if needed
+    constexpr uint32_t kMaxMaterials      =  512;     // grow if needed
+    constexpr uint32_t kMaxLights         =   16;     // keep <= vec4[16] in UBO
+
     /**
  * @brief GLFW and Vulkan combination to create a SwapChain
  */
@@ -81,11 +85,6 @@ namespace VkRender {
         bool operator==(const Vertex &other) const {
             return pos == other.pos;
         }
-    };
-
-    struct DynamicVertex {
-        glm::vec4 pos;      // 12 bytes + 4 bytes padding
-        glm::vec4 color;    // 16 bytes
     };
 
     struct ImageVertex {
@@ -126,67 +125,36 @@ namespace VkRender {
         }
     };
 
-    /**
-     * @brief Default MVP matrices
-     */
-    struct UBOMatrix {
-        glm::mat4 projection{};
-        glm::mat4 view{};
-        glm::mat4 model{};
-        glm::vec3 camPos{};
-    };
-    /**
-     * @brief Basic lighting params for simple light calculation
-     */
-    struct FragShaderParams {
-        glm::vec4 lightDir{};
-        glm::vec4 zoomCenter{};
-        glm::vec4 zoomTranslate{};
-        float exposure = 4.5f;
-        float gamma = 2.2f;
-        float prefilteredCubeMipLevels = 0.0f;
-        float scaleIBLAmbient = 1.0f;
-        float debugViewInputs = 0.0f;
-        float lod = 0.0f;
-        glm::vec2 pad{};
-        glm::vec4 disparityNormalizer; // (0: should normalize?, 1: min value, 2: max value, 3 pad)
-        glm::vec4 kernelFilters; // 0 Sobel/Edge kernel, Blur kernel,
-        float dt = 0.0f;
-    };
 
-    struct GlobalUniformBufferObject {
-        glm::mat4 projection;
+    struct GlobalUBO
+    {
         glm::mat4 view;
-        glm::vec3 cameraPosition;
-    };
-
-    struct PointCloudUBO {
-        glm::mat4 Q;
-        glm::mat4 intrinsics;
-        glm::mat4 extrinsics;
-        float width;
-        float height;
-        float disparity;
-        float focalLength;
-        float scale;
-        float pointSize;
-        float useColor;
-        float hasSampler;
+        glm::mat4 proj;
+        glm::vec3 cameraPos;
+        float     numLights;
+        std::array<glm::vec4, kMaxLights> lightPos;   // vec4 for alignment
     };
 
 
+    // C++ std430 / Vulkan-friendly version
     struct MaterialBufferObject {
-        glm::vec4 baseColor;       // 16 bytes (aligned to 16)
-        float specular;            // 4 bytes
-        float diffuse;             // 4 bytes
-        glm::vec2 _pad0;           // 8 bytes of padding to align to 16 bytes
-        glm::vec4 emissiveFactor;  // 16 bytes (aligned to 16)
-        float numLightSources;       // 4 bytes
-        glm::vec3 _pad1;           // 12 bytes of padding for alignment
-        glm::vec4 lightPosition[32]; // 32 * 16 bytes (vec3 expanded to vec4 for alignment)
-        glm::vec4 lightNormal[32];   // 32 * 16 bytes (vec3 expanded to vec4 for alignment)
-        bool useVertexColor;
+        // 16-byte aligned
+        glm::vec4 baseColor;      // albedo (RGBA or rgb+pad)
+
+        // pack three floats into one vec4 slot
+        float      specular;      // specular exponent or weight
+        float      diffuse;       // diffuse weight
+        float      useVertexColor;// bool→float: 1.0=useTexture, 0.0=use baseColor
+        float      _pad0;         // pad to 16 bytes
+
+        // 16-byte aligned
+        glm::vec4 emissiveFactor; // emissive color + intensity
+
+        // total size = 16 + 16 + 16 = 48 bytes,
+        // rounded up to 16-byte multiple automatically
     };
+    static_assert(sizeof(MaterialBufferObject) % 16 == 0,
+                  "std430 arrays need struct-size multiple of vec4");
 
     struct RenderPassInfo { // TODO move somewhere else
         VkSampleCountFlagBits sampleCount;

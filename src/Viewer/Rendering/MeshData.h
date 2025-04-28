@@ -116,11 +116,8 @@ namespace VkRender {
         std::vector<Vertex> m_vertices;
         std::vector<uint32_t> m_indices;
 
-        std::vector<DynamicVertex> m_dynamicVertices;
-        std::vector<uint32_t> m_dynamicIndices;
         bool isDirty = true;
         uint32_t version = 0;
-        bool isDynamic = false;
 
         // Constructors
         MeshData() = default;

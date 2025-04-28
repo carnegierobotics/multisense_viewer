@@ -22,25 +22,40 @@
 
 namespace VkRender {
     void MeshInstance::ensureInstanceBuffer(VkDeviceSize size, VulkanDevice &dev) {
-        if (instanceBuffer && instanceBuffer->m_size >= size) return;
-
-        dev.createBuffer(
-            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, // must include VERTEX_BUFFER_BIT!
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, // simplest for frequently-updated data
-            instanceBuffer,
-            size,
-            nullptr);
+        if (!instanceBuffer) {
+            dev.createBuffer(
+                VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, // must include VERTEX_BUFFER_BIT!
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, // simplest for frequently-updated data
+                instanceBuffer,
+                size,
+                nullptr);
+        }
+        if (instanceBuffer->m_size >= size) {
+            dev.createBuffer(
+                VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, // must include VERTEX_BUFFER_BIT!
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, // simplest for frequently-updated data
+                instanceBuffer,
+                size,
+                nullptr);
+        };
     }
 
     SceneRenderer::SceneRenderer(EditorCreateInfo &createInfo, UUID uuid) : Editor(createInfo, uuid) {
         m_renderToOffscreen = true;
         m_activeCamera = std::make_shared<BaseCamera>(static_cast<float>(m_createInfo.width) / m_createInfo.height);
         descriptorRegistry.createManager(DescriptorManagerType::MVP, m_context->vkDevice());
-        descriptorRegistry.createManager(DescriptorManagerType::Material, m_context->vkDevice());
+        descriptorRegistry.createManager(DescriptorManagerType::Transform, m_context->vkDevice());
+        descriptorRegistry.createManager(DescriptorManagerType::MaterialData, m_context->vkDevice());
+        descriptorRegistry.createManager(DescriptorManagerType::MaterialSampler, m_context->vkDevice());
         descriptorRegistry.createManager(DescriptorManagerType::DynamicCameraGizmo, m_context->vkDevice());
 
         m_meshResourceManager = std::make_unique<MeshResourceManager>(m_context);
+
+        createGlobalBuffers();
+        createGlobalPipelineLayout();
+
         /*
         VkQueryPoolCreateInfo qp{VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO};
         qp.queryType = VK_QUERY_TYPE_TIMESTAMP;
@@ -54,6 +69,84 @@ namespace VkRender {
 
     SceneRenderer::~SceneRenderer() {
         m_entityRenderData.clear();
+    }
+
+    void SceneRenderer::createGlobalBuffers() {
+        const uint32_t frames = m_context->swapChainBuffers().size();
+        auto &dev = m_context->vkDevice();
+
+        m_globalUbo.init<GlobalUBO>(dev, frames, 1, "GlobalUBO");
+        m_transformSsbo.init<InstanceTransform>(dev, frames, kMaxEntities, "TransformSSBO");
+        m_materialSsbo.init<MaterialBufferObject>(dev, frames, kMaxMaterials, "MaterialSSBO");
+
+        std::vector<VkWriteDescriptorSet> writes;
+        // 2. Descriptor‑set layouts (from your registry)
+        auto &mvpMgr = descriptorRegistry.getManager(DescriptorManagerType::MVP);
+        auto &transformMgr = descriptorRegistry.getManager(DescriptorManagerType::Transform);
+        auto &materialMgr = descriptorRegistry.getManager(DescriptorManagerType::MaterialData);
+
+
+        m_globalSets.resize(frames);
+        m_transformSets.resize(frames);
+        m_materialSets.resize(frames);
+
+        // 3. Build Write structures → ask manager for a cached set per frame
+        for (uint32_t f = 0; f < frames; ++f) {
+            // ---------- Global set ------------------------------------------------
+            VkDescriptorBufferInfo gInfo = m_globalUbo.info(f, sizeof(GlobalUBO));
+            VkWriteDescriptorSet gWrite{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+            gWrite.dstBinding = 0;
+            gWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            gWrite.descriptorCount = 1;
+            gWrite.pBufferInfo = &gInfo;
+            m_globalSets[f] = mvpMgr.getOrCreateDescriptorSet({gWrite});
+
+            // ---------- Transform set --------------------------------------------
+            VkDescriptorBufferInfo tInfo = m_transformSsbo.info(f, sizeof(InstanceTransform) * kMaxEntities);
+            VkWriteDescriptorSet tWrite = gWrite;
+            tWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+            tWrite.pBufferInfo = &tInfo;
+            m_transformSets[f] = transformMgr.getOrCreateDescriptorSet({tWrite});
+
+            // ---------- Material set ---------------------------------------------
+            VkDescriptorBufferInfo mInfo = m_materialSsbo.info(f, sizeof(MaterialBufferObject) * kMaxMaterials);
+            VkWriteDescriptorSet mWrite = tWrite;
+            mWrite.pBufferInfo = &mInfo;
+            m_materialSets[f] = materialMgr.getOrCreateDescriptorSet({mWrite});
+        }
+    }
+
+    void SceneRenderer::createGlobalPipelineLayout() {
+        auto &dev = m_context->vkDevice();
+        auto &reg = descriptorRegistry;
+
+        auto &mvpMgr = descriptorRegistry.getManager(DescriptorManagerType::MVP);
+        auto &transformMgr = descriptorRegistry.getManager(DescriptorManagerType::Transform);
+        auto &materialMgr = descriptorRegistry.getManager(DescriptorManagerType::MaterialData);
+        auto &samplerMgr = descriptorRegistry.getManager(DescriptorManagerType::MaterialSampler);
+
+
+        std::array<VkDescriptorSetLayout, 4> layouts = {
+            {
+                mvpMgr.getDescriptorSetLayout(),
+                transformMgr.getDescriptorSetLayout(),
+                materialMgr.getDescriptorSetLayout(),
+                samplerMgr.getDescriptorSetLayout(),
+            }
+        };
+
+        VkPushConstantRange pcRange{};
+        pcRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+        pcRange.offset = 0;
+        pcRange.size = sizeof(BatchPC);
+
+        VkPipelineLayoutCreateInfo info{VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
+        info.setLayoutCount = static_cast<uint32_t>(layouts.size());
+        info.pSetLayouts = layouts.data();
+        info.pushConstantRangeCount = 1;
+        info.pPushConstantRanges = &pcRange;
+
+        vkCreatePipelineLayout(dev.m_LogicalDevice, &info, nullptr, &m_pipelineLayout);
     }
 
     void SceneRenderer::onSceneLoad(std::shared_ptr<Scene> scene) {
@@ -83,274 +176,220 @@ namespace VkRender {
         m_activeScene = m_context->activeScene();
         if (!m_activeScene)
             return;
-        auto view = m_activeScene->getRegistry().view<IDComponent>();
 
-        std::vector<Entity> lightEntities;
-        for (auto e: view) {
-            auto entity = Entity(e, m_activeScene.get());
-            if (entity.hasComponent<LightSourceComponent>()) {
-                lightEntities.push_back(entity);
-            }
-        }
-
-        uint32_t frameIndex = m_context->currentFrameIndex();
-        for (auto e: view) {
-            auto entity = Entity(e, m_activeScene.get());
-
-            if (entity.hasComponent<MeshComponent>()) {
-                GlobalUniformBufferObject globalUBO = {};
-                auto activeCameraPtr = m_activeCamera.lock(); // Lock to get shared_ptr
-                if (activeCameraPtr) {
-                    globalUBO.view = activeCameraPtr->matrices.view;
-                    globalUBO.projection = activeCameraPtr->matrices.projection;
-                    globalUBO.cameraPosition = activeCameraPtr->matrices.position;
-                }
-
-                // Map and copy data to the global uniform buffer
-                void *data;
-                vkMapMemory(m_context->vkDevice().m_LogicalDevice,
-                            m_entityRenderData[entity.getUUID()].cameraBuffer[frameIndex]->m_memory, 0,
-                            sizeof(globalUBO),
-                            0,
-                            &data);
-                memcpy(data, &globalUBO, sizeof(globalUBO));
-                vkUnmapMemory(m_context->vkDevice().m_LogicalDevice,
-                              m_entityRenderData[entity.getUUID()].cameraBuffer[frameIndex]->m_memory);
-            }
-            if (entity.hasComponent<TransformComponent>() && entity.hasComponent<MeshComponent>()) {
-                void *data;
-                auto &transformComponent = m_activeScene->getRegistry().get<TransformComponent>(entity);
-                vkMapMemory(m_context->vkDevice().m_LogicalDevice,
-                            m_entityRenderData[entity.getUUID()].modelBuffer[frameIndex]->m_memory, 0, VK_WHOLE_SIZE, 0,
-                            &data);
-                auto *modelMatrices = reinterpret_cast<glm::mat4 *>(data);
-                *modelMatrices = transformComponent.getTransform();
-                vkUnmapMemory(m_context->vkDevice().m_LogicalDevice,
-                              m_entityRenderData[entity.getUUID()].modelBuffer[frameIndex]->m_memory);
-            }
-            if (entity.hasComponent<MaterialComponent>() && !m_entityRenderData[entity.getUUID()].materialBuffer.
-                empty()) {
-                auto &material = entity.getComponent<MaterialComponent>();
-                MaterialBufferObject matUBO = {};
-                matUBO.baseColor = material.albedo;
-                matUBO.specular = material.specular;
-                matUBO.diffuse = material.diffuse;
-                matUBO.emissiveFactor = glm::vec4(material.emission);
-                matUBO.useVertexColor = material.useTexture;
-
-
-                for (int i = 0; i < lightEntities.size(); ++i) {
-                    matUBO.lightPosition[i] = glm::vec4(
-                        lightEntities[i].getComponent<TransformComponent>().getPosition(), 1.0f);
-                }
-                matUBO.numLightSources = static_cast<float>(lightEntities.size());
-                assert(matUBO.numLightSources < 10);
-
-                void *data;
-                vkMapMemory(m_context->vkDevice().m_LogicalDevice,
-                            m_entityRenderData[entity.getUUID()].materialBuffer[frameIndex]->m_memory, 0,
-                            sizeof(MaterialBufferObject), 0,
-                            &data);
-                memcpy(data, &matUBO, sizeof(MaterialBufferObject));
-                vkUnmapMemory(m_context->vkDevice().m_LogicalDevice,
-                              m_entityRenderData[entity.getUUID()].materialBuffer[frameIndex]->m_memory);
-            }
-        }
+        return;
     }
 
 
     void SceneRenderer::onRender(CommandBuffer &commandBuffer) {
-        m_stats.reset(); // start fresh
+        // 0) Reset stats & timers
+        m_stats.reset();
         CpuTimer tFrame;
         tFrame.start();
 
-        CpuTimer tCollect;
-        tCollect.start();
-        collectRenderCommands(m_renderGroups, commandBuffer.getActiveFrameIndex());
-        m_stats.cpuCollectNs = tCollect.ns();
+        uint32_t fIdx = commandBuffer.getActiveFrameIndex();
+        VkCommandBuffer cb = commandBuffer.getActiveBuffer();
 
-        /* ---------- 2. record timestamp before first draw --------------- */
-        //VkCommandBuffer vkCB = commandBuffer.getActiveBuffer();
-        //vkCmdResetQueryPool(vkCB, m_timestampPool, 0, 2);
-        //vkCmdWriteTimestamp(vkCB, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, m_timestampPool, 0); // start
+        // 1) Single-pass: build batches, transforms SSBO data, material SSBO data
+        m_matIndices.clear();
+        /* --------------------------------------------------------------------------
+         * 1. first pass – build batches and collect matrices per-batch
+         * -------------------------------------------------------------------------- */
+        std::unordered_map<const MaterialComponent *, uint32_t> matIndices;
+        m_batches.clear();
 
-        /* ---------- 3. record draw calls -------------------------------- */
-        //CpuTimer tRecord;
-        //tRecord.start();
-        for (auto &rc: m_renderGroups)
-            bindResourcesAndDraw(commandBuffer, rc);
-        //m_stats.cpuRecordNs = tRecord.ns();
+        auto view = m_activeScene->getRegistry().view<MeshComponent, TransformComponent>();
+        for (auto [e, mc, tc]: view.each()) {
+            Entity ent(e, m_activeScene.get());
+            if (!isEntityTreeVisible(ent)) continue;
 
-        /* ---------- 4. GPU timestamp after last draw -------------------- */
-        //vkCmdWriteTimestamp(vkCB, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, m_timestampPool, 1); // end
+            /* ---- pipeline key / mesh instance ------------------------------------ */
+            auto meshData = MeshManager::instance().getMeshData(mc);
+            if (!meshData) continue;
+            auto meshInst = m_meshResourceManager->getMeshInstance(
+                mc.getCacheIdentifier(), meshData, mc.meshDataType());
+            if (!meshInst) continue;
 
+            auto matInst = getMaterialInstance(ent);
+            PipelineKey key = makeKey(mc, *meshInst, matInst.get(), ent);
 
-        /* ---------- 5. gather GPU duration after submission ------------- */
-        // call once you know the cmdBuf has finished (frame fence)
-
-        /*
-        uint64_t timestamps[2];
-        if (vkGetQueryPoolResults(m_context->vkDevice().m_LogicalDevice,
-                                  m_timestampPool,
-                                  0, 2,
-                                  sizeof(timestamps), timestamps,
-                                  sizeof(uint64_t),
-                                  VK_QUERY_RESULT_64_BIT) == VK_SUCCESS)
-        {
-            uint64_t period = m_context->vkDevice().m_deviceProps.limits.timestampPeriod; // ns
-            m_stats.gpuNs = (timestamps[1] - timestamps[0]) * period;
+            /* ---- batch ----------------------------------------------------------- */
+            auto &batch = m_batches[key];
+            if (!batch.started) {
+                batch.started = true;
+                batch.mesh = meshInst;
+                batch.material = matInst;
+                batch.key = key;
+            }
+            batch.cpuInstanceTransform.push_back({tc.getTransform()}); // store locally
+            if (ent.hasComponent<MaterialComponent>()) {
+                auto &mcComp = ent.getComponent<MaterialComponent>();
+                batch.cpuInstanceMaterial.push_back({makeMaterialBuffer(mcComp)}); // store locally
+            }
         }
-        */
 
-        /* ---------- 6. total draw-call info ----------------------------- */
-        m_stats.drawCalls = static_cast<uint32_t>(m_renderGroups.size());
+        /* --------------------------------------------------------------------------
+         * 2. second pass – flatten matrices in *batch draw* order
+         * -------------------------------------------------------------------------- */
+        std::vector<InstanceTransform> transforms; // contiguous upload buffer
+        transforms.reserve(view.size_hint()); // exact upper bound
+        uint32_t globalCursor = 0;
 
+        for (auto &kv: m_batches) {
+            auto &batch = kv.second;
+
+            batch.transformBase = globalCursor; // slice start in SSBO
+
+            transforms.insert(transforms.end(),
+                              batch.cpuInstanceTransform.begin(),
+                              batch.cpuInstanceTransform.end());
+
+            globalCursor += static_cast<uint32_t>(batch.cpuInstanceTransform.size());
+            batch.instanceCount = static_cast<uint32_t>(batch.cpuInstanceTransform.size());
+        }
+        /* --------------------------------------------------------------------------
+         * 2. second pass – flatten matrices in *batch draw* order
+         * -------------------------------------------------------------------------- */
+        uint32_t globalMaterialCursor = 0;
+        std::vector<MaterialBufferObject> materials;
+        materials.reserve(kMaxMaterials);
+
+        for (auto &kv: m_batches) {
+            auto &batch = kv.second;
+
+            batch.materialBase = globalMaterialCursor; // slice start in SSBO
+
+            materials.insert(materials.end(),
+                              batch.cpuInstanceMaterial.begin(),
+                              batch.cpuInstanceMaterial.end());
+
+            globalMaterialCursor += static_cast<uint32_t>(batch.cpuInstanceMaterial.size());
+        }
+
+        /* --------------------------------------------------------------------------
+         * 3. upload SSBOs
+         * -------------------------------------------------------------------------- */
+        m_transformSsbo.upload(m_context->vkDevice(), fIdx,
+                               transforms.data(), transforms.size(),
+                               sizeof(InstanceTransform));
+
+        m_materialSsbo.upload(m_context->vkDevice(), fIdx,
+                              materials.data(), materials.size(),
+                              sizeof(MaterialBufferObject));
+
+        // 3) Upload Global UBO
+        GlobalUBO gUbo{};
+        if (auto cam = m_activeCamera.lock()) {
+            gUbo.view = cam->matrices.view;
+            gUbo.proj = cam->matrices.projection;
+            gUbo.cameraPos = cam->matrices.position;
+        }
+        uint32_t lcount = 0;
+        auto lightView = m_activeScene->getRegistry().view<LightSourceComponent, TransformComponent>();
+        for (auto [e, ls, tr]: lightView.each()) {
+            if (lcount < kMaxLights) {
+                gUbo.lightPos[lcount++] = glm::vec4(tr.getPosition(), 1.0f);
+            }
+        }
+        gUbo.numLights = float(lcount);
+        m_globalUbo.upload(m_context->vkDevice(), fIdx,
+                           &gUbo, 1, sizeof(GlobalUBO));
+
+        // 4) Bind descriptor sets 0..2 once
+        vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                m_pipelineLayout, 0, 1, &m_globalSets[fIdx], 0, nullptr);
+        vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                m_pipelineLayout, 1, 1, &m_transformSets[fIdx], 0, nullptr);
+        vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                m_pipelineLayout, 2, 1, &m_materialSets[fIdx], 0, nullptr);
+
+        // 5) Issue draw calls per batch
+        RenderPassInfo renderPassInfo{};
+        renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
+        renderPassInfo.renderPass = m_renderPass->getRenderPass();
+        renderPassInfo.debugName = "SceneRenderer::";
+
+        for (auto &kv: m_batches) {
+            auto &batch = kv.second;
+            batch.mesh->instanceCount = batch.instanceCount;
+
+            // pipeline (reuse or create)
+            auto pipeline = m_pipelineManager.getOrCreatePipeline(
+                batch.key,
+                makePipelineInfo(batch.material.get()),
+                renderPassInfo,
+                m_pipelineLayout,
+                m_context);
+            vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                              pipeline->getPipeline());
+
+            // bind sampler set at set=3
+            if (batch.material) {
+                auto samplerSet = buildMaterialSamplerSet(batch.material);
+                vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                        m_pipelineLayout, 3, 1, &samplerSet[DescriptorManagerType::MaterialSampler], 0,
+                                        nullptr);
+            }
+
+            // push constants
+            BatchPC pc{batch.transformBase, batch.materialBase};
+            vkCmdPushConstants(cb, m_pipelineLayout,
+                               VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                               0, sizeof(pc), &pc);
+
+            RenderCommand renderCommand;
+            renderCommand.pipeline = pipeline;
+            renderCommand.meshInstance = batch.mesh.get();
+            renderCommand.materialInstance = batch.material.get();
+            // vertex & index bindings
+            bindResourcesAndDraw(commandBuffer, renderCommand);
+
+            m_stats.instanceTotal += batch.mesh->instanceCount;
+        }
+
+        // 6) Stats and end
+        m_stats.drawCalls = static_cast<uint32_t>(m_batches.size());
         debugPrintStats();
     }
+
 
     void SceneRenderer::bindResourcesAndDraw(const CommandBuffer &commandBuffer,
                                              const RenderCommand &cmd) {
         VkCommandBuffer cb = commandBuffer.getActiveBuffer();
 
-        /* --- pipeline & descriptor sets ----------------------------------- */
+        /* ── 1. pipeline ─────────────────────────────────────────────── */
         vkCmdBindPipeline(cb,
                           VK_PIPELINE_BIND_POINT_GRAPHICS,
                           cmd.pipeline->getPipeline());
 
-        for (auto &[setIndex, setHandle]: cmd.descriptorSets) {
-            if (setHandle == VK_NULL_HANDLE) continue; // skip gaps
-            vkCmdBindDescriptorSets(cb,
-                                    VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                    cmd.pipeline->getPipelineLayout(),
-                                    static_cast<uint32_t>(setIndex), 1, &setHandle,
-                                    0, nullptr);
-        }
-
-        /* --- vertex & instance buffers ------------------------------------ */
-        VkBuffer vbos[2];
-        VkDeviceSize offs[2]{0, 0};
-        uint32_t vbCount = 0;
-
-        /* binding 0 : per-vertex */
-        vbos[vbCount++] = cmd.meshInstance->vertexBuffer->m_buffer;
-
-        /* binding 1 : per-instance (only if it exists) */
-        if (cmd.meshInstance->instanceBuffer &&
-            cmd.meshInstance->instanceCount > 0)
-            vbos[vbCount++] = cmd.meshInstance->instanceBuffer->m_buffer;
-
-        vkCmdBindVertexBuffers(cb, 0, vbCount, vbos, offs);
+        /* ── 3. vertex buffer; **no** instance buffer any more ───────── */
+        VkBuffer vbo = cmd.meshInstance->vertexBuffer->m_buffer;
+        VkDeviceSize offs = 0;
+        vkCmdBindVertexBuffers(cb, 0, 1, &vbo, &offs); // binding 0 only
 
         /* optional index buffer */
-        if (cmd.meshInstance->indexBuffer)
+        if (cmd.meshInstance->indexBuffer) {
             vkCmdBindIndexBuffer(cb,
                                  cmd.meshInstance->indexBuffer->m_buffer,
                                  0, VK_INDEX_TYPE_UINT32);
+        }
 
-        /* --- draw ---------------------------------------------------------- */
+        /* ── 4. draw ─────────────────────────────────────────────────── */
         const uint32_t ic = std::max(cmd.meshInstance->instanceCount, 1u);
 
-        if (cmd.meshInstance->indexBuffer) // indexed draw
+        if (cmd.meshInstance->indexBuffer) {
             vkCmdDrawIndexed(cb,
                              cmd.meshInstance->indexCount,
-                             ic,
+                             ic, // ⚑ instanceCount
                              0, 0, 0);
-        else // non-indexed draw
+        } else {
             vkCmdDraw(cb,
                       cmd.meshInstance->vertexCount,
-                      ic,
+                      ic, // ⚑ instanceCount
                       0, 0);
-    }
-
-    void SceneRenderer::collectRenderCommands(
-        std::vector<RenderCommand> &renderGroups, uint32_t frameIndex) {
-        m_batches.clear(); // m_batches : unordered_map<PipelineKey, InstanceBatch>
-        auto group = m_activeScene->getRegistry().group<MeshComponent, TransformComponent>();
-
-        for (auto [e, meshComponent, transformComponent]: group.each()) {
-            m_stats.entityCount++; // every visible entity
-
-            Entity entity(e, m_activeScene.get());
-            if (!isEntityTreeVisible(entity)) // ← your old visibility test wrapped
-                continue;
-            std::string tag = entity.getName();
-            UUID uuid = entity.getUUID();
-
-            //std::unordered_map<DescriptorManagerType, VkDescriptorSet> descriptorSets; // Add the descriptor set here
-            //std::unordered_map<DescriptorManagerType, std::vector<VkWriteDescriptorSet> > descriptorWritesTracker;
-
-            /* ----------------------------------------------------------------- */
-            /* pipeline-key & resources that are the same for every instance     */
-            /* ----------------------------------------------------------------- */
-            auto meshData = MeshManager::instance().getMeshData(meshComponent);
-            if (!meshData) continue;
-
-            auto meshInst = m_meshResourceManager->getMeshInstance(
-                meshComponent.getCacheIdentifier(),
-                meshData,
-                meshComponent.meshDataType());
-            if (!meshInst) continue;
-
-            std::shared_ptr<MaterialInstance> matInst = getMaterialInstance(entity);
-
-
-            auto descriptors = buildCommonDescriptorSets(entity,
-                                                         frameIndex,
-                                                         matInst);
-
-            PipelineKey key = makeKey(meshComponent, *meshInst, matInst.get());
-
-
-            /* -------- find-or-create the batch --------------------------- */
-            auto &batch = m_batches[key];
-            if (!batch.mesh) // first entity with this key
-            {
-                batch.mesh = meshInst;
-                batch.material = matInst;
-                batch.sets = descriptors;
-                batch.key = key;
-            }
-
-            /* -------- push per-instance payload -------------------------- */
-            batch.cpuInstances.push_back({transformComponent.getTransform()});
-        }
-
-        /* 2.  turn every batch into one RenderCommand ------------------------ */
-        m_renderGroups.clear();
-        RenderPassInfo rp{};
-        rp.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
-        rp.renderPass = m_renderPass->getRenderPass();
-        rp.debugName = "SceneRenderer::";
-
-        m_stats.batchCount = static_cast<uint32_t>(m_batches.size());
-
-        for (auto &[key, batch]: m_batches) {
-            /* --- upload cpuInstances → mesh->instanceBuffer ----------------- */
-            const VkDeviceSize bytes = batch.cpuInstances.size() * sizeof(InstanceData);
-            batch.mesh->ensureInstanceBuffer(bytes, m_context->vkDevice());
-
-            void *dst = nullptr;
-            vkMapMemory(m_context->vkDevice().m_LogicalDevice,
-                        batch.mesh->instanceBuffer->m_memory,
-                        0, bytes, 0, &dst);
-            memcpy(dst, batch.cpuInstances.data(), bytes);
-            vkUnmapMemory(m_context->vkDevice().m_LogicalDevice,
-                          batch.mesh->instanceBuffer->m_memory);
-
-            batch.mesh->instanceCount = static_cast<uint32_t>(batch.cpuInstances.size());
-            PipelineInfo pipelineInfo = makePipelineInfo(batch.material.get());
-
-            /* --- build the single draw command ------------------------------ */
-            RenderCommand cmd;
-            cmd.pipeline = m_pipelineManager.getOrCreatePipeline(key, pipelineInfo, rp, m_context);
-            cmd.meshInstance = batch.mesh.get();
-            cmd.materialInstance = batch.material.get();
-            cmd.descriptorSets = std::move(batch.sets);
-
-            m_renderGroups.emplace_back(std::move(cmd));
-            m_stats.instanceTotal += batch.mesh->instanceCount;
         }
     }
+
 
     bool SceneRenderer::isEntityTreeVisible(Entity e) const {
         // Initialize a flag to determine if we should skip this entity
@@ -382,7 +421,7 @@ namespace VkRender {
 
     PipelineKey SceneRenderer::makeKey(MeshComponent &mc,
                                        const MeshInstance &mi,
-                                       MaterialInstance *mat) {
+                                       MaterialInstance *mat, Entity &entity) {
         PipelineKey k{};
 
         /* fixed-function  */
@@ -391,14 +430,19 @@ namespace VkRender {
 
         /* shared ids  */
         k.meshId = Utils::crc32(mc.getCacheIdentifier());
-        k.vsCRC = Utils::crc32("BlinnPhongShaderInstanced.vert");
-        k.fsCRC = Utils::crc32("BlinnPhongShaderInstanced.frag");
+        if (entity.hasComponent<MaterialComponent>()) {
+            k.vsCRC = Utils::crc32(entity.getComponent<MaterialComponent>().vertexShaderName);
+            k.fsCRC = Utils::crc32(entity.getComponent<MaterialComponent>().fragmentShaderName);
+        } else {
+            k.vsCRC = Utils::crc32("DefaultShaderKey.vert");
+            k.fsCRC = Utils::crc32("DefaultShaderKey.frag");
+        }
+
         k.materialFlags = mat && mat->baseColorTexture ? 1u : 0u;
         return k;
     }
 
     PipelineInfo SceneRenderer::makePipelineInfo(MaterialInstance *mat) {
-
         PipelineInfo info{};
         /* descriptor set layouts */
         info.setLayouts.resize(mat ? 2 : 1);
@@ -406,15 +450,14 @@ namespace VkRender {
         info.setLayouts[0] = descriptorRegistry.getManager(DescriptorManagerType::MVP)
                 .getDescriptorSetLayout();
         info.setLayouts[1] = mat
-                              ? descriptorRegistry.getManager(DescriptorManagerType::Material)
-                              .getDescriptorSetLayout()
-                              : VK_NULL_HANDLE;
+                                 ? descriptorRegistry.getManager(DescriptorManagerType::MaterialData)
+                                 .getDescriptorSetLayout()
+                                 : VK_NULL_HANDLE;
 
         /* vertex input: binding 0 (mesh), binding 1 (instance) */
         info.bindings = {
             {
                 {0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX},
-                {1, sizeof(InstanceData), VK_VERTEX_INPUT_RATE_INSTANCE}
             }
         };
 
@@ -425,13 +468,9 @@ namespace VkRender {
                 {2, 0, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 6},
                 {3, 0, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 8},
                 {4, 0, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 10},
-                {5, 1, VK_FORMAT_R32G32B32A32_SFLOAT, 0},
-                {6, 1, VK_FORMAT_R32G32B32A32_SFLOAT, 16},
-                {7, 1, VK_FORMAT_R32G32B32A32_SFLOAT, 32},
-                {8, 1, VK_FORMAT_R32G32B32A32_SFLOAT, 48}
             }
         };
-        info.attrCount = 9;
+        info.attrCount = 5;
 
         info.materialInstance = mat;
 
@@ -487,114 +526,11 @@ namespace VkRender {
             writes[1].descriptorCount = 1;
             writes[1].pImageInfo = &mat->baseColorTexture->getDescriptorInfo();
 
-            out[DescriptorManagerType::Material] =
-                    descriptorRegistry.getManager(DescriptorManagerType::Material)
+            out[DescriptorManagerType::MaterialData] =
+                    descriptorRegistry.getManager(DescriptorManagerType::MaterialData)
                     .getOrCreateDescriptorSet(writes);
         }
         return out;
-    }
-
-
-    void SceneRenderer::onComponentAdded(Entity entity, MeshComponent &meshComponent) {
-        // Check if I readd a meshcomponent then we should destroy the renderresources attached to it:
-        m_entityRenderData[entity.getUUID()].cameraBuffer.resize(m_context->swapChainBuffers().size());
-        m_entityRenderData[entity.getUUID()].modelBuffer.resize(m_context->swapChainBuffers().size());
-        // Create attachable UBO buffers and such
-        for (int frameIndex = 0; frameIndex < m_context->swapChainBuffers().size(); ++frameIndex) {
-            m_context->vkDevice().createBuffer(
-                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                m_entityRenderData[entity.getUUID()].cameraBuffer[frameIndex],
-                sizeof(GlobalUniformBufferObject), nullptr, "SceneRenderer:MeshComponent:Camera",
-                m_context->getDebugUtilsObjectNameFunction());
-            m_context->vkDevice().createBuffer(
-                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                m_entityRenderData[entity.getUUID()].modelBuffer[frameIndex],
-                sizeof(glm::mat4), nullptr, "SceneRenderer:MeshComponent:Model",
-                m_context->getDebugUtilsObjectNameFunction());
-        }
-    }
-
-    void SceneRenderer::onComponentRemoved(Entity entity, MeshComponent &meshComponent) {
-        if (m_entityRenderData.contains(entity.getUUID())) {
-            m_entityRenderData[entity.getUUID()].cameraBuffer.clear();
-            m_entityRenderData[entity.getUUID()].modelBuffer.clear();
-        }
-    }
-
-    void SceneRenderer::onComponentUpdated(Entity entity, MeshComponent &meshComponent) {
-    }
-
-    void SceneRenderer::onComponentAdded(Entity entity, MaterialComponent &materialComponent) {
-        // Check if I readd a meshcomponent then we should destroy the renderresources attached to it:
-        if (m_materialInstances.contains(entity.getUUID())) {
-            m_materialInstances.erase(entity.getUUID());
-        }
-        m_entityRenderData[entity.getUUID()].materialBuffer.resize(m_context->swapChainBuffers().size());
-        // Create attachable UBO buffers and such
-        for (int i = 0; i < m_context->swapChainBuffers().size(); ++i) {
-            m_context->vkDevice().createBuffer(
-                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                m_entityRenderData[entity.getUUID()].materialBuffer[i],
-                sizeof(MaterialBufferObject), nullptr, "SceneRenderer:MaterialComponent",
-                m_context->getDebugUtilsObjectNameFunction());;
-        }
-    }
-
-    void SceneRenderer::onComponentRemoved(Entity entity, MaterialComponent &materialComponent) {
-        if (m_materialInstances.contains(entity.getUUID())) {
-            m_materialInstances.erase(entity.getUUID());
-        }
-    }
-
-    void SceneRenderer::onComponentUpdated(Entity entity, MaterialComponent &materialComponent) {
-        // add a video source if selected
-        if (m_materialInstances.contains(
-            entity.getUUID())) {
-            // TODO look into just replacing what changed instead of erasing, triggering a new pipeline creation. However, the cost for recreating everything in a material is very small
-            m_materialInstances.erase(entity.getUUID());
-        }
-    }
-
-    void SceneRenderer::onComponentAdded(Entity entity, PointCloudComponent &pointCloudComponent) {
-        // Check if I readd a meshcomponent then we should destroy the renderresources attached to it:
-        m_entityRenderData[entity.getUUID()].cameraBuffer.resize(m_context->swapChainBuffers().size());
-        m_entityRenderData[entity.getUUID()].modelBuffer.resize(m_context->swapChainBuffers().size());
-        m_entityRenderData[entity.getUUID()].pointCloudBuffer.resize(m_context->swapChainBuffers().size());
-        // Create attachable UBO buffers and such
-        for (int i = 0; i < m_context->swapChainBuffers().size(); ++i) {
-            m_context->vkDevice().createBuffer(
-                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                m_entityRenderData[entity.getUUID()].cameraBuffer[i],
-                sizeof(GlobalUniformBufferObject), nullptr, "SceneRenderer:PointCloudComponent:Camera",
-                m_context->getDebugUtilsObjectNameFunction());
-            m_context->vkDevice().createBuffer(
-                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                m_entityRenderData[entity.getUUID()].modelBuffer[i],
-                sizeof(glm::mat4), nullptr, "SceneRenderer:PointCloudComponent:Model",
-                m_context->getDebugUtilsObjectNameFunction());
-            m_context->vkDevice().createBuffer(
-                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                m_entityRenderData[entity.getUUID()].pointCloudBuffer[i],
-                sizeof(PointCloudUBO), nullptr, "SceneRenderer:PointCloudComponent:PC",
-                m_context->getDebugUtilsObjectNameFunction());
-        }
-    }
-
-    void SceneRenderer::onComponentRemoved(Entity entity, PointCloudComponent &pointCloudComponent) {
-    }
-
-    void SceneRenderer::onComponentUpdated(Entity entity, PointCloudComponent &pointCloudComponent) {
-    }
-
-    void SceneRenderer::updateGlobalUniformBuffer(uint32_t frameIndex, Entity entity) {
-        // Get the active camera entity
-        // Compute view and projection matrices
     }
 
 
@@ -612,17 +548,19 @@ namespace VkRender {
         auto vsSPV = assetManager()->get<SPIRVAsset>(materialComponent.vertexShaderName.string());
         auto fsSPV = assetManager()->get<SPIRVAsset>(materialComponent.fragmentShaderName.string());
         // 2) Wrap into a GPU resource
-        VulkanShaderModuleCreateInfo vertexShaderCreateInfo(m_context->vkDevice(), vsSPV, VK_SHADER_STAGE_VERTEX_BIT, materialComponent.vertexShaderName.string());
-        VulkanShaderModuleCreateInfo vertexShaderCreateInfo2(m_context->vkDevice(), vsSPV, VK_SHADER_STAGE_VERTEX_BIT, materialComponent.vertexShaderName.string());
-        VulkanShaderModuleCreateInfo fragmentShaderCreateInfo(m_context->vkDevice(), fsSPV, VK_SHADER_STAGE_FRAGMENT_BIT, materialComponent.fragmentShaderName.string());
+        VulkanShaderModuleCreateInfo vertexShaderCreateInfo(m_context->vkDevice(), vsSPV, VK_SHADER_STAGE_VERTEX_BIT,
+                                                            materialComponent.vertexShaderName.string());
+        VulkanShaderModuleCreateInfo fragmentShaderCreateInfo(m_context->vkDevice(), fsSPV,
+                                                              VK_SHADER_STAGE_FRAGMENT_BIT,
+                                                              materialComponent.fragmentShaderName.string());
         // 3) Later in pipeline creation:
 
         // 3) Ask the GPU cache for shared modules:
         auto vsModule = cache()->shaderModules.get(vertexShaderCreateInfo);
         auto fsModule = cache()->shaderModules.get(fragmentShaderCreateInfo);
 
-        materialInstance->addShader(vertexShaderCreateInfo);
-        materialInstance->addShader(fragmentShaderCreateInfo);
+        materialInstance->addShader(vsModule);
+        materialInstance->addShader(fsModule);
 
         Log::Logger::getInstance()->info("Created Material for Entity: {}", entity.getName());
         return materialInstance;
@@ -640,5 +578,22 @@ namespace VkRender {
             m_stats.asMs(m_stats.cpuCollectNs),
             m_stats.asMs(m_stats.cpuRecordNs),
             m_stats.asMs(m_stats.gpuNs));
+    }
+
+    std::unordered_map<DescriptorManagerType, VkDescriptorSet> SceneRenderer::buildMaterialSamplerSet(
+        std::shared_ptr<MaterialInstance> &matInst) {
+        std::unordered_map<DescriptorManagerType, VkDescriptorSet> out;
+
+        VkWriteDescriptorSet w{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+        w.dstBinding = 0;
+        w.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        w.descriptorCount = 1;
+        w.pImageInfo = &matInst->baseColorTexture->getDescriptorInfo();
+        out[DescriptorManagerType::MaterialSampler]
+                = descriptorRegistry
+                .getManager(DescriptorManagerType::MaterialSampler)
+                .getOrCreateDescriptorSet({w});
+
+        return out;
     }
 }

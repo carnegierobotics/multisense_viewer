@@ -13,14 +13,19 @@
 
 namespace VkRender{
     enum class DescriptorManagerType : uint32_t;
+    // push‑constant struct
+    struct BatchPC {
+        uint32_t transformBase;
+        uint32_t materialBase;
+    };
 
     struct RenderCommand {
-        Entity entity{};
         std::shared_ptr<VulkanGraphicsPipeline> pipeline = nullptr;
         MeshInstance* meshInstance = nullptr;             // GPU-specific mesh data
         MaterialInstance* materialInstance = nullptr;  // GPU-specific material data
-        std::unordered_map<DescriptorManagerType, VkDescriptorSet> descriptorSets{}; // Add the descriptor set here
 
+
+        std::unordered_map<DescriptorManagerType, VkDescriptorSet> descriptorSets{}; // Add the descriptor set here
     };
 
 }

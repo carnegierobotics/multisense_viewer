@@ -5,6 +5,8 @@
 #ifndef MULTISENSE_VIEWER_MESHINSTANCE_H
 #define MULTISENSE_VIEWER_MESHINSTANCE_H
 
+#include <Viewer/Scenes/Entity.h>
+
 #include "Viewer/Rendering/MeshData.h"
 #include "Viewer/Rendering/Core/PipelineKey.h"
 
@@ -33,7 +35,7 @@ namespace VkRender {
 
     };
 
-    struct InstanceData {           // 64 B, aligned to std140
+    struct InstanceTransform {           // 64 B, aligned to std140
         glm::mat4 model;            // you can add color, id, etc. later
     };
 
@@ -41,8 +43,14 @@ namespace VkRender {
         std::shared_ptr<MeshInstance>      mesh;
         std::shared_ptr<MaterialInstance>  material;
         std::unordered_map<DescriptorManagerType, VkDescriptorSet> sets;
-        std::vector<InstanceData>          cpuInstances;   // per-frame
+        std::vector<InstanceTransform>          cpuInstanceTransform;   // per-frame
+        std::vector<MaterialBufferObject>          cpuInstanceMaterial;   // per-frame
         PipelineKey                        key;
+        uint32_t materialBase = 0;
+        uint32_t transformBase = 0;
+        uint32_t instanceCount = 0;
+        Entity entity;
+        bool started = false;
     };
 
 }

@@ -13,25 +13,31 @@
 
 namespace VkRender {
     enum class DescriptorManagerType : uint32_t {
-        MVP = 0,
-        Material = 1,
-        DynamicCameraGizmo = 2,
-        Viewport3DTexture = 4,
+        MVP,
+        Transform, // storage buffer for model matrices
+        MaterialData, // storage buffer for material PODs
+        MaterialSampler, // combined-image-sampler for albedo
+        DynamicCameraGizmo, // combined-image-sampler for DynamicCameraGizmo
+        Viewport3DTexture // (unchanged)
         // TODO This only works as long as we're not confusing Viewport3DTexture with SceneRenderer
     };
 
-    static std::string descriptorManagerTypeToString(DescriptorManagerType type){
+    static std::string descriptorManagerTypeToString(DescriptorManagerType type) {
         switch (type) {
             case DescriptorManagerType::MVP:
                 return "MVP";
-            case DescriptorManagerType::Material:
-                return "Material";
+            case DescriptorManagerType::Transform:
+                return "Transform";
+            case DescriptorManagerType::MaterialData:
+                return "MaterialData";
+            case DescriptorManagerType::MaterialSampler:
+                return "MaterialSampler";
             case DescriptorManagerType::DynamicCameraGizmo:
                 return "DynamicCameraGizmo";
             case DescriptorManagerType::Viewport3DTexture:
                 return "Viewport3DTexture";
-        default:
-            throw std::runtime_error("Unknown Descriptor Manager Type");
+            default:
+                throw std::runtime_error("Unknown Descriptor Manager Type");
         }
     }
 
@@ -45,67 +51,103 @@ namespace VkRender {
         }
 
         void createManager(
-                DescriptorManagerType type,
-                VulkanDevice &device
-        ) {
+            DescriptorManagerType type,
+            VulkanDevice &device) {
             std::vector<VkDescriptorSetLayoutBinding> bindings;
-
 
             switch (type) {
                 case DescriptorManagerType::MVP:
+                    // binding 0: global UBO
                     bindings = {
-                            {
-                                    0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1,
-                                                                             VK_SHADER_STAGE_VERTEX_BIT |
-                                                                             VK_SHADER_STAGE_FRAGMENT_BIT,
-                                    nullptr
-                            }
+                        {
+                            0,
+                            VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                            1,
+                            VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                            nullptr
+                        }
                     };
+                    break;
 
-                    break;
-                case DescriptorManagerType::Material:
+                case DescriptorManagerType::Transform:
+                    // binding 0: transforms SSBO
                     bindings = {
-                            {
-                                    0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_FRAGMENT_BIT,
-                                    nullptr
-                            },
-                            {
-                                    1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT,
-                                    nullptr
-                            },
+                        {
+                            0,
+                            VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                            1,
+                            VK_SHADER_STAGE_VERTEX_BIT,
+                            nullptr
+                        }
                     };
                     break;
-                case DescriptorManagerType::DynamicCameraGizmo:
+
+                case DescriptorManagerType::MaterialData:
+                    // binding 0: material POD SSBO
                     bindings = {
-                            {
-                                    0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT,
-                                    nullptr
-                            },
-                            {
-                                    1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT,
-                                    nullptr
-                            }
+                        {
+                            0,
+                            VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                            1,
+                            VK_SHADER_STAGE_FRAGMENT_BIT,
+                            nullptr
+                        }
                     };
                     break;
+
+                case DescriptorManagerType::MaterialSampler:
+                    // binding 0: albedo texture sampler
+                    bindings = {
+                        {
+                            0,
+                            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                            1,
+                            VK_SHADER_STAGE_FRAGMENT_BIT,
+                            nullptr
+                        }
+                    };
+                    break;
+
                 case DescriptorManagerType::Viewport3DTexture:
                     bindings = {
-                            {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
-                            {
-                             1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1, VK_SHADER_STAGE_VERTEX_BIT |
-                                                                              VK_SHADER_STAGE_FRAGMENT_BIT,
-                                                                                                            nullptr
-                            }
+                        {
+                            0,
+                            VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                            1,
+                            VK_SHADER_STAGE_FRAGMENT_BIT,
+                            nullptr
+                        },
+                        {
+                            1,
+                            VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                            1,
+                            VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                            nullptr
+                        }
+                    };
+                    break;
+
+
+                case DescriptorManagerType::DynamicCameraGizmo:
+                    bindings = {
+                        {
+                            0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT,
+                            nullptr
+                        },
+                        {
+                            1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT,
+                            nullptr
+                        }
                     };
                     break;
             }
-
 
             m_managers[type] =
                     std::make_unique<DescriptorSetManager>(device, bindings, type);
         }
 
     private:
-        std::unordered_map<DescriptorManagerType, std::unique_ptr<DescriptorSetManager>> m_managers;
+        std::unordered_map<DescriptorManagerType, std::unique_ptr<DescriptorSetManager> > m_managers;
     };
 }
 #endif //DESCRIPTORMANAGERREGISTRY_H

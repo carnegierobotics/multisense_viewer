@@ -15,7 +15,7 @@ namespace VkRender {
     class PipelineManager {
     public:
         PipelineManager() = default;
-        std::shared_ptr<VulkanGraphicsPipeline> getOrCreatePipeline(const PipelineKey &key, const PipelineInfo& pipelineInfo, const RenderPassInfo &renderPassInfo, Application *context);
+        std::shared_ptr<VulkanGraphicsPipeline> getOrCreatePipeline(const PipelineKey &key, const PipelineInfo& pipelineInfo, const RenderPassInfo &renderPassInfo, VkPipelineLayout globalPipelineLayout, Application *context);
 
         // Function to remove a pipeline by key
         void removePipeline(const PipelineKey &key);

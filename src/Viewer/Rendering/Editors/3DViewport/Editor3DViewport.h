@@ -6,7 +6,6 @@
 #define MULTISENSE_VIEWER_EDITOR3DVIEWPORT_H
 
 #include <Viewer/Rendering/Core/DescriptorRegistry.h>
-#include <Viewer/Rendering/RenderResources/GraphicsPipeline2D.h>
 #include <Viewer/Rendering/Editors/ArcballCamera.h>
 
 #include "Viewer/Rendering/Core/PipelineManager.h"

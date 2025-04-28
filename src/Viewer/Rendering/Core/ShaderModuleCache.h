@@ -21,8 +21,7 @@ namespace VkRender {
             std::lock_guard<std::mutex> lk(_mutex);
             auto it = _cache.find(key);
             if (it != _cache.end()) {
-                if (auto existing = it->second.lock())
-                    return existing;
+                    return it->second;
             }
 
             auto module = std::make_shared<VulkanShaderModule>(ci);
@@ -58,7 +57,7 @@ namespace VkRender {
         VkDevice _device;
         std::mutex    _mutex;
         std::unordered_map<Key,
-                           std::weak_ptr<VulkanShaderModule>,
+                           std::shared_ptr<VulkanShaderModule>,
                            Hash, Eq> _cache;
     };
 

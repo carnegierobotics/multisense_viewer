@@ -5,10 +5,11 @@
 #ifndef SHADERLOADER_H
 #define SHADERLOADER_H
 
-#include "IAssetLoader.h"
+#include "Viewer/Assets/IAssetLoader.h"
 #include <vulkan/vulkan.h>
 #include <unordered_map>
 #include <mutex>
+#include <vector>
 
 namespace VkRender {
 

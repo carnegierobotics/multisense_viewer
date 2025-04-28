@@ -144,8 +144,8 @@ namespace VkRender {
         // pack three floats into one vec4 slot
         float      specular;      // specular exponent or weight
         float      diffuse;       // diffuse weight
+        float      phongExponent;         // pad to 16 bytes
         float      useVertexColor;// bool→float: 1.0=useTexture, 0.0=use baseColor
-        float      _pad0;         // pad to 16 bytes
 
         // 16-byte aligned
         glm::vec4 emissiveFactor; // emissive color + intensity

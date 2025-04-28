@@ -537,6 +537,8 @@ namespace VkRender {
     std::shared_ptr<MaterialInstance> SceneRenderer::initializeMaterial(
         Entity entity, const MaterialComponent &materialComponent) {
         auto materialInstance = std::make_shared<MaterialInstance>();
+
+        /*
         if (std::filesystem::exists(materialComponent.albedoTexturePath)) {
             materialInstance->baseColorTexture = EditorUtils::createTextureFromFile(materialComponent.albedoTexturePath,
                 m_context);
@@ -544,6 +546,51 @@ namespace VkRender {
             materialInstance->baseColorTexture = EditorUtils::createEmptyTexture(300, 300, VK_FORMAT_R8G8B8A8_UNORM,
                 m_context, VMA_MEMORY_USAGE_GPU_ONLY, true);
         }
+        */
+
+        auto texAsset = assetManager()->get<TextureAsset>(materialComponent.albedoTexturePath);
+
+        VkImageCreateInfo imageCI = Populate::imageCreateInfo();
+        imageCI.imageType = VK_IMAGE_TYPE_2D;
+        imageCI.format = VK_FORMAT_R8G8B8A8_UNORM;
+        imageCI.extent.width = texAsset->width;
+        imageCI.extent.height = texAsset->height;
+        imageCI.extent.depth = texAsset->depth;
+
+        imageCI.mipLevels = 1;
+        imageCI.arrayLayers = 1;
+        imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
+        imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
+        imageCI.usage =
+            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+        imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        VkImageViewCreateInfo imageViewCI = Populate::imageViewCreateInfo();
+        imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        imageViewCI.format = VK_FORMAT_R8G8B8A8_UNORM;
+        imageViewCI.subresourceRange.baseMipLevel = 0;
+        imageViewCI.subresourceRange.levelCount = 1;
+        imageViewCI.subresourceRange.baseArrayLayer = 0;
+        imageViewCI.subresourceRange.layerCount = 1;
+        imageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+
+        VulkanImageCreateInfo vulkanImageCreateInfo(m_context->vkDevice(), m_context->allocator(), imageCI,
+                                                    imageViewCI);
+        vulkanImageCreateInfo.setLayout = true;
+        vulkanImageCreateInfo.srcLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        vulkanImageCreateInfo.dstLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        vulkanImageCreateInfo.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        vulkanImageCreateInfo.debugInfo = materialComponent.albedoTexturePath.string();
+        vulkanImageCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+
+        auto vulkanImage = cache()->images.get(vulkanImageCreateInfo);
+
+        VulkanTexture2DCreateInfo texCreateInfo{ m_context->vkDevice(), texAsset};
+        texCreateInfo.image = vulkanImage;
+
+        auto vkTex = cache()->textures.get(texCreateInfo);
+        materialInstance->baseColorTexture = vkTex;
+
         // 1 Load Shader code
         auto vsSPV = assetManager()->get<SPIRVAsset>(materialComponent.vertexShaderName.string());
         auto fsSPV = assetManager()->get<SPIRVAsset>(materialComponent.fragmentShaderName.string());

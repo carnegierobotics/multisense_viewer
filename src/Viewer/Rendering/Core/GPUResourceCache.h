@@ -7,6 +7,8 @@
 
 
 #include "Viewer/Rendering/Core/ShaderModuleCache.h"
+#include "Viewer/Rendering/Core/TextureCache.h"
+#include "Viewer/Rendering/Core/ImageCache.h"
 
 namespace VkRender {
 
@@ -14,12 +16,14 @@ class GPUResourceCache {
 public:
   explicit GPUResourceCache(VulkanDevice& device)
     : shaderModules(device.m_LogicalDevice)
+    , textures(device.m_LogicalDevice)
+    , images(device.m_LogicalDevice)
   {}
 
   ShaderModuleCache      shaderModules;
-  //PipelineCache          pipelines;
-  //DescriptorSetCache     descriptors;
-  //TextureCache textures;
+  TextureCache textures;
+  VulkanImageCache images;
+
 
   // ... other GPU‐side caches (framebuffers, samplers, etc.) ...
 };

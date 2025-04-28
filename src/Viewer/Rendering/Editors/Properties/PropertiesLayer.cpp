@@ -785,7 +785,6 @@ namespace VkRender {
 
             if (ImGui::Button("Reload Material Shader")) {
                 component.reloadShader = true;
-                m_context->activeScene()->onComponentUpdated(entity, component);
             }
 
             ImGui::Checkbox("Apply Texture", &component.useTexture);

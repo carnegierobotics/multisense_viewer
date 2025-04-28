@@ -177,10 +177,10 @@ namespace VkRender {
         vulkanImageCreateInfo.debugInfo = "GuiResources:FontTexture";
         auto image = std::make_shared<VulkanImage>(vulkanImageCreateInfo);
 
-        VulkanTexture2DCreateInfo textureCreateInfo(device);
+        VulkanTexture2DCreateInfo textureCreateInfo(device, nullptr);
         textureCreateInfo.image = image;
         std::shared_ptr<VulkanTexture2D> texture = std::make_shared<VulkanTexture2D>(textureCreateInfo);
-        texture->loadImage(pixels, width*height * 4);
+        texture->loadImage(pixels);
         fontTexture.emplace_back(std::move(texture));
 
         VkDescriptorSet descriptor{};
@@ -316,10 +316,10 @@ namespace VkRender {
         vulkanImageCreateInfo.debugInfo = "GuiResources:IconTexture";
         auto image = std::make_shared<VulkanImage>(vulkanImageCreateInfo);
 
-        VulkanTexture2DCreateInfo textureCreateInfo(device);
+        VulkanTexture2DCreateInfo textureCreateInfo(device, nullptr);
         textureCreateInfo.image = image;
         std::shared_ptr<VulkanTexture2D> texture = std::make_shared<VulkanTexture2D>(textureCreateInfo);
-        texture->loadImage(pixels, texWidth*texHeight*4);
+        texture->loadImage(pixels);
         iconTextures.emplace_back(std::move(texture));
 
         /*

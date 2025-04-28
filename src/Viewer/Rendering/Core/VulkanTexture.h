@@ -6,17 +6,20 @@
 #define MULTISENSE_VIEWER_VULKANTEXTURE_H
 
 
+#include <Viewer/Assets/TextureLoader.h>
+
 #include "UUID.h"
 #include "VulkanImage.h"
 
 namespace VkRender {
     struct VulkanTexture2DCreateInfo {
 
-        explicit VulkanTexture2DCreateInfo(VulkanDevice& device) : vulkanDevice(device){
-
+        explicit VulkanTexture2DCreateInfo(VulkanDevice& device, const std::shared_ptr<TextureAsset>& textureAsset) : texAsset(textureAsset), vulkanDevice(device) {
         }
+
         VulkanDevice &vulkanDevice;
         std::shared_ptr<VulkanImage> image;
+        std::shared_ptr<TextureAsset> texAsset;
 
     };
 
@@ -40,10 +43,12 @@ namespace VkRender {
     public:
         explicit VulkanTexture2D(VulkanTexture2DCreateInfo &createInfo) : VulkanTexture(createInfo){
 
+            if (createInfo.texAsset)
+                loadImage(createInfo.texAsset->pixels.data());
         }
 
         /** @brief If Size is 0 the texture will use the bound image size */
-        void loadImage(void *data, uint32_t size = 0);
+        void loadImage(void *data);
         uint32_t getSize(){return m_image->getImageSize();}
         uint32_t width(){return m_image->width();}
         uint32_t height(){return m_image->height();}

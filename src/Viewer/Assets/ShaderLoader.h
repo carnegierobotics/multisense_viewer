@@ -23,9 +23,7 @@ namespace VkRender {
 
     class ShaderLoader : public IAssetLoader {
     public:
-        explicit ShaderLoader(VkDevice device) {
-
-        }
+        explicit ShaderLoader() = default;
         bool canLoad(const std::string& key) const override;
         std::shared_ptr<BaseAsset> load(const std::string& key) override;
 

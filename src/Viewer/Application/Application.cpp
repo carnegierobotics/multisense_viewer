@@ -38,6 +38,7 @@
 
 #include <Viewer/Assets/AssetManager.h>
 #include <Viewer/Assets/ShaderLoader.h>
+#include <Viewer/Assets/TextureLoader.h>
 #include <Viewer/Rendering/Core/UbuntuKeyInput.h>
 
 #include "ProjectSerializer.h"
@@ -54,7 +55,8 @@ namespace VkRender {
         auto& userSetting = ApplicationConfig::getInstance().getUserSetting();
 
         m_assetManager = std::make_shared<AssetManager>();
-        m_assetManager->registerLoader(std::make_unique<ShaderLoader>(device));
+        m_assetManager->registerLoader(std::make_unique<ShaderLoader>());
+        m_assetManager->registerLoader(std::make_unique<TextureLoader>());
 
         // Create a scene and load deserialize from file if a file exsits
         std::shared_ptr<Scene> scene = newScene();

@@ -26,8 +26,8 @@ struct MaterialBufferObject {
     vec4 baseColor;      // matches glm::vec4
     float specular;      // matches float
     float diffuse;
+    float phongExponent;// bool→float: 1.0=useTexture, 0.0=use baseColor
     float useVertexColor;// bool→float: 1.0=useTexture, 0.0=use baseColor
-    float _pad0;          // pad to 16-byte alignment
     vec4 emissiveFactor; // matches glm::vec4
 };
 
@@ -89,13 +89,19 @@ void main() {
 
     vec3 halfwayDir = normalize(lightDir + viewDir);
 
-    float spec = pow(max(dot(normal, halfwayDir), 0.0), 128);
-    vec3 specular = vec3(0.3) * spec;
 
-    vec3 ambient = 0.2f * mbo.baseColor.rgb;
+    vec3 texCol = texture(uTexture, vUV).rgb;
+    vec3 albedo = (mbo.useVertexColor > 0.5)
+    ? texCol * mbo.baseColor.rgb
+    : mbo.baseColor.rgb;
 
-    float diff = max(dot(lightDir, normal), 0.0);
-    vec3 diffuse = diff * mbo.baseColor.rgb;
+    vec3 ambient = 0.2f * albedo;
+
+    float diff = max(dot(lightDir, normal), 0.0) * mbo.diffuse;
+    vec3 diffuse = diff * albedo;
+
+    float spec = pow(max(dot(normal, halfwayDir), 0.0), mbo.phongExponent) * mbo.specular;
+    vec3 specular = spec * albedo;
 
     // use the gamma corrected color in the fragment
     outColor =vec4(ambient + diffuse + specular + mbo.emissiveFactor.x, 1.0);

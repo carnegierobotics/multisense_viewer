@@ -43,8 +43,7 @@ namespace VkRender::EditorUtils {
         vulkanImageCreateInfo.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         vulkanImageCreateInfo.debugInfo = "Emtpy texture:" + std::to_string(width) + "x" + std::to_string(height);
         vulkanImageCreateInfo.usage = usageAllocation;
-        VulkanTexture2DCreateInfo textureCreateInfo(context->vkDevice());
-
+        VulkanTexture2DCreateInfo textureCreateInfo(context->vkDevice(), nullptr);
         textureCreateInfo.image = std::make_shared<VulkanImage>(vulkanImageCreateInfo);
         auto texture = std::make_shared<VulkanTexture2D>(textureCreateInfo);
 
@@ -53,7 +52,7 @@ namespace VkRender::EditorUtils {
 
             void* imageMemory = malloc(imageSize);
             std::fill(static_cast<uint8_t*>(imageMemory), static_cast<uint8_t*>(imageMemory) + imageSize, 200);
-            texture->loadImage(imageMemory, imageSize);
+            texture->loadImage(imageMemory);
             free(imageMemory);
         }
 
@@ -103,12 +102,12 @@ namespace VkRender::EditorUtils {
         VulkanImageCreateInfo vulkanImageCreateInfo(context->vkDevice(), context->allocator(), imageCI,
                                                     imageViewCI);
         vulkanImageCreateInfo.debugInfo = "Color texture: Image Editor";
-        VulkanTexture2DCreateInfo textureCreateInfo(context->vkDevice());
+        VulkanTexture2DCreateInfo textureCreateInfo(context->vkDevice(), nullptr);
         textureCreateInfo.image = std::make_shared<VulkanImage>(vulkanImageCreateInfo);
         auto texture = std::make_shared<VulkanTexture2D>(textureCreateInfo);
 
         // Copy data to texturere
-        texture->loadImage(pixels, imageSize);
+        texture->loadImage(pixels);
         // Free the image data
         stbi_image_free(pixels);
         return texture;

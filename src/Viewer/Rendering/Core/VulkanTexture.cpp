@@ -52,9 +52,9 @@ namespace VkRender {
     }
 
 
-    void VulkanTexture2D::loadImage(void* data, uint32_t size) {
-        if (size == 0) // TODO this does not seem like good code design..
-            size = getSize();
+    void VulkanTexture2D::loadImage(void* data) {
+
+        VkDeviceSize size = getSize();
         // Create a staging buffer
         VkBuffer stagingBuffer;
         VkDeviceMemory stagingBufferMemory;

@@ -83,8 +83,6 @@ namespace VkRender {
             std::vector<std::unique_ptr<Buffer> > pointCloudBuffer;
         };
 
-        std::unordered_map<UUID, EntityRenderData> m_entityRenderData;
-
         using CpuUniformBuffer = CpuGpuBuffer<VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT>;
         using CpuStorageBuffer = CpuGpuBuffer<VK_BUFFER_USAGE_STORAGE_BUFFER_BIT>;
         CpuUniformBuffer m_globalUbo;

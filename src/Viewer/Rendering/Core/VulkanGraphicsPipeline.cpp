@@ -20,6 +20,7 @@ namespace VkRender {
             throw std::runtime_error("Failed to create Pipeline Cache");
 
 
+        VkPipelineLayout pipelineLayout;
         if (createInfo.globalPipelineLayout == VK_NULL_HANDLE) {
             // Pipeline layout
             // Push constants for UI rendering parameters
@@ -36,12 +37,13 @@ namespace VkRender {
                                        &m_pipelineLayout) !=
                 VK_SUCCESS)
                 throw std::runtime_error("Failed to create m_Pipeline layout");
-        } else
 
-            m_pipelineLayout = createInfo.globalPipelineLayout;
+            pipelineLayout = m_pipelineLayout;
+        } else
+            pipelineLayout = createInfo.globalPipelineLayout;
 
         VALIDATION_DEBUG_NAME(m_vulkanDevice.m_LogicalDevice,
-                              reinterpret_cast<uint64_t>(m_pipelineLayout), VK_OBJECT_TYPE_PIPELINE_LAYOUT,
+                              reinterpret_cast<uint64_t>(pipelineLayout), VK_OBJECT_TYPE_PIPELINE_LAYOUT,
                               createInfo.debugInfo + ":PipelineLayout");
 
         // Setup graphics pipeline for UI rendering
@@ -86,7 +88,7 @@ namespace VkRender {
                 Populate
                 ::pipelineDynamicStateCreateInfo(dynamicStateEnables);
 
-        VkGraphicsPipelineCreateInfo pipelineCreateInfo = Populate::pipelineCreateInfo(m_pipelineLayout,
+        VkGraphicsPipelineCreateInfo pipelineCreateInfo = Populate::pipelineCreateInfo(pipelineLayout,
             createInfo.renderPass);
 
 
@@ -133,7 +135,8 @@ namespace VkRender {
 
                 vkDestroyPipeline(logicalDevice, pipeline, nullptr);
                 vkDestroyPipelineCache(logicalDevice, pipelinCache, nullptr);
-                vkDestroyPipelineLayout(logicalDevice, pipelineLayout, nullptr);
+                if (pipelineLayout != VK_NULL_HANDLE)
+                    vkDestroyPipelineLayout(logicalDevice, pipelineLayout, nullptr);
             },
             fence, "Cleaning up GraphicsPipeline");
     }

@@ -68,7 +68,8 @@ namespace VkRender {
     }
 
     SceneRenderer::~SceneRenderer() {
-        m_entityRenderData.clear();
+
+        vkDestroyPipelineLayout(m_context->vkDevice().m_LogicalDevice, m_pipelineLayout, nullptr);
     }
 
     void SceneRenderer::createGlobalBuffers() {
@@ -118,7 +119,6 @@ namespace VkRender {
 
     void SceneRenderer::createGlobalPipelineLayout() {
         auto &dev = m_context->vkDevice();
-        auto &reg = descriptorRegistry;
 
         auto &mvpMgr = descriptorRegistry.getManager(DescriptorManagerType::MVP);
         auto &transformMgr = descriptorRegistry.getManager(DescriptorManagerType::Transform);
@@ -490,63 +490,9 @@ namespace VkRender {
         return mi;
     }
 
-    std::unordered_map<DescriptorManagerType, VkDescriptorSet>
-    SceneRenderer::buildCommonDescriptorSets(Entity entity,
-                                             uint32_t frameIdx,
-                                             std::shared_ptr<MaterialInstance> mat) {
-        std::unordered_map<DescriptorManagerType, VkDescriptorSet> out;
-
-
-        /* MVP set (camera only now) ---------------------------------------- */
-        auto &rd = m_entityRenderData[entity.getUUID()];
-        VkWriteDescriptorSet camWrite{};
-        camWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        camWrite.dstBinding = 0;
-        camWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        camWrite.descriptorCount = 1;
-        camWrite.pBufferInfo = &rd.cameraBuffer[frameIdx]->m_descriptorBufferInfo;
-
-        out[DescriptorManagerType::MVP] =
-                descriptorRegistry.getManager(DescriptorManagerType::MVP)
-                .getOrCreateDescriptorSet({camWrite});
-
-
-        /* material set (unchanged) ---------------------------------------- */
-        if (mat) {
-            std::vector<VkWriteDescriptorSet> writes(2);
-            writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            writes[0].dstBinding = 0;
-            writes[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            writes[0].descriptorCount = 1;
-            writes[0].pBufferInfo = &rd.materialBuffer[frameIdx]->m_descriptorBufferInfo;
-
-            writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            writes[1].dstBinding = 1;
-            writes[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            writes[1].descriptorCount = 1;
-            writes[1].pImageInfo = &mat->baseColorTexture->getDescriptorInfo();
-
-            out[DescriptorManagerType::MaterialData] =
-                    descriptorRegistry.getManager(DescriptorManagerType::MaterialData)
-                    .getOrCreateDescriptorSet(writes);
-        }
-        return out;
-    }
-
-
     std::shared_ptr<MaterialInstance> SceneRenderer::initializeMaterial(
         Entity entity, const MaterialComponent &materialComponent) {
         auto materialInstance = std::make_shared<MaterialInstance>();
-
-        /*
-        if (std::filesystem::exists(materialComponent.albedoTexturePath)) {
-            materialInstance->baseColorTexture = EditorUtils::createTextureFromFile(materialComponent.albedoTexturePath,
-                m_context);
-        } else {
-            materialInstance->baseColorTexture = EditorUtils::createEmptyTexture(300, 300, VK_FORMAT_R8G8B8A8_UNORM,
-                m_context, VMA_MEMORY_USAGE_GPU_ONLY, true);
-        }
-        */
 
         auto texAsset = assetManager()->get<TextureAsset>(materialComponent.albedoTexturePath);
 

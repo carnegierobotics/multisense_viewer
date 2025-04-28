@@ -205,10 +205,12 @@ namespace VkRender {
 
             /* ---- pipeline key / mesh instance ------------------------------------ */
             auto meshData = MeshManager::instance().getMeshData(mc);
-            if (!meshData) continue;
+            if (!meshData)
+                continue;
             auto meshInst = m_meshResourceManager->getMeshInstance(
                 mc.getCacheIdentifier(), meshData, mc.meshDataType());
-            if (!meshInst) continue;
+            if (!meshInst)
+                continue;
 
             auto matInst = getMaterialInstance(ent);
             PipelineKey key = makeKey(mc, *meshInst, matInst.get(), ent);

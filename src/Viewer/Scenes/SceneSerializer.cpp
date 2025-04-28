@@ -380,27 +380,7 @@ namespace VkRender {
             out << YAML::EndMap;
         }
 
-        if (entity.hasComponent<PointCloudComponent>()) {
-            out << YAML::Key << "PointCloudComponent";
-            out << YAML::BeginMap;
-            auto &component = entity.getComponent<PointCloudComponent>();
-            out << YAML::Key << "PointSize";
-            out << YAML::Value << component.pointSize;
-            // Serialize the flag for video source
-            out << YAML::Key << "UsesVideoSource";
-            out << YAML::Value << component.usesVideoSource;
 
-            // If video source is used, serialize the video folder source
-            if (component.usesVideoSource) {
-                out << YAML::Key << "DepthVideoFolderSource";
-                out << YAML::Value << component.depthVideoFolderSource.string();
-                out << YAML::Key << "ColorVideoFolderSource";
-                out << YAML::Value << component.colorVideoFolderSource.string();
-            }
-
-
-            out << YAML::EndMap;
-        }
         if (entity.hasComponent<LightSourceComponent>()) {
             out << YAML::Key << "LightSourceComponent";
             auto &component = entity.getComponent<LightSourceComponent>();
@@ -477,6 +457,23 @@ namespace VkRender {
             out << YAML::Value << YAML::BeginSeq;
             for (const auto &rot: component.rotations) {
                 out << YAML::Flow << YAML::BeginSeq << rot.w << rot.x << rot.y << rot.z << YAML::EndSeq;
+            }
+            out << YAML::EndSeq;
+
+
+            // Serialize positions
+            out << YAML::Key << "Min";
+            out << YAML::Value << YAML::BeginSeq;
+            for (const auto &pos: component.min) {
+                out << YAML::Flow << YAML::BeginSeq << pos.x << pos.y <<YAML::EndSeq;
+            }
+            out << YAML::EndSeq;
+
+            // Serialize positions
+            out << YAML::Key << "Max";
+            out << YAML::Value << YAML::BeginSeq;
+            for (const auto &pos: component.max) {
+                out << YAML::Flow << YAML::BeginSeq << pos.x << pos.y << YAML::EndSeq;
             }
             out << YAML::EndSeq;
 
@@ -927,6 +924,40 @@ namespace VkRender {
                             component.rotations.push_back(rotation);
                         }
                     }
+                    // Deserialize rotations (assuming order: w, x, y, z)
+                    if (node["Rotations"]) {
+                        for (const auto &rotationNode: node["Rotations"]) {
+                            glm::quat rotation(
+                                rotationNode[0].as<float>(), // w
+                                rotationNode[1].as<float>(), // x
+                                rotationNode[2].as<float>(), // y
+                                rotationNode[3].as<float>() // z
+                            );
+                            component.rotations.push_back(rotation);
+                        }
+                    }
+
+                    // Deserialize rotations (assuming order: w, x, y, z)
+                    if (node["Min"]) {
+                        for (const auto &minNode: node["Min"]) {
+                            glm::vec2 minVal(
+                                minNode[0].as<float>(), // w
+                                minNode[1].as<float>() // x
+                            );
+                            component.min.push_back(minVal);
+                        }
+                    }
+
+                    // Deserialize rotations (assuming order: w, x, y, z)
+                    if (node["Max"]) {
+                        for (const auto &maxNode: node["Max"]) {
+                            glm::vec2 maxVal(
+                                maxNode[0].as<float>(), // w
+                                maxNode[1].as<float>() // x
+                            );
+                            component.max.push_back(maxVal);
+                        }
+                    }
 
                     // Helper lambda to deserialize float arrays.
                     auto deserializeFloatArray = [&](std::vector<float> &values, const std::string &key,
@@ -951,6 +982,7 @@ namespace VkRender {
                     deserializeFloatArray(component.kernelScale, "KernelScale", expectedSize, 1.0f);
                     deserializeFloatArray(component.threshold, "Threshold", expectedSize, 0.01f);
                     deserializeFloatArray(component.beta, "Beta", expectedSize, 0.0f);
+
                 }
 
 

@@ -6,6 +6,7 @@
 
 #include "Viewer/Rendering/Editors/Properties/PropertiesLayer.h"
 
+#include <Viewer/Assets/QuadricLoader.h>
 #include <Viewer/Rendering/Components/ScriptableComponent.h>
 #include <Viewer/Scenes/CameraController.h>
 #include <Viewer/Scripts/VectorScripts.h>
@@ -708,8 +709,6 @@ namespace VkRender {
                         ImGui::Text("Beta Kernel opts");
                         paramsChanged |= ImGui::SliderFloat("b_beta", &quadricParams->b_beta, -5.0f, 5.0f);
                         paramsChanged |= ImGui::SliderFloat("threshold", &quadricParams->threshold, 0.0f, 1.0f);
-                        paramsChanged |= ImGui::SliderFloat("scale", &quadricParams->kernelScale, 0.0f, 10.0f);
-                        paramsChanged |= ImGui::SliderFloat("circularity", &quadricParams->circularity, 0.0f, 1.0f);
                         if (paramsChanged) {
                             quadricParams->setDirty();
                         }
@@ -977,10 +976,10 @@ namespace VkRender {
             }
         });
 
-        drawComponent<VkRender::QuadricCollectionComponent>(
+        drawComponent<QuadricCollectionComponent>(
             "Quadratic Model", entity,
             [this, &entity](
-        VkRender::QuadricCollectionComponent &component) {
+        QuadricCollectionComponent &component) {
                 if (!entity.hasComponent<MeshComponent>()) {
                     entity.addComponent<MeshComponent>();
                 }
@@ -1013,13 +1012,9 @@ namespace VkRender {
                     // Additional constants: kernelScale = 1, threshold = 0.01, beta = 0.
                     component.addQuadric(
                         defaultPos, defaultRot, defaultA, defaultB,
-                        defaultC, defaultTx, defaultTy, 1.0f, 0.01f,
-                        0.0f);
+                        defaultC, defaultTx, defaultTy, 0.01f,
+                        0.0f, 1.0f);
                 }
-                ImGui::SameLine();
-                ImGui::Checkbox("Add Noise", &m_tmp);
-                ImGui::SameLine();
-                ImGui::Checkbox("Visibility", &m_visibility);
                 ImGui::SameLine();
 
                 if (ImGui::Button("Load from file")) {
@@ -1029,12 +1024,12 @@ namespace VkRender {
                         LayerUtils::PLY_QUADRATIC, &m_loadFileFuture);
                 }
 
-                ImGui::SliderFloat("Noise", &noiseSlider, 0.0f, 3.0f);
 
                 if (ImGui::Button("Remove All")) {
                     for (int i = 0; i < component.size(); ++i) {
                         std::string quadricName =
-                                "Quadric " + std::to_string(i);
+                                "Quadric " + std::to_string(
+                                    i) + ":" + entity.getName();
                         auto entityInstance = m_context->activeScene()->
                                 getOrCreateEntityByName(quadricName);
                         m_context->activeScene()->
@@ -1045,49 +1040,8 @@ namespace VkRender {
                     quadricCount = component.size();
                 }
 
-                ImGui::SameLine();
-                if (ImGui::Button("Update Transforms")) {
-                    for (int i = 0; i < component.size(); ++i) {
-                        // TODO loop over parent entity' children instead of this
-                        std::string quadricName =
-                                "Quadric " + std::to_string(i);
-                        auto entityInstance = m_context->activeScene()->
-                                getOrCreateEntityByName(quadricName);
-                        entityInstance.setParent(entity);
-                        // TODO verify that the selected entity is indeed the quadric collection
-                        auto &transform = entityInstance.
-                                getOrAddComponent<TransformComponent>();
-                        transform.setPosition(component.positions[i]);
-                        transform.setRotationQuaternion(
-                            component.rotations[i]);
-                        glm::mat4 parentMatrix = entity.getComponent<
-                            TransformComponent>().getTransform();
-                        // Get parent's transformation matrix
-                        glm::mat4 worldMatrix =
-                                parentMatrix * transform.getTransform();
-                        transform.setTransform(worldMatrix);
-                    }
-                }
-                ImGui::SameLine();
-                if (ImGui::Button("Add Positional Noise")) {
-                    for (int i = 0; i < component.size(); ++i) {
-                        std::string quadricName =
-                                "Quadric " + std::to_string(i);
-                        auto position = component.positions[i];
 
-                        std::random_device rd;
-                        std::mt19937 gen(rd()); // Mersenne Twister RNG
-                        std::normal_distribution<float> dist(0.0f, noiseSlider); // Mean 0, standard deviation 0.01
-
-                        position.x += dist(gen);
-                        position.y += dist(gen);
-                        position.z += dist(gen);
-                        component.positions[i] = position;
-                    }
-                }
-
-                ImGui::Spacing();
-
+                /*
                 // For a small number of quadrics, display all entries
                 if (quadricCount < 10) {
                     for (size_t i = 0; i < quadricCount; ++i) {
@@ -1145,9 +1099,6 @@ namespace VkRender {
                             update |= drawFloatControl(
                                 "t_y", component.t_y[i], 2.0f, 0.1f);
                             update |= drawFloatControl(
-                                "Kernel Scale",
-                                component.kernelScale[i], 1.0f, 0.1f);
-                            update |= drawFloatControl(
                                 "Threshold", component.threshold[i],
                                 0.01f, 0.001f);
                             update |= drawFloatControl(
@@ -1178,8 +1129,6 @@ namespace VkRender {
                                     component.t_x.begin() + i);
                                 component.t_y.erase(
                                     component.t_y.begin() + i);
-                                component.kernelScale.erase(
-                                    component.kernelScale.begin() + i);
                                 component.threshold.erase(
                                     component.threshold.begin() + i);
                                 component.beta.erase(
@@ -1195,8 +1144,6 @@ namespace VkRender {
                                 quadricParams->c = component.c[i];
                                 quadricParams->t_x = component.t_x[i];
                                 quadricParams->t_y = component.t_y[i];
-                                quadricParams->kernelScale = component.
-                                        kernelScale[i];
                                 quadricParams->threshold = component.
                                         threshold[i];
                                 quadricParams->b_beta = component.beta[
@@ -1210,132 +1157,142 @@ namespace VkRender {
 
                     return;
                 }
+                */
 
-                // For a large number of quadrics, show a single "selected" quadric for editing.
-                static int selectedQuadricIndex = 0;
-                if (selectedQuadricIndex < 0)
-                    selectedQuadricIndex = 0;
-                if (selectedQuadricIndex >= (int) quadricCount)
-                    selectedQuadricIndex = (int) quadricCount - 1;
-
-                ImGui::Text("Edit a Single Quadric (Large Set)");
-                ImGui::PushItemWidth(120.0f);
-                ImGui::InputInt("Quadric Index", &selectedQuadricIndex);
-                ImGui::PopItemWidth();
-                if (selectedQuadricIndex < 0)
-                    selectedQuadricIndex = 0;
-                if (selectedQuadricIndex >= (int) quadricCount)
-                    selectedQuadricIndex = (int) quadricCount - 1;
-
-                ImGui::SameLine();
-                if (ImGui::ArrowButton("PrevQuadric", ImGuiDir_Left)) {
-                    selectedQuadricIndex--;
+                if (quadricCount > 0) {
+                    // For a large number of quadrics, show a single "selected" quadric for editing.
+                    static int selectedQuadricIndex = 0;
                     if (selectedQuadricIndex < 0)
                         selectedQuadricIndex = 0;
-                }
-                ImGui::SameLine();
-                if (ImGui::ArrowButton("NextQuadric", ImGuiDir_Right)) {
-                    selectedQuadricIndex++;
                     if (selectedQuadricIndex >= (int) quadricCount)
                         selectedQuadricIndex = (int) quadricCount - 1;
-                }
-                ImGui::Separator();
-                {
-                    size_t i = static_cast<size_t>(
-                        selectedQuadricIndex);
 
-                    std::string quadricName =
-                            "Quadric " + std::to_string(
-                                selectedQuadricIndex);
-                    auto entityInstance = m_context->activeScene()->
-                            getOrCreateEntityByName(quadricName);
-                    entityInstance.setParent(entity);
-                    auto &transform = entityInstance.getOrAddComponent<
-                        TransformComponent>();
-                    transform.setPosition(component.positions[i]);
-                    transform.setRotationQuaternion(
-                        component.rotations[i]);
-                    glm::mat4 parentMatrix = modelTransform.
-                            getTransform();
-                    // Get parent's transformation matrix
-                    glm::mat4 worldMatrix =
-                            parentMatrix * transform.getTransform();
-                    transform.setTransform(worldMatrix);
-                    auto &mesh = entityInstance.getOrAddComponent<
-                        MeshComponent>(QUADRIC);
-                    auto quadricParams = std::dynamic_pointer_cast<
-                        QuadricMeshParameters>(mesh.meshParameters);
-                    auto &material = entityInstance.getOrAddComponent<
-                        MaterialComponent>();
-                    material.useTexture = true;
+                    ImGui::Text("Edit a Single Quadric (Large Set)");
+                    ImGui::PushItemWidth(120.0f);
+                    ImGui::InputInt("Quadric Index", &selectedQuadricIndex);
+                    ImGui::PopItemWidth();
+                    if (selectedQuadricIndex < 0)
+                        selectedQuadricIndex = 0;
+                    if (selectedQuadricIndex >= (int) quadricCount)
+                        selectedQuadricIndex = (int) quadricCount - 1;
 
-
-                    ImGui::Text(
-                        "Selected Quadric %d",
-                        selectedQuadricIndex + 1);
-                    bool update = false;
-                    update |= drawVec3Control(
-                        "Position", component.positions[i], 0.0f);
-                    update |= drawQuatControl(
-                        "Rotation", component.rotations[i]);
-                    update |= drawFloatControl(
-                        "a", component.a[i], 1.0f, 0.1f);
-                    update |= drawFloatControl(
-                        "b", component.b[i], 1.0f, 0.1f);
-                    update |= drawFloatControl(
-                        "c (Curvature)", component.c[i], 1.0f, 0.1f);
-                    update |= drawFloatControl(
-                        "t_x", component.t_x[i], 2.0f, 0.1f);
-                    update |= drawFloatControl(
-                        "t_y", component.t_y[i], 2.0f, 0.1f);
-                    update |= drawFloatControl(
-                        "Kernel Scale", component.kernelScale[i], 1.0f,
-                        0.1f);
-                    update |= drawFloatControl(
-                        "Threshold", component.threshold[i], 0.01f,
-                        0.001f);
-                    update |= drawFloatControl(
-                        "Beta", component.beta[i], 0.0f, 0.1f);
-                    ImGui::Spacing();
-
-                    if (ImGui::Button("Remove This Quadric")) {
-                        m_context->activeScene()->
-                                destroyEntityRecursively(
-                                    entityInstance);
-
-                        component.positions.erase(
-                            component.positions.begin() + i);
-                        component.rotations.erase(
-                            component.rotations.begin() + i);
-                        component.a.erase(component.a.begin() + i);
-                        component.b.erase(component.b.begin() + i);
-                        component.c.erase(component.c.begin() + i);
-                        component.t_x.erase(component.t_x.begin() + i);
-                        component.t_y.erase(component.t_y.begin() + i);
-                        component.kernelScale.erase(
-                            component.kernelScale.begin() + i);
-                        component.threshold.erase(
-                            component.threshold.begin() + i);
-                        component.beta.
-                                erase(component.beta.begin() + i);
-                        if (i >= component.size() && component.size() >
-                            0)
-                            i = component.size() - 1;
-                        selectedQuadricIndex = static_cast<int>(i);
+                    ImGui::SameLine();
+                    if (ImGui::ArrowButton("PrevQuadric", ImGuiDir_Left)) {
+                        selectedQuadricIndex--;
+                        if (selectedQuadricIndex < 0)
+                            selectedQuadricIndex = 0;
                     }
+                    ImGui::SameLine();
+                    if (ImGui::ArrowButton("NextQuadric", ImGuiDir_Right)) {
+                        selectedQuadricIndex++;
+                        if (selectedQuadricIndex >= (int) quadricCount)
+                            selectedQuadricIndex = (int) quadricCount - 1;
+                    }
+                    ImGui::Separator(); {
+                        size_t i = static_cast<size_t>(
+                            selectedQuadricIndex);
 
-                    if (update) {
-                        quadricParams->setDirty();
-                        quadricParams->a = component.a[i];
-                        quadricParams->b = component.b[i];
-                        quadricParams->c = component.c[i];
-                        quadricParams->t_x = component.t_x[i];
-                        quadricParams->t_y = component.t_y[i];
-                        quadricParams->kernelScale = component.
-                                kernelScale[i];
-                        quadricParams->threshold = component.threshold[
-                            i];
-                        quadricParams->b_beta = component.beta[i];
+                        std::string quadricName =
+                                "Quadric " + std::to_string(
+                                    selectedQuadricIndex) + ":" + entity.getName();
+                        auto entityInstance = m_context->activeScene()->
+                                getOrCreateEntityByName(quadricName);
+                        entityInstance.setParent(entity);
+                        auto &transform = entityInstance.getOrAddComponent<
+                            TransformComponent>();
+                        transform.setPosition(component.positions[i]);
+                        transform.setRotationQuaternion(
+                            component.rotations[i]);
+                        glm::mat4 parentMatrix = modelTransform.
+                                getTransform();
+                        // Get parent's transformation matrix
+                        glm::mat4 worldMatrix =
+                                parentMatrix * transform.getTransform();
+                        transform.setTransform(worldMatrix);
+                        auto &mesh = entityInstance.getOrAddComponent<
+                            MeshComponent>(QUADRIC);
+                        auto quadricParams = std::dynamic_pointer_cast<
+                            QuadricMeshParameters>(mesh.meshParameters);
+                        auto &material = entityInstance.getOrAddComponent<
+                            MaterialComponent>();
+                        material.useTexture = true;
+
+
+                        ImGui::Text(
+                            "Selected Quadric %d",
+                            selectedQuadricIndex + 1);
+                        bool update = false;
+                        update |= drawVec3Control(
+                            "Position", component.positions[i], 0.0f);
+
+                        glm::vec3 euler = glm::eulerAngles(component.rotations[i]);
+                        bool updated = drawVec3Control("Rotation", euler, 0.0f);
+                        if (updated) {
+                            component.rotations[i] = glm::quat(euler);
+                            update |= true;
+                        }
+
+                        update |= drawFloatControl(
+                            "a", component.a[i], 1.0f, 0.1f);
+                        update |= drawFloatControl(
+                            "b", component.b[i], 1.0f, 0.1f);
+                        update |= drawFloatControl(
+                            "c (Curvature)", component.c[i], 1.0f, 0.1f);
+                        update |= drawFloatControl(
+                            "t_x", component.t_x[i], 2.0f, 0.1f);
+                        update |= drawFloatControl(
+                            "t_y", component.t_y[i], 2.0f, 0.1f);
+                        update |= drawFloatControl(
+                            "Scale", component.kernelScale[i], 1.0f, 0.1f);
+                        update |= drawFloatControl(
+                            "Threshold", component.threshold[i], 0.01f,
+                            0.001f);
+                        update |= drawFloatControl(
+                            "Beta", component.beta[i], 0.0f, 0.1f);
+
+                        update |= drawVec2Control("Min", component.min[i]);
+                        update |= drawVec2Control("Max", component.max[i]);
+
+                        ImGui::Spacing();
+
+                        if (ImGui::Button("Remove This Quadric")) {
+                            m_context->activeScene()->
+                                    destroyEntityRecursively(
+                                        entityInstance);
+
+                            component.positions.erase(
+                                component.positions.begin() + i);
+                            component.rotations.erase(
+                                component.rotations.begin() + i);
+                            component.a.erase(component.a.begin() + i);
+                            component.b.erase(component.b.begin() + i);
+                            component.c.erase(component.c.begin() + i);
+                            component.t_x.erase(component.t_x.begin() + i);
+                            component.t_y.erase(component.t_y.begin() + i);
+                            component.kernelScale.erase(component.kernelScale.begin() + i);
+                            component.threshold.erase(component.threshold.begin() + i);
+                            component.beta.erase(component.beta.begin() + i);
+                            component.min.erase(component.min.begin() + i);
+                            component.max.erase(component.max.begin() + i);
+                            if (i >= component.size() && component.size() >
+                                0)
+                                i = component.size() - 1;
+                            selectedQuadricIndex = static_cast<int>(i);
+                        }
+
+                        if (update) {
+                            quadricParams->setDirty();
+                            quadricParams->a = component.a[i];
+                            quadricParams->b = component.b[i];
+                            quadricParams->c = component.c[i];
+                            quadricParams->t_x = component.t_x[i];
+                            quadricParams->t_y = component.t_y[i];
+                            quadricParams->threshold = component.threshold[i];
+                            quadricParams->kernelScale = component.kernelScale[i];
+                            quadricParams->b_beta = component.beta[i];
+                            quadricParams->min = component.min[i];
+                            quadricParams->max = component.max[i];
+                        }
                     }
                 }
             });
@@ -1432,24 +1389,23 @@ namespace VkRender {
                 case LayerUtils::PLY_QUADRATIC: {
                     if (m_selectionContext.hasComponent<QuadricCollectionComponent>()) {
                         auto &comp = m_selectionContext.getComponent<QuadricCollectionComponent>();
-                        comp.addQuadricsFromFile(loadFileInfo.path, m_tmp, noiseSlider);
-
+                        comp.filePath = loadFileInfo.path;
+                        auto quadricAsset = m_editor->getCreateInfo().assetManager->get<QuadricCloudAsset>(
+                            loadFileInfo.path.string());
                         // Now add quadrics to scene:
-
-                        int numEntities = comp.size();
                         // Compute step such that we do not exceed 200 entities.
                         auto &visibility = m_selectionContext.getOrAddComponent<VisibleComponent>();
                         visibility.visible = m_visibility;
 
-                        for (int i = 0; i < numEntities; ++i) {
-                            std::string quadricName = "Quadric " + std::to_string(i);
+                        for (int i = 0; i < quadricAsset->numPoints; ++i) {
+                            std::string quadricName = "Quadric " + std::to_string(i) + ":" + m_selectionContext.getName();
                             auto entityInstance = m_context->activeScene()->getOrCreateEntityByName(quadricName);
                             entityInstance.setParent(m_selectionContext);
 
                             // Get or create TransformComponent and set position and rotation.
                             auto &transform = entityInstance.getOrAddComponent<TransformComponent>();
-                            transform.setPosition(comp.positions[i]);
-                            transform.setRotationQuaternion(comp.rotations[i]);
+                            transform.setPosition(quadricAsset->positions[i]);
+                            transform.setRotationQuaternion(quadricAsset->rotations[i]);
 
                             // Apply parent's transformation.
                             glm::mat4 parentMatrix = m_selectionContext.getComponent<TransformComponent>().
@@ -1459,22 +1415,33 @@ namespace VkRender {
 
                             // Setup MeshComponent with quadric parameters.
                             auto &mesh = entityInstance.getOrAddComponent<MeshComponent>(QUADRIC);
-                            mesh.polygonMode() = VK_POLYGON_MODE_LINE;
+                            mesh.polygonMode() = VK_POLYGON_MODE_FILL;
                             auto quadricParams = std::dynamic_pointer_cast<QuadricMeshParameters>(mesh.meshParameters);
 
                             // Setup MaterialComponent.
                             auto &material = entityInstance.getOrAddComponent<MaterialComponent>();
-                            material.useTexture = true;
+                            material.useTexture = false;
+                            material.diffuse = 0.3f;
+                            material.specular = 0.7f;
+                            material.phongExponent = 128.0f;
 
-                            // Downsampled data.
-                            quadricParams->a = comp.a[i];
-                            quadricParams->b = comp.b[i];
-                            quadricParams->c = comp.c[i];
-                            quadricParams->t_x = comp.t_x[i];
-                            quadricParams->t_y = comp.t_y[i];
-                            quadricParams->kernelScale = comp.kernelScale[i];
-                            quadricParams->threshold = comp.threshold[i];
-                            quadricParams->b_beta = comp.beta[i];
+                            quadricParams->a = quadricAsset->a[i];
+                            quadricParams->b = quadricAsset->b[i];
+                            quadricParams->c = quadricAsset->c[i];
+                            quadricParams->t_x = quadricAsset->t_x[i];
+                            quadricParams->t_y = quadricAsset->t_y[i];
+                            quadricParams->threshold = quadricAsset->threshold[i];
+                            quadricParams->b_beta = quadricAsset->beta[i];
+                            quadricParams->kernelScale = quadricAsset->kernelScale[i];
+
+                            comp.addQuadric(quadricAsset->positions[i], quadricAsset->rotations[i], quadricAsset->a[i],
+                                            quadricAsset->b[i],
+                                            quadricAsset->c[i],
+                                            quadricAsset->t_x[i],
+                                            quadricAsset->t_y[i],
+                                            quadricAsset->threshold[i],
+                                            quadricAsset->beta[i],
+                                            quadricAsset->kernelScale[i]);
                         }
                     }
                 }

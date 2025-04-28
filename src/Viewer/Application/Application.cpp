@@ -39,6 +39,7 @@
 #include <Viewer/Assets/AssetManager.h>
 #include <Viewer/Assets/ShaderLoader.h>
 #include <Viewer/Assets/TextureLoader.h>
+#include <Viewer/Assets/QuadricLoader.h>
 #include <Viewer/Rendering/Core/UbuntuKeyInput.h>
 
 #include "ProjectSerializer.h"
@@ -57,6 +58,7 @@ namespace VkRender {
         m_assetManager = std::make_shared<AssetManager>();
         m_assetManager->registerLoader(std::make_unique<ShaderLoader>());
         m_assetManager->registerLoader(std::make_unique<TextureLoader>());
+        m_assetManager->registerLoader(std::make_unique<QuadricLoader>());
 
         // Create a scene and load deserialize from file if a file exsits
         std::shared_ptr<Scene> scene = newScene();

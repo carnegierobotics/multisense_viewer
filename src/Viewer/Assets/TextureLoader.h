@@ -37,7 +37,7 @@ namespace VkRender {
             std::filesystem::path path = Utils::getTexturePath() / key;
             stbi_uc *data = stbi_load(path.string().c_str(), &w, &h, &c, STBI_rgb_alpha);
             if (!data)
-                throw std::runtime_error("Failed to load " + path.string());
+                throw std::runtime_error("Failed to load Texture " + path.string());
             c = 4; // TODO Force 4 channels, possibly make more flexible in the future if required for more difficult textures
             std::vector<uint8_t> pixels(data, data + (w * h * c));
             stbi_image_free(data);
@@ -45,9 +45,11 @@ namespace VkRender {
         }
 
     private:
-        bool hasExtension(std::string const &s, std::initializer_list<std::string> exts) const {
-            // TODO implement
-            return true;
+        // Helper to check file extension
+        bool hasExtension(const std::string &s, std::initializer_list<std::string> exts) const {
+            auto ext = std::filesystem::path(s).extension().string();
+            for (auto &e : exts) if (ext == e) return true;
+            return false;
         }
     };
 }

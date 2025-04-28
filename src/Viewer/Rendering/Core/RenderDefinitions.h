@@ -57,10 +57,9 @@
 
 
 namespace VkRender {
-
-    constexpr uint32_t kMaxEntities       = 16'384;   // grow if needed
-    constexpr uint32_t kMaxMaterials      =  512;     // grow if needed
-    constexpr uint32_t kMaxLights         =   16;     // keep <= vec4[16] in UBO
+    constexpr uint32_t kMaxEntities = 16'384; // grow if needed
+    constexpr uint32_t kMaxMaterials = 16'384; // grow if needed
+    constexpr uint32_t kMaxLights = 16; // keep <= vec4[16] in UBO
 
     /**
  * @brief GLFW and Vulkan combination to create a SwapChain
@@ -77,11 +76,12 @@ namespace VkRender {
      * @brief Default Vertex information
      */
     struct Vertex {
-        glm::vec3 pos;      // 12 bytes + 4 bytes padding
-        glm::vec3 normal;   // 12 bytes + 4 bytes padding
-        glm::vec2 uv0;      // 8 bytes + 8 bytes padding
-        glm::vec2 uv1;      // 8 bytes + 8 bytes padding
+        glm::vec3 pos; // 12 bytes + 4 bytes padding
+        glm::vec3 normal; // 12 bytes + 4 bytes padding
+        glm::vec2 uv0; // 8 bytes + 8 bytes padding
+        glm::vec2 uv1; // 8 bytes + 8 bytes padding
         glm::vec4 color;
+
         bool operator==(const Vertex &other) const {
             return pos == other.pos;
         }
@@ -126,26 +126,25 @@ namespace VkRender {
     };
 
 
-    struct GlobalUBO
-    {
+    struct GlobalUBO {
         glm::mat4 view;
         glm::mat4 proj;
         glm::vec3 cameraPos;
-        float     numLights;
-        std::array<glm::vec4, kMaxLights> lightPos;   // vec4 for alignment
+        float numLights;
+        std::array<glm::vec4, kMaxLights> lightPos; // vec4 for alignment
     };
 
 
     // C++ std430 / Vulkan-friendly version
     struct MaterialBufferObject {
         // 16-byte aligned
-        glm::vec4 baseColor;      // albedo (RGBA or rgb+pad)
+        glm::vec4 baseColor; // albedo (RGBA or rgb+pad)
 
         // pack three floats into one vec4 slot
-        float      specular;      // specular exponent or weight
-        float      diffuse;       // diffuse weight
-        float      phongExponent;         // pad to 16 bytes
-        float      useVertexColor;// bool→float: 1.0=useTexture, 0.0=use baseColor
+        float specular; // specular exponent or weight
+        float diffuse; // diffuse weight
+        float phongExponent; // pad to 16 bytes
+        float useVertexColor; // bool→float: 1.0=useTexture, 0.0=use baseColor
 
         // 16-byte aligned
         glm::vec4 emissiveFactor; // emissive color + intensity
@@ -153,10 +152,12 @@ namespace VkRender {
         // total size = 16 + 16 + 16 = 48 bytes,
         // rounded up to 16-byte multiple automatically
     };
+
     static_assert(sizeof(MaterialBufferObject) % 16 == 0,
                   "std430 arrays need struct-size multiple of vec4");
 
-    struct RenderPassInfo { // TODO move somewhere else
+    struct RenderPassInfo {
+        // TODO move somewhere else
         VkSampleCountFlagBits sampleCount;
         VkRenderPass renderPass;
         uint32_t swapchainImageCount = 1;
@@ -165,9 +166,9 @@ namespace VkRender {
 }
 
 namespace std {
-    template <>
+    template<>
     struct hash<glm::vec3> {
-        size_t operator()(const glm::vec3& v) const noexcept {
+        size_t operator()(const glm::vec3 &v) const noexcept {
             size_t h1 = std::hash<float>{}(v.x);
             size_t h2 = std::hash<float>{}(v.y);
             size_t h3 = std::hash<float>{}(v.z);
@@ -175,9 +176,9 @@ namespace std {
         }
     };
 
-    template <>
+    template<>
     struct hash<glm::vec2> {
-        size_t operator()(const glm::vec2& v) const noexcept {
+        size_t operator()(const glm::vec2 &v) const noexcept {
             size_t h1 = std::hash<float>{}(v.x);
             size_t h2 = std::hash<float>{}(v.y);
             return h1 ^ (h2 << 1); // Combine the hashes

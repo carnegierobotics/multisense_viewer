@@ -20,7 +20,7 @@ namespace VkRender {
     };
 
     struct MaterialComponent {
-        glm::vec4 albedo = glm::vec4(0.8f, 0.8f, 0.8f, 1.0f); // Base color (could be an albedo color)
+        glm::vec4 albedo = glm::vec4(1.0f); // Base color (could be an albedo color)
         float emission = 0.0f; // Emissive power
         float diffuse = 1.0f; // Diffuse coefficient
         float specular = 0.0f; // Specular coefficient

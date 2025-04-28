@@ -117,24 +117,28 @@ namespace VkRender {
         float c = 1.0f; // Curvature scale
         float t_x = -1.0f; // Param controlling sign in x-direction
         float t_y = 1.0f; // Param controlling sign in y-direction
-
-
-        // Sampling parameters
-        int gridResolution = 200; // number of grid points in each dimension
-        glm::vec2 min = glm::vec2(-2.0f);
-        glm::vec2 max = glm::vec2(2.0f);
-
-
         // Beta-kernel parameters
         float b_beta = 0.0f; // exponent shift
         float threshold = 0.1f; // radial kernel threshold
-        float kernelScale = 1.0f; // normalizes the radial coordinate
+        float kernelScale = 1.0f;
+        // Sampling parameters
+        int gridResolution = 50; // number of grid points in each dimension
+        glm::vec2 min = glm::vec2(-0.5f);
+        glm::vec2 max = glm::vec2(0.5f);
 
-        float circularity = 1.0f;
 
         std::string getIdentifier() const override {
-            // Generate a unique identifier based on parameters
-            return "Quadric";
+            std::ostringstream oss;
+            oss << "Quadric_"
+                << "a" << a << "_"
+                << "b" << b << "_"
+                << "c" << c << "_"
+                << "tx" << t_x << "_"
+                << "ty" << t_y << "_"
+                << "bbeta" << b_beta << "_"
+                << "kernelScale" << kernelScale << "_"
+                << "thresh" << threshold;
+            return oss.str();
         }
 
         std::shared_ptr<MeshData> generateMeshData() override;

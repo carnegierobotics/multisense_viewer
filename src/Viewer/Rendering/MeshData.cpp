@@ -90,11 +90,11 @@ namespace VkRender {
                     2.0f * params.c * alphaY * y / (params.b * params.b),
                     -1.0f
                 );
-                glm::vec3 normal = glm::normalize(grad);
+                glm::vec3 normal = glm::normalize(glm::vec3(0.0f, 0.0f, 1.0f));
                 // Apply scale factor if you like
                 position *= scaleFactor;
 
-                float geodesic = sqrtf(std::pow(x, 2.0f) + std::pow(y, 2.0f) + std::pow(z, 2.0f));
+                float geodesic = sqrtf(std::pow(x, 2.0f) + std::pow(y, 2.0f) + std::pow(z, 2.0f)) / params.kernelScale;
                 // Evaluate kernel
                 float bkValue = betaKernel(geodesic, params.b_beta);
 
@@ -108,6 +108,7 @@ namespace VkRender {
                 Vertex v{};
                 v.color = glm::vec4(getViridisColor(bkValue), 1.0f);
                 v.pos = glm::vec4(position, 0.0f);
+                v.normal = normal;
 
                 int newIndex = static_cast<int>(tmpVertices.size());
                 vertexMap[i * N + j] = newIndex;

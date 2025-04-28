@@ -76,12 +76,6 @@ namespace VkRender {
         std::vector<RenderCommand> m_renderGroups;
         std::unordered_map<PipelineKey, InstanceBatch, PipelineKeyHash> m_batches;
 
-        struct EntityRenderData {
-            std::vector<std::unique_ptr<Buffer> > cameraBuffer;
-            std::vector<std::unique_ptr<Buffer> > modelBuffer;
-            std::vector<std::unique_ptr<Buffer> > materialBuffer;
-            std::vector<std::unique_ptr<Buffer> > pointCloudBuffer;
-        };
 
         using CpuUniformBuffer = CpuGpuBuffer<VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT>;
         using CpuStorageBuffer = CpuGpuBuffer<VK_BUFFER_USAGE_STORAGE_BUFFER_BIT>;

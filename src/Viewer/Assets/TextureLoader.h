@@ -35,9 +35,10 @@ namespace VkRender {
         std::shared_ptr<BaseAsset> load(const std::string &key) override {
             int w, h, c;
             std::filesystem::path path = Utils::getTexturePath() / key;
-            stbi_uc *data = stbi_load(path.string().c_str(), &w, &h, &c, STBI_default);
+            stbi_uc *data = stbi_load(path.string().c_str(), &w, &h, &c, STBI_rgb_alpha);
             if (!data)
                 throw std::runtime_error("Failed to load " + path.string());
+            c = 4; // TODO Force 4 channels, possibly make more flexible in the future if required for more difficult textures
             std::vector<uint8_t> pixels(data, data + (w * h * c));
             stbi_image_free(data);
             return std::make_shared<TextureAsset>(w, h, c, std::move(pixels));

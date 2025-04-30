@@ -34,6 +34,9 @@ namespace VkRender {
         void upload(VulkanDevice &dev, uint32_t f,
                     const void *src, uint32_t count, VkDeviceSize itemSize) {
             assert(count <= m_maxItems && "buffer overflow — raise kMax* constant");
+            if (count == 0 || itemSize == 0)
+                return;
+
             void *dst;
             vkMapMemory(dev.m_LogicalDevice, m_buffers[f]->m_memory,
                         0, itemSize * count, 0, &dst);

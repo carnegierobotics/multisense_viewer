@@ -39,7 +39,6 @@ namespace VkRender {
         Entity getEntityByName(const std::string& name);
         Entity createEntityWithUUID(UUID uuid, const std::string &name);
         void destroyEntity(Entity entity);
-        void notifyComponentRemoval(Entity entity);
 
         void destroyEntityRecursively(Entity entity);
         bool isDescendantOf(Entity entity, Entity potentialAncestor);
@@ -59,21 +58,6 @@ namespace VkRender {
         friend class Entity;
         friend class SceneSerializer;
         Application *m_context;
-
-        void notifyEditorsComponentAdded(Entity entity, MaterialComponent &component);
-        void notifyEditorsComponentAdded(Entity entity, PointCloudComponent &component);
-        void notifyEditorsComponentAdded(Entity entity, MeshComponent &component);
-        void notifyEditorsComponentUpdated(Entity entity, PointCloudComponent &component);
-        void notifyEditorsComponentUpdated(Entity entity, MaterialComponent &component);
-        void notifyEditorsComponentUpdated(Entity entity, MeshComponent &component);
-        void notifyEditorsComponentRemoved(Entity entity, PointCloudComponent &component);
-        void notifyEditorsComponentRemoved(Entity entity, MaterialComponent &component);
-        void notifyEditorsComponentRemoved(Entity entity, MeshComponent &component);
-
-        template<class T>
-        void notifyEditorsComponentAdded(Entity entity, T &component);
-
-
 
     };
 

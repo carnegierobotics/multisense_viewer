@@ -139,14 +139,12 @@ namespace VkRender {
         auto activeCamera = m_context->activeScene()->getActiveCamera();
         bool newCamera = m_previousSceneCamera != activeCamera;
         if (imageUI->clearImageMemory) {
-
         }
 
         updatePathTracerSettings();
 
         if (imageUI->clearImageMemory || newCamera) {
             m_pathTracer->resetImage();
-
         }
 
         // 4. If user wants to render/preview, update the path tracer with the latest camera.
@@ -185,7 +183,6 @@ namespace VkRender {
             renderSettings.applyBetaContribution = imageUI->applyBetaContribution;
 
 
-
             bool imageSizeMatch = static_cast<uint32_t>(renderSettings.camera.m_parameters.width) == m_colorTexture->
                                   width() &&
                                   static_cast<uint32_t>(renderSettings.camera.m_parameters.height) == m_colorTexture
@@ -201,7 +198,7 @@ namespace VkRender {
                     const size_t totalPixels = static_cast<size_t>(texWidth) * texHeight;
 
                     // Prepare a container for the final image (after optional denoising)
-                    float* finalImage = image;
+                    float *finalImage = image;
                     std::vector<float> denoisedImage; // Only used if denoising is enabled
 
                     // Denoise if requested
@@ -217,12 +214,12 @@ namespace VkRender {
                     std::vector<uint8_t> convertedImage(totalPixels * 4);
                     // Convert the final image from float [0,1] to 8-bit RGBA
                     for (size_t i = 0; i < totalPixels; ++i) {
-                        uint8_t value = static_cast<uint8_t>(finalImage[i] * 255.0f);  // Proper conversion
+                        uint8_t value = static_cast<uint8_t>(finalImage[i] * 255.0f); // Proper conversion
                         size_t offset = i * 4;
                         convertedImage[offset + 0] = value; // R
                         convertedImage[offset + 1] = value; // G
                         convertedImage[offset + 2] = value; // B
-                        convertedImage[offset + 3] = 255;   // A (fully opaque)
+                        convertedImage[offset + 3] = 255; // A (fully opaque)
                     }
 
                     // Upload the texture
@@ -231,7 +228,7 @@ namespace VkRender {
                         convertedImage.size(), m_colorTexture->getSize());
 
 
-                    m_colorTexture->loadImage(convertedImage.data(), convertedImage.size());
+                    m_colorTexture->loadImage(convertedImage.data());
                     Log::Logger::getInstance()->trace("Uploaded new Texture Data");
                 }
             } else {
@@ -299,18 +296,18 @@ namespace VkRender {
     void EditorPathTracer::onRender(CommandBuffer &commandBuffer) {
         std::unordered_map<std::shared_ptr<VulkanGraphicsPipeline>, std::vector<RenderCommand> > renderGroups;
         collectRenderCommands(renderGroups, commandBuffer.frameIndex);
-        Log::Logger::getInstance()->trace("Collected Drawing commands");
 
         // Render each group
         for (auto &[pipeline, commands]: renderGroups) {
-            pipeline->bind(commandBuffer);
+            vkCmdBindPipeline(commandBuffer.getActiveBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS,
+                              pipeline->getPipeline());
+
+
             for (auto &command: commands) {
                 // Bind resources and draw
                 bindResourcesAndDraw(commandBuffer, command);
             }
         }
-
-        Log::Logger::getInstance()->trace("Drawing Path tracer");
     }
 
     void EditorPathTracer::collectRenderCommands(
@@ -322,33 +319,37 @@ namespace VkRender {
         }
         if (!m_meshInstances)
             return;
-        PipelineKey key = {};
-        key.setLayouts.resize(1);
-        auto imageUI = std::dynamic_pointer_cast<EditorPathTracerLayerUI>(m_ui);
-        Log::Logger::getInstance()->trace("Collecting Render commands for Path Tracer");
-
+        if (m_ui->resizeActive) {
+            m_descriptorRegistry.getManager(DescriptorManagerType::Viewport3DTexture).freeDescriptorSets();
+        }
         // Prepare descriptor writes based on your texture or other resources
-        std::array<VkWriteDescriptorSet, 2> writeDescriptors{};
+        std::vector<VkWriteDescriptorSet> writeDescriptors(1);
         writeDescriptors[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         writeDescriptors[0].dstBinding = 0; // Binding index
         writeDescriptors[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         writeDescriptors[0].descriptorCount = 1;
         writeDescriptors[0].pImageInfo = &m_colorTexture->getDescriptorInfo();
-        writeDescriptors[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        writeDescriptors[1].dstBinding = 1; // Binding index
-        writeDescriptors[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        writeDescriptors[1].descriptorCount = 1;
-        writeDescriptors[1].pBufferInfo = &m_shaderSelectionBuffer[frameIndex]->m_descriptorBufferInfo;
-        std::vector descriptorWrites = {writeDescriptors[0], writeDescriptors[1]};
-        VkDescriptorSet descriptorSet = m_descriptorRegistry.getManager(
-            DescriptorManagerType::Viewport3DTexture).getOrCreateDescriptorSet(descriptorWrites);
-        key.setLayouts[0] = m_descriptorRegistry.getManager(
-            DescriptorManagerType::Viewport3DTexture).getDescriptorSetLayout();
+        VkDescriptorSet descriptorSet = m_descriptorRegistry.getManager(DescriptorManagerType::Viewport3DTexture).
+                getOrCreateDescriptorSet(writeDescriptors);
+
+        PipelineInfo pipelineInfo{};
+        pipelineInfo.setLayouts.resize(1);
+        pipelineInfo.setLayouts[0] = m_descriptorRegistry.getManager(DescriptorManagerType::Viewport3DTexture).
+                getDescriptorSetLayout();
         // Use default descriptor set layout
-        key.vertexShaderName = "Editors/default2D.vert";
-        key.fragmentShaderName = "Editors/EditorPathTracerTexture.frag";
+
+        if (!m_materialInstance)
+            m_materialInstance = initializeMaterial();
+
+        pipelineInfo.materialInstance = m_materialInstance.get();
+        PipelineKey key = {};
         key.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         key.polygonMode = VK_POLYGON_MODE_FILL;
+        std::string vertexName = "Editors/EditorViewport.vert";
+        std::string fragName = "Editors/EditorPathTracerTexture.frag";
+        key.vsCRC = Utils::crc32(vertexName);
+        key.fsCRC = Utils::crc32(fragName);
+
         std::vector<VkVertexInputBindingDescription> vertexInputBinding = {
             {0, sizeof(VkRender::ImageVertex), VK_VERTEX_INPUT_RATE_VERTEX}
         };
@@ -356,29 +357,27 @@ namespace VkRender {
             {0, 0, VK_FORMAT_R32G32_SFLOAT, 0},
             {1, 0, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 2},
         };
-        key.vertexInputBindingDescriptions = vertexInputBinding;
-        key.vertexInputAttributes = vertexInputAttributes;
+        pipelineInfo.bindings = vertexInputBinding;
+        pipelineInfo.attrs = vertexInputAttributes;
 
         // Create or retrieve the pipeline
         RenderPassInfo renderPassInfo{};
         renderPassInfo.sampleCount = m_createInfo.pPassCreateInfo.msaaSamples;
         renderPassInfo.renderPass = m_renderPass->getRenderPass();
         renderPassInfo.debugName = "EditorPathTracer::";
-        auto pipeline = m_pipelineManager.getOrCreatePipeline(key, renderPassInfo, m_context);
+        auto pipeline = m_pipelineManager.getOrCreatePipeline(key, pipelineInfo, renderPassInfo, VK_NULL_HANDLE,
+                                                              m_context);
         // Create the render command
         RenderCommand command;
         command.pipeline = pipeline;
         command.meshInstance = m_meshInstances.get();
-        command.descriptorSets[DescriptorManagerType::Viewport3DTexture] = descriptorSet;
-        // Assign the descriptor set
+        command.descriptorSets[DescriptorManagerType::Viewport3DTexture] = descriptorSet; // Assign the descriptor set
         // Add to render group
         renderGroups[pipeline].push_back(command);
     }
 
     void EditorPathTracer::bindResourcesAndDraw(const CommandBuffer &commandBuffer, RenderCommand &command) {
         VkCommandBuffer cmdBuffer = commandBuffer.getActiveBuffer();
-        uint32_t frameIndex = commandBuffer.frameIndex;
-
         if (command.meshInstance->vertexBuffer) {
             VkBuffer vertexBuffers[] = {command.meshInstance->vertexBuffer->m_buffer};
             VkDeviceSize offsets[] = {0};
@@ -391,14 +390,13 @@ namespace VkRender {
         }
 
         vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                          command.pipeline->pipeline()->getPipeline());
-
+                          command.pipeline->getPipeline());
 
         for (auto &[index, descriptorSet]: command.descriptorSets) {
             vkCmdBindDescriptorSets(
                 cmdBuffer,
                 VK_PIPELINE_BIND_POINT_GRAPHICS,
-                command.pipeline->pipeline()->getPipelineLayout(),
+                command.pipeline->getPipelineLayout(),
                 0, // TODO can't reuse the approach in SceneRenderer since we have different manager types
                 1,
                 &descriptorSet,
@@ -553,5 +551,32 @@ namespace VkRender {
         // Retrieve the denoised image data
         output.resize(imageSize);
         std::memcpy(output.data(), outputBuffer.getData(), imageSize * sizeof(float));
+    }
+
+
+    std::shared_ptr<MaterialInstance> EditorPathTracer::initializeMaterial() {
+        std::shared_ptr<MaterialInstance> materialInstance = std::make_shared<MaterialInstance>();
+
+        std::string vertexName = std::string("Editors/EditorViewport.vert");
+        std::string fragName = std::string("Editors/EditorPathTracerTexture.frag");
+        // 1 Load Shader code
+        auto vsSPV = assetManager()->get<SPIRVAsset>(vertexName);
+        auto fsSPV = assetManager()->get<SPIRVAsset>(fragName);
+        // 2) Wrap into a GPU resource
+        VulkanShaderModuleCreateInfo vertexShaderCreateInfo(m_context->vkDevice(), vsSPV, VK_SHADER_STAGE_VERTEX_BIT,
+                                                            vertexName);
+        VulkanShaderModuleCreateInfo fragmentShaderCreateInfo(m_context->vkDevice(), fsSPV,
+                                                              VK_SHADER_STAGE_FRAGMENT_BIT,
+                                                              fragName);
+        // 3) Later in pipeline creation:
+
+        // 3) Ask the GPU cache for shared modules:
+        auto vsModule = cache()->shaderModules.get(vertexShaderCreateInfo);
+        auto fsModule = cache()->shaderModules.get(fragmentShaderCreateInfo);
+
+        materialInstance->addShader(vertexShaderCreateInfo);
+        materialInstance->addShader(fragmentShaderCreateInfo);
+
+        return materialInstance;
     }
 }

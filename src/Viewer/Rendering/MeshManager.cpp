@@ -14,8 +14,11 @@ namespace VkRender{
         if (it != meshDataCache.end()) {
             if (it->second->isDirty) {
                 auto meshData = meshComponent.data()->generateMeshData();
-                it->second = meshData;
-                it->second->isDirty = false;
+                if (meshData) {
+                    it->second = meshData;
+                    it->second->isDirty = false;
+                }
+                Log::Logger::getInstance()->warning("Failed to retrive/generate Mesh Data");
             }
 
             return it->second;

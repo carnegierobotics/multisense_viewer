@@ -234,6 +234,7 @@ namespace VkRender {
         Log::Logger::getInstance()->info("Loaded project '{}', scene '{}'.", project.projectName, project.sceneName);
         auto& userSetting = ApplicationConfig::getInstance().getUserSetting();
         userSetting.projectName = project.projectName;
+        ApplicationConfig::getInstance().setUserSetting(userSetting);
 
         for (auto& editor : m_editors) {
             editor->loadScene(m_activeScene);

@@ -166,8 +166,6 @@ namespace VkRender {
         if (m_registry.valid(entity)) {
             Log::Logger::getInstance()->info("Deleting Entity with UUID: {} and Tag: {}",
                                              entity.getUUID().operator std::string(), entity.getName());
-            notifyComponentRemoval(entity);
-
             if (entity.hasComponent<ScriptableComponent>()) {
                 entity.getComponent<ScriptableComponent>().instance->onDestroy();
             }
@@ -206,108 +204,6 @@ namespace VkRender {
     }
 
 
-    void Scene::notifyComponentRemoval(Entity entity) {
-        // Check for each component type, and remove if the entity has the component
-        if (entity.hasComponent<MeshComponent>()) {
-            entity.removeComponent<MeshComponent>();
-        }
-
-        if (entity.hasComponent<MaterialComponent>()) {
-            entity.removeComponent<MaterialComponent>();
-        }
-
-        if (entity.hasComponent<PointCloudComponent>()) {
-            entity.removeComponent<PointCloudComponent>();
-        }
-        // Repeat for other components, adding more checks for each type of component
-        // if (entity.hasComponent<OtherComponent>()) {
-        //     entity.removeComponent<OtherComponent>();
-        // }
-    }
-
-    void Scene::notifyEditorsComponentAdded(Entity entity, MeshComponent &component) {
-        for (auto &editor: m_context->m_sceneRenderers) {
-            editor.second->onComponentAdded(entity, component);
-        }
-        for (auto &editor: m_context->m_editors) {
-            editor->onComponentAdded(entity, component);
-        }
-    }
-
-    void Scene::notifyEditorsComponentUpdated(Entity entity, MeshComponent &component) {
-        for (auto &editor: m_context->m_sceneRenderers) {
-            editor.second->onComponentUpdated(entity, component);
-        }
-        for (auto &editor: m_context->m_editors) {
-            editor->onComponentUpdated(entity, component);
-        }
-    }
-
-    void Scene::notifyEditorsComponentRemoved(Entity entity, MeshComponent &component) {
-        for (auto &editor: m_context->m_sceneRenderers) {
-            editor.second->onComponentRemoved(entity, component);
-        }
-        for (auto &editor: m_context->m_editors) {
-            editor->onComponentRemoved(entity, component);
-        }
-    }
-
-    void Scene::notifyEditorsComponentAdded(Entity entity, MaterialComponent &component) {
-        for (auto &editor: m_context->m_sceneRenderers) {
-            editor.second->onComponentAdded(entity, component);
-        }
-        for (auto &editor: m_context->m_editors) {
-            editor->onComponentAdded(entity, component);
-        }
-    }
-
-
-    void Scene::notifyEditorsComponentUpdated(Entity entity, MaterialComponent &component) {
-        for (auto &editor: m_context->m_sceneRenderers) {
-            editor.second->onComponentUpdated(entity, component);
-        }
-        for (auto &editor: m_context->m_editors) {
-            editor->onComponentUpdated(entity, component);
-        }
-    }
-
-    void Scene::notifyEditorsComponentRemoved(Entity entity, MaterialComponent &component) {
-        for (auto &editor: m_context->m_sceneRenderers) {
-            editor.second->onComponentRemoved(entity, component);
-        }
-        for (auto &editor: m_context->m_editors) {
-            editor->onComponentRemoved(entity, component);
-        }
-    }
-
-    void Scene::notifyEditorsComponentAdded(Entity entity, PointCloudComponent &component) {
-        for (auto &editor: m_context->m_sceneRenderers) {
-            editor.second->onComponentAdded(entity, component);
-        }
-        for (auto &editor: m_context->m_editors) {
-            editor->onComponentAdded(entity, component);
-        }
-    }
-
-    void Scene::notifyEditorsComponentUpdated(Entity entity, PointCloudComponent &component) {
-        for (auto &editor: m_context->m_sceneRenderers) {
-            editor.second->onComponentUpdated(entity, component);
-        }
-        for (auto &editor: m_context->m_editors) {
-            editor->onComponentUpdated(entity, component);
-        }
-    }
-
-    void Scene::notifyEditorsComponentRemoved(Entity entity, PointCloudComponent &component) {
-        for (auto &editor: m_context->m_sceneRenderers) {
-            editor.second->onComponentRemoved(entity, component);
-        }
-        for (auto &editor: m_context->m_editors) {
-            editor->onComponentRemoved(entity, component);
-        }
-    }
-
-
     DISABLE_WARNING_PUSH
     DISABLE_WARNING_UNREFERENCED_FORMAL_PARAMETER
 
@@ -320,18 +216,15 @@ namespace VkRender {
 
     template<>
     void Scene::onComponentAdded<MeshComponent>(Entity entity, MeshComponent &component) {
-        notifyEditorsComponentAdded(entity, component);
     }
 
     template<>
     void Scene::onComponentAdded<MaterialComponent>(Entity entity, MaterialComponent &component) {
-        notifyEditorsComponentAdded(entity, component);
     }
 
     template<>
 
     void Scene::onComponentAdded<PointCloudComponent>(Entity entity, PointCloudComponent &component) {
-        notifyEditorsComponentAdded(entity, component);
     }
 
     template<>
@@ -394,17 +287,14 @@ namespace VkRender {
 
     template<>
     void Scene::onComponentRemoved<MeshComponent>(Entity entity, MeshComponent &component) {
-        notifyEditorsComponentRemoved(entity, component);
     }
 
     template<>
     void Scene::onComponentRemoved<MaterialComponent>(Entity entity, MaterialComponent &component) {
-        notifyEditorsComponentRemoved(entity, component);
     }
 
     template<>
     void Scene::onComponentRemoved<PointCloudComponent>(Entity entity, PointCloudComponent &component) {
-        notifyEditorsComponentRemoved(entity, component);
     }
 
     template<>
@@ -465,17 +355,14 @@ namespace VkRender {
 
     template<>
     void Scene::onComponentUpdated<MeshComponent>(Entity entity, MeshComponent &component) {
-        notifyEditorsComponentUpdated(entity, component);
     }
 
     template<>
     void Scene::onComponentUpdated<MaterialComponent>(Entity entity, MaterialComponent &component) {
-        notifyEditorsComponentUpdated(entity, component);
     }
 
     template<>
     void Scene::onComponentUpdated<PointCloudComponent>(Entity entity, PointCloudComponent &component) {
-        notifyEditorsComponentUpdated(entity, component);
     }
 
     template<>
@@ -521,7 +408,6 @@ namespace VkRender {
     template<>
     void Scene::onComponentUpdated<LightSourceComponent>(Entity entity, LightSourceComponent &component) {
     }
-
 
     template
     <>

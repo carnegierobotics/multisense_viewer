@@ -180,33 +180,6 @@ namespace VkRender {
         virtual void onEditorResize() {
         }
 
-        virtual void onComponentAdded(Entity entity, MeshComponent &meshComponent) {
-        }
-
-        virtual void onComponentRemoved(Entity entity, MeshComponent &meshComponent) {
-        }
-
-        virtual void onComponentUpdated(Entity entity, MeshComponent &meshComponent) {
-        }
-
-        virtual void onComponentAdded(Entity entity, MaterialComponent &meshComponent) {
-        }
-
-        virtual void onComponentRemoved(Entity entity, MaterialComponent &meshComponent) {
-        }
-
-        virtual void onComponentUpdated(Entity entity, MaterialComponent &meshComponent) {
-        }
-
-        virtual void onComponentAdded(Entity entity, PointCloudComponent &meshComponent) {
-        }
-
-        virtual void onComponentRemoved(Entity entity, PointCloudComponent &meshComponent) {
-        }
-
-        virtual void onComponentUpdated(Entity entity, PointCloudComponent &meshComponent) {
-        }
-
         void loadScene(std::shared_ptr<Scene> ptr);
 
         void update();

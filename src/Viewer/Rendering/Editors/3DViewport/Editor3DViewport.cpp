@@ -273,7 +273,6 @@ namespace VkRender {
 
     void Editor3DViewport::bindResourcesAndDraw(const CommandBuffer &commandBuffer, RenderCommand &command) {
         VkCommandBuffer cmdBuffer = commandBuffer.getActiveBuffer();
-        uint32_t frameIndex = commandBuffer.frameIndex;
 
         if (command.meshInstance->vertexBuffer) {
             VkBuffer vertexBuffers[] = {command.meshInstance->vertexBuffer->m_buffer};

@@ -155,31 +155,11 @@ namespace VkRender {
         // The pipelines also define memory handles between CPU and GPU. It makes more logical scenes if these attributes belong to the OBJModelComponent
         // But we need it accessed in the pipeline
         m_activeScene = m_context->activeScene();
-        // TODO not clear what this does but it creates render reosurces of the editor was copied as part of a split operation
-        auto view = m_activeScene->getRegistry().view<IDComponent>();
-        for (auto e: view) {
-            auto entity = Entity(e, m_activeScene.get());
-            auto name = entity.getName();
-            if (entity.hasComponent<MaterialComponent>()) {
-                onComponentAdded(entity, entity.getComponent<MaterialComponent>());
-            }
-            if (entity.hasComponent<PointCloudComponent>()) {
-                onComponentAdded(entity, entity.getComponent<PointCloudComponent>());
-            }
-            if (entity.hasComponent<MeshComponent>()) {
-                onComponentAdded(entity, entity.getComponent<MeshComponent>());
-            }
-        }
     }
 
     void SceneRenderer::onUpdate() {
         m_activeScene = m_context->activeScene();
-        if (!m_activeScene)
-            return;
-
-        return;
     }
-
 
     void SceneRenderer::onRender(CommandBuffer &commandBuffer) {
         // 0) Reset stats & timers

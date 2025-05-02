@@ -43,6 +43,8 @@ namespace VkRender {
 
         void denoiseImage(float *singleChannelImage, uint32_t width, uint32_t height, std::vector<float> &output);
 
+        std::shared_ptr<MaterialInstance> initializeMaterial();
+
         void onFileDrop(const std::filesystem::path &path) override;
 
         void onMouseScroll(float change) override;
@@ -61,6 +63,8 @@ namespace VkRender {
         PipelineManager m_pipelineManager;
         DescriptorRegistry m_descriptorRegistry;
         std::shared_ptr<MeshInstance> m_meshInstances;
+        std::shared_ptr<MaterialInstance> m_materialInstance;
+
         std::shared_ptr<VulkanTexture2D> m_colorTextureTMP;
         std::shared_ptr<VulkanTexture2D> m_colorTexture;
 

@@ -159,11 +159,7 @@ void PathTracerSYCL::collectInstances(const std::shared_ptr<Scene>& scene) {
             matComp.specular
         };
         gpuMat.phongExp   = matComp.phongExponent;
-        gpuMat.emissive   = {
-            matComp.emission,
-            matComp.emission,
-            matComp.emission
-        };
+
         uint32_t matIdx = static_cast<uint32_t>(m_materials.size());
         m_materials.push_back(gpuMat);
 

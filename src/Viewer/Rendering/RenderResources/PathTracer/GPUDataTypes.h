@@ -43,8 +43,6 @@ namespace VkRender::PathTracer {
         float pad0;
         sycl::float3 specular;
         float phongExp;
-        sycl::float3 emissive;
-        float pad1;
         // every material is usable by either mesh or point
     };
 

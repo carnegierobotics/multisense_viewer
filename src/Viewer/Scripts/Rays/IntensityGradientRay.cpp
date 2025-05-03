@@ -7,13 +7,14 @@
 
 #include <Viewer/Rendering/Components/ScriptableComponent.h>
 #include <Viewer/Rendering/Core/UbuntuKeyInput.h>
-#include <Viewer/Rendering/RenderResources/PathTracer/Definitions.h>
 
 #include "ContributionRay.h"
 #include "Helpers.h"
 
 
 namespace VkRender {
+
+    /*
     void IntensityGradientRay::onUpdate(Timestep ts) {
         auto scene = m_entity.getScene();
 
@@ -107,10 +108,7 @@ namespace VkRender {
             }
         }
     }
+    */
 
-    void IntensityGradientRay::onDestroy() {
-    }
 
-    void IntensityGradientRay::onCreate() {
-    }
 }

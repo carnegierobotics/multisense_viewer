@@ -14,7 +14,6 @@
 #include "Viewer/Scenes/Scene.h"
 #include "Viewer/Rendering/Core/VulkanTexture.h"
 
-#include "Viewer/Rendering/RenderResources/PathTracer/PathTracer.h"
 #include "Viewer/Rendering/Editors/RenderCommand.h"
 #include "Viewer/Rendering/Editors/ArcballCamera.h"
 
@@ -53,13 +52,6 @@ namespace VkRender {
 
         void onEditorResize() override;
 
-        PathTracer::RenderInformation *getRenderInformation() {
-            if (m_pathTracer)
-                return m_pathTracer->getRenderInfo();
-
-            return nullptr;
-        }
-
     private:
         std::vector<std::unique_ptr<Buffer> > m_shaderSelectionBuffer;
         PipelineManager m_pipelineManager;
@@ -70,7 +62,7 @@ namespace VkRender {
         std::shared_ptr<VulkanTexture2D> m_colorTextureTMP;
         std::shared_ptr<VulkanTexture2D> m_colorTexture;
 
-        std::unique_ptr<PathTracer::PhotonTracer> m_pathTracer;
+        //std::unique_ptr<PathTracer::PhotonTracer> m_pathTracer;
         std::unique_ptr<PathTracerSYCL> m_pathTracerSYCL;
 
         std::shared_ptr<ArcballCamera> m_editorCamera;

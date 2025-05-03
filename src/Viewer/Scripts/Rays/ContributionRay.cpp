@@ -7,15 +7,14 @@
 
 #include <Viewer/Rendering/Components/ScriptableComponent.h>
 #include <Viewer/Rendering/Core/KeyInput.h>
-#include <Viewer/Rendering/RenderResources/PathTracer/Definitions.h>
 
-#include "Emitter.h"
 #include "Helpers.h"
 
 namespace VkRender {
     struct ScriptableComponent;
 
     void ContributionRay::onUpdate(Timestep ts) {
+        /*
         auto &mesh = getComponent<MeshComponent>();
         auto cylinder = std::dynamic_pointer_cast<CylinderMeshParameters>(mesh.meshParameters);
         if (!cylinder)
@@ -120,6 +119,7 @@ namespace VkRender {
                 cylinder->setMagnitude(magnitude + 1.0f);
             }
         }
+        */
     }
 
 

@@ -10,63 +10,40 @@ extern SYCL_EXTERNAL ulong __attribute__((overloadable)) intel_get_cycle_counter
 #endif
 
 #include <sycl/sycl.hpp>
-
+#include <cmath>
 
 #include "Viewer/Rendering/RenderResources/PathTracer/GPUDataTypes.h"
+#include "Viewer/Rendering/RenderResources/PathTracer/PathTracerTypes.h"
 
 namespace VkRender::PathTracer {
-    // -------------------------
-    // Kernel launcher class
-    // -------------------------
-    class PathTracerKernels {
+    class PathTracerMeshKernel {
     public:
-        PathTracerKernels(
-            sycl::queue &queue,
-            const SceneGPUMesh &scene,
-            uint32_t samplesPerPixel = 1
-        ) : m_queue(queue), m_scene(scene), m_samplesPerPixel(samplesPerPixel) {
-
+        PathTracerMeshKernel(
+            SceneDesc *scene
+        ) : d_sceneDesc(scene) {
         }
 
-        // Launches the SYCL kernel
-        void renderFrame() {
 
-            size_t total_tasks = 1000;
+        void operator()(sycl::item<1> item) const {
+            size_t photonID = item.get_linear_id();
 
-            m_queue.submit([&](sycl::handler &cgh) {
-                auto out = sycl::stream(1024, 768, cgh);
-                auto scene = m_scene;
-
-                Camera cam;
-
-                cgh.parallel_for(sycl::range<1>(total_tasks), [cam, scene, out](sycl::item<1> it) {
-                    size_t task_id = it.get_id(0);
-
-
-
-                    out << "intel_get_cycle_counter: ";
-
-            #ifdef __SYCL_DEVICE_ONLY__
-                    ulong cycle_counter = intel_get_cycle_counter();
-                    out << cycle_counter << endl;
-            #endif
-                });
-            }).wait();
-
-            std::cout << "Done" << std::endl;
-
+            // Each thread traces one photon.
+            traceOnePhoton(photonID);
         }
 
     private:
-        sycl::queue m_queue;
-        SceneGPUMesh    m_scene;
-        uint32_t    m_samplesPerPixel;
+        SceneDesc *d_sceneDesc;
+        SceneSettings d_sceneSettings;
+        FrameBuffer *d_frameBuffer;
 
-        bool intersectAABB(const float minB[3], const float maxB[3]) const;
-        bool intersectTri(const Vertex &v0, const Vertex &v1, const Vertex &v2, float &t) const;
+        void traceOnePhoton(uint32_t photonID) const;
+
+        // intersect the ray against the BVH + triangles
+        bool intersectBVH(const Ray &ray, Hit *hit) const;
+
+        void castContributions(const float3 &hitPoint, const float3 &throughput) const;
+
+        // your per-photon RNG: e.g. hashed by photonID
     };
-
-
 }
-
 #endif //PATHTRACERKERNELS_H

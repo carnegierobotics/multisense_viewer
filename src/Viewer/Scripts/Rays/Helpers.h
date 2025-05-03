@@ -5,10 +5,9 @@
 #ifndef HELPERS_H
 #define HELPERS_H
 
-#include "Viewer/Rendering/RenderResources/PathTracer/Definitions.h"
-
 namespace RayHelpers {
 
+    /*
 
             static bool checkCameraPlaneIntersection(
             const glm::vec3 &rayOriginWorld,
@@ -361,6 +360,7 @@ namespace RayHelpers {
         hit = g_hit;
         return true;
     }
+    */
 }
 
 #endif //HELPERS_H

@@ -5,8 +5,6 @@
 #include "Viewer/Rendering/Editors/PathTracer/EditorPathTracerLayer.h"
 
 #include "EditorPathTracer.h"
-#include "Viewer/Rendering/RenderResources/PathTracer/Definitions.h"
-#include "Viewer/Rendering/ImGui/IconsFontAwesome6.h"
 #include "Viewer/Rendering/Editors/PathTracer/EditorPathTracerLayerUI.h"
 #include "Viewer/Rendering/Editors/Editor.h"
 
@@ -37,25 +35,9 @@ namespace VkRender {
 
         auto imageUI = std::dynamic_pointer_cast<EditorPathTracerLayerUI>(m_editor->ui());
 
-        imageUI->resetPathTracer = ImGui::Button("Reset");
-        ImGui::SameLine();
 
 
-        ImGui::Checkbox("Scene Camera", &imageUI->useSceneCamera);
-        ImGui::SameLine();
-
-
-        imageUI->render = ImGui::Button("Render");
-        ImGui::SameLine();
-        ImGui::Checkbox("Toggle Render", &imageUI->toggleRendering);
-
-        ImGui::SameLine();
-
-        ImGui::Checkbox("Denoise", &imageUI->denoise);
-
-        ImGui::SameLine();
-
-
+        /*
         // Prepare dropdown items
         const char *kernels[PathTracer::KERNEL_TYPE_COUNT];
 
@@ -116,6 +98,7 @@ namespace VkRender {
         ImGui::SameLine();
         ImGui::Checkbox("Apply Beta dist.", &imageUI->applyBetaContribution);
 
+        */
         ImGui::End();
     }
 

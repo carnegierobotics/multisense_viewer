@@ -10,7 +10,6 @@
 #include "Viewer/Application/Application.h"
 #include "Viewer/Rendering/Editors/CommonEditorFunctions.h"
 #include "Viewer/Rendering/Editors/PathTracer/EditorPathTracerLayerUI.h"
-#include "Viewer/Rendering/RenderResources/PathTracer/PathTracer.h"
 
 #ifdef SYCL_ENABLED
 #include <OpenImageDenoise/oidn.hpp>
@@ -26,14 +25,6 @@ namespace VkRender {
         m_descriptorRegistry.createManager(DescriptorManagerType::Viewport3DTexture, m_context->vkDevice());
 
         m_shaderSelectionBuffer.resize(m_context->swapChainBuffers().size());
-        for (auto &frameIndex: m_shaderSelectionBuffer) {
-            m_context->vkDevice().createBuffer(
-                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                frameIndex,
-                sizeof(EditorPathTracerLayerUI::ShaderSelection), nullptr, "EditorPathTracer:ShaderSelectionBuffer",
-                m_context->getDebugUtilsObjectNameFunction());
-        }
 
         m_editorCamera = std::make_shared<ArcballCamera>();
         m_editorCamera->setDefaultPosition({-90.0f, 60.0f}, 1.5f);
@@ -53,8 +44,7 @@ namespace VkRender {
 
         auto sceneCamera = m_context->activeScene()->getActiveCamera();
         // 1. Figure out what camera we are using and the correct resolution.
-        bool useSceneCamera = (imageUI->useSceneCamera && sceneCamera && sceneCamera->cameraType ==
-                               CameraComponent::PINHOLE);
+        bool useSceneCamera = false;
         uint32_t newWidth = m_createInfo.width;
         uint32_t newHeight = m_createInfo.height;
         if (useSceneCamera) {
@@ -82,11 +72,12 @@ namespace VkRender {
         auto activeCamera = m_context->activeScene()->getActiveCamera();
         m_lastActiveCamera = activeCamera;
 
-        std::dynamic_pointer_cast<EditorPathTracerLayerUI>(m_ui)->resetPathTracer = true;
+        //std::dynamic_pointer_cast<EditorPathTracerLayerUI>(m_ui)->resetPathTracer = true;
         updatePathTracerSettings();
     }
 
     void EditorPathTracer::updatePathTracerSettings() {
+        /*
         auto imageUI = std::dynamic_pointer_cast<EditorPathTracerLayerUI>(m_ui);
         auto activeCamera = m_context->activeScene()->getActiveCamera();
         if (imageUI->switchKernelDevice || imageUI->resetPathTracer) {
@@ -103,6 +94,7 @@ namespace VkRender {
                 height = activeCamera->pinholeParameters.height;
             }
 
+            /*
             PathTracer::PhotonTracer::PipelineSettings pipelineSettings(syclDevice, width, height);
             pipelineSettings.photonCount = imageUI->photonCount;
             pipelineSettings.numBounces = imageUI->numBounces;
@@ -111,6 +103,8 @@ namespace VkRender {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
             m_pathTracer = std::make_unique<PathTracer::PhotonTracer>(m_context, pipelineSettings,
                                                                       m_context->activeScene());
+
+
             syclDevice->getQueue().wait();
 
             vkDeviceWaitIdle(m_context->vkDevice().m_LogicalDevice);
@@ -131,6 +125,7 @@ namespace VkRender {
         }
 
         imageUI->switchKernelDevice = false;
+        */
     }
 
     void EditorPathTracer::onUpdate() {
@@ -138,11 +133,10 @@ namespace VkRender {
 
         auto activeCamera = m_context->activeScene()->getActiveCamera();
         bool newCamera = m_previousSceneCamera != activeCamera;
-        if (imageUI->clearImageMemory) {
-        }
 
         updatePathTracerSettings();
 
+        /*
         if (imageUI->clearImageMemory || newCamera) {
             m_pathTracer->resetImage();
         }
@@ -178,6 +172,7 @@ namespace VkRender {
                     m_pathTracer->resetImage();
                 }
             }
+
 
             renderSettings.gammaCorrection = imageUI->shaderSelection.gammaCorrection;
             renderSettings.applyBetaContribution = imageUI->applyBetaContribution;
@@ -272,6 +267,8 @@ namespace VkRender {
             m_editorCamera->setDefaultPosition({-90.0f, 60.0f}, 1.5f);
             m_movedCamera = true;
         }
+
+        */
     }
 
 
@@ -414,6 +411,7 @@ namespace VkRender {
     void EditorPathTracer::saveImage() {
         auto imageUI = std::dynamic_pointer_cast<EditorPathTracerLayerUI>(m_ui);
 
+        /*
         // Save render information:
         PathTracer::RenderInformation *info = m_pathTracer->getRenderInfo();
         // Create a YAML emitter
@@ -514,6 +512,7 @@ namespace VkRender {
                             width * 3)) {
             throw std::runtime_error("Failed to write PNG file: " + filename.string());
         }
+        */
     }
 
 

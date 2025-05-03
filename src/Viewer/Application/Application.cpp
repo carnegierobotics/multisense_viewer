@@ -75,6 +75,7 @@ namespace VkRender {
         // WARMUP SYCL Kernels
 #ifdef SYCL_ENABLED
         {
+            /*
             auto types = {SYCLDeviceType::CPU, SYCLDeviceType::GPU};
             for (auto type : types) {
                 Log::Logger::getInstance()->info("Warming kernel type {}", syclDeviceTypeToString(type));
@@ -91,6 +92,7 @@ namespace VkRender {
             }
             Log::Logger::getInstance()->info("SYCL Warmup complete");
 
+            */
         }
 #endif
 

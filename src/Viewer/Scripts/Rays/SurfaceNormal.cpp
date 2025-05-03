@@ -5,7 +5,6 @@
 
 #include "SurfaceNormal.h"
 #include <Viewer/Rendering/Components/ScriptableComponent.h>
-#include <Viewer/Rendering/Core/KeyInput.h>
 
 #include "Emitter.h"
 

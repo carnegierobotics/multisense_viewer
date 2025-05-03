@@ -7,42 +7,13 @@
 
 #include "Viewer/Rendering/ImGui/Layer.h"
 
-#include "Viewer/Rendering/RenderResources/PathTracer/Definitions.h"
 #include "Viewer/Rendering/Editors/EditorIncludes.h"
 
 namespace VkRender {
 
     struct EditorPathTracerLayerUI : EditorUI {
 
-        bool useSceneCamera = false;
 
-        bool uploadScene = false;
-        bool render = false;
-        bool toggleRendering = false;
-        bool saveImage = false;
-        bool bypassSave = false;
-        bool denoise = false;
-
-        bool clearImageMemory = false;
-
-        PathTracer::KernelType kernel = PathTracer::KERNEL_PATH_TRACER_2DGS;
-        std::string kernelDevice = "";
-        int selectedKernelIndex = PathTracer::KERNEL_PATH_TRACER_2DGS;
-        int selectedDeviceIndex = 1; // CPU: 0 | GPU: 1
-        bool switchKernelDevice = false;
-
-        int photonCount = 1e6; // 1 Million
-        int numBounces = 1;
-
-        bool resetPathTracer = false;
-
-        bool applyBetaContribution = false;
-
-        struct ShaderSelection {
-            int someVariable = 0;
-            float gammaCorrection = 2.2f;
-
-        }shaderSelection;
         // Constructor that copies everything from base EditorUI
         EditorPathTracerLayerUI(const EditorUI &baseUI) : EditorUI(baseUI) {}
     };

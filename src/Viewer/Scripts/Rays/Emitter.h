@@ -16,11 +16,13 @@ namespace VkRender {
         glm::vec3 hitPosition = glm::vec3(0.0f);
         glm::vec3 hitNormal = glm::vec3(0.0f);
 
-        void onUpdate(Timestep ts) override;
+        void onUpdate(Timestep ts) override {
 
-        void onDestroy() override;
+        }
 
-        void onCreate() override;
+        void onDestroy() override {}
+
+        void onCreate() override {}
     };
 }
 

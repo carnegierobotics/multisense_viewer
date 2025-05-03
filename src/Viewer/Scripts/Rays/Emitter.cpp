@@ -12,6 +12,7 @@
 #include "imgui.h"
 
 
+/*
 namespace VkRender {
     void Emitter::onUpdate(Timestep ts) {
         auto scene = m_entity.getScene();
@@ -111,3 +112,5 @@ namespace VkRender {
         auto scene = m_entity.getScene();
     }
 }
+
+*/

@@ -22,11 +22,11 @@ namespace VkRender {
         glm::vec2 uv0 = glm::vec2(0.0f);
 
     public:
-        void onUpdate(Timestep ts) override;
+        void onUpdate(Timestep ts) override {}
 
-        void onDestroy() override;
+        void onDestroy() override {}
 
-        void onCreate() override;
+        void onCreate() override {}
     };
 }
 

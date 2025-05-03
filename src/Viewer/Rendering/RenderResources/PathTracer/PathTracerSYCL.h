@@ -21,13 +21,13 @@ namespace VkRender {
         ~PathTracerSYCL();
 
         /** (re)allocates all GPU buffers that depend on scene topology */
-        void uploadScene(const std::shared_ptr<Scene>& scene scene);
+        void uploadScene(const std::shared_ptr<Scene>& scene);
 
         /** reallocates output image if #cameras / resolution changed */
         void setupFrameBuffers();
 
         /** per‑frame fast update of transforms, animated emissive, … */
-        void updateDynamic(const std::shared_ptr<Scene>& scene scene);
+        void updateDynamic(const std::shared_ptr<Scene>& scene);
 
         /** launches photon + contribution kernels */
         void renderFrame();

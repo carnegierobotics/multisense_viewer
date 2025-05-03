@@ -120,7 +120,7 @@ namespace VkRender::PathTracer {
         bool applyBetaWeight = false;
     };
 
-    struct BVHNode {
+    struct BVHNode2 {
         glm::vec3 bboxMin = glm::vec3(0.0f);
         glm::vec3 bboxMax = glm::vec3(0.0f);
         int leftChild = -1; // index into BVH nodes array (or -1 if leaf)
@@ -141,7 +141,7 @@ namespace VkRender::PathTracer {
         size_t numQuadrics = 0;
         size_t numEntities = 0;
         // QUadric BVH
-        BVHNode *bvhNodes = nullptr;
+        BVHNode2 *bvhNodes = nullptr;
         size_t numBVHNodes = 0;
 
         //glm::mat3* quadricGradients = nullptr;

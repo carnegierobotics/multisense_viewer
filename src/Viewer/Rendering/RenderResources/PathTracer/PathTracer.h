@@ -123,7 +123,7 @@ namespace VkRender::PathTracer {
 
         void uploadVertexData(std::shared_ptr<Scene>& scene);
         std::vector<BVHLeaf> buildBVHLeaves(const std::vector<QuadricInputAssembly>& quadrics);
-        std::vector<BVHNode> buildBVH(const std::vector<BVHLeaf>& inputLeaves);
+        std::vector<BVHNode2> buildBVH(const std::vector<BVHLeaf>& inputLeaves);
         float computeLocalZ(float x, float y, const QuadricInputAssembly& quadric);
         AABB computeLocalAABB(const QuadricInputAssembly& quadric);
     };

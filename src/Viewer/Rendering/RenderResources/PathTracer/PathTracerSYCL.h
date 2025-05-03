@@ -8,91 +8,84 @@
 #include "Viewer/Scenes/Scene.h"
 #include "Viewer/Rendering/RenderResources/PathTracer/PathTracerKernels.h"
 
-namespace VkRender {
-    // -------------------------
-// Kernel launcher class
-// -------------------------
-class PathTracerKernels {
-public:
-    PathTracerKernels(
-        sycl::queue &m_queue,
-        Vertex *d_vertices, size_t m_vertexCount,
-        Triangle *d_tris,   size_t m_triCount,
-        Material *d_mats,
-        BVHNode *d_nodes,   size_t m_nodeCount,
-        uint8_t *d_image,
-        uint32_t m_width, uint32_t m_height
-    );
-
-    // Launches SYCL kernel to fill image buffer
-    void renderFrame();
-
-private:
-    sycl::queue &m_queue;
-    Vertex     *d_vertices;
-    Triangle   *d_tris;
-    Material   *d_mats;
-    BVHNode    *d_nodes;
-    uint8_t    *d_image;
-    uint32_t    m_width;
-    uint32_t    m_height;
-
-    bool intersectAABB(
-        /* ray params */,
-        const float minB[3], const float maxB[3]
-    ) const;
-
-    bool intersectTriangle(
-        /* ray params */,
-        const Vertex &v0,
-        const Vertex &v1,
-        const Vertex &v2,
-        float &t
-    ) const;
-};
-
-} // namespace VkRender::PathTracer
-
 // -------------------------
 // Main tracer class
 // -------------------------
 namespace VkRender {
-
 class PathTracerSYCL {
 public:
-    PathTracerSYCL(sycl::queue &m_queue, uint32_t m_width, uint32_t m_height);
-    ~PathTracerSYCL();
+    explicit PathTracerSYCL(sycl::queue q) : m_queue(std::move(q)) { }
 
-    // Uploads all meshes, materials, transforms from the scene
-    void uploadScene(Scene &scene);
+    /** (re)allocates all GPU buffers that depend on scene topology */
+    void uploadScene(const Scene& scene);
 
-    // Renders one frame and returns CPU-side RGBA8 image
-    std::vector<uint8_t> render();
+    /** reallocates output image if #cameras / resolution changed */
+    void setupFrameBuffers();
+
+    /** per‑frame fast update of transforms, animated emissive, … */
+    void updateDynamic(const Scene& scene);
+
+    /** launches photon + contribution kernels */
+    void renderFrame();
+
+    /** copies the device framebuffer back to host */
+    void generateImages(std::span<std::byte> outRGBA32f);
 
 private:
-    sycl::queue &m_queue;
-    uint32_t     m_width;
-    uint32_t     m_height;
+    /*--- helpers called only from uploadScene() ---*/
+    void collectGeometry(const Scene&);
+    void collectInstances(const Scene&);
+    void collectLights(const Scene&);
+    void collectCameras(const Scene&);
+    void buildSceneDesc();
 
-    PathTracer::Vertex *d_vertices = nullptr;
-    size_t              m_vertexCount = 0;
-    PathTracer::Triangle *d_tris     = nullptr;
-    size_t              m_triCount    = 0;
-    PathTracer::Material *d_mats     = nullptr;
-    size_t              m_matCount    = 0;
-    PathTracer::BVHNode *d_nodes     = nullptr;
-    size_t              m_nodeCount   = 0;
-    uint8_t            *d_image      = nullptr;
+    /*--- device clean‑up ---*/
+    void freeDeviceMemory();
 
-    // Builds CPU BVH and fills 'nodes'
-    void buildBVH_CPU(
-        const std::vector<PathTracer::Vertex> &verts,
-        const std::vector<PathTracer::Triangle> &tris,
-        std::vector<PathTracer::BVHNode> &nodes
-    );
+    /*----------------------------------------------*/
+    sycl::queue m_queue;
+
+    /* device‑side master descriptor */
+    PathTracer::SceneDesc        m_SceneDesc{};   // host copy (fillable with std::vector)
+    PathTracer::SceneDesc*       d_SceneDesc = nullptr;
+
+    /* device arrays (raw USM pointers) --------------*/
+    // geometry
+    float*           d_px = nullptr;  // part of VertexSOA
+    float*           d_py = nullptr;
+    float*           d_pz = nullptr;
+    float*           d_nx = nullptr;
+    float*           d_ny = nullptr;
+    float*           d_nz = nullptr;
+
+    PathTracer::Triangle*        d_tris = nullptr;
+    PathTracer::MeshRange*       d_meshRanges = nullptr;
+    PathTracer::OrientedPoint*   d_points = nullptr;
+    PathTracer::PointCloudRange* d_pcRanges = nullptr;
+    PathTracer::BVHNode*         d_bvh = nullptr;
+
+    // scene graph
+    PathTracer::Instance*        d_instances = nullptr;
+    PathTracer::Transform*       d_transforms = nullptr;
+
+    // appearance
+    PathTracer::Material*        d_materials = nullptr;
+    PathTracer::AreaLight*       d_lights = nullptr;
+
+    // view
+    PathTracer::Camera*          d_cameras = nullptr;
+    glm::vec4*                   d_framebuffer = nullptr;
+
+    /* host‑side staging vectors for dynamic updates */
+    std::vector<PathTracer::Transform>  m_transforms;
+    std::vector<PathTracer::AreaLight>  m_lights;
+
+    /* counts / state */
+    uint32_t triCount{}, meshCount{}, pointCount{}, pcCount{};
+    uint32_t instanceCount{}, transformCount{};
+    uint32_t materialCount{}, lightCount{}, cameraCount{};
+    size_t   framebufferPixels{0};
 };
-
-} // namespace VkRender
 
 
 } // VkRender

@@ -334,7 +334,7 @@ namespace VkRender::PathTracer {
             // Traverse the BVH iteratively.
             while (stackPtr > 0) {
                 int currentIndex = stack[--stackPtr];
-                const BVHNode &node = m_gpuData.bvhNodes[currentIndex];
+                const BVHNode2 &node = m_gpuData.bvhNodes[currentIndex];
 
                 // Test ray against node's bounding box.
                 if (!rayAABBIntersect(rayOrigin, rayDir, node.bboxMin, node.bboxMax, tMinGlobal))

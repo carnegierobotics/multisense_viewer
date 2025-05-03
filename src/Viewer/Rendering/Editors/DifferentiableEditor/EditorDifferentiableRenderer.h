@@ -62,6 +62,7 @@ namespace VkRender
         PipelineManager m_pipelineManager;
         DescriptorRegistry m_descriptorRegistry;
         std::shared_ptr<MeshInstance> m_meshInstances;
+        std::shared_ptr<MaterialInstance> m_materialInstance;
         std::shared_ptr<VulkanTexture2D> m_colorTexture;
 
         std::unique_ptr<PathTracer::PhotonTracer> m_pathTracer;
@@ -75,6 +76,9 @@ namespace VkRender
 
 
         CameraComponent* m_previousSceneCamera = nullptr;
+
+        std::shared_ptr<MaterialInstance> initializeMaterial();
+
     };
 }
 #endif //MULTISENSE_VIEWER_EDITOR_DIFFRENTIABLE_RENDERER

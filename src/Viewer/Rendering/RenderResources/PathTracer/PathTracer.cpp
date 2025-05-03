@@ -520,10 +520,10 @@ namespace VkRender::PathTracer {
 
         // Allocate device memory for BVH nodes.
         size_t bvhSize = bvhNodes.size();
-        m_gpu.bvhNodes = sycl::malloc_device<BVHNode>(bvhSize, queue);
+        m_gpu.bvhNodes = sycl::malloc_device<BVHNode2>(bvhSize, queue);
 
         // Copy the BVH nodes from host to device.
-        queue.memcpy(m_gpu.bvhNodes, bvhNodes.data(), bvhSize * sizeof(BVHNode));
+        queue.memcpy(m_gpu.bvhNodes, bvhNodes.data(), bvhSize * sizeof(BVHNode2));
 
         m_gpu.numBVHNodes = bvhSize;
         Log::Logger::getInstance()->info("Uploaded {} BVH nodes for Quadrics", bvhSize);
@@ -620,10 +620,10 @@ namespace VkRender::PathTracer {
 
         // Allocate device memory for BVH nodes.
         size_t bvhSize = bvhNodes.size();
-        m_gpu.bvhNodes = sycl::malloc_device<BVHNode>(bvhSize, queue);
+        m_gpu.bvhNodes = sycl::malloc_device<BVHNode2>(bvhSize, queue);
 
         // Copy the BVH nodes from host to device.
-        queue.memcpy(m_gpu.bvhNodes, bvhNodes.data(), bvhSize * sizeof(BVHNode));
+        queue.memcpy(m_gpu.bvhNodes, bvhNodes.data(), bvhSize * sizeof(BVHNode2));
 
         m_gpu.numBVHNodes = bvhSize;
 
@@ -747,10 +747,10 @@ namespace VkRender::PathTracer {
     }
 
 
-    int buildBVHNode(std::vector<BVHNode> &nodes,
+    int buildBVHNode(std::vector<BVHNode2> &nodes,
                      std::vector<PhotonTracer::BVHLeaf> &leaves,
                      size_t start, size_t end) {
-        BVHNode node;
+        BVHNode2 node;
         node.isLeaf = false;
         node.leftChild = -1;
         node.rightChild = -1;
@@ -833,9 +833,9 @@ namespace VkRender::PathTracer {
     }
 
 
-    std::vector<BVHNode> PhotonTracer::buildBVH(const std::vector<BVHLeaf> &inputLeaves) {
+    std::vector<BVHNode2> PhotonTracer::buildBVH(const std::vector<BVHLeaf> &inputLeaves) {
         std::vector<BVHLeaf> leaves = inputLeaves; // make a copy to allow reordering
-        std::vector<BVHNode> nodes;
+        std::vector<BVHNode2> nodes;
         if (!leaves.empty())
             buildBVHNode(nodes, leaves, 0, leaves.size());
         return nodes;

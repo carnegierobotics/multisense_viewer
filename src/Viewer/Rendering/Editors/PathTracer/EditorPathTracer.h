@@ -5,6 +5,8 @@
 #ifndef MULTISENSE_VIEWER_EDITORPATHTRACER_H
 #define MULTISENSE_VIEWER_EDITORPATHTRACER_H
 
+#include <Viewer/Rendering/RenderResources/PathTracer/PathTracerSYCL.h>
+
 #include "Viewer/Rendering/Core/DescriptorRegistry.h"
 #include "Viewer/Rendering/Core/PipelineManager.h"
 
@@ -69,6 +71,7 @@ namespace VkRender {
         std::shared_ptr<VulkanTexture2D> m_colorTexture;
 
         std::unique_ptr<PathTracer::PhotonTracer> m_pathTracer;
+        std::unique_ptr<PathTracerSYCL> m_pathTracerSYCL;
 
         std::shared_ptr<ArcballCamera> m_editorCamera;
         CameraComponent *m_lastActiveCamera = nullptr;

@@ -5,7 +5,7 @@
 #ifndef MULTISENSE_VIEWER_EDITORPATHTRACER_H
 #define MULTISENSE_VIEWER_EDITORPATHTRACER_H
 
-#include <Viewer/Rendering/RenderResources/PathTracer/PathTracerSYCL.h>
+#include <Viewer/Rendering/PathTracer/PathTracerSYCL.h>
 
 #include "Viewer/Rendering/Core/DescriptorRegistry.h"
 #include "Viewer/Rendering/Core/PipelineManager.h"

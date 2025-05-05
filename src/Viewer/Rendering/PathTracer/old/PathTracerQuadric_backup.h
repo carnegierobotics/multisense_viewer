@@ -7,7 +7,7 @@
 
 #include <glm/gtc/matrix_inverse.hpp>
 
-#include "Viewer/Rendering/RenderResources/PathTracer/Definitions.h"
+#include "Viewer/Rendering/PathTracer/Definitions.h"
 
 namespace VkRender::PathTracer {
     class LightTracerKernel {

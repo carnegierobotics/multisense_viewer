@@ -386,55 +386,8 @@ namespace VkRender {
             auto &component = entity.getComponent<LightSourceComponent>();
             out << YAML::BeginMap;
             // Serialize positions
-            out << YAML::Key << "Positions";
-            out << YAML::Value << YAML::BeginSeq;
-            for (const auto &position: component.positions) {
-                out << YAML::Flow << YAML::BeginSeq << position.x << position.y << position.z << YAML::EndSeq;
-            }
-            out << YAML::EndSeq;
-
-            // Serialize normals
-            out << YAML::Key << "Normals";
-            out << YAML::Value << YAML::BeginSeq;
-            for (const auto &normal: component.normals) {
-                out << YAML::Flow << YAML::BeginSeq << normal.x << normal.y << normal.z << YAML::EndSeq;
-            }
-            out << YAML::EndSeq;
-
-            // Serialize scales
-            out << YAML::Key << "Scales";
-            out << YAML::Value << YAML::BeginSeq;
-            for (const auto &scale: component.scales) {
-                out << YAML::Flow << YAML::BeginSeq << scale.x << scale.y << YAML::EndSeq;
-            }
-            out << YAML::EndSeq;
-
-            // Serialize float properties
-            auto serializeFloatArray = [&](const std::vector<float> &values, const std::string &key) {
-                out << YAML::Key << key;
-                out << YAML::Value << YAML::BeginSeq;
-                for (const auto &value: values) {
-                    out << value;
-                }
-                out << YAML::EndSeq;
-            };
-            // Serialize float properties
-            auto serializeVec4Array = [&](const std::vector<glm::vec4> &values, const std::string &key) {
-                out << YAML::Key << key;
-                out << YAML::Value << YAML::BeginSeq;
-                for (const auto &value: values) {
-                    out << value;
-                }
-                out << YAML::EndSeq;
-            };
-
-            serializeFloatArray(component.emissions, "Emissions");
-            serializeFloatArray(component.opacities, "Opacities");
-            serializeFloatArray(component.diffuse, "Diffuse");
-            serializeVec4Array(component.colors, "Colors");
-            serializeFloatArray(component.specular, "Specular");
-            serializeFloatArray(component.phongExponents, "PhongExponents");
-
+            out << YAML::Key << "Flux";
+            out << YAML::Value <<  component.flux;
 
             out << YAML::EndMap;
         }
@@ -815,84 +768,16 @@ namespace VkRender {
                     auto &component = deserializedEntity.addComponent<GroupComponent>();
                 }
 
-                auto gaussianComponent2DGSNode = entity["LightSourceComponent"];
-                if (gaussianComponent2DGSNode) {
+                auto lightSourceNode = entity["LightSourceComponent"];
+                if (lightSourceNode) {
                     auto &component = deserializedEntity.addComponent<LightSourceComponent>();
-                    auto &node = gaussianComponent2DGSNode;
-                    // Deserialize positions
-                    if (node["Positions"]) {
-                        for (const auto &positionNode: node["Positions"]) {
-                            glm::vec3 position(
-                                positionNode[0].as<float>(),
-                                positionNode[1].as<float>(),
-                                positionNode[2].as<float>()
-                            );
-                            component.positions.push_back(position);
-                        }
+                    auto &node = lightSourceNode;
+
+                    // Deserialize fragment shader name
+                    if (node["Flux"]) {
+                        component.flux = node["Flux"].as<float>(100.0f);
                     }
 
-                    // Deserialize normals
-                    if (node["Normals"]) {
-                        for (const auto &normalNode: node["Normals"]) {
-                            glm::vec3 normal(
-                                normalNode[0].as<float>(),
-                                normalNode[1].as<float>(),
-                                normalNode[2].as<float>()
-                            );
-                            component.normals.push_back(normal);
-                        }
-                    }
-
-                    // Deserialize scales
-                    if (node["Scales"]) {
-                        for (const auto &scaleNode: node["Scales"]) {
-                            glm::vec2 scale(
-                                scaleNode[0].as<float>(),
-                                scaleNode[1].as<float>()
-                            );
-                            component.scales.push_back(scale);
-                        }
-                    }
-
-
-                    // Deserialize float properties with default values
-                    auto deserializeFloatArray = [&](std::vector<float> &values, const std::string &key,
-                                                     size_t defaultSize = 0, float defaultValue = 0.0f) {
-                        if (node[key]) {
-                            // Populate values from the node
-                            for (const auto &valueNode: node[key]) {
-                                values.push_back(valueNode.as<float>());
-                            }
-                        } else {
-                            // Populate default values if the key doesn't exist
-                            values.resize(defaultSize, defaultValue);
-                        }
-                    };
-                    // Deserialize float properties with default values
-                    auto deserializeVec4Array = [&](std::vector<glm::vec4> &values, const std::string &key,
-                                                    size_t defaultSize = 0,
-                                                    glm::vec4 defaultValue = glm::vec4(glm::vec3(0.0f), 1.0f)) {
-                        if (node[key]) {
-                            // Populate values from the node
-                            for (const auto &valueNode: node[key]) {
-                                if (valueNode.size() == 4)
-                                    values.push_back(valueNode.as<glm::vec4>());
-                                else {
-                                    values.push_back(defaultValue);
-                                }
-                            }
-                        } else {
-                            // Populate default values if the key doesn't exist
-                            values.resize(defaultSize, defaultValue);
-                        }
-                    };
-                    size_t expectedSize = component.positions.size();
-                    deserializeFloatArray(component.emissions, "Emissions", expectedSize, 0.0f);
-                    deserializeFloatArray(component.opacities, "Opacities", expectedSize, 1.0f);
-                    deserializeVec4Array(component.colors, "Colors", expectedSize);
-                    deserializeFloatArray(component.diffuse, "Diffuse", expectedSize, 0.5f);
-                    deserializeFloatArray(component.specular, "Specular", expectedSize, 0.5f);
-                    deserializeFloatArray(component.phongExponents, "PhongExponents", expectedSize, 32.0f);
                 }
 
                 auto quadricNode = entity["QuadricCollectionComponent"];

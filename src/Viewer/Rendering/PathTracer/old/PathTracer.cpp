@@ -4,13 +4,13 @@
 
 #include <utility>
 
-#include "Viewer/Rendering/RenderResources/PathTracer/PathTracer.h"
+#include "Viewer/Rendering/PathTracer/PathTracer.h"
 #include "Viewer/Scenes/Entity.h"
 #include "Viewer/Rendering/Components/LightSourceComponent.h"
 #include "Viewer/Tools/SYCLDeviceSelector.h"
 
-#include "Viewer/Rendering/RenderResources/PathTracer/PathTracer2DGSKernel.h"
-#include "Viewer/Rendering/RenderResources/PathTracer/PathTracer2DGSKernelBackward.h"
+#include "Viewer/Rendering/PathTracer/PathTracer2DGSKernel.h"
+#include "Viewer/Rendering/PathTracer/PathTracer2DGSKernelBackward.h"
 
 namespace VkRender::PathTracer {
     PhotonTracer::PhotonTracer(Application *ctx, const PipelineSettings &pipelineSettings,

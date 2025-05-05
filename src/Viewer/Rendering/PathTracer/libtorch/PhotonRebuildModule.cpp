@@ -2,7 +2,7 @@
 // Created by magnus on 1/24/25.
 //
 
-#include "Viewer/Rendering/RenderResources/PathTracer/libtorch/PhotonRebuildModule.h"
+#include "Viewer/Rendering/PathTracer/libtorch/PhotonRebuildModule.h"
 
 #include <utility>
 

@@ -7,7 +7,7 @@
 #include <torch/torch.h>
 #include <vector>
 
-#include "Viewer/Rendering/RenderResources/PathTracer/PathTracer.h"
+#include "Viewer/Rendering/PathTracer/PathTracer.h"
 
 
 namespace VkRender::PathTracer {

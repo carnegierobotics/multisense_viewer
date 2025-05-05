@@ -7,6 +7,8 @@
 
 #include <cstdint>
 
+#include "PathTracerTypes.h"
+
 namespace VkRender {
     struct QuadricCloudAsset;
 }
@@ -46,6 +48,17 @@ namespace VkRender::PathTracer {
         // every material is usable by either mesh or point
     };
 
+    struct alignas(16) MeshLight {
+        // per‑triangle data:
+        std::vector<sycl::float3> v0, edge1, edge2, normal;
+        std::vector<float>        cdf;         // prefix‑sum(areas) normalized to [0,1]
+        float                     totalArea;   // sum of all triangle areas
+        float                     flux;        // Φ in watts
+        float                     radiance;    // L_e = Φ/(π*totalArea)
+    };
+
+
+    /*
     struct alignas(16) AreaLight {
         sycl::float3 origin;
         float pad0;
@@ -56,6 +69,7 @@ namespace VkRender::PathTracer {
         sycl::float3 radiance;
         float area; // pre‑computed area = |U×V|
     };
+    */
 
     struct alignas(16) Transform {
         sycl::mfloat4 objectToWorld;
@@ -97,11 +111,12 @@ namespace VkRender::PathTracer {
     };
 
     struct alignas(16) Camera {
-        sycl::mfloat4 view{};
-        sycl::mfloat4 proj{};
+        float4x4 view{};
+        float4x4 proj{};
         sycl::float3 pos{};
         float pad0{};
         uint32_t width{}, height{};
+
         uint32_t firstPixel{}; // offset into a big framebuffer
     };
 
@@ -121,7 +136,7 @@ namespace VkRender::PathTracer {
 
         // appearance
         const Material *materials = nullptr;
-        const AreaLight *lights = nullptr;
+        const MeshLight *lights = nullptr;
 
         // view
         const Camera *cameras = nullptr;
@@ -140,7 +155,7 @@ namespace VkRender::PathTracer {
     };
 
     struct alignas(16) FrameBuffer {
-        sycl::float4 *frameBuffers = nullptr;
+        sycl::float4 *memory = nullptr;
         uint32_t frameBufferCount = 0;
         uint32_t perFrameBufferSize = 0;
 

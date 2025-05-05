@@ -5,8 +5,8 @@
 #ifndef PATHTRACER2DGSKERNELBACKWARD_H
 #define PATHTRACER2DGSKERNELBACKWARD_H
 
-#include "Viewer/Rendering/RenderResources/PathTracer/Definitions.h"
-#include "Viewer/Rendering/RenderResources/PathTracer/PathTracerKernelCommon.h"
+#include "Viewer/Rendering/PathTracer/Definitions.h"
+#include "Viewer/Rendering/PathTracer/PathTracerKernelCommon.h"
 
 namespace VkRender::PathTracer {
     class LightTracerKernelBackward {

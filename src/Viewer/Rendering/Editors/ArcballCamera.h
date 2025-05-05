@@ -59,7 +59,7 @@ namespace VkRender {
             glm::vec3 right = glm::vec3(view[0][0], view[1][0], view[2][0]);   // First column
             glm::vec3 up = glm::vec3(view[0][1], view[1][1], view[2][1]);      // Second column
             glm::vec3 forward = glm::vec3(view[0][2], view[1][2], view[2][2]); // Third column
-            glm::vec3 translation = -dx * right - dy * up; // Move left/right (dx) and up/down (dy)
+            glm::vec3 translation = dx * right - dy * up; // Move left/right (dx) and up/down (dy)
             glm::vec4 worldTranslation = glm::vec4(translation, 1.0f) * m_transform.getTransform();
             m_positionOffset += glm::vec3(worldTranslation);
 

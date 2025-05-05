@@ -90,7 +90,7 @@ namespace VkRender::PathTracer {
 
     void PathTracerMeshKernel::castContributions(
     const float3 &hitPoint,
-    const float3 &throughput) const
+    const float &throughput) const
 {
     const auto &scene = *d_sceneDesc;
     constexpr float kEps = 1e-4f;
@@ -124,7 +124,7 @@ namespace VkRender::PathTracer {
         uint32_t idx = cam.firstPixel + py * cam.width + px;
 
         // 5) atomic add into global image buffer (float4 array)
-        auto &pixel = d_frameBuffer->frameBuffers[idx];
+        auto &pixel = d_frameBuffer->memory[idx];
         sycl::atomic_ref<float,
             sycl::memory_order::relaxed,
             sycl::memory_scope::device,
@@ -141,9 +141,9 @@ namespace VkRender::PathTracer {
             sycl::access::address_space::global_space>
             b(pixel.z());
 
-        r += throughput.x();
-        g += throughput.y();
-        b += throughput.z();
+        r += throughput;
+        g += throughput;
+        b += throughput;
     }
 }
 
@@ -159,13 +159,13 @@ namespace VkRender::PathTracer {
         // 1) sample light
         float3 pos, normal;
         float pdf;
-        sampleAreaLight(scene.lights[static_cast<size_t>(rnd(photonID) * scene.lightCount)], photonID,
+        sampleMeshLight(scene.lights[static_cast<size_t>(rnd(photonID) * scene.lightCount)], photonID,
                         pos, normal, pdf);
 
         // 2) initial direction & throughput
         float3 rayDir = sampleCosineHemisphere(normal, photonID ^ 0xC789, photonID ^ 0xD012);
         float cosNL = sycl::max(dot(rayDir, normal), 0.f);
-        float3 throughput = scene.lights[photonID % scene.lightCount].radiance
+        float throughput = scene.lights[photonID % scene.lightCount].radiance
                             * (cosNL / pdf);
         Ray ray = makeRay(pos, rayDir);
 
@@ -189,7 +189,7 @@ namespace VkRender::PathTracer {
             float3 albedo = M.baseColor;
 
             // throughput update (Lambertian)
-            throughput *= albedo * M_PI;
+            throughput *= albedo.x() * M_PI;
 
             // cast contributions to cameras
             castContributions(hit.hitPoint, throughput);

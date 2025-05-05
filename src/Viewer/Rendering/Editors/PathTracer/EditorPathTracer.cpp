@@ -114,7 +114,26 @@ namespace VkRender {
         auto imageUI = std::dynamic_pointer_cast<EditorPathTracerLayerUI>(m_ui);
 
         auto activeCamera = m_context->activeScene()->getActiveCamera();
+        bool renderToViewport = true;
+        if (renderToViewport) {
+            PinholeParameters pinholeParameters;
+            SharedCameraSettings cameraSettings;
+            pinholeParameters.width = m_createInfo.width;
+            pinholeParameters.height = m_createInfo.height;
+            pinholeParameters.cx = pinholeParameters.width / 2.0f;
+            pinholeParameters.cy = pinholeParameters.height / 2.0f;
+            pinholeParameters.fx = 600.0f;
+            pinholeParameters.fy = 600.0f;
+            // Construct the pinhole
+            PinholeCamera defaultCam(cameraSettings, pinholeParameters);
+            //renderSettings.camera = defaultCam;
+            //renderSettings.cameraTransform = TransformComponent(m_editorCamera->matrices.transform);
+        }
+        else {
+
+        }
         bool newCamera = m_previousSceneCamera != activeCamera;
+
 
         updatePathTracerSettings();
 

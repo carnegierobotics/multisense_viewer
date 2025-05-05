@@ -486,7 +486,7 @@ namespace VkRender {
                 // B
             }
         }
-
+sd
 
         // Write the image to a PNG file
         if (!stbi_write_png(filename.replace_extension(".png").string().c_str(), width, height, 3,

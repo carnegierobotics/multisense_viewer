@@ -46,6 +46,8 @@ namespace VkRender {
 
         std::shared_ptr<MaterialInstance> initializeMaterial();
 
+        void scaleViewportQuad();
+
         void onFileDrop(const std::filesystem::path &path) override;
 
         void onMouseScroll(float change) override;

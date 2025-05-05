@@ -151,6 +151,10 @@ namespace VkRender::EditorUtils {
         }
     }
 
+    static void  scaleViewportQuad() {
+
+    }
+
     static std::shared_ptr<MeshInstance> setupMesh(Application* ctx, float scaleX = 1.0f, float scaleY = 1.0f) {
         std::vector<VkRender::ImageVertex> vertices = {
             // Bottom-left corner becomes top-left in texture space

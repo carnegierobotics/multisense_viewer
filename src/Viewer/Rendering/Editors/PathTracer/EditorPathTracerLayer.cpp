@@ -35,6 +35,9 @@ namespace VkRender {
 
         auto imageUI = std::dynamic_pointer_cast<EditorPathTracerLayerUI>(m_editor->ui());
 
+        imageUI->reloadRenderer = ImGui::Button("Upload scene"); ImGui::SameLine();
+        ImGui::Checkbox("Render", &imageUI->render); ImGui::SameLine();
+        ImGui::Checkbox("To Viewport", &imageUI->renderToViewport);
 
 
         /*

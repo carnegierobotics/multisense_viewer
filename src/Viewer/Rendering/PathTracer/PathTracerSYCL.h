@@ -5,6 +5,8 @@
 #ifndef PATHTRACERSYCL_H
 #define PATHTRACERSYCL_H
 
+#include <Viewer/Rendering/Editors/ArcballCamera.h>
+
 #include "Viewer/Scenes/Scene.h"
 #include "Viewer/Rendering/PathTracer/PathTracerKernels.h"
 
@@ -15,22 +17,28 @@ namespace VkRender {
 
     struct PathTracerSYCLCreateInfo {
         sycl::queue queue;
-        uint32_t framebufferWidth = 960;
-        uint32_t framebufferHeight = 600;
-        uint32_t channels = 4;
-        uint32_t framebufferCount = 10; // 100 images at 960x600x4 Equals 230.4 Mb in framebuffer space
+        uint32_t framebufferSize = 960 * 600 * 4 * 10; // 10 images of size 960x600x4
+    };
+
+    struct EditorCamera {
+        const ArcballCamera* camera = nullptr;
+        uint32_t editorWidth = 1024;
+        uint32_t editorHeight = 768;
     };
 
     class PathTracerSYCL {
     public:
-        explicit PathTracerSYCL(const PathTracerSYCLCreateInfo& createInfo) : m_queue(std::move(createInfo.queue)), m_createInfo(createInfo) {
+        explicit PathTracerSYCL(const PathTracerSYCLCreateInfo& createInfo) : m_queue(createInfo.queue), m_createInfo(createInfo) {
             std::memset(&m_sceneDesc, 0, sizeof(m_sceneDesc));
+
+            // setup output'
+            setupFrameBuffers();
         }
 
         ~PathTracerSYCL();
 
         /** (re)allocates all GPU buffers that depend on scene topology */
-        void uploadScene(const std::shared_ptr<Scene>& scene);
+        void uploadScene(const std::shared_ptr<Scene>& scene, EditorCamera editorCamera = EditorCamera());
 
         /** reallocates output image if #cameras / resolution changed */
         void setupFrameBuffers();
@@ -44,6 +52,8 @@ namespace VkRender {
         /** copies the device framebuffer back to host */
         void generateImages(std::span<std::byte> outRGBA32f);
 
+        void createEditorCamera(const std::shared_ptr<ArcballCamera> & camera, int32_t int32, int32_t height);
+
     private:
         /*--- helpers called only from uploadScene() ---*/
         void collectGeometry(const std::shared_ptr<Scene>& scene);
@@ -52,7 +62,7 @@ namespace VkRender {
 
         void collectLights(const std::shared_ptr<Scene>& scene);
 
-        void collectCameras(const std::shared_ptr<Scene>& scene);
+        void collectCameras(const std::shared_ptr<Scene> &scene, EditorCamera editorCamera);
 
         void buildSceneDesc();
 

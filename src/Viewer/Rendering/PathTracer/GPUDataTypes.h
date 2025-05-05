@@ -42,7 +42,6 @@ namespace VkRender::PathTracer {
 
     struct alignas(16) Material {
         sycl::float3 baseColor;
-        float pad0;
         sycl::float3 specular;
         float phongExp;
         // every material is usable by either mesh or point
@@ -82,10 +81,10 @@ namespace VkRender::PathTracer {
     enum class GeometryType : uint32_t { Mesh = 0, PointCloud = 1 };
 
     struct alignas(16) Instance {
-        uint32_t geomType; // cast to GeometryType
-        uint32_t geomIndex; // which mesh or point cloud?
-        uint32_t materialIndex; // appearance
-        uint32_t transformIndex; // object→world
+        uint32_t geomType = 0; // cast to GeometryType
+        uint32_t geomIndex = 0; // which mesh or point cloud?
+        uint32_t materialIndex = 0; // appearance
+        uint32_t transformIndex = 0; // object→world
     };
 
     // ‑‑Mesh‑‑
@@ -114,7 +113,6 @@ namespace VkRender::PathTracer {
         float4x4 view{};
         float4x4 proj{};
         sycl::float3 pos{};
-        float pad0{};
         uint32_t width{}, height{};
 
         uint32_t firstPixel{}; // offset into a big framebuffer
@@ -156,12 +154,7 @@ namespace VkRender::PathTracer {
 
     struct alignas(16) FrameBuffer {
         sycl::float4 *memory = nullptr;
-        uint32_t frameBufferCount = 0;
-        uint32_t perFrameBufferSize = 0;
-
-        uint32_t width = 0;
-        uint32_t height = 0;
-        uint32_t channels = 0;
+        uint32_t frameBufferSize = 0;
 
     };
 }

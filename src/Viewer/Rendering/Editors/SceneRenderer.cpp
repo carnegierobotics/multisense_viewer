@@ -295,6 +295,27 @@ namespace VkRender {
             auto &batch = kv.second;
             batch.mesh->instanceCount = batch.instanceCount;
 
+            // We dont support rendering a material so if it doesn't exist create a dummy material that is empty
+            if (!batch.material) {
+                batch.material = std::make_shared<MaterialInstance>();
+                // 1 Load Shader code
+                auto vsSPV = assetManager()->get<SPIRVAsset>("BlinnPhongShader.vert");
+                auto fsSPV = assetManager()->get<SPIRVAsset>( "NoMaterial.frag");
+                // 2) Wrap into a GPU resource
+                VulkanShaderModuleCreateInfo vertexShaderCreateInfo(m_context->vkDevice(), vsSPV, VK_SHADER_STAGE_VERTEX_BIT,
+                                                                    "BlinnPhongShader.vert");
+                VulkanShaderModuleCreateInfo fragmentShaderCreateInfo(m_context->vkDevice(), fsSPV,
+                                                                      VK_SHADER_STAGE_FRAGMENT_BIT,
+                                                                      "BlinnPhongShader.frag");
+                // 3) Later in pipeline creation:
+
+                // 3) Ask the GPU cache for shared modules:
+                auto vsModule = cache()->shaderModules.get(vertexShaderCreateInfo);
+                auto fsModule = cache()->shaderModules.get(fragmentShaderCreateInfo);
+
+                batch.material->addShader(vsModule);
+                batch.material->addShader(fsModule);
+            }
             // pipeline (reuse or create)
             auto pipeline = m_pipelineManager.getOrCreatePipeline(
                 batch.key,
@@ -306,7 +327,7 @@ namespace VkRender {
                               pipeline->getPipeline());
 
             // bind sampler set at set=3
-            if (batch.material) {
+            if (batch.material && batch.material->baseColorTexture) {
                 auto samplerSet = buildMaterialSamplerSet(batch.material);
                 vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS,
                                         m_pipelineLayout, 3, 1, &samplerSet[DescriptorManagerType::MaterialSampler], 0,

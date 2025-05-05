@@ -22,19 +22,10 @@ namespace VkRender {
         if (m_frameBuffers.memory) {
             free(m_frameBuffers.memory);
         }
-        auto& ci = m_createInfo;
-
-        uint32_t perFramebufferSize = ci.framebufferWidth * ci.framebufferHeight * ci.channels;
-        size_t blockSize = ci.framebufferCount * perFramebufferSize;
-
-        m_frameBuffers.memory = static_cast<sycl::float4*>(malloc(blockSize));
+        auto &ci = m_createInfo;
+        uint32_t blockSize = ci.framebufferSize;
+        m_frameBuffers.memory = static_cast<sycl::float4 *>(malloc(blockSize));
         memset(m_frameBuffers.memory, 0, blockSize);
-
-        m_frameBuffers.width = ci.framebufferWidth;
-        m_frameBuffers.height = ci.framebufferHeight;
-        m_frameBuffers.channels = ci.channels;
-        m_frameBuffers.perFrameBufferSize = perFramebufferSize;
-        m_frameBuffers.frameBufferCount = ci.framebufferCount;
 
         // Device Framebuffer
         if (d_frameBuffers.memory) {
@@ -43,22 +34,66 @@ namespace VkRender {
         d_frameBuffers.memory = deviceAlloc<sycl::float4>(blockSize);
         memset(d_frameBuffers.memory, 0, blockSize);
         m_queue.memset(d_frameBuffers.memory, 0, blockSize * sizeof(sycl::float4)).wait();
-        d_frameBuffers.width = ci.framebufferWidth;
-        d_frameBuffers.height = ci.framebufferHeight;
-        d_frameBuffers.channels = ci.channels;
-        d_frameBuffers.perFrameBufferSize = perFramebufferSize;
-        d_frameBuffers.frameBufferCount = ci.framebufferCount;
+    }
+
+    void PathTracerSYCL::collectCameras(const std::shared_ptr<Scene> &scene, EditorCamera editorCamera) {
+        m_cameras.clear();
+
+        uint32_t pixelOffset = 0;
+        // EDITOR CAMERA
+        if (editorCamera.camera) {
+            PinholeParameters pinholeParameters;
+            SharedCameraSettings cameraSettings;
+            pinholeParameters.width = editorCamera.editorWidth;
+            pinholeParameters.height = editorCamera.editorHeight;
+            pinholeParameters.cx = pinholeParameters.width / 2.0f;
+            pinholeParameters.cy = pinholeParameters.height / 2.0f;
+            pinholeParameters.fx = 600.0f;
+            pinholeParameters.fy = 600.0f;
+            // Construct the pinhole
+            PinholeCamera defaultCam(cameraSettings, pinholeParameters);
+            PathTracer::Camera cam{};
+            cam.width = editorCamera.editorWidth;
+            cam.height = editorCamera.editorHeight;
+            cam.pos = PathTracer::glm2sycl(editorCamera.camera->matrices.position);
+            cam.proj = PathTracer::glm2sycl(editorCamera.camera->matrices.projection);
+            cam.view = PathTracer::glm2sycl(editorCamera.camera->matrices.view);
+            m_cameras.push_back(cam);
+            pixelOffset += cam.width * cam.height * 4;
+        }
+        // SCENE CAMERAS
+        auto view = scene->getRegistry().view<CameraComponent, TransformComponent>();
+        for (auto id: view) {
+            Entity e(id, scene.get());
+            auto &cameraComponent = e.getComponent<CameraComponent>();
+            if (cameraComponent.cameraType != CameraComponent::PINHOLE)
+                continue;
+            auto &transformComponent = e.getComponent<TransformComponent>();
+            auto sceneCameraParameters = cameraComponent.getPinholeCamera()->parameters();
+            PathTracer::Camera cam;
+            cam.width = static_cast<uint32_t>(sceneCameraParameters.width);
+            cam.height = static_cast<uint32_t>(sceneCameraParameters.height);
+            cam.pos = PathTracer::glm2sycl(transformComponent.getPosition());
+            cam.proj = PathTracer::glm2sycl(cameraComponent.camera->matrices.projection);
+            cam.view = PathTracer::glm2sycl(cameraComponent.camera->matrices.view);
+            cam.firstPixel = pixelOffset;
+
+            pixelOffset += cam.width * cam.height * 4;
+            m_cameras.push_back(cam);
+        }
+
+
+        if (pixelOffset >= m_createInfo.framebufferSize) {
+            Log::Logger::getInstance()->error("More cameras than framebuffers");
+            throw std::runtime_error("PathTracerSYCL::PathTracerSYCL(): More cameras than framebuffers");
+        }
     }
 
 
-    void PathTracerSYCL::uploadScene(const std::shared_ptr<Scene>& scene) {
+    void PathTracerSYCL::uploadScene(const std::shared_ptr<Scene> &scene, EditorCamera editorCamera) {
         // free existing GPU memory
         freeDeviceMemory();
-
-        // setup output'
-        setupFrameBuffers();
-        collectCameras(scene);
-
+        collectCameras(scene, editorCamera);
         // collect host data
         collectGeometry(scene);
         collectInstances(scene);
@@ -66,25 +101,27 @@ namespace VkRender {
 
         // build and upload scene descriptor
         buildSceneDesc();
-        d_sceneDesc = static_cast<PathTracer::SceneDesc*>(
+        d_sceneDesc = static_cast<PathTracer::SceneDesc *>(
             sycl::malloc_device(sizeof(PathTracer::SceneDesc), m_queue));
         m_queue.memcpy(d_sceneDesc, &m_sceneDesc,
                        sizeof(PathTracer::SceneDesc)).wait();
     }
 
-    void PathTracerSYCL::updateDynamic(const std::shared_ptr<Scene>& scene) {
+    void PathTracerSYCL::updateDynamic(const std::shared_ptr<Scene> &scene) {
         m_queue.memcpy(d_transforms, m_transforms.data(),
                        m_transforms.size() * sizeof(PathTracer::Transform));
         m_queue.memcpy(d_lights, m_lights.data(),
                        m_lights.size() * sizeof(PathTracer::MeshLight));
+
     }
 
     void PathTracerSYCL::renderFrame() {
-        uint32_t photonCount = 0;
-        for (auto& cam : m_cameras)
-            photonCount += cam.width * cam.height;
+        if (!d_sceneDesc) {
+            return;
+        }
+        uint32_t photonCount = 10000;
 
-        m_queue.submit([scene=d_sceneDesc, photonCount](sycl::handler& cgh) {
+        m_queue.submit([scene=d_sceneDesc, photonCount](sycl::handler &cgh) {
             PathTracer::PathTracerMeshKernel kernel(scene);
             cgh.parallel_for(sycl::range<1>(photonCount), kernel);
         }).wait();
@@ -95,7 +132,7 @@ namespace VkRender {
         //m_queue.memcpy(outRGBA32f.data(), d_frameBuffer, bytes).wait();
     }
 
-    void PathTracerSYCL::collectGeometry(const std::shared_ptr<Scene>& scene) {
+    void PathTracerSYCL::collectGeometry(const std::shared_ptr<Scene> &scene) {
         m_px.clear();
         m_py.clear();
         m_pz.clear();
@@ -108,9 +145,10 @@ namespace VkRender {
 
         // collect unique meshes
         auto view = scene->getRegistry().view<MeshComponent>();
-        for (auto id : view) {
+        for (auto id: view) {
             Entity e(id, scene.get());
-            auto& mc = e.getComponent<MeshComponent>();
+            std::string name = e.getName();
+            auto &mc = e.getComponent<MeshComponent>();
             std::string mid = mc.getCacheIdentifier();
             if (m_meshIndexMap.count(mid)) continue;
             auto mesh = MeshManager::instance().getMeshData(mc);
@@ -119,7 +157,7 @@ namespace VkRender {
             uint32_t triBase = static_cast<uint32_t>(m_tris.size());
 
             // append vertices
-            for (auto& v : mesh->m_vertices) {
+            for (auto &v: mesh->m_vertices) {
                 m_px.push_back(v.pos.x);
                 m_py.push_back(v.pos.y);
                 m_pz.push_back(v.pos.z);
@@ -151,24 +189,23 @@ namespace VkRender {
         PathTracerSYCL::buildBVHNodes(m_tris, m_px, m_py, m_pz, m_bvh);
     }
 
-    void PathTracerSYCL::collectInstances(const std::shared_ptr<Scene>& scene) {
+    void PathTracerSYCL::collectInstances(const std::shared_ptr<Scene> &scene) {
         m_instances.clear();
         m_transforms.clear();
         m_materials.clear(); // one material slot per instance
 
-        auto view = scene->getRegistry()
-                         .view<MeshComponent, MaterialComponent, TransformComponent>();
+        auto view = scene->getRegistry().view<MeshComponent, MaterialComponent, TransformComponent>(entt::exclude<LightSourceComponent>);
 
-        for (auto entID : view) {
+        for (auto entID: view) {
             Entity e(entID, scene.get());
-
+            std::string name = e.getName();
             // --- 1) look up the mesh index we built in collectGeometry() ---
-            auto& mc = e.getComponent<MeshComponent>();
+            auto &mc = e.getComponent<MeshComponent>();
             const std::string mid = mc.getCacheIdentifier();
             uint32_t geomIdx = m_meshIndexMap.at(mid);
 
             // --- 2) append this entity's material parameters ---
-            auto& matComp = e.getComponent<MaterialComponent>();
+            auto &matComp = e.getComponent<MaterialComponent>();
             PathTracer::Material gpuMat{};
             gpuMat.baseColor = {
                 matComp.albedo.x,
@@ -195,30 +232,29 @@ namespace VkRender {
             });
 
             // --- 4) store the transform for this instance ---
-            auto& tc = e.getComponent<TransformComponent>();
+            auto &tc = e.getComponent<TransformComponent>();
             PathTracer::Transform xf{};
-            // TODO convert glm to sycl matrix
             m_transforms.push_back(xf);
         }
     }
 
-    void PathTracerSYCL::collectLights(const std::shared_ptr<Scene>& scene) {
+    void PathTracerSYCL::collectLights(const std::shared_ptr<Scene> &scene) {
         m_lights.clear();
 
         // view both mesh & material & transform
         auto view = scene->getRegistry()
-                         .view<MeshComponent, TransformComponent, LightSourceComponent>();
+                .view<MeshComponent, TransformComponent, LightSourceComponent>();
 
-        for (auto id : view) {
+        for (auto id: view) {
             Entity e(id, scene.get());
-            auto& meshComponent = e.getComponent<MeshComponent>();
-            auto& transformComponent = e.getComponent<TransformComponent>();
-            auto& lightSourceComponent = e.getComponent<LightSourceComponent>();
+            auto &meshComponent = e.getComponent<MeshComponent>();
+            auto &transformComponent = e.getComponent<TransformComponent>();
+            auto &lightSourceComponent = e.getComponent<LightSourceComponent>();
 
             // skip if not emissive
             if (lightSourceComponent.flux <= 0.0f) continue;
 
-            const auto& mesh = MeshManager::instance().getMeshData(meshComponent); // supplies vertex & index arrays
+            const auto &mesh = MeshManager::instance().getMeshData(meshComponent); // supplies vertex & index arrays
             const auto world = transformComponent.getTransform();
 
             PathTracer::MeshLight ML;
@@ -228,8 +264,8 @@ namespace VkRender {
             // 1) Loop triangles
             for (size_t t = 0; t < mesh->m_indices.size(); t += 3) {
                 auto i0 = mesh->m_indices[t + 0],
-                     i1 = mesh->m_indices[t + 1],
-                     i2 = mesh->m_indices[t + 2];
+                        i1 = mesh->m_indices[t + 1],
+                        i2 = mesh->m_indices[t + 2];
 
                 glm::vec3 p1 = mesh->m_vertices[i0].pos;
                 glm::vec3 p2 = mesh->m_vertices[i1].pos;
@@ -255,42 +291,13 @@ namespace VkRender {
             }
 
             // 2) finalize CDF and radiance
-            for (auto& c : ML.cdf) c /= ML.totalArea;
+            for (auto &c: ML.cdf) c /= ML.totalArea;
             ML.radiance = ML.flux / (M_PI * ML.totalArea);
 
             m_lights.push_back(std::move(ML));
         }
     }
 
-    void PathTracerSYCL::collectCameras(const std::shared_ptr<Scene>& scene) {
-        m_cameras.clear();
-        uint32_t pixelOffset = 0;
-        auto& ci = m_createInfo;
-        auto view = scene->getRegistry().view<CameraComponent, TransformComponent>();
-        for (auto id : view) {
-            Entity e(id, scene.get());
-            auto& cameraComponent = e.getComponent<CameraComponent>();
-            if (cameraComponent.cameraType != CameraComponent::PINHOLE)
-                continue;
-
-            auto& transformComponent = e.getComponent<TransformComponent>();
-            PathTracer::Camera cam;
-            cam.width = ci.framebufferWidth;
-            cam.height = ci.framebufferHeight;
-            cam.pos = PathTracer::glm2sycl(transformComponent.getPosition());
-            cam.proj = PathTracer::glm2sycl(cameraComponent.camera->matrices.projection);
-            cam.view = PathTracer::glm2sycl(cameraComponent.camera->matrices.view);
-            cam.firstPixel = pixelOffset;
-
-            pixelOffset += ci.framebufferWidth * ci.framebufferHeight * ci.channels;
-            m_cameras.push_back(cam);
-        }
-
-        if (m_cameras.size() > ci.framebufferCount) {
-            Log::Logger::getInstance()->error("More cameras than framebuffers");
-            throw std::runtime_error("PathTracerSYCL::PathTracerSYCL(): More cameras than framebuffers");
-        }
-    }
 
     void PathTracerSYCL::buildSceneDesc() {
         const size_t vertCount = m_px.size();
@@ -369,11 +376,11 @@ namespace VkRender {
 
     // CPU-side BVH building method integrated into PathTracerSYCL
     void PathTracerSYCL::buildBVHNodes(
-        const std::vector<PathTracer::Triangle>& triangles,
-        const std::vector<float>& px,
-        const std::vector<float>& py,
-        const std::vector<float>& pz,
-        std::vector<PathTracer::BVHNode>& outNodes) {
+        const std::vector<PathTracer::Triangle> &triangles,
+        const std::vector<float> &px,
+        const std::vector<float> &py,
+        const std::vector<float> &pz,
+        std::vector<PathTracer::BVHNode> &outNodes) {
         outNodes.clear();
         if (triangles.empty()) return;
 
@@ -385,12 +392,12 @@ namespace VkRender {
         std::function<int(int, int)> build = [&](int start, int end) {
             int idx = static_cast<int>(outNodes.size());
             outNodes.emplace_back();
-            PathTracer::BVHNode& node = outNodes.back();
+            PathTracer::BVHNode &node = outNodes.back();
 
             // compute bounds
             sycl::float3 bmin{FLT_MAX,FLT_MAX,FLT_MAX}, bmax{-FLT_MAX, -FLT_MAX, -FLT_MAX};
             for (int i = start; i < end; ++i) {
-                const auto& t = triBuf[i];
+                const auto &t = triBuf[i];
                 for (int v = 0; v < 3; ++v) {
                     uint32_t vi = (v == 0 ? t.v0 : (v == 1 ? t.v1 : t.v2));
                     sycl::float3 p{px[vi], py[vi], pz[vi]};
@@ -405,12 +412,11 @@ namespace VkRender {
             if (count <= 2) {
                 node.leftFirst = start;
                 node.count = count;
-            }
-            else {
+            } else {
                 // centroid bounds
                 sycl::float3 cmin{FLT_MAX,FLT_MAX,FLT_MAX}, cmax{-FLT_MAX, -FLT_MAX, -FLT_MAX};
                 for (int i = start; i < end; ++i) {
-                    const auto& t = triBuf[i];
+                    const auto &t = triBuf[i];
                     sycl::float3 v0{px[t.v0], py[t.v0], pz[t.v0]};
                     sycl::float3 v1{px[t.v1], py[t.v1], pz[t.v1]};
                     sycl::float3 v2{px[t.v2], py[t.v2], pz[t.v2]};
@@ -422,13 +428,13 @@ namespace VkRender {
                 int axis = (ext.x() > ext.y() && ext.x() > ext.z()
                                 ? 0
                                 : ext.y() > ext.z()
-                                ? 1
-                                : 2);
+                                      ? 1
+                                      : 2);
                 float mid = (cmin[axis] + cmax[axis]) * 0.5f;
 
                 auto it = std::partition(
                     triBuf.begin() + start, triBuf.begin() + end,
-                    [&](auto& t) {
+                    [&](auto &t) {
                         sycl::float3 v0{px[t.v0], py[t.v0], pz[t.v0]};
                         sycl::float3 v1{px[t.v1], py[t.v1], pz[t.v1]};
                         sycl::float3 v2{px[t.v2], py[t.v2], pz[t.v2]};
@@ -456,7 +462,7 @@ namespace VkRender {
         // free descriptor
         if (d_sceneDesc) sycl::free(d_sceneDesc, m_queue);
         // free buffers
-        auto freeIf = [&](void* p) { if (p) sycl::free(p, m_queue); };
+        auto freeIf = [&](void *p) { if (p) sycl::free(p, m_queue); };
         freeIf(d_px);
         freeIf(d_py);
         freeIf(d_pz);

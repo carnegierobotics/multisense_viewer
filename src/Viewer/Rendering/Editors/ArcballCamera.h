@@ -4,6 +4,9 @@
 
 #ifndef ARCBALLCAMERA_H
 #define ARCBALLCAMERA_H
+
+#include "Viewer/Rendering/Editors/BaseCamera.h"
+
 namespace VkRender {
     class ArcballCamera : public BaseCamera {
     public:
@@ -78,7 +81,7 @@ namespace VkRender {
 
         }
 
-
+        const TransformComponent& getTransform() const { return m_transform; }
     private:
         TransformComponent m_transform;
     };

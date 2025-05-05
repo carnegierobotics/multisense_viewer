@@ -31,10 +31,13 @@ namespace VkRender {
         createInfo.msaaSamples = renderPassInfo.sampleCount;
 
         std::vector<VkPipelineShaderStageCreateInfo> shadersStageInfo{};
-        auto shaders = pipelineInfo.materialInstance->shaders;
-        for (const auto& shader : shaders) {
-            shadersStageInfo.emplace_back(shader->stageInfo());
+        if (pipelineInfo.materialInstance) {
+            auto shaders = pipelineInfo.materialInstance->shaders;
+            for (const auto& shader : shaders) {
+                shadersStageInfo.emplace_back(shader->stageInfo());
+            }
         }
+
         createInfo.shaders = shadersStageInfo;
 
         for (auto& setLayout : pipelineInfo.setLayouts) {

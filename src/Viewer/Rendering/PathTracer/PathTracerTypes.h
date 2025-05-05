@@ -28,9 +28,7 @@ namespace VkRender::PathTracer {
     // ─────────────────────────────────────────────────────────────────────────────
     struct alignas(16) Ray {
         sycl::float3 origin; // (x,y,z, 1.0)
-        float pad0 = 0.0f;
         sycl::float3 direction; // (dx,dy,dz,0.0)
-        float pad1 = 0.0f;
     };
 
     static_assert(alignof(Ray) == 16);
@@ -53,15 +51,12 @@ namespace VkRender::PathTracer {
         // first 16 bytes
         float t; //  4 B  ray parameter
         float u, v; //  8 B  barycentrics
-        float pad0; //  4 B  (pad to 16)
 
         sycl::float3 hitPoint;
 
         // second 16 bytes
         uint32_t primIdx; //  4 B
         uint32_t instIdx; //  4 B
-        uint32_t pad1; //  4 B
-        uint32_t pad2; //  4 B
     };
 
     static_assert(alignof(Hit) == 16);

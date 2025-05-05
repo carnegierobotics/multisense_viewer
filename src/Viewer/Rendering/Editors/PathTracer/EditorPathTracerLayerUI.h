@@ -15,7 +15,11 @@ namespace VkRender {
 
 
         // Constructor that copies everything from base EditorUI
-        EditorPathTracerLayerUI(const EditorUI &baseUI) : EditorUI(baseUI) {}
+        explicit EditorPathTracerLayerUI(const EditorUI &baseUI) : EditorUI(baseUI) {}
+        bool reloadRenderer = false;
+
+        bool renderToViewport = true;
+        bool render = false;
     };
 
 }

@@ -22,6 +22,11 @@ namespace VkRender {
 
         m_editorCamera = std::make_shared<ArcballCamera>();
         m_editorCamera->setDefaultPosition({-90.0f, 60.0f}, 1.5f);
+
+        PathTracerSYCLCreateInfo pipelineSettings;
+        pipelineSettings.queue = m_context->getSyclDeviceSelector().getDevice(SYCLDeviceType::CPU)->getQueue();
+        pipelineSettings.framebufferSize = 1920 * 1080 * 4 * 5; // 41mb of framebuffers
+        m_pathTracerSYCL = std::make_unique<PathTracerSYCL>(pipelineSettings);
     }
 
     void EditorPathTracer::onEditorResize() {
@@ -50,11 +55,26 @@ namespace VkRender {
 
         m_colorTexture = EditorUtils::createEmptyTexture(m_createInfo.width, m_createInfo.height, VK_FORMAT_R8G8B8A8_UNORM, m_context);
         scaleViewportQuad();
+
+
+        EditorCamera editorCamera(m_editorCamera.get(), m_createInfo.width, m_createInfo.height);
+        m_pathTracerSYCL->uploadScene(scene, editorCamera);
     }
 
     void EditorPathTracer::updatePathTracerSettings() {
-        /*
         auto imageUI = std::dynamic_pointer_cast<EditorPathTracerLayerUI>(m_ui);
+
+        PathTracerSYCLCreateInfo pipelineSettings;
+        pipelineSettings.queue = m_context->getSyclDeviceSelector().getDevice(SYCLDeviceType::CPU)->getQueue();
+        pipelineSettings.framebufferSize = 1920 * 1080 * 4 * 10; // 82mb of framebuffers
+        m_pathTracerSYCL = std::make_unique<PathTracerSYCL>(pipelineSettings);
+
+        m_editorCamera;
+
+        EditorCamera editorCamera(m_editorCamera.get(), m_createInfo.width, m_createInfo.height);
+        m_pathTracerSYCL->uploadScene(m_context->activeScene(), editorCamera);
+
+        /*
         auto activeCamera = m_context->activeScene()->getActiveCamera();
         if (imageUI->switchKernelDevice || imageUI->resetPathTracer) {
             Log::Logger::getInstance()->info("Setting New Kernel Device");
@@ -102,34 +122,31 @@ namespace VkRender {
 
         imageUI->switchKernelDevice = false;
         */
+
     }
 
     void EditorPathTracer::onUpdate() {
         auto imageUI = std::dynamic_pointer_cast<EditorPathTracerLayerUI>(m_ui);
+        if (imageUI->reloadRenderer) {
+            updatePathTracerSettings();
+        }
 
         auto activeCamera = m_context->activeScene()->getActiveCamera();
-        bool renderToViewport = true;
-        if (renderToViewport) {
-            PinholeParameters pinholeParameters;
-            SharedCameraSettings cameraSettings;
-            pinholeParameters.width = m_createInfo.width;
-            pinholeParameters.height = m_createInfo.height;
-            pinholeParameters.cx = pinholeParameters.width / 2.0f;
-            pinholeParameters.cy = pinholeParameters.height / 2.0f;
-            pinholeParameters.fx = 600.0f;
-            pinholeParameters.fy = 600.0f;
-            // Construct the pinhole
-            PinholeCamera defaultCam(cameraSettings, pinholeParameters);
-            //renderSettings.camera = defaultCam;
-            //renderSettings.cameraTransform = TransformComponent(m_editorCamera->matrices.transform);
+        bool renderToViewport = imageUI->renderToViewport;
+        bool render = imageUI->render;
+
+        if (render) {
+            if (renderToViewport) {
+                m_pathTracerSYCL->updateDynamic(m_context->activeScene());
+                m_pathTracerSYCL->renderFrame();
+            }
+            else {
+
+            }
+            bool newCamera = m_previousSceneCamera != activeCamera;
         }
-        else {
-
-        }
-        bool newCamera = m_previousSceneCamera != activeCamera;
 
 
-        updatePathTracerSettings();
 
         /*
         if (imageUI->clearImageMemory || newCamera) {

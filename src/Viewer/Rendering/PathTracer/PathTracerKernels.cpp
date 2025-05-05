@@ -77,11 +77,9 @@ namespace VkRender::PathTracer {
             hit->t = tMin;
             hit->u = bestU;
             hit->v = bestV;
-            hit->pad0 = 0.f;
             hit->hitPoint = bestP;
             hit->primIdx = bestPrim;
             hit->instIdx = bestInst;
-            hit->pad1 = hit->pad2 = 0u;
             return true;
         }
 
@@ -159,8 +157,9 @@ namespace VkRender::PathTracer {
         // 1) sample light
         float3 pos, normal;
         float pdf;
-        sampleMeshLight(scene.lights[static_cast<size_t>(rnd(photonID) * scene.lightCount)], photonID,
-                        pos, normal, pdf);
+        uint32_t lightIdx = sycl::max((photonID % scene.lightCount) - 1.0, 0.0);
+        auto light = scene.lights[lightIdx];
+        sampleMeshLight(light, photonID, pos, normal, pdf);
 
         // 2) initial direction & throughput
         float3 rayDir = sampleCosineHemisphere(normal, photonID ^ 0xC789, photonID ^ 0xD012);

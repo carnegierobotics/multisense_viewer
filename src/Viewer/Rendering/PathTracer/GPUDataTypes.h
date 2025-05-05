@@ -47,15 +47,6 @@ namespace VkRender::PathTracer {
         // every material is usable by either mesh or point
     };
 
-    struct alignas(16) MeshLight {
-        // per‑triangle data:
-        std::vector<sycl::float3> v0, edge1, edge2, normal;
-        std::vector<float>        cdf;         // prefix‑sum(areas) normalized to [0,1]
-        float                     totalArea;   // sum of all triangle areas
-        float                     flux;        // Φ in watts
-        float                     radiance;    // L_e = Φ/(π*totalArea)
-    };
-
 
     /*
     struct alignas(16) AreaLight {
@@ -71,10 +62,21 @@ namespace VkRender::PathTracer {
     */
 
     struct alignas(16) Transform {
-        sycl::mfloat4 objectToWorld;
-        sycl::mfloat4 worldToObject;
+        float4x4 objectToWorld;
+        float4x4 worldToObject;
     };
 
+
+    struct alignas(16) MeshLight {
+        // per‑triangle data:
+        std::vector<sycl::float3> v0, edge1, edge2, normal;
+        std::vector<float>        cdf;         // prefix‑sum(areas) normalized to [0,1]
+        float                     totalArea;   // sum of all triangle areas
+        float                     flux;        // Φ in watts
+        float                     radiance;    // L_e = Φ/(π*totalArea)
+
+        Transform transform;
+    };
 
     /**** Scene graph layer ****/
 
@@ -103,16 +105,27 @@ namespace VkRender::PathTracer {
 
 
     struct alignas(16) BVHNode {
-        sycl::float3 bboxMin{};
-        uint32_t leftFirst{}; // index of left child OR first prim
-        sycl::float3 bboxMax{};
-        uint32_t count{}; // 0 = inner, n>0 = leaf with n prims
+        float3   bboxMin;    // world‐space
+        float3   bboxMax;    // world‐space
+        uint32_t leftChild;  // for internal: index of left child node
+        // for leaf: index into instances[]
+        uint32_t rightChild; // for internal: index of right child node
+        // for leaf: unused
+        uint32_t count;      // 0 = internal, 1 = leaf with one instance
     };
+
+
+    // Range of BLAS nodes for each mesh
+    struct alignas(16) BLASRange {
+        uint32_t firstNode;
+        uint32_t nodeCount;
+    };
+
 
     struct alignas(16) Camera {
         float4x4 view{};
         float4x4 proj{};
-        sycl::float3 pos{};
+        float3 pos{};
         uint32_t width{}, height{};
 
         uint32_t firstPixel{}; // offset into a big framebuffer
@@ -125,12 +138,20 @@ namespace VkRender::PathTracer {
         const MeshRange *meshes = nullptr;
         const OrientedPoint *points = nullptr;
         const PointCloudRange *pointClouds = nullptr;
-        const BVHNode *bvh = nullptr;
         VertexSOA vertices; // see §2
 
         // scene graph
         const Instance *instances = nullptr;
         const Transform *transforms = nullptr;
+
+        // Bvh
+        BVHNode* blasNodes;
+        uint32_t blasNodeCount;
+
+        BLASRange* blasRanges;
+
+        BVHNode* tlas;
+        uint32_t tlasNodeCount;
 
         // appearance
         const Material *materials = nullptr;
@@ -145,15 +166,16 @@ namespace VkRender::PathTracer {
         uint32_t instanceCount = 0, transformCount = 0;
         uint32_t materialCount = 0, lightCount = 0;
         uint32_t cameraCount = 0;
+        uint32_t photonCount = 0;
     };
 
 
     struct alignas(16) SceneSettings {
-        uint32_t maxBounces = 32;
+        uint32_t maxBounces = 8;
     };
 
     struct alignas(16) FrameBuffer {
-        sycl::float4 *memory = nullptr;
+        float4 *memory = nullptr;
         uint32_t frameBufferSize = 0;
 
     };

@@ -25,7 +25,7 @@ namespace VkRender {
 
         PathTracerSYCLCreateInfo pipelineSettings;
         pipelineSettings.queue = m_context->getSyclDeviceSelector().getDevice(SYCLDeviceType::CPU)->getQueue();
-        pipelineSettings.framebufferSize = 1920 * 1080 * 4 * 5; // 41mb of framebuffers
+        pipelineSettings.framebufferSize = 1920 * 1080 * 5; // 41mb of framebuffers
         m_pathTracerSYCL = std::make_unique<PathTracerSYCL>(pipelineSettings);
     }
 
@@ -66,7 +66,7 @@ namespace VkRender {
 
         PathTracerSYCLCreateInfo pipelineSettings;
         pipelineSettings.queue = m_context->getSyclDeviceSelector().getDevice(SYCLDeviceType::CPU)->getQueue();
-        pipelineSettings.framebufferSize = 1920 * 1080 * 4 * 10; // 82mb of framebuffers
+        pipelineSettings.framebufferSize = 1920 * 1080 * 10; // 82mb of framebuffers
         m_pathTracerSYCL = std::make_unique<PathTracerSYCL>(pipelineSettings);
 
         m_editorCamera;

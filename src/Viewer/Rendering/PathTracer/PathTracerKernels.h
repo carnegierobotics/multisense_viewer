@@ -19,8 +19,10 @@ namespace VkRender::PathTracer {
     class PathTracerMeshKernel {
     public:
         PathTracerMeshKernel(
-            SceneDesc *scene
-        ) : d_sceneDesc(scene) {
+            SceneDesc *scene,
+            FrameBuffer* framebuffer,
+            SceneSettings settings = SceneSettings()
+        ) : d_sceneDesc(scene), d_framebuffer(framebuffer), d_sceneSettings(settings) {
         }
 
 
@@ -28,18 +30,20 @@ namespace VkRender::PathTracer {
             size_t photonID = item.get_linear_id();
 
             // Each thread traces one photon.
-            traceOnePhoton(photonID);
+            traceOnePhoton(photonID + d_sceneDesc->photonCount);
+            d_sceneDesc->photonCount++;
         }
 
     private:
         SceneDesc *d_sceneDesc;
         SceneSettings d_sceneSettings;
-        FrameBuffer *d_frameBuffer;
+        FrameBuffer *d_framebuffer;
 
         void traceOnePhoton(uint32_t photonID) const;
 
-        // intersect the ray against the BVH + triangles
-        bool intersectBVH(const Ray &ray, Hit *hit) const;
+        bool intersectBLAS(const Ray &ray, uint32_t meshIdx, Hit &out) const;
+
+        bool intersectScene(const Ray &rayW, Hit *hit) const;
 
         void castContributions(const float3 &hitPoint, const float &throughput) const;
 

@@ -6,6 +6,8 @@
 #define KERNELHELPERS_H
 #include <glm/glm.hpp>
 
+#include "GPUDataTypes.h"
+
 namespace VkRender::PathTracer {
     inline float rnd(uint32_t seed) {
         // simple LCG or whatever you have
@@ -92,15 +94,20 @@ namespace VkRender::PathTracer {
         const float3& invDir,
         float tMax,
         float& tEntry) {
-        float3 t0 = (node.bboxMin - ray.origin) * invDir;
-        float3 t1 = (node.bboxMax - ray.origin) * invDir;
+        float3 tmp = node.bboxMin - ray.origin;
+        float3 t0 = tmp * invDir;
+        float3 tmp2 = node.bboxMax - ray.origin;
+        float3 t1 = tmp2 * invDir;
         float3 tmin3 = sycl::min(t0, t1);
         float3 tmax3 = sycl::max(t0, t1);
 
         float tmin = sycl::fmax(sycl::fmax(tmin3.x(), tmin3.y()), tmin3.z());
         float tmax = sycl::fmin(sycl::fmin(tmax3.x(), tmax3.y()), tmax3.z());
 
-        if (tmax < sycl::fmax(tmin, 0.f) || tmin > tMax)
+        bool beyondClosestGlobalHit = tmin > tMax;
+        bool noOverlap = tmin > tmax;
+        bool boxBehindRay = tmax < 0.f;
+        if (beyondClosestGlobalHit || noOverlap || boxBehindRay)
             return false;
 
         tEntry = tmin;
@@ -205,8 +212,12 @@ namespace VkRender::PathTracer {
             + u * light.edge1[tri]
             + v * light.edge2[tri];
 
+        float3x3 rotation = float3x3(light.transform.objectToWorld);               // drop translation
+        float3x3 normalMat = transpose( inverse( rotation ) );          // inverse‐transpose
+
+
         // --- 3) Return the surface normal and the PDF for position ----
-        outN = light.normal[tri];
+        outN = normalize(normalMat * light.normal[tri]);
         // PDF = 1 / total emissive area (uniform over mesh surface)
         outPdf = 1.0f / light.totalArea;
     }

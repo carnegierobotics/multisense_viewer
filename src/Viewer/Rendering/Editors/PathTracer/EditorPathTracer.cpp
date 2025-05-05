@@ -25,26 +25,12 @@ namespace VkRender {
     }
 
     void EditorPathTracer::onEditorResize() {
-        float width = m_createInfo.width;
-        float height = m_createInfo.height;
-        float editorAspect = static_cast<float>(m_createInfo.width) /
-                             static_cast<float>(m_createInfo.height);
-
         m_editorCamera = std::make_shared<ArcballCamera>(
             static_cast<float>(m_createInfo.width) / static_cast<float>(m_createInfo.height));
         m_editorCamera->setDefaultPosition({-90.0f, 60.0f}, 1.5f);
-
         auto imageUI = std::dynamic_pointer_cast<EditorPathTracerLayerUI>(m_ui);
 
-        auto sceneCamera = m_context->activeScene()->getActiveCamera();
-        // 1. Figure out what camera we are using and the correct resolution.
-        bool useSceneCamera = false;
-        uint32_t newWidth = m_createInfo.width;
-        uint32_t newHeight = m_createInfo.height;
-        if (useSceneCamera) {
-            newWidth = sceneCamera->pinholeParameters.width;
-            newHeight = sceneCamera->pinholeParameters.height;
-        }
+        scaleViewportQuad();
     }
 
     void EditorPathTracer::onFileDrop(const std::filesystem::path &path) {
@@ -53,6 +39,7 @@ namespace VkRender {
         if (extension == ".png" || extension == ".jpg") {
             m_colorTexture = EditorUtils::createTextureFromFile(path, m_context);
         }
+        scaleViewportQuad();
     }
 
 
@@ -61,13 +48,8 @@ namespace VkRender {
             static_cast<float>(m_createInfo.width) / static_cast<float>(m_createInfo.height));
         m_editorCamera->setDefaultPosition({-90.0f, 60.0f}, 1.5f);
 
-        m_colorTexture = EditorUtils::createEmptyTexture(m_createInfo.width, m_createInfo.height,
-                                                         VK_FORMAT_R8G8B8A8_UNORM, m_context);
-        auto activeCamera = m_context->activeScene()->getActiveCamera();
-        m_lastActiveCamera = activeCamera;
-
-        //std::dynamic_pointer_cast<EditorPathTracerLayerUI>(m_ui)->resetPathTracer = true;
-        updatePathTracerSettings();
+        m_colorTexture = EditorUtils::createEmptyTexture(m_createInfo.width, m_createInfo.height, VK_FORMAT_R8G8B8A8_UNORM, m_context);
+        scaleViewportQuad();
     }
 
     void EditorPathTracer::updatePathTracerSettings() {
@@ -573,5 +555,23 @@ namespace VkRender {
         materialInstance->addShader(fragmentShaderCreateInfo);
 
         return materialInstance;
+    }
+
+    void EditorPathTracer::scaleViewportQuad() {
+        auto activeCamera = m_context->activeScene()->getActiveCamera();
+        m_lastActiveCamera = activeCamera;
+
+        float editorAspect = static_cast<float>(m_createInfo.width) /
+                     static_cast<float>(m_createInfo.height);
+        float imageAspect = static_cast<float>(m_colorTexture->width()) /
+                                  static_cast<float>(m_colorTexture->height());
+        float scaleX = 1.0f, scaleY = 1.0f;
+        if (editorAspect > imageAspect) {
+            scaleX = imageAspect / editorAspect;
+        } else {
+            scaleY = editorAspect / imageAspect;
+        }
+        m_meshInstances.reset();
+        m_meshInstances = EditorUtils::setupMesh(m_context, scaleX, scaleY);
     }
 }

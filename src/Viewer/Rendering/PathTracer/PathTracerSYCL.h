@@ -6,16 +6,25 @@
 #define PATHTRACERSYCL_H
 
 #include "Viewer/Scenes/Scene.h"
-#include "Viewer/Rendering/RenderResources/PathTracer/PathTracerKernels.h"
+#include "Viewer/Rendering/PathTracer/PathTracerKernels.h"
 
 // -------------------------
 // Main tracer class
 // -------------------------
 namespace VkRender {
+
+    struct PathTracerSYCLCreateInfo {
+        sycl::queue queue;
+        uint32_t framebufferWidth = 960;
+        uint32_t framebufferHeight = 600;
+        uint32_t channels = 4;
+        uint32_t framebufferCount = 10; // 100 images at 960x600x4 Equals 230.4 Mb in framebuffer space
+    };
+
     class PathTracerSYCL {
     public:
-        explicit PathTracerSYCL(sycl::queue q) : m_queue(std::move(q)) {
-            std::memset(&m_SceneDesc, 0, sizeof(m_SceneDesc));
+        explicit PathTracerSYCL(const PathTracerSYCLCreateInfo& createInfo) : m_queue(std::move(createInfo.queue)), m_createInfo(createInfo) {
+            std::memset(&m_sceneDesc, 0, sizeof(m_sceneDesc));
         }
 
         ~PathTracerSYCL();
@@ -66,6 +75,10 @@ namespace VkRender {
 
         /*----------------------------------------------*/
         sycl::queue m_queue;
+        PathTracerSYCLCreateInfo m_createInfo;
+
+        PathTracer::FrameBuffer m_frameBuffers{};
+        PathTracer::FrameBuffer d_frameBuffers{};
 
         // === Member (host) staging arrays ===
         std::vector<float> m_px, m_py, m_pz;
@@ -76,7 +89,7 @@ namespace VkRender {
         std::vector<PathTracer::Instance> m_instances;
         std::vector<PathTracer::Transform> m_transforms;
         std::vector<PathTracer::Material> m_materials;
-        std::vector<PathTracer::AreaLight> m_lights;
+        std::vector<PathTracer::MeshLight> m_lights;
         std::vector<PathTracer::Camera> m_cameras;
 
         // === Host staging helper variables ===
@@ -96,12 +109,12 @@ namespace VkRender {
         PathTracer::Instance *d_instances = nullptr;
         PathTracer::Transform *d_transforms = nullptr;
         PathTracer::Material *d_materials = nullptr;
-        PathTracer::AreaLight *d_lights = nullptr;
+        PathTracer::MeshLight *d_lights = nullptr;
         PathTracer::Camera *d_cameras = nullptr;
         PathTracer::SceneDesc *d_sceneDesc = nullptr;
 
         // Host copy of the descriptor used to build the device-side struct
-        PathTracer::SceneDesc m_SceneDesc;
+        PathTracer::SceneDesc m_sceneDesc;
 
         // === Counts (optional mirrors) ===
         uint32_t m_triCount = 0;

@@ -12,13 +12,13 @@
 #include "Viewer/Scenes/Scene.h"
 #include "Viewer/Rendering/Core/VulkanTexture.h"
 
-#include "Viewer/Rendering/RenderResources/PathTracer/PathTracer.h"
+#include "Viewer/Rendering/PathTracer/PathTracer.h"
 #include "Viewer/Rendering/Editors/RenderCommand.h"
 #include "Viewer/Rendering/Editors/ArcballCamera.h"
 
-#include "Viewer/Rendering/RenderResources/PathTracer/libtorch/PhotonRebuildModule.h"
+#include "Viewer/Rendering/PathTracer/libtorch/PhotonRebuildModule.h"
 
-#include <Viewer/Rendering/RenderResources/PathTracer/libtorch/SparseAdam.h>
+#include <Viewer/Rendering/PathTracer/libtorch/SparseAdam.h>
 
 namespace VkRender
 {

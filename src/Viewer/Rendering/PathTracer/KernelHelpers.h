@@ -4,14 +4,78 @@
 
 #ifndef KERNELHELPERS_H
 #define KERNELHELPERS_H
+#include <glm/glm.hpp>
 
-namespace VkRender::PathTracer{
-
- float rnd(uint32_t seed) {
+namespace VkRender::PathTracer {
+    inline float rnd(uint32_t seed) {
         // simple LCG or whatever you have
         seed = 1664525u * seed + 1013904223u;
         return (seed & 0x00FFFFFF) / float(0x01000000);
     }
+
+    inline sycl::float3 glm2sycl(const glm::vec3 &v) {
+        return sycl::float3{ v.x, v.y, v.z };
+    }
+
+    inline sycl::float4 glm2sycl(const glm::vec4 &v) {
+        return sycl::float4{ v.x, v.y, v.z, v.w };
+    }
+
+    inline float4x4 glm2sycl(const glm::mat4 &m) {
+        float4x4 out;
+        for(int r=0;r<4;++r)
+            for(int c=0;c<4;++c)
+                out.row[r][c] = m[c][r];
+        return out;
+    }
+
+    inline float3x3 glm2sycl(const glm::mat3 &m) {
+        float3x3 out;
+        for(int r=0;r<3;++r)
+            for(int c=0;c<3;++c)
+                out.row[r][c] = m[c][r];
+        return out;
+    }
+
+
+     /*
+    // SYCL → GLM vec3
+    inline glm::vec3 sycl2glm(const sycl::float3 &v) {
+        return glm::vec3{ v.x(), v.y(), v.z() };
+    }
+
+    // SYCL → GLM vec4
+    inline glm::vec4 sycl2glm(const sycl::float4 &v) {
+        return glm::vec4{ v.x(), v.y(), v.z(), v.w() };
+    }
+
+    // matrix conversions -----------------------------------------------
+
+    // SYCL marray< float4, 4 > is row‑major: m[row][col]
+    // GLM mat4  is column‑major: m[col][row]
+    inline glm::mat4 sycl2glm(const float4x4 &M) {
+        glm::mat4 out(1.0f);
+        for(int row = 0; row < 4; ++row) {
+            for(int col = 0; col < 4; ++col) {
+                out[col][row] = M[row][col];
+            }
+        }
+        return out;
+    }
+
+    // SYCL marray< float3, 3 > is row‑major: m[row][col]
+    // GLM mat3  is column‑major: m[col][row]
+    inline glm::mat3 sycl2glm(const float3x3 &M) {
+        glm::mat3 out(1.0f);
+        for(int row = 0; row < 3; ++row) {
+            for(int col = 0; col < 3; ++col) {
+                out[col][row] = M[row][col];
+            }
+        }
+        return out;
+    }
+
+*/
 
     //------------------------------------------------------------------------------
     /// Performs a ray–AABB intersection test using the slab method.
@@ -23,11 +87,11 @@ namespace VkRender::PathTracer{
     /// \returns True if the ray hits the AABB before tMax.
     //------------------------------------------------------------------------------
     static inline bool slabIntersectAABB(
-        const Ray &ray,
-        const BVHNode &node,
-        const float3 &invDir,
+        const Ray& ray,
+        const BVHNode& node,
+        const float3& invDir,
         float tMax,
-        float &tEntry) {
+        float& tEntry) {
         float3 t0 = (node.bboxMin - ray.origin) * invDir;
         float3 t1 = (node.bboxMax - ray.origin) * invDir;
         float3 tmin3 = sycl::min(t0, t1);
@@ -52,13 +116,13 @@ namespace VkRender::PathTracer{
     /// \returns True if the ray hits the triangle.
     //------------------------------------------------------------------------------
     static inline bool intersectTriangle(
-        const Ray &ray,
-        const float3 &v0,
-        const float3 &v1,
-        const float3 &v2,
-        float &outT,
-        float &outU,
-        float &outV) {
+        const Ray& ray,
+        const float3& v0,
+        const float3& v1,
+        const float3& v2,
+        float& outT,
+        float& outU,
+        float& outV) {
         const float3 e1 = v1 - v0;
         const float3 e2 = v2 - v0;
         const float3 p = sycl::cross(ray.direction, e2);
@@ -96,6 +160,7 @@ namespace VkRender::PathTracer{
     /// \param outN   Output surface normal.
     /// \param outPdf Output PDF of the sample.
     //------------------------------------------------------------------------------
+    /*
     static inline void sampleAreaLight(
         const AreaLight &light,
         uint32_t seed,
@@ -108,6 +173,43 @@ namespace VkRender::PathTracer{
         outN = normalize(cross(light.edgeU, light.edgeV));
         outPdf = 1.f / light.area;
     }
+    */
+
+    static inline void sampleMeshLight(
+        const MeshLight& light,
+        uint32_t seed,
+        sycl::float3& outPos,
+        sycl::float3& outN,
+        float& outPdf) {
+        // --- 1) Pick a triangle index by area-weighted CDF -------------
+        float uTri = rnd(seed);
+        // binary search in the CDF array
+        int lo = 0, hi = int(light.cdf.size()) - 1;;
+        while (lo < hi) {
+            int mid = (lo + hi) >> 1;
+            if (uTri <= light.cdf[mid]) hi = mid;
+            else lo = mid + 1;
+        }
+        int tri = lo;
+
+        // --- 2) Uniformly sample a point on that triangle -------------
+        // generate two more randoms (mix the seed for decorrelation)
+        float u = rnd(seed ^ 0x9ABC);
+        float v = rnd(seed ^ 0xDEF0);
+        // fold back into the triangle if outside
+        if (u + v > 1.0f) {
+            u = 1.0f - u;
+            v = 1.0f - v;
+        }
+        outPos = light.v0[tri]
+            + u * light.edge1[tri]
+            + v * light.edge2[tri];
+
+        // --- 3) Return the surface normal and the PDF for position ----
+        outN = light.normal[tri];
+        // PDF = 1 / total emissive area (uniform over mesh surface)
+        outPdf = 1.0f / light.totalArea;
+    }
 
     //------------------------------------------------------------------------------
     /// Samples a cosine-weighted direction around a normal.
@@ -117,7 +219,7 @@ namespace VkRender::PathTracer{
     /// \returns A unit-length direction.
     //------------------------------------------------------------------------------
     static inline float3 sampleCosineHemisphere(
-        const float3 &N,
+        const float3& N,
         uint32_t seed1,
         uint32_t seed2) {
         float r1 = rnd(seed1);
@@ -145,17 +247,14 @@ namespace VkRender::PathTracer{
     /// \returns A new Ray starting just above the surface.
     //------------------------------------------------------------------------------
     static inline Ray spawnNextRay(
-        const Hit &hit,
-        const float3 &N,
+        const Hit& hit,
+        const float3& N,
         uint32_t seed1,
         uint32_t seed2) {
         float3 dir = sampleCosineHemisphere(N, seed1, seed2);
         float3 origin = hit.hitPoint + N * 1e-4f;
         return makeRay(origin, dir);
     }
-
-
-
 }
 
 #endif //KERNELHELPERS_H

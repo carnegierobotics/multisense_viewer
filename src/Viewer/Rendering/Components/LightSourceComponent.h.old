@@ -7,8 +7,8 @@
 
 namespace VkRender {
 
-struct LightSourceComponent {
-        float  flux = 100.0f;   // total radiant flux Φ in watts
+class LightSourceComponent {
+
 };
 
 } // VkRender

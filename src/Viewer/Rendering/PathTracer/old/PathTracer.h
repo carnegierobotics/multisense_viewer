@@ -12,7 +12,7 @@
 
 #ifdef SYCL_ENABLED
 #include "Viewer/Tools/SYCLDeviceSelector.h"
-#include "Viewer/Rendering/RenderResources/PathTracer/Definitions.h"
+#include "Viewer/Rendering/PathTracer/Definitions.h"
 #endif
 
 #include "Viewer/Rendering/Editors/PathTracer/EditorPathTracerLayerUI.h"

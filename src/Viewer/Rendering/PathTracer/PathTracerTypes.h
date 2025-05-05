@@ -10,10 +10,18 @@
 // RayTraing in a weekend container for rays
 
 namespace VkRender::PathTracer {
+    struct float4x4 {
+        sycl::float4 row[4];
+    };
+
+    struct float3x3 {
+        sycl::float3 row[3];
+    };
+
     using float2 = sycl::float2;
     using float3 = sycl::float3;
     using float4 = sycl::float4;
-
+    //using float4x4 = sycl::marray<sycl::marray<float, 4>, 4>;  // now a 4×4 matrix
 
     // ─────────────────────────────────────────────────────────────────────────────
     // GPU-friendly Ray using float4 (w used for homogeneous coords)

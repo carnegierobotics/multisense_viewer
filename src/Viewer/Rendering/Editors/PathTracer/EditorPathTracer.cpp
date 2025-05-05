@@ -4,16 +4,10 @@
 
 #include "Viewer/Rendering/Editors/PathTracer/EditorPathTracer.h"
 
-#include <stb_image_write.h>
-#include <yaml-cpp/emitter.h>
-
 #include "Viewer/Application/Application.h"
 #include "Viewer/Rendering/Editors/CommonEditorFunctions.h"
 #include "Viewer/Rendering/Editors/PathTracer/EditorPathTracerLayerUI.h"
 
-#ifdef SYCL_ENABLED
-#include <OpenImageDenoise/oidn.hpp>
-#endif
 
 namespace VkRender {
     EditorPathTracer::EditorPathTracer(EditorCreateInfo &createInfo, UUID uuid) : Editor(createInfo, uuid) {
@@ -518,6 +512,7 @@ namespace VkRender {
 
     void EditorPathTracer::denoiseImage(float *singleChannelImage, uint32_t width, uint32_t height,
                                         std::vector<float> &output) {
+        /*
         // Initialize OIDN device and commit
         oidn::DeviceRef device = oidn::newDevice();
         device.commit();
@@ -550,6 +545,7 @@ namespace VkRender {
         // Retrieve the denoised image data
         output.resize(imageSize);
         std::memcpy(output.data(), outputBuffer.getData(), imageSize * sizeof(float));
+        */
     }
 
 

@@ -2,7 +2,7 @@
 // Created by magnus on 1/27/25.
 //
 
-#include "Viewer/Rendering/RenderResources/PathTracer/libtorch/PhotonRebuildFunction.h"
+#include "Viewer/Rendering/PathTracer/libtorch/PhotonRebuildFunction.h"
 #include "stb_image_write.h"
 #include <random>
 #include <stb_image.h>

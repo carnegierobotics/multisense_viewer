@@ -12,8 +12,8 @@ extern SYCL_EXTERNAL ulong __attribute__((overloadable)) intel_get_cycle_counter
 #include <sycl/sycl.hpp>
 #include <cmath>
 
-#include "Viewer/Rendering/RenderResources/PathTracer/GPUDataTypes.h"
-#include "Viewer/Rendering/RenderResources/PathTracer/PathTracerTypes.h"
+#include "Viewer/Rendering/PathTracer/GPUDataTypes.h"
+#include "Viewer/Rendering/PathTracer/PathTracerTypes.h"
 
 namespace VkRender::PathTracer {
     class PathTracerMeshKernel {
@@ -41,7 +41,7 @@ namespace VkRender::PathTracer {
         // intersect the ray against the BVH + triangles
         bool intersectBVH(const Ray &ray, Hit *hit) const;
 
-        void castContributions(const float3 &hitPoint, const float3 &throughput) const;
+        void castContributions(const float3 &hitPoint, const float &throughput) const;
 
         // your per-photon RNG: e.g. hashed by photonID
     };

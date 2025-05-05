@@ -821,159 +821,11 @@ namespace VkRender {
             // Notify scene that material component has been updated
         });
 
-        drawComponent<LightSourceComponent>("Gaussian Model", entity, [this](LightSourceComponent &component) {
-            ImGui::Text("Gaussian Model Properties");
+        drawComponent<LightSourceComponent>("Light Source", entity, [this](LightSourceComponent &component) {
+            ImGui::Text("Light Source Properties");
 
-            // Display the number of Gaussians
-            size_t gaussianCount = component.size();
-            ImGui::Text("Number of Gaussians: %zu", gaussianCount);
+            drawFloatControl("Emission", component.flux, 100.0f, 1.0f);
 
-            ImGui::Separator();
-
-            // Button to add a new Gaussian
-            if (ImGui::Button("Add Gaussian")) {
-                // Default values for a new Gaussian
-                glm::vec3 defaultMean(0.0f, 0.0f, 0.0f);
-                glm::vec3 defaultNormal(0.0f, 0.0f, 1.0f); // Identity matrix
-                glm::vec2 defaultScale(1.0f); // Identity matrix
-                component.addGaussian(defaultMean, defaultNormal, defaultScale);
-            }
-
-            ImGui::SameLine();
-
-            if (ImGui::Button("Load from file")) {
-                std::vector<std::string> types{".ply"};
-                EditorUtils::openImportFileDialog("Load 3DGS .ply file", types, LayerUtils::PLY_3DGS,
-                                                  &m_loadFileFuture);
-            }
-
-            if (ImGui::Button("Remove All")) {
-                component.removeAllGaussians();
-            }
-            ImGui::Spacing();
-
-
-            // Iterate over each Gaussian and provide controls to modify them
-            if (component.size() < 10) {
-                for (size_t i = 0; i < component.size(); ++i) {
-                    ImGui::PushID(static_cast<int>(i)); // Ensure unique ID for ImGui widgets
-                    // Collapsible header for each Gaussian
-                    if (ImGui::CollapsingHeader(("Gaussian " + std::to_string(i)).c_str())) {
-                        // Mean Position Controls
-                        bool update = false;
-                        update |= drawVec3Control("Position", component.positions[i], 0.0f);
-                        update |= drawVec3Control("Normal", component.normals[i], 0.0f, 0.1f);
-                        update |= drawVec2Control("Scale", component.scales[i], 0.0f, 0.1f);
-                        // Amplitude Control
-                        ImGui::Text("Appearance Properties");
-                        update |= drawFloatControl("Opacity", component.opacities[i], 0.0f, 0.1f);
-                        update |= drawFloatControl("Emission", component.emissions[i], 0.0f, 0.1f);
-                        update |= drawFloatControl("Diffuse", component.diffuse[i], 0.5f, 0.1f);
-                        update |= drawFloatControl("Specular", component.specular[i], 0.5f, 0.1f);
-                        update |= drawFloatControl("PhongExponents", component.phongExponents[i], 32.0f, 1.0f);
-
-                        ImGui::Spacing();
-                        ImGui::PushItemWidth(200); // Set a wider width for the next widget
-                        update |= ImGui::ColorEdit4("Color", glm::value_ptr(component.colors[i]));
-                        ImGui::PopItemWidth(); // Revert to the previous width
-                        // Button to remove this Gaussian
-                        ImGui::Spacing();
-                        if (ImGui::Button("Remove Gaussian")) {
-                            component.positions.erase(component.positions.begin() + i);
-                            component.scales.erase(component.scales.begin() + i);
-                            component.normals.erase(component.normals.begin() + i);
-                            component.emissions.erase(component.emissions.begin() + i);
-                            component.opacities.erase(component.opacities.begin() + i);
-                            component.colors.erase(component.colors.begin() + i);
-                            component.diffuse.erase(component.diffuse.begin() + i);
-                            component.specular.erase(component.specular.begin() + i);
-                            component.phongExponents.erase(component.phongExponents.begin() + i);
-                            --i; // Adjust index after removal
-                        }
-                    }
-
-                    ImGui::PopID(); // Pop ID for this Gaussian
-                }
-                return;
-            }
-            // For large numbers of Gaussians, show a single "selected" Gaussian
-            // ----------------------------------------------------------------
-
-            static int selectedGaussianIndex = 0; // or persist somewhere, e.g. as a class member
-
-            // Ensure valid range
-            if (selectedGaussianIndex < 0) selectedGaussianIndex = 0;
-            if (selectedGaussianIndex >= (int) gaussianCount) {
-                selectedGaussianIndex = (int) gaussianCount - 1;
-            }
-
-            // UI to pick which Gaussian to inspect
-            ImGui::Text("Edit a Single Gaussian (Large Set)");
-            ImGui::PushItemWidth(120.0f);
-            ImGui::InputInt("Gaussian Index", &selectedGaussianIndex);
-            ImGui::PopItemWidth();
-
-            // Clamp again after user input
-            if (selectedGaussianIndex < 0) selectedGaussianIndex = 0;
-            if (selectedGaussianIndex >= (int) gaussianCount) {
-                selectedGaussianIndex = (int) gaussianCount - 1;
-            }
-
-            // Navigation buttons to move up/down
-            ImGui::SameLine();
-            if (ImGui::ArrowButton("PrevGaussian", ImGuiDir_Left)) {
-                selectedGaussianIndex--;
-                if (selectedGaussianIndex < 0) selectedGaussianIndex = 0;
-            }
-            ImGui::SameLine();
-            if (ImGui::ArrowButton("NextGaussian", ImGuiDir_Right)) {
-                selectedGaussianIndex++;
-                if (selectedGaussianIndex >= (int) gaussianCount) {
-                    selectedGaussianIndex = (int) gaussianCount - 1;
-                }
-            }
-
-            ImGui::Separator();
-
-            // Now display and edit ONLY the selected Gaussian
-            {
-                size_t i = (size_t) selectedGaussianIndex;
-
-                ImGui::Text("Selected Gaussian %d", selectedGaussianIndex + 1);
-
-                bool update = false;
-                update |= drawVec3Control("Position", component.positions[i], 0.0f);
-                update |= drawVec3Control("Normal", component.normals[i], 0.0f, 0.1f);
-                update |= drawVec2Control("Scale", component.scales[i], 0.0f, 0.1f);
-
-                ImGui::Text("Appearance Properties");
-                update |= drawFloatControl("Opacity", component.opacities[i], 0.0f, 0.1f);
-                update |= drawFloatControl("Emission", component.emissions[i], 0.0f, 0.1f);
-                update |= drawFloatControl("Diffuse", component.diffuse[i], 0.5f, 0.1f);
-                update |= drawFloatControl("Specular", component.specular[i], 0.5f, 0.1f);
-                update |= drawFloatControl("PhongExp", component.phongExponents[i], 32.0f, 1.0f);
-
-                update |= ImGui::ColorEdit4("Color", glm::value_ptr(component.colors[i]));
-
-                ImGui::Spacing();
-
-                if (ImGui::Button("Remove This Gaussian")) {
-                    component.positions.erase(component.positions.begin() + i);
-                    component.normals.erase(component.normals.begin() + i);
-                    component.scales.erase(component.scales.begin() + i);
-                    component.emissions.erase(component.emissions.begin() + i);
-                    component.colors.erase(component.colors.begin() + i);
-                    component.diffuse.erase(component.diffuse.begin() + i);
-                    component.specular.erase(component.specular.begin() + i);
-                    component.phongExponents.erase(component.phongExponents.begin() + i);
-
-                    // Adjust if we removed the last one
-                    if (i >= component.size()) {
-                        i = component.size() - 1;
-                    }
-                    selectedGaussianIndex = (int) i;
-                }
-            }
         });
 
         drawComponent<QuadricCollectionComponent>(
@@ -1380,10 +1232,7 @@ namespace VkRender {
 
                     break;
                 case LayerUtils::PLY_3DGS: {
-                    if (m_selectionContext.hasComponent<LightSourceComponent>()) {
-                        auto &comp = m_selectionContext.getComponent<LightSourceComponent>();
-                        comp.addGaussiansFromFile(loadFileInfo.path);
-                    }
+
                 }
                 break;
                 case LayerUtils::PLY_QUADRATIC: {

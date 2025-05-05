@@ -166,14 +166,14 @@ if (ENABLE_SYCL)
     target_compile_definitions(${PROJECT_NAME} PRIVATE SYCL_ENABLED)
     message(STATUS "[VkRenderINFO] Added definition: SYCL_ENABLED")
 
-    # Include the OIDN headers
-    include_directories("${OIDN_DIR}/include")
-    # Link the OIDN library
-    target_link_libraries(${PROJECT_NAME} PRIVATE
-            "${OIDN_DIR}/lib/libOpenImageDenoise.so"
-    )
-    message(STATUS "[VkRenderINFO]: OIDN Include Dir: ${OIDN_DIR}/include")
-    message(STATUS "[VkRenderINFO]: OIDN Lib Dir: ${OIDN_DIR}/lib")
+    ## Include the OIDN headers
+    #include_directories("${OIDN_DIR}/include")
+    ## Link the OIDN library
+    #target_link_libraries(${PROJECT_NAME} PRIVATE
+    #        "${OIDN_DIR}/lib/libOpenImageDenoise.so"
+    #)
+    #message(STATUS "[VkRenderINFO]: OIDN Include Dir: ${OIDN_DIR}/include")
+    #message(STATUS "[VkRenderINFO]: OIDN Lib Dir: ${OIDN_DIR}/lib")
 
 else ()
     message(STATUS "[VkRenderINFO]: SYCL support not enabled.")
@@ -222,7 +222,6 @@ set(SOURCE_FILES
         src/Viewer/Rendering/Core/VulkanTexture.h
         src/Viewer/Rendering/Core/UbuntuKeyInput.cpp
         src/Viewer/Rendering/Core/VulkanShaderModule.cpp
-
 
         src/Viewer/Application/ApplicationConfig.cpp
         src/Viewer/Application/pch.cpp
@@ -301,9 +300,9 @@ set(LIBRARIES
 # Add SYCL-specific files
 if (ENABLE_SYCL)
     set(SYCL_SOURCES
-            #src/Viewer/Rendering/RenderResources/PathTracer/PathTracer.cpp
-            src/Viewer/Rendering/RenderResources/PathTracer/PathTracerSYCL.cpp
-            src/Viewer/Rendering/RenderResources/PathTracer/PathTracerKernels.cpp
+            #src/Viewer/Rendering/PathTracer/PathTracer.cpp
+            src/Viewer/Rendering/PathTracer/PathTracerSYCL.cpp
+            src/Viewer/Rendering/PathTracer/PathTracerKernels.cpp
             src/Viewer/Rendering/Editors/PathTracer/EditorPathTracer.cpp
             src/Viewer/Rendering/Editors/PathTracer/EditorPathTracerLayer.cpp
             src/Viewer/Tools/SYCLDeviceSelector.cpp
@@ -316,9 +315,9 @@ endif ()# Add SYCL-specific files
 
 if (${ENABLE_PYTORCH})
     set(DIFF_RENDER_SOURCES
-            src/Viewer/Rendering/RenderResources/PathTracer/libtorch/PhotonRebuildModule.cpp
-            src/Viewer/Rendering/RenderResources/PathTracer/libtorch/PhotonRebuildFunction.cpp
-            src/Viewer/Rendering/RenderResources/PathTracer/libtorch/SparseAdam.cpp
+            src/Viewer/Rendering/PathTracer/libtorch/PhotonRebuildModule.cpp
+            src/Viewer/Rendering/PathTracer/libtorch/PhotonRebuildFunction.cpp
+            src/Viewer/Rendering/PathTracer/libtorch/SparseAdam.cpp
             src/Viewer/Rendering/Editors/DifferentiableEditor/EditorDifferentiableRenderer.cpp
             src/Viewer/Rendering/Editors/DifferentiableEditor/EditorDifferentiableRendererLayer.cpp
             src/Viewer/Rendering/ImGui/AdditionalWindows/ToolWindow.cpp

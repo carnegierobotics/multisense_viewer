@@ -6,9 +6,9 @@
 #define MULTISENSE_VIEWER_PHOTONREBUILDMODULE_H
 
 #include <torch/torch.h>
-#include "Viewer/Rendering/RenderResources/PathTracer/libtorch/PhotonRebuildFunction.h"
+#include "Viewer/Rendering/PathTracer/libtorch/PhotonRebuildFunction.h"
 
-#include "Viewer/Rendering/RenderResources/PathTracer/PathTracer.h"
+#include "Viewer/Rendering/PathTracer/PathTracer.h"
 // Wrap your raytracer in a Torch module
 namespace VkRender::PathTracer {
 

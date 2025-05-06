@@ -14,8 +14,8 @@
 
 namespace VkRender {
     enum class SYCLDeviceType {
-        GPU,
         CPU,
+        GPU,
         Default
     };
 
@@ -51,8 +51,26 @@ namespace VkRender {
 
         sycl::queue &getQueue();
 
+        [[nodiscard]] const sycl::device&   getSyclDevice()   const { return m_device; }
+        [[nodiscard]] std::string           getDeviceName()   const {
+            return m_device.get_info<sycl::info::device::name>();
+        }
+        [[nodiscard]] std::string           getPlatformName() const {
+            return m_device.get_platform().get_info<sycl::info::platform::name>();
+        }
+        [[nodiscard]] std::string           getPlatformVendor() const {
+            return m_device.get_platform().get_info<sycl::info::platform::vendor>();
+        }
+
+        [[nodiscard]] bool isDeviceAvailable() const {return m_isDeviceTypeAvailable;}
+
+        [[nodiscard]] SYCLDeviceType getDeviceType() const { return m_deviceType; }
     private:
         sycl::queue m_queue;
+        sycl::device m_device;
+        bool m_isDeviceTypeAvailable = false;
+        SYCLDeviceType m_deviceType;
+
         bool selectDevice(SYCLDeviceType deviceType);
     };
 

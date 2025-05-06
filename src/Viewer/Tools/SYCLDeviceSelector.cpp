@@ -7,19 +7,23 @@
 #include "Viewer/Tools/SYCLDeviceSelector.h"
 
 namespace VkRender {
-
-    SYCLDeviceSelector::SYCLDeviceSelector(SYCLDeviceType deviceType) {
-        selectDevice(deviceType);
+    SYCLDeviceSelector::SYCLDeviceSelector(SYCLDeviceType deviceType) : m_deviceType(deviceType) {
+        m_isDeviceTypeAvailable = selectDevice(deviceType);
     }
 
     SYCLDeviceSelector::~SYCLDeviceSelector() {
         try {
-            Log::Logger::getInstance()->info("Destroying Sycl Queue for device: {}",
-                                             m_queue.get_device().get_info<sycl::info::device::name>());
+            auto dev = m_queue.get_device();
+            Log::Logger::getInstance()->info(
+                "Destroying SYCL queue (device: {})",
+                dev.get_info<sycl::info::device::name>()
+            );
             m_queue.wait();
-        }
-        catch (const std::exception &e) {
-            Log::Logger::getInstance()->error("Error waiting on SYCL queue: {}", e.what());
+        } catch (const std::exception &e) {
+            Log::Logger::getInstance()->error(
+                "Error when waiting on SYCL queue destruction: {}",
+                e.what()
+            );
         }
     }
 
@@ -28,59 +32,94 @@ namespace VkRender {
     }
 
     bool SYCLDeviceSelector::selectDevice(SYCLDeviceType deviceType) {
-        auto error_handler = [](sycl::exception_list el) {
-            for (auto &e : el) {
-                try {
-                    std::rethrow_exception(e);
-                } catch (const sycl::exception &ex) {
-                    Log::Logger::getInstance()->error("Asynchronous SYCL exception: {}", ex.what());
-                    return false;
+        // 1) Pick the device via the proper selector:
+        try {
+            switch (deviceType) {
+                case SYCLDeviceType::GPU:
+                    m_device = sycl::device(sycl::gpu_selector_v);
+                    break;
+                case SYCLDeviceType::CPU:
+                    m_device = sycl::device(sycl::cpu_selector_v);
+                    break;
+                default:
+                    m_device = sycl::device(sycl::default_selector_v);
+            }
+        } catch (const sycl::exception &e) {
+            Log::Logger::getInstance()->error(
+                "SYCL device selection failed: {} — falling back to default.",
+                e.what()
+            );
+            m_device = sycl::device(sycl::default_selector_v);
+        }
+
+        // Log what we got
+        Log::Logger::getInstance()->info(
+            "Selected device: {} [{}]",
+            m_device.get_info<sycl::info::device::name>(),
+            m_device.is_gpu() ? "GPU" : m_device.is_cpu() ? "CPU" : m_device.is_host() ? "Host" : "Other"
+        );
+
+        // 2) Build a queue on that device, with in-order property + async handler:
+        auto error_handler = [](sycl::exception_list exList) {
+            for (auto &e: exList) {
+                try { std::rethrow_exception(e); } catch (const sycl::exception &ex) {
+                    Log::Logger::getInstance()->error(
+                        "Asynchronous SYCL exception: {}", ex.what()
+                    );
                 }
             }
-            return true;
         };
-
-        sycl::property_list properties{sycl::property::queue::in_order{}};
+        sycl::property_list props{sycl::property::queue::in_order{}};
 
         try {
-            if (deviceType == SYCLDeviceType::GPU) {
-                m_queue = sycl::queue(sycl::gpu_selector_v, error_handler, properties);
-                Log::Logger::getInstance()->info("Using GPU: {}",
-                    m_queue.get_device().get_info<sycl::info::device::name>());
-            } else if (deviceType == SYCLDeviceType::CPU) {
-                m_queue = sycl::queue(sycl::cpu_selector_v, error_handler, properties);
-                Log::Logger::getInstance()->info("Using CPU: {}",
-                    m_queue.get_device().get_info<sycl::info::device::name>());
-            } else {
-                m_queue = sycl::queue(sycl::default_selector_v, error_handler, properties);
-                Log::Logger::getInstance()->info("Using default device: {}",
-                    m_queue.get_device().get_info<sycl::info::device::name>());
-            }
+            m_queue = sycl::queue(m_device, error_handler, props);
         } catch (const sycl::exception &e) {
-            Log::Logger::getInstance()->error("Error selecting device: {}", e.what());
-            Log::Logger::getInstance()->error("Falling back to default device.");
-            m_queue = sycl::queue(sycl::default_selector_v, error_handler, properties);
-            Log::Logger::getInstance()->info("Using device: {}",
-                m_queue.get_device().get_info<sycl::info::device::name>());
+            Log::Logger::getInstance()->error(
+                "Queue construction failed on {}: {} — trying default device queue.",
+                m_device.get_info<sycl::info::device::name>(),
+                e.what()
+            );
+            m_device = sycl::device(sycl::default_selector_v);
+            m_queue = sycl::queue(m_device, error_handler, props);
         }
 
+        // 3) Run a tiny "dummy" kernel to verify everything works:
         try {
             m_queue.submit([&](sycl::handler &cgh) {
-                cgh.single_task<class DummyKernel>([]() {});
-            }).wait();
-            Log::Logger::getInstance()->info("Dummy kernel launched successfully on device: {}",
-                m_queue.get_device().get_info<sycl::info::device::name>());
-        } catch (const sycl::exception &e) {
-            Log::Logger::getInstance()->error("Error launching dummy kernel on device {}: {}",
-                m_queue.get_device().get_info<sycl::info::device::name>(), e.what());
-            Log::Logger::getInstance()->info("Falling back to CPU device.");
-            m_queue = sycl::queue(sycl::cpu_selector_v, error_handler, properties);
-            m_queue.submit([&](sycl::handler &cgh) {
-                cgh.single_task<class DummyKernelCPU>([]() {});
+                cgh.single_task<class DummyKernelTest>([]() {
+                });
             }).wait_and_throw();
+
+            Log::Logger::getInstance()->info(
+                "Dummy kernel succeeded on {}",
+                m_device.get_info<sycl::info::device::name>()
+            );
+        } catch (const std::bad_function_call &e) {
+            Log::Logger::getInstance()->error(
+                "Dummy kernel failed on {}: {} — falling back to CPU queue.",
+                m_device.get_info<sycl::info::device::name>(),
+                e.what()
+            );
+            m_device = sycl::device(sycl::cpu_selector_v);
+            m_queue = sycl::queue(m_device, error_handler, props);
+        } catch (const sycl::exception &e) {
+            Log::Logger::getInstance()->error(
+                "Dummy kernel failed on {}: {} — falling back to CPU queue.",
+                m_device.get_info<sycl::info::device::name>(),
+                e.what()
+            );
+            m_device = sycl::device(sycl::cpu_selector_v);
+            m_queue = sycl::queue(m_device, error_handler, props);
         }
 
-        return true;
+        if (deviceType == SYCLDeviceType::CPU) {
+            return m_device.is_cpu();
+        }
+        if (deviceType == SYCLDeviceType::GPU) {
+            return m_device.is_gpu();
+        }
+        // for Default, consider both CPU or GPU valid:
+        return m_device.is_cpu() || m_device.is_gpu();
     }
 
     SYCLDeviceManager &SYCLDeviceManager::getInstance() {
@@ -99,8 +138,6 @@ namespace VkRender {
         std::lock_guard<std::mutex> lock(m_mutex);
         return m_devices.at(type);
     }
-
-
 } // namespace VkRender
 
 #endif // SYCL_ENABLED

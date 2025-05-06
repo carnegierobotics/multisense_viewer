@@ -37,9 +37,39 @@ namespace VkRender {
 
         imageUI->reloadRenderer = ImGui::Button("Upload scene"); ImGui::SameLine();
         ImGui::Checkbox("Render", &imageUI->render); ImGui::SameLine();
-        ImGui::Checkbox("To Viewport", &imageUI->renderToViewport);
+        ImGui::Checkbox("To Viewport", &imageUI->renderToViewport); ImGui::SameLine();
+
+        // --- Device selector as a dropdown ---
+        ImGui::Text("Compute Device:"); ImGui::SameLine();
+        ImGui::SetNextItemWidth(100.0f);
+        {
+            // the labels in the dropdown
+            const char* deviceNames[] = { "CPU", "GPU" };
+            // we keep an int for Combo, matching our enum values
+            int current = static_cast<int>(imageUI->selectedDevice);
+            if (ImGui::Combo("##ComputeDevice", &current, deviceNames, IM_ARRAYSIZE(deviceNames))) {
+                imageUI->selectedDevice = static_cast<SYCLDeviceType>(current);
+            }
+        }
+        ImGui::SameLine();
 
 
+        // --- New: Photon count slider ---
+        // Photon count slider in steps of 10
+        // We scale down by 10 for the slider then re-scale back up so it only ever hits multiples of 10.
+        ImGui::Text("Photon Count:");
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(150.0f);
+        {
+            // slider from exponent 0..7
+            int expo = imageUI->photonExponent;
+            if (ImGui::SliderInt("##PhotonExp", &expo, 0, 7, "%d")) {
+                imageUI->photonExponent = expo;
+                imageUI->photonCount  = static_cast<int>(std::pow(10, expo));
+            }
+            ImGui::SameLine();
+            ImGui::Text("%d", imageUI->photonCount);
+        }
         /*
         // Prepare dropdown items
         const char *kernels[PathTracer::KERNEL_TYPE_COUNT];

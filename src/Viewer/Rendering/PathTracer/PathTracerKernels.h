@@ -12,6 +12,8 @@ extern SYCL_EXTERNAL ulong __attribute__((overloadable)) intel_get_cycle_counter
 #include <sycl/sycl.hpp>
 #include <cmath>
 
+#include "KernelHelpers.h"
+
 #include "Viewer/Rendering/PathTracer/GPUDataTypes.h"
 #include "Viewer/Rendering/PathTracer/PathTracerTypes.h"
 
@@ -38,6 +40,7 @@ namespace VkRender::PathTracer {
         SceneDesc *d_sceneDesc;
         SceneSettings d_sceneSettings;
         FrameBuffer *d_framebuffer;
+        PCG32 m_pcg;
 
         void traceOnePhoton(uint32_t photonID) const;
 

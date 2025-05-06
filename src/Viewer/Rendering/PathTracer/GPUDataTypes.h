@@ -166,7 +166,7 @@ namespace VkRender::PathTracer {
         uint32_t instanceCount = 0, transformCount = 0;
         uint32_t materialCount = 0, lightCount = 0;
         uint32_t cameraCount = 0;
-        uint32_t photonCount = 0;
+        uint64_t photonCount = 0;
     };
 
 

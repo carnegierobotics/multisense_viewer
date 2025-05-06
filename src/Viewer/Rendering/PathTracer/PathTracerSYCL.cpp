@@ -32,7 +32,7 @@ namespace VkRender {
         m_frameBuffers.memory = d_memory;
         m_frameBuffers.frameBufferSize = blockSize;
         d_frameBuffers = deviceAlloc<PathTracer::FrameBuffer>(1);
-        m_queue.memcpy(d_frameBuffers, &m_frameBuffers,sizeof(PathTracer::FrameBuffer)).wait();
+        m_queue.memcpy(d_frameBuffers, &m_frameBuffers, sizeof(PathTracer::FrameBuffer)).wait();
     }
 
 
@@ -50,7 +50,7 @@ namespace VkRender {
         // build and upload scene descriptor
         buildSceneDesc();
         d_sceneDesc = deviceAlloc<PathTracer::SceneDesc>(1);
-        m_queue.memcpy(d_sceneDesc, &m_sceneDesc,sizeof(PathTracer::SceneDesc)).wait();
+        m_queue.memcpy(d_sceneDesc, &m_sceneDesc, sizeof(PathTracer::SceneDesc)).wait();
     }
 
 
@@ -76,6 +76,8 @@ namespace VkRender {
             cam.pos = PathTracer::glm2sycl(editorCamera.camera->matrices.position);
             cam.proj = PathTracer::glm2sycl(editorCamera.camera->matrices.projection);
             cam.view = PathTracer::glm2sycl(editorCamera.camera->matrices.view);
+            cam.firstPixel = pixelOffset;
+
             m_cameras.push_back(cam);
             pixelOffset += cam.width * cam.height * 4;
         }
@@ -108,18 +110,51 @@ namespace VkRender {
     }
 
 
-    void PathTracerSYCL::updateDynamic(const std::shared_ptr<Scene> &scene) {
-        m_queue.memcpy(d_transforms, m_transforms.data(),
-                       m_transforms.size() * sizeof(PathTracer::Transform));
-        m_queue.memcpy(d_lights, m_lights.data(),
-                       m_lights.size() * sizeof(PathTracer::MeshLight));
+    void PathTracerSYCL::updateDynamic(const std::shared_ptr<Scene> &scene, EditorCamera editorCamera) {
+        m_queue.memcpy(d_transforms, m_transforms.data(), m_transforms.size() * sizeof(PathTracer::Transform));
+
+          // view both mesh & material & transform
+        auto view = scene->getRegistry()
+                .view<MeshComponent, TransformComponent, LightSourceComponent>();
+
+        for (int i = 0; auto id: view) {
+            Entity e(id, scene.get());
+            auto &transformComponent = e.getComponent<TransformComponent>();
+            m_lights[i].transform.objectToWorld = PathTracer::glm2sycl(transformComponent.getTransform());
+            m_lights[i].transform.worldToObject = PathTracer::glm2sycl(glm::inverse(transformComponent.getTransform()));
+            ++i;
+        }
+
+
+        m_queue.memcpy(d_lights, m_lights.data(), m_lights.size() * sizeof(PathTracer::MeshLight));
+
+        auto &camera = m_cameras.front();
+        camera.pos = PathTracer::glm2sycl(editorCamera.camera->matrices.position);
+        camera.proj = PathTracer::glm2sycl(editorCamera.camera->matrices.projection);
+        camera.view = PathTracer::glm2sycl(editorCamera.camera->matrices.view);
+
+        m_queue.memcpy(d_cameras, &camera, sizeof(PathTracer::Camera)); // Only copy first camera instance
+        m_sceneDesc.cameras = d_cameras;
+        m_sceneDesc.lights = d_lights;
+
+        // IF camera was moving then clear the image data for that camera
+        if (editorCamera.movedSinceLastFrame) {
+            const auto &camera = m_cameras.front();
+            const uint32_t width = camera.width;
+            const uint32_t height = camera.height;
+            const size_t pixelCount = static_cast<size_t>(width) * height;
+            const size_t floatComponents = pixelCount * 4; // 4 floats per pixel (RGBA32F)
+
+            m_queue.fill(d_frameBuffers->memory, 0.0f, floatComponents); // Only copy first camera instance
+        }
+
+        m_queue.wait();
     }
 
-    void PathTracerSYCL::renderFrame() {
+    void PathTracerSYCL::renderFrame(int photonCount) {
         if (!d_sceneDesc) {
             return;
         }
-        uint32_t photonCount = 1;
 
         m_queue.submit([scene=d_sceneDesc, fb = d_frameBuffers, photonCount](sycl::handler &cgh) {
             PathTracer::PathTracerMeshKernel kernel(scene, fb);
@@ -128,8 +163,40 @@ namespace VkRender {
     }
 
     void PathTracerSYCL::generateImages(std::span<std::byte> outRGBA32f) {
+        auto &ci = m_createInfo;
+        for (auto &camera: m_cameras) {
+            uint32_t imageSize = static_cast<uint32_t>(camera.width) * static_cast<uint32_t>(camera.height);
+
+            break;
+        }
         size_t bytes = outRGBA32f.size();
         //m_queue.memcpy(outRGBA32f.data(), d_frameBuffer, bytes).wait();
+    }
+
+    void PathTracerSYCL::generateEditorImage(const std::shared_ptr<VulkanTexture2D> &viewportTexture) {
+        const auto &camera = m_cameras.front();
+        const uint32_t width = camera.width;
+        const uint32_t height = camera.height;
+        const size_t pixelCount = static_cast<size_t>(width) * height;
+        const size_t floatComponents = pixelCount * 4; // 4 floats per pixel (RGBA32F)
+        const size_t floatByteSize = floatComponents * sizeof(float);
+
+        // 1) Copy float32 RGBA image from device to host scratch buffer
+        m_queue.memcpy(m_frameBuffers.memory, d_frameBuffers->memory, floatByteSize).wait();
+
+        // 2) Convert to 8-bit RGBA
+        std::vector<uint8_t> rgba8;
+        rgba8.resize(pixelCount * 4);
+
+        float *src = reinterpret_cast<float *>(m_frameBuffers.memory);
+        for (size_t i = 0; i < floatComponents; ++i) {
+            // clamp to [0,1], then map to [0,255]
+            float v = std::clamp(src[i], 0.0f, 1.0f);
+            rgba8[i] = static_cast<uint8_t>(v * 255.0f);
+        }
+
+        // 3) Upload RGBA8 image to the Vulkan texture
+        viewportTexture->loadImage(rgba8.data());
     }
 
     void PathTracerSYCL::collectGeometry(const std::shared_ptr<Scene> &scene) {
@@ -429,10 +496,10 @@ namespace VkRender {
             // 4) Patch leaf offsets to global
             //    firstNode = where these nodes will live in m_blasNodes
             uint32_t firstNode = uint32_t(m_blasNodes.size());
-            for (auto &n : localNodes) {
+            for (auto &n: localNodes) {
                 if (n.count == 0) {
                     // internal node: child indices are relative to localNodes
-                    n.leftChild  += firstNode;
+                    n.leftChild += firstNode;
                     n.rightChild += firstNode;
                 } else {
                     // leaf: tri‐list offset
@@ -444,8 +511,10 @@ namespace VkRender {
             m_blasNodes.insert(m_blasNodes.end(),
                                localNodes.begin(),
                                localNodes.end());
-            m_blasRanges.push_back({ firstNode,
-                                     uint32_t(localNodes.size()) });
+            m_blasRanges.push_back({
+                firstNode,
+                uint32_t(localNodes.size())
+            });
         }
     }
 
@@ -488,9 +557,9 @@ namespace VkRender {
             int nPrims = end - start;
             if (nPrims <= 2) {
                 // --- leaf ------------------------
-                node.count     = nPrims;
-                node.leftChild = start;    // index into *local* triBuf
-                node.rightChild= 0;
+                node.count = nPrims;
+                node.leftChild = start; // index into *local* triBuf
+                node.rightChild = 0;
             } else {
                 // --- internal --------------------
                 node.count = 0;

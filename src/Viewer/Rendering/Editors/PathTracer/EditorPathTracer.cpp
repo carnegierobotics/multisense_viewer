@@ -23,8 +23,8 @@ namespace VkRender {
         m_editorCamera = std::make_shared<ArcballCamera>();
         m_editorCamera->setDefaultPosition({-90.0f, 60.0f}, 1.5f);
 
-        PathTracerSYCLCreateInfo pipelineSettings;
-        pipelineSettings.queue = m_context->getSyclDeviceSelector().getDevice(SYCLDeviceType::CPU)->getQueue();
+        auto dev = m_context->getSyclDeviceSelector().getDevice(SYCLDeviceType::Default);
+        PathTracerSYCLCreateInfo pipelineSettings(dev);
         pipelineSettings.framebufferSize = 1920 * 1080 * 5; // 41mb of framebuffers
         m_pathTracerSYCL = std::make_unique<PathTracerSYCL>(pipelineSettings);
     }
@@ -64,15 +64,30 @@ namespace VkRender {
     void EditorPathTracer::updatePathTracerSettings() {
         auto imageUI = std::dynamic_pointer_cast<EditorPathTracerLayerUI>(m_ui);
 
-        PathTracerSYCLCreateInfo pipelineSettings;
-        pipelineSettings.queue = m_context->getSyclDeviceSelector().getDevice(SYCLDeviceType::CPU)->getQueue();
-        pipelineSettings.framebufferSize = 1920 * 1080 * 10; // 82mb of framebuffers
-        m_pathTracerSYCL = std::make_unique<PathTracerSYCL>(pipelineSettings);
+        // Build the SYCL create-info from the UI selections:
 
-        m_editorCamera;
 
-        EditorCamera editorCamera(m_editorCamera.get(), m_createInfo.width, m_createInfo.height);
-        m_pathTracerSYCL->uploadScene(m_context->activeScene(), editorCamera);
+        // Select the right queue based on UI:
+        auto dev = m_context->getSyclDeviceSelector().getDevice(imageUI->selectedDevice);
+
+        if (dev->isDeviceAvailable()) {
+            PathTracerSYCLCreateInfo pipelineSettings(dev);
+            pipelineSettings.framebufferSize = 1920 * 1080 * 10; // ~82 MB of framebuffers
+            pipelineSettings.queue = dev->getQueue();
+            pipelineSettings.device = dev;
+            // Re-create your path-tracer with the updated settings:
+            m_pathTracerSYCL = std::make_unique<PathTracerSYCL>(pipelineSettings);
+            // Upload scene (unchanged)
+            EditorCamera editorCamera(m_editorCamera.get(),
+                                      m_createInfo.width,
+                                      m_createInfo.height);
+            m_pathTracerSYCL->uploadScene(m_context->activeScene(), editorCamera);
+            Log::Logger::getInstance()->info("Updated path tracer settings, Using DeviceType: {}, Device: {}", syclDeviceTypeToString(imageUI->selectedDevice), dev->getDeviceName());
+        } else {
+
+            Log::Logger::getInstance()->warning("Failed to update Path Tracer execution Device to {}, reverting selection. Using Device: {}",  syclDeviceTypeToString(imageUI->selectedDevice),  m_pathTracerSYCL->getCreateInfo().device->getDeviceName());
+            imageUI->selectedDevice = m_pathTracerSYCL->getCreateInfo().device->getDeviceType();
+        }
 
         /*
         auto activeCamera = m_context->activeScene()->getActiveCamera();
@@ -137,8 +152,10 @@ namespace VkRender {
 
         if (render) {
             if (renderToViewport) {
-                m_pathTracerSYCL->updateDynamic(m_context->activeScene());
-                m_pathTracerSYCL->renderFrame();
+                EditorCamera editorCamera(m_editorCamera.get(), m_createInfo.width, m_createInfo.height, m_movedCamera);
+                m_pathTracerSYCL->updateDynamic(m_context->activeScene(), editorCamera);
+                m_pathTracerSYCL->renderFrame(imageUI->photonCount);
+                m_pathTracerSYCL->generateEditorImage(m_colorTexture);
             }
             else {
 
@@ -281,6 +298,8 @@ namespace VkRender {
         }
 
         */
+
+        m_movedCamera = false;
     }
 
 

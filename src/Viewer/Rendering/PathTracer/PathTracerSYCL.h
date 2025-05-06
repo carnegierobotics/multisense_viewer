@@ -6,6 +6,7 @@
 #define PATHTRACERSYCL_H
 
 #include <Viewer/Rendering/Editors/ArcballCamera.h>
+#include <Viewer/Tools/SYCLDeviceSelector.h>
 
 #include "Viewer/Scenes/Scene.h"
 #include "Viewer/Rendering/PathTracer/PathTracerKernels.h"
@@ -16,14 +17,21 @@
 namespace VkRender {
 
     struct PathTracerSYCLCreateInfo {
-        sycl::queue queue;
+        sycl::queue& queue;
+        std::shared_ptr<SYCLDeviceSelector> device;
         uint32_t framebufferSize = 960 * 600 * 10; // 10 images of size 960x600x4
+
+        PathTracerSYCLCreateInfo() = delete;
+        explicit PathTracerSYCLCreateInfo(std::shared_ptr<SYCLDeviceSelector> dev) : device(dev), queue(dev->getQueue()) {
+
+        }
     };
 
     struct EditorCamera {
         const ArcballCamera* camera = nullptr;
         uint32_t editorWidth = 1024;
         uint32_t editorHeight = 768;
+        bool movedSinceLastFrame = false;
     };
 
     class PathTracerSYCL {
@@ -44,16 +52,18 @@ namespace VkRender {
         void setupFrameBuffers();
 
         /** per‑frame fast update of transforms, animated emissive, … */
-        void updateDynamic(const std::shared_ptr<Scene>& scene);
+        void updateDynamic(const std::shared_ptr<Scene>& scene, EditorCamera editorCamera);
 
         /** launches photon + contribution kernels */
-        void renderFrame();
+        void renderFrame(int photonCount);
 
         /** copies the device framebuffer back to host */
         void generateImages(std::span<std::byte> outRGBA32f);
+        void generateEditorImage(const std::shared_ptr<VulkanTexture2D>& tex);
 
         void createEditorCamera(const std::shared_ptr<ArcballCamera> & camera, int32_t int32, int32_t height);
 
+        const PathTracerSYCLCreateInfo& getCreateInfo() { return m_createInfo; }
     private:
         /*--- helpers called only from uploadScene() ---*/
         void collectGeometry(const std::shared_ptr<Scene>& scene);

@@ -9,11 +9,40 @@
 #include "GPUDataTypes.h"
 
 namespace VkRender::PathTracer {
-    inline float rnd(uint32_t seed) {
-        // simple LCG or whatever you have
-        seed = 1664525u * seed + 1013904223u;
-        return (seed & 0x00FFFFFF) / float(0x01000000);
-    }
+
+    struct PCG32
+    {
+        // 64-bit state, 64-bit stream (“increment”), both must be odd
+        uint64_t state;
+        uint64_t inc;
+
+        // Seed with an arbitrary 64-bit seed and stream identifier
+        // stream must be odd
+        void seed(uint64_t init_state, uint64_t init_seq = 1u) {
+            state = 0u;
+            inc   = (init_seq << 1u) | 1u;
+            nextUInt();
+            state += init_state;
+            nextUInt();
+        }
+
+        // Advance generator and return 32-bit uniformly random integer
+        inline uint32_t nextUInt() {
+            uint64_t oldstate = state;
+            // advance internal state
+            state = oldstate * 6364136223846793005ULL + inc;
+            // calculate output function (XSH RR), uses oldstate
+            uint32_t xorshifted = static_cast<uint32_t>(((oldstate >> 18u) ^ oldstate) >> 27u);
+            uint32_t rot        = static_cast<uint32_t>(oldstate >> 59u);
+            return (xorshifted >> rot) | (xorshifted << ((-rot) & 31));
+        }
+
+        // Return float in [0,1)
+        inline float nextFloat() {
+            // use top 24 bits for a 24-bit mantissa
+            return (nextUInt() & 0x00FFFFFF) / float(0x01000000);
+        }
+    };
 
     inline sycl::float3 glm2sycl(const glm::vec3 &v) {
         return sycl::float3{ v.x, v.y, v.z };
@@ -184,12 +213,12 @@ namespace VkRender::PathTracer {
 
     static inline void sampleMeshLight(
         const MeshLight& light,
-        uint32_t seed,
+         PCG32& rng,
         sycl::float3& outPos,
         sycl::float3& outN,
         float& outPdf) {
         // --- 1) Pick a triangle index by area-weighted CDF -------------
-        float uTri = rnd(seed);
+        float uTri = rng.nextFloat();
         // binary search in the CDF array
         int lo = 0, hi = int(light.cdf.size()) - 1;;
         while (lo < hi) {
@@ -201,16 +230,23 @@ namespace VkRender::PathTracer {
 
         // --- 2) Uniformly sample a point on that triangle -------------
         // generate two more randoms (mix the seed for decorrelation)
-        float u = rnd(seed ^ 0x9ABC);
-        float v = rnd(seed ^ 0xDEF0);
+        float u = rng.nextFloat();
+        float v = rng.nextFloat();
         // fold back into the triangle if outside
         if (u + v > 1.0f) {
             u = 1.0f - u;
             v = 1.0f - v;
         }
-        outPos = light.v0[tri]
-            + u * light.edge1[tri]
-            + v * light.edge2[tri];
+        // object-space position
+        sycl::float3 pObj =
+            light.v0[tri]
+          + u * light.edge1[tri]
+          + v * light.edge2[tri];
+
+        // 3) Transform to world‐space
+        //   assume objectToWorld is a sycl::float4x4
+        sycl::float4 pH = light.transform.objectToWorld * sycl::float4{pObj, 1.0f};
+        outPos = sycl::float3{ pH.x(), pH.y(), pH.z() };
 
         float3x3 rotation = float3x3(light.transform.objectToWorld);               // drop translation
         float3x3 normalMat = transpose( inverse( rotation ) );          // inverse‐transpose
@@ -231,10 +267,9 @@ namespace VkRender::PathTracer {
     //------------------------------------------------------------------------------
     static inline float3 sampleCosineHemisphere(
         const float3& N,
-        uint32_t seed1,
-        uint32_t seed2) {
-        float r1 = rnd(seed1);
-        float r2 = rnd(seed2);
+        PCG32& rng) {
+        float r1 = rng.nextFloat();
+        float r2 = rng.nextFloat();
         float phi = 2.f * M_PIf * r1;
         float cosT = sqrt(1.f - r2);
         float sinT = sqrt(r2);
@@ -260,9 +295,8 @@ namespace VkRender::PathTracer {
     static inline Ray spawnNextRay(
         const Hit& hit,
         const float3& N,
-        uint32_t seed1,
-        uint32_t seed2) {
-        float3 dir = sampleCosineHemisphere(N, seed1, seed2);
+        PCG32& rng) {
+        float3 dir = sampleCosineHemisphere(N, rng);
         float3 origin = hit.hitPoint + N * 1e-4f;
         return makeRay(origin, dir);
     }

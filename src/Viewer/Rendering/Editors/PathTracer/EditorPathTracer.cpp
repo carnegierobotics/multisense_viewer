@@ -24,9 +24,9 @@ namespace VkRender {
         m_editorCamera->setDefaultPosition({-90.0f, 60.0f}, 1.5f);
 
         auto dev = m_context->getSyclDeviceSelector().getDevice(SYCLDeviceType::Default);
-        PathTracerSYCLCreateInfo pipelineSettings(dev);
+        PathTracer::PathTracerSYCLCreateInfo pipelineSettings(dev);
         pipelineSettings.framebufferSize = 1920 * 1080 * 5; // 41mb of framebuffers
-        m_pathTracerSYCL = std::make_unique<PathTracerSYCL>(pipelineSettings);
+        m_pathTracerSYCL = std::make_unique<PathTracer::PathTracerSYCL>(pipelineSettings);
     }
 
     void EditorPathTracer::onEditorResize() {
@@ -53,11 +53,12 @@ namespace VkRender {
             static_cast<float>(m_createInfo.width) / static_cast<float>(m_createInfo.height));
         m_editorCamera->setDefaultPosition({-90.0f, 60.0f}, 1.5f);
 
-        m_colorTexture = EditorUtils::createEmptyTexture(m_createInfo.width, m_createInfo.height, VK_FORMAT_R8G8B8A8_UNORM, m_context);
+        m_colorTexture = EditorUtils::createEmptyTexture(m_createInfo.width, m_createInfo.height,
+                                                         VK_FORMAT_R8G8B8A8_UNORM, m_context);
         scaleViewportQuad();
 
 
-        EditorCamera editorCamera(m_editorCamera.get(), m_createInfo.width, m_createInfo.height);
+        PathTracer::EditorCamera editorCamera(m_editorCamera.get(), m_createInfo.width, m_createInfo.height);
         m_pathTracerSYCL->uploadScene(scene, editorCamera);
     }
 
@@ -71,22 +72,107 @@ namespace VkRender {
         auto dev = m_context->getSyclDeviceSelector().getDevice(imageUI->selectedDevice);
 
         if (dev->isDeviceAvailable()) {
-            PathTracerSYCLCreateInfo pipelineSettings(dev);
+            PathTracer::PathTracerSYCLCreateInfo pipelineSettings(dev);
             pipelineSettings.framebufferSize = 1920 * 1080 * 10; // ~82 MB of framebuffers
             pipelineSettings.queue = dev->getQueue();
             pipelineSettings.device = dev;
             // Re-create your path-tracer with the updated settings:
-            m_pathTracerSYCL = std::make_unique<PathTracerSYCL>(pipelineSettings);
+            m_pathTracerSYCL = std::make_unique<PathTracer::PathTracerSYCL>(pipelineSettings);
             // Upload scene (unchanged)
-            EditorCamera editorCamera(m_editorCamera.get(),
-                                      m_createInfo.width,
-                                      m_createInfo.height);
+            PathTracer::EditorCamera editorCamera(m_editorCamera.get(),
+                                                  m_createInfo.width,
+                                                  m_createInfo.height);
             m_pathTracerSYCL->uploadScene(m_context->activeScene(), editorCamera);
-            Log::Logger::getInstance()->info("Updated path tracer settings, Using DeviceType: {}, Device: {}", syclDeviceTypeToString(imageUI->selectedDevice), dev->getDeviceName());
+            Log::Logger::getInstance()->info("Updated path tracer settings, Using DeviceType: {}, Device: {}",
+                                             syclDeviceTypeToString(imageUI->selectedDevice), dev->getDeviceName());
         } else {
-
-            Log::Logger::getInstance()->warning("Failed to update Path Tracer execution Device to {}, reverting selection. Using Device: {}",  syclDeviceTypeToString(imageUI->selectedDevice),  m_pathTracerSYCL->getCreateInfo().device->getDeviceName());
+            Log::Logger::getInstance()->warning(
+                "Failed to update Path Tracer execution Device to {}, reverting selection. Using Device: {}",
+                syclDeviceTypeToString(imageUI->selectedDevice),
+                m_pathTracerSYCL->getCreateInfo().device->getDeviceName());
             imageUI->selectedDevice = m_pathTracerSYCL->getCreateInfo().device->getDeviceType();
+        }
+
+
+        auto view = m_context->activeScene()->getRegistry().view<TemporaryComponent>();
+        for (auto id: view) {
+            Entity e(id, m_context->activeScene().get());
+            m_context->activeScene()->destroyEntity(e);
+        }
+        // Get and render BVH
+        auto nodes = m_pathTracerSYCL->getBvhNodes();
+        size_t N = nodes.size();
+
+        // 2) compute depth per node
+        std::vector<int> depths(N, -1);
+        if (N > 0) {
+            depths[0] = 0; // root at depth 0
+            for (size_t i = 0; i < N; ++i) {
+                const auto &n = nodes[i];
+                if (!n.isLeaf()) {
+                    uint32_t L = n.leftFirst; // left child index
+                    uint32_t R = n.leftFirst + 1; // right child index
+                    if (L < N) depths[L] = depths[i] + 1;
+                    if (R < N) depths[R] = depths[i] + 1;
+                }
+            }
+        }
+
+        // 3) find the maximum depth
+        int maxDepth = 0;
+        for (int d: depths) if (d > maxDepth) maxDepth = d;
+
+        // 4) prepare a rainbow palette
+        std::vector<glm::vec3> palette = {
+            {1, 0, 0}, {1, 0.5f, 0}, {1, 1, 0},
+            {0, 1, 0}, {0, 1, 1}, {0, 0, 1},
+            {1, 0, 1}
+        };
+
+        // 5) draw each node
+        for (size_t i = 0; i < N; ++i) {
+            const auto &node = nodes[i];
+            int d = std::max(0, depths[i]);
+
+            // build AABB center & size
+            glm::vec3 bmin{
+                node.aabbMin.x(),
+                node.aabbMin.y(),
+                node.aabbMin.z()
+            };
+            glm::vec3 bmax{
+                node.aabbMax.x(),
+                node.aabbMax.y(),
+                node.aabbMax.z()
+            };
+            glm::vec3 size = bmax - bmin;
+            glm::vec3 center = bmin + size * 0.5f;
+
+            // get or create an entity
+            auto ent = m_context->activeScene()
+                    ->getOrCreateEntityByName("BVHNode:" + std::to_string(i));
+            ent.addComponent<TemporaryComponent>();
+
+            // wireframe cube
+            auto &mesh = ent.addComponent<MeshComponent>(CUBE);
+            mesh.polygonMode() = VK_POLYGON_MODE_LINE;
+            auto params = std::dynamic_pointer_cast<CubeMeshParameters>(mesh.meshParameters);
+            params->width = size.x;
+            params->height = size.y;
+            params->depth = size.z;
+
+            // set translation
+            auto &xf = ent.getComponent<TransformComponent>();
+            xf.translation = center;
+
+            // pick a color based on depth, fade alpha for inner nodes
+            glm::vec3 rgb = palette[d % palette.size()];
+            float a = 1.0f - float(d) / float(maxDepth + 1);
+            glm::vec4 col{rgb.r, rgb.g, rgb.b, a};
+
+            auto &mat = ent.addComponent<MaterialComponent>();
+            mat.albedo = col;
+            mat.fragmentShaderName = "NoMaterial.frag";
         }
 
         /*
@@ -137,7 +223,6 @@ namespace VkRender {
 
         imageUI->switchKernelDevice = false;
         */
-
     }
 
     void EditorPathTracer::onUpdate() {
@@ -152,17 +237,15 @@ namespace VkRender {
 
         if (render) {
             if (renderToViewport) {
-                EditorCamera editorCamera(m_editorCamera.get(), m_createInfo.width, m_createInfo.height, m_movedCamera);
-                m_pathTracerSYCL->updateDynamic(m_context->activeScene(), editorCamera);
-                m_pathTracerSYCL->renderFrame(imageUI->photonCount);
-                m_pathTracerSYCL->generateEditorImage(m_colorTexture);
-            }
-            else {
-
+                PathTracer::EditorCamera editorCamera(m_editorCamera.get(), m_createInfo.width, m_createInfo.height,
+                                                      m_movedCamera);
+                //m_pathTracerSYCL->updateDynamic(m_context->activeScene(), editorCamera);
+                //m_pathTracerSYCL->renderFrame(imageUI->photonCount);
+                //m_pathTracerSYCL->generateEditorImage(m_colorTexture);
+            } else {
             }
             bool newCamera = m_previousSceneCamera != activeCamera;
         }
-
 
 
         /*
@@ -617,9 +700,9 @@ sd
         m_lastActiveCamera = activeCamera;
 
         float editorAspect = static_cast<float>(m_createInfo.width) /
-                     static_cast<float>(m_createInfo.height);
+                             static_cast<float>(m_createInfo.height);
         float imageAspect = static_cast<float>(m_colorTexture->width()) /
-                                  static_cast<float>(m_colorTexture->height());
+                            static_cast<float>(m_colorTexture->height());
         float scaleX = 1.0f, scaleY = 1.0f;
         if (editorAspect > imageAspect) {
             scaleX = imageAspect / editorAspect;

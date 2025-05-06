@@ -14,7 +14,23 @@
 // -------------------------
 // Main tracer class
 // -------------------------
-namespace VkRender {
+namespace VkRender::PathTracer {
+
+    /// World‑space cube vertices + indices for one BVH node
+    enum class BVHLevel : uint32_t   // 0 = BLAS, 1 = TLAS  (room for more levels)
+    {
+        BLAS = 0,
+        TLAS = 1
+    };
+
+    struct alignas(16) DebugBound
+    {
+        glm::mat4 model;      // world transform (translation only)
+        glm::vec3 size;       // width / height / depth
+        uint32_t  level;      // cast from BVHLevel – lets you filter later
+        std::string name;   // human-readable mesh name (or instance identifier)
+
+    };
 
     struct PathTracerSYCLCreateInfo {
         sycl::queue& queue;
@@ -48,6 +64,10 @@ namespace VkRender {
         /** (re)allocates all GPU buffers that depend on scene topology */
         void uploadScene(const std::shared_ptr<Scene>& scene, EditorCamera editorCamera = EditorCamera());
 
+        void traverseBVH();
+
+        void intersectBVH(uint32_t nodeIndex);
+
         /** reallocates output image if #cameras / resolution changed */
         void setupFrameBuffers();
 
@@ -64,6 +84,8 @@ namespace VkRender {
         void createEditorCamera(const std::shared_ptr<ArcballCamera> & camera, int32_t int32, int32_t height);
 
         const PathTracerSYCLCreateInfo& getCreateInfo() { return m_createInfo; }
+
+        std::vector<BVHNode> getBvhNodes() {return m_bvhNodes;}
     private:
         /*--- helpers called only from uploadScene() ---*/
         void collectGeometry(const std::shared_ptr<Scene>& scene);
@@ -76,16 +98,7 @@ namespace VkRender {
 
         void buildSceneDesc();
 
-        void buildBLASForAllMeshes();
 
-        void buildBVHNodes(
-            const std::vector<PathTracer::Triangle> &triangles,
-            const std::vector<float> &px,
-            const std::vector<float> &py,
-            const std::vector<float> &pz,
-            std::vector<PathTracer::BVHNode> &outNodes);
-
-        void buildTopLevelBVH();
 
         /*--- device clean‑up ---*/
         void freeDeviceMemory();
@@ -101,47 +114,44 @@ namespace VkRender {
         sycl::queue m_queue;
         PathTracerSYCLCreateInfo m_createInfo;
 
-        PathTracer::FrameBuffer m_frameBuffers{};
+        FrameBuffer m_frameBuffers{};
         float4* d_memory = nullptr;
-        PathTracer::FrameBuffer* d_frameBuffers{};
+        FrameBuffer* d_frameBuffers{};
+
+        // BLAS DEBUG NAMES
+        std::vector<std::string>          m_meshNames;    ///< same length as m_meshRanges
+        std::vector<std::string>          m_blasNames;    ///< same length as m_blasRanges
+
+        // BVH
+        std::vector<BVHNode> m_bvhNodes;
+
 
         // === Member (host) staging arrays ===
-        std::vector<float> m_px, m_py, m_pz;
-        std::vector<float> m_nx, m_ny, m_nz;
-        std::vector<PathTracer::Triangle> m_tris;
-        std::vector<PathTracer::MeshRange> m_meshRanges;
-        std::vector<PathTracer::Instance> m_instances;
-        std::vector<PathTracer::Transform> m_transforms;
-        std::vector<PathTracer::Material> m_materials;
-        std::vector<PathTracer::MeshLight> m_lights;
-        std::vector<PathTracer::Camera> m_cameras;
-        std::vector<PathTracer::BVHNode> m_blasNodes;
-        std::vector<PathTracer::BLASRange> m_blasRanges;
-        std::vector<PathTracer::BVHNode> m_tlasNodes;
+        std::vector<Vertex> m_vertices;
+        std::vector<Triangle> m_tris;
+        std::vector<MeshRange> m_meshRanges;
+        std::vector<Instance> m_instances;
+        std::vector<Transform> m_transforms;
+        std::vector<Material> m_materials;
+        std::vector<MeshLight> m_lights;
+        std::vector<Camera> m_cameras;
         // === Host staging helper variables ===
         std::unordered_map<std::string, uint32_t> m_meshIndexMap;
 
 
         // === Device USM pointers ===
-        float *d_px = nullptr;
-        float *d_py = nullptr;
-        float *d_pz = nullptr;
-        float *d_nx = nullptr;
-        float *d_ny = nullptr;
-        float *d_nz = nullptr;
-        PathTracer::Triangle *d_tris = nullptr;
-        PathTracer::MeshRange *d_meshRanges = nullptr;
-        PathTracer::Instance *d_instances = nullptr;
-        PathTracer::Transform *d_transforms = nullptr;
-        PathTracer::Material *d_materials = nullptr;
-        PathTracer::MeshLight *d_lights = nullptr;
-        PathTracer::Camera *d_cameras = nullptr;
-        PathTracer::SceneDesc *d_sceneDesc = nullptr;
-        PathTracer::BVHNode* d_blasNodes = nullptr;
-        PathTracer::BLASRange* d_blasRanges = nullptr;
-        PathTracer::BVHNode* d_tlasNodes = nullptr;
+        Vertex *d_vertices = nullptr;
+        Triangle *d_tris = nullptr;
+        MeshRange *d_meshRanges = nullptr;
+        Instance *d_instances = nullptr;
+        Transform *d_transforms = nullptr;
+        Material *d_materials = nullptr;
+        MeshLight *d_lights = nullptr;
+        Camera *d_cameras = nullptr;
+        SceneDesc *d_sceneDesc = nullptr;
+        BVHNode* d_bvhNodes = nullptr;
         // Host copy of the descriptor used to build the device-side struct
-        PathTracer::SceneDesc m_sceneDesc;
+        SceneDesc m_sceneDesc;
 
         // === Counts (optional mirrors) ===
         uint32_t m_triCount = 0;

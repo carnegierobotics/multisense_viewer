@@ -18,17 +18,22 @@ namespace VkRender::PathTracer {
 
     /**** Core Data Types ****/
 
-    struct alignas(16) VertexSOA {
-        const float *px = nullptr; // part of VertexSOA
-        const float *py = nullptr;
-        const float *pz = nullptr;
-        const float *nx = nullptr;
-        const float *ny = nullptr;
-        const float *nz = nullptr;
+    struct alignas(16) Vertex {
+        float3 pos;
+        float3 norm;
+        // add UVs, tangents, etc. here if you need
     };
 
     struct alignas(16) Triangle {
-        uint32_t v0, v1, v2; // indices into vertex SOA
+        uint32_t v0, v1, v2;   // indices into a std::vector<Vertex>
+        float3 centroid;
+    };
+
+    struct alignas(32) BVHNode {
+        float3    aabbMin, aabbMax;
+        uint32_t  leftFirst;   // if leaf: index of first triangle, else index of left child
+        uint32_t  triCount;    // >0 => leaf; ==0 => internal
+        bool      isLeaf() const { return triCount > 0; }
     };
 
     struct alignas(16) OrientedPoint // your “beta‑kernel plane”
@@ -70,10 +75,10 @@ namespace VkRender::PathTracer {
     struct alignas(16) MeshLight {
         // per‑triangle data:
         std::vector<sycl::float3> v0, edge1, edge2, normal;
-        std::vector<float>        cdf;         // prefix‑sum(areas) normalized to [0,1]
-        float                     totalArea;   // sum of all triangle areas
-        float                     flux;        // Φ in watts
-        float                     radiance;    // L_e = Φ/(π*totalArea)
+        std::vector<float> cdf; // prefix‑sum(areas) normalized to [0,1]
+        float totalArea; // sum of all triangle areas
+        float flux; // Φ in watts
+        float radiance; // L_e = Φ/(π*totalArea)
 
         Transform transform;
     };
@@ -104,17 +109,6 @@ namespace VkRender::PathTracer {
     };
 
 
-    struct alignas(16) BVHNode {
-        float3   bboxMin;    // world‐space
-        float3   bboxMax;    // world‐space
-        uint32_t leftChild;  // for internal: index of left child node
-        // for leaf: index into instances[]
-        uint32_t rightChild; // for internal: index of right child node
-        // for leaf: unused
-        uint32_t count;      // 0 = internal, 1 = leaf with one instance
-    };
-
-
     // Range of BLAS nodes for each mesh
     struct alignas(16) BLASRange {
         uint32_t firstNode;
@@ -138,20 +132,15 @@ namespace VkRender::PathTracer {
         const MeshRange *meshes = nullptr;
         const OrientedPoint *points = nullptr;
         const PointCloudRange *pointClouds = nullptr;
-        VertexSOA vertices; // see §2
+        const Vertex* vertices; // see §2
 
         // scene graph
         const Instance *instances = nullptr;
         const Transform *transforms = nullptr;
 
         // Bvh
-        BVHNode* blasNodes;
-        uint32_t blasNodeCount;
-
-        BLASRange* blasRanges;
-
-        BVHNode* tlas;
-        uint32_t tlasNodeCount;
+        BVHNode *bvhNodes;
+        uint32_t bvhNodeCount;
 
         // appearance
         const Material *materials = nullptr;
@@ -177,7 +166,6 @@ namespace VkRender::PathTracer {
     struct alignas(16) FrameBuffer {
         float4 *memory = nullptr;
         uint32_t frameBufferSize = 0;
-
     };
 }
 

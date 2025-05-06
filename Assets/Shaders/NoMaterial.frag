@@ -44,7 +44,9 @@ layout (set = 3, binding = 0) uniform sampler2D uTexture;
 layout (location = 0) out vec4 outColor;
 
 void main() {
+    uint mIdx = pc.materialBase + vInstIdx;
+    MaterialBufferObject mbo = uMaterials.mat[mIdx];
 
     // use the gamma corrected color in the fragment
-    outColor =vec4(1.0);
+    outColor = vec4(mbo.baseColor);
 }

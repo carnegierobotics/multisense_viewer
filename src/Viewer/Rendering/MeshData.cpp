@@ -725,7 +725,7 @@ namespace VkRender {
         m_vertices.clear();
         m_indices.clear();
 
-        const glm::vec3 half = glm::vec3(cube.size * 0.5f);
+        const glm::vec3 half = glm::vec3(cube.width, cube.height, cube.depth) / 2.0f;
         const glm::vec3 &O = cube.origin;
 
         // same 8 corners

@@ -21,7 +21,9 @@ namespace VkRender {
     class CubeMeshParameters : public IMeshParameters {
     public:
         glm::vec3 origin = glm::vec3(0.0f);
-        float size = 1.0f;
+        float width = 1.0f;
+        float height = 1.0f;
+        float depth = 1.0f;
 
         void setOrigin(const glm::vec3 &origin) {
             if (this->origin != origin) {
@@ -30,11 +32,22 @@ namespace VkRender {
             }
         }
 
-        void setSize(const float &size) {
-            if (this->size != size) {
-                this->size = size;
-                setDirty();
+        void setSize(const float &width, const float &height, const float &depth) {
+            bool changed = false;
+            if (this->width != width) {
+                this->width = width;
+                changed = true;
             }
+            if (this->height != height) {
+                this->height = height;
+                changed = true;
+            }
+            if (this->depth != depth) {
+                this->depth = depth;
+                changed = true;
+            }
+            if (changed)
+                setDirty();
         }
 
         std::string getIdentifier() const override {
@@ -169,11 +182,9 @@ namespace VkRender {
     class OBJFileMeshParameters : public IMeshParameters {
     public:
         explicit OBJFileMeshParameters(std::filesystem::path path) : path(std::move(path)) {
-            std::filesystem::path assetsPath = ApplicationConfig::getInstance().getUserSetting().assetsPath;
         }
 
         std::filesystem::path path;
-        std::filesystem::path relativeAssetPath; // TODO fix
 
         std::string getIdentifier() const override {
             return "OBJFileMeshParameters_" + path.string();

@@ -123,6 +123,7 @@ namespace VkRender::PathTracer {
         const float3& invDir,
         float tMax,
         float& tEntry) {
+        /*
         float3 tmp = node.bboxMin - ray.origin;
         float3 t0 = tmp * invDir;
         float3 tmp2 = node.bboxMax - ray.origin;
@@ -140,7 +141,9 @@ namespace VkRender::PathTracer {
             return false;
 
         tEntry = tmin;
+        */
         return true;
+
     }
 
     //------------------------------------------------------------------------------

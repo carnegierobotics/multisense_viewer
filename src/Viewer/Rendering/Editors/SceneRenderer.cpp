@@ -273,6 +273,9 @@ namespace VkRender {
                 gUbo.lightPos[lcount++] = glm::vec4(tr.getPosition(), 1.0f);
             }
         }
+        if (lcount == 0) {
+            gUbo.lightPos[0] = glm::vec4(5.0f, 5.05, 5.0f, 1.0f);
+        }
         gUbo.numLights = float(lcount);
         m_globalUbo.upload(m_context->vkDevice(), fIdx,
                            &gUbo, 1, sizeof(GlobalUBO));

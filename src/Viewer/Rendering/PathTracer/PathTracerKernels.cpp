@@ -9,7 +9,9 @@
 
 namespace VkRender::PathTracer {
     bool PathTracerMeshKernel::intersectBLAS(
+
         const Ray &ray, uint32_t meshIdx, Hit &out) const {
+        /*
         // fetch the BLAS range for this mesh
         const auto &mr = d_sceneDesc->meshes[meshIdx];
         const auto firstNode = d_sceneDesc->blasRanges[meshIdx].firstNode;
@@ -62,10 +64,12 @@ namespace VkRender::PathTracer {
             return true;
         }
         return false;
+        */
     }
 
 
     bool PathTracerMeshKernel::intersectScene(const Ray &rayW, Hit *hit) const {
+        /*
         const auto *tlas = d_sceneDesc->tlas;
         const auto *insts = d_sceneDesc->instances;
         const auto *xforms = d_sceneDesc->transforms;
@@ -121,6 +125,8 @@ namespace VkRender::PathTracer {
         }
 
         return anyHit;
+        */
+        return false;
     }
 
 
@@ -216,6 +222,7 @@ namespace VkRender::PathTracer {
             if (!intersectScene(worldRay, &hit))
                 break;
 
+            /*
             // interpolate normal from triangle
             const Triangle &T = scene.triangles[hit.primIdx];
             const auto &VSOA = scene.vertices;
@@ -237,6 +244,7 @@ namespace VkRender::PathTracer {
 
             // spawn next bounce
             worldRay = spawnNextRay(hit, N, rng);
+            */
         }
     }
 }

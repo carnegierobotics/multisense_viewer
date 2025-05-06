@@ -230,8 +230,6 @@ namespace VkRender {
                     auto params = std::dynamic_pointer_cast<OBJFileMeshParameters>(mesh.meshParameters);
                     out << YAML::Key << "ModelPath";
                     out << YAML::Value << params->path.string();
-                    out << YAML::Key << "RelativeModelPath";
-                    out << YAML::Value << params->relativeAssetPath.string();
                 }
                 break;
                 case PLY_FILE: {
@@ -611,10 +609,6 @@ namespace VkRender {
                     std::filesystem::path path;
                     if (meshComponentNode["ModelPath"]) {
                         path = meshComponentNode["ModelPath"].as<std::string>();
-                    }
-                    if (meshComponentNode["RelativeModelPath"]) {
-                        path = std::filesystem::path(assetsPath) / std::filesystem::path(
-                                   meshComponentNode["RelativeModelPath"].as<std::string>());
                     }
 
                     auto meshDataTypeStr = meshComponentNode["MeshDataType"].as<std::string>();

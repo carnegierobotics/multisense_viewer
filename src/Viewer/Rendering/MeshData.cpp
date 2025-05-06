@@ -5,20 +5,21 @@
 
 #include "Viewer/Rendering/MeshData.h"
 
-#include "tinyply.h"
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
 
 #define TINYOBJLOADER_IMPLEMENTATION // define this in only *one* .cc
 #define TINYOBJLOADER_USE_MAPBOX_EARCUT
-
 #include <tiny_obj_loader.h>
 #include <stb_image.h>
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include "glm/ext.hpp"
-
 #include <utility>
-
 #include "MeshParameters.h"
+
+
 
 
 namespace VkRender {
@@ -578,109 +579,80 @@ namespace VkRender {
         }
     }
 
-    void MeshData::generatePLYMesh(const PLYFileMeshParameters &parameters) {
-        std::ifstream ss(parameters.path.string(), std::ios::binary);
-        if (ss.fail()) {
-            Log::Logger::getInstance()->warning("Failed to open {}", parameters.path.string());
-            return;
-        }
+void MeshData::generatePLYMesh(const PLYFileMeshParameters &p)
+{
+    // ----- 1. run Assimp -------------------------------------------------------
+    constexpr uint32_t kFlags =
+          aiProcess_Triangulate            // n‑gons → triangles
+        | aiProcess_JoinIdenticalVertices  // merge duplicates, keeps index size down
+        | aiProcess_GenSmoothNormals       // make normals if none in file
+        | aiProcess_ValidateDataStructure; // catch malformed PLY early
 
-        tinyply::PlyFile file;
-        file.parse_header(ss);
+    Assimp::Importer importer;
+    const aiScene *scene = importer.ReadFile(p.path.string(), kFlags);
 
-        std::shared_ptr<tinyply::PlyData> positionData, colorData, facesData;
-
-        try {
-            // Request position data (double type)
-            positionData = file.request_properties_from_element("vertex", {"x", "y", "z"});
-        } catch (const std::exception &e) {
-            Log::Logger::getInstance()->warning("Failed to Vertex information from {}", parameters.path.string());
-        }
-
-        try {
-            // Request color data (uchar type)
-            colorData = file.request_properties_from_element("vertex", {"red", "green", "blue"});
-        } catch (const std::exception &e) {
-            Log::Logger::getInstance()->warning("Failed to Vertex color information from {}", parameters.path.string());
-        }
-
-        try {
-            facesData = file.request_properties_from_element("face", {"vertex_indices"});
-
-            facesData = file.request_properties_from_element(
-                "face",
-                {"vertex_indices"},
-                3
-            );
-        } catch (const std::exception &e) {
-            Log::Logger::getInstance()->warning("Failed to face/vertex_indices information from {}",
-                                                parameters.path.string());
-        }
-
-        file.read(ss);
-
-        const size_t numVertices = positionData->count;
-        const size_t numFaces = facesData->count;
-
-        // Load position data (double precision)
-        std::vector<double> positions(numVertices * 3);
-        std::memcpy(positions.data(), positionData->buffer.get(), positionData->buffer.size_bytes());
-
-        // Load color data (unsigned char precision)
-        std::vector<uint8_t> colors(numVertices * 3, 1);
-        if (colorData) {
-            std::memcpy(colors.data(), colorData->buffer.get(), colorData->buffer.size_bytes());
-        }
-        std::vector<uint32_t> faces(numFaces * 3);
-        if (facesData) {
-            std::memcpy(faces.data(), facesData->buffer.get(), facesData->buffer.size_bytes());
-        }
-
-        // Populate vertices
-        for (size_t i = 0; i < numVertices; ++i) {
-            Vertex vertex{};
-            vertex.pos = {
-                static_cast<float>(positions[3 * i + 0]),
-                static_cast<float>(positions[3 * i + 1]),
-                static_cast<float>(positions[3 * i + 2])
-            };
-
-
-            vertex.normal = glm::vec3(0.0f);
-            m_vertices.push_back(vertex);
-        }
-
-        // Populate indices
-        for (size_t i = 0; i < numFaces; ++i) {
-            m_indices.push_back(faces[3 * i + 0]);
-            m_indices.push_back(faces[3 * i + 1]);
-            m_indices.push_back(faces[3 * i + 2]);
-        }
-
-        // Compute face normals and accumulate them in each vertex normal
-        for (size_t i = 0; i < m_indices.size(); i += 3) {
-            uint32_t i0 = m_indices[i + 0];
-            uint32_t i1 = m_indices[i + 1];
-            uint32_t i2 = m_indices[i + 2];
-
-            glm::vec3 v0 = m_vertices[i0].pos;
-            glm::vec3 v1 = m_vertices[i1].pos;
-            glm::vec3 v2 = m_vertices[i2].pos;
-
-            glm::vec3 edge1 = v1 - v0;
-            glm::vec3 edge2 = v2 - v0;
-            glm::vec3 faceNormal = glm::normalize(glm::cross(edge1, edge2));
-
-            m_vertices[i0].normal += faceNormal;
-            m_vertices[i1].normal += faceNormal;
-            m_vertices[i2].normal += faceNormal;
-        }
-
-        // Normalize all the vertex normals
-        for (auto &vertex: m_vertices) {
-            vertex.normal = glm::normalize(vertex.normal);
-        }
+    if (!scene || !scene->HasMeshes()) {
+        Log::Logger::getInstance()->warning("Assimp: failed to read {} ({})",
+                     p.path.string(), importer.GetErrorString());
+        return;
     }
+
+    // ----- 2. flatten all meshes into a single VBO/IBO ------------------------
+    m_vertices.clear();
+    m_indices .clear();
+
+    size_t baseVertex = 0;
+    for (unsigned int m = 0; m < scene->mNumMeshes; ++m)
+    {
+        const aiMesh *mesh = scene->mMeshes[m];
+
+        // 2‑a. vertices --------------------------------------------------------
+        for (unsigned int i = 0; i < mesh->mNumVertices; ++i)
+        {
+            Vertex v;
+            // position (always present)
+            const aiVector3D &p3 = mesh->mVertices[i];
+            v.pos = { p3.x, p3.y, p3.z };
+
+            // normal (generated above if missing in file)
+            if (mesh->HasNormals()) {
+                const aiVector3D &n3 = mesh->mNormals[i];
+                v.normal = { n3.x, n3.y, n3.z };
+            } else {
+                v.normal = {};
+            }
+
+            // colour (only first colour set; falls back to white)
+            if (mesh->HasVertexColors(0)) {
+                const aiColor4D &c4 = mesh->mColors[0][i];
+                v.color = { c4.r, c4.g, c4.b, c4.a };
+            } else {
+                v.color = {1.f, 1.f, 1.f, 1.f};
+            }
+
+            m_vertices.push_back(v);
+        }
+
+        // 2‑b. indices ---------------------------------------------------------
+        for (unsigned int f = 0; f < mesh->mNumFaces; ++f)
+        {
+            const aiFace &face = mesh->mFaces[f];
+            if (face.mNumIndices != 3) {
+                // aiProcess_Triangulate guarantees triangles, but be safe
+                continue;
+            }
+            m_indices.push_back(baseVertex + face.mIndices[0]);
+            m_indices.push_back(baseVertex + face.mIndices[1]);
+            m_indices.push_back(baseVertex + face.mIndices[2]);
+        }
+
+        baseVertex += mesh->mNumVertices;
+    }
+
+    Log::Logger::getInstance()->info("PLY: loaded {} vertices, {} triangles from {}",
+              m_vertices.size(), m_indices.size() / 3, p.path.string());
+}
+
 
     void MeshData::generatePlaneMesh(const PlaneMeshParameters &plane) {
         // Origin in XYZ, and half-extents in X (width) and Y (height)

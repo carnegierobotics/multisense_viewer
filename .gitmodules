@@ -43,3 +43,6 @@
 [submodule "external/ImGuizmo"]
 	path = external/ImGuizmo
 	url = https://github.com/CedricGuillemet/ImGuizmo
+[submodule "external/assimp"]
+	path = external/assimp
+	url = https://github.com/assimp/assimp

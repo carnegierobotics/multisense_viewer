@@ -1232,7 +1232,18 @@ namespace VkRender {
 
                     break;
                 case LayerUtils::PLY_3DGS: {
-
+                        if (m_selectionContext.hasComponent<MeshComponent>()) {
+                            auto &meshComponent = m_selectionContext.getComponent<MeshComponent>();
+                            auto param = std::dynamic_pointer_cast<PLYFileMeshParameters>(meshComponent.meshParameters);
+                            if (param) {
+                                param->path = loadFileInfo.path;
+                                param->setDirty();
+                            } else {
+                                m_selectionContext.removeComponent<MeshComponent>();
+                                auto &meshComponent = m_selectionContext.addComponent<MeshComponent>(
+                                    PLY_FILE, loadFileInfo.path);
+                            }
+                        }
                 }
                 break;
                 case LayerUtils::PLY_QUADRATIC: {

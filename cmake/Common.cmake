@@ -53,21 +53,22 @@ else ()
 endif ()
 # Include Submodules into project.
 # Check if exists or display fatal error
-set(GLM_DIR external/glm)
-set(VULKAN_MEMORY_ALLOCATOR_DIR external/VulkanMemoryAllocator)
-set(GLFW_DIR external/glfw)
-set(TINYGLFT_DIR external/tinygltf)
-set(LIBMULTISENSE_DIR external/LibMultiSense)
-set(FMT_DIR external/fmt)
-set(LIBTIFF_DIR external/libtiff)
-set(IMGUI_DIR external/imgui)
-set(KTX_DIR external/KTX-Software)
-set(NLOHMANN_JSON external/json)
-set(CPP_HTTPLIB external/cpp-httplib)
-set(ENTT_DIR external/entt)
-set(TINY_OBJ_LOADER_DIR external/tinyobjloader)
-set(TINY_PLY_DIR external/tinyply)
-set(YAML_CPP external/yaml-cpp)
+set(EXTERNAL_DIR external)
+set(GLM_DIR ${EXTERNAL_DIR}/glm)
+set(VULKAN_MEMORY_ALLOCATOR_DIR ${EXTERNAL_DIR}/VulkanMemoryAllocator)
+set(GLFW_DIR ${EXTERNAL_DIR}/glfw)
+set(TINYGLFT_DIR ${EXTERNAL_DIR}/tinygltf)
+set(LIBMULTISENSE_DIR ${EXTERNAL_DIR}/LibMultiSense)
+set(FMT_DIR ${EXTERNAL_DIR}/fmt)
+set(LIBTIFF_DIR ${EXTERNAL_DIR}/libtiff)
+set(IMGUI_DIR ${EXTERNAL_DIR}/imgui)
+set(KTX_DIR ${EXTERNAL_DIR}/KTX-Software)
+set(NLOHMANN_JSON ${EXTERNAL_DIR}/json)
+set(CPP_HTTPLIB ${EXTERNAL_DIR}/cpp-httplib)
+set(ENTT_DIR ${EXTERNAL_DIR}/entt)
+set(TINY_OBJ_LOADER_DIR ${EXTERNAL_DIR}/tinyobjloader)
+set(TINY_PLY_DIR ${EXTERNAL_DIR}/tinyply)
+set(YAML_CPP ${EXTERNAL_DIR}/yaml-cpp)
 
 if (NOT EXISTS "${PROJECT_SOURCE_DIR}/${GLM_DIR}/CMakeLists.txt")
     message(FATAL_ERROR "The submodules ${GLM_DIR} not downloaded! GIT_SUBMODULE was turned off or failed. Please update submodules and try again.")
@@ -145,9 +146,9 @@ if (NOT EXISTS "${PROJECT_SOURCE_DIR}/${IMGUI_DIR}/imgui.h")
 else ()
     message(STATUS "[VkRenderINFO]: Adding IMGUI from directory: ${IMGUI_DIR}")
 
-    set(IMGUI_DIR external/imgui)
-    set(IMPLOT3D_DIR external/implot3d)
-    set(IMGUIZMO_DIR external/ImGuizmo)
+    set(IMGUI_DIR ${EXTERNAL_DIR}/imgui)
+    set(IMPLOT3D_DIR ${EXTERNAL_DIR}/implot3d)
+    set(IMGUIZMO_DIR ${EXTERNAL_DIR}/ImGuizmo)
 
     target_sources(${PROJECT_NAME} PRIVATE
             ${IMGUI_DIR}/imgui.h
@@ -237,6 +238,24 @@ else ()
     message(STATUS "[VkRenderINFO]: Adding ENTT_DIR from directory: ${ENTT_DIR}")
     include_directories(${ENTT_DIR}/include/)
 endif ()
+
+# Path to the assimp submodule
+set(ASSIMP_DIR "${EXTERNAL_DIR}/assimp")
+
+if (NOT EXISTS "${PROJECT_SOURCE_DIR}/${ASSIMP_DIR}/CMakeLists.txt")
+    message(FATAL_ERROR
+            "Assimp not found in ${PROJECT_SOURCE_DIR}/${ASSIMP_DIR}/CMakeLists.txt.\n"
+            "Did you forget to run:\n"
+            "   git submodule update --init ${EXTERNAL_DIR}/assimp"
+    )
+else()
+    message(STATUS "Adding Assimp from: ${ASSIMP_DIR}")
+    # Pull in assimp’s own CMake build
+    add_subdirectory(${ASSIMP_DIR} ${CMAKE_BINARY_DIR}/_deps/assimp)
+    # Make sure our target knows about it
+    target_link_libraries(${PROJECT_NAME} PRIVATE assimp::assimp)
+    target_include_directories(${PROJECT_NAME} PRIVATE ${ASSIMP_DIR}/include)
+endif()
 
 # Generate version file
 function(GenerateVersionFile)

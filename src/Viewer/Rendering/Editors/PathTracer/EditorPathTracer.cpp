@@ -99,6 +99,7 @@ namespace VkRender {
             Entity e(id, m_context->activeScene().get());
             m_context->activeScene()->destroyEntity(e);
         }
+
         // Get and render BVH
         auto nodes = m_pathTracerSYCL->getBvhNodes();
         size_t N = nodes.size();
@@ -157,13 +158,13 @@ namespace VkRender {
             auto &mesh = ent.addComponent<MeshComponent>(CUBE);
             mesh.polygonMode() = VK_POLYGON_MODE_LINE;
             auto params = std::dynamic_pointer_cast<CubeMeshParameters>(mesh.meshParameters);
-            params->width = size.x;
-            params->height = size.y;
-            params->depth = size.z;
 
-            // set translation
+            glm::mat4 model = glm::translate(glm::mat4(1.0f), center)
+                            * glm::scale    (glm::mat4(1.0f), size);
+
+            // apply it
             auto &xf = ent.getComponent<TransformComponent>();
-            xf.translation = center;
+            xf.setTransform(model);   // or however your API expects you to set the full matrix
 
             // pick a color based on depth, fade alpha for inner nodes
             glm::vec3 rgb = palette[d % palette.size()];

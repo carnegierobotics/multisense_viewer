@@ -19,17 +19,26 @@
 
 namespace VkRender {
     class CubeMeshParameters : public IMeshParameters {
-    public:
+    private:
         glm::vec3 origin = glm::vec3(0.0f);
         float width = 1.0f;
         float height = 1.0f;
         float depth = 1.0f;
+
+        public:
 
         void setOrigin(const glm::vec3 &origin) {
             if (this->origin != origin) {
                 this->origin = origin;
                 setDirty();
             }
+        }
+
+        glm::vec3 getSize() const {
+            return {width, height, depth};
+        }
+        glm::vec3 getOrigin() const {
+            return origin;
         }
 
         void setSize(const float &width, const float &height, const float &depth) {

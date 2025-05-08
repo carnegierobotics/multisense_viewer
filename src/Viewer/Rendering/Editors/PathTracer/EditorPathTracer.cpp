@@ -10,7 +10,7 @@
 
 
 namespace VkRender {
-    EditorPathTracer::EditorPathTracer(EditorCreateInfo &createInfo, UUID uuid) : Editor(createInfo, uuid) {
+    EditorPathTracer::EditorPathTracer(EditorCreateInfo& createInfo, UUID uuid) : Editor(createInfo, uuid) {
         addUI("EditorPathTracerLayer");
         addUI("EditorUILayer");
         addUI("DebugWindow");
@@ -38,7 +38,7 @@ namespace VkRender {
         scaleViewportQuad();
     }
 
-    void EditorPathTracer::onFileDrop(const std::filesystem::path &path) {
+    void EditorPathTracer::onFileDrop(const std::filesystem::path& path) {
         std::string extension = path.extension().string();
         std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
         if (extension == ".png" || extension == ".jpg") {
@@ -85,7 +85,8 @@ namespace VkRender {
             m_pathTracerSYCL->uploadScene(m_context->activeScene(), editorCamera);
             Log::Logger::getInstance()->info("Updated path tracer settings, Using DeviceType: {}, Device: {}",
                                              syclDeviceTypeToString(imageUI->selectedDevice), dev->getDeviceName());
-        } else {
+        }
+        else {
             Log::Logger::getInstance()->warning(
                 "Failed to update Path Tracer execution Device to {}, reverting selection. Using Device: {}",
                 syclDeviceTypeToString(imageUI->selectedDevice),
@@ -95,86 +96,11 @@ namespace VkRender {
 
 
         auto view = m_context->activeScene()->getRegistry().view<TemporaryComponent>();
-        for (auto id: view) {
+        for (auto id : view) {
             Entity e(id, m_context->activeScene().get());
             m_context->activeScene()->destroyEntity(e);
         }
 
-        // Get and render BVH
-        auto nodes = m_pathTracerSYCL->getBvhNodes();
-        size_t N = nodes.size();
-
-        // 2) compute depth per node
-        std::vector<int> depths(N, -1);
-        if (N > 0) {
-            depths[0] = 0; // root at depth 0
-            for (size_t i = 0; i < N; ++i) {
-                const auto &n = nodes[i];
-                if (!n.isLeaf()) {
-                    uint32_t L = n.leftFirst; // left child index
-                    uint32_t R = n.leftFirst + 1; // right child index
-                    if (L < N) depths[L] = depths[i] + 1;
-                    if (R < N) depths[R] = depths[i] + 1;
-                }
-            }
-        }
-
-        // 3) find the maximum depth
-        int maxDepth = 0;
-        for (int d: depths) if (d > maxDepth) maxDepth = d;
-
-        // 4) prepare a rainbow palette
-        std::vector<glm::vec3> palette = {
-            {1, 0, 0}, {1, 0.5f, 0}, {1, 1, 0},
-            {0, 1, 0}, {0, 1, 1}, {0, 0, 1},
-            {1, 0, 1}
-        };
-
-        // 5) draw each node
-        for (size_t i = 0; i < N; ++i) {
-            const auto &node = nodes[i];
-            int d = std::max(0, depths[i]);
-
-            // build AABB center & size
-            glm::vec3 bmin{
-                node.aabbMin.x(),
-                node.aabbMin.y(),
-                node.aabbMin.z()
-            };
-            glm::vec3 bmax{
-                node.aabbMax.x(),
-                node.aabbMax.y(),
-                node.aabbMax.z()
-            };
-            glm::vec3 size = bmax - bmin;
-            glm::vec3 center = bmin + size * 0.5f;
-
-            // get or create an entity
-            auto ent = m_context->activeScene()
-                    ->getOrCreateEntityByName("BVHNode:" + std::to_string(i));
-            ent.addComponent<TemporaryComponent>();
-
-            // wireframe cube
-            auto &mesh = ent.addComponent<MeshComponent>(CUBE);
-            mesh.polygonMode() = VK_POLYGON_MODE_LINE;
-            auto params = std::dynamic_pointer_cast<CubeMeshParameters>(mesh.meshParameters);
-
-            glm::mat4 model = glm::translate(glm::mat4(1.0f), center)
-                            * glm::scale    (glm::mat4(1.0f), size);
-
-            // apply it
-            auto &xf = ent.getComponent<TransformComponent>();
-            xf.setTransform(model);   // or however your API expects you to set the full matrix
-
-            // pick a color based on depth, fade alpha for inner nodes
-            glm::vec3 rgb = palette[d % palette.size()];
-            float a = 1.0f - float(d) / float(maxDepth + 1);
-            glm::vec4 col{rgb.r, rgb.g, rgb.b, a};
-
-            auto &mat = ent.addComponent<MaterialComponent>();
-            mat.albedo = col;
-            mat.fragmentShaderName = "NoMaterial.frag";
-        }
 
         /*
         auto activeCamera = m_context->activeScene()->getActiveCamera();
@@ -243,11 +169,108 @@ namespace VkRender {
                 //m_pathTracerSYCL->updateDynamic(m_context->activeScene(), editorCamera);
                 //m_pathTracerSYCL->renderFrame(imageUI->photonCount);
                 //m_pathTracerSYCL->generateEditorImage(m_colorTexture);
-            } else {
+            }
+            else {
             }
             bool newCamera = m_previousSceneCamera != activeCamera;
         }
 
+
+        if (imageUI->showBVH) {
+            // ── 1) fetch nodes & compute depth ────────────────────────────────────────
+            const auto nodes = m_pathTracerSYCL->getBvhNodes();
+            const size_t N = nodes.size();
+
+            std::vector<int> depth(N, -1);
+            if (N) {
+                depth[0] = 0; // root
+                for (size_t i = 0; i < N; ++i) {
+                    const auto& n = nodes[i];
+                    if (!n.isLeaf()) {
+                        const uint32_t L = n.leftFirst;
+                        const uint32_t R = n.leftFirst + 1;
+                        if (L < N) depth[L] = depth[i] + 1;
+                        if (R < N) depth[R] = depth[i] + 1;
+                    }
+                }
+            }
+
+            // ── 2) level‑of‑interest range (UI supplies these sliders) ────────────────
+            int minDepth = imageUI->bvhLevelMin; // inclusive
+            int maxDepth = imageUI->bvhLevelMax; // inclusive
+
+            // ── 3) simple rainbow palette ─────────────────────────────────────────────
+            static const glm::vec3 palette[7] = {
+                {1, 0, 0}, {1, 0.5f, 0}, {1, 1, 0}, {0, 1, 0},
+                {0, 1, 1}, {0, 0, 1}, {1, 0, 1}
+            };
+
+            const int deepest = *std::max_element(depth.begin(), depth.end());
+
+            // ── 4) iterate over every BVH node ────────────────────────────────────────
+            for (size_t i = 0; i < N; ++i) {
+                // a) select or create entity -------------------------------------------------
+                const std::string name = "BVHNode:" + std::to_string(i);
+                auto ent = m_context->activeScene()->getOrCreateEntityByName(name);
+
+                // b) one‑time setup (components) --------------------------------------------
+                if (!ent.hasComponent<MeshComponent>()) {
+                    // marker so the scene can flush them later if it likes
+                    ent.addComponent<TemporaryComponent>();
+
+                    // wireframe cube
+                    auto& mesh = ent.addComponent<MeshComponent>(CUBE);
+                    mesh.polygonMode() = VK_POLYGON_MODE_LINE;
+
+                    // simple unlit material
+                    auto& mat = ent.addComponent<MaterialComponent>();
+                    mat.fragmentShaderName = "NoMaterial.frag";
+
+                    ent.addComponent<VisibleComponent>(); // default visible = true
+                }
+
+                // c) visibility test ---------------------------------------------------------
+                const int d = std::max(depth[i], 0);
+                const bool inside = (d >= minDepth) && (d <= maxDepth);
+                ent.getComponent<VisibleComponent>().visible = inside;
+
+                if (!inside) // nothing else to update if invisible
+                    continue;
+
+                // d) update transform --------------------------------------------------------
+                const auto& n = nodes[i];
+                const glm::vec3 bmin{n.aabbMin.x(), n.aabbMin.y(), n.aabbMin.z()};
+                const glm::vec3 bmax{n.aabbMax.x(), n.aabbMax.y(), n.aabbMax.z()};
+                const glm::vec3 size = bmax - bmin;
+                const glm::vec3 centre = bmin + 0.5f * size;
+
+                glm::mat4 model = glm::translate(glm::mat4(1.0f), centre) *
+                    glm::scale(glm::mat4(1.0f), size);
+
+                ent.getOrAddComponent<TransformComponent>().setTransform(model);
+
+                // e) update colour -----------------------------------------------------------
+                glm::vec3 rgb = palette[d % std::size(palette)];
+                float a = 1.0f - (float)d / float(deepest + 1);
+                ent.getComponent<MaterialComponent>().albedo = {rgb, a};
+            }
+        }
+        else // overlay disabled  →  just hide previously created nodes
+        {
+            auto& scene    = *m_context->activeScene();
+            auto& registry = scene.getRegistry();
+
+            // assume you have a NameComponent that holds the string name
+            auto view = registry.view<IDComponent, VisibleComponent>();
+
+            for (auto enttID : view) {
+                const auto& name = Entity(enttID, &scene).getName();
+                // starts_with in C++20, or use rfind:
+                if (name.rfind("BVHNode:", 0) == 0) {
+                    scene.destroyEntity(Entity(enttID, &scene));
+                }
+            }
+        }
 
         /*
         if (imageUI->clearImageMemory || newCamera) {
@@ -387,11 +410,12 @@ namespace VkRender {
     }
 
 
-    void EditorPathTracer::onMouseMove(const MouseButtons &mouse) {
+    void EditorPathTracer::onMouseMove(const MouseButtons& mouse) {
         if (ui()->hovered && mouse.left && !ui()->resizeActive) {
             m_editorCamera->rotate(mouse.dx, mouse.dy);
             m_movedCamera = true;
-        } else if (ui()->hovered && mouse.right && !ui()->resizeActive) {
+        }
+        else if (ui()->hovered && mouse.right && !ui()->resizeActive) {
             m_editorCamera->translate(mouse.dx, mouse.dy);
             m_movedCamera = true;
         }
@@ -405,17 +429,17 @@ namespace VkRender {
     }
 
 
-    void EditorPathTracer::onRender(CommandBuffer &commandBuffer) {
-        std::unordered_map<std::shared_ptr<VulkanGraphicsPipeline>, std::vector<RenderCommand> > renderGroups;
+    void EditorPathTracer::onRender(CommandBuffer& commandBuffer) {
+        std::unordered_map<std::shared_ptr<VulkanGraphicsPipeline>, std::vector<RenderCommand>> renderGroups;
         collectRenderCommands(renderGroups, commandBuffer.frameIndex);
 
         // Render each group
-        for (auto &[pipeline, commands]: renderGroups) {
+        for (auto& [pipeline, commands] : renderGroups) {
             vkCmdBindPipeline(commandBuffer.getActiveBuffer(), VK_PIPELINE_BIND_POINT_GRAPHICS,
                               pipeline->getPipeline());
 
 
-            for (auto &command: commands) {
+            for (auto& command : commands) {
                 // Bind resources and draw
                 bindResourcesAndDraw(commandBuffer, command);
             }
@@ -423,7 +447,7 @@ namespace VkRender {
     }
 
     void EditorPathTracer::collectRenderCommands(
-        std::unordered_map<std::shared_ptr<VulkanGraphicsPipeline>, std::vector<RenderCommand> > &renderGroups,
+        std::unordered_map<std::shared_ptr<VulkanGraphicsPipeline>, std::vector<RenderCommand>>& renderGroups,
         uint32_t frameIndex) {
         if (!m_meshInstances) {
             m_meshInstances = EditorUtils::setupMesh(m_context);
@@ -442,12 +466,12 @@ namespace VkRender {
         writeDescriptors[0].descriptorCount = 1;
         writeDescriptors[0].pImageInfo = &m_colorTexture->getDescriptorInfo();
         VkDescriptorSet descriptorSet = m_descriptorRegistry.getManager(DescriptorManagerType::Viewport3DTexture).
-                getOrCreateDescriptorSet(writeDescriptors);
+                                                             getOrCreateDescriptorSet(writeDescriptors);
 
         PipelineInfo pipelineInfo{};
         pipelineInfo.setLayouts.resize(1);
         pipelineInfo.setLayouts[0] = m_descriptorRegistry.getManager(DescriptorManagerType::Viewport3DTexture).
-                getDescriptorSetLayout();
+                                                          getDescriptorSetLayout();
         // Use default descriptor set layout
 
         if (!m_materialInstance)
@@ -488,7 +512,7 @@ namespace VkRender {
         renderGroups[pipeline].push_back(command);
     }
 
-    void EditorPathTracer::bindResourcesAndDraw(const CommandBuffer &commandBuffer, RenderCommand &command) {
+    void EditorPathTracer::bindResourcesAndDraw(const CommandBuffer& commandBuffer, RenderCommand& command) {
         VkCommandBuffer cmdBuffer = commandBuffer.getActiveBuffer();
         if (command.meshInstance->vertexBuffer) {
             VkBuffer vertexBuffers[] = {command.meshInstance->vertexBuffer->m_buffer};
@@ -504,7 +528,7 @@ namespace VkRender {
         vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                           command.pipeline->getPipeline());
 
-        for (auto &[index, descriptorSet]: command.descriptorSets) {
+        for (auto& [index, descriptorSet] : command.descriptorSets) {
             vkCmdBindDescriptorSets(
                 cmdBuffer,
                 VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -631,8 +655,8 @@ sd
     }
 
 
-    void EditorPathTracer::denoiseImage(float *singleChannelImage, uint32_t width, uint32_t height,
-                                        std::vector<float> &output) {
+    void EditorPathTracer::denoiseImage(float* singleChannelImage, uint32_t width, uint32_t height,
+                                        std::vector<float>& output) {
         /*
         // Initialize OIDN device and commit
         oidn::DeviceRef device = oidn::newDevice();
@@ -701,13 +725,14 @@ sd
         m_lastActiveCamera = activeCamera;
 
         float editorAspect = static_cast<float>(m_createInfo.width) /
-                             static_cast<float>(m_createInfo.height);
+            static_cast<float>(m_createInfo.height);
         float imageAspect = static_cast<float>(m_colorTexture->width()) /
-                            static_cast<float>(m_colorTexture->height());
+            static_cast<float>(m_colorTexture->height());
         float scaleX = 1.0f, scaleY = 1.0f;
         if (editorAspect > imageAspect) {
             scaleX = imageAspect / editorAspect;
-        } else {
+        }
+        else {
             scaleY = editorAspect / imageAspect;
         }
         m_meshInstances.reset();

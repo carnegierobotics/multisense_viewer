@@ -3,17 +3,17 @@ projectName: "PathTracerRenderer"
 logLevel: 2
 editors:
   - borderSize: 5
-    editorTypeDescription: "3D Viewport"
-    width: 80
-    height: 50
+    editorTypeDescription: "Path Tracer"
+    width: 40
+    height: 100
     x: 0
     y: 0
   - borderSize: 5
-    editorTypeDescription: "Path Tracer"
-    width: 80
-    height: 50
-    x: 0
-    y: 50
+    editorTypeDescription: "3D Viewport"
+    width: 40
+    height: 100
+    x: 40
+    y: 0
   - borderSize: 5
     editorTypeDescription: "Properties"
     width: 20

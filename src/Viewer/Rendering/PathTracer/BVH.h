@@ -19,7 +19,7 @@ namespace VkRender::PathTracer {
                           const std::vector<Vertex> &verts,
                           std::vector<BVHNode> &nodes,
                           std::vector<uint32_t> &triIndices,
-                          uint32_t maxLeafSize = 2) {
+                          uint32_t maxLeafSize = 16) {
             // 1) copy and centroid
             std::vector<Triangle> &tris = inTris;
             computeCentroids(tris, verts);

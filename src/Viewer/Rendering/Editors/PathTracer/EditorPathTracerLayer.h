@@ -16,7 +16,10 @@ namespace VkRender {
         void onAttach() override;
         void onDetach() override;
         void onUIRender() override;
+        void drawDebugViewTab();
         void onFinishedRender() override;
+
+        void drawRendererSettingsTab();
     };
 }
 

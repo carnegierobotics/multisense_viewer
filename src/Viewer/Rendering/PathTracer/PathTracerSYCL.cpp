@@ -48,7 +48,10 @@ namespace VkRender::PathTracer {
         collectLights(scene);
 
         std::vector<uint32_t> triangleIndices;
-        BasicBVH::build(m_tris, m_vertices, m_bvhNodes, triangleIndices);
+        std::vector<Vertex> worldVerts;
+
+
+        BasicBVH::build(m_tris, m_verticesWorld, m_bvhNodes, triangleIndices);
         //buildTopLevelBVH();
         // build and upload scene descriptor
         buildSceneDesc();
@@ -224,6 +227,7 @@ namespace VkRender::PathTracer {
         for (auto id: view) {
             Entity e(id, scene.get());
             auto &mc = e.getComponent<MeshComponent>();
+            auto &transformComponent = e.getComponent<TransformComponent>();
             std::string meshID = mc.getCacheIdentifier();
             if (m_meshIndexMap.count(meshID)) continue;
             auto mesh = MeshManager::instance().getMeshData(mc);
@@ -237,6 +241,12 @@ namespace VkRender::PathTracer {
                 vertex.pos = float3{v.pos.x, v.pos.y, v.pos.z};
                 vertex.norm = float3{v.normal.x, v.normal.y, v.normal.z};
                 m_vertices.push_back(vertex);
+
+                Vertex vertexWorld;
+                glm::vec3 vWorld = glm::vec3(transformComponent.getTransform() * glm::vec4(v.pos, 1.0f));
+                vertexWorld.pos = float3{vWorld.x, vWorld.y, vWorld.z};
+                vertexWorld.norm = float3{v.normal.x, v.normal.y, v.normal.z};
+                m_verticesWorld.push_back(vertexWorld);
             }
             // append triangles
             const float inv3 = 1.0f / 3.0f;

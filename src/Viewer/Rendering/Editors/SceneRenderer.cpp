@@ -381,6 +381,7 @@ namespace VkRender {
         }
 
         /* ── 4. draw ─────────────────────────────────────────────────── */
+        /* ── 4. draw ─────────────────────────────────────────────────── */
         const uint32_t ic = std::max(cmd.meshInstance->instanceCount, 1u);
 
         if (cmd.meshInstance->indexBuffer) {
@@ -401,28 +402,21 @@ namespace VkRender {
         // Initialize a flag to determine if we should skip this entity
         bool skipEntity = false;
 
-        // Start with the current entity
-        Entity current = e;
-        // Traverse up the parent hierarchy
-        while (current.getParent()) {
-            // Move to the parent entity
-            current = current.getParent();
-            // Check if the parent has both GroupComponent and VisibilityComponent
-            if (current.hasComponent<GroupComponent>() && current.hasComponent<VisibleComponent>()) {
-                // Retrieve the VisibilityComponent
-                auto &visibility = current.getComponent<VisibleComponent>();
-                // If visibility is set to false, mark to skip this entity
-                if (!visibility.visible) {
-                    skipEntity = true;
-                    break; // No need to check further ancestors
-                }
-            }
-        }
-        // If an ancestor with visible == false was found, skip to the next entity
-        if (skipEntity) {
+        // 1) self -----------------------------------------------------------
+        if (e.hasComponent<VisibleComponent>() &&
+            !e.getComponent<VisibleComponent>().visible)
             return false;
+
+        // 2) ancestors ------------------------------------------------------
+        Entity cur = e;
+        while (cur.getParent())
+        {
+            cur = cur.getParent();
+            if (cur.hasComponent<VisibleComponent>() &&
+                !cur.getComponent<VisibleComponent>().visible)
+                return false;
         }
-        return !skipEntity;
+        return true;
     }
 
     PipelineKey SceneRenderer::makeKey(MeshComponent &mc,

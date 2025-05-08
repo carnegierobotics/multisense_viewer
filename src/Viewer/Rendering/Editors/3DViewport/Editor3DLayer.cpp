@@ -12,8 +12,11 @@
 #include <ImGuizmo.h>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
+#include <Viewer/Rendering/ImGui/IconsFontAwesome6.h>
+#include <Viewer/Rendering/ImGui/LayerUtils.h>
 
 namespace VkRender {
+
     void Editor3DLayer::onAttach() {
     }
 
@@ -22,30 +25,90 @@ namespace VkRender {
 
     void Editor3DLayer::onUIRender() {
         // Set window position and size
-        ImVec2 window_pos = ImVec2(m_editor->ui()->layoutConstants.uiXOffset, 0.0f); // Position (x, y)
-        ImVec2 window_size = ImVec2(m_editor->ui()->width - window_pos.x,
-                                    m_editor->ui()->height - window_pos.y); // Size (width, height)
+        ImVec2 windowPos = ImVec2(m_editor->ui()->layoutConstants.uiXOffset, 0.0f); // Position (x, y)
+        ImVec2 editorWindowSize = ImVec2(m_editor->ui()->width - windowPos.x,
+                                         m_editor->ui()->height - windowPos.y); // Size (width, height)
 
         // Set window flags to remove decorations
         ImGuiWindowFlags window_flags =
-                ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBackground |
-                ImGuiWindowFlags_NoBringToFrontOnFocus;
+            ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBackground |
+            ImGuiWindowFlags_NoBringToFrontOnFocus;
 
         // Set next window position and size
-        ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always);
-        ImGui::SetNextWindowSize(window_size, ImGuiCond_Always);
+        ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
+        ImGui::SetNextWindowSize(editorWindowSize, ImGuiCond_Always);
         // Create the parent window
         ImGui::Begin("Editor3DLayer", nullptr, window_flags);
 
+        static int currentTab = -1; // keep outside the loop
+        const VerticalIconTab kTabs[] =
+        {
+            {ICON_FA_GEAR, "Settings", [this] { drawSettingsTab(); }},
+            {ICON_FA_LIFE_RING, "Gizmos", [] { ImGui::Text("TODO "); }},
+        };
+        LayerUtils::drawVerticalIconTabs(kTabs, IM_ARRAYSIZE(kTabs), currentTab, m_editor);
+
+        static int selection = 0;
+        if (Input::isKeyClicked(GLFW_KEY_Q)) {
+            selection = -1;
+        }
+        if (Input::isKeyClicked(GLFW_KEY_W)) {
+            selection = ImGuizmo::TRANSLATE;
+        }
+        if (Input::isKeyClicked(GLFW_KEY_E)) {
+            selection = ImGuizmo::ROTATE;
+        }
+        if (Input::isKeyClicked(GLFW_KEY_R)) {
+            selection = ImGuizmo::SCALE;
+        }
+
         auto imageUI = std::dynamic_pointer_cast<Editor3DViewportUI>(m_editor->ui());
-        auto editor = reinterpret_cast<Editor3DViewport *>(m_editor);
+        auto editor = reinterpret_cast<Editor3DViewport*>(m_editor);
+        // view gizmo
+        auto scene = m_context->activeScene();
+        auto entity = m_context->getSelectedEntity();
+        if (selection >= 0 && entity && entity.hasComponent<TransformComponent>()) {
+            auto& transformComponent = entity.getComponent<TransformComponent>();
+            auto camera = editor->getCamera();
+            auto matrices = camera->matrices;
+            float* viewPtr = glm::value_ptr(matrices.view);
+            float* projectionPtr = glm::value_ptr(matrices.projection);
+            static glm::mat4 matrix(1.0f);
+            static glm::mat4 deltaMatrix(1.0f);
+
+            ImGuizmo::SetOrthographic(false);
+            ImGuizmo::SetDrawlist();
+            ImGuizmo::SetRect(ImGui::GetWindowPos().x, ImGui::GetWindowPos().y, ImGui::GetWindowWidth(),
+                              ImGui::GetWindowHeight());
+            glm::mat4 transform = transformComponent.getTransform();
+            float snap = 0;
+            ImGuizmo::Manipulate(viewPtr, projectionPtr, static_cast<ImGuizmo::OPERATION>(selection), ImGuizmo::WORLD,
+                                 glm::value_ptr(transform));
+
+            if (ImGuizmo::IsUsing()) {
+                glm::vec3 translation, rotation, scale;
+                decomposeTransform(transform, translation, rotation, scale);
+                transformComponent.setPosition(translation);
+                transformComponent.setRotationEuler(rotation);
+                transformComponent.setScale(scale);
+                editor->ui()->occludedByGizmo = true;
+            }
+            else {
+                editor->ui()->occludedByGizmo = false;
+            }
+        }
+
+        ImGui::End();
+    }
+
+
+    void Editor3DLayer::drawSettingsTab() {
+        auto imageUI = std::dynamic_pointer_cast<Editor3DViewportUI>(m_editor->ui());
+        auto editor = reinterpret_cast<Editor3DViewport*>(m_editor);
 
         ImGui::Checkbox("Active camera", &imageUI->renderFromViewpoint);
-        ImGui::SameLine();
-        imageUI->saveNextFrame = ImGui::Button("Save");
-        ImGui::SameLine();
-        imageUI->reloadViewportShader = ImGui::Button("Reload Shader");
-        ImGui::SameLine();
+        //imageUI->saveNextFrame = ImGui::Button("Save");
+        //imageUI->reloadViewportShader = ImGui::Button("Reload Shader");
         ImGui::SetNextItemWidth(100.0f);
         if (ImGui::BeginCombo("Image Type",
                               imageUI->selectedImageType == OutputTextureImageType::Color ? "Color" : "Depth")) {
@@ -64,9 +127,9 @@ namespace VkRender {
             }
             ImGui::EndCombo();
         }
-        ImGui::SameLine();
 
         // Show Depth options if Depth is selected
+        /*
         if (imageUI->selectedImageType == OutputTextureImageType::Depth) {
             ImGui::Text("Depth Color Options");
             ImGui::SameLine();
@@ -76,12 +139,12 @@ namespace VkRender {
                                   imageUI->depthColorOption == DepthColorOption::None
                                       ? "None"
                                       : imageUI->depthColorOption == DepthColorOption::Invert
-                                            ? "Invert"
-                                            : imageUI->depthColorOption == DepthColorOption::Normalize
-                                                  ? "Normalize"
-                                                  : imageUI->depthColorOption == DepthColorOption::JetColormap
-                                                        ? "Colormap (Jet)"
-                                                        : "Colormap (Viridis)")) {
+                                      ? "Invert"
+                                      : imageUI->depthColorOption == DepthColorOption::Normalize
+                                      ? "Normalize"
+                                      : imageUI->depthColorOption == DepthColorOption::JetColormap
+                                      ? "Colormap (Jet)"
+                                      : "Colormap (Viridis)")) {
                 if (ImGui::Selectable("Invert", imageUI->depthColorOption == DepthColorOption::Invert)) {
                     if (imageUI->depthColorOption != DepthColorOption::Invert) {
                         imageUI->depthColorOption = DepthColorOption::Invert;
@@ -110,58 +173,13 @@ namespace VkRender {
                 }
                 ImGui::EndCombo();
             }
-        } else {
+
+        } */
+        else {
             imageUI->depthColorOption = DepthColorOption::None;
         }
-
-        static int selection = 0;
-        if (Input::isKeyClicked(GLFW_KEY_Q)) {
-            selection = -1;
-        }
-        if (Input::isKeyClicked(GLFW_KEY_W)) {
-            selection = ImGuizmo::TRANSLATE;
-        }
-        if (Input::isKeyClicked(GLFW_KEY_E)) {
-            selection = ImGuizmo::ROTATE;
-        }
-        if (Input::isKeyClicked(GLFW_KEY_R)) {
-            selection = ImGuizmo::SCALE;
-        }
-
-        // view gizmo
-        auto scene = m_context->activeScene();
-        auto entity = m_context->getSelectedEntity();
-        if (selection >= 0 && entity && entity.hasComponent<TransformComponent>()) {
-            auto &transformComponent = entity.getComponent<TransformComponent>();
-            auto camera = editor->getCamera();
-            auto matrices = camera->matrices;
-            float *viewPtr = glm::value_ptr(matrices.view);
-            float *projectionPtr = glm::value_ptr(matrices.projection);
-            static glm::mat4 matrix(1.0f);
-            static glm::mat4 deltaMatrix(1.0f);
-
-            ImGuizmo::SetOrthographic(false);
-            ImGuizmo::SetDrawlist();
-            ImGuizmo::SetRect(ImGui::GetWindowPos().x, ImGui::GetWindowPos().y, ImGui::GetWindowWidth(),
-                              ImGui::GetWindowHeight());
-            glm::mat4 transform = transformComponent.getTransform();
-            float snap = 0;
-            ImGuizmo::Manipulate(viewPtr, projectionPtr, static_cast<ImGuizmo::OPERATION>(selection), ImGuizmo::WORLD,
-                                 glm::value_ptr(transform));
-
-            if (ImGuizmo::IsUsing()) {
-                glm::vec3 translation, rotation, scale;
-                decomposeTransform(transform, translation, rotation, scale);
-                transformComponent.setPosition(translation);
-                transformComponent.setRotationEuler(rotation);
-                transformComponent.setScale(scale);
-                editor->ui()->occludedByGizmo = true;
-            } else {
-                editor->ui()->occludedByGizmo = false;
-            }
-        }
-        ImGui::End();
     }
+
 
     void Editor3DLayer::onDetach() {
     }

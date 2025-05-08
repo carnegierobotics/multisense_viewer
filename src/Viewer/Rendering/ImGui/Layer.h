@@ -58,6 +58,7 @@ namespace VkRender {
         static const ImVec4 CRLGray424(0.411f, 0.419f, 0.407f, 1.0f);
         static const ImVec4 CRLCoolGray(0.870f, 0.878f, 0.862f, 1.0f);
         static const ImVec4 CRLGray424Main(0.462f, 0.474f, 0.494f, 1.0f);
+        static const ImVec4 CRLGray424MainTransparent(0.462f, 0.474f, 0.494f, 0.4f);
         static const ImVec4 CRLDarkGray425(0.301f, 0.313f, 0.309f, 1.0f);
         static const ImVec4 CRLFrameBG(0.196f, 0.2392f, 0.2588f, 1.0f);
         static const ImVec4 CRLRed(0.768f, 0.125f, 0.203f, 1.0f);
@@ -68,31 +69,12 @@ namespace VkRender {
         static const ImVec4 CRLTextWhite(0.9f, 0.9f, 0.9f, 1.0f);
     }
 
-    /** @brief block for simulated camera, Mostly used for testing  */
-    struct CameraSelection {
-        std::string tag = "Default Camera";
-        bool enabled = false;
-        bool selected = false;
-        int currentItemSelected = 0;
 
-        struct Info {
-            /** @brief 3D view camera type for this device. Arcball or first person view controls) */
-            int type = 0;
-            /** @brief Reset 3D view camera position and rotation */
-            bool reset = false;
-        };
-
-        std::unordered_map<std::string, Info> info;
-    };
-
-    /** @Brief Holds paths to various UI inpits stuff */
-    struct Paths {
-        std::filesystem::path loadColMapPosesPath;
-        std::filesystem::path importFilePath;
-
-        bool updateObjPath = false;
-        bool update3DGSPath = false;
-        bool updateGLTFPath = false;
+    struct VerticalIconTab {
+        const char* icon; // Font Awesome glyph
+        const char* tooltip; // Shown on hover (optional)
+        std::function<void()> draw; // Lambda that draws the page
+        float pageWidth = 180.0f;
     };
 
     /** @brief Handle which is the MAIN link between ''frontend and backend'' */
@@ -157,6 +139,8 @@ namespace VkRender {
         Application* m_context;
         Editor* m_editor;
     };
+
+
 }
 
 #endif //MULTISENSE_LAYER_H

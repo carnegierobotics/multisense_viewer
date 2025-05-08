@@ -37,32 +37,33 @@ namespace VkRender {
         DepthColorOption depthColorOption = DepthColorOption::None;
         bool reloadViewportShader = false;
         // Constructor that copies everything from base EditorUI
-        explicit Editor3DViewportUI(const EditorUI &baseUI) : EditorUI(baseUI) {
+        explicit Editor3DViewportUI(const EditorUI& baseUI) : EditorUI(baseUI) {
         }
     };
+
 
     class Editor3DLayer : public Layer {
     public:
         /** Called once upon this object creation**/
-        void onAttach() override ;
+        void onAttach() override;
 
         /** Called after frame has finished rendered **/
         void onFinishedRender() override;
 
 
         /** Called once per frame **/
-        void onUIRender() override ;
+        void onUIRender() override;
 
         /** Called once upon this object destruction **/
-        void onDetach()
-        override;
+        void onDetach() override;
+
+        void drawSettingsTab();
 
         void decomposeTransform(
-    const glm::mat4& m,
-    glm::vec3& translation,
-    glm::vec3& rotation,
-    glm::vec3& scale)
-        {
+            const glm::mat4& m,
+            glm::vec3& translation,
+            glm::vec3& rotation,
+            glm::vec3& scale) {
             // 1) Extract translation from the last column
             translation = glm::vec3(m[3]);
 

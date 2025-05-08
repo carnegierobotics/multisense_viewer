@@ -5,6 +5,8 @@
 #ifndef MULTISENSE_VIEWER_LAYERUTILS_H
 #define MULTISENSE_VIEWER_LAYERUTILS_H
 
+#include <Viewer/Rendering/Editors/Editor.h>
+
 #include "Viewer/Tools/Macros.h"
 
 #ifdef WIN32
@@ -561,6 +563,82 @@ namespace VkRender::LayerUtils {
             ImGui::Dummy(ImVec2());
         }
         */
+
+    /// Draws vertical icon bar + page.
+    /// @param tabs        array of VerticalIconTab
+    /// @param tabCount    size of the array
+    /// @param currentTab  in/out: selected tab index
+    static void drawVerticalIconTabs(
+        const VerticalIconTab* tabs,
+        int tabCount,
+        int& currentTab,
+        Editor* editor) {
+        // 1) sizes
+        const float barWidth = 38.f;
+        const float btnSize = 26.f;
+        const ImVec2 iconSize = {btnSize, btnSize};
+        // 2) save & tighten horizontal spacing
+        ImGuiStyle& style = ImGui::GetStyle();
+        float savedItemSpacingX = style.ItemSpacing.x;
+        style.ItemSpacing.x = 4.0f; // a little gap between page & bar
+        style.WindowPadding.x = 10.0f;
+        // ───────────────────────────────────────────────────
+        //  A) LEFT: the page content, fixed width
+        // ───────────────────────────────────────────────────
+        if (currentTab >= 0) {
+            ImGui::SetNextWindowPos(ImVec2(editor->ui()->width - barWidth - tabs->pageWidth,
+                                           editor->ui()->layoutConstants.borderSize + 3.0f));
+            ImGui::PushStyleColor(ImGuiCol_ChildBg, Colors::CRLGray424MainTransparent);
+            ImGui::BeginChild(
+                "##page",
+                ImVec2(tabs->pageWidth, 0.0f), // fixed width, full height
+                ImGuiChildFlags_AlwaysUseWindowPadding | ImGuiChildFlags_AutoResizeY,
+                0); // ImGuiWindowFlags_AlwaysAutoResize
+            // draw the selected tab’s content
+            if (currentTab >= 0 && currentTab < tabCount)
+                tabs[currentTab].draw();
+            ImGui::EndChild();
+            ImGui::PopStyleColor();
+            // put next child on same line
+            ImGui::SameLine();
+        }
+        // ───────────────────────────────────────────────────
+        //  B) RIGHT: the icon strip, fixed width
+        // ───────────────────────────────────────────────────
+        ImGui::SetNextWindowPos(ImVec2(editor->ui()->width - barWidth, editor->ui()->layoutConstants.borderSize + 3.0f));
+        ImGui::BeginChild(
+            "##icon_bar",
+            ImVec2(barWidth, 0),
+            false,
+            ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+
+        for (int i = 0; i < tabCount; i++) {
+            ImGui::PushID(i);
+            bool sel = (currentTab == i);
+            // highlight if selected
+            if (sel) {
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.30f, 0.44f, 0.60f, 1.f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.32f, 0.49f, 0.68f, 1.f));
+                ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.80f, 0.80f, 0.90f, 1.f));
+            }
+            ImGui::PushFont(editor->guiResources().fontIcons);
+            bool pressed = ImGui::Button(tabs[i].icon, iconSize);
+            ImGui::PopFont();
+            if (pressed) {
+                if (sel) currentTab = -1; // clicked active ⇒ hide
+                else currentTab = i; // clicked new ⇒ show
+            }
+            // optional hover tooltip
+            if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort) && tabs[i].tooltip)
+                ImGui::SetTooltip("%s", tabs[i].tooltip);
+            if (sel)
+                ImGui::PopStyleColor(3);
+            ImGui::PopID();
+        }
+        ImGui::EndChild();
+        // restore style
+        style.ItemSpacing.x = savedItemSpacingX;
+    }
 }
 
 

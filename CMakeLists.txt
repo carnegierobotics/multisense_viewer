@@ -303,10 +303,12 @@ if (ENABLE_SYCL)
             #src/Viewer/Rendering/PathTracer/PathTracer.cpp
             src/Viewer/Rendering/PathTracer/BVH.cpp
             src/Viewer/Rendering/PathTracer/PathTracerSYCL.cpp
-            src/Viewer/Rendering/PathTracer/PathTracerKernels.cpp
             src/Viewer/Rendering/Editors/PathTracer/EditorPathTracer.cpp
             src/Viewer/Rendering/Editors/PathTracer/EditorPathTracerLayer.cpp
             src/Viewer/Tools/SYCLDeviceSelector.cpp
+
+            src/Viewer/Rendering/PathTracer/Device/PathTracerKernels.cpp
+
     )
     list(APPEND SOURCE_FILES ${SYCL_SOURCES})
     message(STATUS "[VkRenderINFO]: SYCL: Adding Gaussian Renderer to source")

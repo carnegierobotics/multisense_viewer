@@ -5,49 +5,47 @@
 #ifndef PATHTRACERKERNELS_H
 #define PATHTRACERKERNELS_H
 
-#ifdef __SYCL_DEVICE_ONLY__
-extern SYCL_EXTERNAL ulong __attribute__((overloadable)) intel_get_cycle_counter( void );
-#endif
-
 #include <sycl/sycl.hpp>
-#include <cmath>
 
 #include "KernelHelpers.h"
-
 #include "Viewer/Rendering/PathTracer/GPUDataTypes.h"
-#include "Viewer/Rendering/PathTracer/PathTracerTypes.h"
+
+
+#ifndef SYCL_EXTERNAL
+#define SYCL_EXTERNAL
+#endif
 
 namespace VkRender::PathTracer {
     class PathTracerMeshKernel {
     public:
         PathTracerMeshKernel(
             SceneDesc *scene,
-            FrameBuffer* framebuffer,
+            FrameBuffer framebuffer,
             SceneSettings settings = SceneSettings()
         ) : d_sceneDesc(scene), d_framebuffer(framebuffer), d_sceneSettings(settings) {
         }
 
 
         void operator()(sycl::item<1> item) const {
-            //size_t photonID = item.get_linear_id();
+            size_t photonID = item.get_linear_id();
 
             // Each thread traces one photon.
-            //traceOnePhoton(photonID + d_sceneDesc->photonCount);
-            //d_sceneDesc->photonCount++;
+            traceOnePhoton(photonID + d_sceneDesc->photonCount);
+            d_sceneDesc->photonCount++;
         }
 
     private:
         SceneDesc *d_sceneDesc;
         SceneSettings d_sceneSettings;
-        FrameBuffer *d_framebuffer;
-        PCG32 d_pcg;
-        /*
-        void traceOnePhoton(uint32_t photonID) const;
+        FrameBuffer d_framebuffer;
 
-        bool intersectScene(const Ray &rayW, Hit *hit) const;
+        SYCL_EXTERNAL void traceOnePhoton(uint32_t photonID) const;
 
-        void castContributions(const float3 &hitPoint, const float &throughput) const;
-        */
+        SYCL_EXTERNAL bool intersectBLAS(const Ray &rayO, uint32_t geomIdx, Hit &out) const;
+
+        SYCL_EXTERNAL bool intersectScene(const Ray &rayW, Hit *hit) const;
+
+        SYCL_EXTERNAL void castContributions(const float3 &hitPoint, const float &throughput) const;
     };
 }
 #endif //PATHTRACERKERNELS_H

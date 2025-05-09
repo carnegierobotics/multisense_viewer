@@ -25,7 +25,7 @@ namespace VkRender {
 
         auto dev = m_context->getSyclDeviceSelector().getDevice(SYCLDeviceType::Default);
         PathTracer::PathTracerSYCLCreateInfo pipelineSettings(dev);
-        pipelineSettings.framebufferSize = 1920 * 1080 * 5; // 41mb of framebuffers
+        pipelineSettings.framebufferSize = 1920 * 1080 * 4 * 10 * sizeof(float4); // 41mb of framebuffers
         m_pathTracerSYCL = std::make_unique<PathTracer::PathTracerSYCL>(pipelineSettings);
     }
 
@@ -49,6 +49,8 @@ namespace VkRender {
 
 
     void EditorPathTracer::onSceneLoad(std::shared_ptr<Scene> scene) {
+        Log::Logger::getInstance()->info("PathTracer loaded scene");
+
         m_editorCamera = std::make_shared<ArcballCamera>(
             static_cast<float>(m_createInfo.width) / static_cast<float>(m_createInfo.height));
         m_editorCamera->setDefaultPosition({-90.0f, 60.0f}, 1.5f);
@@ -60,12 +62,14 @@ namespace VkRender {
 
         PathTracer::EditorCamera editorCamera(m_editorCamera.get(), m_createInfo.width, m_createInfo.height);
         m_pathTracerSYCL->uploadScene(scene, editorCamera);
+        Log::Logger::getInstance()->info("PathTracer loaded scene");
     }
 
     void EditorPathTracer::updatePathTracerSettings() {
         auto imageUI = std::dynamic_pointer_cast<EditorPathTracerLayerUI>(m_ui);
 
         // Build the SYCL create-info from the UI selections:
+        Log::Logger::getInstance()->info("Updating Patch Tracer settings");
 
 
         // Select the right queue based on UI:
@@ -73,7 +77,7 @@ namespace VkRender {
 
         if (dev->isDeviceAvailable()) {
             PathTracer::PathTracerSYCLCreateInfo pipelineSettings(dev);
-            pipelineSettings.framebufferSize = 1920 * 1080 * 10; // ~82 MB of framebuffers
+            pipelineSettings.framebufferSize = 1920 * 1080 * 4 * 10 * sizeof(float4); // ~82 MB of framebuffers
             pipelineSettings.queue = dev->getQueue();
             pipelineSettings.device = dev;
             // Re-create your path-tracer with the updated settings:
@@ -92,14 +96,6 @@ namespace VkRender {
                 m_pathTracerSYCL->getCreateInfo().device->getDeviceName());
             imageUI->selectedDevice = m_pathTracerSYCL->getCreateInfo().device->getDeviceType();
         }
-
-
-        auto view = m_context->activeScene()->getRegistry().view<TemporaryComponent>();
-        for (auto id: view) {
-            Entity e(id, m_context->activeScene().get());
-            m_context->activeScene()->destroyEntity(e);
-        }
-
 
         /*
         auto activeCamera = m_context->activeScene()->getActiveCamera();
@@ -163,8 +159,7 @@ namespace VkRender {
 
         if (render) {
             if (renderToViewport) {
-                PathTracer::EditorCamera editorCamera(m_editorCamera.get(), m_createInfo.width, m_createInfo.height,
-                                                      m_movedCamera);
+                PathTracer::EditorCamera editorCamera(m_editorCamera.get(), m_createInfo.width, m_createInfo.height, m_movedCamera);
                 m_pathTracerSYCL->updateDynamic(m_context->activeScene(), editorCamera);
                 m_pathTracerSYCL->renderFrame(imageUI->photonCount);
                 m_pathTracerSYCL->generateEditorImage(m_colorTexture);

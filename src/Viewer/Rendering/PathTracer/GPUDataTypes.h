@@ -67,20 +67,6 @@ namespace VkRender::PathTracer {
         // every material is usable by either mesh or point
     };
 
-
-    /*
-    struct alignas(16) AreaLight {
-        sycl::float3 origin;
-        float pad0;
-        sycl::float3 edgeU;
-        float pad1; // defines plane
-        sycl::float3 edgeV;
-        float pad2;
-        sycl::float3 radiance;
-        float area; // pre‑computed area = |U×V|
-    };
-    */
-
     struct alignas(16) Transform {
         float4x4 objectToWorld;
         float4x4 worldToObject;
@@ -88,14 +74,45 @@ namespace VkRender::PathTracer {
 
 
     struct alignas(16) MeshLight {
-        // per‑triangle data:
-        std::vector<sycl::float3> v0, edge1, edge2, normal;
-        std::vector<float> cdf; // prefix‑sum(areas) normalized to [0,1]
-        float totalArea; // sum of all triangle areas
-        float flux; // Φ in watts
-        float radiance; // L_e = Φ/(π*totalArea)
+        static constexpr size_t MAX_TRIANGLES = 1024;
+
+        // Per-triangle data (fixed-size arrays)
+        sycl::float3 v0[MAX_TRIANGLES];
+        sycl::float3 edge1[MAX_TRIANGLES];
+        sycl::float3 edge2[MAX_TRIANGLES];
+        sycl::float3 normal[MAX_TRIANGLES];
+        float cdf[MAX_TRIANGLES]; // prefix-sum(areas) normalized to [0,1]
+        uint32_t triangleCount = 0;
+        float totalArea = 0.0f; // sum of all triangle areas
+        float flux = 0.0f; // Φ in watts
+        float radiance = 0.0f; // L_e = Φ/(π*totalArea)
 
         Transform transform;
+
+        // Add a new triangle to the light
+        void addTriangle(const sycl::float3 &v0, const sycl::float3 &e1, const sycl::float3 &e2, const sycl::float3 &n, float area) {
+            if (triangleCount >= MAX_TRIANGLES) {
+                // Optionally log or assert if you expect this to be rare
+                return;
+            }
+
+            this->v0[triangleCount] = v0;
+            this->edge1[triangleCount] = e1;
+            this->edge2[triangleCount] = e2;
+            this->normal[triangleCount] = n;
+
+            totalArea += area;
+            cdf[triangleCount] = totalArea;
+            triangleCount++;
+        }
+
+        // Finalize CDF and radiance after adding all triangles
+        void finalize() {
+            for (uint32_t i = 0; i < triangleCount; ++i) {
+                cdf[i] /= totalArea;
+            }
+            radiance = flux / (M_PI * totalArea);
+        }
     };
 
     /**** Scene graph layer ****/
@@ -172,7 +189,7 @@ namespace VkRender::PathTracer {
 
 
     struct alignas(16) SceneSettings {
-        uint32_t maxBounces = 8;
+        uint32_t maxBounces = 1;
     };
 
     struct alignas(16) FrameBuffer {

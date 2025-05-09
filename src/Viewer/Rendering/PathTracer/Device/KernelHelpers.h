@@ -6,7 +6,7 @@
 #define KERNELHELPERS_H
 #include <glm/glm.hpp>
 
-#include "GPUDataTypes.h"
+#include "Viewer/Rendering/PathTracer/GPUDataTypes.h"
 
 namespace VkRender::PathTracer {
 
@@ -239,7 +239,7 @@ namespace VkRender::PathTracer {
         // --- 1) Pick a triangle index by area-weighted CDF -------------
         float uTri = rng.nextFloat();
         // binary search in the CDF array
-        int lo = 0, hi = int(light.cdf.size()) - 1;;
+        int lo = 0, hi = int(light.triangleCount) - 1;;
         while (lo < hi) {
             int mid = (lo + hi) >> 1;
             if (uTri <= light.cdf[mid]) hi = mid;

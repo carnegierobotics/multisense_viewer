@@ -9,7 +9,7 @@
 #include <Viewer/Tools/SYCLDeviceSelector.h>
 
 #include "Viewer/Scenes/Scene.h"
-#include "Viewer/Rendering/PathTracer/PathTracerKernels.h"
+#include "Viewer/Rendering/PathTracer/Device/PathTracerKernels.h"
 
 // -------------------------
 // Main tracer class
@@ -119,8 +119,7 @@ namespace VkRender::PathTracer {
         PathTracerSYCLCreateInfo m_createInfo;
 
         FrameBuffer m_frameBuffers{};
-        float4 *d_memory = nullptr;
-        FrameBuffer *d_frameBuffers{};
+        FrameBuffer d_frameBuffers{};
 
         // BLAS DEBUG NAMES
         std::vector<std::string> m_meshNames; ///< same length as m_meshRanges

@@ -4,98 +4,93 @@
 
 
 #include "Viewer/Rendering/PathTracer/PathTracerTypes.h"
-#include "Viewer/Rendering/PathTracer/PathTracerKernels.h"
-#include "Viewer/Rendering/PathTracer/KernelHelpers.h"
+#include "Viewer/Rendering/PathTracer/Device/PathTracerKernels.h"
+#include "Viewer/Rendering/PathTracer/Device/KernelHelpers.h"
 
 namespace VkRender::PathTracer {
-// ── PathTracerMeshKernel.cpp ────────────────────────────────────────────────
-// Returns the closest hit inside one mesh’s BLAS (object space)
-bool PathTracerMeshKernel::intersectBLAS(const Ray &rayO,
-                                         uint32_t geomIdx,
-                                         Hit      &out) const
-{
-    const SceneDesc  &scene = *d_sceneDesc;
+    // ── PathTracerMeshKernel.cpp ────────────────────────────────────────────────
+    // Returns the closest hit inside one mesh’s BLAS (object space)
+    SYCL_EXTERNAL bool PathTracerMeshKernel::intersectBLAS(const Ray &rayO,
+                                                    uint32_t geomIdx,
+                                                    Hit &out) const {
+        const SceneDesc &scene = *d_sceneDesc;
 
-    /* 1.  Locate the sub‑tree that belongs to this mesh
-           ────────────────────────────────────────────── */
-    const BLASRange &br    = scene.blasRanges[geomIdx];
-    const BVHNode   *nodes = scene.blasNodes   + br.firstNode; // root = nodes[0]
-    const Triangle  *tris  = scene.triangles;
-    const Vertex    *verts = scene.vertices;
+        /* 1.  Locate the sub‑tree that belongs to this mesh
+               ────────────────────────────────────────────── */
+        const BLASRange &br = scene.blasRanges[geomIdx];
+        const BVHNode *nodes = scene.blasNodes + br.firstNode; // root = nodes[0]
+        const Triangle *tris = scene.triangles;
+        const Vertex *verts = scene.vertices;
 
-    /* 2.  Standard iterative depth‑first traversal
-           ────────────────────────────────────────────── */
-    float  bestT   = std::numeric_limits<float>::infinity();
-    bool   hitAny  = false;
-    float3 invDir  = 1.f / rayO.direction;
+        /* 2.  Standard iterative depth‑first traversal
+               ────────────────────────────────────────────── */
+        float bestT = std::numeric_limits<float>::infinity();
+        bool hitAny = false;
+        float3 invDir = 1.f / rayO.direction;
 
-    int stack[64];                   // enough for >4 billion triangles
-    int sp = 0;
-    stack[sp++] = 0;                 // root of this BLAS
+        int stack[64]; // enough for >4 billion triangles
+        int sp = 0;
+        stack[sp++] = 0; // root of this BLAS
 
-    while (sp)
-    {
-        int nIdx          = stack[--sp];
-        const BVHNode &N  = nodes[nIdx];
+        while (sp) {
+            int nIdx = stack[--sp];
+            const BVHNode &N = nodes[nIdx];
 
-        float tEntry;
-        if (!slabIntersectAABB(rayO, N, invDir, bestT, tEntry))
-            continue;                // miss or farther than current best
+            float tEntry;
+            if (!slabIntersectAABB(rayO, N, invDir, bestT, tEntry))
+                continue; // miss or farther than current best
 
-        if (N.triCount == 0)         // ── internal ─────────────────────
-        {
-            /* Push children – right first so left is processed next.
-               Children are stored immediately after the parent once
-               we patched indices in buildBLASForAllMeshes().          */
-            stack[sp++] = N.leftFirst + 1;   // right
-            stack[sp++] = N.leftFirst;       // left
-        }
-        else                         // ── leaf ─────────────────────────
-        {
-            for (uint32_t i = 0; i < N.triCount; ++i)
+            if (N.triCount == 0) // ── internal ─────────────────────
             {
-                uint32_t triIdx      = N.leftFirst + i;  // *global* index
-                const Triangle &T    = tris[triIdx];
+                /* Push children – right first so left is processed next.
+                   Children are stored immediately after the parent once
+                   we patched indices in buildBLASForAllMeshes().          */
+                stack[sp++] = N.leftFirst + 1; // right
+                stack[sp++] = N.leftFirst; // left
+            } else // ── leaf ─────────────────────────
+            {
+                for (uint32_t i = 0; i < N.triCount; ++i) {
+                    uint32_t triIdx = N.leftFirst + i; // *global* index
+                    const Triangle &T = tris[triIdx];
 
-                const float3 A = verts[T.v0].pos;
-                const float3 B = verts[T.v1].pos;
-                const float3 C = verts[T.v2].pos;
+                    const float3 A = verts[T.v0].pos;
+                    const float3 B = verts[T.v1].pos;
+                    const float3 C = verts[T.v2].pos;
 
-                float t,u,v;
-                if (intersectTriangle(rayO, A,B,C, t,u,v) && t < bestT)
-                {
-                    bestT      = t;
-                    hitAny     = true;
+                    float t, u, v;
+                    if (intersectTriangle(rayO, A, B, C, t, u, v) && t < bestT) {
+                        bestT = t;
+                        hitAny = true;
 
-                    out.t      = t;
-                    out.u      = u;
-                    out.v      = v;
-                    out.primIdx= triIdx;     // global – good for shading
+                        out.t = t;
+                        out.u = u;
+                        out.v = v;
+                        out.primIdx = triIdx; // global – good for shading
+                    }
                 }
             }
         }
+
+        return hitAny;
     }
 
-    return hitAny;
-}
 
-
-    bool PathTracerMeshKernel::intersectScene(const Ray &rayW, Hit *hit) const {
+    SYCL_EXTERNAL bool PathTracerMeshKernel::intersectScene(const Ray &rayW, Hit *hit) const {
         const SceneDesc &scene = *d_sceneDesc;
 
         /* abort if scene is empty */
         if (scene.tlasNodeCount == 0) return false;
 
-        const TLASNode  *tlas   = scene.tlasNodes;
-        const Instance  *instances  = scene.instances;
+        const TLASNode *tlas = scene.tlasNodes;
+        const Instance *instances = scene.instances;
         const Transform *xforms = scene.transforms;
 
 
         /* ------------------------------------------------------------------ */
         /* stack‑based depth‑first traversal                                   */
         /* ------------------------------------------------------------------ */
-        float bestT  = std::numeric_limits<float>::infinity();
-        bool  anyHit = false;
+        float bestT = std::numeric_limits<float>::infinity();
+        bool anyHit = false;
         float3 invDir = 1.f / rayW.direction;
 
 
@@ -105,20 +100,20 @@ bool PathTracerMeshKernel::intersectBLAS(const Ray &rayO,
 
         while (sp) {
             int nIdx = stack[--sp];
-            const TLASNode& node = tlas[nIdx];
+            const TLASNode &node = tlas[nIdx];
 
             float tEntry;
             if (!slabIntersectAABB(rayW, node, invDir, bestT, tEntry))
                 continue;
 
-            if (node.count==0)          // internal
+            if (node.count == 0) // internal
             {
                 stack[sp++] = node.rightChild;
                 stack[sp++] = node.leftChild;
-            }     // leaf – exactly one instance
+            } // leaf – exactly one instance
             else {
-                uint32_t  instID = node.leftChild;
-                const Instance  &instance  = instances [instID];
+                uint32_t instID = node.leftChild;
+                const Instance &instance = instances[instID];
                 const Transform &transform = xforms[instance.transformIndex];
 
                 Ray rayObject = toObjectSpace(rayW, transform);
@@ -127,16 +122,15 @@ bool PathTracerMeshKernel::intersectBLAS(const Ray &rayO,
                 //const Triangle &T = tris[triIdx];
                 //hit->primIdx     = triIdx;
                 Hit local;
-                if (intersectBLAS(rayObject, instance.geomIndex, local) && local.t < bestT)
-                {
-                    bestT        = local.t;
-                    anyHit       = true;
-                    hit->t        = bestT;
-                    hit->u        = local.u;
-                    hit->v        = local.v;
-                    hit->primIdx  = local.primIdx;
-                    hit->instIdx  = instID;
-                    hit->hitPoint = toWorldPoint(rayObject.origin + bestT*rayObject.direction, transform);
+                if (intersectBLAS(rayObject, instance.geomIndex, local) && local.t < bestT) {
+                    bestT = local.t;
+                    anyHit = true;
+                    hit->t = bestT;
+                    hit->u = local.u;
+                    hit->v = local.v;
+                    hit->primIdx = local.primIdx;
+                    hit->instIdx = instID;
+                    hit->hitPoint = toWorldPoint(rayObject.origin + bestT * rayObject.direction, transform);
                 }
             }
         }
@@ -144,7 +138,7 @@ bool PathTracerMeshKernel::intersectBLAS(const Ray &rayO,
     }
 
 
-    void PathTracerMeshKernel::castContributions(
+    SYCL_EXTERNAL void PathTracerMeshKernel::castContributions(
         const float3 &hitPoint,
         const float &throughput) const {
         const auto &scene = *d_sceneDesc;
@@ -179,7 +173,7 @@ bool PathTracerMeshKernel::intersectBLAS(const Ray &rayO,
             uint32_t idx = cam.firstPixel + py * cam.width + px;
 
             // 5) atomic add into global image buffer (float4 array)
-            auto &pixel = d_framebuffer->memory[idx];
+            auto &pixel = d_framebuffer.memory[idx];
             sycl::atomic_ref<float,
                         sycl::memory_order::relaxed,
                         sycl::memory_scope::device,
@@ -208,13 +202,14 @@ bool PathTracerMeshKernel::intersectBLAS(const Ray &rayO,
     /// through the scene, shade, and cast contribution rays.
     /// \param photonID  Unique photon identifier (also RNG seed).
     //------------------------------------------------------------------------------
-    void PathTracerMeshKernel::traceOnePhoton(uint32_t photonID) const {
+    SYCL_EXTERNAL void PathTracerMeshKernel::traceOnePhoton(uint32_t photonID) const {
         const auto &scene = *d_sceneDesc;
         const auto &settings = d_sceneSettings;
 
-        PCG32 rng;
+
+        PCG32 rng{};
         uint64_t seedState = (uint64_t(photonID) << 32);
-        rng.seed(seedState, /*stream*/ 54u);
+        rng.seed(seedState, 54u);
         // 1) sample light
         float3 worldPos, worldNormal;
         float pdf;
@@ -233,6 +228,7 @@ bool PathTracerMeshKernel::intersectBLAS(const Ray &rayO,
         // 3) bounce loop
         for (uint32_t bounce = 0; bounce < settings.maxBounces; ++bounce) {
             Hit hit;
+
             if (!intersectScene(worldRay, &hit))
                 break;
 

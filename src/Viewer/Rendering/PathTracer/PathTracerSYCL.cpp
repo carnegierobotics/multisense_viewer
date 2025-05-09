@@ -9,8 +9,8 @@
 #include <Viewer/Rendering/Components/LightSourceComponent.h>
 #include <Viewer/Scenes/Entity.h>
 
-#include "BVH.h"
-#include "KernelHelpers.h"
+#include "Viewer/Rendering/PathTracer/BVH.h"
+#include "Viewer/Rendering/PathTracer/Device/KernelHelpers.h"
 
 
 namespace VkRender::PathTracer {
@@ -24,17 +24,33 @@ namespace VkRender::PathTracer {
         if (m_frameBuffers.memory) {
             free(m_frameBuffers.memory);
         }
+
+        /*
+        if (d_frameBuffers) {
+            if (d_frameBuffers->memory) {
+                sycl::free(d_frameBuffers->memory, m_queue);
+                d_frameBuffers->memory = nullptr;
+            }
+            sycl::free(d_frameBuffers, m_queue);
+            d_frameBuffers = nullptr;
+        }
+        */
+
         auto &ci = m_createInfo;
         uint32_t blockSize = ci.framebufferSize;
+
+        Log::Logger::getInstance()->info("Creating framebuffers on host with size: {:.2f}Mb", blockSize / 1e6);
         m_frameBuffers.memory = static_cast<float4 *>(malloc(blockSize));
         memset(m_frameBuffers.memory, 0, blockSize);
-
-        d_memory = deviceAlloc<float4>(blockSize);
-
-        m_frameBuffers.memory = d_memory;
         m_frameBuffers.frameBufferSize = blockSize;
-        d_frameBuffers = deviceAlloc<FrameBuffer>(1);
-        m_queue.memcpy(d_frameBuffers, &m_frameBuffers, sizeof(FrameBuffer)).wait();
+
+        Log::Logger::getInstance()->info("Creating framebuffers on device with size: {:.2f}Mb", blockSize / 1e6);
+
+        auto *deviceMemory = deviceAlloc<float>(blockSize);
+        d_frameBuffers.memory = reinterpret_cast<float4 *>(deviceMemory);
+        d_frameBuffers.frameBufferSize = blockSize;
+
+        Log::Logger::getInstance()->info("Done Creating Framebuffers");
     }
 
 
@@ -42,31 +58,13 @@ namespace VkRender::PathTracer {
         // free existing GPU memory
         freeDeviceMemory();
         collectCameras(scene, editorCamera);
-        // collect host data
+        //// collect host data
         collectGeometry(scene);
         collectInstances(scene);
         collectLights(scene);
 
-        std::vector<uint32_t> triangleIndices;
-        std::vector<Vertex> worldVerts;
-
-
-        //BasicBVH::build(m_tris, m_vertices, m_bvhNodes, triangleIndices);
-
-
         buildBLASForAllMeshes();
-
         buildTopLevelBVH();
-
-        /*
-        // Reorder triangles in BVH order not in mesh order.
-        {
-            std::vector<Triangle> ordered(m_tris.size());
-            for (size_t i = 0; i < triangleIndices.size(); ++i)
-                ordered[i] = m_tris[triangleIndices[i]];
-            m_tris.swap(ordered);
-        }
-        */
 
         // build and upload scene descriptor
         buildSceneDesc();
@@ -138,11 +136,14 @@ namespace VkRender::PathTracer {
 
 
     void PathTracerSYCL::updateDynamic(const std::shared_ptr<Scene> &scene, EditorCamera editorCamera) {
+        if (!d_sceneDesc) {
+            Log::Logger::getInstance()->error("Path Tracer has not been initialized");
+        }
+        Log::Logger::getInstance()->info("Updating transforms");
         m_queue.memcpy(d_transforms, m_transforms.data(), m_transforms.size() * sizeof(Transform));
 
         // view both mesh & material & transform
-        auto view = scene->getRegistry()
-                .view<MeshComponent, TransformComponent, LightSourceComponent>();
+        auto view = scene->getRegistry().view<LightSourceComponent>();
 
         for (int i = 0; auto id: view) {
             Entity e(id, scene.get());
@@ -151,15 +152,16 @@ namespace VkRender::PathTracer {
             m_lights[i].transform.worldToObject = glm2sycl(glm::inverse(transformComponent.getTransform()));
             ++i;
         }
-
-
+        Log::Logger::getInstance()->info("Updating Lights");
         m_queue.memcpy(d_lights, m_lights.data(), m_lights.size() * sizeof(MeshLight));
+
 
         auto &camera = m_cameras.front();
         camera.pos = glm2sycl(editorCamera.camera->matrices.position);
         camera.proj = glm2sycl(editorCamera.camera->matrices.projection);
         camera.view = glm2sycl(editorCamera.camera->matrices.view);
 
+        Log::Logger::getInstance()->info("Updating Cameras");
         m_queue.memcpy(d_cameras, &camera, sizeof(Camera)); // Only copy first camera instance
         m_sceneDesc.cameras = d_cameras;
         m_sceneDesc.lights = d_lights;
@@ -171,8 +173,8 @@ namespace VkRender::PathTracer {
             const uint32_t height = camera.height;
             const size_t pixelCount = static_cast<size_t>(width) * height;
             const size_t floatComponents = pixelCount * 4; // 4 floats per pixel (RGBA32F)
-
-            m_queue.fill(d_frameBuffers->memory, 0.0f, floatComponents); // Only copy first camera instance
+            Log::Logger::getInstance()->info("Clearing Camera framebuffers");
+            m_queue.fill(d_frameBuffers.memory, 0.0f, floatComponents); // Only copy first camera instance
         }
 
         m_queue.wait();
@@ -180,8 +182,9 @@ namespace VkRender::PathTracer {
 
     void PathTracerSYCL::renderFrame(int photonCount) {
         if (!d_sceneDesc) {
-            return;
+            Log::Logger::getInstance()->error("Path Tracer has not been initialized");
         }
+
 
         m_queue.submit([scene=d_sceneDesc, fb = d_frameBuffers, photonCount](sycl::handler &cgh) {
             PathTracerMeshKernel kernel(scene, fb);
@@ -201,27 +204,33 @@ namespace VkRender::PathTracer {
     }
 
     void PathTracerSYCL::generateEditorImage(const std::shared_ptr<VulkanTexture2D> &viewportTexture) {
+        if (!d_sceneDesc) {
+            Log::Logger::getInstance()->error("Path Tracer has not been initialized");
+        }
+
         const auto &camera = m_cameras.front();
         const uint32_t width = camera.width;
         const uint32_t height = camera.height;
         const size_t pixelCount = static_cast<size_t>(width) * height;
-        const size_t floatComponents = pixelCount * 4; // 4 floats per pixel (RGBA32F)
+        const size_t floatComponents = pixelCount * 4; // 4 floats per pixel (RGBA32F)s
         const size_t floatByteSize = floatComponents * sizeof(float);
 
         // 1) Copy float32 RGBA image from device to host scratch buffer
-        m_queue.memcpy(m_frameBuffers.memory, d_frameBuffers->memory, floatByteSize).wait();
+        Log::Logger::getInstance()->info("PathTracerSYCL::generateEditorImage(): {}/{}",
+                                         static_cast<float>(floatByteSize) / 1000000.0f,
+                                         static_cast<float>(m_createInfo.framebufferSize) / 1000000.0f);
 
+
+        m_queue.memcpy(m_frameBuffers.memory, d_frameBuffers.memory, floatByteSize).wait();
         // 2) Convert to 8-bit RGBA
         std::vector<uint8_t> rgba8;
         rgba8.resize(pixelCount * 4);
-
         float *src = reinterpret_cast<float *>(m_frameBuffers.memory);
         for (size_t i = 0; i < floatComponents; ++i) {
             // clamp to [0,1], then map to [0,255]
             float v = std::clamp(src[i], 0.0f, 1.0f);
             rgba8[i] = static_cast<uint8_t>(v * 255.0f);
         }
-
         // 3) Upload RGBA8 image to the Vulkan texture
         viewportTexture->loadImage(rgba8.data());
     }
@@ -296,7 +305,7 @@ namespace VkRender::PathTracer {
         m_materials.clear(); // one material slot per instance
 
         auto view = scene->getRegistry().view<MeshComponent, MaterialComponent, TransformComponent>(
-            );
+        );
 
         for (auto entID: view) {
             Entity e(entID, scene.get());
@@ -346,7 +355,7 @@ namespace VkRender::PathTracer {
     void PathTracerSYCL::collectLights(const std::shared_ptr<Scene> &scene) {
         m_lights.clear();
 
-        // view both mesh & material & transform
+        // View both mesh, material, and transform components
         auto view = scene->getRegistry()
                 .view<MeshComponent, TransformComponent, LightSourceComponent>();
 
@@ -356,53 +365,46 @@ namespace VkRender::PathTracer {
             auto &transformComponent = e.getComponent<TransformComponent>();
             auto &lightSourceComponent = e.getComponent<LightSourceComponent>();
 
-            // skip if not emissive
+            // Skip if not emissive
             if (lightSourceComponent.flux <= 0.0f) continue;
 
-            const auto &mesh = MeshManager::instance().getMeshData(meshComponent); // supplies v & index arrays
+            const auto &mesh = MeshManager::instance().getMeshData(meshComponent);
             const auto world = transformComponent.getTransform();
 
             MeshLight ML;
-            ML.flux = lightSourceComponent.flux; // Φ for this mesh
-            ML.totalArea = 0.0f;
+            ML.flux = lightSourceComponent.flux;
 
-            // 1) Loop triangles
+            // 1) Loop through triangles
             for (size_t t = 0; t < mesh->m_indices.size(); t += 3) {
-                auto i0 = mesh->m_indices[t + 0],
-                        i1 = mesh->m_indices[t + 1],
-                        i2 = mesh->m_indices[t + 2];
+                auto i0 = mesh->m_indices[t + 0];
+                auto i1 = mesh->m_indices[t + 1];
+                auto i2 = mesh->m_indices[t + 2];
 
                 glm::vec3 p1 = mesh->m_vertices[i0].pos;
                 glm::vec3 p2 = mesh->m_vertices[i1].pos;
                 glm::vec3 p3 = mesh->m_vertices[i2].pos;
-                // fetch positions
+
+                // Transform to world space
                 glm::vec4 P0 = world * glm::vec4(p1, 1.0f);
                 glm::vec4 P1 = world * glm::vec4(p2, 1.0f);
                 glm::vec4 P2 = world * glm::vec4(p3, 1.0f);
 
-                glm::vec3 v0 = {P0.x, P0.y, P0.z};
-                glm::vec3 e1 = glm::vec3{P1.x, P1.y, P1.z} - v0;
-                glm::vec3 e2 = glm::vec3{P2.x, P2.y, P2.z} - v0;
-                glm::vec3 n = glm::normalize(glm::cross(e1, e2));
-                float area = 0.5f * glm::length(glm::cross(e1, e2));
+                sycl::float3 v0 = {P0.x, P0.y, P0.z};
+                sycl::float3 e1 = {P1.x - P0.x, P1.y - P0.y, P1.z - P0.z};
+                sycl::float3 e2 = {P2.x - P0.x, P2.y - P0.y, P2.z - P0.z};
+                sycl::float3 n = sycl::normalize(sycl::cross(e1, e2));
+                float area = 0.5f * sycl::length(sycl::cross(e1, e2));
 
-                ML.v0.emplace_back(v0.x, v0.y, v0.z);
-                ML.edge1.emplace_back(e1.x, e1.y, e1.z);
-                ML.edge2.emplace_back(e2.x, e2.y, e2.z);
-                ML.normal.emplace_back(n.x, n.y, n.z);
-
-                ML.totalArea += area;
-                ML.cdf.push_back(ML.totalArea);
+                ML.addTriangle(v0, e1, e2, n, area);
             }
 
-            // 2) finalize CDF and radiance
-            for (auto &c: ML.cdf) c /= ML.totalArea;
-            ML.radiance = ML.flux / (M_PI * ML.totalArea);
-
-            ML.transform.objectToWorld = glm2sycl(transformComponent.getTransform());
-            ML.transform.worldToObject = glm2sycl(glm::inverse(transformComponent.getTransform()));
-
-            m_lights.push_back(std::move(ML));
+            // 2) Finalize the CDF and radiance
+            if (ML.triangleCount > 0) {
+                ML.finalize();
+                ML.transform.objectToWorld = glm2sycl(transformComponent.getTransform());
+                ML.transform.worldToObject = glm2sycl(glm::inverse(transformComponent.getTransform()));
+                m_lights.push_back(ML);
+            }
         }
     }
 
@@ -445,18 +447,18 @@ namespace VkRender::PathTracer {
 
 
         // —— upload BLAS pool ————————————————————————————
-        d_blasNodes  = deviceAlloc<BVHNode>( m_blasNodes.size() );
+        d_blasNodes = deviceAlloc<BVHNode>(m_blasNodes.size());
         m_queue.memcpy(d_blasNodes, m_blasNodes.data(),
-                       m_blasNodes.size()*sizeof(BVHNode));
+                       m_blasNodes.size() * sizeof(BVHNode));
 
-        d_blasRanges = deviceAlloc<BLASRange>( m_blasRanges.size() );
+        d_blasRanges = deviceAlloc<BLASRange>(m_blasRanges.size());
         m_queue.memcpy(d_blasRanges, m_blasRanges.data(),
-                       m_blasRanges.size()*sizeof(BLASRange));
+                       m_blasRanges.size() * sizeof(BLASRange));
 
         // —— upload TLAS ————————————————————————————————
-       d_tlasNodes = deviceAlloc<TLASNode>( m_tlasNodes.size() );
-       m_queue.memcpy(d_tlasNodes, m_tlasNodes.data(),
-                      m_tlasNodes.size()*sizeof(TLASNode));
+        d_tlasNodes = deviceAlloc<TLASNode>(m_tlasNodes.size());
+        m_queue.memcpy(d_tlasNodes, m_tlasNodes.data(),
+                       m_tlasNodes.size() * sizeof(TLASNode));
 
 
         //—— fill SceneDesc ——
@@ -652,11 +654,14 @@ namespace VkRender::PathTracer {
 
     void PathTracerSYCL::freeDeviceMemory() {
         // free descriptor
-        if (d_sceneDesc) free(d_sceneDesc, m_queue);
+        if (d_sceneDesc) {
+            sycl::free(d_sceneDesc, m_queue);
+            d_sceneDesc = nullptr;
+        }
         // free buffers
         auto freeIf = [&](void *p) {
             if (p) {
-                free(p, m_queue);
+                sycl::free(p, m_queue);
                 p = nullptr;
             }
         };
@@ -673,6 +678,5 @@ namespace VkRender::PathTracer {
         freeIf(d_blasRanges);
         freeIf(d_blasNodes);
         freeIf(d_tlasNodes);
-
     }
 }

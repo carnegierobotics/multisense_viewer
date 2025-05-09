@@ -6,7 +6,7 @@
 #define BVH_H
 #include <cstdint>
 
-#include "GPUDataTypes.h"
+#include "Viewer/Rendering/PathTracer/GPUDataTypes.h"
 
 namespace VkRender::PathTracer {
     //------------------------------------------------------------------------------

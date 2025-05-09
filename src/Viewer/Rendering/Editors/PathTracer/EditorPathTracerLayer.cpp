@@ -49,11 +49,24 @@ namespace VkRender {
 
     void EditorPathTracerLayer::drawDebugViewTab() {
         auto imageUI = std::dynamic_pointer_cast<EditorPathTracerLayerUI>(m_editor->ui());
-        ImGui::Checkbox("Show BVH", &imageUI->showBVH);
-        ImGui::Text("Min:"); ImGui::SameLine();
-        ImGui::SliderInt("##BVH Depth Min", &imageUI->bvhLevelMin, 0, 30);
-        ImGui::Text("Max:"); ImGui::SameLine();
-        ImGui::SliderInt("##BVH Depth Max", &imageUI->bvhLevelMax, 1, 30);
+        ImGui::Text("Show BVH:"); ImGui::SameLine();
+
+        ImGui::Checkbox("##Show BVH", &imageUI->showBVH);
+        if (imageUI->showBVH) {
+            ImGui::Spacing(); ImGui::SameLine();
+            ImGui::Text("TLAS:"); ImGui::SameLine(); ImGui::Checkbox("##Show TLAS", &imageUI->showTLAS);
+            ImGui::Spacing(); ImGui::SameLine();
+            ImGui::Text("BLAS:"); ImGui::SameLine(); ImGui::Checkbox("##Show BLAS", &imageUI->showBLAS);
+            ImGui::Spacing(); ImGui::SameLine();
+            ImGui::Text("Min Level:"); ImGui::SameLine();
+            ImGui::SliderInt("##BVH Depth Min", &imageUI->bvhLevelMin, 0, 30);
+            ImGui::Spacing(); ImGui::SameLine();
+            ImGui::Text("Max Level:"); ImGui::SameLine();
+            ImGui::SliderInt("##BVH Depth Max", &imageUI->bvhLevelMax, 1, 30);
+            ImGui::Spacing(); ImGui::SameLine();
+
+        }
+
     }
 
     void EditorPathTracerLayer::drawRendererSettingsTab() {

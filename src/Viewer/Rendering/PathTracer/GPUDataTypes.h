@@ -36,6 +36,21 @@ namespace VkRender::PathTracer {
         bool      isLeaf() const { return triCount > 0; }
     };
 
+    // A contiguous slice of the global blasNodes[] buffer
+    struct alignas(16) BLASRange {
+        uint32_t firstNode;   // index of the BLAS root inside blasNodes[]
+        uint32_t nodeCount;   // how many nodes belong to this BLAS
+    };
+
+    struct alignas(16) TLASNode   // one node in the top‑level tree
+    {
+        float3    aabbMin, aabbMax;
+        uint32_t  leftChild;   // index of child node  (same as BLAS: leaf vs internal rule)
+        uint32_t  count;       // ==0 → internal, 1 → leaf that stores an instIdx
+        uint32_t rightChild;
+    };
+
+
     struct alignas(16) OrientedPoint // your “beta‑kernel plane”
     {
         sycl::float3 pos;
@@ -109,12 +124,6 @@ namespace VkRender::PathTracer {
     };
 
 
-    // Range of BLAS nodes for each mesh
-    struct alignas(16) BLASRange {
-        uint32_t firstNode;
-        uint32_t nodeCount;
-    };
-
 
     struct alignas(16) Camera {
         float4x4 view{};
@@ -139,8 +148,11 @@ namespace VkRender::PathTracer {
         const Transform *transforms = nullptr;
 
         // Bvh
-        BVHNode *bvhNodes;
-        uint32_t bvhNodeCount;
+        const BVHNode *blasNodes = nullptr;   // flattened storage for every BLAS node
+        const BLASRange *blasRanges = nullptr;
+        const TLASNode *tlasNodes = nullptr;
+        uint32_t blasNodeCount = 0;
+        uint32_t tlasNodeCount = 0;
 
         // appearance
         const Material *materials = nullptr;

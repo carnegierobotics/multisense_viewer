@@ -51,8 +51,23 @@ namespace VkRender::PathTracer {
         std::vector<Vertex> worldVerts;
 
 
-        BasicBVH::build(m_tris, m_verticesWorld, m_bvhNodes, triangleIndices);
-        //buildTopLevelBVH();
+        //BasicBVH::build(m_tris, m_vertices, m_bvhNodes, triangleIndices);
+
+
+        buildBLASForAllMeshes();
+
+        buildTopLevelBVH();
+
+        /*
+        // Reorder triangles in BVH order not in mesh order.
+        {
+            std::vector<Triangle> ordered(m_tris.size());
+            for (size_t i = 0; i < triangleIndices.size(); ++i)
+                ordered[i] = m_tris[triangleIndices[i]];
+            m_tris.swap(ordered);
+        }
+        */
+
         // build and upload scene descriptor
         buildSceneDesc();
         d_sceneDesc = deviceAlloc<SceneDesc>(1);
@@ -60,13 +75,9 @@ namespace VkRender::PathTracer {
     }
 
     void PathTracerSYCL::traverseBVH() {
-
-
     }
 
     void PathTracerSYCL::intersectBVH(uint32_t nodeIndex) {
-
-
     }
 
 
@@ -227,7 +238,6 @@ namespace VkRender::PathTracer {
         for (auto id: view) {
             Entity e(id, scene.get());
             auto &mc = e.getComponent<MeshComponent>();
-            auto &transformComponent = e.getComponent<TransformComponent>();
             std::string meshID = mc.getCacheIdentifier();
             if (m_meshIndexMap.count(meshID)) continue;
             auto mesh = MeshManager::instance().getMeshData(mc);
@@ -242,11 +252,13 @@ namespace VkRender::PathTracer {
                 vertex.norm = float3{v.normal.x, v.normal.y, v.normal.z};
                 m_vertices.push_back(vertex);
 
+                /*
                 Vertex vertexWorld;
                 glm::vec3 vWorld = glm::vec3(transformComponent.getTransform() * glm::vec4(v.pos, 1.0f));
                 vertexWorld.pos = float3{vWorld.x, vWorld.y, vWorld.z};
                 vertexWorld.norm = float3{v.normal.x, v.normal.y, v.normal.z};
                 m_verticesWorld.push_back(vertexWorld);
+                */
             }
             // append triangles
             const float inv3 = 1.0f / 3.0f;
@@ -284,7 +296,7 @@ namespace VkRender::PathTracer {
         m_materials.clear(); // one material slot per instance
 
         auto view = scene->getRegistry().view<MeshComponent, MaterialComponent, TransformComponent>(
-            entt::exclude<LightSourceComponent>);
+            );
 
         for (auto entID: view) {
             Entity e(entID, scene.get());
@@ -315,10 +327,10 @@ namespace VkRender::PathTracer {
             // --- 3) record the instance record pointing at mesh+material+transform ---
             uint32_t xfIdx = static_cast<uint32_t>(m_transforms.size());
             m_instances.push_back({
+                /* geomType       */ uint32_t(GeometryType::Mesh),
                 /* geomIndex      */ geomIdx,
                 /* materialIndex  */ matIdx,
                 /* transformIndex */ xfIdx,
-                /* geomType       */ uint32_t(GeometryType::Mesh)
             });
 
             // --- 4) store the transform for this instance ---
@@ -400,7 +412,7 @@ namespace VkRender::PathTracer {
 
         //—— allocate & copy SoA (positions + normals) ——
         d_vertices = deviceAlloc<Vertex>(vertCount);
-        m_queue.memcpy(d_vertices, m_vertices.data(), vertCount * sizeof(float));
+        m_queue.memcpy(d_vertices, m_vertices.data(), vertCount * sizeof(Vertex));
 
         //—— allocate & copy indexed arrays ——
         const size_t triCount = m_tris.size();
@@ -432,11 +444,20 @@ namespace VkRender::PathTracer {
         m_queue.memcpy(d_cameras, m_cameras.data(), camCount * sizeof(Camera));
 
 
-        size_t bvhCount = m_bvhNodes.size();
-        d_bvhNodes = deviceAlloc<BVHNode>(bvhCount);
-        m_queue.memcpy(d_bvhNodes, m_bvhNodes.data(), bvhCount * sizeof(BVHNode));
-        m_sceneDesc.bvhNodes = d_bvhNodes;
-        m_sceneDesc.bvhNodeCount = static_cast<uint32_t>(bvhCount);
+        // —— upload BLAS pool ————————————————————————————
+        d_blasNodes  = deviceAlloc<BVHNode>( m_blasNodes.size() );
+        m_queue.memcpy(d_blasNodes, m_blasNodes.data(),
+                       m_blasNodes.size()*sizeof(BVHNode));
+
+        d_blasRanges = deviceAlloc<BLASRange>( m_blasRanges.size() );
+        m_queue.memcpy(d_blasRanges, m_blasRanges.data(),
+                       m_blasRanges.size()*sizeof(BLASRange));
+
+        // —— upload TLAS ————————————————————————————————
+       d_tlasNodes = deviceAlloc<TLASNode>( m_tlasNodes.size() );
+       m_queue.memcpy(d_tlasNodes, m_tlasNodes.data(),
+                      m_tlasNodes.size()*sizeof(TLASNode));
+
 
         //—— fill SceneDesc ——
         m_sceneDesc.vertices = d_vertices;
@@ -448,6 +469,12 @@ namespace VkRender::PathTracer {
         m_sceneDesc.lights = d_lights;
         m_sceneDesc.cameras = d_cameras;
 
+        m_sceneDesc.tlasNodes = d_tlasNodes;
+        m_sceneDesc.blasRanges = d_blasRanges;
+        m_sceneDesc.blasNodes = d_blasNodes;
+        m_sceneDesc.blasNodeCount = static_cast<uint32_t>(m_blasNodes.size());
+        m_sceneDesc.tlasNodeCount = static_cast<uint32_t>(m_tlasNodes.size());
+
         m_sceneDesc.triCount = static_cast<uint32_t>(triCount);
         m_sceneDesc.meshCount = static_cast<uint32_t>(meshCount);
         m_sceneDesc.instanceCount = static_cast<uint32_t>(instCount);
@@ -457,356 +484,181 @@ namespace VkRender::PathTracer {
         m_sceneDesc.cameraCount = static_cast<uint32_t>(camCount);
     }
 
-
-    /*
-    // CPU-side BVH building method integrated into PathTracerSYCL
     void PathTracerSYCL::buildBLASForAllMeshes() {
-        m_blasNodes.clear();
-        m_blasRanges.clear();
-        m_blasNames.clear();
+        m_blasNodes.clear(); // flat pool that will hold *every* mesh BVH
+        m_blasRanges.clear(); // one record per mesh
+        m_blasNames.clear(); // purely for debug drawing
 
-        // For each unique mesh we recorded in collectGeometry():
+        /* --------------------------------------------------------------------- */
+        /* Loop over *unique* meshes (one per entry in m_meshRanges)              */
+        /* --------------------------------------------------------------------- */
         for (uint32_t m = 0; m < m_meshRanges.size(); ++m) {
-            const auto &mr = m_meshRanges[m];
-            const auto &name = m_meshNames[m]; // grab the debug name
+            const MeshRange &mr = m_meshRanges[m];
+            const std::string name = m_meshNames[m]; // for the UI
 
-            //
-            // 1) Gather & remap vertices into a local BLAS buffer
-            //
-            std::vector<float> pxBLAS, pyBLAS, pzBLAS;
-            pxBLAS.reserve(mr.vertCount);
-            pyBLAS.reserve(mr.vertCount);
-            pzBLAS.reserve(mr.vertCount);
+            // ──────────────────────────────────────────────────────────────
+            // 1.  Gather **local vertices** (just copy the structs)
+            // ──────────────────────────────────────────────────────────────
+            std::vector<Vertex> localVerts;
+            localVerts.reserve(mr.vertCount);
 
-            for (uint32_t v = 0; v < mr.vertCount; ++v) {
-                pxBLAS.push_back(m_px[mr.firstVert + v]);
-                pyBLAS.push_back(m_py[mr.firstVert + v]);
-                pzBLAS.push_back(m_pz[mr.firstVert + v]);
-            }
+            for (uint32_t v = 0; v < mr.vertCount; ++v)
+                localVerts.push_back(m_vertices[mr.firstVert + v]);
 
-            //
-            // 2) Gather & remap triangles into a local BLAS list
-            //
-            std::vector<Triangle> triBLAS;
-            triBLAS.reserve(mr.triCount);
+            // ──────────────────────────────────────────────────────────────
+            // 2.  Gather & re‑index triangles so they refer to localVerts[]
+            // ──────────────────────────────────────────────────────────────
+            std::vector<Triangle> localTris;
+            localTris.reserve(mr.triCount);
+
             for (uint32_t t = 0; t < mr.triCount; ++t) {
-                auto tri = m_tris[mr.firstTri + t];
-                tri.v0 -= mr.firstVert;
-                tri.v1 -= mr.firstVert;
-                tri.v2 -= mr.firstVert;
-                triBLAS.push_back(tri);
+                Triangle T = m_tris[mr.firstTri + t];
+                T.v0 -= mr.firstVert; // now between 0 … mr.vertCount‑1
+                T.v1 -= mr.firstVert;
+                T.v2 -= mr.firstVert;
+                localTris.push_back(T);
             }
 
-            //
-            // 3) Build a *local* BVH over those remapped triangles
-            //
+            // ──────────────────────────────────────────────────────────────
+            // 3.  Build the mesh‑local BVH
+            // ──────────────────────────────────────────────────────────────
             std::vector<BVHNode> localNodes;
-            buildBVHNodes(triBLAS,
-                          pxBLAS, pyBLAS, pzBLAS,
-                          localNodes);
+            std::vector<uint32_t> triIdx; // permutation (ignored later)
 
-            //
-            // 4) Patch child indices for *internal* vs *leaf* nodes
-            //
-            //    nodeIdx  : where this node will land in m_blasNodes
-            uint32_t firstNode = uint32_t(m_blasNodes.size());
-            for (auto &N: localNodes) {
-                if (N.count == 0) {
-                    // internal → children are relative to this sub-array
-                    N.leftChild += firstNode;
-                    N.rightChild += firstNode;
+            BasicBVH::build(localTris,
+                            localVerts, // ← vertex array is required
+                            localNodes,
+                            triIdx,
+                            /*maxLeaf*/ 8);
+
+            //---------------- 4.  Patch child indices so they point into          */
+            //----------------     the *global* triangle array again -------------
+            for (BVHNode &N: localNodes) {
+                if (N.isLeaf()) {
+                    // leaf: convert local triangle index → global index
+                    N.leftFirst += mr.firstTri;
                 } else {
-                    // leaf → points back to the GLOBAL m_tris[]
-                    N.leftChild += mr.firstTri;
+                    // internal: children become global node indices
+                    N.leftFirst += m_blasNodes.size();
                 }
             }
 
-            //
-            // 5) Append into the big BLAS tree & record the range + name
-            //
-            m_blasNodes.insert(
-                m_blasNodes.end(),
-                localNodes.begin(),
-                localNodes.end()
-            );
+            //---------------- 5.  Append to the big BLAS pool & record range -----
+            uint32_t firstNode = uint32_t(m_blasNodes.size());
+            m_blasNodes.insert(m_blasNodes.end(),
+                               localNodes.begin(), localNodes.end());
 
             m_blasRanges.push_back({
-                firstNode, // firstNode
-                uint32_t(localNodes.size()) // nodeCount
+                firstNode,
+                uint32_t(localNodes.size())
             });
 
-            m_blasNames.push_back(name);
+            m_blasNames.push_back(name); // purely for your debug renderer
         }
     }
 
-    // CPU-side BVH building method integrated into PathTracerSYCL
-    void PathTracerSYCL::buildBVHNodes(
-        const std::vector<Triangle> &triangles,
-        const std::vector<float> &px,
-        const std::vector<float> &py,
-        const std::vector<float> &pz,
-        std::vector<BVHNode> &outNodes) {
-        if (triangles.empty()) return;
-
-        // working copy for partitioning
-        std::vector<Triangle> triBuf = triangles;
-
-        // clear & reserve
-        outNodes.clear();
-        outNodes.reserve(triBuf.size() * 2);
-
-        // recursive builder returns index of the node it just created
-        std::function<int(int, int)> build = [&](int start, int end) -> int {
-            int nodeIdx = static_cast<int>(outNodes.size());
-            outNodes.emplace_back(); // append a new node
-            auto &node = outNodes.back();
-
-            // 1) compute bounding box for [start,end)
-            float3 bmin{FLT_MAX}, bmax{-FLT_MAX};
-            for (int i = start; i < end; ++i) {
-                const auto &t = triBuf[i];
-                for (int v = 0; v < 3; ++v) {
-                    uint32_t vi = (v == 0 ? t.v0 : (v == 1 ? t.v1 : t.v2));
-                    float3 p{px[vi], py[vi], pz[vi]};
-                    bmin = sycl::min(bmin, p);
-                    bmax = sycl::max(bmax, p);
-                }
-            }
-            node.bboxMin = bmin;
-            node.bboxMax = bmax;
-
-            int nPrims = end - start;
-            if (nPrims <= 2) {
-                // --- leaf ------------------------
-                node.count = nPrims;
-                node.leftChild = start; // index into *local* triBuf
-                node.rightChild = 0;
-            } else {
-                // --- internal --------------------
-                node.count = 0;
-
-                // split by centroid
-                float3 cmin{FLT_MAX}, cmax{-FLT_MAX};
-                for (int i = start; i < end; ++i) {
-                    const auto &t = triBuf[i];
-                    float3 v0{px[t.v0], py[t.v0], pz[t.v0]};
-                    float3 v1{px[t.v1], py[t.v1], pz[t.v1]};
-                    float3 v2{px[t.v2], py[t.v2], pz[t.v2]};
-                    float3 cent = (v0 + v1 + v2) / 3.f;
-                    cmin = sycl::min(cmin, cent);
-                    cmax = sycl::max(cmax, cent);
-                }
-                float3 ext = cmax - cmin;
-                int axis = (ext.x() > ext.y() && ext.x() > ext.z()
-                                ? 0
-                                : ext.y() > ext.z()
-                                      ? 1
-                                      : 2);
-                float mid = (cmin[axis] + cmax[axis]) * 0.5f;
-
-                // partition
-                auto it = std::partition(triBuf.begin() + start, triBuf.begin() + end,
-                                         [&](auto &t) {
-                                             float3 v0{px[t.v0], py[t.v0], pz[t.v0]};
-                                             float3 v1{px[t.v1], py[t.v1], pz[t.v1]};
-                                             float3 v2{px[t.v2], py[t.v2], pz[t.v2]};
-                                             return ((v0 + v1 + v2) / 3.f)[axis] < mid;
-                                         });
-                int midIdx = static_cast<int>(it - triBuf.begin());
-                if (midIdx == start || midIdx == end)
-                    midIdx = start + nPrims / 2;
-
-                // recursively build children
-                node.leftChild = build(start, midIdx);
-                node.rightChild = build(midIdx, end);
-            }
-
-            return nodeIdx;
-        };
-
-        // kick off recursion
-        build(0, static_cast<int>(triBuf.size()));
-    }
-
-    //------------------------------------------------------------------------------
-    // Build TLAS over instance AABBs (world-space, handles non-uniform scales)
-    //------------------------------------------------------------------------------
+    //──────────────────────────────────────────────────────────────────────────
+    // Build TLAS over *instances*  (one leaf = one Instance struct)
+    //──────────────────────────────────────────────────────────────────────────
     void PathTracerSYCL::buildTopLevelBVH() {
-        // 1) Gather each instance’s world-space AABB
-        struct AABB {
-            float3 min, max;
-            uint32_t instIdx;
+        using Box = struct {
+            float3 bmin, bmax;
+            uint32_t inst;
         };
-        std::vector<AABB> boxes;
+
+        /* 1) gather instance‑space AABBs */
+        std::vector<Box> boxes;
         boxes.reserve(m_instances.size());
 
         for (uint32_t i = 0; i < m_instances.size(); ++i) {
-            const auto &inst = m_instances[i];
-            const auto &xf = m_transforms[inst.transformIndex];
+            const Instance &inst = m_instances[i];
+            const Transform &xf = m_transforms[inst.transformIndex];
 
-            // fetch the BLAS root node for this mesh
-            const auto &root = m_blasNodes[m_blasRanges[inst.geomIndex].firstNode];
+            /* root node of this mesh’s BLAS */
+            const BLASRange &br = m_blasRanges[inst.geomIndex];
+            const BVHNode &root = m_blasNodes[br.firstNode];
 
-            // build the 8 object-space corners
-            float3 corners[8] = {
-                {root.bboxMin.x(), root.bboxMin.y(), root.bboxMin.z()},
-                {root.bboxMin.x(), root.bboxMin.y(), root.bboxMax.z()},
-                {root.bboxMin.x(), root.bboxMax.y(), root.bboxMin.z()},
-                {root.bboxMin.x(), root.bboxMax.y(), root.bboxMax.z()},
-                {root.bboxMax.x(), root.bboxMin.y(), root.bboxMin.z()},
-                {root.bboxMax.x(), root.bboxMin.y(), root.bboxMax.z()},
-                {root.bboxMax.x(), root.bboxMax.y(), root.bboxMin.z()},
-                {root.bboxMax.x(), root.bboxMax.y(), root.bboxMax.z()}
-            };
-
-            // transform to world and find min/max
+            /* object‑space corners → world space, track min/max */
             float3 wmin{FLT_MAX}, wmax{-FLT_MAX};
-            for (int c = 0; c < 8; ++c) {
-                float4 wc = xf.objectToWorld * float4{corners[c], 1.0f};
-                float3 p{wc.x(), wc.y(), wc.z()};
-                wmin = sycl::min(wmin, p);
-                wmax = sycl::max(wmax, p);
-            }
 
+            for (int c = 0; c < 8; ++c) {
+                bool bx = c & 4, by = c & 2, bz = c & 1;
+                float3 pObj = {
+                    bx ? root.aabbMax.x() : root.aabbMin.x(),
+                    by ? root.aabbMax.y() : root.aabbMin.y(),
+                    bz ? root.aabbMax.z() : root.aabbMin.z()
+                };
+                float3 pW = toWorldPoint(pObj, xf);
+                wmin = sycl::min(wmin, pW);
+                wmax = sycl::max(wmax, pW);
+            }
             boxes.push_back({wmin, wmax, i});
         }
 
-        // 2) Recursively build the TLAS into m_tlasNodes
+        /* 2) recursive median‑split builder (identical to BLAS style) */
         m_tlasNodes.clear();
         m_tlasNodes.reserve(boxes.size() * 2);
 
-        std::function<int(int, int)> buildTL = [&](int start, int end) -> int {
-            int nodeIdx = static_cast<int>(m_tlasNodes.size());
+        std::function<int(int, int)> build = [&](int start, int end) -> int {
+            int n = int(m_tlasNodes.size());
             m_tlasNodes.emplace_back();
-            auto &node = m_tlasNodes.back();
+            TLASNode &N = m_tlasNodes.back();
 
-            // compute this node’s bounds
+            /* compute bounds of current set */
             float3 bmin{FLT_MAX}, bmax{-FLT_MAX};
             for (int i = start; i < end; ++i) {
-                bmin = sycl::min(bmin, boxes[i].min);
-                bmax = sycl::max(bmax, boxes[i].max);
+                bmin = sycl::min(bmin, boxes[i].bmin);
+                bmax = sycl::max(bmax, boxes[i].bmax);
             }
-            node.bboxMin = bmin;
-            node.bboxMax = bmax;
+            N.aabbMin = bmin;
+            N.aabbMax = bmax;
 
             int count = end - start;
             if (count == 1) {
-                // Leaf: one instance
-                node.count = 1;
-                node.leftChild = boxes[start].instIdx; // instIdx baked in
-                node.rightChild = 0; // unused
+                N.count = 1; // leaf
+                N.leftChild = boxes[start].inst; // points to Instance index
+                N.rightChild = 0;
             } else {
-                // Internal: split by centroid
-                //  compute centroid bounds
+                N.count = 0; // internal
+
+                /* centroid bounds → pick longest axis */
                 float3 cmin{FLT_MAX}, cmax{-FLT_MAX};
                 for (int i = start; i < end; ++i) {
-                    float3 cent = (boxes[i].min + boxes[i].max) * 0.5f;
+                    float3 cent = (boxes[i].bmin + boxes[i].bmax) * 0.5f;
                     cmin = sycl::min(cmin, cent);
                     cmax = sycl::max(cmax, cent);
                 }
                 float3 ext = cmax - cmin;
-                int axis = (ext.x() > ext.y() && ext.x() > ext.z()
-                                ? 0
-                                : ext.y() > ext.z()
-                                      ? 1
-                                      : 2);
-                float mid = (cmin[axis] + cmax[axis]) * 0.5f;
+                int axis = (ext.x() > ext.y() && ext.x() > ext.z()) ? 0 : (ext.y() > ext.z()) ? 1 : 2;
+                float pivot = (cmin[axis] + cmax[axis]) * 0.5f;
 
-                // partition the range
-                auto it = std::partition(
-                    boxes.begin() + start, boxes.begin() + end,
-                    [&](auto &b) {
-                        float3 cent = (b.min + b.max) * 0.5f;
-                        return cent[axis] < mid;
-                    }
-                );
-                int midIdx = static_cast<int>(it - boxes.begin());
-                // fallback to half-split if unbalanced
-                if (midIdx == start || midIdx == end)
-                    midIdx = start + count / 2;
+                auto midIter = std::partition(boxes.begin() + start, boxes.begin() + end,
+                                              [&](const Box &b) {
+                                                  float3 cc = (b.bmin + b.bmax) * 0.5f;
+                                                  return cc[axis] < pivot;
+                                              });
+                int mid = int(midIter - boxes.begin());
+                if (mid == start || mid == end) mid = start + count / 2;
 
-                // recurse
-                node.count = 0; // internal
-                node.leftChild = buildTL(start, midIdx);
-                node.rightChild = buildTL(midIdx, end);
+                N.leftChild = build(start, mid);
+                N.rightChild = build(mid, end);
             }
-
-            return nodeIdx;
+            return n;
         };
 
-        if (!boxes.empty())
-            buildTL(0, static_cast<int>(boxes.size()));
+        if (!boxes.empty()) build(0, int(boxes.size()));
     }
 
-    void PathTracerSYCL::collectBLASDebugBounds(std::vector<DebugBound> &outBounds,
-                                                bool includeLeaves ) const {
-        // Emit one DebugBound, now taking a mesh name
-        auto emitBound = [&](const float3 &wmin,
-                             const float3 &wmax,
-                             const std::string &meshName) {
-            glm::vec3 gmin(wmin.x(), wmin.y(), wmin.z());
-            glm::vec3 gmax(wmax.x(), wmax.y(), wmax.z());
-
-            glm::vec3 size = gmax - gmin; // w / h / d
-            glm::mat4 model = glm::translate(glm::mat4(1.0f), gmin);
-
-            outBounds.push_back({
-                model,
-                size,
-                static_cast<uint32_t>(BVHLevel::BLAS),
-                meshName
-            });
-        };
-
-        // -------------------------------------------------------------------------
-        // Walk every instance and every node inside its BLAS
-        // -------------------------------------------------------------------------
-        for (uint32_t instIdx = 0; instIdx < m_instances.size(); ++instIdx) {
-            const auto &inst = m_instances[instIdx];
-            const auto &xf = m_transforms[inst.transformIndex];
-            const BLASRange &br = m_blasRanges[inst.geomIndex];
-            const std::string &meshName = m_blasNames[inst.geomIndex];
-
-            for (uint32_t n = 0; n < br.nodeCount; ++n) {
-                const BVHNode &node = m_blasNodes[br.firstNode + n];
-                if (!includeLeaves && node.count != 0) continue; // internal‑only mode
-
-                // Object‑>world transform of this node’s AABB ----------------------
-                float3 objMin = node.bboxMin;
-                float3 objMax = node.bboxMax;
-
-                float3 wmin{FLT_MAX, FLT_MAX, FLT_MAX};
-                float3 wmax{-FLT_MAX, -FLT_MAX, -FLT_MAX};
-
-                for (int c = 0; c < 8; ++c) {
-                    bool bx = (c & 4), by = (c & 2), bz = (c & 1);
-
-                    float3 p{
-                        bx ? objMax.x() : objMin.x(),
-                        by ? objMax.y() : objMin.y(),
-                        bz ? objMax.z() : objMin.z()
-                    };
-
-                    float4 wp = xf.objectToWorld * float4(p.x(), p.y(), p.z(), 1.0f);
-                    float3 q{wp.x(), wp.y(), wp.z()};
-
-                    wmin = min(wmin, q);
-                    wmax = max(wmax, q);
-                }
-                emitBound(wmin, wmax, meshName);
-            }
-        }
-    }
-
-    */
 
     void PathTracerSYCL::freeDeviceMemory() {
         // free descriptor
         if (d_sceneDesc) free(d_sceneDesc, m_queue);
         // free buffers
         auto freeIf = [&](void *p) {
-            if (p) free(p, m_queue);
-            p = nullptr;
+            if (p) {
+                free(p, m_queue);
+                p = nullptr;
+            }
         };
         freeIf(d_vertices);
         freeIf(d_tris);
@@ -816,6 +668,11 @@ namespace VkRender::PathTracer {
         freeIf(d_materials);
         freeIf(d_lights);
         freeIf(d_cameras);
-        freeIf(d_bvhNodes);
+
+        // BVH
+        freeIf(d_blasRanges);
+        freeIf(d_blasNodes);
+        freeIf(d_tlasNodes);
+
     }
 }

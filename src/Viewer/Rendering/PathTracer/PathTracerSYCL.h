@@ -15,36 +15,34 @@
 // Main tracer class
 // -------------------------
 namespace VkRender::PathTracer {
-
     /// World‑space cube vertices + indices for one BVH node
-    enum class BVHLevel : uint32_t   // 0 = BLAS, 1 = TLAS  (room for more levels)
+    enum class BVHLevel : uint32_t // 0 = BLAS, 1 = TLAS  (room for more levels)
     {
         BLAS = 0,
         TLAS = 1
     };
 
-    struct alignas(16) DebugBound
-    {
-        glm::mat4 model;      // world transform (translation only)
-        glm::vec3 size;       // width / height / depth
-        uint32_t  level;      // cast from BVHLevel – lets you filter later
-        std::string name;   // human-readable mesh name (or instance identifier)
-
+    struct alignas(16) DebugBound {
+        glm::mat4 model; // world transform (translation only)
+        glm::vec3 size; // width / height / depth
+        uint32_t level; // cast from BVHLevel – lets you filter later
+        std::string name; // human-readable mesh name (or instance identifier)
     };
 
     struct PathTracerSYCLCreateInfo {
-        sycl::queue& queue;
+        sycl::queue &queue;
         std::shared_ptr<SYCLDeviceSelector> device;
         uint32_t framebufferSize = 960 * 600 * 10; // 10 images of size 960x600x4
 
         PathTracerSYCLCreateInfo() = delete;
-        explicit PathTracerSYCLCreateInfo(std::shared_ptr<SYCLDeviceSelector> dev) : device(dev), queue(dev->getQueue()) {
 
+        explicit
+        PathTracerSYCLCreateInfo(std::shared_ptr<SYCLDeviceSelector> dev) : device(dev), queue(dev->getQueue()) {
         }
     };
 
     struct EditorCamera {
-        const ArcballCamera* camera = nullptr;
+        const ArcballCamera *camera = nullptr;
         uint32_t editorWidth = 1024;
         uint32_t editorHeight = 768;
         bool movedSinceLastFrame = false;
@@ -52,7 +50,8 @@ namespace VkRender::PathTracer {
 
     class PathTracerSYCL {
     public:
-        explicit PathTracerSYCL(const PathTracerSYCLCreateInfo& createInfo) : m_queue(createInfo.queue), m_createInfo(createInfo) {
+        explicit PathTracerSYCL(const PathTracerSYCLCreateInfo &createInfo) : m_queue(createInfo.queue),
+                                                                              m_createInfo(createInfo) {
             std::memset(&m_sceneDesc, 0, sizeof(m_sceneDesc));
 
             // setup output'
@@ -62,7 +61,7 @@ namespace VkRender::PathTracer {
         ~PathTracerSYCL();
 
         /** (re)allocates all GPU buffers that depend on scene topology */
-        void uploadScene(const std::shared_ptr<Scene>& scene, EditorCamera editorCamera = EditorCamera());
+        void uploadScene(const std::shared_ptr<Scene> &scene, EditorCamera editorCamera = EditorCamera());
 
         void traverseBVH();
 
@@ -72,33 +71,38 @@ namespace VkRender::PathTracer {
         void setupFrameBuffers();
 
         /** per‑frame fast update of transforms, animated emissive, … */
-        void updateDynamic(const std::shared_ptr<Scene>& scene, EditorCamera editorCamera);
+        void updateDynamic(const std::shared_ptr<Scene> &scene, EditorCamera editorCamera);
 
         /** launches photon + contribution kernels */
         void renderFrame(int photonCount);
 
         /** copies the device framebuffer back to host */
         void generateImages(std::span<std::byte> outRGBA32f);
-        void generateEditorImage(const std::shared_ptr<VulkanTexture2D>& tex);
 
-        void createEditorCamera(const std::shared_ptr<ArcballCamera> & camera, int32_t int32, int32_t height);
+        void generateEditorImage(const std::shared_ptr<VulkanTexture2D> &tex);
 
-        const PathTracerSYCLCreateInfo& getCreateInfo() { return m_createInfo; }
+        void createEditorCamera(const std::shared_ptr<ArcballCamera> &camera, int32_t int32, int32_t height);
 
-        std::vector<BVHNode> getBvhNodes() {return m_bvhNodes;}
+        const PathTracerSYCLCreateInfo &getCreateInfo() { return m_createInfo; }
+
+        std::vector<BVHNode> getBLASNodes() { return m_blasNodes; }
+        std::vector<TLASNode> getTLASNodes() { return m_tlasNodes; }
+
     private:
         /*--- helpers called only from uploadScene() ---*/
-        void collectGeometry(const std::shared_ptr<Scene>& scene);
+        void collectGeometry(const std::shared_ptr<Scene> &scene);
 
-        void collectInstances(const std::shared_ptr<Scene>& scene);
+        void collectInstances(const std::shared_ptr<Scene> &scene);
 
-        void collectLights(const std::shared_ptr<Scene>& scene);
+        void collectLights(const std::shared_ptr<Scene> &scene);
 
         void collectCameras(const std::shared_ptr<Scene> &scene, EditorCamera editorCamera);
 
         void buildSceneDesc();
 
+        void buildBLASForAllMeshes();
 
+        void buildTopLevelBVH();
 
         /*--- device clean‑up ---*/
         void freeDeviceMemory();
@@ -115,20 +119,20 @@ namespace VkRender::PathTracer {
         PathTracerSYCLCreateInfo m_createInfo;
 
         FrameBuffer m_frameBuffers{};
-        float4* d_memory = nullptr;
-        FrameBuffer* d_frameBuffers{};
+        float4 *d_memory = nullptr;
+        FrameBuffer *d_frameBuffers{};
 
         // BLAS DEBUG NAMES
-        std::vector<std::string>          m_meshNames;    ///< same length as m_meshRanges
-        std::vector<std::string>          m_blasNames;    ///< same length as m_blasRanges
+        std::vector<std::string> m_meshNames; ///< same length as m_meshRanges
+        std::vector<std::string> m_blasNames; ///< same length as m_blasRanges
 
         // BVH
-        std::vector<BVHNode> m_bvhNodes;
+        //std::vector<BVHNode> m_bvhNodes;
 
 
         // === Member (host) staging arrays ===
         std::vector<Vertex> m_vertices;
-        std::vector<Vertex> m_verticesWorld;
+        //std::vector<Vertex> m_verticesWorld;
         std::vector<Triangle> m_tris;
         std::vector<MeshRange> m_meshRanges;
         std::vector<Instance> m_instances;
@@ -139,6 +143,15 @@ namespace VkRender::PathTracer {
         // === Host staging helper variables ===
         std::unordered_map<std::string, uint32_t> m_meshIndexMap;
 
+        // CPU copies
+        std::vector<BVHNode> m_blasNodes;
+        std::vector<BLASRange> m_blasRanges;
+        std::vector<TLASNode> m_tlasNodes;
+
+        // device pointers
+        BVHNode *d_blasNodes = nullptr;
+        TLASNode *d_tlasNodes = nullptr;
+        BLASRange *d_blasRanges = nullptr;
 
         // === Device USM pointers ===
         Vertex *d_vertices = nullptr;
@@ -150,7 +163,6 @@ namespace VkRender::PathTracer {
         MeshLight *d_lights = nullptr;
         Camera *d_cameras = nullptr;
         SceneDesc *d_sceneDesc = nullptr;
-        BVHNode* d_bvhNodes = nullptr;
         // Host copy of the descriptor used to build the device-side struct
         SceneDesc m_sceneDesc;
 

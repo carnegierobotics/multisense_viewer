@@ -117,33 +117,49 @@ namespace VkRender::PathTracer {
     /// \param tEntry  Output earliest intersection distance.
     /// \returns True if the ray hits the AABB before tMax.
     //------------------------------------------------------------------------------
-    static inline bool slabIntersectAABB(
+    inline bool slabIntersectAABB(
         const Ray& ray,
-        const BVHNode& node,
+        const TLASNode& node,
         const float3& invDir,
         float tMax,
         float& tEntry) {
-        /*
-        float3 tmp = node.bboxMin - ray.origin;
+        float3 tmp = node.aabbMin - ray.origin;
         float3 t0 = tmp * invDir;
-        float3 tmp2 = node.bboxMax - ray.origin;
+        float3 tmp2 = node.aabbMax - ray.origin;
         float3 t1 = tmp2 * invDir;
         float3 tmin3 = sycl::min(t0, t1);
         float3 tmax3 = sycl::max(t0, t1);
-
         float tmin = sycl::fmax(sycl::fmax(tmin3.x(), tmin3.y()), tmin3.z());
         float tmax = sycl::fmin(sycl::fmin(tmax3.x(), tmax3.y()), tmax3.z());
-
         bool beyondClosestGlobalHit = tmin > tMax;
         bool noOverlap = tmin > tmax;
         bool boxBehindRay = tmax < 0.f;
         if (beyondClosestGlobalHit || noOverlap || boxBehindRay)
             return false;
-
         tEntry = tmin;
-        */
         return true;
-
+    }
+    inline bool slabIntersectAABB(
+        const Ray& ray,
+        const BVHNode& node,
+        const float3& invDir,
+        float tMax,
+        float& tEntry) {
+        float3 tmp = node.aabbMin - ray.origin;
+        float3 t0 = tmp * invDir;
+        float3 tmp2 = node.aabbMax - ray.origin;
+        float3 t1 = tmp2 * invDir;
+        float3 tmin3 = sycl::min(t0, t1);
+        float3 tmax3 = sycl::max(t0, t1);
+        float tmin = sycl::fmax(sycl::fmax(tmin3.x(), tmin3.y()), tmin3.z());
+        float tmax = sycl::fmin(sycl::fmin(tmax3.x(), tmax3.y()), tmax3.z());
+        bool beyondClosestGlobalHit = tmin > tMax;
+        bool noOverlap = tmin > tmax;
+        bool boxBehindRay = tmax < 0.f;
+        if (beyondClosestGlobalHit || noOverlap || boxBehindRay)
+            return false;
+        tEntry = tmin;
+        return true;
     }
 
     //------------------------------------------------------------------------------
@@ -154,7 +170,7 @@ namespace VkRender::PathTracer {
     /// \param outU,outV  Output barycentric coords.
     /// \returns True if the ray hits the triangle.
     //------------------------------------------------------------------------------
-    static inline bool intersectTriangle(
+    inline bool intersectTriangle(
         const Ray& ray,
         const float3& v0,
         const float3& v1,
@@ -200,7 +216,7 @@ namespace VkRender::PathTracer {
     /// \param outPdf Output PDF of the sample.
     //------------------------------------------------------------------------------
     /*
-    static inline void sampleAreaLight(
+    inline void sampleAreaLight(
         const AreaLight &light,
         uint32_t seed,
         float3 &outPos,
@@ -214,7 +230,7 @@ namespace VkRender::PathTracer {
     }
     */
 
-    static inline void sampleMeshLight(
+    inline void sampleMeshLight(
         const MeshLight& light,
          PCG32& rng,
         sycl::float3& outPos,
@@ -268,7 +284,7 @@ namespace VkRender::PathTracer {
     /// \param seed2  RNG seed #2.
     /// \returns A unit-length direction.
     //------------------------------------------------------------------------------
-    static inline float3 sampleCosineHemisphere(
+    inline float3 sampleCosineHemisphere(
         const float3& N,
         PCG32& rng) {
         float r1 = rng.nextFloat();
@@ -295,13 +311,28 @@ namespace VkRender::PathTracer {
     /// \param seed2  RNG seed #2.
     /// \returns A new Ray starting just above the surface.
     //------------------------------------------------------------------------------
-    static inline Ray spawnNextRay(
+    inline Ray spawnNextRay(
         const Hit& hit,
         const float3& N,
         PCG32& rng) {
         float3 dir = sampleCosineHemisphere(N, rng);
         float3 origin = hit.hitPoint + N * 1e-4f;
         return makeRay(origin, dir);
+    }
+
+    //──────────────── world → object and back ────────────────────────────────
+    inline Ray toObjectSpace(const Ray &rayW, const Transform &xf)
+    {
+        Ray r;
+        r.origin    = (xf.worldToObject * float4{ rayW.origin, 1.f });
+        r.direction = (xf.worldToObject * float4{ rayW.direction, 0.f });
+        return r;
+    }
+
+    inline float3 toWorldPoint(const float3 &pO, const Transform &xf)
+    {
+        float4 hp = xf.objectToWorld * float4{ pO, 1.f };
+        return float3{ hp.x(), hp.y(), hp.z() };
     }
 }
 

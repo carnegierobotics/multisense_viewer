@@ -27,6 +27,8 @@ namespace VkRender {
 
         // BVH stuff
         bool showBVH = false;
+        bool showTLAS = false;
+        bool showBLAS = false;
         int bvhLevelMax = 20;
         int bvhLevelMin = 0;
         int maxLeafSize = 0;

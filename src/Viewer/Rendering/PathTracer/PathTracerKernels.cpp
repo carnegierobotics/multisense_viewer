@@ -8,125 +8,139 @@
 #include "Viewer/Rendering/PathTracer/KernelHelpers.h"
 
 namespace VkRender::PathTracer {
-    bool PathTracerMeshKernel::intersectBLAS(
+// ── PathTracerMeshKernel.cpp ────────────────────────────────────────────────
+// Returns the closest hit inside one mesh’s BLAS (object space)
+bool PathTracerMeshKernel::intersectBLAS(const Ray &rayO,
+                                         uint32_t geomIdx,
+                                         Hit      &out) const
+{
+    const SceneDesc  &scene = *d_sceneDesc;
 
-        const Ray &ray, uint32_t meshIdx, Hit &out) const {
-        /*
-        // fetch the BLAS range for this mesh
-        const auto &mr = d_sceneDesc->meshes[meshIdx];
-        const auto firstNode = d_sceneDesc->blasRanges[meshIdx].firstNode;
-        const auto *nodes = d_sceneDesc->blasNodes;
-        const auto *tris = d_sceneDesc->triangles;
-        const auto &vsoa = d_sceneDesc->vertices;
+    /* 1.  Locate the sub‑tree that belongs to this mesh
+           ────────────────────────────────────────────── */
+    const BLASRange &br    = scene.blasRanges[geomIdx];
+    const BVHNode   *nodes = scene.blasNodes   + br.firstNode; // root = nodes[0]
+    const Triangle  *tris  = scene.triangles;
+    const Vertex    *verts = scene.vertices;
 
-        float bestT = std::numeric_limits<float>::infinity();
-        bool hitAny = false;
-        float3 invDir = 1.f / ray.direction;
+    /* 2.  Standard iterative depth‑first traversal
+           ────────────────────────────────────────────── */
+    float  bestT   = std::numeric_limits<float>::infinity();
+    bool   hitAny  = false;
+    float3 invDir  = 1.f / rayO.direction;
 
-        // stack-based BVH traversal
-        int stack[64], sp = 0;
-        stack[sp++] = int(firstNode);
+    int stack[64];                   // enough for >4 billion triangles
+    int sp = 0;
+    stack[sp++] = 0;                 // root of this BLAS
 
-        while (sp) {
-            int idx = stack[--sp];
-            const auto &node = nodes[idx];
+    while (sp)
+    {
+        int nIdx          = stack[--sp];
+        const BVHNode &N  = nodes[nIdx];
 
-            float tEntry;
-            if (!slabIntersectAABB(ray, node, invDir, bestT, tEntry))
-                continue;
+        float tEntry;
+        if (!slabIntersectAABB(rayO, N, invDir, bestT, tEntry))
+            continue;                // miss or farther than current best
 
-            if (node.count == 0) {
-                // internal node → push children
-                stack[sp++] = int(node.rightChild);
-                stack[sp++] = int(node.leftChild);
-            } else {
-                // leaf: test each triangle
-                for (uint32_t i = 0; i < node.count; ++i) {
-                    uint32_t triIdx = node.leftChild + i; // global triangle index
-                    const auto &T = tris[triIdx];
-                    float t, u, v;
-                    float3 A{vsoa.px[T.v0], vsoa.py[T.v0], vsoa.pz[T.v0]};
-                    float3 B{vsoa.px[T.v1], vsoa.py[T.v1], vsoa.pz[T.v1]};
-                    float3 C{vsoa.px[T.v2], vsoa.py[T.v2], vsoa.pz[T.v2]};
-                    if (intersectTriangle(ray, A, B, C, t, u, v) && t < bestT) {
-                        bestT = t;
-                        hitAny = true;
-                        out.u = u;
-                        out.v = v;
-                        out.primIdx = triIdx;
-                    }
+        if (N.triCount == 0)         // ── internal ─────────────────────
+        {
+            /* Push children – right first so left is processed next.
+               Children are stored immediately after the parent once
+               we patched indices in buildBLASForAllMeshes().          */
+            stack[sp++] = N.leftFirst + 1;   // right
+            stack[sp++] = N.leftFirst;       // left
+        }
+        else                         // ── leaf ─────────────────────────
+        {
+            for (uint32_t i = 0; i < N.triCount; ++i)
+            {
+                uint32_t triIdx      = N.leftFirst + i;  // *global* index
+                const Triangle &T    = tris[triIdx];
+
+                const float3 A = verts[T.v0].pos;
+                const float3 B = verts[T.v1].pos;
+                const float3 C = verts[T.v2].pos;
+
+                float t,u,v;
+                if (intersectTriangle(rayO, A,B,C, t,u,v) && t < bestT)
+                {
+                    bestT      = t;
+                    hitAny     = true;
+
+                    out.t      = t;
+                    out.u      = u;
+                    out.v      = v;
+                    out.primIdx= triIdx;     // global – good for shading
                 }
             }
         }
-
-        if (hitAny) {
-            out.t = bestT;
-            return true;
-        }
-        return false;
-        */
     }
+
+    return hitAny;
+}
 
 
     bool PathTracerMeshKernel::intersectScene(const Ray &rayW, Hit *hit) const {
-        /*
-        const auto *tlas = d_sceneDesc->tlas;
-        const auto *insts = d_sceneDesc->instances;
-        const auto *xforms = d_sceneDesc->transforms;
+        const SceneDesc &scene = *d_sceneDesc;
 
-        float bestT = std::numeric_limits<float>::infinity();
-        hit->t = bestT;
-        bool anyHit = false;
-        float3 invW = 1.f / rayW.direction;
+        /* abort if scene is empty */
+        if (scene.tlasNodeCount == 0) return false;
 
-        // TLAS traversal stack
-        int stack[64], sp = 0;
-        stack[sp++] = 0; // root node
+        const TLASNode  *tlas   = scene.tlasNodes;
+        const Instance  *instances  = scene.instances;
+        const Transform *xforms = scene.transforms;
+
+
+        /* ------------------------------------------------------------------ */
+        /* stack‑based depth‑first traversal                                   */
+        /* ------------------------------------------------------------------ */
+        float bestT  = std::numeric_limits<float>::infinity();
+        bool  anyHit = false;
+        float3 invDir = 1.f / rayW.direction;
+
+
+        int stack[64];
+        int sp = 0;
+        stack[sp++] = 0; // root
 
         while (sp) {
-            int idx = stack[--sp];
-            const auto &node = tlas[idx];
+            int nIdx = stack[--sp];
+            const TLASNode& node = tlas[nIdx];
 
             float tEntry;
-            if (!slabIntersectAABB(rayW, node, invW, bestT, tEntry))
+            if (!slabIntersectAABB(rayW, node, invDir, bestT, tEntry))
                 continue;
 
-            if (node.count == 0) {
-                // internal → push children
-                stack[sp++] = int(node.rightChild);
-                stack[sp++] = int(node.leftChild);
-            } else {
-                // leaf: exactly one instance
-                uint32_t instIdx = node.leftChild;
-                const auto &inst = insts[instIdx];
-                const auto &xf = xforms[inst.transformIndex];
+            if (node.count==0)          // internal
+            {
+                stack[sp++] = node.rightChild;
+                stack[sp++] = node.leftChild;
+            }     // leaf – exactly one instance
+            else {
+                uint32_t  instID = node.leftChild;
+                const Instance  &instance  = instances [instID];
+                const Transform &transform = xforms[instance.transformIndex];
 
-                // transform the world ray into object space
-                Ray rayO;
-                rayO.origin = xf.worldToObject * sycl::float4{rayW.origin, 1.f};
-                rayO.direction = xf.worldToObject * sycl::float4{rayW.direction, 0.f};
+                Ray rayObject = toObjectSpace(rayW, transform);
 
-                // test against the mesh’s BLAS
+                //uint32_t triIdx  = scene.triIndices[node.leftFirst + i];
+                //const Triangle &T = tris[triIdx];
+                //hit->primIdx     = triIdx;
                 Hit local;
-                if (intersectBLAS(rayO, inst.geomIndex, local) && local.t < bestT) {
-                    bestT = local.t;
-                    anyHit = true;
-                    hit->t = bestT;
-                    hit->instIdx = instIdx;
-                    // world-space hit point
-                    float3 pO = rayO.origin + bestT * rayO.direction;
-                    float4 pW = xf.objectToWorld * sycl::float4{pO, 1.f};
-                    hit->hitPoint = float3{pW.x(), pW.y(), pW.z()};
-                    hit->u = local.u;
-                    hit->v = local.v;
-                    hit->primIdx = local.primIdx;
+                if (intersectBLAS(rayObject, instance.geomIndex, local) && local.t < bestT)
+                {
+                    bestT        = local.t;
+                    anyHit       = true;
+                    hit->t        = bestT;
+                    hit->u        = local.u;
+                    hit->v        = local.v;
+                    hit->primIdx  = local.primIdx;
+                    hit->instIdx  = instID;
+                    hit->hitPoint = toWorldPoint(rayObject.origin + bestT*rayObject.direction, transform);
                 }
             }
         }
-
         return anyHit;
-        */
-        return false;
     }
 
 
@@ -222,14 +236,19 @@ namespace VkRender::PathTracer {
             if (!intersectScene(worldRay, &hit))
                 break;
 
-            /*
+
             // interpolate normal from triangle
             const Triangle &T = scene.triangles[hit.primIdx];
             const auto &VSOA = scene.vertices;
-            float3 n0 = {VSOA.nx[T.v0], VSOA.ny[T.v0], VSOA.nz[T.v0]};
-            float3 n1 = {VSOA.nx[T.v1], VSOA.ny[T.v1], VSOA.nz[T.v1]};
-            float3 n2 = {VSOA.nx[T.v2], VSOA.ny[T.v2], VSOA.nz[T.v2]};
-            float3 N = normalize((1 - hit.u - hit.v) * n0 + hit.u * n1 + hit.v * n2);
+            const Vertex &v0 = VSOA[T.v0];
+            const Vertex &v1 = VSOA[T.v1];
+            const Vertex &v2 = VSOA[T.v2];
+
+
+            float w0 = 1.0f - hit.u - hit.v;
+            float w1 = hit.u;
+            float w2 = hit.v;
+            float3 N = normalize(w0 * v0.norm + w1 * v1.norm + w2 * v2.norm);
 
             // fetch material
             const Instance &inst = scene.instances[hit.instIdx];
@@ -237,14 +256,13 @@ namespace VkRender::PathTracer {
             float3 albedo = M.baseColor;
 
             // throughput update (Lambertian)
-            throughput *= albedo.x() * M_PI;
+            throughput *= albedo.x() * M_PIf;
 
             // cast contributions to cameras
             castContributions(hit.hitPoint, throughput);
 
             // spawn next bounce
             worldRay = spawnNextRay(hit, N, rng);
-            */
         }
     }
 }

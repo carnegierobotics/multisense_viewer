@@ -22,13 +22,9 @@ namespace VkRender::PathTracer {
                           uint32_t maxLeafSize = 16) {
             // 1) copy and centroid
             std::vector<Triangle> &tris = inTris;
-            computeCentroids(tris, verts);
-
             // 2) init root
             nodes.clear();
-
             nodes .reserve( tris.size() * 2 );
-
             triIndices.resize(tris.size());
             for (uint32_t i = 0; i < triIndices.size(); ++i)
                 triIndices[i] = i;
@@ -36,23 +32,11 @@ namespace VkRender::PathTracer {
             nodes[0].leftFirst = 0;
             nodes[0].triCount = uint32_t(tris.size());
             updateBounds(tris, verts, triIndices, nodes[0]);
-
             // 3) recursive split
             subdivide(tris, verts, nodes, triIndices, 0, maxLeafSize);
         }
 
     private:
-        // (a) compute all centroids from vertex array
-        static void computeCentroids(std::vector<Triangle> &tris,
-                                     const std::vector<Vertex> &verts) {
-            float inv3 = 1.0f / 3.0f;
-            for (auto &t: tris) {
-                const float3 &p0 = verts[t.v0].pos;
-                const float3 &p1 = verts[t.v1].pos;
-                const float3 &p2 = verts[t.v2].pos;
-                t.centroid = (p0 + p1 + p2) * inv3;
-            }
-        }
 
         // (b) fit node.aabb to its triangles
         static void updateBounds(const std::vector<Triangle> &tris,

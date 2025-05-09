@@ -29,28 +29,25 @@ namespace VkRender::PathTracer {
 
 
         void operator()(sycl::item<1> item) const {
-            size_t photonID = item.get_linear_id();
+            //size_t photonID = item.get_linear_id();
 
             // Each thread traces one photon.
-            traceOnePhoton(photonID + d_sceneDesc->photonCount);
-            d_sceneDesc->photonCount++;
+            //traceOnePhoton(photonID + d_sceneDesc->photonCount);
+            //d_sceneDesc->photonCount++;
         }
 
     private:
         SceneDesc *d_sceneDesc;
         SceneSettings d_sceneSettings;
         FrameBuffer *d_framebuffer;
-        PCG32 m_pcg;
-
+        PCG32 d_pcg;
+        /*
         void traceOnePhoton(uint32_t photonID) const;
-
-        bool intersectBLAS(const Ray &ray, uint32_t meshIdx, Hit &out) const;
 
         bool intersectScene(const Ray &rayW, Hit *hit) const;
 
         void castContributions(const float3 &hitPoint, const float &throughput) const;
-
-        // your per-photon RNG: e.g. hashed by photonID
+        */
     };
 }
 #endif //PATHTRACERKERNELS_H

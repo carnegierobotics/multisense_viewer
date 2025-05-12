@@ -7,6 +7,7 @@
 
 #include <Viewer/Rendering/MeshManager.h>
 #include <Viewer/Rendering/Components/LightSourceComponent.h>
+#include <Viewer/Rendering/Components/MaterialComponent.h>
 #include <Viewer/Scenes/Entity.h>
 
 #include "Viewer/Rendering/PathTracer/BVH.h"
@@ -304,8 +305,7 @@ namespace VkRender::PathTracer {
         m_transforms.clear();
         m_materials.clear(); // one material slot per instance
 
-        auto view = scene->getRegistry().view<MeshComponent, MaterialComponent, TransformComponent>(
-        );
+        auto view = scene->getRegistry().view<MeshComponent, MaterialComponent, TransformComponent>(entt::exclude<RasterizerRenderingComponent>);
 
         for (auto entID: view) {
             Entity e(entID, scene.get());

@@ -8,6 +8,7 @@
 #include <Viewer/Rendering/Editors/ArcballCamera.h>
 #include <Viewer/Tools/SYCLDeviceSelector.h>
 
+#include "Viewer/Rendering/Core/VulkanTexture.h"
 #include "Viewer/Scenes/Scene.h"
 #include "Viewer/Rendering/PathTracer/Device/PathTracerKernels.h"
 

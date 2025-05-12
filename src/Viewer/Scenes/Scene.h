@@ -8,12 +8,10 @@
 #include <entt/entt.hpp>
 
 #include <Viewer/Rendering/Components/CameraComponent.h>
-#include <Viewer/Rendering/Components/MaterialComponent.h>
 #include <Viewer/Rendering/Components/MeshComponent.h>
 #include <Viewer/Rendering/Core/Timestep.h>
 
 #include "Viewer/Rendering/Core/UUID.h"
-#include "Viewer/Rendering/Components/PointCloudComponent.h"
 
 namespace VkRender {
     class Application;

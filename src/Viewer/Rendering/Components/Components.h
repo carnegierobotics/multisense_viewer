@@ -42,6 +42,11 @@ namespace VkRender {
         entt::entity entity;
     };
 
+    /** @brief Only visible in the Rasterizer (For debug viewing and not included in BVH construction) */
+    struct RasterizerRenderingComponent {
+        entt::entity entity;
+    };
+
     struct ChildrenComponent {
         std::vector<entt::entity> children{};
     };

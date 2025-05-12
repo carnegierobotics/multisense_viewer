@@ -17,6 +17,14 @@ namespace VkRender {
         T &getComponent() {
             return m_entity.getComponent<T>();
         }
+        template<typename T>
+        T &addComponent() {
+            return m_entity.addComponent<T>();
+        }
+        template<typename T>
+        bool hasComponent() {
+            return m_entity.hasComponent<T>();
+        }
 
         virtual void onCreate() = 0;
 

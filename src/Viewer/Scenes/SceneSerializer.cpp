@@ -745,18 +745,6 @@ namespace VkRender {
                             materialComponent["FragmentShader"].as<std::string>());
                     }
                 }
-
-                auto pointCloudComponent = entity["PointCloudComponent"];
-                if (pointCloudComponent) {
-                    auto &component = deserializedEntity.addComponent<PointCloudComponent>();
-                    component.pointSize = pointCloudComponent["PointSize"].as<float>();
-
-                    component.usesVideoSource = pointCloudComponent["UsesVideoSource"].as<bool>();
-                    component.depthVideoFolderSource = std::filesystem::path(
-                        pointCloudComponent["DepthVideoFolderSource"].as<std::string>());
-                    component.colorVideoFolderSource = std::filesystem::path(
-                        pointCloudComponent["ColorVideoFolderSource"].as<std::string>());
-                }
                 auto groupComponent = entity["GroupComponent"];
                 if (groupComponent) {
                     auto &component = deserializedEntity.addComponent<GroupComponent>();

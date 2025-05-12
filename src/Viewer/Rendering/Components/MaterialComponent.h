@@ -22,8 +22,8 @@ namespace VkRender {
     struct MaterialComponent {
         glm::vec4 albedo = glm::vec4(1.0f); // Base color (could be an albedo color)
         float emission = 0.0f; // Emissive power // TODO remove
-        float diffuse = 1.0f; // Diffuse coefficient
-        float specular = 0.0f; // Specular coefficient
+        float diffuse = 0.4f; // Diffuse coefficient
+        float specular = 0.6f; // Specular coefficient
         float phongExponent = 32.0f; // Shininess exponent
 
 

@@ -9,9 +9,7 @@
 #include "Viewer/Rendering/Components/LightSourceComponent.h"
 #include "Viewer/Rendering/Components/Components.h"
 #include "Viewer/Rendering/Components/MeshComponent.h"
-#include "Viewer/Rendering/Components/ImageComponent.h"
 #include "Viewer/Application/Application.h"
-#include "Viewer/Rendering/Components/PointCloudComponent.h"
 #include "Viewer/Rendering/Components/QuadricCollectionComponent.h"
 #include "Viewer/Rendering/Components/ScriptableComponent.h"
 
@@ -222,10 +220,6 @@ namespace VkRender {
     void Scene::onComponentAdded<MaterialComponent>(Entity entity, MaterialComponent &component) {
     }
 
-    template<>
-
-    void Scene::onComponentAdded<PointCloudComponent>(Entity entity, PointCloudComponent &component) {
-    }
 
     template<>
     void Scene::onComponentAdded<TransformComponent>(Entity entity, TransformComponent &component) {
@@ -240,13 +234,8 @@ namespace VkRender {
     }
 
     template<>
-    void Scene::onComponentAdded<TextComponent>(Entity entity, TextComponent &component) {
+    void Scene::onComponentAdded<RasterizerRenderingComponent>(Entity entity, RasterizerRenderingComponent &component) {
     }
-
-    template<>
-    void Scene::onComponentAdded<ImageComponent>(Entity entity, ImageComponent &component) {
-    }
-
 
     template<>
     void Scene::onComponentAdded<ParentComponent>(Entity entity, ParentComponent &component) {
@@ -294,10 +283,6 @@ namespace VkRender {
     }
 
     template<>
-    void Scene::onComponentRemoved<PointCloudComponent>(Entity entity, PointCloudComponent &component) {
-    }
-
-    template<>
     void Scene::onComponentRemoved<TransformComponent>(Entity entity, TransformComponent &component) {
     }
 
@@ -310,11 +295,7 @@ namespace VkRender {
     }
 
     template<>
-    void Scene::onComponentRemoved<TextComponent>(Entity entity, TextComponent &component) {
-    }
-
-    template<>
-    void Scene::onComponentRemoved<ImageComponent>(Entity entity, ImageComponent &component) {
+    void Scene::onComponentRemoved<RasterizerRenderingComponent>(Entity entity, RasterizerRenderingComponent &component) {
     }
 
     template<>
@@ -362,10 +343,6 @@ namespace VkRender {
     }
 
     template<>
-    void Scene::onComponentUpdated<PointCloudComponent>(Entity entity, PointCloudComponent &component) {
-    }
-
-    template<>
     void Scene::onComponentUpdated<TransformComponent>(Entity entity, TransformComponent &component) {
     }
 
@@ -378,11 +355,7 @@ namespace VkRender {
     }
 
     template<>
-    void Scene::onComponentUpdated<TextComponent>(Entity entity, TextComponent &component) {
-    }
-
-    template<>
-    void Scene::onComponentUpdated<ImageComponent>(Entity entity, ImageComponent &component) {
+    void Scene::onComponentUpdated<RasterizerRenderingComponent>(Entity entity, RasterizerRenderingComponent &component) {
     }
 
     template<>

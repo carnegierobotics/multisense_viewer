@@ -250,8 +250,6 @@ set(SOURCE_FILES
         src/Viewer/Scripts/Rays/GradientRay.cpp
         src/Viewer/Scripts/Rays/IntensityGradientRay.cpp
 
-        src/Viewer/Rendering/Components/ImageComponent.cpp
-        src/Viewer/Rendering/Components/PointCloudComponent.h
         src/Viewer/Rendering/Components/LightSourceComponent.cpp
         src/Viewer/Rendering/Components/QuadricCollectionComponent.cpp
         src/Viewer/Rendering/Components/ScriptableComponent.cpp

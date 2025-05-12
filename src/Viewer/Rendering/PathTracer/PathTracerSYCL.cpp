@@ -72,6 +72,23 @@ namespace VkRender::PathTracer {
         d_sceneDesc = deviceAlloc<SceneDesc>(1);
         m_queue.memcpy(d_sceneDesc, &m_sceneDesc, sizeof(SceneDesc)).wait();
     }
+    void PathTracerSYCL::uploadScene(const Scene* scene, EditorCamera editorCamera) {
+        // free existing GPU memory
+        freeDeviceMemory();
+        collectCameras(scene, editorCamera);
+        //// collect host data
+        collectGeometry(scene);
+        collectInstances(scene);
+        collectLights(scene);
+
+        buildBLASForAllMeshes();
+        buildTopLevelBVH();
+
+        // build and upload scene descriptor
+        buildSceneDesc();
+        d_sceneDesc = deviceAlloc<SceneDesc>(1);
+        m_queue.memcpy(d_sceneDesc, &m_sceneDesc, sizeof(SceneDesc)).wait();
+    }
 
     void PathTracerSYCL::traverseBVH() {
     }

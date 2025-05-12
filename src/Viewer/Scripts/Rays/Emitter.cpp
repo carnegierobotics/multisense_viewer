@@ -48,7 +48,9 @@ namespace VkRender {
     }
 
     void Emitter::onCreate() {
-        auto scene = m_entity.getScene();
+        Scene scenePtr = m_entity.getScene();
+
+        m_pathTracerSYCL->uploadScene(scenePtr);
     }
 }
 

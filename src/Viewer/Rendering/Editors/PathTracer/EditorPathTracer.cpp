@@ -224,6 +224,7 @@ namespace VkRender {
                         auto &mat = ent.addComponent<MaterialComponent>();
                         mat.fragmentShaderName = "NoMaterial.frag";
                         ent.addComponent<VisibleComponent>();
+                        ent.addComponent<RasterizerRenderingComponent>();
                     }
 
                     const int d = std::max(depth[i], 0);
@@ -404,6 +405,10 @@ namespace VkRender {
 
         */
 
+        if (Input::isKeyPressed(GLFW_KEY_SPACE)) {
+            m_editorCamera->setDefaultPosition({-90.0f, 60.0f}, 1.5f);
+            m_movedCamera = true;
+        }
         m_movedCamera = false;
     }
 

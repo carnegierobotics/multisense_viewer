@@ -74,7 +74,7 @@ namespace VkRender::PathTracer {
 
 
     struct alignas(16) MeshLight {
-        static constexpr size_t MAX_TRIANGLES = 1024;
+        static constexpr size_t MAX_TRIANGLES = 64;
 
         // Per-triangle data (fixed-size arrays)
         sycl::float3 v0[MAX_TRIANGLES];
@@ -179,12 +179,12 @@ namespace VkRender::PathTracer {
         const Camera *cameras = nullptr;
 
         // counts (uint32 keeps struct 16‑byte aligned)
-        uint32_t triCount = 0, meshCount = 0;
+        uint32_t triCount = 0, vertexCount = 0, meshCount = 0;
         uint32_t pointCount = 0, pointCloudCount = 0;
         uint32_t instanceCount = 0, transformCount = 0;
         uint32_t materialCount = 0, lightCount = 0;
         uint32_t cameraCount = 0;
-        uint64_t photonCount = 0;
+        unsigned int photonCount = 0;
     };
 
 

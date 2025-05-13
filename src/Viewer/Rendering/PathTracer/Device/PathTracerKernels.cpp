@@ -12,8 +12,7 @@ namespace VkRender::PathTracer {
     // Returns the closest hit inside one mesh’s BLAS (object space)
     SYCL_EXTERNAL bool PathTracerMeshKernel::intersectBLAS(const Ray &rayO,
                                                     uint32_t geomIdx,
-                                                    Hit &out) const {
-        const SceneDesc &scene = *d_sceneDesc;
+                                                    Hit &out, const SceneDesc &scene) {
 
         /* 1.  Locate the sub‑tree that belongs to this mesh
                ────────────────────────────────────────────── */
@@ -26,11 +25,13 @@ namespace VkRender::PathTracer {
                ────────────────────────────────────────────── */
         float bestT = std::numeric_limits<float>::infinity();
         bool hitAny = false;
-        float3 invDir = 1.f / rayO.direction;
+        float3 invDir = safeInvDir(rayO.direction);
 
-        int stack[64]; // enough for >4 billion triangles
+        int stack[64] = {-1}; // enough for >4 billion triangles
         int sp = 0;
         stack[sp++] = 0; // root of this BLAS
+
+        constexpr float kRayEps = 0.0f;   // ignore hits closer than this
 
         while (sp) {
             int nIdx = stack[--sp];
@@ -51,21 +52,28 @@ namespace VkRender::PathTracer {
             {
                 for (uint32_t i = 0; i < N.triCount; ++i) {
                     uint32_t triIdx = N.leftFirst + i; // *global* index
-                    const Triangle &T = tris[triIdx];
 
+                    const Triangle& T = tris[triIdx];   // existing line
                     const float3 A = verts[T.v0].pos;
                     const float3 B = verts[T.v1].pos;
                     const float3 C = verts[T.v2].pos;
 
                     float t, u, v;
-                    if (intersectTriangle(rayO, A, B, C, t, u, v) && t < bestT) {
-                        bestT = t;
+
+                    /* ---- new call --------------------------------------------------------- */
+                    if (intersectTriangle(rayO,  A, B, C,
+                                          t, u, v,
+                                          kRayEps,        /* tMin                */
+                                          false)  /* double‑sided, i.e. culling */
+                        && t < bestT)
+                    {
+                        bestT  = t;
                         hitAny = true;
 
-                        out.t = t;
-                        out.u = u;
-                        out.v = v;
-                        out.primIdx = triIdx; // global – good for shading
+                        out.t        = t;
+                        out.u        = u;
+                        out.v        = v;
+                        out.primIdx  = triIdx;        // global – good for shading
                     }
                 }
             }
@@ -75,8 +83,7 @@ namespace VkRender::PathTracer {
     }
 
 
-    SYCL_EXTERNAL bool PathTracerMeshKernel::intersectScene(const Ray &rayW, Hit *hit) const {
-        const SceneDesc &scene = *d_sceneDesc;
+    SYCL_EXTERNAL bool PathTracerMeshKernel::intersectScene(const Ray &rayW, Hit *hit, const SceneDesc &scene) {
 
         /* abort if scene is empty */
         if (scene.tlasNodeCount == 0) return false;
@@ -89,21 +96,22 @@ namespace VkRender::PathTracer {
         /* ------------------------------------------------------------------ */
         /* stack‑based depth‑first traversal                                   */
         /* ------------------------------------------------------------------ */
-        float bestT = std::numeric_limits<float>::infinity();
         bool anyHit = false;
-        float3 invDir = 1.f / rayW.direction;
+        float3 invDir = safeInvDir(rayW.direction);;
 
 
         int stack[64];
         int sp = 0;
         stack[sp++] = 0; // root
 
+        float bestTWorld = std::numeric_limits<float>::infinity();
+
         while (sp) {
             int nIdx = stack[--sp];
             const TLASNode &node = tlas[nIdx];
 
             float tEntry;
-            if (!slabIntersectAABB(rayW, node, invDir, bestT, tEntry))
+            if (!slabIntersectAABB(rayW, node, invDir, bestTWorld, tEntry))
                 continue;
 
             if (node.count == 0) // internal
@@ -118,19 +126,28 @@ namespace VkRender::PathTracer {
 
                 Ray rayObject = toObjectSpace(rayW, transform);
 
-                //uint32_t triIdx  = scene.triIndices[node.leftFirst + i];
-                //const Triangle &T = tris[triIdx];
-                //hit->primIdx     = triIdx;
                 Hit local;
-                if (intersectBLAS(rayObject, instance.geomIndex, local) && local.t < bestT) {
-                    bestT = local.t;
-                    anyHit = true;
-                    hit->t = bestT;
-                    hit->u = local.u;
-                    hit->v = local.v;
-                    hit->primIdx = local.primIdx;
-                    hit->instIdx = instID;
-                    hit->hitPoint = toWorldPoint(rayObject.origin + bestT * rayObject.direction, transform);
+                if (intersectBLAS(rayObject, instance.geomIndex, local, scene))
+                {
+                    /* 3.  Convert hit point back to world space */
+                    float3 hitPointW = toWorldPoint(rayObject.origin + local.t * rayObject.direction, transform);
+
+                    /* 4.  Compute world‑space hit distance (rayW.dir is unit length) */
+                    float tWorld = dot(hitPointW - rayW.origin, rayW.direction);
+
+                    if (tWorld >= 0.0f && tWorld < bestTWorld)   // ignore hits behind the origin
+                    {
+                        bestTWorld = tWorld;
+                        anyHit     = true;
+
+                        /* write out the final hit record in WORLD space */
+                        hit->t        = tWorld;
+                        hit->u        = local.u;
+                        hit->v        = local.v;
+                        hit->primIdx  = local.primIdx;
+                        hit->instIdx  = instID;
+                        hit->hitPoint = hitPointW;
+                    }
                 }
             }
         }
@@ -155,7 +172,7 @@ namespace VkRender::PathTracer {
 
             // 2) occlusion check
             Hit shadow;
-            if (intersectScene(contribRay, &shadow) && shadow.t < distToA - kEps)
+            if (intersectScene(contribRay, &shadow, *d_sceneDesc) && shadow.t < distToA - kEps)
                 continue;
 
             // 3) project hitPoint into clip space
@@ -229,7 +246,7 @@ namespace VkRender::PathTracer {
         for (uint32_t bounce = 0; bounce < settings.maxBounces; ++bounce) {
             Hit hit;
 
-            if (!intersectScene(worldRay, &hit))
+            if (!intersectScene(worldRay, &hit, *d_sceneDesc))
                 break;
 
 

@@ -7,6 +7,8 @@
 
 namespace RayHelpers {
 
+
+
     /*
 
             static bool checkCameraPlaneIntersection(

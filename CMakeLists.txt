@@ -299,6 +299,7 @@ set(LIBRARIES
 if (ENABLE_SYCL)
     set(SYCL_SOURCES
             #src/Viewer/Rendering/PathTracer/PathTracer.cpp
+            src/Viewer/Rendering/PathTracer/Device/KernelHelpers.cpp
             src/Viewer/Rendering/PathTracer/BVH.cpp
             src/Viewer/Rendering/PathTracer/PathTracerSYCL.cpp
             src/Viewer/Rendering/Editors/PathTracer/EditorPathTracer.cpp

@@ -7,7 +7,6 @@
 
 #include <sycl/sycl.hpp>
 
-#include "KernelHelpers.h"
 #include "Viewer/Rendering/PathTracer/GPUDataTypes.h"
 
 
@@ -31,8 +30,19 @@ namespace VkRender::PathTracer {
 
             // Each thread traces one photon.
             traceOnePhoton(photonID + d_sceneDesc->photonCount);
-            d_sceneDesc->photonCount++;
+            sycl::atomic_ref<unsigned int,
+                        sycl::memory_order::relaxed,
+                        sycl::memory_scope::device,
+                        sycl::access::address_space::global_space>
+                    photonCount(d_sceneDesc->photonCount);
+
+            photonCount.fetch_add(static_cast<unsigned int>(1));
         }
+
+
+        SYCL_EXTERNAL static bool intersectBLAS(const Ray &rayO, uint32_t geomIdx, Hit &out, const SceneDesc &scene);
+
+        SYCL_EXTERNAL static bool intersectScene(const Ray &rayW, Hit *hit, const SceneDesc &scene);
 
     private:
         SceneDesc *d_sceneDesc;
@@ -41,9 +51,6 @@ namespace VkRender::PathTracer {
 
         SYCL_EXTERNAL void traceOnePhoton(uint32_t photonID) const;
 
-        SYCL_EXTERNAL bool intersectBLAS(const Ray &rayO, uint32_t geomIdx, Hit &out) const;
-
-        SYCL_EXTERNAL bool intersectScene(const Ray &rayW, Hit *hit) const;
 
         SYCL_EXTERNAL void castContributions(const float3 &hitPoint, const float &throughput) const;
     };

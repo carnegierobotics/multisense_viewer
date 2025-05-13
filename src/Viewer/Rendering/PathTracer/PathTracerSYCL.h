@@ -53,7 +53,8 @@ namespace VkRender::PathTracer {
     public:
         explicit PathTracerSYCL(const PathTracerSYCLCreateInfo &createInfo) : m_queue(createInfo.queue),
                                                                               m_createInfo(createInfo) {
-            std::memset(&m_sceneDesc, 0, sizeof(m_sceneDesc));
+            std::memset(&m_sceneDescHost, 0, sizeof(m_sceneDescHost));
+            std::memset(&m_sceneDescDevice, 0, sizeof(m_sceneDescDevice));
 
             // setup output'
             setupFrameBuffers();
@@ -88,6 +89,7 @@ namespace VkRender::PathTracer {
 
         std::vector<BVHNode> getBLASNodes() { return m_blasNodes; }
         std::vector<TLASNode> getTLASNodes() { return m_tlasNodes; }
+        SceneDesc& getSceneDescription() { return m_sceneDescHost; }
 
     private:
         /*--- helpers called only from uploadScene() ---*/
@@ -164,7 +166,8 @@ namespace VkRender::PathTracer {
         Camera *d_cameras = nullptr;
         SceneDesc *d_sceneDesc = nullptr;
         // Host copy of the descriptor used to build the device-side struct
-        SceneDesc m_sceneDesc;
+        SceneDesc  m_sceneDescDevice;   // device pointers (was m_sceneDesc)
+        SceneDesc  m_sceneDescHost;     // host  pointers – new
 
         // === Counts (optional mirrors) ===
         uint32_t m_triCount = 0;

@@ -54,7 +54,6 @@ namespace VkRender::PathTracer {
         Log::Logger::getInstance()->info("Done Creating Framebuffers");
     }
 
-
     void PathTracerSYCL::uploadScene(const std::shared_ptr<Scene> &scene, EditorCamera editorCamera) {
         // free existing GPU memory
         freeDeviceMemory();
@@ -70,30 +69,7 @@ namespace VkRender::PathTracer {
         // build and upload scene descriptor
         buildSceneDesc();
         d_sceneDesc = deviceAlloc<SceneDesc>(1);
-        m_queue.memcpy(d_sceneDesc, &m_sceneDesc, sizeof(SceneDesc)).wait();
-    }
-    void PathTracerSYCL::uploadScene(const Scene* scene, EditorCamera editorCamera) {
-        // free existing GPU memory
-        freeDeviceMemory();
-        collectCameras(scene, editorCamera);
-        //// collect host data
-        collectGeometry(scene);
-        collectInstances(scene);
-        collectLights(scene);
-
-        buildBLASForAllMeshes();
-        buildTopLevelBVH();
-
-        // build and upload scene descriptor
-        buildSceneDesc();
-        d_sceneDesc = deviceAlloc<SceneDesc>(1);
-        m_queue.memcpy(d_sceneDesc, &m_sceneDesc, sizeof(SceneDesc)).wait();
-    }
-
-    void PathTracerSYCL::traverseBVH() {
-    }
-
-    void PathTracerSYCL::intersectBVH(uint32_t nodeIndex) {
+        m_queue.memcpy(d_sceneDesc, &m_sceneDescDevice, sizeof(SceneDesc)).wait();
     }
 
 
@@ -181,8 +157,10 @@ namespace VkRender::PathTracer {
 
         Log::Logger::getInstance()->info("Updating Cameras");
         m_queue.memcpy(d_cameras, &camera, sizeof(Camera)); // Only copy first camera instance
-        m_sceneDesc.cameras = d_cameras;
-        m_sceneDesc.lights = d_lights;
+        m_sceneDescDevice.cameras = d_cameras;
+        m_sceneDescDevice.lights = d_lights;
+        m_sceneDescHost.cameras = d_cameras;
+        m_sceneDescHost.lights = d_lights;
 
         // IF camera was moving then clear the image data for that camera
         if (editorCamera.movedSinceLastFrame) {
@@ -322,7 +300,8 @@ namespace VkRender::PathTracer {
         m_transforms.clear();
         m_materials.clear(); // one material slot per instance
 
-        auto view = scene->getRegistry().view<MeshComponent, MaterialComponent, TransformComponent>(entt::exclude<RasterizerRenderingComponent>);
+        auto view = scene->getRegistry().view<MeshComponent, MaterialComponent, TransformComponent>(
+            entt::exclude<RasterizerRenderingComponent, LightSourceComponent>);
 
         for (auto entID: view) {
             Entity e(entID, scene.get());
@@ -388,8 +367,8 @@ namespace VkRender::PathTracer {
             const auto &mesh = MeshManager::instance().getMeshData(meshComponent);
             const auto world = transformComponent.getTransform();
 
-            MeshLight ML;
-            ML.flux = lightSourceComponent.flux;
+            MeshLight meshLight;
+            meshLight.flux = lightSourceComponent.flux;
 
             // 1) Loop through triangles
             for (size_t t = 0; t < mesh->m_indices.size(); t += 3) {
@@ -412,15 +391,15 @@ namespace VkRender::PathTracer {
                 sycl::float3 n = sycl::normalize(sycl::cross(e1, e2));
                 float area = 0.5f * sycl::length(sycl::cross(e1, e2));
 
-                ML.addTriangle(v0, e1, e2, n, area);
+                meshLight.addTriangle(v0, e1, e2, n, area);
             }
 
             // 2) Finalize the CDF and radiance
-            if (ML.triangleCount > 0) {
-                ML.finalize();
-                ML.transform.objectToWorld = glm2sycl(transformComponent.getTransform());
-                ML.transform.worldToObject = glm2sycl(glm::inverse(transformComponent.getTransform()));
-                m_lights.push_back(ML);
+            if (meshLight.triangleCount > 0) {
+                meshLight.finalize();
+                meshLight.transform.objectToWorld = glm2sycl(transformComponent.getTransform());
+                meshLight.transform.worldToObject = glm2sycl(glm::inverse(transformComponent.getTransform()));
+                m_lights.push_back(meshLight);
             }
         }
     }
@@ -479,28 +458,56 @@ namespace VkRender::PathTracer {
 
 
         //—— fill SceneDesc ——
-        m_sceneDesc.vertices = d_vertices;
-        m_sceneDesc.triangles = d_tris;
-        m_sceneDesc.meshes = d_meshRanges;
-        m_sceneDesc.instances = d_instances;
-        m_sceneDesc.transforms = d_transforms;
-        m_sceneDesc.materials = d_materials;
-        m_sceneDesc.lights = d_lights;
-        m_sceneDesc.cameras = d_cameras;
+        m_sceneDescDevice.vertices = d_vertices;
+        m_sceneDescDevice.triangles = d_tris;
+        m_sceneDescDevice.meshes = d_meshRanges;
+        m_sceneDescDevice.instances = d_instances;
+        m_sceneDescDevice.transforms = d_transforms;
+        m_sceneDescDevice.materials = d_materials;
+        m_sceneDescDevice.lights = d_lights;
+        m_sceneDescDevice.cameras = d_cameras;
 
-        m_sceneDesc.tlasNodes = d_tlasNodes;
-        m_sceneDesc.blasRanges = d_blasRanges;
-        m_sceneDesc.blasNodes = d_blasNodes;
-        m_sceneDesc.blasNodeCount = static_cast<uint32_t>(m_blasNodes.size());
-        m_sceneDesc.tlasNodeCount = static_cast<uint32_t>(m_tlasNodes.size());
+        m_sceneDescDevice.tlasNodes = d_tlasNodes;
+        m_sceneDescDevice.blasRanges = d_blasRanges;
+        m_sceneDescDevice.blasNodes = d_blasNodes;
+        m_sceneDescDevice.blasNodeCount = static_cast<uint32_t>(m_blasNodes.size());
+        m_sceneDescDevice.tlasNodeCount = static_cast<uint32_t>(m_tlasNodes.size());
 
-        m_sceneDesc.triCount = static_cast<uint32_t>(triCount);
-        m_sceneDesc.meshCount = static_cast<uint32_t>(meshCount);
-        m_sceneDesc.instanceCount = static_cast<uint32_t>(instCount);
-        m_sceneDesc.transformCount = static_cast<uint32_t>(xfCount);
-        m_sceneDesc.materialCount = static_cast<uint32_t>(matCount);
-        m_sceneDesc.lightCount = static_cast<uint32_t>(lightCount);
-        m_sceneDesc.cameraCount = static_cast<uint32_t>(camCount);
+        m_sceneDescDevice.triCount = static_cast<uint32_t>(triCount);
+        m_sceneDescDevice.vertexCount = static_cast<uint32_t>(vertCount);
+        m_sceneDescDevice.meshCount = static_cast<uint32_t>(meshCount);
+        m_sceneDescDevice.instanceCount = static_cast<uint32_t>(instCount);
+        m_sceneDescDevice.transformCount = static_cast<uint32_t>(xfCount);
+        m_sceneDescDevice.materialCount = static_cast<uint32_t>(matCount);
+        m_sceneDescDevice.lightCount = static_cast<uint32_t>(lightCount);
+        m_sceneDescDevice.cameraCount = static_cast<uint32_t>(camCount);
+
+        /* ---------- HOST  descriptor  ---------- */
+        m_sceneDescHost.vertices = m_vertices.data();
+        m_sceneDescHost.triangles = m_tris.data();
+        m_sceneDescHost.meshes = m_meshRanges.data();
+        m_sceneDescHost.instances = m_instances.data();
+        m_sceneDescHost.transforms = m_transforms.data();
+        m_sceneDescHost.materials = m_materials.data();
+        m_sceneDescHost.lights = m_lights.data();
+        m_sceneDescHost.cameras = m_cameras.data();
+
+        m_sceneDescHost.blasNodes = m_blasNodes.data();
+        m_sceneDescHost.blasRanges = m_blasRanges.data();
+        m_sceneDescHost.tlasNodes = m_tlasNodes.data();
+        m_sceneDescHost.blasNodeCount = static_cast<uint32_t>(m_blasNodes.size());
+        m_sceneDescHost.tlasNodeCount = static_cast<uint32_t>(m_tlasNodes.size());
+
+        /* counts are identical */
+        m_sceneDescHost.triCount = m_sceneDescDevice.triCount;
+        m_sceneDescHost.vertexCount = m_sceneDescDevice.vertexCount;
+        m_sceneDescHost.meshCount = m_sceneDescDevice.meshCount;
+        m_sceneDescHost.instanceCount = m_sceneDescDevice.instanceCount;
+        m_sceneDescHost.transformCount = m_sceneDescDevice.transformCount;
+        m_sceneDescHost.materialCount = m_sceneDescDevice.materialCount;
+        m_sceneDescHost.lightCount = m_sceneDescDevice.lightCount;
+        m_sceneDescHost.cameraCount = m_sceneDescDevice.cameraCount;
+
     }
 
     void PathTracerSYCL::buildBLASForAllMeshes() {
@@ -512,29 +519,29 @@ namespace VkRender::PathTracer {
         /* Loop over *unique* meshes (one per entry in m_meshRanges)              */
         /* --------------------------------------------------------------------- */
         for (uint32_t m = 0; m < m_meshRanges.size(); ++m) {
-            const MeshRange &mr = m_meshRanges[m];
+            const MeshRange &meshRange = m_meshRanges[m];
             const std::string name = m_meshNames[m]; // for the UI
 
             // ──────────────────────────────────────────────────────────────
             // 1.  Gather **local vertices** (just copy the structs)
             // ──────────────────────────────────────────────────────────────
             std::vector<Vertex> localVerts;
-            localVerts.reserve(mr.vertCount);
+            localVerts.reserve(meshRange.vertCount);
 
-            for (uint32_t v = 0; v < mr.vertCount; ++v)
-                localVerts.push_back(m_vertices[mr.firstVert + v]);
+            for (uint32_t v = 0; v < meshRange.vertCount; ++v)
+                localVerts.push_back(m_vertices[meshRange.firstVert + v]);
 
             // ──────────────────────────────────────────────────────────────
             // 2.  Gather & re‑index triangles so they refer to localVerts[]
             // ──────────────────────────────────────────────────────────────
             std::vector<Triangle> localTris;
-            localTris.reserve(mr.triCount);
+            localTris.reserve(meshRange.triCount);
 
-            for (uint32_t t = 0; t < mr.triCount; ++t) {
-                Triangle T = m_tris[mr.firstTri + t];
-                T.v0 -= mr.firstVert; // now between 0 … mr.vertCount‑1
-                T.v1 -= mr.firstVert;
-                T.v2 -= mr.firstVert;
+            for (uint32_t t = 0; t < meshRange.triCount; ++t) {
+                Triangle T = m_tris[meshRange.firstTri + t];
+                T.v0 -= meshRange.firstVert; // now between 0 … mr.vertCount‑1
+                T.v1 -= meshRange.firstVert;
+                T.v2 -= meshRange.firstVert;
                 localTris.push_back(T);
             }
 
@@ -548,17 +555,37 @@ namespace VkRender::PathTracer {
                             localVerts, // ← vertex array is required
                             localNodes,
                             triIdx,
-                            /*maxLeaf*/ 8);
+                            /*maxLeaf*/ 4);
 
-            //---------------- 4.  Patch child indices so they point into          */
-            //----------------     the *global* triangle array again -------------
-            for (BVHNode &N: localNodes) {
+            // ---------- A. reorder the global triangle array ---------------------------
+            // global index where this mesh's triangles start
+            uint32_t globalTriStart = meshRange.firstTri;
+
+            // 1.  Temporary copy that will hold triangles in BVH order
+            std::vector<Triangle> reordered;
+            reordered.reserve(localTris.size());
+
+            for (unsigned int i : triIdx) {
+                Triangle T = localTris[ i ];
+
+                // convert vertex indices back to GLOBAL space
+                T.v0 += meshRange.firstVert;
+                T.v1 += meshRange.firstVert;
+                T.v2 += meshRange.firstVert;
+
+                reordered.push_back(T);
+            }
+
+            // 2.  Overwrite the slice in m_tris with the reordered triangles
+            std::copy(reordered.begin(), reordered.end(),
+                      m_tris.begin() + globalTriStart);
+
+            // 3.  Now patch the BVH nodes ----------------------------------------------
+            //     (children still contiguous, only need global offset)
+
+            for (BVHNode& N : localNodes) {
                 if (N.isLeaf()) {
-                    // leaf: convert local triangle index → global index
-                    N.leftFirst += mr.firstTri;
-                } else {
-                    // internal: children become global node indices
-                    N.leftFirst += m_blasNodes.size();
+                    N.leftFirst += globalTriStart;   // only leaves need patching
                 }
             }
 

@@ -35,6 +35,7 @@ namespace VkRender {
             if (!script.instance) {
                 script.instance = script.instantiateScript();
                 script.instance->m_entity = entity;
+                script.instance->m_context =m_context;
                 script.instance->onCreate();
             }
             script.instance->onUpdate(ts);

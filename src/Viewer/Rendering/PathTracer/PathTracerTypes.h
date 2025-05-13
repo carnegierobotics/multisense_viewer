@@ -5,6 +5,8 @@
 #ifndef PATHTRACERTYPES_H
 #define PATHTRACERTYPES_H
 
+#include <float.h>
+
 #include <sycl/sycl.hpp>
 
 
@@ -218,14 +220,14 @@ namespace VkRender::PathTracer {
     // ─────────────────────────────────────────────────────────────────────────────
     struct alignas(16) Hit {
         // first 16 bytes
-        float t; //  4 B  ray parameter
-        float u, v; //  8 B  barycentrics
+        float t = FLT_MAX; //  4 B  ray parameter
+        float u = 0, v = 0; //  8 B  barycentrics
 
         float3 hitPoint;
 
         // second 16 bytes
-        uint32_t primIdx; //  4 B
-        uint32_t instIdx; //  4 B
+        uint32_t primIdx = INT32_MAX; //  4 B
+        uint32_t instIdx = INT32_MAX; //  4 B
     };
 
     static_assert(alignof(Hit) == 16);

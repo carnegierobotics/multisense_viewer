@@ -44,12 +44,21 @@ namespace VkRender::PathTracer {
         }
     };
 
-    inline sycl::float3 glm2sycl(const glm::vec3 &v) {
-        return sycl::float3{ v.x, v.y, v.z };
+    inline float3 glm2sycl(const glm::vec3 &v) {
+        return float3{ v.x, v.y, v.z };
     }
 
-    inline sycl::float4 glm2sycl(const glm::vec4 &v) {
-        return sycl::float4{ v.x, v.y, v.z, v.w };
+    inline float4 glm2sycl(const glm::vec4 &v) {
+        return float4{ v.x, v.y, v.z, v.w };
+    }
+
+
+    inline glm::vec3 sycl2glm(const float3 &v) {
+        return glm::vec3{ v.x(), v.y(), v.z() };
+    }
+
+    inline glm::vec4 sycl2glm(const float4 &v) {
+        return { v.x(), v.y(), v.z(), v.w() };
     }
 
     inline float4x4 glm2sycl(const glm::mat4 &m) {
@@ -69,45 +78,6 @@ namespace VkRender::PathTracer {
     }
 
 
-     /*
-    // SYCL → GLM vec3
-    inline glm::vec3 sycl2glm(const sycl::float3 &v) {
-        return glm::vec3{ v.x(), v.y(), v.z() };
-    }
-
-    // SYCL → GLM vec4
-    inline glm::vec4 sycl2glm(const sycl::float4 &v) {
-        return glm::vec4{ v.x(), v.y(), v.z(), v.w() };
-    }
-
-    // matrix conversions -----------------------------------------------
-
-    // SYCL marray< float4, 4 > is row‑major: m[row][col]
-    // GLM mat4  is column‑major: m[col][row]
-    inline glm::mat4 sycl2glm(const float4x4 &M) {
-        glm::mat4 out(1.0f);
-        for(int row = 0; row < 4; ++row) {
-            for(int col = 0; col < 4; ++col) {
-                out[col][row] = M[row][col];
-            }
-        }
-        return out;
-    }
-
-    // SYCL marray< float3, 3 > is row‑major: m[row][col]
-    // GLM mat3  is column‑major: m[col][row]
-    inline glm::mat3 sycl2glm(const float3x3 &M) {
-        glm::mat3 out(1.0f);
-        for(int row = 0; row < 3; ++row) {
-            for(int col = 0; col < 3; ++col) {
-                out[col][row] = M[row][col];
-            }
-        }
-        return out;
-    }
-
-*/
-
     //------------------------------------------------------------------------------
     /// Performs a ray–AABB intersection test using the slab method.
     /// \param ray     The ray to test.
@@ -117,49 +87,77 @@ namespace VkRender::PathTracer {
     /// \param tEntry  Output earliest intersection distance.
     /// \returns True if the ray hits the AABB before tMax.
     //------------------------------------------------------------------------------
-    inline bool slabIntersectAABB(
-        const Ray& ray,
-        const TLASNode& node,
-        const float3& invDir,
-        float tMax,
-        float& tEntry) {
-        float3 tmp = node.aabbMin - ray.origin;
-        float3 t0 = tmp * invDir;
-        float3 tmp2 = node.aabbMax - ray.origin;
-        float3 t1 = tmp2 * invDir;
+    inline bool slabIntersectAABB(const Ray& ray,
+                                  const TLASNode& node,
+                                  const float3& invDir,
+                                  float tMaxLimit,
+                                  float& tEntry)
+    {
+        float3 t0 = (node.aabbMin - ray.origin) * invDir;
+        float3 t1 = (node.aabbMax - ray.origin) * invDir;
+
         float3 tmin3 = sycl::min(t0, t1);
         float3 tmax3 = sycl::max(t0, t1);
+
         float tmin = sycl::fmax(sycl::fmax(tmin3.x(), tmin3.y()), tmin3.z());
         float tmax = sycl::fmin(sycl::fmin(tmax3.x(), tmax3.y()), tmax3.z());
-        bool beyondClosestGlobalHit = tmin > tMax;
-        bool noOverlap = tmin > tmax;
-        bool boxBehindRay = tmax < 0.f;
-        if (beyondClosestGlobalHit || noOverlap || boxBehindRay)
-            return false;
-        tEntry = tmin;
+
+        /* 1.  Origin outside slabs AND entry after exit  ➜  miss          */
+        if (tmin > tmax) return false;
+
+        /* 2.  Whole box lies behind the ray                                  */
+        if (tmax < 0.0f)  return false;
+
+        /* 3.  Already found a closer hit in the SAME SPACE                   */
+        if (tmin > tMaxLimit) return false;
+
+        tEntry = sycl::fmax(tmin, 0.0f);   // clamp if origin is inside
         return true;
     }
-    inline bool slabIntersectAABB(
-        const Ray& ray,
-        const BVHNode& node,
-        const float3& invDir,
-        float tMax,
-        float& tEntry) {
-        float3 tmp = node.aabbMin - ray.origin;
-        float3 t0 = tmp * invDir;
-        float3 tmp2 = node.aabbMax - ray.origin;
-        float3 t1 = tmp2 * invDir;
+
+
+    inline bool slabIntersectAABB(const Ray& ray,
+                                  const BVHNode& node,
+                                  const float3& invDir,
+                                  float tMaxLimit,
+                                  float& tEntry)
+    {
+        float3 t0 = (node.aabbMin - ray.origin) * invDir;
+        float3 t1 = (node.aabbMax - ray.origin) * invDir;
+
         float3 tmin3 = sycl::min(t0, t1);
         float3 tmax3 = sycl::max(t0, t1);
+
         float tmin = sycl::fmax(sycl::fmax(tmin3.x(), tmin3.y()), tmin3.z());
         float tmax = sycl::fmin(sycl::fmin(tmax3.x(), tmax3.y()), tmax3.z());
-        bool beyondClosestGlobalHit = tmin > tMax;
-        bool noOverlap = tmin > tmax;
-        bool boxBehindRay = tmax < 0.f;
-        if (beyondClosestGlobalHit || noOverlap || boxBehindRay)
+
+        /* 1.  Origin outside slabs AND entry after exit  ➜  miss          */
+        if (tmin > tmax) {
             return false;
-        tEntry = tmin;
+        }
+        /* 2.  Whole box lies behind the ray                                  */
+        if (tmax < 0.0f)  return false;
+
+        /* 3.  Already found a closer hit in the SAME SPACE                   */
+        if (tmin > tMaxLimit) return false;
+
+        tEntry = sycl::fmax(tmin, 0.0f);   // clamp if origin is inside
         return true;
+    }
+
+
+    inline float3 safeInvDir(const float3& dir)
+    {
+        constexpr float EPS   = 1e-8f;   // treat anything smaller as “zero”
+        constexpr float HUGE  = 1e30f;   // 2^100 ≃ 1.27e30 still fits in float
+
+        float3 inv;
+
+        inv.x() = (sycl::fabs(dir.x()) < EPS) ? HUGE : 1.f / dir.x();
+        inv.y() = (sycl::fabs(dir.y()) < EPS) ? HUGE : 1.f / dir.y();
+        inv.z() = (sycl::fabs(dir.z()) < EPS) ? HUGE : 1.f / dir.z();
+
+        return inv;
     }
 
     //------------------------------------------------------------------------------
@@ -170,65 +168,16 @@ namespace VkRender::PathTracer {
     /// \param outU,outV  Output barycentric coords.
     /// \returns True if the ray hits the triangle.
     //------------------------------------------------------------------------------
-    inline bool intersectTriangle(
-        const Ray& ray,
-        const float3& v0,
-        const float3& v1,
-        const float3& v2,
-        float& outT,
-        float& outU,
-        float& outV) {
-        const float3 e1 = v1 - v0;
-        const float3 e2 = v2 - v0;
-        const float3 p = sycl::cross(ray.direction, e2);
-        float det = sycl::dot(e1, p);
-        if (sycl::fabs(det) < 1e-8f)
-            return false;
-        float invDet = 1.f / det;
+    SYCL_EXTERNAL bool intersectTriangle(const Ray&   ray,
+                                  const float3 v0,
+                                  const float3 v1,
+                                  const float3 v2,
+                                  float&       outT,
+                                  float&       outU,
+                                  float&       outV,
+                                  float        tMin        = 1e-4f,
+                                  bool         cullBF      = false);
 
-        const float3 tvec = ray.origin - v0;
-        float u = sycl::dot(tvec, p) * invDet;
-        if (u < 0.f || u > 1.f)
-            return false;
-
-        const float3 q = sycl::cross(tvec, e1);
-        float v = sycl::dot(ray.direction, q) * invDet;
-        if (v < 0.f || u + v > 1.f)
-            return false;
-
-        float t = sycl::dot(e2, q) * invDet;
-        if (t <= 1e-4f)
-            return false;
-
-        outT = t;
-        outU = u;
-        outV = v;
-        return true;
-    }
-
-
-    //------------------------------------------------------------------------------
-    /// Samples a point and normal on an area light uniformly.
-    /// \param light  The area light.
-    /// \param seed   RNG seed.
-    /// \param outPos Output world-space position.
-    /// \param outN   Output surface normal.
-    /// \param outPdf Output PDF of the sample.
-    //------------------------------------------------------------------------------
-    /*
-    inline void sampleAreaLight(
-        const AreaLight &light,
-        uint32_t seed,
-        float3 &outPos,
-        float3 &outN,
-        float &outPdf) {
-        float u = rnd(seed);
-        float v = rnd(seed ^ 0x9ABC);
-        outPos = light.origin + u * light.edgeU + v * light.edgeV;
-        outN = normalize(cross(light.edgeU, light.edgeV));
-        outPdf = 1.f / light.area;
-    }
-    */
 
     inline void sampleMeshLight(
         const MeshLight& light,
@@ -324,15 +273,21 @@ namespace VkRender::PathTracer {
     inline Ray toObjectSpace(const Ray &rayW, const Transform &xf)
     {
         Ray r;
-        r.origin    = (xf.worldToObject * float4{ rayW.origin, 1.f });
-        r.direction = (xf.worldToObject * float4{ rayW.direction, 0.f });
+        /* 1.  Transform origin – w = 1                                      */
+        float4 hO = xf.worldToObject * float4{ rayW.origin, 1.f };
+        r.origin  = float3{ hO.x(), hO.y(), hO.z() } / hO.w();   // <- perspective divide
+
+        /* 2.  Transform direction – w = 0  (no translation component)       */
+        float4 hD = xf.worldToObject * float4{ rayW.direction, 0.f };
+        r.direction = normalize(float3{ hD.x(), hD.y(), hD.z() }); // w is already 0
         return r;
     }
 
     inline float3 toWorldPoint(const float3 &pO, const Transform &xf)
     {
+
         float4 hp = xf.objectToWorld * float4{ pO, 1.f };
-        return float3{ hp.x(), hp.y(), hp.z() };
+        return float3{ hp.x(), hp.y(), hp.z() } / hp.w();
     }
 }
 

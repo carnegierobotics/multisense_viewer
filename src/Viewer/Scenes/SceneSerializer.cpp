@@ -390,6 +390,14 @@ namespace VkRender {
             out << YAML::EndMap;
         }
 
+        if (entity.hasComponent<RasterizerRenderingComponent>()) {
+            out << YAML::Key << "RasterizerRenderingComponent";
+            auto &component = entity.getComponent<RasterizerRenderingComponent>();
+            out << YAML::BeginMap;
+
+            out << YAML::EndMap;
+        }
+
         if (entity.hasComponent<VkRender::QuadricCollectionComponent>()) {
             out << YAML::Key << "QuadricCollectionComponent";
             auto &component = entity.getComponent<VkRender::QuadricCollectionComponent>();
@@ -754,12 +762,15 @@ namespace VkRender {
                 if (lightSourceNode) {
                     auto &component = deserializedEntity.addComponent<LightSourceComponent>();
                     auto &node = lightSourceNode;
-
                     // Deserialize fragment shader name
                     if (node["Flux"]) {
                         component.flux = node["Flux"].as<float>(100.0f);
                     }
-
+                }
+                auto rasterizerRenderingNode = entity["RasterizerRenderingComponent"];
+                if (rasterizerRenderingNode) {
+                    auto &component = deserializedEntity.addComponent<RasterizerRenderingComponent>();
+                    auto &node = rasterizerRenderingNode;
                 }
 
                 auto quadricNode = entity["QuadricCollectionComponent"];

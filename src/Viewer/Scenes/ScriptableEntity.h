@@ -34,6 +34,7 @@ namespace VkRender {
 
     protected:
         Entity m_entity;
+        Application* m_context = nullptr;
 
     private:
         friend class Scene;

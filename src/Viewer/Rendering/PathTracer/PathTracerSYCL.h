@@ -134,7 +134,6 @@ namespace VkRender::PathTracer {
 
         // === Member (host) staging arrays ===
         std::vector<Vertex> m_vertices;
-        //std::vector<Vertex> m_verticesWorld;
         std::vector<Triangle> m_tris;
         std::vector<MeshRange> m_meshRanges;
         std::vector<Instance> m_instances;

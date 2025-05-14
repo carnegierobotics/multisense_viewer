@@ -5,11 +5,10 @@
 #ifndef EMITTER_H
 #define EMITTER_H
 
-#include <glm/gtc/matrix_inverse.hpp>
-#include <glm/gtx/quaternion.hpp>
-#include <Viewer/Rendering/PathTracer/PathTracerSYCL.h>
 
 #include "Viewer/Scenes/ScriptableEntity.h"
+
+#include <Viewer/Rendering/PathTracer/PathTracerSYCL.h>
 
 namespace VkRender {
     class Emitter : ScriptableEntity {

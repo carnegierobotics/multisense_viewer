@@ -8,6 +8,11 @@
 
 #include "Viewer/Rendering/PathTracer/GPUDataTypes.h"
 
+#ifndef SYCL_EXTERNAL
+#define SYCL_EXTERNAL
+#endif
+
+
 namespace VkRender::PathTracer {
 
     struct PCG32
@@ -233,41 +238,66 @@ namespace VkRender::PathTracer {
     /// \param seed2  RNG seed #2.
     /// \returns A unit-length direction.
     //------------------------------------------------------------------------------
-    inline float3 sampleCosineHemisphere(
-        const float3& N,
-        PCG32& rng) {
-        float r1 = rng.nextFloat();
-        float r2 = rng.nextFloat();
-        float phi = 2.f * M_PIf * r1;
-        float cosT = sqrt(1.f - r2);
-        float sinT = sqrt(r2);
-        float3 local = {cos(phi) * sinT, sin(phi) * sinT, cosT};
+    SYCL_EXTERNAL inline void sampleCosineHemisphere(
+            PCG32 &rng, const float3 &n,
+            float3 &outDir, float &outPdf)
+    {
+        float u1 = rng.nextFloat();
+        float u2 = rng.nextFloat();
 
-        float3 up = fabs(N.z()) < 0.99f ? float3{0, 0, 1} : float3{1, 0, 0};
-        float3 tangent = normalize(cross(up, N));
-        float3 bitan = cross(N, tangent);
-        return normalize(
-            local.x() * tangent +
-            local.y() * bitan +
-            local.z() * N);
+        float r   = sycl::sqrt(u1);
+        float phi = 2.f * M_PIf * u2;
+
+        float x = r * sycl::cos(phi);
+        float y = r * sycl::sin(phi);
+        float z = sycl::sqrt(1.f - u1);
+
+        // build an ONB around n
+        float3 up   = sycl::fabs(n.z()) < .999f ? float3{0,0,1} : float3{1,0,0};
+        float3 tang = normalize(sycl::cross(up, n));
+        float3 bit  = sycl::cross(n, tang);
+
+        outDir = normalize(x * tang + y * bit + z * n);
+        outPdf = sycl::max(0.f, sycl::dot(outDir, n)) / M_PIf;          // cosθ/π
     }
 
-    //------------------------------------------------------------------------------
-    /// Spawns the next photon bounce ray.
-    /// \param hit    Intersection record.
-    /// \param N      Surface normal at hit.
-    /// \param seed1  RNG seed #1.
-    /// \param seed2  RNG seed #2.
-    /// \returns A new Ray starting just above the surface.
-    //------------------------------------------------------------------------------
-    inline Ray spawnNextRay(
-        const Hit& hit,
-        const float3& N,
-        PCG32& rng) {
-        float3 dir = sampleCosineHemisphere(N, rng);
-        float3 origin = hit.hitPoint + N * 1e-4f;
-        return makeRay(origin, dir);
+    SYCL_EXTERNAL inline float3 reflect(const float3 &v, const float3 &n)
+    {
+        return v - 2.f * sycl::dot(n, v) * n;
     }
+
+    // specular Blinn‑Phong lobe sampling – returns dir and pdf
+    SYCL_EXTERNAL inline void sampleBlinnPhongSpecular(
+            PCG32 &rng, const float3 &n, const float3 &omegaIn,
+            float shininess,
+            float3 &outDir, float &outPdf)
+    {
+        // 1. sample half‑vector
+        float u1 = rng.nextFloat();
+        float u2 = rng.nextFloat();
+
+        float cosThetaH = sycl::pow(u1, 1.f / (shininess + 1.f));
+        float sinThetaH = sycl::sqrt(1.f - cosThetaH * cosThetaH);
+        float phi       = 2.f * M_PIf * u2;
+
+        float3 up   = sycl::fabs(n.z()) < .999f ? float3{0,0,1} : float3{1,0,0};
+        float3 tang = normalize(sycl::cross(up, n));
+        float3 bit  = sycl::cross(n, tang);
+
+        float3 h = normalize( sinThetaH * sycl::cos(phi) * tang +
+                              sinThetaH * sycl::sin(phi) * bit +
+                              cosThetaH * n );
+
+        // 2. reflect incoming direction about h
+        outDir = normalize(reflect(-omegaIn, h));
+
+        // 3. pdf  p(ωo) = (s+2)/(2π) (n·h)^s  (n·h)/(4 |h·ωi|)
+        float nh = sycl::max(0.f, sycl::dot(n, h));
+        float hi = sycl::max(0.f, sycl::dot(h, -omegaIn));
+        outPdf   = ((shininess + 2.f) * nh * sycl::pow(nh, shininess)) /
+                   (2.f * M_PIf * 4.f * hi + 1e-7f);   // 1e-7 to avoid /0
+    }
+
 
     //──────────────── world → object and back ────────────────────────────────
     inline Ray toObjectSpace(const Ray &rayW, const Transform &xf)

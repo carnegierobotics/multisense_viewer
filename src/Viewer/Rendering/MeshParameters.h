@@ -123,8 +123,17 @@ namespace VkRender {
         }
 
         std::string getIdentifier() const override {
-            // Generate a unique identifier based on parameters
-            return "Cylinder";
+            // Format the vectors and scalar values for the identifier
+            auto formatVec3 = [](const glm::vec3 &v) {
+                return std::to_string(v.x) + "_" + std::to_string(v.y) + "_" + std::to_string(v.z);
+            };
+
+            // Combine all parameters into a single identifier
+            return "Cylinder_" +
+                   formatVec3(origin) + "_" +
+                   formatVec3(direction) + "_" +
+                   std::to_string(magnitude) + "_" +
+                   std::to_string(radius);
         }
 
         std::shared_ptr<MeshData> generateMeshData() override;

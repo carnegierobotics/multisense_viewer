@@ -11,9 +11,8 @@ namespace VkRender::PathTracer {
     // ── PathTracerMeshKernel.cpp ────────────────────────────────────────────────
     // Returns the closest hit inside one mesh’s BLAS (object space)
     SYCL_EXTERNAL bool PathTracerMeshKernel::intersectBLAS(const Ray &rayO,
-                                                    uint32_t geomIdx,
-                                                    Hit &out, const SceneDesc &scene) {
-
+                                                           uint32_t geomIdx,
+                                                           Hit &out, const SceneDesc &scene) {
         /* 1.  Locate the sub‑tree that belongs to this mesh
                ────────────────────────────────────────────── */
         const BLASRange &br = scene.blasRanges[geomIdx];
@@ -31,7 +30,7 @@ namespace VkRender::PathTracer {
         int sp = 0;
         stack[sp++] = 0; // root of this BLAS
 
-        constexpr float kRayEps = 0.0f;   // ignore hits closer than this
+        constexpr float kRayEps = 0.0f; // ignore hits closer than this
 
         while (sp) {
             int nIdx = stack[--sp];
@@ -53,7 +52,7 @@ namespace VkRender::PathTracer {
                 for (uint32_t i = 0; i < N.triCount; ++i) {
                     uint32_t triIdx = N.leftFirst + i; // *global* index
 
-                    const Triangle& T = tris[triIdx];   // existing line
+                    const Triangle &T = tris[triIdx]; // existing line
                     const float3 A = verts[T.v0].pos;
                     const float3 B = verts[T.v1].pos;
                     const float3 C = verts[T.v2].pos;
@@ -61,19 +60,18 @@ namespace VkRender::PathTracer {
                     float t, u, v;
 
                     /* ---- new call --------------------------------------------------------- */
-                    if (intersectTriangle(rayO,  A, B, C,
+                    if (intersectTriangle(rayO, A, B, C,
                                           t, u, v,
-                                          kRayEps,        /* tMin                */
-                                          false)  /* double‑sided, i.e. culling */
-                        && t < bestT)
-                    {
-                        bestT  = t;
+                                          kRayEps, /* tMin                */
+                                          false) /* double‑sided, i.e. culling */
+                        && t < bestT) {
+                        bestT = t;
                         hitAny = true;
 
-                        out.t        = t;
-                        out.u        = u;
-                        out.v        = v;
-                        out.primIdx  = triIdx;        // global – good for shading
+                        out.t = t;
+                        out.u = u;
+                        out.v = v;
+                        out.primIdx = triIdx; // global – good for shading
                     }
                 }
             }
@@ -84,7 +82,6 @@ namespace VkRender::PathTracer {
 
 
     SYCL_EXTERNAL bool PathTracerMeshKernel::intersectScene(const Ray &rayW, Hit *hit, const SceneDesc &scene) {
-
         /* abort if scene is empty */
         if (scene.tlasNodeCount == 0) return false;
 
@@ -127,25 +124,24 @@ namespace VkRender::PathTracer {
                 Ray rayObject = toObjectSpace(rayW, transform);
 
                 Hit local;
-                if (intersectBLAS(rayObject, instance.geomIndex, local, scene))
-                {
+                if (intersectBLAS(rayObject, instance.geomIndex, local, scene)) {
                     /* 3.  Convert hit point back to world space */
                     float3 hitPointW = toWorldPoint(rayObject.origin + local.t * rayObject.direction, transform);
 
                     /* 4.  Compute world‑space hit distance (rayW.dir is unit length) */
                     float tWorld = dot(hitPointW - rayW.origin, rayW.direction);
 
-                    if (tWorld >= 0.0f && tWorld < bestTWorld)   // ignore hits behind the origin
+                    if (tWorld >= 0.0f && tWorld < bestTWorld) // ignore hits behind the origin
                     {
                         bestTWorld = tWorld;
-                        anyHit     = true;
+                        anyHit = true;
 
                         /* write out the final hit record in WORLD space */
-                        hit->t        = tWorld;
-                        hit->u        = local.u;
-                        hit->v        = local.v;
-                        hit->primIdx  = local.primIdx;
-                        hit->instIdx  = instID;
+                        hit->t = tWorld;
+                        hit->u = local.u;
+                        hit->v = local.v;
+                        hit->primIdx = local.primIdx;
+                        hit->instIdx = instID;
                         hit->hitPoint = hitPointW;
                     }
                 }
@@ -156,61 +152,46 @@ namespace VkRender::PathTracer {
 
 
     SYCL_EXTERNAL void PathTracerMeshKernel::castContributions(
-        const float3 &hitPoint,
-        const float &throughput) const {
-        const auto &scene = *d_sceneDesc;
+            const float3 &hitPoint,
+            const float   contrib) const
+    {
         constexpr float kEps = 1e-4f;
+        const SceneDesc &scene = *d_sceneDesc;
 
-        for (uint32_t camID = 0; camID < scene.cameraCount; ++camID) {
+        for (uint32_t camID = 0; camID < scene.cameraCount; ++camID)
+        {
             const Camera &cam = scene.cameras[camID];
 
-            // 1) build a ray from surface to camera aperture
             float3 toAperture = cam.pos - hitPoint;
-            float distToA = sycl::length(toAperture);
-            float3 dirToA = toAperture / distToA;
-            Ray contribRay = makeRay(hitPoint + dirToA * kEps, dirToA);
+            float  distToA    = sycl::length(toAperture);
+            float3 dirToA     = toAperture / distToA;
 
-            // 2) occlusion check
-            Hit shadow;
-            if (intersectScene(contribRay, &shadow, *d_sceneDesc) && shadow.t < distToA - kEps)
+            // visibility
+            Hit sh;
+            Ray ray = makeRay(hitPoint + dirToA * kEps, dirToA);
+            if (intersectScene(ray, &sh, scene) && sh.t < distToA - kEps)
                 continue;
 
-            // 3) project hitPoint into clip space
-            float4 worldPos = float4(hitPoint, 1.f);
-            float4 viewPos = cam.view * worldPos; // TODO matrix vector prod
-            float4 clipPos = cam.proj * viewPos; // TODO matrix vector prod
-            float invW = 1.f / clipPos.w();
-            float2 ndc = {clipPos.x() * invW, clipPos.y() * invW};
+            // perspective projection
+            float4 clip = cam.proj * (cam.view * float4(hitPoint,1.f));
+            float2 ndc  = { clip.x()/clip.w(), clip.y()/clip.w() };
             if (ndc.x() < -1.f || ndc.x() > 1.f || ndc.y() < -1.f || ndc.y() > 1.f)
                 continue;
 
-            // 4) NDC → pixel coords
-            auto px = static_cast<uint32_t>((ndc.x() * 0.5f + 0.5f) * cam.width);
-            auto py = static_cast<uint32_t>((ndc.y() * 0.5f + 0.5f) * cam.height);
-            uint32_t idx = cam.firstPixel + py * cam.width + px;
+            uint32_t px = uint32_t((ndc.x()*0.5f+0.5f) * cam.width );
+            uint32_t py = uint32_t((ndc.y()*0.5f+0.5f) * cam.height);
+            uint32_t idx = cam.firstPixel + py*cam.width + px;
 
-            // 5) atomic add into global image buffer (float4 array)
-            auto &pixel = d_framebuffer.memory[idx];
+            float4 &dst = d_framebuffer.memory[idx];
             sycl::atomic_ref<float,
-                        sycl::memory_order::relaxed,
-                        sycl::memory_scope::device,
-                        sycl::access::address_space::global_space>
-                    r(pixel.x());
-            sycl::atomic_ref<float,
-                        sycl::memory_order::relaxed,
-                        sycl::memory_scope::device,
-                        sycl::access::address_space::global_space>
-                    g(pixel.y());
-            sycl::atomic_ref<float,
+                sycl::memory_order::relaxed,
+                sycl::memory_scope::device,
+                sycl::access::address_space::global_space>
+                r(dst.x()), g(dst.y()), b(dst.z());
 
-                        sycl::memory_order::relaxed,
-                        sycl::memory_scope::device,
-                        sycl::access::address_space::global_space>
-                    b(pixel.z());
-
-            r += throughput;
-            g += throughput;
-            b += throughput;
+            r += contrib;
+            g += contrib;
+            b += contrib;
         }
     }
 
@@ -224,58 +205,138 @@ namespace VkRender::PathTracer {
         const auto &settings = d_sceneSettings;
 
 
+        // RNG
         PCG32 rng{};
-        uint64_t seedState = (uint64_t(photonID) << 32);
-        rng.seed(seedState, 54u);
-        // 1) sample light
-        float3 worldPos, worldNormal;
-        float pdf;
-        uint32_t lightIdx = sycl::max((photonID % scene.lightCount) - 1.0, 0.0);
-        auto light = scene.lights[lightIdx];
-        sampleMeshLight(light, rng, worldPos, worldNormal, pdf);
+        rng.seed(uint64_t(photonID) << 32, 54u);
 
+        //-------------------- 1) sample area light -------------------------------
+        float3 Lpos, Lnorm;
+        float pdfPos;
+        uint32_t lightIdx = sycl::min(photonID % scene.lightCount,
+                                      scene.lightCount - 1u);
+        const MeshLight &light = scene.lights[lightIdx];
+        sampleMeshLight(light, rng, Lpos, Lnorm, pdfPos);
 
-        // 2) initial direction & throughput
-        float3 rayDir = sampleCosineHemisphere(worldNormal, rng);
-        float cosNL = sycl::max(sycl::dot(rayDir, worldNormal), 0.f);
-        float throughput = scene.lights[photonID % scene.lightCount].radiance
-                           * (cosNL / pdf);
-        Ray worldRay = makeRay(worldPos, rayDir);
+        //-------------------- 2) launch first ray --------------------------------
+        float3 dir;
+        float pdfDir;
+        sampleCosineHemisphere(rng, Lnorm, dir, pdfDir);
 
-        // 3) bounce loop
+        float cosNL = sycl::dot(dir, Lnorm);
+        float throughput = light.radiance * (cosNL / (pdfPos * pdfDir));
+
+        Ray ray = makeRay(Lpos, dir);
+
+        //-------------------- 3) bounce loop -------------------------------------
         for (uint32_t bounce = 0; bounce < settings.maxBounces; ++bounce) {
             Hit hit;
-
-            if (!intersectScene(worldRay, &hit, *d_sceneDesc))
+            if (!intersectScene(ray, &hit, scene))
                 break;
 
 
-            // interpolate normal from triangle
-            const Triangle &T = scene.triangles[hit.primIdx];
-            const auto &VSOA = scene.vertices;
-            const Vertex &v0 = VSOA[T.v0];
-            const Vertex &v1 = VSOA[T.v1];
-            const Vertex &v2 = VSOA[T.v2];
+            const Triangle &tri = scene.triangles[hit.primIdx];
+            const Vertex &v0 = scene.vertices[tri.v0];
+            const Vertex &v1 = scene.vertices[tri.v1];
+            const Vertex &v2 = scene.vertices[tri.v2];
 
-
-            float w0 = 1.0f - hit.u - hit.v;
+            float w0 = 1.f - hit.u - hit.v;
             float w1 = hit.u;
             float w2 = hit.v;
             float3 N = normalize(w0 * v0.norm + w1 * v1.norm + w2 * v2.norm);
 
-            // fetch material
-            const Instance &inst = scene.instances[hit.instIdx];
-            const Material &M = scene.materials[inst.materialIndex];
-            float3 albedo = M.baseColor;
+            const Material &mat = scene.materials[
+                scene.instances[hit.instIdx].materialIndex];
 
-            // throughput update (Lambertian)
-            throughput *= albedo.x() * M_PIf;
+            // material parameters
+            float kd = mat.baseColor.x(); // diffuse albedo
+            float ks = mat.specular; // specular weight 0..1
+            float s = mat.phongExp; // Blinn exponent
 
-            // cast contributions to cameras
-            castContributions(hit.hitPoint, throughput);
+            //---------------- choose branch ------------------------------------
+            float Pdiff = kd; // assume greyscale kd
+            float Pspec = ks;
+            float invSum = 1.f / sycl::max(1e-5f, Pdiff + Pspec);
+            Pdiff *= invSum;
+            Pspec *= invSum;
 
-            // spawn next bounce
-            worldRay = spawnNextRay(hit, N, rng);
+            float rBranch = rng.nextFloat();
+            float3 newDir;
+            float pdfDirSample;
+
+            if (rBranch < Pdiff) // diffuse branch
+            {
+                sampleCosineHemisphere(rng, N, newDir, pdfDirSample);
+                pdfDirSample *= Pdiff; // mixture pdf
+            } else // specular branch
+            {
+                sampleBlinnPhongSpecular(rng, N, -ray.direction, s,
+                                         newDir, pdfDirSample);
+                pdfDirSample *= Pspec;
+            }
+
+            //---------------- BRDF value ----------------------------------------
+            float f;
+            float cosNO = sycl::max(0.f, sycl::dot(N, newDir));
+            if (rBranch < Pdiff) // diffuse eval
+                f = kd / M_PIf;
+            else // specular eval
+            {
+                float3 h = normalize(newDir - ray.direction);
+                float nh = sycl::max(0.f, sycl::dot(N, h));
+                f = ks * (s + 2.f) * sycl::pow(nh, s) / (2.f * M_PIf);
+            }
+
+            throughput *= (f * cosNO) / sycl::max(1e-7f, pdfDirSample);
+
+            /*
+            //---------------- Russian roulette (optional) ----------------------
+            if (bounce > 3) {
+                float q = sycl::clamp(throughput * 0.9f, 0.f, 0.95f);
+                if (rng.nextFloat() < q)
+                    break;
+                throughput /= (1.f - q);
+            }
+            */
+
+
+            // camera direction and geometry factor
+            float3 camDir   = normalize(scene.cameras[0].pos - hit.hitPoint);  // pin‑hole
+            float  dist     = length(scene.cameras[0].pos - hit.hitPoint);
+            float  cosNxCam  = sycl::max(0.f, sycl::dot(N, camDir));
+            float  Gcam      = cosNxCam / (dist * dist);           // nA·(–ωA)=1 for pin‑hole
+
+            // BRDF toward the camera  (reuse the same logic as for the bounce branch)
+            float frCam;
+            {
+                float ks = mat.specular;
+                float kd = mat.baseColor.x();
+                if (rBranch < Pdiff)            // same branch test: just diff/spec flag
+                    frCam = kd / M_PIf;
+                else {
+                    float3 h = normalize(camDir - ray.direction);
+                    float  nh = sycl::max(0.f, sycl::dot(N, h));
+                    frCam = ks * (s + 2.f) * sycl::pow(nh, s) / (2.f * M_PIf);
+                }
+            }
+
+            // pixel filter: box  -->  ΔΩ_pix = A_pix / dist^2
+            //float pixelSolid = scene.cameras[0].pixelArea / (dist * dist);
+            float pixelSolid = 4.f / (scene.cameras[0].width * scene.cameras[0].height * 1.0f);          // 90° default
+
+            // overall camera kernel
+            float cameraWeight = frCam * Gcam * pixelSolid;
+            float contrib      = throughput * cameraWeight;
+
+            /*
+            if (contrib > 0.1f) {
+                break;
+            }
+            */
+            //---------------- camera contributions -----------------------------
+            castContributions(hit.hitPoint, contrib);
+
+            //---------------- spawn next ray -----------------------------------
+            ray = makeRay(hit.hitPoint + 1e-4f * newDir, newDir);
         }
     }
 }

@@ -62,7 +62,7 @@ namespace VkRender::PathTracer {
 
     struct alignas(16) Material {
         sycl::float3 baseColor;
-        sycl::float3 specular;
+        float specular;
         float phongExp;
         // every material is usable by either mesh or point
     };
@@ -93,7 +93,7 @@ namespace VkRender::PathTracer {
         void addTriangle(const sycl::float3 &v0, const sycl::float3 &e1, const sycl::float3 &e2, const sycl::float3 &n, float area) {
             if (triangleCount >= MAX_TRIANGLES) {
                 // Optionally log or assert if you expect this to be rare
-                return;
+                throw std::runtime_error("Too many triangles in the mesh Light");
             }
 
             this->v0[triangleCount] = v0;
@@ -189,7 +189,7 @@ namespace VkRender::PathTracer {
 
 
     struct alignas(16) SceneSettings {
-        uint32_t maxBounces = 1;
+        uint32_t maxBounces = 12;
     };
 
     struct alignas(16) FrameBuffer {

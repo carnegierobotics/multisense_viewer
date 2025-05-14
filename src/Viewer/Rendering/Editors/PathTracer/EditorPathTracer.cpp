@@ -25,7 +25,7 @@ namespace VkRender {
 
         auto dev = m_context->getSyclDeviceSelector().getDevice(SYCLDeviceType::Default);
         PathTracer::PathTracerSYCLCreateInfo pipelineSettings(dev);
-        pipelineSettings.framebufferSize = 1920 * 1080 * 4 * 10 * sizeof(float4); // 41mb of framebuffers
+        pipelineSettings.framebufferSize = 960 * 600 * 4 * 5 * sizeof(float4); // 41mb of framebuffers
         m_pathTracerSYCL = std::make_unique<PathTracer::PathTracerSYCL>(pipelineSettings);
     }
 
@@ -77,7 +77,7 @@ namespace VkRender {
 
         if (dev->isDeviceAvailable()) {
             PathTracer::PathTracerSYCLCreateInfo pipelineSettings(dev);
-            pipelineSettings.framebufferSize = 1920 * 1080 * 4 * 10 * sizeof(float4); // ~82 MB of framebuffers
+            pipelineSettings.framebufferSize = 960 * 600 * 4 * 5 * sizeof(float4); // 41mb of framebuffers
             pipelineSettings.queue = dev->getQueue();
             pipelineSettings.device = dev;
             // Re-create your path-tracer with the updated settings:

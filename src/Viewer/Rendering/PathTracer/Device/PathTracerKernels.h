@@ -52,7 +52,9 @@ namespace VkRender::PathTracer {
         SYCL_EXTERNAL void traceOnePhoton(uint32_t photonID) const;
 
 
-        SYCL_EXTERNAL void castContributions(const float3 &hitPoint, const float &throughput) const;
+        SYCL_EXTERNAL void castContributions(
+            const float3 &hitPoint,
+            const float   contrib) const;
     };
 }
 #endif //PATHTRACERKERNELS_H

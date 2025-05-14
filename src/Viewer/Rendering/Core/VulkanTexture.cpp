@@ -53,6 +53,7 @@ namespace VkRender {
 
 
     void VulkanTexture2D::loadImage(void* data) {
+        Utils::ScopedTimer timer("VulkanTexture2D: Upload Image to Texture");
 
         VkDeviceSize size = getSize();
         // Create a staging buffer

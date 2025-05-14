@@ -9,6 +9,7 @@
 
 #include <Viewer/Rendering/Components/LightSourceComponent.h>
 #include <Viewer/Rendering/PathTracer/Device/KernelHelpers.h>
+#include <Viewer/Rendering/PathTracer/Device/PathTracerKernels.h>
 
 
 namespace VkRender {
@@ -18,7 +19,7 @@ namespace VkRender {
 
         if (!hasComponent<MeshComponent>())
             return;
-        auto& meshComponent = getComponent<MeshComponent>();
+        auto &meshComponent = getComponent<MeshComponent>();
         auto rayParams = std::dynamic_pointer_cast<CylinderMeshParameters>(meshComponent.meshParameters);
         if (!rayParams)
             return;
@@ -27,11 +28,11 @@ namespace VkRender {
         glm::vec3 rayOrigin(0.0f);
         glm::vec3 rayDir = rayParams->direction;
 
-        auto& rayTransform = getComponent<TransformComponent>();
+        auto &rayTransform = getComponent<TransformComponent>();
 
         auto view = scene->getRegistry().view<LightSourceComponent>();
 
-        for (auto e : view) {
+        for (auto e: view) {
             Entity entity(e, scene);
             auto lightTransform = entity.getComponent<TransformComponent>();
             rayOrigin = lightTransform.getPosition();
@@ -56,17 +57,46 @@ namespace VkRender {
 
             float magnitude = glm::length(hitPoint - rayOrigin);
             rayParams->setMagnitude(magnitude);
+
+            // Contribution ray
+
+            auto entity = scene->getOrCreateEntityByName("ContributionRay");
+            if (!entity.hasComponent<RasterizerRenderingComponent>()) {
+                entity.addComponent<RasterizerRenderingComponent>();
+                auto &mesh = entity.addComponent<MeshComponent>(CYLINDER);
+                auto &material = entity.addComponent<MaterialComponent>();
+            } else {
+                auto &mesh = entity.getComponent<MeshComponent>();
+                auto contributionRayParams = std::dynamic_pointer_cast<CylinderMeshParameters>(mesh.meshParameters);
+                auto &material = entity.getComponent<MaterialComponent>();
+
+                contributionRayParams->setOrigin(hitPoint);
+
+                // calculate direction to camera:
+                auto cameraEntity = scene->getActiveCameraEntity();
+                if (cameraEntity) {
+                    auto cameraPos = cameraEntity.getComponent<TransformComponent>();
+                    glm::vec3 dir = glm::normalize(cameraPos.getPosition() - hitPoint);
+
+                    PathTracer::Ray contributionRay = PathTracer::makeRay(
+                        PathTracer::glm2sycl(hitPoint), PathTracer::glm2sycl(dir));
+                    if (PathTracer::PathTracerMeshKernel::intersectScene(contributionRay, &hit, sceneDescription)) {
+                        contributionRayParams->setMagnitude(0.0f);
+                    } else {
+                        contributionRayParams->setDirection(dir);
+                        contributionRayParams->setMagnitude(glm::length(cameraPos.getPosition() - hitPoint));
+                    }
+                }
+            }
         } else {
             rayParams->setMagnitude(99.0f);
         }
-
     }
 
     void Emitter::onDestroy() {
     }
 
     void Emitter::onCreate() {
-
         auto dev = m_context->getSyclDeviceSelector().getDevice(SYCLDeviceType::Default);
         PathTracer::PathTracerSYCLCreateInfo pipelineSettings(dev);
         pipelineSettings.framebufferSize = 1920 * 1080 * 4 * 10 * sizeof(float4); // ~82 MB of framebuffers
@@ -77,5 +107,3 @@ namespace VkRender {
         m_pathTracerSYCL->uploadScene(m_context->activeScene());
     }
 }
-
-

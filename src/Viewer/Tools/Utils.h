@@ -68,6 +68,21 @@ namespace Utils {
     DISABLE_WARNING_PUSH
     DISABLE_WARNING_UNREFERENCED_FUNCTION
 
+    struct ScopedTimer {
+        using clock = std::chrono::high_resolution_clock;
+        std::string _name;
+        clock::time_point _start;
+
+        ScopedTimer(const std::string &name)
+          : _name(name), _start(clock::now()) {}
+
+        ~ScopedTimer() {
+            auto end = clock::now();
+            auto ms  = std::chrono::duration<double, std::milli>(end - _start).count();
+            Log::Logger::getInstance()->info("[TIMER] {:<40} : {:6.2f} ms", _name, ms);
+        }
+    };
+
     static std::filesystem::path getShadersPath() {
         return {"Assets/Shaders/spv"};
     }

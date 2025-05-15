@@ -152,19 +152,17 @@ namespace VkRender::PathTracer {
 
 
     SYCL_EXTERNAL void PathTracerMeshKernel::castContributions(
-            const float3 &hitPoint,
-            const float   contrib) const
-    {
+        const float3 &hitPoint,
+        const float contrib) const {
         constexpr float kEps = 1e-4f;
         const SceneDesc &scene = *d_sceneDesc;
 
-        for (uint32_t camID = 0; camID < scene.cameraCount; ++camID)
-        {
+        for (uint32_t camID = 0; camID < scene.cameraCount; ++camID) {
             const Camera &cam = scene.cameras[camID];
 
             float3 toAperture = cam.pos - hitPoint;
-            float  distToA    = sycl::length(toAperture);
-            float3 dirToA     = toAperture / distToA;
+            float distToA = sycl::length(toAperture);
+            float3 dirToA = toAperture / distToA;
 
             // visibility
             Hit sh;
@@ -173,21 +171,21 @@ namespace VkRender::PathTracer {
                 continue;
 
             // perspective projection
-            float4 clip = cam.proj * (cam.view * float4(hitPoint,1.f));
-            float2 ndc  = { clip.x()/clip.w(), clip.y()/clip.w() };
+            float4 clip = cam.proj * (cam.view * float4(hitPoint, 1.f));
+            float2 ndc = {clip.x() / clip.w(), clip.y() / clip.w()};
             if (ndc.x() < -1.f || ndc.x() > 1.f || ndc.y() < -1.f || ndc.y() > 1.f)
                 continue;
 
-            uint32_t px = uint32_t((ndc.x()*0.5f+0.5f) * cam.width );
-            uint32_t py = uint32_t((ndc.y()*0.5f+0.5f) * cam.height);
-            uint32_t idx = cam.firstPixel + py*cam.width + px;
+            uint32_t px = uint32_t((ndc.x() * 0.5f + 0.5f) * cam.width);
+            uint32_t py = uint32_t((ndc.y() * 0.5f + 0.5f) * cam.height);
+            uint32_t idx = cam.firstPixel + py * cam.width + px;
 
             float4 &dst = d_framebuffer.memory[idx];
             sycl::atomic_ref<float,
-                sycl::memory_order::relaxed,
-                sycl::memory_scope::device,
-                sycl::access::address_space::global_space>
-                r(dst.x()), g(dst.y()), b(dst.z());
+                        sycl::memory_order::relaxed,
+                        sycl::memory_scope::device,
+                        sycl::access::address_space::global_space>
+                    r(dst.x()), g(dst.y()), b(dst.z());
 
             r += contrib;
             g += contrib;
@@ -223,7 +221,7 @@ namespace VkRender::PathTracer {
         sampleCosineHemisphere(rng, Lnorm, dir, pdfDir);
 
         float cosNL = sycl::dot(dir, Lnorm);
-        float throughput = light.radiance * (cosNL / (pdfPos * pdfDir));
+        float throughput = light.radiance * cosNL / (pdfPos * pdfDir);
 
         Ray ray = makeRay(Lpos, dir);
 
@@ -248,20 +246,46 @@ namespace VkRender::PathTracer {
                 scene.instances[hit.instIdx].materialIndex];
 
             // material parameters
-            float kd = mat.baseColor.x(); // diffuse albedo
+            float albedo = mat.baseColor;
+            float kd = mat.diffuse; // diffuse albedo
             float ks = mat.specular; // specular weight 0..1
             float s = mat.phongExp; // Blinn exponent
 
-            //---------------- choose branch ------------------------------------
-            float Pdiff = kd; // assume greyscale kd
-            float Pspec = ks;
+            // sample direction  (keep your cosine-hemisphere sampler for now)
+            float3  newDir;
+            float   pdfDir = 0.f;
+            sampleCosineHemisphere(rng, N, newDir, pdfDir);
+            float   cosNO  = sycl::max(0.f, sycl::dot(N, newDir));
+
+            // half-vector and BRDF value
+            float3 h   = normalize(reflect(ray.direction, N) + newDir);
+            float  nh  = sycl::max(0.f, sycl::dot(N, h));
+
+            float  fr =
+                    kd * albedo / M_PIf
+                  + ks * (s + 2.f) * sycl::pow(nh, s) / (2.f * M_PIf);
+
+            // throughput update
+            throughput *= fr * cosNO / pdfDir;
+
+            if (throughput >= light.radiance) {
+                int bug = true;
+                return;
+            }
+
+            //---------------- camera contributions -----------------------------
+            castContributions(hit.hitPoint, throughput);
+
+
+            //---------------- spawn next ray -----------------------------------
+            ray = makeRay(hit.hitPoint + 1e-4f * newDir, newDir);
+            /*
             float invSum = 1.f / sycl::max(1e-5f, Pdiff + Pspec);
             Pdiff *= invSum;
             Pspec *= invSum;
 
             float rBranch = rng.nextFloat();
             float3 newDir;
-            float pdfDirSample;
 
             if (rBranch < Pdiff) // diffuse branch
             {
@@ -288,6 +312,7 @@ namespace VkRender::PathTracer {
 
             throughput *= (f * cosNO) / sycl::max(1e-7f, pdfDirSample);
 
+            */
             /*
             //---------------- Russian roulette (optional) ----------------------
             if (bounce > 3) {
@@ -299,6 +324,7 @@ namespace VkRender::PathTracer {
             */
 
 
+            /*
             // camera direction and geometry factor
             float3 camDir   = normalize(scene.cameras[0].pos - hit.hitPoint);  // pin‑hole
             float  dist     = length(scene.cameras[0].pos - hit.hitPoint);
@@ -327,16 +353,12 @@ namespace VkRender::PathTracer {
             float cameraWeight = frCam * Gcam * pixelSolid;
             float contrib      = throughput * cameraWeight;
 
-            /*
             if (contrib > 0.1f) {
                 break;
             }
             */
-            //---------------- camera contributions -----------------------------
-            castContributions(hit.hitPoint, contrib);
 
-            //---------------- spawn next ray -----------------------------------
-            ray = makeRay(hit.hitPoint + 1e-4f * newDir, newDir);
+
         }
     }
 }

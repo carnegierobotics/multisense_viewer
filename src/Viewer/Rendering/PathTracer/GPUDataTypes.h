@@ -61,7 +61,8 @@ namespace VkRender::PathTracer {
     };
 
     struct alignas(16) Material {
-        sycl::float3 baseColor;
+        float baseColor;
+        float diffuse;
         float specular;
         float phongExp;
         // every material is usable by either mesh or point

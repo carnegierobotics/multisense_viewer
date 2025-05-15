@@ -326,12 +326,13 @@ namespace VkRender::PathTracer {
             auto &matComp = e.getComponent<MaterialComponent>();
             Material gpuMat{};
             gpuMat.baseColor = {
-                matComp.albedo.x,
-                matComp.albedo.y,
-                matComp.albedo.z
+                matComp.albedo.x
             };
             gpuMat.specular = {
                 matComp.specular
+            };
+            gpuMat.diffuse = {
+                matComp.diffuse
             };
             gpuMat.phongExp = matComp.phongExponent;
 

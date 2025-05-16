@@ -154,7 +154,7 @@ namespace VkRender::PathTracer {
     SYCL_EXTERNAL void PathTracerMeshKernel::castContributions(
         const float3 &hitPoint,
         const float contrib) const {
-        constexpr float kEps = 1e-4f;
+        constexpr float kEps = 1e-5f;
         const SceneDesc &scene = *d_sceneDesc;
 
         for (uint32_t camID = 0; camID < scene.cameraCount; ++camID) {
@@ -198,20 +198,19 @@ namespace VkRender::PathTracer {
     /// through the scene, shade, and cast contribution rays.
     /// \param photonID  Unique photon identifier (also RNG seed).
     //------------------------------------------------------------------------------
-    SYCL_EXTERNAL void PathTracerMeshKernel::traceOnePhoton(uint32_t photonID) const {
+    SYCL_EXTERNAL void PathTracerMeshKernel::traceOnePhoton(uint64_t photonID, uint32_t totalPhotonCount) const {
         const auto &scene = *d_sceneDesc;
         const auto &settings = d_sceneSettings;
 
 
         // RNG
         PCG32 rng{};
-        rng.seed(uint64_t(photonID) << 32, 54u);
+        rng.seed(static_cast<uint64_t>(photonID));
 
         //-------------------- 1) sample area light -------------------------------
         float3 Lpos, Lnorm;
         float pdfPos;
-        uint32_t lightIdx = sycl::min(photonID % scene.lightCount,
-                                      scene.lightCount - 1u);
+        uint32_t lightIdx = scene.lightCount - 1;
         const MeshLight &light = scene.lights[lightIdx];
         sampleMeshLight(light, rng, Lpos, Lnorm, pdfPos);
 
@@ -220,8 +219,11 @@ namespace VkRender::PathTracer {
         float pdfDir;
         sampleCosineHemisphere(rng, Lnorm, dir, pdfDir);
 
-        float cosNL = sycl::dot(dir, Lnorm);
-        float throughput = light.radiance * cosNL / (pdfPos * pdfDir);
+        float cosNL = sycl::max(1e-5f, static_cast<float>(sycl::dot(dir, Lnorm)));
+        //float cosNL = sycl::dot(dir, Lnorm);
+
+        float perPhotonEnergy = 1.0f / static_cast<float>(totalPhotonCount);
+        float throughput = light.radiance * cosNL / (pdfPos * pdfDir) * perPhotonEnergy;
 
         Ray ray = makeRay(Lpos, dir);
 
@@ -230,7 +232,6 @@ namespace VkRender::PathTracer {
             Hit hit;
             if (!intersectScene(ray, &hit, scene))
                 break;
-
 
             const Triangle &tri = scene.triangles[hit.primIdx];
             const Vertex &v0 = scene.vertices[tri.v0];
@@ -242,123 +243,35 @@ namespace VkRender::PathTracer {
             float w2 = hit.v;
             float3 N = normalize(w0 * v0.norm + w1 * v1.norm + w2 * v2.norm);
 
-            const Material &mat = scene.materials[
-                scene.instances[hit.instIdx].materialIndex];
+            size_t instanceID = scene.instances[hit.instIdx].materialIndex;
+            const Material &mat = scene.materials[instanceID];
 
             // material parameters
-            float albedo = mat.baseColor;
-            float kd = mat.diffuse; // diffuse albedo
+            float kd = mat.diffuse * mat.baseColor;
             float ks = mat.specular; // specular weight 0..1
             float s = mat.phongExp; // Blinn exponent
 
             // sample direction  (keep your cosine-hemisphere sampler for now)
-            float3  newDir;
-            float   pdfDir = 0.f;
+            float3 newDir;
+            float pdfDir = 0.f;
             sampleCosineHemisphere(rng, N, newDir, pdfDir);
-            float   cosNO  = sycl::max(0.f, sycl::dot(N, newDir));
+            const float cosNO = sycl::max(0.f, sycl::dot(N, newDir));
+            // If cosNO < 1e-4 the exact ratio kd cancels numerically.
+            // Clamp the ratio instead of the cosine:
+            const float minCos = 1e-5f;
+            const float brdfOverPdf =
+                    (cosNO < minCos)
+                        ? kd // just use the limit
+                        : (kd / M_PIf) * cosNO / (cosNO * (1.0f / M_PIf)); // == kd
 
-            // half-vector and BRDF value
-            float3 h   = normalize(reflect(ray.direction, N) + newDir);
-            float  nh  = sycl::max(0.f, sycl::dot(N, h));
-
-            float  fr =
-                    kd * albedo / M_PIf
-                  + ks * (s + 2.f) * sycl::pow(nh, s) / (2.f * M_PIf);
-
-            // throughput update
-            throughput *= fr * cosNO / pdfDir;
-
-            if (throughput >= light.radiance) {
-                int bug = true;
-                return;
-            }
+            throughput *= brdfOverPdf;
 
             //---------------- camera contributions -----------------------------
             castContributions(hit.hitPoint, throughput);
 
 
             //---------------- spawn next ray -----------------------------------
-            ray = makeRay(hit.hitPoint + 1e-4f * newDir, newDir);
-            /*
-            float invSum = 1.f / sycl::max(1e-5f, Pdiff + Pspec);
-            Pdiff *= invSum;
-            Pspec *= invSum;
-
-            float rBranch = rng.nextFloat();
-            float3 newDir;
-
-            if (rBranch < Pdiff) // diffuse branch
-            {
-                sampleCosineHemisphere(rng, N, newDir, pdfDirSample);
-                pdfDirSample *= Pdiff; // mixture pdf
-            } else // specular branch
-            {
-                sampleBlinnPhongSpecular(rng, N, -ray.direction, s,
-                                         newDir, pdfDirSample);
-                pdfDirSample *= Pspec;
-            }
-
-            //---------------- BRDF value ----------------------------------------
-            float f;
-            float cosNO = sycl::max(0.f, sycl::dot(N, newDir));
-            if (rBranch < Pdiff) // diffuse eval
-                f = kd / M_PIf;
-            else // specular eval
-            {
-                float3 h = normalize(newDir - ray.direction);
-                float nh = sycl::max(0.f, sycl::dot(N, h));
-                f = ks * (s + 2.f) * sycl::pow(nh, s) / (2.f * M_PIf);
-            }
-
-            throughput *= (f * cosNO) / sycl::max(1e-7f, pdfDirSample);
-
-            */
-            /*
-            //---------------- Russian roulette (optional) ----------------------
-            if (bounce > 3) {
-                float q = sycl::clamp(throughput * 0.9f, 0.f, 0.95f);
-                if (rng.nextFloat() < q)
-                    break;
-                throughput /= (1.f - q);
-            }
-            */
-
-
-            /*
-            // camera direction and geometry factor
-            float3 camDir   = normalize(scene.cameras[0].pos - hit.hitPoint);  // pin‑hole
-            float  dist     = length(scene.cameras[0].pos - hit.hitPoint);
-            float  cosNxCam  = sycl::max(0.f, sycl::dot(N, camDir));
-            float  Gcam      = cosNxCam / (dist * dist);           // nA·(–ωA)=1 for pin‑hole
-
-            // BRDF toward the camera  (reuse the same logic as for the bounce branch)
-            float frCam;
-            {
-                float ks = mat.specular;
-                float kd = mat.baseColor.x();
-                if (rBranch < Pdiff)            // same branch test: just diff/spec flag
-                    frCam = kd / M_PIf;
-                else {
-                    float3 h = normalize(camDir - ray.direction);
-                    float  nh = sycl::max(0.f, sycl::dot(N, h));
-                    frCam = ks * (s + 2.f) * sycl::pow(nh, s) / (2.f * M_PIf);
-                }
-            }
-
-            // pixel filter: box  -->  ΔΩ_pix = A_pix / dist^2
-            //float pixelSolid = scene.cameras[0].pixelArea / (dist * dist);
-            float pixelSolid = 4.f / (scene.cameras[0].width * scene.cameras[0].height * 1.0f);          // 90° default
-
-            // overall camera kernel
-            float cameraWeight = frCam * Gcam * pixelSolid;
-            float contrib      = throughput * cameraWeight;
-
-            if (contrib > 0.1f) {
-                break;
-            }
-            */
-
-
+            ray = makeRay(hit.hitPoint + 1e-5f * newDir, newDir);
         }
     }
 }

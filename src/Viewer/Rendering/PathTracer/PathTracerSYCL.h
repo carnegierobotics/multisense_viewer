@@ -81,7 +81,7 @@ namespace VkRender::PathTracer {
         /** copies the device framebuffer back to host */
         void generateImages(std::span<std::byte> outRGBA32f);
 
-        void generateEditorImage(const std::shared_ptr<VulkanTexture2D> &tex);
+        void generateEditorImage(const std::shared_ptr<VulkanTexture2D> &viewportTexture, float gamma, float exposure);
 
         void createEditorCamera(const std::shared_ptr<ArcballCamera> &camera, int32_t int32, int32_t height);
 

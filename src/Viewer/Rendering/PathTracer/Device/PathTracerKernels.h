@@ -26,17 +26,17 @@ namespace VkRender::PathTracer {
 
 
         void operator()(sycl::item<1> item) const {
-            size_t photonID = item.get_linear_id();
-
+            uint32_t totalPhotonCount = item.get_range().get(0);
             // Each thread traces one photon.
-            traceOnePhoton(photonID + d_sceneDesc->photonCount);
             sycl::atomic_ref<unsigned int,
                         sycl::memory_order::relaxed,
                         sycl::memory_scope::device,
                         sycl::access::address_space::global_space>
                     photonCount(d_sceneDesc->photonCount);
 
-            photonCount.fetch_add(static_cast<unsigned int>(1));
+            uint64_t ID = photonCount.fetch_add(static_cast<unsigned int>(1));
+
+            traceOnePhoton(ID, totalPhotonCount);
         }
 
 
@@ -49,12 +49,12 @@ namespace VkRender::PathTracer {
         SceneSettings d_sceneSettings;
         FrameBuffer d_framebuffer;
 
-        SYCL_EXTERNAL void traceOnePhoton(uint32_t photonID) const;
+        SYCL_EXTERNAL void traceOnePhoton(uint64_t photonID, uint32_t totalPhotonCount) const;
 
 
         SYCL_EXTERNAL void castContributions(
             const float3 &hitPoint,
-            const float   contrib) const;
+            const float contrib) const;
     };
 }
 #endif //PATHTRACERKERNELS_H

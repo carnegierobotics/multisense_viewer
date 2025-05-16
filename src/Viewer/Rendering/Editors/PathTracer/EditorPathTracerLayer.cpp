@@ -87,7 +87,6 @@ namespace VkRender {
             }
         }
 
-
         // --- New: Photon count slider ---
         // Photon count slider in steps of 10
         // We scale down by 10 for the slider then re-scale back up so it only ever hits multiples of 10.
@@ -102,6 +101,15 @@ namespace VkRender {
             }
             ImGui::Text("%d", imageUI->photonCount);
         }
+
+        ImGui::Separator();
+        ImGui::Text("Camera Options");
+
+        ImGui::Text("Exposure:"); ImGui::SameLine();
+        ImGui::SliderFloat("##Exposure", &imageUI->exposure, 0.0f, 10.0f, "%.2f");
+
+        ImGui::Text("Gamma:"); ImGui::SameLine();
+        ImGui::SliderFloat("##Gamma", &imageUI->gamma, 1.0f, 10.0f, "%.2f");
 
         /*
             // Prepare dropdown items

@@ -824,7 +824,7 @@ namespace VkRender {
         drawComponent<LightSourceComponent>("Light Source", entity, [this](LightSourceComponent &component) {
             ImGui::Text("Light Source Properties");
 
-            drawFloatControl("Flux", component.flux, 100.0f, 1.0f);
+            drawFloatControl("Flux", component.flux, 100.0f, 0.1f);
 
         });
 

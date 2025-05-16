@@ -21,7 +21,7 @@ namespace VkRender {
         m_shaderSelectionBuffer.resize(m_context->swapChainBuffers().size());
 
         m_editorCamera = std::make_shared<ArcballCamera>();
-        m_editorCamera->setDefaultPosition({-90.0f, 60.0f}, 1.5f);
+        m_editorCamera->setDefaultPosition({-270.0f, 75.0f}, 4.0f);
 
         auto dev = m_context->getSyclDeviceSelector().getDevice(SYCLDeviceType::Default);
         PathTracer::PathTracerSYCLCreateInfo pipelineSettings(dev);
@@ -32,7 +32,7 @@ namespace VkRender {
     void EditorPathTracer::onEditorResize() {
         m_editorCamera = std::make_shared<ArcballCamera>(
             static_cast<float>(m_createInfo.width) / static_cast<float>(m_createInfo.height));
-        m_editorCamera->setDefaultPosition({-90.0f, 60.0f}, 1.5f);
+        m_editorCamera->setDefaultPosition({-270.0f, 75.0f}, 4.0f);
         auto imageUI = std::dynamic_pointer_cast<EditorPathTracerLayerUI>(m_ui);
 
         scaleViewportQuad();
@@ -53,7 +53,7 @@ namespace VkRender {
 
         m_editorCamera = std::make_shared<ArcballCamera>(
             static_cast<float>(m_createInfo.width) / static_cast<float>(m_createInfo.height));
-        m_editorCamera->setDefaultPosition({-90.0f, 60.0f}, 1.5f);
+        m_editorCamera->setDefaultPosition({-270.0f, 75.0f}, 4.0f);
 
         m_colorTexture = EditorUtils::createEmptyTexture(m_createInfo.width, m_createInfo.height,
                                                          VK_FORMAT_R8G8B8A8_UNORM, m_context);
@@ -162,7 +162,7 @@ namespace VkRender {
                 PathTracer::EditorCamera editorCamera(m_editorCamera.get(), m_createInfo.width, m_createInfo.height, m_movedCamera);
                 m_pathTracerSYCL->updateDynamic(m_context->activeScene(), editorCamera);
                 m_pathTracerSYCL->renderFrame(imageUI->photonCount);
-                m_pathTracerSYCL->generateEditorImage(m_colorTexture);
+                m_pathTracerSYCL->generateEditorImage(m_colorTexture, imageUI->gamma, imageUI->exposure);
             } else {
             }
             bool newCamera = m_previousSceneCamera != activeCamera;
@@ -399,14 +399,14 @@ namespace VkRender {
         imageUI->clearImageMemory = false;
         m_previousSceneCamera = activeCamera;
         if (Input::isKeyPressed(GLFW_KEY_SPACE)) {
-            m_editorCamera->setDefaultPosition({-90.0f, 60.0f}, 1.5f);
+            m_editorCamera->setDefaultPosition({-270.0f, 75.0f}, 4.0f);
             m_movedCamera = true;
         }
 
         */
 
         if (Input::isKeyPressed(GLFW_KEY_SPACE)) {
-            m_editorCamera->setDefaultPosition({-90.0f, 60.0f}, 1.5f);
+            m_editorCamera->setDefaultPosition({-270.0f, 75.0f}, 4.0f);
             m_movedCamera = true;
         }
         m_movedCamera = false;

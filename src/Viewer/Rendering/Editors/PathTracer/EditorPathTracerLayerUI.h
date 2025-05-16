@@ -36,6 +36,8 @@ namespace VkRender {
         int currentBVHLevel = 0;
         int averageLeafSize = 0;
         int maxDepth = 30;
+        float gamma = 2.2f;
+        float exposure = 1.8f;
     };
 }
 #endif //MULTISENSE_VIEWER_PATHTRACERLAYERUI_H

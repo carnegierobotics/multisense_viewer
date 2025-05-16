@@ -190,11 +190,12 @@ namespace VkRender::PathTracer {
 
 
     struct alignas(16) SceneSettings {
-        uint32_t maxBounces = 12;
+        uint32_t maxBounces = 32;
     };
 
     struct alignas(16) FrameBuffer {
         float4 *memory = nullptr;
+        float *memoryCounter = nullptr;
         uint32_t frameBufferSize = 0;
     };
 }

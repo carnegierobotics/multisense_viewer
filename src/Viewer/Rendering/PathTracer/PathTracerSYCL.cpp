@@ -73,7 +73,6 @@ namespace VkRender::PathTracer {
 
 
     void PathTracerSYCL::collectCameras(const std::shared_ptr<Scene> &scene, EditorCamera editorCamera) {
-
         m_cameras.clear();
 
         uint32_t pixelOffset = 0;
@@ -135,6 +134,9 @@ namespace VkRender::PathTracer {
         if (!d_sceneDesc) {
             Log::Logger::getInstance()->error("Path Tracer has not been initialized");
         }
+
+        collectInstances(scene);
+
         Log::Logger::getInstance()->trace("Updating transforms");
         m_queue.memcpy(d_transforms, m_transforms.data(), m_transforms.size() * sizeof(Transform));
 
@@ -204,8 +206,11 @@ namespace VkRender::PathTracer {
         //m_queue.memcpy(outRGBA32f.data(), d_frameBuffer, bytes).wait();
     }
 
-    void PathTracerSYCL::generateEditorImage(const std::shared_ptr<VulkanTexture2D> &viewportTexture) {
+    void PathTracerSYCL::generateEditorImage(const std::shared_ptr<VulkanTexture2D> &viewportTexture, float gamma,
+                                             float exposure) {
         Utils::ScopedTimer timer("PathTracer: Generate Editor Image");
+
+        float gammaInv = 1.0f / gamma; // sRGB ≈ 1/2.2
 
         if (!d_sceneDesc) {
             Log::Logger::getInstance()->error("Path Tracer has not been initialized");
@@ -220,8 +225,8 @@ namespace VkRender::PathTracer {
 
         // 1) Copy float32 RGBA image from device to host scratch buffer
         Log::Logger::getInstance()->trace("PathTracerSYCL::generateEditorImage(): {}/{}",
-                                         static_cast<float>(floatByteSize) / 1000000.0f,
-                                         static_cast<float>(m_createInfo.framebufferSize) / 1000000.0f);
+                                          static_cast<float>(floatByteSize) / 1000000.0f,
+                                          static_cast<float>(m_createInfo.framebufferSize) / 1000000.0f);
 
 
         m_queue.memcpy(m_frameBuffers.memory, d_frameBuffers.memory, floatByteSize).wait();
@@ -229,10 +234,22 @@ namespace VkRender::PathTracer {
         std::vector<uint8_t> rgba8;
         rgba8.resize(pixelCount * 4);
         float *src = reinterpret_cast<float *>(m_frameBuffers.memory);
-        for (size_t i = 0; i < floatComponents; ++i) {
+        for (size_t i = 0; i < pixelCount; ++i) {
             // clamp to [0,1], then map to [0,255]
-            float v = std::clamp(src[i], 0.0f, 1.0f);
-            rgba8[i] = static_cast<uint8_t>(v * 255.0f);
+            float v = src[i * 4];
+
+            auto tonemap = [&](float L) {
+                float Lm = 1.f - std::exp(-L * exposure); // filmic-ish
+                return Lm;
+            };
+            v = tonemap(v);
+
+            v = std::pow(std::clamp(v, 0.f, 1.f), gammaInv);
+
+            rgba8[i * 4 + 0] = static_cast<uint8_t>(v * 255.f + 0.5f);
+            rgba8[i * 4 + 1] = static_cast<uint8_t>(v * 255.f + 0.5f);
+            rgba8[i * 4 + 2] = static_cast<uint8_t>(v * 255.f + 0.5f);
+            rgba8[i * 4 + 3] = 255;
         }
         // 3) Upload RGBA8 image to the Vulkan texture
         viewportTexture->loadImage(rgba8.data());
@@ -416,7 +433,6 @@ namespace VkRender::PathTracer {
 
 
     void PathTracerSYCL::buildSceneDesc() {
-
         const size_t vertCount = m_vertices.size();
 
         //—— allocate & copy SoA (positions + normals) ——
@@ -518,7 +534,6 @@ namespace VkRender::PathTracer {
         m_sceneDescHost.materialCount = m_sceneDescDevice.materialCount;
         m_sceneDescHost.lightCount = m_sceneDescDevice.lightCount;
         m_sceneDescHost.cameraCount = m_sceneDescDevice.cameraCount;
-
     }
 
     void PathTracerSYCL::buildBLASForAllMeshes() {
@@ -578,8 +593,8 @@ namespace VkRender::PathTracer {
             std::vector<Triangle> reordered;
             reordered.reserve(localTris.size());
 
-            for (unsigned int i : triIdx) {
-                Triangle T = localTris[ i ];
+            for (unsigned int i: triIdx) {
+                Triangle T = localTris[i];
 
                 // convert vertex indices back to GLOBAL space
                 T.v0 += meshRange.firstVert;
@@ -596,9 +611,9 @@ namespace VkRender::PathTracer {
             // 3.  Now patch the BVH nodes ----------------------------------------------
             //     (children still contiguous, only need global offset)
 
-            for (BVHNode& N : localNodes) {
+            for (BVHNode &N: localNodes) {
                 if (N.isLeaf()) {
-                    N.leftFirst += globalTriStart;   // only leaves need patching
+                    N.leftFirst += globalTriStart; // only leaves need patching
                 }
             }
 

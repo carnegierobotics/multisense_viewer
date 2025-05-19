@@ -29,6 +29,21 @@ namespace VkRender::PathTracer {
         float3 centroid;
     };
 
+
+    struct alignas(16) OrientedPoint // your “beta‑kernel plane”
+    {
+        float3 pos;
+        float3 normal;
+        float c;
+        float threshold; // controls kernel extent
+        float beta;
+        float2 minSupport;
+        float2 maxSupport;
+
+        uint32_t material; // who shades this point?
+
+    };
+
     struct alignas(32) BVHNode {
         float3    aabbMin, aabbMax;
         uint32_t  leftFirst;   // if leaf: index of first triangle, else index of left child
@@ -51,14 +66,6 @@ namespace VkRender::PathTracer {
     };
 
 
-    struct alignas(16) OrientedPoint // your “beta‑kernel plane”
-    {
-        sycl::float3 pos;
-        sycl::float3 normal;
-        float radius; // controls kernel extent
-        float beta;
-        uint32_t material; // who shades this point?
-    };
 
     struct alignas(16) Material {
         float baseColor;
@@ -147,6 +154,7 @@ namespace VkRender::PathTracer {
         float4x4 view{};
         float4x4 proj{};
         float3 pos{};
+        float3 forward{}; // Sensor plane normal
         uint32_t width{}, height{};
 
         uint32_t firstPixel{}; // offset into a big framebuffer
@@ -195,7 +203,6 @@ namespace VkRender::PathTracer {
 
     struct alignas(16) FrameBuffer {
         float4 *memory = nullptr;
-        float *memoryCounter = nullptr;
         uint32_t frameBufferSize = 0;
     };
 }

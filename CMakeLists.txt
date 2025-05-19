@@ -145,6 +145,16 @@ if (ENABLE_SYCL)
         message(STATUS "[VkRenderINFO]: SYCL DPC++ support enabled. Compiler: ${CMAKE_CXX_COMPILER} Flags: ${CMAKE_CXX_FLAGS}")
 
     elseif (SYCL_IMPLEMENTATION STREQUAL "adaptivecpp")
+        # Clean up old AdaptiveCpp application data
+        set(ACPP_APP_BASE_DIR "$ENV{HOME}/.acpp/apps")
+        file(GLOB_RECURSE PROJECT_DIRS "${ACPP_APP_BASE_DIR}/${PROJECT_NAME}*")
+        foreach(DIR ${PROJECT_DIRS})
+            if (IS_DIRECTORY "${DIR}")
+                file(REMOVE_RECURSE "${DIR}")
+                message(STATUS "[VkRenderINFO]: Removed old AdaptiveCpp application data at ${DIR}")
+            endif ()
+        endforeach()
+
         # Find the AdaptiveCpp package
         if (CMAKE_BUILD_TYPE STREQUAL "Release")
             set(ACPP_TARGETS "generic")

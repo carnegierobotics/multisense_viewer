@@ -53,6 +53,10 @@ namespace VkRender::PathTracer {
         return float3{ v.x, v.y, v.z };
     }
 
+    inline float2 glm2sycl(const glm::vec2 &v) {
+        return float2{ v.x, v.y };
+    }
+
     inline float4 glm2sycl(const glm::vec4 &v) {
         return float4{ v.x, v.y, v.z, v.w };
     }

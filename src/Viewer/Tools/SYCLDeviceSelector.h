@@ -2,6 +2,7 @@
 #ifndef MULTISENSE_VIEWER_SYCLDEVICESELECTOR_H
 #define MULTISENSE_VIEWER_SYCLDEVICESELECTOR_H
 
+#include <filesystem>
 #include <memory>
 #include <mutex>
 #include <map>
@@ -39,7 +40,27 @@ namespace VkRender {
         throw std::invalid_argument("Invalid SYCLDeviceType string: " + str);
     }
 
+    static void cleanupAdaptiveCppCache(const std::string& projectName) {
+        const char* home = getenv("HOME");
+        if (!home) {
+            Log::Logger::getInstance()->error("Failed to find Home directory looking for sycl adaptivecpp cache");
+            return;
+        }
 
+        std::filesystem::path appBaseDir = std::filesystem::path(home) / ".acpp/apps";
+        try {
+            for (const auto& entry : std::filesystem::directory_iterator(appBaseDir)) {
+                if (entry.is_directory() && entry.path().filename().string().find(projectName) == 0) {
+                    std::filesystem::remove_all(entry.path());
+                    std::cout << "Removed old AdaptiveCpp application data at " << entry.path() << std::endl;
+                    Log::Logger::getInstance()->info("Removed old AdaptiveCpp application data at {}", entry.path().string());
+
+                }
+            }
+        } catch (const std::filesystem::filesystem_error& e) {
+            Log::Logger::getInstance()->error("Failed to clean up AdaptiveCpp cache: {}", e.what());
+        }
+    }
 
 
 #ifdef SYCL_ENABLED

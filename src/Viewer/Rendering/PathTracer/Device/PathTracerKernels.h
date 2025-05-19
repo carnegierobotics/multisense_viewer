@@ -54,7 +54,8 @@ namespace VkRender::PathTracer {
 
         SYCL_EXTERNAL void castContributions(
             const float3 &hitPoint,
-            const float contrib) const;
+            float contrib,
+            float cosNO) const;
     };
 }
 #endif //PATHTRACERKERNELS_H

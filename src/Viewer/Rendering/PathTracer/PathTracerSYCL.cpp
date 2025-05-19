@@ -3,6 +3,9 @@
 //
 
 #include "PathTracerSYCL.h"
+
+#include <glm/gtc/matrix_inverse.hpp>
+
 #include "PathTracerTypes.h"
 
 #include <Viewer/Rendering/MeshManager.h>
@@ -96,6 +99,12 @@ namespace VkRender::PathTracer {
             cam.view = glm2sycl(editorCamera.camera->matrices.view);
             cam.firstPixel = pixelOffset;
 
+            glm::vec3 cameraNormal(0.0f, 0.0f, -1.0f);
+            glm::mat4 modelMatrix = editorCamera.camera->matrices.transform;
+            glm::mat3 normalMat = glm::inverseTranspose(glm::mat3(modelMatrix));
+            glm::vec3 rotatedNormal = glm::normalize(normalMat * cameraNormal);
+            cam.forward = glm2sycl(rotatedNormal);
+
             m_cameras.push_back(cam);
             pixelOffset += cam.width * cam.height * 4;
         }
@@ -115,6 +124,8 @@ namespace VkRender::PathTracer {
             cam.proj = glm2sycl(cameraComponent.camera->matrices.projection);
             cam.view = glm2sycl(cameraComponent.camera->matrices.view);
             cam.firstPixel = pixelOffset;
+
+            cam.forward = {0.0f, 0.0f, -1.0f};
 
             pixelOffset += cam.width * cam.height * 4;
             m_cameras.push_back(cam);
@@ -258,6 +269,9 @@ namespace VkRender::PathTracer {
     void PathTracerSYCL::collectGeometry(const std::shared_ptr<Scene> &scene) {
         Utils::ScopedTimer timer("PathTracer: Collect Geometry");
 
+        m_points.clear();
+        m_pointRanges.clear();
+
         m_vertices.clear();
         m_tris.clear();
         m_meshRanges.clear();
@@ -269,55 +283,79 @@ namespace VkRender::PathTracer {
         for (auto id: view) {
             Entity e(id, scene.get());
             auto &mc = e.getComponent<MeshComponent>();
-            std::string meshID = mc.getCacheIdentifier();
-            if (m_meshIndexMap.count(meshID)) continue;
             auto mesh = MeshManager::instance().getMeshData(mc);
-            // base offsets
-            uint32_t vertBase = static_cast<uint32_t>(m_vertices.size());
-            uint32_t triBase = static_cast<uint32_t>(m_tris.size());
+            if (!mesh)
+                continue;
 
-            // append vertices
-            for (auto &v: mesh->m_vertices) {
-                Vertex vertex;
-                vertex.pos = float3{v.pos.x, v.pos.y, v.pos.z};
-                vertex.norm = float3{v.normal.x, v.normal.y, v.normal.z};
-                m_vertices.push_back(vertex);
+            bool isMeshPointType = mc.meshDataType() == QUADRIC;
 
-                /*
-                Vertex vertexWorld;
-                glm::vec3 vWorld = glm::vec3(transformComponent.getTransform() * glm::vec4(v.pos, 1.0f));
-                vertexWorld.pos = float3{vWorld.x, vWorld.y, vWorld.z};
-                vertexWorld.norm = float3{v.normal.x, v.normal.y, v.normal.z};
-                m_verticesWorld.push_back(vertexWorld);
-                */
+            if (isMeshPointType) {
+                auto params = std::dynamic_pointer_cast<QuadricMeshParameters>(mc.meshParameters);
+                auto& transform = e.getComponent<TransformComponent>();
+                OrientedPoint point;
+                point.beta = params->b_beta;
+                point.c = params->c;
+                point.threshold = params->threshold;
+                point.pos = glm2sycl( transform.getPosition());
+                glm::mat4 modelMatrix = transform.getTransform();
+                // Compute the inverse transpose for correct normal transformation
+                glm::mat3 normalMat = glm::inverseTranspose(glm::mat3(modelMatrix));
+                glm::vec3 defaultNormal(0.0f, 0.0f, 1.0f);
+                glm::vec3 rotatedNormal = glm::normalize(normalMat * defaultNormal);
+                point.normal = glm2sycl(rotatedNormal);
+                point.minSupport = glm2sycl(params->min);
+                point.maxSupport = glm2sycl(params->max);
+                m_points.emplace_back(point);
+
+                // record mesh range
+                PointCloudRange range{};
+                range.firstPoint = 0;
+                range.pointCount = m_points.size();
+                m_pointRanges.emplace_back(range);
+            } else {
+
+                std::string meshID = mc.getCacheIdentifier();
+                if (m_meshIndexMap.count(meshID)) continue;
+
+                // base offsets
+                uint32_t vertBase = static_cast<uint32_t>(m_vertices.size());
+                uint32_t triBase = static_cast<uint32_t>(m_tris.size());
+
+                // append vertices
+                for (auto &v: mesh->m_vertices) {
+                    Vertex vertex;
+                    vertex.pos = float3{v.pos.x, v.pos.y, v.pos.z};
+                    vertex.norm = float3{v.normal.x, v.normal.y, v.normal.z};
+                    m_vertices.push_back(vertex);
+                }
+                // append triangles
+                const float inv3 = 1.0f / 3.0f;
+                for (size_t i = 0; i < mesh->m_indices.size(); i += 3) {
+                    uint32_t i0 = mesh->m_indices[i + 0] + vertBase;
+                    uint32_t i1 = mesh->m_indices[i + 1] + vertBase;
+                    uint32_t i2 = mesh->m_indices[i + 2] + vertBase;
+                    Triangle t{};
+                    t.v0 = i0;
+                    t.v1 = i1;
+                    t.v2 = i2;
+                    // compute centroid from the three vertex positions
+                    float3 p0 = m_vertices[i0].pos;
+                    float3 p1 = m_vertices[i1].pos;
+                    float3 p2 = m_vertices[i2].pos;
+                    t.centroid = (p0 + p1 + p2) * inv3;
+                    m_tris.push_back(t);
+                }
+
+                // record mesh range
+                MeshRange range{};
+                range.firstVert = vertBase;
+                range.vertCount = static_cast<uint32_t>(mesh->m_vertices.size());
+                range.firstTri = triBase;
+                range.triCount = static_cast<uint32_t>(mesh->m_indices.size() / 3);
+                m_meshRanges.push_back(range);
+                m_meshNames.push_back(meshID); // <— keep name in sync
+                m_meshIndexMap[meshID] = static_cast<uint32_t>(m_meshRanges.size() - 1);
             }
-            // append triangles
-            const float inv3 = 1.0f / 3.0f;
-            for (size_t i = 0; i < mesh->m_indices.size(); i += 3) {
-                uint32_t i0 = mesh->m_indices[i + 0] + vertBase;
-                uint32_t i1 = mesh->m_indices[i + 1] + vertBase;
-                uint32_t i2 = mesh->m_indices[i + 2] + vertBase;
-                Triangle t{};
-                t.v0 = i0;
-                t.v1 = i1;
-                t.v2 = i2;
-                // compute centroid from the three vertex positions
-                float3 p0 = m_vertices[i0].pos;
-                float3 p1 = m_vertices[i1].pos;
-                float3 p2 = m_vertices[i2].pos;
-                t.centroid = (p0 + p1 + p2) * inv3;
-                m_tris.push_back(t);
-            }
-
-            // record mesh range
-            MeshRange range{};
-            range.firstVert = vertBase;
-            range.vertCount = static_cast<uint32_t>(mesh->m_vertices.size());
-            range.firstTri = triBase;
-            range.triCount = static_cast<uint32_t>(mesh->m_indices.size() / 3);
-            m_meshRanges.push_back(range);
-            m_meshNames.push_back(meshID); // <— keep name in sync
-            m_meshIndexMap[meshID] = static_cast<uint32_t>(m_meshRanges.size() - 1);
         }
     }
 
@@ -336,6 +374,14 @@ namespace VkRender::PathTracer {
             std::string name = e.getName();
             // --- 1) look up the mesh index we built in collectGeometry() ---
             auto &mc = e.getComponent<MeshComponent>();
+            auto mesh = MeshManager::instance().getMeshData(mc);
+            if (!mesh)
+                continue;
+
+            bool isMeshPointType = mc.meshDataType() == QUADRIC;
+            if (isMeshPointType)
+                continue;
+
             const std::string mid = mc.getCacheIdentifier();
             uint32_t geomIdx = m_meshIndexMap.at(mid);
 

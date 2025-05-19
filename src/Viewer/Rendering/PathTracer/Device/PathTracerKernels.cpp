@@ -153,7 +153,8 @@ namespace VkRender::PathTracer {
 
     SYCL_EXTERNAL void PathTracerMeshKernel::castContributions(
         const float3 &hitPoint,
-        const float contrib) const {
+        float contrib,
+        float cosNO) const {
         constexpr float kEps = 1e-5f;
         const SceneDesc &scene = *d_sceneDesc;
 
@@ -176,6 +177,12 @@ namespace VkRender::PathTracer {
             if (ndc.x() < -1.f || ndc.x() > 1.f || ndc.y() < -1.f || ndc.y() > 1.f)
                 continue;
 
+            // Attenuation (Geometry term)
+            float cosCam  = sycl::max(0.f, dot(-dirToA, cam.forward));   // cam.normal = forward
+            float G_cam   = cosNO * cosCam / (distToA * distToA);      // cosNO from bounce loop
+            float weight  = contrib * G_cam;
+
+
             uint32_t px = uint32_t((ndc.x() * 0.5f + 0.5f) * cam.width);
             uint32_t py = uint32_t((ndc.y() * 0.5f + 0.5f) * cam.height);
             uint32_t idx = cam.firstPixel + py * cam.width + px;
@@ -187,9 +194,9 @@ namespace VkRender::PathTracer {
                         sycl::access::address_space::global_space>
                     r(dst.x()), g(dst.y()), b(dst.z());
 
-            r += contrib;
-            g += contrib;
-            b += contrib;
+            r += weight;
+            g += weight;
+            b += weight;
         }
     }
 
@@ -241,7 +248,7 @@ namespace VkRender::PathTracer {
             float w0 = 1.f - hit.u - hit.v;
             float w1 = hit.u;
             float w2 = hit.v;
-            float3 N = normalize(w0 * v0.norm + w1 * v1.norm + w2 * v2.norm);
+            float3 surfaceNormal = normalize(w0 * v0.norm + w1 * v1.norm + w2 * v2.norm);
 
             size_t instanceID = scene.instances[hit.instIdx].materialIndex;
             const Material &mat = scene.materials[instanceID];
@@ -249,26 +256,41 @@ namespace VkRender::PathTracer {
             // material parameters
             float kd = mat.diffuse * mat.baseColor;
             float ks = mat.specular; // specular weight 0..1
-            float s = mat.phongExp; // Blinn exponent
-
+            //float s = mat.phongExp; // Blinn exponent
             // sample direction  (keep your cosine-hemisphere sampler for now)
             float3 newDir;
             float pdfDir = 0.f;
-            sampleCosineHemisphere(rng, N, newDir, pdfDir);
-            const float cosNO = sycl::max(0.f, sycl::dot(N, newDir));
+            sampleCosineHemisphere(rng, surfaceNormal, newDir, pdfDir);
+            const float cosNO = sycl::max(0.f, sycl::dot(surfaceNormal, newDir));
             // If cosNO < 1e-4 the exact ratio kd cancels numerically.
             // Clamp the ratio instead of the cosine:
             const float minCos = 1e-5f;
-            const float brdfOverPdf =
-                    (cosNO < minCos)
-                        ? kd // just use the limit
-                        : (kd / M_PIf) * cosNO / (cosNO * (1.0f / M_PIf)); // == kd
+            float brdfOverPdfDiffuse = 0.0f;
+            if (cosNO < minCos) {
+                brdfOverPdfDiffuse = kd;
+            } else {
+                brdfOverPdfDiffuse = (kd / M_PIf) * cosNO / pdfDir;
+            }
+            throughput *= brdfOverPdfDiffuse;
+            // ---------- robust Russian-Roulette ----------|
 
-            throughput *= brdfOverPdf;
+            uint32_t minDepth = 3;
+            float pLow = 0.2f;
+            float pHigh = 0.90f;
+            if (bounce >= minDepth)
+            {
+                // guard against NaN/inf or negative weights
+                if (!sycl::isfinite(throughput) || throughput <= 0.0f)
+                    break;
+                float pSurvive = sycl::clamp(throughput, pLow, pHigh);
+                if (rng.nextFloat() > pSurvive)     // kill the path
+                    break;
+                throughput /= pSurvive;             // keep estimator unbiased
+            }
+
 
             //---------------- camera contributions -----------------------------
-            castContributions(hit.hitPoint, throughput);
-
+            castContributions(hit.hitPoint, throughput, cosNO);
 
             //---------------- spawn next ray -----------------------------------
             ray = makeRay(hit.hitPoint + 1e-5f * newDir, newDir);

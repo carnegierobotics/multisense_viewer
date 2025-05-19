@@ -7,8 +7,13 @@
 #include "Viewer/Tools/SYCLDeviceSelector.h"
 
 namespace VkRender {
+
+
+
+
     SYCLDeviceSelector::SYCLDeviceSelector(SYCLDeviceType deviceType) : m_deviceType(deviceType) {
         m_isDeviceTypeAvailable = selectDevice(deviceType);
+
     }
 
     SYCLDeviceSelector::~SYCLDeviceSelector() {
@@ -128,6 +133,7 @@ namespace VkRender {
     }
 
     SYCLDeviceManager::SYCLDeviceManager() {
+        cleanupAdaptiveCppCache("MultiSense-Viewer"); // TODO A more failsafe way of cleaning up adaptivecpp cache
         Log::Logger::getInstance()->info("Creating SYCLDeviceManager");
         m_devices[SYCLDeviceType::GPU] = std::make_shared<SYCLDeviceSelector>(SYCLDeviceType::GPU);
         m_devices[SYCLDeviceType::CPU] = std::make_shared<SYCLDeviceSelector>(SYCLDeviceType::CPU);

@@ -141,6 +141,9 @@ namespace VkRender::PathTracer {
         std::vector<Material> m_materials;
         std::vector<MeshLight> m_lights;
         std::vector<Camera> m_cameras;
+
+        std::vector<OrientedPoint> m_points;
+        std::vector<PointCloudRange> m_pointRanges;
         // === Host staging helper variables ===
         std::unordered_map<std::string, uint32_t> m_meshIndexMap;
 

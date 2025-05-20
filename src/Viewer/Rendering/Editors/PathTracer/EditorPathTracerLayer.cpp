@@ -102,6 +102,9 @@ namespace VkRender {
             ImGui::Text("%d", imageUI->photonCount);
         }
 
+        ImGui::Text("Num Bounces:"); ImGui::SameLine();
+        ImGui::SliderInt("##Bounces", &imageUI->numBounces, 1,  128);
+
         ImGui::Separator();
         ImGui::Text("Camera Options");
 

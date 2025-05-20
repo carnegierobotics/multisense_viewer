@@ -191,16 +191,16 @@ namespace VkRender::PathTracer {
         m_queue.wait();
     }
 
-    void PathTracerSYCL::renderFrame(int photonCount) {
+    void PathTracerSYCL::renderFrame(const RenderSettings& settings) {
         if (!d_sceneDesc) {
             Log::Logger::getInstance()->error("Path Tracer has not been initialized");
         }
         Utils::ScopedTimer timer("PathTracer: RenderFrame");
 
 
-        auto event = m_queue.submit([scene=d_sceneDesc, fb = d_frameBuffers, photonCount](sycl::handler &cgh) {
-            PathTracerMeshKernel kernel(scene, fb);
-            cgh.parallel_for(sycl::range<1>(photonCount), kernel);
+        auto event = m_queue.submit([scene=d_sceneDesc, fb = d_frameBuffers, config=settings](sycl::handler &cgh) {
+            PathTracerMeshKernel kernel(scene, fb, config);
+            cgh.parallel_for(sycl::range<1>(config.photonCount), kernel);
         });
 
         event.wait();
@@ -629,7 +629,7 @@ namespace VkRender::PathTracer {
                             localVerts, // ← vertex array is required
                             localNodes,
                             triIdx,
-                            /*maxLeaf*/ 4);
+                            /*maxLeaf*/ 2);
 
             // ---------- A. reorder the global triangle array ---------------------------
             // global index where this mesh's triangles start

@@ -20,7 +20,7 @@ namespace VkRender::PathTracer {
         PathTracerMeshKernel(
             SceneDesc *scene,
             FrameBuffer framebuffer,
-            SceneSettings settings = SceneSettings()
+            RenderSettings settings = RenderSettings()
         ) : d_sceneDesc(scene), d_framebuffer(framebuffer), d_sceneSettings(settings) {
         }
 
@@ -46,16 +46,16 @@ namespace VkRender::PathTracer {
 
     private:
         SceneDesc *d_sceneDesc;
-        SceneSettings d_sceneSettings;
+        RenderSettings d_sceneSettings;
         FrameBuffer d_framebuffer;
 
         SYCL_EXTERNAL void traceOnePhoton(uint64_t photonID, uint32_t totalPhotonCount) const;
 
 
         SYCL_EXTERNAL void castContributions(
-            const float3 &hitPoint,
-            float contrib,
-            float cosNO) const;
+            const Hit& hitPoint,
+            float throughput,
+            const float3& surfaceNormal) const;
     };
 }
 #endif //PATHTRACERKERNELS_H

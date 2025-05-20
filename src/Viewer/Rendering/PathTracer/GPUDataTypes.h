@@ -197,8 +197,9 @@ namespace VkRender::PathTracer {
     };
 
 
-    struct alignas(16) SceneSettings {
+    struct alignas(16) RenderSettings {
         uint32_t maxBounces = 32;
+        uint64_t photonCount = 1000;
     };
 
     struct alignas(16) FrameBuffer {

@@ -24,6 +24,7 @@ namespace VkRender {
         SYCLDeviceType selectedDevice = SYCLDeviceType::CPU;
         int photonCount = 1000; // default photon count
         int photonExponent = 2; // 10^6 = 1 000 000 default
+        int numBounces = 8;
 
         // BVH stuff
         bool showBVH = false;

@@ -76,7 +76,7 @@ namespace VkRender::PathTracer {
         void updateDynamic(const std::shared_ptr<Scene> &scene, EditorCamera editorCamera);
 
         /** launches photon + contribution kernels */
-        void renderFrame(int photonCount);
+        void renderFrame(const RenderSettings &settings);
 
         /** copies the device framebuffer back to host */
         void generateImages(std::span<std::byte> outRGBA32f);
@@ -123,7 +123,6 @@ namespace VkRender::PathTracer {
 
         FrameBuffer m_frameBuffers{};
         FrameBuffer d_frameBuffers{};
-
         // BLAS DEBUG NAMES
         std::vector<std::string> m_meshNames; ///< same length as m_meshRanges
         std::vector<std::string> m_blasNames; ///< same length as m_blasRanges

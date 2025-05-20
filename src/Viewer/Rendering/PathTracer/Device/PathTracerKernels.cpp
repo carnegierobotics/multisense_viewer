@@ -152,35 +152,47 @@ namespace VkRender::PathTracer {
 
 
     SYCL_EXTERNAL void PathTracerMeshKernel::castContributions(
-        const float3 &hitPoint,
+        const Hit &hitPoint,
         float contrib,
-        float cosNO) const {
+        const float3 &surfaceNormal) const {
         constexpr float kEps = 1e-5f;
         const SceneDesc &scene = *d_sceneDesc;
+
+        size_t instanceID = scene.instances[hitPoint.instIdx].materialIndex;
+        const Material &mat = scene.materials[instanceID];
+        // material parameters
+        float kd = mat.diffuse * mat.baseColor;
 
         for (uint32_t camID = 0; camID < scene.cameraCount; ++camID) {
             const Camera &cam = scene.cameras[camID];
 
-            float3 toAperture = cam.pos - hitPoint;
+            float3 toAperture = cam.pos - hitPoint.hitPoint;
             float distToA = sycl::length(toAperture);
             float3 dirToA = toAperture / distToA;
 
             // visibility
             Hit sh;
-            Ray ray = makeRay(hitPoint + dirToA * kEps, dirToA);
+            Ray ray = makeRay(hitPoint.hitPoint + dirToA * kEps, dirToA);
             if (intersectScene(ray, &sh, scene) && sh.t < distToA - kEps)
                 continue;
 
+            // BRDF
+            const float brdf = kd / M_PIf;              // diffuse ρ/π
+            const float cosHitCam = sycl::fabs(dot(surfaceNormal, dirToA));
+            float contrib_cam = contrib * brdf * cosHitCam;
+
+
+            // Attenuation (Geometry term)
+            float cosCam = sycl::fabs(dot(-dirToA, cam.forward)); // cam.normal = forward
+            float G_cam = cosCam / (distToA * distToA); // cosNO from bounce loop
+            float weight = contrib_cam * G_cam;
+
+
             // perspective projection
-            float4 clip = cam.proj * (cam.view * float4(hitPoint, 1.f));
+            float4 clip = cam.proj * (cam.view * float4(hitPoint.hitPoint, 1.f));
             float2 ndc = {clip.x() / clip.w(), clip.y() / clip.w()};
             if (ndc.x() < -1.f || ndc.x() > 1.f || ndc.y() < -1.f || ndc.y() > 1.f)
                 continue;
-
-            // Attenuation (Geometry term)
-            float cosCam  = sycl::max(0.f, dot(-dirToA, cam.forward));   // cam.normal = forward
-            float G_cam   = cosNO * cosCam / (distToA * distToA);      // cosNO from bounce loop
-            float weight  = contrib * G_cam;
 
 
             uint32_t px = uint32_t((ndc.x() * 0.5f + 0.5f) * cam.width);
@@ -255,8 +267,9 @@ namespace VkRender::PathTracer {
 
             // material parameters
             float kd = mat.diffuse * mat.baseColor;
-            float ks = mat.specular; // specular weight 0..1
-            //float s = mat.phongExp; // Blinn exponent
+            //---------------- camera contributions -----------------------------
+            castContributions(hit, throughput, surfaceNormal);
+
             // sample direction  (keep your cosine-hemisphere sampler for now)
             float3 newDir;
             float pdfDir = 0.f;
@@ -272,25 +285,21 @@ namespace VkRender::PathTracer {
                 brdfOverPdfDiffuse = (kd / M_PIf) * cosNO / pdfDir;
             }
             throughput *= brdfOverPdfDiffuse;
-            // ---------- robust Russian-Roulette ----------|
 
+
+            // ---------- robust Russian-Roulette ----------|
             uint32_t minDepth = 3;
             float pLow = 0.2f;
             float pHigh = 0.90f;
-            if (bounce >= minDepth)
-            {
+            if (bounce >= minDepth) {
                 // guard against NaN/inf or negative weights
                 if (!sycl::isfinite(throughput) || throughput <= 0.0f)
                     break;
                 float pSurvive = sycl::clamp(throughput, pLow, pHigh);
-                if (rng.nextFloat() > pSurvive)     // kill the path
+                if (rng.nextFloat() > pSurvive) // kill the path
                     break;
-                throughput /= pSurvive;             // keep estimator unbiased
+                throughput /= pSurvive; // keep estimator unbiased
             }
-
-
-            //---------------- camera contributions -----------------------------
-            castContributions(hit.hitPoint, throughput, cosNO);
 
             //---------------- spawn next ray -----------------------------------
             ray = makeRay(hit.hitPoint + 1e-5f * newDir, newDir);

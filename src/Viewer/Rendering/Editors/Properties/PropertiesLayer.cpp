@@ -11,10 +11,6 @@
 #include <Viewer/Scenes/CameraController.h>
 #include <Viewer/Scripts/VectorScripts.h>
 #include <Viewer/Scripts/Rays/ContributionRay.h>
-#include <Viewer/Scripts/Rays/Emitter.h>
-#include <Viewer/Scripts/Rays/GradientRay.h>
-#include <Viewer/Scripts/Rays/IntensityGradientRay.h>
-#include <Viewer/Scripts/Rays/SurfaceNormal.h>
 
 #include "Viewer/Rendering/Components/LightSourceComponent.h"
 #include "Viewer/Rendering/Components/Components.h"
@@ -463,16 +459,6 @@ namespace VkRender {
                     entity.getComponent<ScriptableComponent>().bind<DefaultController>();
                 } else if (controllers[selectedIndex] == "VectorScripts") {
                     entity.getComponent<ScriptableComponent>().bind<VectorScripts>();
-                } else if (controllers[selectedIndex] == "Emitter") {
-                    entity.getComponent<ScriptableComponent>().bind<Emitter>();
-                } else if (controllers[selectedIndex] == "ContributionRay") {
-                    entity.getComponent<ScriptableComponent>().bind<ContributionRay>();
-                } else if (controllers[selectedIndex] == "SurfaceNormal") {
-                    entity.getComponent<ScriptableComponent>().bind<SurfaceNormal>();
-                } else if (controllers[selectedIndex] == "GradientRay") {
-                    entity.getComponent<ScriptableComponent>().bind<GradientRay>();
-                } else if (controllers[selectedIndex] == "IntensityGradientRay") {
-                    entity.getComponent<ScriptableComponent>().bind<IntensityGradientRay>();
                 }
             }
         });
@@ -825,7 +811,6 @@ namespace VkRender {
             ImGui::Text("Light Source Properties");
 
             drawFloatControl("Flux", component.flux, 100.0f, 0.1f);
-
         });
 
         drawComponent<QuadricCollectionComponent>(
@@ -1232,18 +1217,18 @@ namespace VkRender {
 
                     break;
                 case LayerUtils::PLY_3DGS: {
-                        if (m_selectionContext.hasComponent<MeshComponent>()) {
-                            auto &meshComponent = m_selectionContext.getComponent<MeshComponent>();
-                            auto param = std::dynamic_pointer_cast<PLYFileMeshParameters>(meshComponent.meshParameters);
-                            if (param) {
-                                param->path = loadFileInfo.path;
-                                param->setDirty();
-                            } else {
-                                m_selectionContext.removeComponent<MeshComponent>();
-                                auto &meshComponent = m_selectionContext.addComponent<MeshComponent>(
-                                    PLY_FILE, loadFileInfo.path);
-                            }
+                    if (m_selectionContext.hasComponent<MeshComponent>()) {
+                        auto &meshComponent = m_selectionContext.getComponent<MeshComponent>();
+                        auto param = std::dynamic_pointer_cast<PLYFileMeshParameters>(meshComponent.meshParameters);
+                        if (param) {
+                            param->path = loadFileInfo.path;
+                            param->setDirty();
+                        } else {
+                            m_selectionContext.removeComponent<MeshComponent>();
+                            auto &meshComponent = m_selectionContext.addComponent<MeshComponent>(
+                                PLY_FILE, loadFileInfo.path);
                         }
+                    }
                 }
                 break;
                 case LayerUtils::PLY_QUADRATIC: {
@@ -1258,7 +1243,8 @@ namespace VkRender {
                         visibility.visible = m_visibility;
 
                         for (int i = 0; i < quadricAsset->numPoints; ++i) {
-                            std::string quadricName = "Quadric " + std::to_string(i) + ":" + m_selectionContext.getName();
+                            std::string quadricName =
+                                    "Quadric " + std::to_string(i) + ":" + m_selectionContext.getName();
                             auto entityInstance = m_context->activeScene()->getOrCreateEntityByName(quadricName);
                             entityInstance.setParent(m_selectionContext);
 

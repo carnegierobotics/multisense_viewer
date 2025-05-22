@@ -431,8 +431,8 @@ namespace VkRender {
         /* shared ids  */
         k.meshId = Utils::crc32(mc.getCacheIdentifier());
         if (entity.hasComponent<MaterialComponent>()) {
-            k.vsCRC = Utils::crc32(entity.getComponent<MaterialComponent>().vertexShaderName);
-            k.fsCRC = Utils::crc32(entity.getComponent<MaterialComponent>().fragmentShaderName);
+            k.vsCRC = Utils::crc32(entity.getComponent<MaterialComponent>().vertexShaderName.string());
+            k.fsCRC = Utils::crc32(entity.getComponent<MaterialComponent>().fragmentShaderName.string());
         } else {
             k.vsCRC = Utils::crc32("DefaultShaderKey.vert");
             k.fsCRC = Utils::crc32("DefaultShaderKey.frag");
@@ -494,7 +494,7 @@ namespace VkRender {
         Entity entity, const MaterialComponent &materialComponent) {
         auto materialInstance = std::make_shared<MaterialInstance>();
 
-        auto texAsset = assetManager()->get<TextureAsset>(materialComponent.albedoTexturePath);
+        auto texAsset = assetManager()->get<TextureAsset>(materialComponent.albedoTexturePath.string());
 
         VkImageCreateInfo imageCI = Populate::imageCreateInfo();
         imageCI.imageType = VK_IMAGE_TYPE_2D;

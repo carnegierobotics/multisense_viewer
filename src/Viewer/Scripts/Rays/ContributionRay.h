@@ -8,12 +8,8 @@
 #include "Viewer/Scenes/ScriptableEntity.h"
 
 namespace VkRender {
-    class Emitter;
 
     class ContributionRay : ScriptableEntity {
-        int quadricIndex = 0;
-        Emitter* emitter = nullptr;
-
 
     public:
         glm::vec2 uv0 = glm::vec2(0.0f);

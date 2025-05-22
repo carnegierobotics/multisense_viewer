@@ -12,10 +12,6 @@
 #include <Viewer/Rendering/Components/ScriptableComponent.h>
 #include <Viewer/Scripts/VectorScripts.h>
 #include <Viewer/Scripts/Rays/ContributionRay.h>
-#include <Viewer/Scripts/Rays/Emitter.h>
-#include <Viewer/Scripts/Rays/GradientRay.h>
-#include <Viewer/Scripts/Rays/IntensityGradientRay.h>
-#include <Viewer/Scripts/Rays/SurfaceNormal.h>
 
 #include "Viewer/Scenes/CameraController.h"
 
@@ -873,16 +869,8 @@ namespace VkRender {
                         scriptComp.bind<DefaultController>();
                     } else if (storedScriptName == std::string(getTypeName<VectorScripts>())) {
                         scriptComp.bind<VectorScripts>();
-                    } else if (storedScriptName == std::string(getTypeName<Emitter>())) {
-                        scriptComp.bind<Emitter>();
                     }else if (storedScriptName == std::string(getTypeName<ContributionRay>())) {
                         scriptComp.bind<ContributionRay>();
-                    }else if (storedScriptName == std::string(getTypeName<SurfaceNormal>())) {
-                        scriptComp.bind<SurfaceNormal>();
-                    }else if (storedScriptName == std::string(getTypeName<GradientRay>())) {
-                        scriptComp.bind<GradientRay>();
-                    }else if (storedScriptName == std::string(getTypeName<IntensityGradientRay>())) {
-                        scriptComp.bind<IntensityGradientRay>();
                     }
                 }
 

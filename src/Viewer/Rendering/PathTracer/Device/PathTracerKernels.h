@@ -14,6 +14,7 @@
 #define SYCL_EXTERNAL
 #endif
 
+
 namespace VkRender::PathTracer {
     class PathTracerMeshKernel {
     public:

@@ -8,10 +8,10 @@
 
 #include "Viewer/Scenes/ScriptableEntity.h"
 
-#include <Viewer/Rendering/PathTracer/PathTracerSYCL.h>
+//#include <Viewer/Rendering/PathTracer/PathTracerSYCL.h>
 
 namespace VkRender {
-    class Emitter : ScriptableEntity {
+    class Emitter2 : ScriptableEntity {
     public:
         int quadricIndex = 0;
         glm::vec3 hitPosition = glm::vec3(0.0f);

@@ -253,12 +253,9 @@ set(SOURCE_FILES
         src/Viewer/Scenes/SceneSerializer.cpp
         src/Viewer/Scenes/Entity.cpp
         src/Viewer/Scripts/VectorScripts.cpp
-        src/Viewer/Scripts/Rays/Emitter.cpp
         src/Viewer/Scripts/Rays/Ray.cpp
         src/Viewer/Scripts/Rays/ContributionRay.cpp
-        src/Viewer/Scripts/Rays/SurfaceNormal.cpp
-        src/Viewer/Scripts/Rays/GradientRay.cpp
-        src/Viewer/Scripts/Rays/IntensityGradientRay.cpp
+        #src/Viewer/Scripts/Rays/Emitter.cpp
 
         src/Viewer/Rendering/Components/LightSourceComponent.cpp
         src/Viewer/Rendering/Components/QuadricCollectionComponent.cpp
@@ -402,7 +399,7 @@ elseif (WIN32)
 
     # Build executable
     target_sources(${PROJECT_NAME} PRIVATE ${SOURCE_FILES})
-    target_link_libraries(${PROJECT_NAME} ${LIBRARIES} fmt::fmt userenv.lib)
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${LIBRARIES} fmt::fmt userenv.lib)
     add_dependencies(${PROJECT_NAME} copy_assets)
 
     # Set warnings

@@ -817,9 +817,7 @@ namespace VkRender {
             "Quadratic Model", entity,
             [this, &entity](
         QuadricCollectionComponent &component) {
-                if (!entity.hasComponent<MeshComponent>()) {
-                    entity.addComponent<MeshComponent>();
-                }
+
                 if (!entity.hasComponent<GroupComponent>()) {
                     entity.addComponent<GroupComponent>();
                 }

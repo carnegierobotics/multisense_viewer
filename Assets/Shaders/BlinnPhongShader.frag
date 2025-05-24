@@ -104,5 +104,5 @@ void main() {
     vec3 specular = spec * albedo;
 
     // use the gamma corrected color in the fragment
-    outColor =vec4(ambient + diffuse + specular + mbo.emissiveFactor.x, 1.0);
+    outColor =vec4(ambient + diffuse + specular + mbo.emissiveFactor.x, mbo.baseColor.a);
 }

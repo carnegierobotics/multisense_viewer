@@ -540,6 +540,9 @@ namespace VkRender {
         // 1 Load Shader code
         auto vsSPV = assetManager()->get<SPIRVAsset>(materialComponent.vertexShaderName.string());
         auto fsSPV = assetManager()->get<SPIRVAsset>(materialComponent.fragmentShaderName.string());
+        if (!fsSPV) {
+            fsSPV = assetManager()->get<SPIRVAsset>(MaterialComponent().fragmentShaderName.string()); // load default
+        }
         // 2) Wrap into a GPU resource
         VulkanShaderModuleCreateInfo vertexShaderCreateInfo(m_context->vkDevice(), vsSPV, VK_SHADER_STAGE_VERTEX_BIT,
                                                             materialComponent.vertexShaderName.string());

@@ -1298,6 +1298,12 @@ namespace VkRender {
                         meshComponent.meshParameters = std::make_shared<PLYFileMeshParameters>(loadFileInfo.path);
                     }
                     break;
+                case LayerUtils::FRAGMENT_SHADER_FILE:
+                    if (m_selectionContext.hasComponent<MaterialComponent>()) {
+                        auto &material = m_selectionContext.getComponent<MaterialComponent>();
+                        material.fragmentShaderName = loadFileInfo.path;
+                    }
+                    break;
                 default:
                     Log::Logger::getInstance()->warning("Not implemented yet");
                     break;
@@ -1308,6 +1314,7 @@ namespace VkRender {
             opts.lastOpenedImportModelFolderPath = loadFileInfo.path;
             // Additional processing of the file can be done here
             Log::Logger::getInstance()->info("File selected: {}", loadFileInfo.path.filename().string());
+
         } else {
             Log::Logger::getInstance()->warning("No file selected.");
         }

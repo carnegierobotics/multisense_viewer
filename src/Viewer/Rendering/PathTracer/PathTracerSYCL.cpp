@@ -11,6 +11,7 @@
 #include <Viewer/Rendering/MeshManager.h>
 #include <Viewer/Rendering/Components/LightSourceComponent.h>
 #include <Viewer/Rendering/Components/MaterialComponent.h>
+#include <Viewer/Rendering/Components/QuadricCollectionComponent.h>
 #include <Viewer/Scenes/Entity.h>
 
 #include "Viewer/Rendering/PathTracer/BVH.h"
@@ -65,6 +66,7 @@ namespace VkRender::PathTracer {
         collectLights(scene);
 
         buildBLASForAllMeshes();
+        //buildBLASForPointCloud();
         buildTopLevelBVH();
 
         // build and upload scene descriptor
@@ -287,6 +289,7 @@ namespace VkRender::PathTracer {
             if (!mesh)
                 continue;
 
+            /*
             bool isMeshPointType = mc.meshDataType() == QUADRIC;
 
             if (isMeshPointType) {
@@ -313,6 +316,7 @@ namespace VkRender::PathTracer {
                 range.pointCount = m_points.size();
                 m_pointRanges.emplace_back(range);
             } else {
+            */
 
                 std::string meshID = mc.getCacheIdentifier();
                 if (m_meshIndexMap.count(meshID)) continue;
@@ -345,7 +349,6 @@ namespace VkRender::PathTracer {
                     t.centroid = (p0 + p1 + p2) * inv3;
                     m_tris.push_back(t);
                 }
-
                 // record mesh range
                 MeshRange range{};
                 range.firstVert = vertBase;
@@ -355,7 +358,6 @@ namespace VkRender::PathTracer {
                 m_meshRanges.push_back(range);
                 m_meshNames.push_back(meshID); // <— keep name in sync
                 m_meshIndexMap[meshID] = static_cast<uint32_t>(m_meshRanges.size() - 1);
-            }
         }
     }
 
@@ -366,9 +368,26 @@ namespace VkRender::PathTracer {
         m_transforms.clear();
         m_materials.clear(); // one material slot per instance
 
+        /*
+        auto quadricView = scene->getRegistry().view<QuadricCollectionComponent>();
+
+        for (auto entID : quadricView) {
+            Entity entity(entID, scene.get());
+            auto quadrics = entity.getComponent<QuadricCollectionComponent>();
+
+            for (size_t i = 0; i < quadrics.size(); ++i) {
+                auto pos = quadrics.positions[i];
+
+                OrientedPoint point;
+                point.pos = glm2sycl(pos);
+
+
+                m_points.push_back(point);
+            }
+        }
+        */
         auto view = scene->getRegistry().view<MeshComponent, MaterialComponent, TransformComponent>(
             entt::exclude<RasterizerRenderingComponent, LightSourceComponent, CameraComponent>);
-
         for (auto entID: view) {
             Entity e(entID, scene.get());
             std::string name = e.getName();
@@ -378,46 +397,50 @@ namespace VkRender::PathTracer {
             if (!mesh)
                 continue;
 
+            /*
             bool isMeshPointType = mc.meshDataType() == QUADRIC;
             if (isMeshPointType)
                 continue;
+            */
 
-            const std::string mid = mc.getCacheIdentifier();
-            uint32_t geomIdx = m_meshIndexMap.at(mid);
+            {
+                const std::string mid = mc.getCacheIdentifier();
+                uint32_t geomIdx = m_meshIndexMap.at(mid);
 
-            // --- 2) append this entity's material parameters ---
-            auto &matComp = e.getComponent<MaterialComponent>();
-            Material gpuMat{};
-            gpuMat.baseColor = {
-                matComp.albedo.x
-            };
-            gpuMat.specular = {
-                matComp.specular
-            };
-            gpuMat.diffuse = {
-                matComp.diffuse
-            };
-            gpuMat.phongExp = matComp.phongExponent;
+                // --- 2) append this entity's material parameters ---
+                auto &matComp = e.getComponent<MaterialComponent>();
+                Material gpuMat{};
+                gpuMat.baseColor = {
+                    matComp.albedo.x
+                };
+                gpuMat.specular = {
+                    matComp.specular
+                };
+                gpuMat.diffuse = {
+                    matComp.diffuse
+                };
+                gpuMat.phongExp = matComp.phongExponent;
 
-            uint32_t matIdx = static_cast<uint32_t>(m_materials.size());
-            m_materials.push_back(gpuMat);
+                uint32_t matIdx = static_cast<uint32_t>(m_materials.size());
+                m_materials.push_back(gpuMat);
 
-            // --- 3) record the instance record pointing at mesh+material+transform ---
-            uint32_t xfIdx = static_cast<uint32_t>(m_transforms.size());
-            m_instances.push_back({
-                /* geomType       */ uint32_t(GeometryType::Mesh),
-                /* geomIndex      */ geomIdx,
-                /* materialIndex  */ matIdx,
-                /* transformIndex */ xfIdx,
-            });
+                // --- 3) record the instance record pointing at mesh+material+transform ---
+                uint32_t xfIdx = static_cast<uint32_t>(m_transforms.size());
+                m_instances.push_back({
+                    /* geomType       */ uint32_t(GeometryType::Mesh),
+                    /* geomIndex      */ geomIdx,
+                    /* materialIndex  */ matIdx,
+                    /* transformIndex */ xfIdx,
+                });
 
-            // --- 4) store the transform for this instance ---
-            auto &tc = e.getComponent<TransformComponent>();
-            Transform xf{};
-            xf.objectToWorld = glm2sycl(tc.getTransform());
-            xf.worldToObject = glm2sycl(glm::inverse(tc.getTransform()));
+                // --- 4) store the transform for this instance ---
+                auto &tc = e.getComponent<TransformComponent>();
+                Transform xf{};
+                xf.objectToWorld = glm2sycl(tc.getTransform());
+                xf.worldToObject = glm2sycl(glm::inverse(tc.getTransform()));
 
-            m_transforms.push_back(xf);
+                m_transforms.push_back(xf);
+            }
         }
     }
 
@@ -674,6 +697,31 @@ namespace VkRender::PathTracer {
             });
 
             m_blasNames.push_back(name); // purely for your debug renderer
+        }
+    }
+
+    void PathTracerSYCL::buildBLASForPointCloud() {
+        m_betaNodes.clear();
+        m_betaRanges.clear();
+
+        for (uint32_t p = 0; p < m_points.size(); ++p) {
+            const OrientedPoint& bp = m_points[p];
+
+            /*
+            // 1. generate 2-triangle billboard in *local* space
+            std::array<float3,4> v = makeBillboard(bp);   // use Eq. 7 scaling
+            std::array<Triangle,2> tris = {{ {0,1,2}, {0,2,3} }};
+
+            // 2. tiny BVH with a single leaf that points back to particle id
+            BasicBVH::buildLeaf(tris, v, bp , local);
+
+            */
+            std::vector<BVHNode> local;
+
+            // 3. append to global pool exactly like in your mesh loop
+            uint32_t first = m_betaNodes.size();
+            m_betaNodes.insert(m_betaNodes.end(), local.begin(), local.end());
+            m_betaRanges.push_back({first, uint32_t(local.size())});
         }
     }
 

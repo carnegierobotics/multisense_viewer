@@ -104,7 +104,7 @@ namespace VkRender::PathTracer {
         void buildSceneDesc();
 
         void buildBLASForAllMeshes();
-
+        void buildBLASForPointCloud();
         void buildTopLevelBVH();
 
         /*--- device clean‑up ---*/
@@ -147,6 +147,8 @@ namespace VkRender::PathTracer {
         std::unordered_map<std::string, uint32_t> m_meshIndexMap;
 
         // CPU copies
+        std::vector<BVHNode> m_betaNodes;
+        std::vector<BLASRange> m_betaRanges;
         std::vector<BVHNode> m_blasNodes;
         std::vector<BLASRange> m_blasRanges;
         std::vector<TLASNode> m_tlasNodes;

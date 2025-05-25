@@ -155,7 +155,7 @@ namespace VkRender {
             const std::vector<float> cBuf = copy_or_default(cData, 1.0f);
             const std::vector<float> txBuf = copy_or_default(txData, -1.0f);
             const std::vector<float> tyBuf = copy_or_default(tyData, 1.0f);
-            const std::vector<float> ksBuf = copy_or_default(ksData, 1.0f);
+            const std::vector<float> ksBuf = copy_or_default(ksData, 0.25f);
             const std::vector<float> thrBuf = copy_or_default(thrData, 0.1f);
             const std::vector<float> betBuf = copy_or_default(betaData, 0.0f);
 

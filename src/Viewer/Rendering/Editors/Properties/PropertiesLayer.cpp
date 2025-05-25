@@ -1245,6 +1245,7 @@ namespace VkRender {
                                     "Quadric " + std::to_string(i) + ":" + m_selectionContext.getName();
                             auto entityInstance = m_context->activeScene()->getOrCreateEntityByName(quadricName);
                             entityInstance.setParent(m_selectionContext);
+                            auto &temp = entityInstance.getOrAddComponent<TemporaryComponent>();
 
                             // Get or create TransformComponent and set position and rotation.
                             auto &transform = entityInstance.getOrAddComponent<TransformComponent>();

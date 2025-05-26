@@ -157,8 +157,11 @@ namespace VkRender::PathTracer {
         BVHNode *d_blasNodes = nullptr;
         TLASNode *d_tlasNodes = nullptr;
         BLASRange *d_blasRanges = nullptr;
+        BVHNode * d_betaNodes;
+        BLASRange* d_betaRanges;
 
         // === Device USM pointers ===
+        OrientedPoint *d_points = nullptr;
         Vertex *d_vertices = nullptr;
         Triangle *d_tris = nullptr;
         MeshRange *d_meshRanges = nullptr;

@@ -7,6 +7,7 @@
 #include <cstdint>
 
 #include "Viewer/Rendering/PathTracer/GPUDataTypes.h"
+#include "Viewer/Rendering/PathTracer/PathTracerTypes.h"
 
 namespace VkRender::PathTracer {
     //------------------------------------------------------------------------------
@@ -24,7 +25,7 @@ namespace VkRender::PathTracer {
             std::vector<Triangle> &tris = inTris;
             // 2) init root
             nodes.clear();
-            nodes .reserve( tris.size() * 2 );
+            nodes.reserve(tris.size() * 2);
             triIndices.resize(tris.size());
             for (uint32_t i = 0; i < triIndices.size(); ++i)
                 triIndices[i] = i;
@@ -37,7 +38,6 @@ namespace VkRender::PathTracer {
         }
 
     private:
-
         // (b) fit node.aabb to its triangles
         static void updateBounds(const std::vector<Triangle> &tris,
                                  const std::vector<Vertex> &verts,
@@ -74,19 +74,21 @@ namespace VkRender::PathTracer {
 
             // 1) pick split axis = longest extent
             float3 extent = node.aabbMax - node.aabbMin;
-            int   axis   = (extent.y() > extent.x() && extent.y() > extent.z()) ? 1
-                       : (extent.z() > extent.x() && extent.z() > extent.y()) ? 2
-                       : 0;
+            int axis = (extent.y() > extent.x() && extent.y() > extent.z())
+                           ? 1
+                           : (extent.z() > extent.x() && extent.z() > extent.y())
+                                 ? 2
+                                 : 0;
 
             // 2) find median by centroid along that axis
             auto start = triIndices.begin() + node.leftFirst;
-            auto end   = start + node.triCount;
-            auto mid   = start + (node.triCount >> 1);
+            auto end = start + node.triCount;
+            auto mid = start + (node.triCount >> 1);
 
             std::nth_element(start, mid, end,
-                [&](uint32_t a, uint32_t b) {
-                    return tris[a].centroid[axis] < tris[b].centroid[axis];
-                });
+                             [&](uint32_t a, uint32_t b) {
+                                 return tris[a].centroid[axis] < tris[b].centroid[axis];
+                             });
 
             uint32_t leftCount = uint32_t(mid - start);
             // 2b) if that was degenerate (all centroids equal), bail out
@@ -94,31 +96,149 @@ namespace VkRender::PathTracer {
                 return;
 
             // 3) carve out two new nodes
-            uint32_t leftChild  = uint32_t(nodes.size());
+            uint32_t leftChild = uint32_t(nodes.size());
             uint32_t rightChild = leftChild + 1;
             nodes.emplace_back(); // for left
             nodes.emplace_back(); // for right
 
             // 4) assign their ranges
-            nodes[leftChild ].leftFirst = node.leftFirst;
-            nodes[leftChild ].triCount  = leftCount;
+            nodes[leftChild].leftFirst = node.leftFirst;
+            nodes[leftChild].triCount = leftCount;
             nodes[rightChild].leftFirst = node.leftFirst + leftCount;
-            nodes[rightChild].triCount  = node.triCount - leftCount;
+            nodes[rightChild].triCount = node.triCount - leftCount;
 
             // 5) flip this into an internal node
             node.leftFirst = leftChild;
-            node.triCount  = 0;
+            node.triCount = 0;
 
             // 6) refit their AABBs
-            updateBounds(tris, verts, triIndices, nodes[leftChild ]);
+            updateBounds(tris, verts, triIndices, nodes[leftChild]);
             updateBounds(tris, verts, triIndices, nodes[rightChild]);
 
             // 7) recurse
-            subdivide(tris, verts, nodes, triIndices, leftChild,  maxLeafSize);
+            subdivide(tris, verts, nodes, triIndices, leftChild, maxLeafSize);
             subdivide(tris, verts, nodes, triIndices, rightChild, maxLeafSize);
         }
+    };
 
+    inline void buildOrthonormalBasis(const float3 &n, float3 &u, float3 &v) {
+        // pick the axis least parallel to n
+        float3 a = (fabs(n.x()) > 0.9f) ? float3(0, 1, 0) : float3(1, 0, 0);
+        u = ::normalize(sycl::cross(a, n));
+        v = sycl::cross(n, u); // already normalized
+    }
 
+    // ─────────────────────────────────────────────────────────────────────────────
+    // QuadricBVH2D.h – BVH for z-up beta patches using min/max extents
+    // ─────────────────────────────────────────────────────────────────────────────
+    class QuadricBVH2D {
+    public:
+        static void build(const std::vector<OrientedPoint> &pts,
+                          std::vector<BVHNode> &nodes,
+                          std::vector<uint32_t> &permutation,
+                          uint32_t maxLeaf = 8) {
+            const uint32_t N = uint32_t(pts.size());
+            permutation.resize(N);
+            std::iota(permutation.begin(), permutation.end(), 0u);
+
+            nodes.clear();
+            nodes.reserve(N * 2);
+            nodes.emplace_back(); // root
+            nodes[0].leftFirst = 0;
+            nodes[0].triCount = N;
+
+            updateBounds(pts, permutation, nodes[0]);
+            subdivide(pts, nodes, permutation, 0, maxLeaf);
+        }
+
+    private:
+        // helper – identical math you used while deciding keepVertex
+        static float radiusFromKernel(float kernelScale,
+                                      float beta,
+                                      float threshold) {
+            const float p = 4.0f * sycl::exp(beta); // 4 e^β
+            const float rSq = 1.0f - sycl::pow(threshold, 1.0f / p);
+            return kernelScale * sycl::sqrt(sycl::max(rSq, 0.f));
+        }
+
+        /* --------------------------------------------------------------------- */
+        static constexpr float eps = 1.0e-4f; // half-thickness along z
+
+        static void updateBounds(const std::vector<OrientedPoint> &pts,
+                                 const std::vector<uint32_t> &perm,
+                                 BVHNode &n) {
+            float3 bmin(+FLT_MAX), bmax(-FLT_MAX);
+            constexpr float eps = 1.0e-4f; // thin slab around z=0
+
+            for (uint32_t i = 0; i < n.triCount; ++i) {
+                const OrientedPoint &P = pts[perm[n.leftFirst + i]];
+
+                /* 1. support radius given this patch’s kernel parameters */
+                const float R = radiusFromKernel(/*kernelScale*/ 1.0f, // change if per-patch
+                                                                 P.beta,
+                                                                 P.threshold);
+
+                /* 2. scale canonical rectangle by that radius            */
+                const float3 pMin = {-R, -R, -eps};
+                const float3 pMax = {R, R, eps};
+
+                bmin = min(bmin, pMin);
+                bmax = max(bmax, pMax);
+            }
+            n.aabbMin = bmin;
+            n.aabbMax = bmax;
+        }
+
+        /* --------------------------------------------------------------------- */
+        static float3 centroid(const OrientedPoint &P) {
+            return {
+                0.5f * (P.minSupport.x() + P.maxSupport.x()),
+                0.5f * (P.minSupport.y() + P.maxSupport.y()),
+                0.0f
+            };
+        }
+
+        static void subdivide(const std::vector<OrientedPoint> &pts,
+                              std::vector<BVHNode> &nodes,
+                              std::vector<uint32_t> &perm,
+                              uint32_t nodeIdx,
+                              uint32_t maxLeaf) {
+            BVHNode &node = nodes[nodeIdx];
+            if (node.triCount <= maxLeaf) return;
+
+            /* longest axis of this node’s extents */
+            float3 ext = node.aabbMax - node.aabbMin;
+            int axis = (ext.y() > ext.x() && ext.y() > ext.z()) ? 1 : (ext.z() > ext.x() && ext.z() > ext.y()) ? 2 : 0;
+
+            auto S = perm.begin() + node.leftFirst,
+                    E = S + node.triCount,
+                    M = S + (node.triCount >> 1);
+
+            std::nth_element(S, M, E,
+                             [&](uint32_t a, uint32_t b) {
+                                 return centroid(pts[a])[axis] < centroid(pts[b])[axis];
+                             });
+
+            uint32_t leftCnt = uint32_t(M - S);
+            if (leftCnt == 0 || leftCnt == node.triCount) return; // degenerate
+
+            uint32_t L = uint32_t(nodes.size()), R = L + 1;
+            nodes.emplace_back();
+            nodes.emplace_back();
+
+            nodes[L].leftFirst = node.leftFirst;
+            nodes[L].triCount = leftCnt;
+            nodes[R].leftFirst = node.leftFirst + leftCnt;
+            nodes[R].triCount = node.triCount - leftCnt;
+
+            node.leftFirst = L;
+            node.triCount = 0; // internal
+
+            updateBounds(pts, perm, nodes[L]);
+            updateBounds(pts, perm, nodes[R]);
+            subdivide(pts, nodes, perm, L, maxLeaf);
+            subdivide(pts, nodes, perm, R, maxLeaf);
+        }
     };
 } // VkRender
 

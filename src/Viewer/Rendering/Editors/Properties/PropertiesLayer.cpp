@@ -994,6 +994,7 @@ namespace VkRender {
                 }
                 */
 
+                /*
                 if (quadricCount > 0) {
                     // For a large number of quadrics, show a single "selected" quadric for editing.
                     static int selectedQuadricIndex = 0;
@@ -1130,6 +1131,7 @@ namespace VkRender {
                         }
                     }
                 }
+                */
             });
 
 

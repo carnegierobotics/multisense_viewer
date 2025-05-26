@@ -8,11 +8,36 @@
 #include "Viewer/Rendering/PathTracer/Device/KernelHelpers.h"
 
 namespace VkRender::PathTracer {
+    template<int MaxN = 256>
+    struct SmallStack {
+        uint32_t data[MaxN];
+        int sp = 0;
+
+        ACPP_UNIVERSAL_TARGET
+
+        bool push(uint32_t v) // returns false on overflow
+        {
+            if (sp >= MaxN) return false;
+            data[sp++] = v;
+            return true;
+        }
+
+        ACPP_UNIVERSAL_TARGET
+
+        uint32_t pop() // *call only when !empty()*
+        {
+            return data[--sp];
+        }
+
+        ACPP_UNIVERSAL_TARGET
+        bool empty() const { return sp == 0; }
+    };
+
     // ── PathTracerMeshKernel.cpp ────────────────────────────────────────────────
     // Returns the closest hit inside one mesh’s BLAS (object space)
-    SYCL_EXTERNAL bool PathTracerMeshKernel::intersectBLAS(const Ray &rayO,
-                                                           uint32_t geomIdx,
-                                                           Hit &out, const SceneDesc &scene) {
+    SYCL_EXTERNAL bool PathTracerMeshKernel::intersectBLASMesh(const Ray &rayO,
+                                                               uint32_t geomIdx,
+                                                               Hit &out, const SceneDesc &scene) {
         /* 1.  Locate the sub‑tree that belongs to this mesh
                ────────────────────────────────────────────── */
         const BLASRange &br = scene.blasRanges[geomIdx];
@@ -26,14 +51,19 @@ namespace VkRender::PathTracer {
         bool hitAny = false;
         float3 invDir = safeInvDir(rayO.direction);
 
-        int stack[64] = {-1}; // enough for >4 billion triangles
-        int sp = 0;
-        stack[sp++] = 0; // root of this BLAS
+        constexpr int kMaxStack = 256; // enough for ~500 k leaves in practice
+        //int stack[kMaxStack] = {-1};
+        //int sp = 0;
+
+        //stack[sp++] = 0; // root of this BLAS
 
         constexpr float kRayEps = 0.0f; // ignore hits closer than this
 
-        while (sp) {
-            int nIdx = stack[--sp];
+        SmallStack<1024> stack;
+        stack.push(0); // root
+
+        while (!stack.empty()) {
+            int nIdx = stack.pop();
             const BVHNode &N = nodes[nIdx];
 
             float tEntry;
@@ -45,8 +75,10 @@ namespace VkRender::PathTracer {
                 /* Push children – right first so left is processed next.
                    Children are stored immediately after the parent once
                    we patched indices in buildBLASForAllMeshes().          */
-                stack[sp++] = N.leftFirst + 1; // right
-                stack[sp++] = N.leftFirst; // left
+                // when you push children:
+
+                if (!stack.push(N.leftFirst + 1)) return hitAny; // overflow → miss
+                if (!stack.push(N.leftFirst)) return hitAny;
             } else // ── leaf ─────────────────────────
             {
                 for (uint32_t i = 0; i < N.triCount; ++i) {
@@ -80,15 +112,77 @@ namespace VkRender::PathTracer {
         return hitAny;
     }
 
+    //---------------------------------------------------------------------
+    // Returns the closest hit inside one *quadric-patch* BLAS (object space)
+    //---------------------------------------------------------------------
+    SYCL_EXTERNAL bool PathTracerMeshKernel::intersectBLASQuadric(
+        const Ray &rayO, // object-space ray
+        uint32_t geomIdx, // which BLAS
+        Hit &out, // result
+        const SceneDesc &scene) {
+        /* 1. locate the sub-tree that belongs to this point-cloud */
+        const BLASRange &br = scene.betaRanges[geomIdx];
+        const BVHNode *nodes = scene.betaNodes + br.firstNode; // root = nodes[0]
+        const OrientedPoint *patch = scene.points; // global array
+
+        /* 2. standard iterative depth-first traversal */
+        float bestT = std::numeric_limits<float>::infinity();
+        bool hitAny = false;
+        float3 invDir = safeInvDir(rayO.direction);
+
+        int stack[64] = {-1}; // first entry = −1, rest 0
+        int sp = 0;
+        stack[sp++] = 0; // push root
+
+        constexpr float kRayEps = 0.0f; // ignore hits closer than this
+
+        while (sp) {
+            int nIdx = stack[--sp];
+            const BVHNode &N = nodes[nIdx];
+
+            float tEntry;
+            if (!slabIntersectAABB(rayO, N, invDir, bestT, tEntry))
+                continue; // miss or too far
+
+            if (N.triCount == 0) // ── internal node ──────────────────
+            {
+                /* children are stored next to each other (leftFirst , +1)     */
+                stack[sp++] = N.leftFirst + 1; // right
+                stack[sp++] = N.leftFirst; // left  (processed next)
+            } else // ── leaf with β-patches ────────────
+            {
+                for (uint32_t i = 0; i < N.triCount; ++i) {
+                    uint32_t pIdx = N.leftFirst + i; // *global* patch index
+                    const OrientedPoint &P = patch[pIdx];
+
+                    bool reflected;
+                    float t;
+                    float kHit;
+                    if (intersectPatch(rayO, P, t, kHit, reflected) && // exact quadric test
+                        t > kRayEps && t < bestT && reflected) {
+                        bestT = t;
+                        hitAny = true;
+
+                        out.t = t;
+                        out.u = kHit; // steal any unused field
+                        out.v = reflected ? 1.f : 0.f;
+                        out.primIdx = pIdx; // for shading
+                        out.geomType = GeometryType::PointCloud;
+                    }
+                }
+            }
+        }
+        return hitAny;
+    }
+
 
     SYCL_EXTERNAL bool PathTracerMeshKernel::intersectScene(const Ray &rayW, Hit *hit, const SceneDesc &scene) {
         /* abort if scene is empty */
-        if (scene.tlasNodeCount == 0) return false;
+        //if (scene.tlasNodeCount == 0) return false;
 
         const TLASNode *tlas = scene.tlasNodes;
         const Instance *instances = scene.instances;
         const Transform *xforms = scene.transforms;
-
 
         /* ------------------------------------------------------------------ */
         /* stack‑based depth‑first traversal                                   */
@@ -97,15 +191,15 @@ namespace VkRender::PathTracer {
         float3 invDir = safeInvDir(rayW.direction);;
 
 
-        int stack[64];
-        int sp = 0;
-        stack[sp++] = 0; // root
+        SmallStack<> stack;
+        stack.push(0); // root
 
         float bestTWorld = std::numeric_limits<float>::infinity();
 
-        while (sp) {
-            int nIdx = stack[--sp];
+        while (!stack.empty()) {
+            int nIdx = stack.pop();
             const TLASNode &node = tlas[nIdx];
+
 
             float tEntry;
             if (!slabIntersectAABB(rayW, node, invDir, bestTWorld, tEntry))
@@ -113,8 +207,8 @@ namespace VkRender::PathTracer {
 
             if (node.count == 0) // internal
             {
-                stack[sp++] = node.rightChild;
-                stack[sp++] = node.leftChild;
+                if (!stack.push(node.rightChild)) return false;
+                if (!stack.push(node.leftChild)) return false;
             } // leaf – exactly one instance
             else {
                 uint32_t instID = node.leftChild;
@@ -124,7 +218,15 @@ namespace VkRender::PathTracer {
                 Ray rayObject = toObjectSpace(rayW, transform);
 
                 Hit local;
-                if (intersectBLAS(rayObject, instance.geomIndex, local, scene)) {
+
+                bool ok = false;
+                if (instance.geomType == GeometryType::Mesh) {
+                    ok = intersectBLASMesh(rayObject, instance.geomIndex, local, scene);
+                } else {
+                    // point cloud
+                    ok = intersectBLASQuadric(rayObject, instance.geomIndex, local, scene);
+                }
+                if (ok) {
                     /* 3.  Convert hit point back to world space */
                     float3 hitPointW = toWorldPoint(rayObject.origin + local.t * rayObject.direction, transform);
 
@@ -137,6 +239,7 @@ namespace VkRender::PathTracer {
                         anyHit = true;
 
                         /* write out the final hit record in WORLD space */
+                        hit->geomType = local.geomType;
                         hit->t = tWorld;
                         hit->u = local.u;
                         hit->v = local.v;
@@ -150,11 +253,52 @@ namespace VkRender::PathTracer {
         return anyHit;
     }
 
+    //---------------------------------------------------------------------
+    // Return   T  =  product( 1 − α_i )   along the segment [ray.origin .. ray.origin+tMax]
+    //   • stops early if a fully opaque surface (α ≥ 1−1e−4) is hit
+    //---------------------------------------------------------------------
+    SYCL_EXTERNAL float PathTracerMeshKernel::traceVisibility(const Ray &rayIn,
+                                                              float tMax,
+                                                              const SceneDesc &scene,
+                                                              PCG32 &rng) const {
+        constexpr float kEps = 1e-4f; // step-off to avoid self-hits
+        constexpr float kMinT = 1e-4f; // early-exit threshold
+
+        float T = 1.f; // running transmittance
+        Ray ray = rayIn; // will advance along the ray
+        Hit h;
+
+        while (true) {
+            /* next surface along the ray ------------------------------------- */
+            if (!intersectScene(ray, &h, scene) || h.t >= tMax)
+                return T; // reached the camera
+
+            /* hard, fully opaque geometry ------------------------------------ */
+            if (h.geomType == GeometryType::Mesh)
+                return 0.f; // blocked by triangle mesh
+
+            /* semi-transparent point patch ----------------------------------- */
+            const float alpha = h.u; //   α  = opacity  (stored in hit)
+
+            /* accumulate deterministic transmittance T *= (1-α) */
+            T *= (1.f - alpha);
+
+            if (T < kMinT) // already almost black
+                return 0.f;
+
+            /* march on past this patch --------------------------------------- */
+            float advance = h.t + kEps;
+            ray.origin = ray.origin + advance * ray.direction;
+            tMax -= advance;
+        }
+    }
+
 
     SYCL_EXTERNAL void PathTracerMeshKernel::castContributions(
         const Hit &hitPoint,
         float contrib,
-        const float3 &surfaceNormal) const {
+        const float3 &surfaceNormal,
+        PCG32 &rng) const {
         constexpr float kEps = 1e-5f;
         const SceneDesc &scene = *d_sceneDesc;
 
@@ -171,13 +315,12 @@ namespace VkRender::PathTracer {
             float3 dirToA = toAperture / distToA;
 
             // visibility
-            Hit sh;
-            Ray ray = makeRay(hitPoint.hitPoint + dirToA * kEps, dirToA);
-            if (intersectScene(ray, &sh, scene) && sh.t < distToA - kEps)
-                continue;
+            Ray visRay = makeRay(hitPoint.hitPoint + dirToA * kEps, dirToA);
+            float Tvis = traceVisibility(visRay, distToA - kEps, scene, rng);
+            if (Tvis <= 0.0f) continue; // completely blocked
 
             // BRDF
-            const float brdf = kd / M_PIf;              // diffuse ρ/π
+            const float brdf = kd / M_PIf; // diffuse ρ/π
             const float cosHitCam = sycl::fabs(dot(surfaceNormal, dirToA));
             float contrib_cam = contrib * brdf * cosHitCam;
 
@@ -185,7 +328,7 @@ namespace VkRender::PathTracer {
             // Attenuation (Geometry term)
             float cosCam = sycl::fabs(dot(-dirToA, cam.forward)); // cam.normal = forward
             float G_cam = cosCam / (distToA * distToA); // cosNO from bounce loop
-            float weight = contrib_cam * G_cam;
+            float weight = contrib_cam * G_cam * Tvis;
 
 
             // perspective projection
@@ -204,11 +347,11 @@ namespace VkRender::PathTracer {
                         sycl::memory_order::relaxed,
                         sycl::memory_scope::device,
                         sycl::access::address_space::global_space>
-                    r(dst.x()), g(dst.y()), b(dst.z());
+                    r(dst.x());
 
             r += weight;
-            g += weight;
-            b += weight;
+            //g += weight;
+            //b += weight;
         }
     }
 
@@ -218,13 +361,14 @@ namespace VkRender::PathTracer {
     /// \param photonID  Unique photon identifier (also RNG seed).
     //------------------------------------------------------------------------------
     SYCL_EXTERNAL void PathTracerMeshKernel::traceOnePhoton(uint64_t photonID, uint32_t totalPhotonCount) const {
-        const auto &scene = *d_sceneDesc;
-        const auto &settings = d_sceneSettings;
+        /* aliases ---------------------------------------------------------------- */
+        const SceneDesc &scene = *d_sceneDesc;
+        const RenderSettings &settings = d_sceneSettings;
 
 
-        // RNG
-        PCG32 rng{};
-        rng.seed(static_cast<uint64_t>(photonID));
+        /* RNG --------------------------------------------------------------------- */
+        PCG32 rng;
+        rng.seed(photonID);
 
         //-------------------- 1) sample area light -------------------------------
         float3 Lpos, Lnorm;
@@ -252,23 +396,48 @@ namespace VkRender::PathTracer {
             if (!intersectScene(ray, &hit, scene))
                 break;
 
-            const Triangle &tri = scene.triangles[hit.primIdx];
-            const Vertex &v0 = scene.vertices[tri.v0];
-            const Vertex &v1 = scene.vertices[tri.v1];
-            const Vertex &v2 = scene.vertices[tri.v2];
 
-            float w0 = 1.f - hit.u - hit.v;
-            float w1 = hit.u;
-            float w2 = hit.v;
-            float3 surfaceNormal = normalize(w0 * v0.norm + w1 * v1.norm + w2 * v2.norm);
+            /* ---- fetch instance + material once for both geom types ------------ */
+            const Instance &inst = scene.instances[hit.instIdx];
+            const Transform &xfInst = scene.transforms[inst.transformIndex];
+            const Material &mat = scene.materials[inst.materialIndex];
 
-            size_t instanceID = scene.instances[hit.instIdx].materialIndex;
-            const Material &mat = scene.materials[instanceID];
+            /* ---- compute world-space surface normal ---------------------------- */
+            float3 surfaceNormal; // will be set per-geometry
+            if (inst.geomType == GeometryType::Mesh) {
+                /* ----- triangle path (unchanged) -------------------------------- */
+                const Triangle &tri = scene.triangles[hit.primIdx];
+                const Vertex &v0 = scene.vertices[tri.v0];
+                const Vertex &v1 = scene.vertices[tri.v1];
+                const Vertex &v2 = scene.vertices[tri.v2];
+
+                float w0 = 1.f - hit.u - hit.v;
+                float w1 = hit.u;
+                float w2 = hit.v;
+                surfaceNormal = normalize(w0 * v0.norm + w1 * v1.norm + w2 * v2.norm);
+            } else /* ---------------- quadric patch ------------------------ */
+            {
+
+                const float alpha = hit.u;              // opacity
+                const float tau   = 1.f - alpha;
+
+                if (rng.nextFloat() >= alpha) {         // *** transmitted ***
+                    throughput *= tau;                  // attenuate
+                    ray.origin = hit.hitPoint + 1e-4f * ray.direction;
+                    --bounce;                           // don’t consume a real bounce
+                    continue;                           // trace further
+                }
+
+
+                // object-space normal is always (0,0,1); rotate to world space
+                float3 nObj = float3(0.f, 0.f, 1.f);
+                surfaceNormal = nObj;
+            }
 
             // material parameters
             float kd = mat.diffuse * mat.baseColor;
             //---------------- camera contributions -----------------------------
-            castContributions(hit, throughput, surfaceNormal);
+            castContributions(hit, throughput, surfaceNormal, rng);
 
             // sample direction  (keep your cosine-hemisphere sampler for now)
             float3 newDir;

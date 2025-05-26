@@ -39,24 +39,24 @@ namespace VkRender::PathTracer {
         }
 
 
-        auto& ci = m_createInfo;
+        auto &ci = m_createInfo;
         uint32_t blockSize = ci.framebufferSize;
 
         Log::Logger::getInstance()->info("Creating framebuffers on host with size: {:.2f}Mb", blockSize / 1e6);
-        m_frameBuffers.memory = static_cast<float4*>(malloc(blockSize));
+        m_frameBuffers.memory = static_cast<float4 *>(malloc(blockSize));
         memset(m_frameBuffers.memory, 0, blockSize);
         m_frameBuffers.frameBufferSize = blockSize;
 
         Log::Logger::getInstance()->info("Creating framebuffers on device with size: {:.2f}Mb", blockSize / 1e6);
 
-        auto* deviceMemory = deviceAlloc<float>(blockSize);
-        d_frameBuffers.memory = reinterpret_cast<float4*>(deviceMemory);
+        auto *deviceMemory = deviceAlloc<float>(blockSize);
+        d_frameBuffers.memory = reinterpret_cast<float4 *>(deviceMemory);
         d_frameBuffers.frameBufferSize = blockSize;
 
         Log::Logger::getInstance()->info("Done Creating Framebuffers");
     }
 
-    void PathTracerSYCL::uploadScene(const std::shared_ptr<Scene>& scene, EditorCamera editorCamera) {
+    void PathTracerSYCL::uploadScene(const std::shared_ptr<Scene> &scene, EditorCamera editorCamera) {
         // free existing GPU memory
         freeDeviceMemory();
         collectCameras(scene, editorCamera);
@@ -66,7 +66,7 @@ namespace VkRender::PathTracer {
         collectLights(scene);
 
         buildBLASForAllMeshes();
-        //buildBLASForPointCloud();
+        buildBLASForPointCloud();
         buildTopLevelBVH();
 
         // build and upload scene descriptor
@@ -77,7 +77,7 @@ namespace VkRender::PathTracer {
     }
 
 
-    void PathTracerSYCL::collectCameras(const std::shared_ptr<Scene>& scene, EditorCamera editorCamera) {
+    void PathTracerSYCL::collectCameras(const std::shared_ptr<Scene> &scene, EditorCamera editorCamera) {
         m_cameras.clear();
 
         uint32_t pixelOffset = 0;
@@ -112,12 +112,12 @@ namespace VkRender::PathTracer {
         }
         // SCENE CAMERAS
         auto view = scene->getRegistry().view<CameraComponent, TransformComponent>();
-        for (auto id : view) {
+        for (auto id: view) {
             Entity e(id, scene.get());
-            auto& cameraComponent = e.getComponent<CameraComponent>();
+            auto &cameraComponent = e.getComponent<CameraComponent>();
             if (cameraComponent.cameraType != CameraComponent::PINHOLE)
                 continue;
-            auto& transformComponent = e.getComponent<TransformComponent>();
+            auto &transformComponent = e.getComponent<TransformComponent>();
             auto sceneCameraParameters = cameraComponent.getPinholeCamera()->parameters();
             Camera cam;
             cam.width = static_cast<uint32_t>(sceneCameraParameters.width);
@@ -127,7 +127,7 @@ namespace VkRender::PathTracer {
             cam.view = glm2sycl(cameraComponent.camera->matrices.view);
             cam.firstPixel = pixelOffset;
 
-            cam.forward = {0.0f, 0.0f, -1.0f};
+            cam.forward = float3(0.0f, 0.0f, -1.0f);
 
             pixelOffset += cam.width * cam.height * 4;
             m_cameras.push_back(cam);
@@ -141,7 +141,7 @@ namespace VkRender::PathTracer {
     }
 
 
-    void PathTracerSYCL::updateDynamic(const std::shared_ptr<Scene>& scene, EditorCamera editorCamera) {
+    void PathTracerSYCL::updateDynamic(const std::shared_ptr<Scene> &scene, EditorCamera editorCamera) {
         Utils::ScopedTimer timer("PathTracer: Update Dynamic Data");
 
         if (!d_sceneDesc) {
@@ -156,9 +156,9 @@ namespace VkRender::PathTracer {
         // view both mesh & material & transform
         auto view = scene->getRegistry().view<LightSourceComponent>();
 
-        for (int i = 0; auto id : view) {
+        for (int i = 0; auto id: view) {
             Entity e(id, scene.get());
-            auto& transformComponent = e.getComponent<TransformComponent>();
+            auto &transformComponent = e.getComponent<TransformComponent>();
             m_lights[i].transform.objectToWorld = glm2sycl(transformComponent.getTransform());
             m_lights[i].transform.worldToObject = glm2sycl(glm::inverse(transformComponent.getTransform()));
             ++i;
@@ -167,7 +167,7 @@ namespace VkRender::PathTracer {
         m_queue.memcpy(d_lights, m_lights.data(), m_lights.size() * sizeof(MeshLight));
 
 
-        auto& camera = m_cameras.front();
+        auto &camera = m_cameras.front();
         camera.pos = glm2sycl(editorCamera.camera->matrices.position);
         camera.proj = glm2sycl(editorCamera.camera->matrices.projection);
         camera.view = glm2sycl(editorCamera.camera->matrices.view);
@@ -181,7 +181,7 @@ namespace VkRender::PathTracer {
 
         // IF camera was moving then clear the image data for that camera
         if (editorCamera.movedSinceLastFrame) {
-            const auto& camera = m_cameras.front();
+            const auto &camera = m_cameras.front();
             const uint32_t width = camera.width;
             const uint32_t height = camera.height;
             const size_t pixelCount = static_cast<size_t>(width) * height;
@@ -193,14 +193,14 @@ namespace VkRender::PathTracer {
         m_queue.wait();
     }
 
-    void PathTracerSYCL::renderFrame(const RenderSettings& settings) {
+    void PathTracerSYCL::renderFrame(const RenderSettings &settings) {
         if (!d_sceneDesc) {
             Log::Logger::getInstance()->error("Path Tracer has not been initialized");
         }
         Utils::ScopedTimer timer("PathTracer: RenderFrame");
 
 
-        auto event = m_queue.submit([scene=d_sceneDesc, fb = d_frameBuffers, config=settings](sycl::handler& cgh) {
+        auto event = m_queue.submit([scene=d_sceneDesc, fb = d_frameBuffers, config=settings](sycl::handler &cgh) {
             PathTracerMeshKernel kernel(scene, fb, config);
             cgh.parallel_for(sycl::range<1>(config.photonCount), kernel);
         });
@@ -209,8 +209,8 @@ namespace VkRender::PathTracer {
     }
 
     void PathTracerSYCL::generateImages(std::span<std::byte> outRGBA32f) {
-        auto& ci = m_createInfo;
-        for (auto& camera : m_cameras) {
+        auto &ci = m_createInfo;
+        for (auto &camera: m_cameras) {
             uint32_t imageSize = static_cast<uint32_t>(camera.width) * static_cast<uint32_t>(camera.height);
 
             break;
@@ -219,7 +219,7 @@ namespace VkRender::PathTracer {
         //m_queue.memcpy(outRGBA32f.data(), d_frameBuffer, bytes).wait();
     }
 
-    void PathTracerSYCL::generateEditorImage(const std::shared_ptr<VulkanTexture2D>& viewportTexture, float gamma,
+    void PathTracerSYCL::generateEditorImage(const std::shared_ptr<VulkanTexture2D> &viewportTexture, float gamma,
                                              float exposure) {
         Utils::ScopedTimer timer("PathTracer: Generate Editor Image");
 
@@ -229,7 +229,7 @@ namespace VkRender::PathTracer {
             Log::Logger::getInstance()->error("Path Tracer has not been initialized");
         }
 
-        const auto& camera = m_cameras.front();
+        const auto &camera = m_cameras.front();
         const uint32_t width = camera.width;
         const uint32_t height = camera.height;
         const size_t pixelCount = static_cast<size_t>(width) * height;
@@ -246,7 +246,7 @@ namespace VkRender::PathTracer {
         // 2) Convert to 8-bit RGBA
         std::vector<uint8_t> rgba8;
         rgba8.resize(pixelCount * 4);
-        float* src = reinterpret_cast<float*>(m_frameBuffers.memory);
+        float *src = reinterpret_cast<float *>(m_frameBuffers.memory);
         for (size_t i = 0; i < pixelCount; ++i) {
             // clamp to [0,1], then map to [0,255]
             float v = src[i * 4];
@@ -268,7 +268,7 @@ namespace VkRender::PathTracer {
         viewportTexture->loadImage(rgba8.data());
     }
 
-    void PathTracerSYCL::collectGeometry(const std::shared_ptr<Scene>& scene) {
+    void PathTracerSYCL::collectGeometry(const std::shared_ptr<Scene> &scene) {
         Utils::ScopedTimer timer("PathTracer: Collect Geometry");
 
         m_points.clear();
@@ -282,10 +282,10 @@ namespace VkRender::PathTracer {
 
         // collect unique meshes
         auto view = scene->getRegistry().view<MeshComponent>();
-        for (auto id : view) {
+        for (auto id: view) {
             Entity e(id, scene.get());
 
-            auto& mc = e.getComponent<MeshComponent>();
+            auto &mc = e.getComponent<MeshComponent>();
             auto mesh = MeshManager::instance().getMeshData(mc);
             if (!mesh)
                 continue;
@@ -315,23 +315,21 @@ namespace VkRender::PathTracer {
 
                 point.minSupport = glm2sycl(params->min);
                 point.maxSupport = glm2sycl(params->max);
-                point.scale = {1.0f, 1.0f, 1.0f}; // TODO implement
                 m_points.emplace_back(point);
 
                 // record mesh range
                 PointCloudRange range{};
                 range.pointCount = 1;
-                range.firstPoint = m_pointRanges.size() - 1;
+                range.firstPoint = m_pointRanges.size();
                 m_pointRanges.push_back(range);
                 m_meshIndexMap[meshID] = static_cast<uint32_t>(m_pointRanges.size() - 1);
-            }
-            else {
+            } else {
                 // base offsets
                 uint32_t vertBase = static_cast<uint32_t>(m_vertices.size());
                 uint32_t triBase = static_cast<uint32_t>(m_tris.size());
 
                 // append vertices
-                for (auto& v : mesh->m_vertices) {
+                for (auto &v: mesh->m_vertices) {
                     Vertex vertex;
                     vertex.pos = float3{v.pos.x, v.pos.y, v.pos.z};
                     vertex.norm = float3{v.normal.x, v.normal.y, v.normal.z};
@@ -367,20 +365,22 @@ namespace VkRender::PathTracer {
         }
     }
 
-    void PathTracerSYCL::collectInstances(const std::shared_ptr<Scene>& scene) {
+    void PathTracerSYCL::collectInstances(const std::shared_ptr<Scene> &scene) {
         Utils::ScopedTimer timer("PathTracer: Collect Instances");
         m_instances.clear();
         m_transforms.clear();
         m_materials.clear(); // one material slot per instance
 
         auto view = scene->getRegistry().view<MeshComponent, MaterialComponent, TransformComponent>(
-            entt::exclude<RasterizerRenderingComponent, LightSourceComponent, CameraComponent>);
-        for (auto entID : view) {
+            entt::exclude<RasterizerRenderingComponent, LightSourceComponent, CameraComponent,
+                QuadricCollectionComponent>);
+        for (auto entID: view) {
             Entity e(entID, scene.get());
             std::string name = e.getName();
             // --- 1) look up the mesh index we built in collectGeometry() ---
-            auto& mc = e.getComponent<MeshComponent>();
-
+            auto &mc = e.getComponent<MeshComponent>();
+            if (!MeshManager::instance().getMeshData(mc).get())
+                continue;
             bool isMeshPointType = mc.meshDataType() == QUADRIC;
 
 
@@ -388,7 +388,7 @@ namespace VkRender::PathTracer {
             uint32_t geomIdx = m_meshIndexMap.at(mid);
 
             // --- 2) append this entity's material parameters ---
-            auto& matComp = e.getComponent<MaterialComponent>();
+            auto &matComp = e.getComponent<MaterialComponent>();
             Material gpuMat{};
             gpuMat.baseColor = {
                 matComp.albedo.x
@@ -407,40 +407,40 @@ namespace VkRender::PathTracer {
             // --- 3) record the instance record pointing at mesh+material+transform ---
             uint32_t xfIdx = static_cast<uint32_t>(m_transforms.size());
             m_instances.push_back({
-                /* geomType       */ isMeshPointType ? uint32_t(GeometryType::PointCloud) : uint32_t(GeometryType::Mesh),
+                /* geomType       */
+                isMeshPointType ? (GeometryType::PointCloud) : (GeometryType::Mesh),
                 /* geomIndex      */ geomIdx,
                 /* materialIndex  */ matIdx,
                 /* transformIndex */ xfIdx,
             });
 
             // --- 4) store the transform for this instance ---
-            auto& tc = e.getComponent<TransformComponent>();
+            auto &tc = e.getComponent<TransformComponent>();
             Transform xf{};
             xf.objectToWorld = glm2sycl(tc.getTransform());
             xf.worldToObject = glm2sycl(glm::inverse(tc.getTransform()));
 
             m_transforms.push_back(xf);
         }
-
     }
 
-    void PathTracerSYCL::collectLights(const std::shared_ptr<Scene>& scene) {
+    void PathTracerSYCL::collectLights(const std::shared_ptr<Scene> &scene) {
         m_lights.clear();
 
         // View both mesh, material, and transform components
         auto view = scene->getRegistry()
-                         .view<MeshComponent, TransformComponent, LightSourceComponent>();
+                .view<MeshComponent, TransformComponent, LightSourceComponent>();
 
-        for (auto id : view) {
+        for (auto id: view) {
             Entity e(id, scene.get());
-            auto& meshComponent = e.getComponent<MeshComponent>();
-            auto& transformComponent = e.getComponent<TransformComponent>();
-            auto& lightSourceComponent = e.getComponent<LightSourceComponent>();
+            auto &meshComponent = e.getComponent<MeshComponent>();
+            auto &transformComponent = e.getComponent<TransformComponent>();
+            auto &lightSourceComponent = e.getComponent<LightSourceComponent>();
 
             // Skip if not emissive
             if (lightSourceComponent.flux <= 0.0f) continue;
 
-            const auto& mesh = MeshManager::instance().getMeshData(meshComponent);
+            const auto &mesh = MeshManager::instance().getMeshData(meshComponent);
             const auto world = transformComponent.getTransform();
 
             MeshLight meshLight;
@@ -461,10 +461,10 @@ namespace VkRender::PathTracer {
                 glm::vec4 P1 = world * glm::vec4(p2, 1.0f);
                 glm::vec4 P2 = world * glm::vec4(p3, 1.0f);
 
-                sycl::float3 v0 = {P0.x, P0.y, P0.z};
-                sycl::float3 e1 = {P1.x - P0.x, P1.y - P0.y, P1.z - P0.z};
-                sycl::float3 e2 = {P2.x - P0.x, P2.y - P0.y, P2.z - P0.z};
-                sycl::float3 n = sycl::normalize(sycl::cross(e1, e2));
+                float3 v0 = {P0.x, P0.y, P0.z};
+                float3 e1 = {P1.x - P0.x, P1.y - P0.y, P1.z - P0.z};
+                float3 e2 = {P2.x - P0.x, P2.y - P0.y, P2.z - P0.z};
+                float3 n = sycl::normalize(sycl::cross(e1, e2));
                 float area = 0.5f * sycl::length(sycl::cross(e1, e2));
 
                 meshLight.addTriangle(v0, e1, e2, n, area);
@@ -517,6 +517,10 @@ namespace VkRender::PathTracer {
         d_cameras = deviceAlloc<Camera>(camCount);
         m_queue.memcpy(d_cameras, m_cameras.data(), camCount * sizeof(Camera));
 
+        const size_t pointCount = m_points.size();
+        d_points = deviceAlloc<OrientedPoint>(pointCount);
+        m_queue.memcpy(d_points, m_points.data(), pointCount * sizeof(OrientedPoint));
+
 
         // —— upload BLAS pool ————————————————————————————
         d_blasNodes = deviceAlloc<BVHNode>(m_blasNodes.size());
@@ -527,6 +531,15 @@ namespace VkRender::PathTracer {
         m_queue.memcpy(d_blasRanges, m_blasRanges.data(),
                        m_blasRanges.size() * sizeof(BLASRange));
 
+        // —— upload BLAS pool ————————————————————————————
+        d_betaNodes = deviceAlloc<BVHNode>(m_betaNodes.size());
+        m_queue.memcpy(d_betaNodes, m_betaNodes.data(),
+                       m_betaNodes.size() * sizeof(BVHNode));
+
+        d_betaRanges = deviceAlloc<BLASRange>(m_betaRanges.size());
+        m_queue.memcpy(d_betaRanges, m_betaRanges.data(),
+                       m_betaRanges.size() * sizeof(BLASRange));
+
         // —— upload TLAS ————————————————————————————————
         d_tlasNodes = deviceAlloc<TLASNode>(m_tlasNodes.size());
         m_queue.memcpy(d_tlasNodes, m_tlasNodes.data(),
@@ -534,6 +547,7 @@ namespace VkRender::PathTracer {
 
 
         //—— fill SceneDesc ——
+        m_sceneDescDevice.points = d_points;
         m_sceneDescDevice.vertices = d_vertices;
         m_sceneDescDevice.triangles = d_tris;
         m_sceneDescDevice.meshes = d_meshRanges;
@@ -546,9 +560,10 @@ namespace VkRender::PathTracer {
         m_sceneDescDevice.tlasNodes = d_tlasNodes;
         m_sceneDescDevice.blasRanges = d_blasRanges;
         m_sceneDescDevice.blasNodes = d_blasNodes;
-        m_sceneDescDevice.blasNodeCount = static_cast<uint32_t>(m_blasNodes.size());
-        m_sceneDescDevice.tlasNodeCount = static_cast<uint32_t>(m_tlasNodes.size());
+        m_sceneDescDevice.betaNodes = d_betaNodes;
+        m_sceneDescDevice.betaRanges = d_betaRanges;
 
+        m_sceneDescDevice.pointCount = static_cast<uint32_t>(pointCount);
         m_sceneDescDevice.triCount = static_cast<uint32_t>(triCount);
         m_sceneDescDevice.vertexCount = static_cast<uint32_t>(vertCount);
         m_sceneDescDevice.meshCount = static_cast<uint32_t>(meshCount);
@@ -558,7 +573,8 @@ namespace VkRender::PathTracer {
         m_sceneDescDevice.lightCount = static_cast<uint32_t>(lightCount);
         m_sceneDescDevice.cameraCount = static_cast<uint32_t>(camCount);
 
-        /* ---------- HOST  descriptor  ---------- */
+        /* ---------- HOST  descriptor (For Debug Purposes, not used for rendering) ---------- */
+        m_sceneDescHost.points = m_points.data();
         m_sceneDescHost.vertices = m_vertices.data();
         m_sceneDescHost.triangles = m_tris.data();
         m_sceneDescHost.meshes = m_meshRanges.data();
@@ -570,11 +586,13 @@ namespace VkRender::PathTracer {
 
         m_sceneDescHost.blasNodes = m_blasNodes.data();
         m_sceneDescHost.blasRanges = m_blasRanges.data();
+        m_sceneDescHost.betaNodes = m_betaNodes.data();
+        m_sceneDescHost.betaRanges = m_betaRanges.data();
         m_sceneDescHost.tlasNodes = m_tlasNodes.data();
-        m_sceneDescHost.blasNodeCount = static_cast<uint32_t>(m_blasNodes.size());
-        m_sceneDescHost.tlasNodeCount = static_cast<uint32_t>(m_tlasNodes.size());
+
 
         /* counts are identical */
+        m_sceneDescHost.pointCount = m_sceneDescDevice.pointCount;
         m_sceneDescHost.triCount = m_sceneDescDevice.triCount;
         m_sceneDescHost.vertexCount = m_sceneDescDevice.vertexCount;
         m_sceneDescHost.meshCount = m_sceneDescDevice.meshCount;
@@ -596,7 +614,7 @@ namespace VkRender::PathTracer {
         /* Loop over *unique* meshes (one per entry in m_meshRanges)              */
         /* --------------------------------------------------------------------- */
         for (uint32_t m = 0; m < m_meshRanges.size(); ++m) {
-            const MeshRange& meshRange = m_meshRanges[m];
+            const MeshRange &meshRange = m_meshRanges[m];
             const std::string name = m_meshNames[m]; // for the UI
 
             // ──────────────────────────────────────────────────────────────
@@ -642,7 +660,7 @@ namespace VkRender::PathTracer {
             std::vector<Triangle> reordered;
             reordered.reserve(localTris.size());
 
-            for (unsigned int i : triIdx) {
+            for (unsigned int i: triIdx) {
                 Triangle T = localTris[i];
 
                 // convert vertex indices back to GLOBAL space
@@ -660,11 +678,24 @@ namespace VkRender::PathTracer {
             // 3.  Now patch the BVH nodes ----------------------------------------------
             //     (children still contiguous, only need global offset)
 
-            for (BVHNode& N : localNodes) {
+            for (BVHNode &N: localNodes) {
                 if (N.isLeaf()) {
                     N.leftFirst += globalTriStart; // only leaves need patching
                 }
             }
+
+            #ifndef NDEBUG
+            for(const BVHNode& n : localNodes)
+                if(n.isLeaf())
+                    for(uint32_t k=0;k<n.triCount;++k){
+                        uint32_t g = n.leftFirst+k;
+                        assert(g < m_tris.size());                // 1. triangle in range
+                        const Triangle& T = m_tris[g];
+                        assert(T.v0 < m_vertices.size() &&        // 2. vertices in range
+                               T.v1 < m_vertices.size() &&
+                               T.v2 < m_vertices.size());
+                    }
+            #endif
 
             //---------------- 5.  Append to the big BLAS pool & record range -----
             uint32_t firstNode = uint32_t(m_blasNodes.size());
@@ -680,30 +711,48 @@ namespace VkRender::PathTracer {
         }
     }
 
+
     void PathTracerSYCL::buildBLASForPointCloud() {
+        Utils::ScopedTimer t("PathTracer: Build BLAS – point clouds");
+
         m_betaNodes.clear();
         m_betaRanges.clear();
 
-        for (uint32_t p = 0; p < m_points.size(); ++p) {
-            const OrientedPoint& bp = m_points[p];
+        for (uint32_t pc = 0; pc < m_pointRanges.size(); ++pc) {
+            const PointCloudRange &pr = m_pointRanges[pc];
 
-            /*
-            // 1. generate 2-triangle billboard in *local* space
-            std::array<float3,4> v = makeBillboard(bp);   // use Eq. 7 scaling
-            std::array<Triangle,2> tris = {{ {0,1,2}, {0,2,3} }};
+            /* 1) copy this cloud’s patches into a local buffer            */
+            std::vector<OrientedPoint> localPts(pr.pointCount);
+            for (uint32_t i = 0; i < pr.pointCount; ++i)
+                localPts[i] = m_points[pr.firstPoint + i];
 
-            // 2. tiny BVH with a single leaf that points back to particle id
-            BasicBVH::buildLeaf(tris, v, bp , local);
+            /* 2) BVH build                                                */
+            std::vector<BVHNode> localNodes;
+            std::vector<uint32_t> perm;
+            QuadricBVH2D::build(localPts, localNodes, perm, 4);
 
-            */
-            std::vector<BVHNode> local;
+            /* 3) optional: reorder global storage in BVH order            */
+            {
+                std::vector<OrientedPoint> tmp(pr.pointCount);
+                for (uint32_t i = 0; i < pr.pointCount; ++i)
+                    tmp[i] = localPts[perm[i]];
+                std::copy(tmp.begin(), tmp.end(),
+                          m_points.begin() + pr.firstPoint);
+            }
 
-            // 3. append to global pool exactly like in your mesh loop
-            uint32_t first = m_betaNodes.size();
-            m_betaNodes.insert(m_betaNodes.end(), local.begin(), local.end());
-            m_betaRanges.push_back({first, uint32_t(local.size())});
+            /* 4) patch leaves → global indices                            */
+            for (BVHNode &N: localNodes)
+                if (N.isLeaf())
+                    N.leftFirst = pr.firstPoint + N.leftFirst;
+
+            /* 5) append to big pool                                       */
+            uint32_t first = uint32_t(m_betaNodes.size());
+            m_betaNodes.insert(m_betaNodes.end(),
+                               localNodes.begin(), localNodes.end());
+            m_betaRanges.push_back({first, uint32_t(localNodes.size())});
         }
     }
+
 
     //──────────────────────────────────────────────────────────────────────────
     // Build TLAS over *instances*  (one leaf = one Instance struct)
@@ -721,12 +770,22 @@ namespace VkRender::PathTracer {
         boxes.reserve(m_instances.size());
 
         for (uint32_t i = 0; i < m_instances.size(); ++i) {
-            const Instance& inst = m_instances[i];
-            const Transform& xf = m_transforms[inst.transformIndex];
+            const Instance &inst = m_instances[i];
+            const Transform &xf = m_transforms[inst.transformIndex];
 
             /* root node of this mesh’s BLAS */
-            const BLASRange& br = m_blasRanges[inst.geomIndex];
-            const BVHNode& root = m_blasNodes[br.firstNode];
+            BLASRange br{};
+            BVHNode root;
+            switch (inst.geomType) {
+                case GeometryType::PointCloud:
+                    br = m_betaRanges[inst.geomIndex];
+                    root = m_betaNodes[br.firstNode];
+                    break;
+                case GeometryType::Mesh:
+                    br = m_blasRanges[inst.geomIndex];
+                    root = m_blasNodes[br.firstNode];
+                    break;
+            }
 
             /* object‑space corners → world space, track min/max */
             float3 wmin{FLT_MAX}, wmax{-FLT_MAX};
@@ -752,7 +811,7 @@ namespace VkRender::PathTracer {
         std::function<int(int, int)> build = [&](int start, int end) -> int {
             int n = int(m_tlasNodes.size());
             m_tlasNodes.emplace_back();
-            TLASNode& N = m_tlasNodes.back();
+            TLASNode &N = m_tlasNodes.back();
 
             /* compute bounds of current set */
             float3 bmin{FLT_MAX}, bmax{-FLT_MAX};
@@ -768,8 +827,7 @@ namespace VkRender::PathTracer {
                 N.count = 1; // leaf
                 N.leftChild = boxes[start].inst; // points to Instance index
                 N.rightChild = 0;
-            }
-            else {
+            } else {
                 N.count = 0; // internal
 
                 /* centroid bounds → pick longest axis */
@@ -784,7 +842,7 @@ namespace VkRender::PathTracer {
                 float pivot = (cmin[axis] + cmax[axis]) * 0.5f;
 
                 auto midIter = std::partition(boxes.begin() + start, boxes.begin() + end,
-                                              [&](const Box& b) {
+                                              [&](const Box &b) {
                                                   float3 cc = (b.bmin + b.bmax) * 0.5f;
                                                   return cc[axis] < pivot;
                                               });
@@ -808,7 +866,7 @@ namespace VkRender::PathTracer {
             d_sceneDesc = nullptr;
         }
         // free buffers
-        auto freeIf = [&](void* p) {
+        auto freeIf = [&](void *p) {
             if (p) {
                 sycl::free(p, m_queue);
                 p = nullptr;

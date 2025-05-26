@@ -159,7 +159,7 @@ namespace VkRender {
 
         if (render) {
             if (renderToViewport) {
-                PathTracer::RenderSettings renderSettings(imageUI->numBounces, imageUI->photonCount);
+                PathTracer::RenderSettings renderSettings(imageUI->numBounces, 0, imageUI->photonCount);
 
                 PathTracer::EditorCamera editorCamera(m_editorCamera.get(), m_createInfo.width, m_createInfo.height, m_movedCamera);
                 m_pathTracerSYCL->updateDynamic(m_context->activeScene(), editorCamera);

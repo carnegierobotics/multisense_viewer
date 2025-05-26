@@ -6,7 +6,6 @@
 #define GPUDATATYPES_H
 
 #include <cstdint>
-
 #include "PathTracerTypes.h"
 
 namespace VkRender {
@@ -14,199 +13,266 @@ namespace VkRender {
 }
 
 namespace VkRender::PathTracer {
-    // helper
+    /*────────────────────────────────────────────────────────────────────────────*/
+    /*  Helper macro – verify every struct is 16‑byte aligned & sized             */
+    /*────────────────────────────────────────────────────────────────────────────*/
+#define CHECK_16(T) static_assert(alignof(T)==16 && sizeof(T)%16==0,           \
+                                 "" #T " must be 16‑byte aligned & sized")
 
-    /**** Core Data Types ****/
-
+    /*************************  Core Geometry *************************/
     struct alignas(16) Vertex {
-        float3 pos;
-        float3 norm;
-        // add UVs, tangents, etc. here if you need
+        float3 pos; // 16 B
+        float3 norm; // 16 B
     };
+
+    CHECK_16(Vertex);
 
     struct alignas(16) Triangle {
-        uint32_t v0, v1, v2;   // indices into a std::vector<Vertex>
-        float3 centroid;
+        uint32_t v0{}, v1{}, v2{}; // 12 B
+        uint32_t _pad0{}; // 16 B     ← keeps centroid 16‑aligned
+        float3 centroid; // 16 B
+        uint32_t _pad1{}; // 32 B ↦ sizeof()==32
     };
 
+    CHECK_16(Triangle);
 
-    struct alignas(16) OrientedPoint // your “beta‑kernel plane”
-    {
-        float3 pos;
-        float3 normal;
-        float3 scale;
-        float c;
-        float threshold; // controls kernel extent
-        float beta;
-        float2 minSupport;
-        float2 maxSupport;
-
-        uint32_t material; // who shades this point?
-
+    struct alignas(16) OrientedPoint {
+        float c{};
+        float threshold{};
+        float beta{};
+        float _pad0{}; // align next float2 to 16‑byte boundary
+        float2 minSupport{};
+        float2 maxSupport{};
+        uint32_t material{};
+        uint32_t _pad1{}; // 32 B
     };
 
-    struct alignas(32) BVHNode {
-        float3    aabbMin, aabbMax;
-        uint32_t  leftFirst;   // if leaf: index of first triangle, else index of left child
-        uint32_t  triCount;    // >0 => leaf; ==0 => internal
-        bool      isLeaf() const { return triCount > 0; }
+    CHECK_16(OrientedPoint);
+
+    struct alignas(16) BVHNode {
+        float3 aabbMin; // 16
+        float3 aabbMax; // 32
+        uint32_t leftFirst{}; // 36
+        uint32_t triCount{}; // 40
+        uint32_t _pad0{}; // 44
+        uint32_t _pad1{}; // 48  ✓
+        bool isLeaf() const {
+            return triCount > 0;
+        }
     };
 
-    // A contiguous slice of the global blasNodes[] buffer
+    CHECK_16(BVHNode);
+
     struct alignas(16) BLASRange {
-        uint32_t firstNode;   // index of the BLAS root inside blasNodes[]
-        uint32_t nodeCount;   // how many nodes belong to this BLAS
+        uint32_t firstNode{};
+        uint32_t nodeCount{};
+        uint32_t _pad0{};
+        uint32_t _pad1{}; // 16
     };
 
-    struct alignas(16) TLASNode   // one node in the top‑level tree
-    {
-        float3    aabbMin, aabbMax;
-        uint32_t  leftChild;   // index of child node  (same as BLAS: leaf vs internal rule)
-        uint32_t  count;       // ==0 → internal, 1 → leaf that stores an instIdx
-        uint32_t rightChild;
+    CHECK_16(BLASRange);
+
+    struct alignas(16) TLASNode {
+        float3 aabbMin; // 16
+        float3 aabbMax; // 32
+        uint32_t leftChild{}; // 36
+        uint32_t count{}; // 40
+        uint32_t rightChild{}; // 44
+        uint32_t _pad0{}; // 48
     };
 
+    CHECK_16(TLASNode);
 
-
+    /*************************  Appearance ***************************/
     struct alignas(16) Material {
-        float baseColor;
-        float diffuse;
-        float specular;
-        float phongExp;
-        // every material is usable by either mesh or point
+        float baseColor{};
+        float diffuse{};
+        float specular{};
+        float phongExp{}; // 16
     };
 
+    CHECK_16(Material);
+
+    /*************************  Transform ****************************/
     struct alignas(16) Transform {
-        float4x4 objectToWorld;
-        float4x4 worldToObject;
+        float4x4 objectToWorld{}; //  64
+        float4x4 worldToObject{}; // 128
     };
 
+    CHECK_16(Transform);
 
+    /*************************  Mesh‑area Lights *********************/
     struct alignas(16) MeshLight {
         static constexpr size_t MAX_TRIANGLES = 64;
 
-        // Per-triangle data (fixed-size arrays)
-        sycl::float3 v0[MAX_TRIANGLES];
-        sycl::float3 edge1[MAX_TRIANGLES];
-        sycl::float3 edge2[MAX_TRIANGLES];
-        sycl::float3 normal[MAX_TRIANGLES];
-        float cdf[MAX_TRIANGLES]; // prefix-sum(areas) normalized to [0,1]
-        uint32_t triangleCount = 0;
-        float totalArea = 0.0f; // sum of all triangle areas
-        float flux = 0.0f; // Φ in watts
-        float radiance = 0.0f; // L_e = Φ/(π*totalArea)
+        float3 v0[MAX_TRIANGLES];
+        float3 edge1[MAX_TRIANGLES];
+        float3 edge2[MAX_TRIANGLES];
+        float3 normal[MAX_TRIANGLES];
+        float cdf[MAX_TRIANGLES]{};
 
-        Transform transform;
+        uint32_t triangleCount{0};
+        float totalArea{0.f};
+        float flux{0.f};
+        float radiance{0.f};
 
-        // Add a new triangle to the light
-        void addTriangle(const sycl::float3 &v0, const sycl::float3 &e1, const sycl::float3 &e2, const sycl::float3 &n, float area) {
-            if (triangleCount >= MAX_TRIANGLES) {
-                // Optionally log or assert if you expect this to be rare
-                throw std::runtime_error("Too many triangles in the mesh Light");
-            }
+        Transform transform{};
 
-            this->v0[triangleCount] = v0;
-            this->edge1[triangleCount] = e1;
-            this->edge2[triangleCount] = e2;
-            this->normal[triangleCount] = n;
+        void addTriangle(const float3 &p0,
+                         const float3 &e1,
+                         const float3 &e2,
+                         const float3 &n,
+                         float area) {
+            if (triangleCount >= MAX_TRIANGLES)
+                return; // (host version throws; device just skips)
+
+            v0[triangleCount] = p0;
+            edge1[triangleCount] = e1;
+            edge2[triangleCount] = e2;
+            normal[triangleCount] = n;
 
             totalArea += area;
             cdf[triangleCount] = totalArea;
-            triangleCount++;
+            ++triangleCount;
         }
 
-        // Finalize CDF and radiance after adding all triangles
         void finalize() {
-            for (uint32_t i = 0; i < triangleCount; ++i) {
+            if (totalArea == 0.f) return;
+            for (uint32_t i = 0; i < triangleCount; ++i)
                 cdf[i] /= totalArea;
-            }
+
             radiance = flux / (M_PI * totalArea);
         }
     };
 
-    /**** Scene graph layer ****/
+    CHECK_16(MeshLight);
 
+    /*************************  Scene graph **************************/
     enum class GeometryType : uint32_t { Mesh = 0, PointCloud = 1 };
 
     struct alignas(16) Instance {
-        uint32_t geomType = 0; // cast to GeometryType
-        uint32_t geomIndex = 0; // which mesh or point cloud?
-        uint32_t materialIndex = 0; // appearance
-        uint32_t transformIndex = 0; // object→world
+        GeometryType geomType{GeometryType::Mesh};
+        uint32_t geomIndex{0};
+        uint32_t materialIndex{0};
+        uint32_t transformIndex{0};
     };
 
-    // ‑‑Mesh‑‑
+    CHECK_16(Instance);
+
     struct alignas(16) MeshRange {
-        uint32_t firstTri;
-        uint32_t triCount;
-        uint32_t firstVert;
-        uint32_t vertCount;
+        uint32_t firstTri{}, triCount{};
+        uint32_t firstVert{}, vertCount{}; // 16
     };
 
-    // ‑‑Point cloud‑‑
+    CHECK_16(MeshRange);
+
     struct alignas(16) PointCloudRange {
-        uint32_t firstPoint;
-        uint32_t pointCount;
+        uint32_t firstPoint{};
+        uint32_t pointCount{};
+        uint32_t _pad0{};
+        uint32_t _pad1{}; // 16
     };
 
-
+    CHECK_16(PointCloudRange);
 
     struct alignas(16) Camera {
-        float4x4 view{};
-        float4x4 proj{};
-        float3 pos{};
-        float3 forward{}; // Sensor plane normal
-        uint32_t width{}, height{};
-
-        uint32_t firstPixel{}; // offset into a big framebuffer
+        float4x4 view{}; //  64
+        float4x4 proj{}; // 128
+        float3 pos{}; // 144
+        float3 forward{}; // 160
+        uint32_t width{}, height{}; // 168
+        uint32_t firstPixel{}; // 172
+        uint32_t _pad0{}; // 176
     };
 
+    CHECK_16(Camera);
 
+    /*************************  Scene descriptor *********************/
     struct alignas(16) SceneDesc {
-        // geometry
+        /* geometry */
         const Triangle *triangles = nullptr;
         const MeshRange *meshes = nullptr;
         const OrientedPoint *points = nullptr;
         const PointCloudRange *pointClouds = nullptr;
-        const Vertex* vertices; // see §2
+        const Vertex *vertices = nullptr;
 
-        // scene graph
+        /* graph  */
         const Instance *instances = nullptr;
         const Transform *transforms = nullptr;
 
-        // Bvh
-        const BVHNode *blasNodes = nullptr;   // flattened storage for every BLAS node
+        /* BVHs    */
+        const BVHNode *blasNodes = nullptr;
         const BLASRange *blasRanges = nullptr;
         const TLASNode *tlasNodes = nullptr;
-        uint32_t blasNodeCount = 0;
-        uint32_t tlasNodeCount = 0;
+        const BVHNode *betaNodes = nullptr;
+        const BLASRange *betaRanges = nullptr;
 
-        // appearance
+        /* appearance */
         const Material *materials = nullptr;
         const MeshLight *lights = nullptr;
 
-        // view
+        /* cameras */
         const Camera *cameras = nullptr;
 
-        // counts (uint32 keeps struct 16‑byte aligned)
-        uint32_t triCount = 0, vertexCount = 0, meshCount = 0;
-        uint32_t pointCount = 0, pointCloudCount = 0;
-        uint32_t instanceCount = 0, transformCount = 0;
-        uint32_t materialCount = 0, lightCount = 0;
-        uint32_t cameraCount = 0;
-        unsigned int photonCount = 0;
+        /* counts */
+        uint32_t triCount{}, vertexCount{}, meshCount{};
+        uint32_t pointCount{}, pointCloudCount{};
+        uint32_t instanceCount{}, transformCount{};
+        uint32_t materialCount{}, lightCount{};
+        uint32_t cameraCount{};
+        uint32_t photonCount{}; // keep 4‑byte – pad below
+        uint32_t _pad0{}; //  4  →  make size multiple of 16
     };
 
+    CHECK_16(SceneDesc);
 
+    /*************************  Misc *********************************/
     struct alignas(16) RenderSettings {
-        uint32_t maxBounces = 32;
-        uint64_t photonCount = 1000;
+        uint32_t maxBounces{32};
+        uint32_t _pad0{};
+        uint64_t photonCount{1000}; // 16
     };
+
+    CHECK_16(RenderSettings);
 
     struct alignas(16) FrameBuffer {
-        float4 *memory = nullptr;
-        uint32_t frameBufferSize = 0;
+        float4 *memory{nullptr};
+        uint32_t frameBufferSize{0};
+        uint32_t _pad0{};
+        uint64_t _pad1{}; // 16
     };
-}
+
+    CHECK_16(FrameBuffer);
+
+    /*************************  Ray & Hit *****************************/
+    struct alignas(16) Ray {
+        float3 origin; // 16
+        float3 direction; // 32
+    };
+
+    CHECK_16(Ray);
+
+    inline Ray makeRay(float3 origin, float3 dir) {
+        Ray r;
+        r.origin = origin;
+        r.direction = dir;
+        return r;
+    }
+
+    struct alignas(16) Hit {
+        float t{FLT_MAX};
+        float u{0.f}, v{0.f};
+        float _pad0{}; // 16
+        float3 hitPoint; // 32
+        uint32_t primIdx{UINT32_MAX};
+        uint32_t instIdx{UINT32_MAX};
+        GeometryType geomType{GeometryType::Mesh};
+        uint32_t _pad1{}; // 48
+    };
+
+    CHECK_16(Hit);
+
+#undef CHECK_16
+} // namespace VkRender::PathTracer
 
 #endif //GPUDATATYPES_H

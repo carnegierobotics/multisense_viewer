@@ -114,14 +114,21 @@ namespace VkRender {
             //----------------------------------------------------------------------
             // 6.  Optional buffers (present ? copy : fill with defaults) ----------
             //----------------------------------------------------------------------
+            std::default_random_engine rng(std::random_device{}());
+
             auto copy_or_default = [&](std::shared_ptr<tinyply::PlyData> &src,
-                                       float def) -> std::vector<float> {
-                std::vector<float> dst(count, def);
+                                       float def,
+                                       float noise_amplitude = 0.0f) -> std::vector<float> {
+                std::vector<float> dst(count);
                 if (src) {
                     if (src->count != count)
                         throw std::runtime_error("Inconsistent vertex count for optional "
                                                  "property in: " + path.string());
                     std::memcpy(dst.data(), src->buffer.get(), count * sizeof(float));
+                } else {
+                    std::normal_distribution dist(-noise_amplitude, noise_amplitude);
+                    for (auto &v : dst)
+                        v = def + dist(rng);
                 }
                 return dst;
             };
@@ -150,14 +157,14 @@ namespace VkRender {
             // 3. build buffers ------------------------------------------------
             const std::vector<float> rotBuf = copy_or_default_vec4(rotData, {1.0f,0.0f,0.0f,0.0f});
 
-            const std::vector<float> aBuf = copy_or_default(aData, 1.0f);
-            const std::vector<float> bBuf = copy_or_default(bData, 1.0f);
-            const std::vector<float> cBuf = copy_or_default(cData, 1.0f);
-            const std::vector<float> txBuf = copy_or_default(txData, -1.0f);
-            const std::vector<float> tyBuf = copy_or_default(tyData, 1.0f);
-            const std::vector<float> ksBuf = copy_or_default(ksData, 0.25f);
-            const std::vector<float> thrBuf = copy_or_default(thrData, 0.1f);
-            const std::vector<float> betBuf = copy_or_default(betaData, 0.0f);
+            const std::vector<float> aBuf   = copy_or_default(aData, 1.0f, 0.05f);
+            const std::vector<float> bBuf   = copy_or_default(bData, 1.0f, 0.05f);
+            const std::vector<float> cBuf   = copy_or_default(cData, 1.0f, 0.05f);
+            const std::vector<float> txBuf  = copy_or_default(txData, -1.0f, 0.1f);
+            const std::vector<float> tyBuf  = copy_or_default(tyData, 1.0f, 0.1f);
+            const std::vector<float> ksBuf  = copy_or_default(ksData, 0.25f, 0.02f);
+            const std::vector<float> thrBuf = copy_or_default(thrData, 0.1f, 0.01f);
+            const std::vector<float> betBuf = copy_or_default(betaData, 0.0f, 0.01f);
 
             //----------------------------------------------------------------------
             // 7.  Build the asset --------------------------------------------------

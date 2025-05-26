@@ -34,6 +34,7 @@ namespace VkRender::PathTracer {
     {
         float3 pos;
         float3 normal;
+        float3 scale;
         float c;
         float threshold; // controls kernel extent
         float beta;

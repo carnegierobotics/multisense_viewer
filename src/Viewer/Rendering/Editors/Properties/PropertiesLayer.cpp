@@ -1278,6 +1278,7 @@ namespace VkRender {
                             quadricParams->threshold = quadricAsset->threshold[i];
                             quadricParams->b_beta = quadricAsset->beta[i];
                             quadricParams->kernelScale = quadricAsset->kernelScale[i];
+                            quadricParams->kernelScale = quadricAsset->kernelScale[i];
 
                             comp.addQuadric(quadricAsset->positions[i], quadricAsset->rotations[i], quadricAsset->a[i],
                                             quadricAsset->b[i],
@@ -1287,6 +1288,10 @@ namespace VkRender {
                                             quadricAsset->threshold[i],
                                             quadricAsset->beta[i],
                                             quadricAsset->kernelScale[i]);
+
+                            quadricParams->min = comp.min[i];
+                            quadricParams->max = comp.max[i];
+
                         }
                     }
                 }

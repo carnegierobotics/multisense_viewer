@@ -140,6 +140,12 @@ namespace VkRender {
         if (vertexBufferSize == 0)
             return nullptr;
 
+        glm::vec3 centroid(0.0f);
+        for (const auto &vertex: meshData->m_vertices) {
+            centroid += vertex.pos;
+        }
+        centroid /= static_cast<float>(meshData->m_vertices.size());
+        meshInstance->centroid = centroid;
         // Decide on memory properties
         VkMemoryPropertyFlags memoryProperties;
         VkBufferUsageFlags usageFlags;

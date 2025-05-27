@@ -68,7 +68,6 @@ namespace VkRender {
     }
 
     SceneRenderer::~SceneRenderer() {
-
         vkDestroyPipelineLayout(m_context->vkDevice().m_LogicalDevice, m_pipelineLayout, nullptr);
     }
 
@@ -202,6 +201,7 @@ namespace VkRender {
                 batch.mesh = meshInst;
                 batch.material = matInst;
                 batch.key = key;
+                batch.alphaMode = matInst->alphaMode; // or inspect materialComponent.alphaMode()
             }
             batch.cpuInstanceTransform.push_back({tc.getTransform()}); // store locally
             if (ent.hasComponent<MaterialComponent>()) {
@@ -242,8 +242,8 @@ namespace VkRender {
             batch.materialBase = globalMaterialCursor; // slice start in SSBO
 
             materials.insert(materials.end(),
-                              batch.cpuInstanceMaterial.begin(),
-                              batch.cpuInstanceMaterial.end());
+                             batch.cpuInstanceMaterial.begin(),
+                             batch.cpuInstanceMaterial.end());
 
             globalMaterialCursor += static_cast<uint32_t>(batch.cpuInstanceMaterial.size());
         }
@@ -294,67 +294,76 @@ namespace VkRender {
         renderPassInfo.renderPass = m_renderPass->getRenderPass();
         renderPassInfo.debugName = "SceneRenderer::";
 
+        // Sort batches before we render them
+        std::vector<InstanceBatch *> opaqueBatches, transparentBatches;
         for (auto &kv: m_batches) {
-            auto &batch = kv.second;
-            batch.mesh->instanceCount = batch.instanceCount;
-
-            // We dont support rendering a material so if it doesn't exist create a dummy material that is empty
-            if (!batch.material) {
-                batch.material = std::make_shared<MaterialInstance>();
-                // 1 Load Shader code
-                auto vsSPV = assetManager()->get<SPIRVAsset>("BlinnPhongShader.vert");
-                auto fsSPV = assetManager()->get<SPIRVAsset>( "NoMaterial.frag");
-                // 2) Wrap into a GPU resource
-                VulkanShaderModuleCreateInfo vertexShaderCreateInfo(m_context->vkDevice(), vsSPV, VK_SHADER_STAGE_VERTEX_BIT,
-                                                                    "BlinnPhongShader.vert");
-                VulkanShaderModuleCreateInfo fragmentShaderCreateInfo(m_context->vkDevice(), fsSPV,
-                                                                      VK_SHADER_STAGE_FRAGMENT_BIT,
-                                                                      "BlinnPhongShader.frag");
-                // 3) Later in pipeline creation:
-
-                // 3) Ask the GPU cache for shared modules:
-                auto vsModule = cache()->shaderModules.get(vertexShaderCreateInfo);
-                auto fsModule = cache()->shaderModules.get(fragmentShaderCreateInfo);
-
-                batch.material->addShader(vsModule);
-                batch.material->addShader(fsModule);
+            InstanceBatch &b = kv.second;
+            switch (b.alphaMode) {
+                case AlphaMode::Opaque:
+                    opaqueBatches.push_back(&b);
+                    break;
+                case AlphaMode::Blend:
+                    transparentBatches.push_back(&b);
+                    break;
             }
-            // pipeline (reuse or create)
+        }
+
+        if (auto cam = m_activeCamera.lock()) {
+            auto camPos = cam->matrices.position;
+            std::sort(transparentBatches.begin(), transparentBatches.end(),
+                [&](InstanceBatch *a, InstanceBatch *b) {
+                    auto da = glm::length(a->mesh->centroid - camPos);
+                    auto db = glm::length(b->mesh->centroid - camPos);
+                    return da > db;  // far first
+                });
+        }
+
+
+
+        // 2) Factor out the common draw code
+        auto drawBatch = [&](InstanceBatch *batch) {
+            // update instance count
+            batch->mesh->instanceCount = batch->instanceCount;
+
+            // ensure you pick/create the right pipeline (opaque vs blend)
             auto pipeline = m_pipelineManager.getOrCreatePipeline(
-                batch.key,
-                makePipelineInfo(batch.material.get()),
+                batch->key,
+                makePipelineInfo(batch->material.get()), // pass alphaMode so you choose the right blend/depth state
                 renderPassInfo,
                 m_pipelineLayout,
                 m_context);
-            vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                              pipeline->getPipeline());
 
-            // bind sampler set at set=3
-            if (batch.material && batch.material->baseColorTexture) {
-                auto samplerSet = buildMaterialSamplerSet(batch.material);
+            vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->getPipeline());
+
+            if (batch->material && batch->material->baseColorTexture) {
+                auto samplerSet = buildMaterialSamplerSet(batch->material);
                 vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                        m_pipelineLayout, 3, 1, &samplerSet[DescriptorManagerType::MaterialSampler], 0,
-                                        nullptr);
+                                        m_pipelineLayout, 3,
+                                        1, &samplerSet[DescriptorManagerType::MaterialSampler],
+                                        0, nullptr);
             }
 
-            // push constants
-            BatchPC pc{batch.transformBase, batch.materialBase};
+            BatchPC pc{batch->transformBase, batch->materialBase};
             vkCmdPushConstants(cb, m_pipelineLayout,
-                               VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                               VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT,
                                0, sizeof(pc), &pc);
 
-            RenderCommand renderCommand;
-            renderCommand.pipeline = pipeline;
-            renderCommand.meshInstance = batch.mesh.get();
-            renderCommand.materialInstance = batch.material.get();
-            // vertex & index bindings
-            bindResourcesAndDraw(commandBuffer, renderCommand);
+            RenderCommand rc{ pipeline, batch->mesh.get(), batch->material.get() };
+            bindResourcesAndDraw(commandBuffer, rc);
+            m_stats.instanceTotal += batch->instanceCount;
+        };
 
-            m_stats.instanceTotal += batch.mesh->instanceCount;
+        // 3) Draw opaque first (with depth writes on, blending off)
+        for (auto *b : opaqueBatches) {
+            drawBatch(b);
         }
 
-        // 6) Stats and end
-        m_stats.drawCalls = static_cast<uint32_t>(m_batches.size());
+        // 4) Then draw transparent (depth writes off, blending on)
+        for (auto *b : transparentBatches) {
+            drawBatch(b);
+        }
+
+        m_stats.drawCalls = uint32_t(opaqueBatches.size() + transparentBatches.size());
         debugPrintStats();
     }
 
@@ -409,8 +418,7 @@ namespace VkRender {
 
         // 2) ancestors ------------------------------------------------------
         Entity cur = e;
-        while (cur.getParent())
-        {
+        while (cur.getParent()) {
             cur = cur.getParent();
             if (cur.hasComponent<VisibleComponent>() &&
                 !cur.getComponent<VisibleComponent>().visible)
@@ -467,7 +475,7 @@ namespace VkRender {
                 {1, 0, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 3},
                 {2, 0, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 6},
                 {3, 0, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 8},
-                {4, 0, VK_FORMAT_R32G32B32_SFLOAT, sizeof(float) * 10},
+                {4, 0, VK_FORMAT_R32G32B32A32_SFLOAT, sizeof(float) * 10},
             }
         };
         info.attrCount = 5;
@@ -483,7 +491,7 @@ namespace VkRender {
 
         auto &matC = entity.getComponent<MaterialComponent>();
         auto it = m_materialInstances.find(entity.getUUID());
-        if (it != m_materialInstances.end()) return it->second;
+        if (it != m_materialInstances.end() && !matC.reloadShader) return it->second;
 
         auto mi = initializeMaterial(entity, matC);
         m_materialInstances[entity.getUUID()] = mi;
@@ -508,7 +516,7 @@ namespace VkRender {
         imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
         imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
         imageCI.usage =
-            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
         imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         VkImageViewCreateInfo imageViewCI = Populate::imageViewCreateInfo();
@@ -531,7 +539,7 @@ namespace VkRender {
 
         auto vulkanImage = cache()->images.get(vulkanImageCreateInfo);
 
-        VulkanTexture2DCreateInfo texCreateInfo{ m_context->vkDevice(), texAsset};
+        VulkanTexture2DCreateInfo texCreateInfo{m_context->vkDevice(), texAsset};
         texCreateInfo.image = vulkanImage;
 
         auto vkTex = cache()->textures.get(texCreateInfo);
@@ -557,6 +565,9 @@ namespace VkRender {
 
         materialInstance->addShader(vsModule);
         materialInstance->addShader(fsModule);
+
+
+        materialInstance->alphaMode = materialComponent.alphaMode;
 
         Log::Logger::getInstance()->info("Created Material for Entity: {}", entity.getName());
         return materialInstance;

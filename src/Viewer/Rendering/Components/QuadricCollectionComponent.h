@@ -91,8 +91,8 @@ namespace VkRender {
                         float thresholdVal = 0.01f,
                         float betaVal = 0.0f,
                         float kernelScaleval = 0.0f,
-                        glm::vec2 minVal = glm::vec2(-0.5f),
-                        glm::vec2 maxVal = glm::vec2(0.5f)) {
+                        glm::vec2 minVal = glm::vec2(-1.0f),
+                        glm::vec2 maxVal = glm::vec2(1.0f)) {
             positions.push_back(position);
             rotations.push_back(rotation);
             a.push_back(a_val);

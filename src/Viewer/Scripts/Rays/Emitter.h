@@ -8,7 +8,7 @@
 
 #include "Viewer/Scenes/ScriptableEntity.h"
 
-//#include <Viewer/Rendering/PathTracer/PathTracerSYCL.h>
+//#include <Viewer/Rendering/PathTracer/PathTracerSetup.h>
 
 namespace VkRender {
     class Emitter2 : ScriptableEntity {
@@ -16,7 +16,7 @@ namespace VkRender {
         int quadricIndex = 0;
         glm::vec3 hitPosition = glm::vec3(0.0f);
         glm::vec3 hitNormal = glm::vec3(0.0f);
-        std::unique_ptr<PathTracer::PathTracerSYCL> m_pathTracerSYCL;
+        std::unique_ptr<PathTracer::PathTracerSetup> m_PathTracerSetup;
 
         void onUpdate(Timestep ts) override;
 

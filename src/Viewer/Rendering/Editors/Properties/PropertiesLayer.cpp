@@ -772,6 +772,13 @@ namespace VkRender {
                 component.reloadShader = true;
             }
 
+            auto const& names = getAlphaModeStringList();
+            int current = static_cast<int>(component.alphaMode);
+            if (ImGui::Combo("Alpha Mode", &current,
+                             names.data(), (int)names.size()))
+            {
+                component.alphaMode = static_cast<AlphaMode>(current);
+            }
             ImGui::Checkbox("Apply Texture", &component.useTexture);
 
             ImGui::Dummy(ImVec2(5.0f, 5.0f));
@@ -800,7 +807,7 @@ namespace VkRender {
             ImGui::Text("Fragment Shader:");
             ImGui::Text("%s", component.fragmentShaderName.string().c_str());
             if (ImGui::Button("Load Fragment Shader")) {
-                std::vector<std::string> types{".frag"};
+                std::vector<std::string> types{".frag", ".spv"};
                 EditorUtils::openImportFileDialog("Load Fragment Shader", types, LayerUtils::FRAGMENT_SHADER_FILE,
                                                   &m_loadFileFuture);
             }

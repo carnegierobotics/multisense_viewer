@@ -2,7 +2,7 @@
 // Created by magnus on 5/2/25.
 //
 
-#include "PathTracerSYCL.h"
+#include "PathTracerSetup.h"
 
 #include <glm/gtc/matrix_inverse.hpp>
 
@@ -19,12 +19,12 @@
 
 
 namespace VkRender::PathTracer {
-    PathTracerSYCL::~PathTracerSYCL() {
+    PathTracerSetup::~PathTracerSetup() {
         freeDeviceMemory();
     }
 
 
-    void PathTracerSYCL::setupFrameBuffers() {
+    void PathTracerSetup::setupFrameBuffers() {
         Utils::ScopedTimer timer("PathTracer: Setup Framebuffers");
 
         // Host framebuffer
@@ -56,7 +56,7 @@ namespace VkRender::PathTracer {
         Log::Logger::getInstance()->info("Done Creating Framebuffers");
     }
 
-    void PathTracerSYCL::uploadScene(const std::shared_ptr<Scene> &scene, EditorCamera editorCamera) {
+    void PathTracerSetup::uploadScene(const std::shared_ptr<Scene> &scene, EditorCamera editorCamera) {
         // free existing GPU memory
         freeDeviceMemory();
         collectCameras(scene, editorCamera);
@@ -77,7 +77,7 @@ namespace VkRender::PathTracer {
     }
 
 
-    void PathTracerSYCL::collectCameras(const std::shared_ptr<Scene> &scene, EditorCamera editorCamera) {
+    void PathTracerSetup::collectCameras(const std::shared_ptr<Scene> &scene, EditorCamera editorCamera) {
         m_cameras.clear();
 
         uint32_t pixelOffset = 0;
@@ -136,12 +136,12 @@ namespace VkRender::PathTracer {
 
         if (pixelOffset >= m_createInfo.framebufferSize) {
             Log::Logger::getInstance()->error("More cameras than framebuffers");
-            throw std::runtime_error("PathTracerSYCL::PathTracerSYCL(): More cameras than framebuffers");
+            throw std::runtime_error("PathTracerSetup::PathTracerSetup(): More cameras than framebuffers");
         }
     }
 
 
-    void PathTracerSYCL::updateDynamic(const std::shared_ptr<Scene> &scene, EditorCamera editorCamera) {
+    void PathTracerSetup::updateDynamic(const std::shared_ptr<Scene> &scene, EditorCamera editorCamera) {
         Utils::ScopedTimer timer("PathTracer: Update Dynamic Data");
 
         if (!d_sceneDesc) {
@@ -193,7 +193,7 @@ namespace VkRender::PathTracer {
         m_queue.wait();
     }
 
-    void PathTracerSYCL::renderFrame(const RenderSettings &settings) {
+    void PathTracerSetup::renderFrame(const RenderSettings &settings) {
         if (!d_sceneDesc) {
             Log::Logger::getInstance()->error("Path Tracer has not been initialized");
         }
@@ -208,7 +208,7 @@ namespace VkRender::PathTracer {
         event.wait();
     }
 
-    void PathTracerSYCL::generateImages(std::span<std::byte> outRGBA32f) {
+    void PathTracerSetup::generateImages(std::span<std::byte> outRGBA32f) {
         auto &ci = m_createInfo;
         for (auto &camera: m_cameras) {
             uint32_t imageSize = static_cast<uint32_t>(camera.width) * static_cast<uint32_t>(camera.height);
@@ -219,7 +219,7 @@ namespace VkRender::PathTracer {
         //m_queue.memcpy(outRGBA32f.data(), d_frameBuffer, bytes).wait();
     }
 
-    void PathTracerSYCL::generateEditorImage(const std::shared_ptr<VulkanTexture2D> &viewportTexture, float gamma,
+    void PathTracerSetup::generateEditorImage(const std::shared_ptr<VulkanTexture2D> &viewportTexture, float gamma,
                                              float exposure) {
         Utils::ScopedTimer timer("PathTracer: Generate Editor Image");
 
@@ -237,7 +237,7 @@ namespace VkRender::PathTracer {
         const size_t floatByteSize = floatComponents * sizeof(float);
 
         // 1) Copy float32 RGBA image from device to host scratch buffer
-        Log::Logger::getInstance()->trace("PathTracerSYCL::generateEditorImage(): {}/{}",
+        Log::Logger::getInstance()->trace("PathTracerSetup::generateEditorImage(): {}/{}",
                                           static_cast<float>(floatByteSize) / 1000000.0f,
                                           static_cast<float>(m_createInfo.framebufferSize) / 1000000.0f);
 
@@ -268,7 +268,7 @@ namespace VkRender::PathTracer {
         viewportTexture->loadImage(rgba8.data());
     }
 
-    void PathTracerSYCL::collectGeometry(const std::shared_ptr<Scene> &scene) {
+    void PathTracerSetup::collectGeometry(const std::shared_ptr<Scene> &scene) {
         Utils::ScopedTimer timer("PathTracer: Collect Geometry");
 
         m_points.clear();
@@ -365,7 +365,7 @@ namespace VkRender::PathTracer {
         }
     }
 
-    void PathTracerSYCL::collectInstances(const std::shared_ptr<Scene> &scene) {
+    void PathTracerSetup::collectInstances(const std::shared_ptr<Scene> &scene) {
         Utils::ScopedTimer timer("PathTracer: Collect Instances");
         m_instances.clear();
         m_transforms.clear();
@@ -424,7 +424,7 @@ namespace VkRender::PathTracer {
         }
     }
 
-    void PathTracerSYCL::collectLights(const std::shared_ptr<Scene> &scene) {
+    void PathTracerSetup::collectLights(const std::shared_ptr<Scene> &scene) {
         m_lights.clear();
 
         // View both mesh, material, and transform components
@@ -481,7 +481,7 @@ namespace VkRender::PathTracer {
     }
 
 
-    void PathTracerSYCL::buildSceneDesc() {
+    void PathTracerSetup::buildSceneDesc() {
         const size_t vertCount = m_vertices.size();
 
         //—— allocate & copy SoA (positions + normals) ——
@@ -603,7 +603,7 @@ namespace VkRender::PathTracer {
         m_sceneDescHost.cameraCount = m_sceneDescDevice.cameraCount;
     }
 
-    void PathTracerSYCL::buildBLASForAllMeshes() {
+    void PathTracerSetup::buildBLASForAllMeshes() {
         Utils::ScopedTimer timer("PathTracer: Build BLAS");
 
         m_blasNodes.clear(); // flat pool that will hold *every* mesh BVH
@@ -712,7 +712,7 @@ namespace VkRender::PathTracer {
     }
 
 
-    void PathTracerSYCL::buildBLASForPointCloud() {
+    void PathTracerSetup::buildBLASForPointCloud() {
         Utils::ScopedTimer t("PathTracer: Build BLAS – point clouds");
 
         m_betaNodes.clear();
@@ -757,7 +757,7 @@ namespace VkRender::PathTracer {
     //──────────────────────────────────────────────────────────────────────────
     // Build TLAS over *instances*  (one leaf = one Instance struct)
     //──────────────────────────────────────────────────────────────────────────
-    void PathTracerSYCL::buildTopLevelBVH() {
+    void PathTracerSetup::buildTopLevelBVH() {
         Utils::ScopedTimer timer("PathTracer: Build TLAS");
 
         using Box = struct {
@@ -859,7 +859,7 @@ namespace VkRender::PathTracer {
     }
 
 
-    void PathTracerSYCL::freeDeviceMemory() {
+    void PathTracerSetup::freeDeviceMemory() {
         // free descriptor
         if (d_sceneDesc) {
             sycl::free(d_sceneDesc, m_queue);

@@ -154,8 +154,8 @@ namespace VkRender {
         float kernelScale = 1.0f;
         // Sampling parameters
         int gridResolution = 50; // number of grid points in each dimension
-        glm::vec2 min = glm::vec2(-0.5f);
-        glm::vec2 max = glm::vec2(0.5f);
+        glm::vec2 min = glm::vec2(-1.0f);
+        glm::vec2 max = glm::vec2(1.0f);
 
 
         std::string getIdentifier() const override {

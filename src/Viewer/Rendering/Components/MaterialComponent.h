@@ -15,9 +15,33 @@
 namespace VkRender {
     enum class AlphaMode {
         Opaque,
-        Mask,
         Blend
     };
+
+    inline const std::array<const char*, 3>& getAlphaModeStringList() {
+        // make the size match the enum count
+        static constexpr std::array<const char*, 3> names = {
+            "Opaque",
+            "Blend"
+        };
+        return names;
+    }
+    // optional: string conversions
+    inline const char* toString(AlphaMode m) {
+        switch (m) {
+            case AlphaMode::Opaque: return "Opaque";
+            case AlphaMode::Blend:  return "Blend";
+        }
+        return "Unknown";
+    }
+
+    inline AlphaMode fromString(const std::string& s) {
+        if (s == "Opaque") return AlphaMode::Opaque;
+        if (s == "Blend")  return AlphaMode::Blend;
+        throw std::runtime_error("Invalid AlphaMode: " + s);
+    }
+
+
 
     struct MaterialComponent {
         glm::vec4 albedo = glm::vec4(1.0f); // Base color (could be an albedo color)
@@ -29,6 +53,7 @@ namespace VkRender {
 
         bool reloadShader = false;
         bool useTexture = false;
+        AlphaMode alphaMode = AlphaMode::Opaque;
 
         std::filesystem::path vertexShaderName =  "BlinnPhongShader.vert";
         std::filesystem::path fragmentShaderName = "BlinnPhongShader.frag";

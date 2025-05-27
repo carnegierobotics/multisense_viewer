@@ -355,6 +355,8 @@ namespace VkRender {
             // Serialize metallic factor (float)
             out << YAML::Key << "Emission";
             out << YAML::Value << material.emission;
+            out << YAML::Key << "AlphaMode";
+            out << YAML::Value << toString(material.alphaMode);
             out << YAML::Key << "Diffuse";
             out << YAML::Value << material.diffuse;
             out << YAML::Key << "Specular";
@@ -712,6 +714,11 @@ namespace VkRender {
                     auto baseColor = materialComponent["BaseColor"].as<std::vector<float> >();
                     if (baseColor.size() == 4) {
                         material.albedo = glm::vec4(baseColor[0], baseColor[1], baseColor[2], baseColor[3]);
+                    }
+                    if (materialComponent["AlphaMode"]) {
+                        material.alphaMode = fromString(materialComponent["AlphaMode"].as<std::string>());
+                    } else {
+                        material.alphaMode = AlphaMode::Opaque; // Default value or handle as needed
                     }
                     if (materialComponent["Emission"]) {
                         material.emission = materialComponent["Emission"].as<float>();

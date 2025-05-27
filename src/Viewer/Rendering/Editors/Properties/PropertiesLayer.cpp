@@ -768,9 +768,7 @@ namespace VkRender {
             ImGui::ColorEdit3("##EmissiveFactor", glm::value_ptr(component.emissiveFactor));
 */
 
-            if (ImGui::Button("Reload Material Shader")) {
-                component.reloadShader = true;
-            }
+             component.reloadShader = ImGui::Button("Reload Material Shader");
 
             auto const& names = getAlphaModeStringList();
             int current = static_cast<int>(component.alphaMode);

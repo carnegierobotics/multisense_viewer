@@ -18,9 +18,9 @@ namespace VkRender {
         Blend
     };
 
-    inline const std::array<const char*, 3>& getAlphaModeStringList() {
+    inline const std::array<const char*, 2>& getAlphaModeStringList() {
         // make the size match the enum count
-        static constexpr std::array<const char*, 3> names = {
+        static constexpr std::array<const char*, 2> names = {
             "Opaque",
             "Blend"
         };

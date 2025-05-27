@@ -4,12 +4,13 @@
 
 #ifndef MESHPARAMETERS_H
 #define MESHPARAMETERS_H
-
+#define GLM_ENABLE_EXPERIMENTAL
 #include <memory>
 #include <string>
 #include <filesystem>
 #include <glm/vec3.hpp>
 #include <utility>
+#include <glm/gtx/string_cast.hpp>
 
 #include <Viewer/Application/ApplicationConfig.h>
 
@@ -169,6 +170,25 @@ namespace VkRender {
                 << "bbeta" << b_beta << "_"
                 << "kernelScale" << kernelScale << "_"
                 << "thresh" << threshold;
+            return oss.str();
+        }
+
+        std::shared_ptr<MeshData> generateMeshData() override;
+    };
+
+class Gaussian2DMeshParameters : public IMeshParameters {
+    public:
+        // Quadric parameters
+
+        float covX = 1.0f;
+        float covY = 1.0f;
+        glm::vec3 color = glm::vec3(1.0f);      // zero‑order SH (linear RGB)
+        float     opacity = 1.0f;      // α ∈ [0,1]
+        float threshold = 0.0f;
+
+        std::string getIdentifier() const override {
+            std::ostringstream oss;
+            oss << "2DGS_" << opacity << glm::to_string(color);
             return oss.str();
         }
 

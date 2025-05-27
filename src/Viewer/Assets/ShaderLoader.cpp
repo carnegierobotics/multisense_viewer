@@ -12,11 +12,11 @@ namespace VkRender {
         return key.ends_with(".spv") ||  key.ends_with(".comp") ||  key.ends_with(".frag") ||  key.ends_with(".vert");
     }
 
-    std::shared_ptr<BaseAsset> ShaderLoader::load(const std::string& key) {
+    std::shared_ptr<BaseAsset> ShaderLoader::load(const std::filesystem::path& key) {
         std::lock_guard<std::mutex> lock(m_mutex);
 
         // 1) Cache lookup
-        auto it = m_moduleCache.find(key);
+        auto it = m_moduleCache.find(key.string());
         if (it != m_moduleCache.end()) {
             return it->second;
         }
@@ -41,7 +41,7 @@ namespace VkRender {
 
         // 4) Wrap and cache
         auto asset = std::make_shared<SPIRVAsset>(std::move(spirv));
-        m_moduleCache.emplace(key, asset);
+        m_moduleCache.emplace(key.string(), asset);
         return asset;
     }
 

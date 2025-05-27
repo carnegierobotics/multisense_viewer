@@ -10,8 +10,10 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <filesystem>
+#include <random>
 #include <fstream>
 #include <vector>
+#include <array>
 #include <memory>
 #include <stdexcept>
 #include <cstring>
@@ -49,7 +51,11 @@ namespace VkRender {
             return hasExtension(key, {".ply"});
         }
 
-        std::shared_ptr<BaseAsset> load(const std::string &key) override {
+        std::type_index assetType() const override {
+            return typeid(QuadricCloudAsset);
+        }
+
+        std::shared_ptr<BaseAsset> load(const std::filesystem::path &key) override {
             std::filesystem::path path{key};
             std::ifstream stream(path, std::ios::binary);
             if (!stream.is_open())

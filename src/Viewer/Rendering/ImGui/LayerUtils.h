@@ -32,6 +32,7 @@ namespace VkRender::LayerUtils {
         OBJ_FILE,
         PLY_3DGS,
         PLY_QUADRATIC,
+        PLY_2DGS,
         PLY_MESH,
         TEXTURE_FILE,
         VERTEX_SHADER_FILE,

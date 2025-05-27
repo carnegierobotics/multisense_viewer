@@ -7,10 +7,10 @@
 #include "Viewer/Rendering/Editors/Properties/PropertiesLayer.h"
 
 #include <Viewer/Assets/QuadricLoader.h>
+#include <Viewer/Assets/Gaussian2DAssetLoader.h>
 #include <Viewer/Rendering/Components/ScriptableComponent.h>
 #include <Viewer/Scenes/CameraController.h>
 #include <Viewer/Scripts/VectorScripts.h>
-#include <Viewer/Scripts/Rays/ContributionRay.h>
 
 #include "Viewer/Rendering/Components/LightSourceComponent.h"
 #include "Viewer/Rendering/Components/Components.h"
@@ -628,6 +628,8 @@ namespace VkRender {
                                 break;
                             case MeshDataType::PLANE:
                                 component.meshParameters = std::make_shared<PlaneMeshParameters>();
+                            case MeshDataType::GAUSSIAN_2D:
+                                component.meshParameters = std::make_shared<Gaussian2DMeshParameters>();
                                 break;
                             default:
                                 Log::Logger::getInstance()->error("Unknown mesh type!");
@@ -701,6 +703,22 @@ namespace VkRender {
                     }
                     break;
                 }
+                case MeshDataType::GAUSSIAN_2D: {
+                    auto gaussianParameters = std::dynamic_pointer_cast<Gaussian2DMeshParameters>(component.meshParameters);
+                    if (gaussianParameters) {
+                        bool paramsChanged = false;
+                        paramsChanged |= ImGui::SliderFloat("Opacity", &gaussianParameters->opacity, 0.0f, 1.0f);
+                        glm::vec2 scale(gaussianParameters->covX, gaussianParameters->covY);
+                        paramsChanged |= drawVec2Control("Scale", scale, 0.75f, 0.1f);
+                        paramsChanged |= drawVec3Control("Color", gaussianParameters->color, 0.75f, 0.1f);
+                        if (paramsChanged) {
+                            gaussianParameters->covX = scale.x;
+                            gaussianParameters->covY = scale.y;
+                            gaussianParameters->setDirty();
+                        }
+                    }
+                    break;
+                }
                     ImGui::Dummy(ImVec2(5.0f, 5.0f));
 
                 case MeshDataType::CAMERA_GIZMO_PINHOLE: {
@@ -768,13 +786,12 @@ namespace VkRender {
             ImGui::ColorEdit3("##EmissiveFactor", glm::value_ptr(component.emissiveFactor));
 */
 
-             component.reloadShader = ImGui::Button("Reload Material Shader");
+            component.reloadShader = ImGui::Button("Reload Material Shader");
 
-            auto const& names = getAlphaModeStringList();
+            auto const &names = getAlphaModeStringList();
             int current = static_cast<int>(component.alphaMode);
             if (ImGui::Combo("Alpha Mode", &current,
-                             names.data(), (int)names.size()))
-            {
+                             names.data(), (int) names.size())) {
                 component.alphaMode = static_cast<AlphaMode>(current);
             }
             ImGui::Checkbox("Apply Texture", &component.useTexture);
@@ -822,7 +839,6 @@ namespace VkRender {
             "Quadratic Model", entity,
             [this, &entity](
         QuadricCollectionComponent &component) {
-
                 if (!entity.hasComponent<GroupComponent>()) {
                     entity.addComponent<GroupComponent>();
                 }
@@ -857,11 +873,20 @@ namespace VkRender {
                 }
                 ImGui::SameLine();
 
-                if (ImGui::Button("Load from file")) {
+                if (ImGui::Button("Load Quadric")) {
                     std::vector<std::string> types{".ply"};
                     EditorUtils::openImportFileDialog(
                         "Load Quadratic .ply file", types,
                         LayerUtils::PLY_QUADRATIC, &m_loadFileFuture);
+                }
+
+                ImGui::SameLine();
+
+                if (ImGui::Button("Load 2DGS")) {
+                    std::vector<std::string> types{".ply"};
+                    EditorUtils::openImportFileDialog(
+                        "Load  2DGS .ply file", types,
+                        LayerUtils::PLY_2DGS, &m_loadFileFuture);
                 }
 
 
@@ -1236,6 +1261,56 @@ namespace VkRender {
                     }
                 }
                 break;
+                case LayerUtils::PLY_2DGS: {
+                    if (m_selectionContext.hasComponent<QuadricCollectionComponent>()) {
+                        auto &pointcloudComponent = m_selectionContext.getComponent<QuadricCollectionComponent>();
+                        pointcloudComponent.filePath = loadFileInfo.path;
+                        auto gaussianAsset = m_editor->getCreateInfo().assetManager->get<Gaussian2DAsset>(loadFileInfo.path.string());
+                        // Now add quadrics to scene:
+                        // Compute step such that we do not exceed 200 entities.
+                        auto &visibility = m_selectionContext.getOrAddComponent<VisibleComponent>();
+                        visibility.visible = m_visibility;
+                        pointcloudComponent.gaussianAsset = gaussianAsset;
+
+                        // Generate Entities from PointCloudAsset
+                        for (int i = 0; i < gaussianAsset->numPoints; ++i) {
+                            std::string quadricName =
+                                    "2DGS " + std::to_string(i) + ":" + m_selectionContext.getName();
+                            auto entityInstance = m_context->activeScene()->getOrCreateEntityByName(quadricName);
+                            entityInstance.setParent(m_selectionContext);
+                            auto &temp = entityInstance.getOrAddComponent<TemporaryComponent>();
+
+                            // Get or create TransformComponent and set position and rotation.
+                            auto &transform = entityInstance.getOrAddComponent<TransformComponent>();
+                            transform.setPosition(gaussianAsset->positions[i]);
+                            transform.setRotationQuaternion(gaussianAsset->rotations[i]);
+                            //transform.setScale({gaussianAsset->scale_x[i], gaussianAsset->scale_y[i], 0.0f});
+
+                            // Apply parent's transformation.
+                            glm::mat4 parentMatrix = m_selectionContext.getComponent<TransformComponent>().getTransform();
+                            glm::mat4 worldMatrix = parentMatrix * transform.getTransform();
+                            transform.setTransform(worldMatrix);
+                            // Setup MeshComponent with quadric parameters.
+                            auto &mesh = entityInstance.getOrAddComponent<MeshComponent>(GAUSSIAN_2D);
+                            mesh.polygonMode() = VK_POLYGON_MODE_FILL;
+                            auto meshParameters = std::dynamic_pointer_cast<Gaussian2DMeshParameters>(mesh.meshParameters);
+                            // Setup MaterialComponent.
+                            auto &material = entityInstance.getOrAddComponent<MaterialComponent>();
+                            material.useTexture = true;
+                            material.diffuse = 0.3f;
+                            material.specular = 0.7f;
+                            material.phongExponent = 128.0f;
+                            material.fragmentShaderName = "NoMaterial.frag";
+                            meshParameters->color = gaussianAsset->colors[i];
+                            meshParameters->opacity = gaussianAsset->opacity[i];
+                            meshParameters->covX = gaussianAsset->scale_x[i];
+                            meshParameters->covY = gaussianAsset->scale_y[i];
+                            material.alphaMode = AlphaMode::Blend;
+
+                        }
+                    }
+                }
+                break;
                 case LayerUtils::PLY_QUADRATIC: {
                     if (m_selectionContext.hasComponent<QuadricCollectionComponent>()) {
                         auto &comp = m_selectionContext.getComponent<QuadricCollectionComponent>();
@@ -1298,7 +1373,6 @@ namespace VkRender {
 
                             quadricParams->min = comp.min[i];
                             quadricParams->max = comp.max[i];
-
                         }
                     }
                 }
@@ -1325,7 +1399,6 @@ namespace VkRender {
             opts.lastOpenedImportModelFolderPath = loadFileInfo.path;
             // Additional processing of the file can be done here
             Log::Logger::getInstance()->info("File selected: {}", loadFileInfo.path.filename().string());
-
         } else {
             Log::Logger::getInstance()->warning("No file selected.");
         }

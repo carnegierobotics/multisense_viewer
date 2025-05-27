@@ -55,9 +55,21 @@ namespace VkRender {
         if (m_meshData) {
             version = m_meshData->version;
         }
-
         auto meshData = std::make_shared<MeshData>();
         meshData->generateQuadricMesh(*this);
+        m_meshData = meshData.get();
+        m_meshData->version = ++version;
+        return meshData;
+    }
+
+    std::shared_ptr<MeshData> Gaussian2DMeshParameters::generateMeshData() {
+        // Generate mesh data for a cylinder
+        uint32_t version = 0;
+        if (m_meshData) {
+            version = m_meshData->version;
+        }
+        auto meshData = std::make_shared<MeshData>();
+        meshData->generateGaussian2DMesh(*this);
         m_meshData = meshData.get();
         m_meshData->version = ++version;
         return meshData;

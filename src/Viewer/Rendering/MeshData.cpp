@@ -2,8 +2,9 @@
 // Created by magnus on 11/27/24.
 //
 
+#define GLM_ENABLE_EXPERIMENTAL
+#include "glm/ext.hpp"
 
-#include "Viewer/Rendering/MeshData.h"
 
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
@@ -14,10 +15,10 @@
 #include <tiny_obj_loader.h>
 #include <stb_image.h>
 
-#define GLM_ENABLE_EXPERIMENTAL
-#include "glm/ext.hpp"
+
 #include <utility>
 #include "MeshParameters.h"
+#include "Viewer/Rendering/MeshData.h"
 
 
 
@@ -49,21 +50,88 @@ namespace VkRender {
         }
         return viridis[4].color;
     }
+    void MeshData::generateGaussian2DMesh(const Gaussian2DMeshParameters &params) {
+        const int   N       = 50;
+        const float σx      = params.covX;
+        const float σy      = params.covY;
+        const float thresh  = params.threshold;
+
+        // span ±3σ in each axis
+        const glm::vec2 min = { -3.0f*σx, -3.0f*σy };
+        const glm::vec2 max = { +3.0f*σx, +3.0f*σy };
+
+        const float dx = (max.x - min.x) / float(N - 1);
+        const float dy = (max.y - min.y) / float(N - 1);
+
+        std::vector<int>     vertexMap(N * N, -1);
+        std::vector<Vertex>  tmpVertices;  tmpVertices.reserve(N * N);
+        std::vector<uint32_t>tmpIndices;   tmpIndices.reserve(2 * (N - 1) * (N - 1) * 3);
+
+        // Anisotropic Gaussian kernel
+        auto gaussianKernel = [&](float x, float y) {
+            float r2 = (x*x)/(σx*σx) + (y*y)/(σy*σy);
+            return std::exp(-0.5f * r2);
+        };
+
+        for (int i = 0; i < N; ++i) {
+            float x = min.x + i*dx;
+            for (int j = 0; j < N; ++j) {
+                float y = min.y + j*dy;
+
+                float g = gaussianKernel(x, y);
+                if (g < thresh) {
+                    vertexMap[i*N + j] = -1;
+                    continue;
+                }
+
+                Vertex v{};
+                v.pos    = { x, y, 0.0f };
+                v.normal = { 0.0f, 0.0f, 1.0f };
+                // color RGB fixed; opacity scaled by g
+                v.color  = glm::vec4(params.color, g * params.opacity);
+
+                vertexMap[i*N + j] = int(tmpVertices.size());
+                tmpVertices.push_back(v);
+            }
+        }
+
+        // Create two triangles per cell
+        for (int i = 0; i < N - 1; ++i) {
+            for (int j = 0; j < N - 1; ++j) {
+                int v0 = vertexMap[i * N + j];
+                int v1 = vertexMap[i * N + (j + 1)];
+                int v2 = vertexMap[(i + 1) * N + j];
+                int v3 = vertexMap[(i + 1) * N + (j + 1)];
+
+                // If valid, create two triangles
+                if (v0 >= 0 && v1 >= 0 && v2 >= 0 && v3 >= 0) {
+                    m_indices.push_back(v0);
+                    m_indices.push_back(v1);
+                    m_indices.push_back(v2);
+
+                    m_indices.push_back(v1);
+                    m_indices.push_back(v3);
+                    m_indices.push_back(v2);
+                }
+            }
+        }
+
+        // Finalize
+        m_vertices = std::move(tmpVertices);
+
+    }
 
     void MeshData::generateQuadricMesh(const QuadricMeshParameters &params) {
         int N = params.gridResolution;
         float dx = (params.max.x - params.min.x) / float(N - 1);
         float dy = (params.max.y - params.min.y) / float(N - 1);
-
         // Precompute the sign factors alpha_x, alpha_y
         float alphaX = std::tanh(params.t_x);
         float alphaY = std::tanh(params.t_y);
-
         // We'll store a "map" of valid vertex m_indices. -1 means not used.
         std::vector<int> vertexMap(N * N, -1);
         std::vector<Vertex> tmpVertices;
         tmpVertices.reserve(N * N);
-
         // If you want a final global scale (e.g. 0.1), define here
         float scaleFactor = 1.0f;
         // Helper lambda for Beta kernel:
@@ -72,7 +140,6 @@ namespace VkRender {
             if (r > 1.0f) r = 1.0f;
             return std::pow(1.0f - r * r, 4.0f * std::exp(bExp));
         };
-
         // Generate grid and compute vertices
         for (int i = 0; i < N; ++i) {
             float x = params.min.x + i * dx; // domain from min.x to max.x
@@ -83,7 +150,6 @@ namespace VkRender {
 
                 //float zSquared = params.a * params.a *(x*x + y * y);
                 //float z = sqrtf(zSquared);
-
                 // Build position
                 // Evaluate gradient for normal
                 glm::vec3 grad(
@@ -107,7 +173,6 @@ namespace VkRender {
                 */
 
                 float opacity = (bkValue > params.threshold) ? bkValue : 0.0f;
-
 
                 // Construct vertex
                 Vertex v{};

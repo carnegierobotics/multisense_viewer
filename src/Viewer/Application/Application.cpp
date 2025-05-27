@@ -37,6 +37,7 @@
 #include "Application.h"
 
 #include <Viewer/Assets/AssetManager.h>
+#include <Viewer/Assets/Gaussian2DAssetLoader.h>
 #include <Viewer/Assets/ShaderLoader.h>
 #include <Viewer/Assets/TextureLoader.h>
 #include <Viewer/Assets/QuadricLoader.h>
@@ -59,6 +60,7 @@ namespace VkRender {
         m_assetManager->registerLoader(std::make_unique<ShaderLoader>());
         m_assetManager->registerLoader(std::make_unique<TextureLoader>());
         m_assetManager->registerLoader(std::make_unique<QuadricLoader>());
+        m_assetManager->registerLoader(std::make_unique<Gaussian2DAssetLoader>());
 
         // Create a scene and load deserialize from file if a file exsits
         std::shared_ptr<Scene> scene = newScene();

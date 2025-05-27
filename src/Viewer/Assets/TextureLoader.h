@@ -31,8 +31,9 @@ namespace VkRender {
         bool canLoad(const std::string &key) const override {
             return hasExtension(key, {".png", ".jpg", ".hdr"});
         }
+        std::type_index assetType() const override {return typeid(TextureAsset);}
 
-        std::shared_ptr<BaseAsset> load(const std::string &key) override {
+        std::shared_ptr<BaseAsset> load(const std::filesystem::path& key) override {
             int w, h, c;
             std::filesystem::path path = Utils::getTexturePath() / key;
             stbi_uc *data = stbi_load(path.string().c_str(), &w, &h, &c, STBI_rgb_alpha);

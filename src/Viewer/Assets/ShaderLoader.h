@@ -5,6 +5,8 @@
 #ifndef SHADERLOADER_H
 #define SHADERLOADER_H
 
+#include <filesystem>
+
 #include "Viewer/Assets/IAssetLoader.h"
 #include <vulkan/vulkan.h>
 #include <unordered_map>
@@ -23,9 +25,11 @@ namespace VkRender {
 
     class ShaderLoader : public IAssetLoader {
     public:
+        std::type_index assetType() const override {return typeid(SPIRVAsset);}
+
         explicit ShaderLoader() = default;
         bool canLoad(const std::string& key) const override;
-        std::shared_ptr<BaseAsset> load(const std::string& key) override;
+        std::shared_ptr<BaseAsset> load(const std::filesystem::path&) override;
 
     private:
         std::unordered_map<std::string, std::shared_ptr<SPIRVAsset>> m_moduleCache;

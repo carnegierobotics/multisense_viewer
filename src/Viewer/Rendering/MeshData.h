@@ -31,7 +31,8 @@ namespace VkRender {
         CAMERA_GIZMO_PINHOLE = 6,
         CUBE = 7,
         PLANE = 8,
-        MAX_NUM_TYPES = PLANE + 1
+        GAUSSIAN_2D = 9,
+        MAX_NUM_TYPES = GAUSSIAN_2D + 1
     };
 
     static std::array<MeshDataType, MAX_NUM_TYPES> meshDataTypeToArray() {
@@ -45,6 +46,7 @@ namespace VkRender {
             QUADRIC,
             CAMERA_GIZMO_PERSPECTIVE,
             CAMERA_GIZMO_PINHOLE,
+            GAUSSIAN_2D,
         };
     };
 
@@ -56,6 +58,7 @@ namespace VkRender {
             "PLANE",
             "CYLINDER",
             "QUADRIC",
+            "GAUSSIAN_2D",
             "OBJ_FILE",
             "PLY_FILE",
             "CAMERA_GIZMO_PERSPECTIVE",
@@ -83,6 +86,8 @@ namespace VkRender {
                 return "CYLINDER";
             case QUADRIC:
                 return "QUADRIC";
+            case GAUSSIAN_2D:
+                return "GAUSSIAN_2D";
             default:
                 return "Unknown";
         }
@@ -107,6 +112,8 @@ namespace VkRender {
             return CYLINDER;
         if (modeStr == "QUADRIC")
             return QUADRIC;
+        if (modeStr == "GAUSSIAN_2D")
+            return GAUSSIAN_2D;
         // Default case, or handle unknown input
         return EMPTY;
     }
@@ -127,6 +134,8 @@ namespace VkRender {
             : m_vertices(std::move(vertices)), m_indices(std::move(indices)) {
         }
 
+
+        void generateGaussian2DMesh(const Gaussian2DMeshParameters &params);
 
         void generateQuadricMesh(const QuadricMeshParameters &parameters);
 

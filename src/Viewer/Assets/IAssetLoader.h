@@ -7,6 +7,7 @@
 
 #include <memory>
 #include <string>
+#include <typeindex>
 
 namespace VkRender {
 
@@ -19,7 +20,9 @@ struct IAssetLoader {
     virtual bool canLoad(const std::string& key) const = 0;
 
     // Do the actual load; the returned BaseAsset must be castable to the expected type.
-    virtual std::shared_ptr<BaseAsset> load(const std::string& key) = 0;
+    virtual std::shared_ptr<BaseAsset> load(const std::filesystem::path& key) = 0;
+
+    virtual std::type_index assetType() const = 0;
 };
 
 }

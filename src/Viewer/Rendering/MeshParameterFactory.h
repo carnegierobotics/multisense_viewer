@@ -18,6 +18,8 @@ namespace VkRender {
                 return std::make_shared<PlaneMeshParameters>();
             case QUADRIC:
                 return std::make_shared<QuadricMeshParameters>();
+            case GAUSSIAN_2D:
+                return std::make_shared<Gaussian2DMeshParameters>();
             case CYLINDER:
                 return std::make_shared<CylinderMeshParameters>();
             case CAMERA_GIZMO_PERSPECTIVE:

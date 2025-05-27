@@ -10,6 +10,9 @@
 #include <cstring>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <Viewer/Assets/Gaussian2DAssetLoader.h>
+#include <Viewer/Assets/QuadricLoader.h>
+
 #include "tinyply.h" // Assumes tinyply is available
 #include "Viewer/Scenes/Entity.h"
 
@@ -31,6 +34,9 @@ namespace VkRender {
 
         std::vector<glm::vec2> min; // Beta (default 0)
         std::vector<glm::vec2> max; // Beta (default 0)
+
+        QuadricCloudAsset quadric;
+        std::shared_ptr<Gaussian2DAsset> gaussianAsset;
 
 
         // Resize to hold n quadrics

@@ -768,10 +768,15 @@ namespace VkRender {
             ImGui::ColorEdit3("##EmissiveFactor", glm::value_ptr(component.emissiveFactor));
 */
 
-            if (ImGui::Button("Reload Material Shader")) {
-                component.reloadShader = true;
-            }
+             component.reloadShader = ImGui::Button("Reload Material Shader");
 
+            auto const& names = getAlphaModeStringList();
+            int current = static_cast<int>(component.alphaMode);
+            if (ImGui::Combo("Alpha Mode", &current,
+                             names.data(), (int)names.size()))
+            {
+                component.alphaMode = static_cast<AlphaMode>(current);
+            }
             ImGui::Checkbox("Apply Texture", &component.useTexture);
 
             ImGui::Dummy(ImVec2(5.0f, 5.0f));
@@ -800,7 +805,7 @@ namespace VkRender {
             ImGui::Text("Fragment Shader:");
             ImGui::Text("%s", component.fragmentShaderName.string().c_str());
             if (ImGui::Button("Load Fragment Shader")) {
-                std::vector<std::string> types{".frag"};
+                std::vector<std::string> types{".frag", ".spv"};
                 EditorUtils::openImportFileDialog("Load Fragment Shader", types, LayerUtils::FRAGMENT_SHADER_FILE,
                                                   &m_loadFileFuture);
             }
@@ -994,6 +999,7 @@ namespace VkRender {
                 }
                 */
 
+                /*
                 if (quadricCount > 0) {
                     // For a large number of quadrics, show a single "selected" quadric for editing.
                     static int selectedQuadricIndex = 0;
@@ -1130,6 +1136,7 @@ namespace VkRender {
                         }
                     }
                 }
+                */
             });
 
 
@@ -1245,6 +1252,7 @@ namespace VkRender {
                                     "Quadric " + std::to_string(i) + ":" + m_selectionContext.getName();
                             auto entityInstance = m_context->activeScene()->getOrCreateEntityByName(quadricName);
                             entityInstance.setParent(m_selectionContext);
+                            auto &temp = entityInstance.getOrAddComponent<TemporaryComponent>();
 
                             // Get or create TransformComponent and set position and rotation.
                             auto &transform = entityInstance.getOrAddComponent<TransformComponent>();
@@ -1277,6 +1285,7 @@ namespace VkRender {
                             quadricParams->threshold = quadricAsset->threshold[i];
                             quadricParams->b_beta = quadricAsset->beta[i];
                             quadricParams->kernelScale = quadricAsset->kernelScale[i];
+                            quadricParams->kernelScale = quadricAsset->kernelScale[i];
 
                             comp.addQuadric(quadricAsset->positions[i], quadricAsset->rotations[i], quadricAsset->a[i],
                                             quadricAsset->b[i],
@@ -1286,6 +1295,10 @@ namespace VkRender {
                                             quadricAsset->threshold[i],
                                             quadricAsset->beta[i],
                                             quadricAsset->kernelScale[i]);
+
+                            quadricParams->min = comp.min[i];
+                            quadricParams->max = comp.max[i];
+
                         }
                     }
                 }

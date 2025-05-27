@@ -188,7 +188,7 @@ class Gaussian2DMeshParameters : public IMeshParameters {
 
         std::string getIdentifier() const override {
             std::ostringstream oss;
-            oss << "2DGS_" << opacity << glm::to_string(color);
+            oss << "2DGS_" << opacity<< covX << covX  << glm::to_string(color) ;
             return oss.str();
         }
 

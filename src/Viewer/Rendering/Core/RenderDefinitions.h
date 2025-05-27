@@ -75,7 +75,7 @@ namespace VkRender {
     /**
      * @brief Default Vertex information
      */
-    struct Vertex {
+    struct alignas(16) Vertex {
         glm::vec3 pos; // 12 bytes + 4 bytes padding
         glm::vec3 normal; // 12 bytes + 4 bytes padding
         glm::vec2 uv0; // 8 bytes + 8 bytes padding

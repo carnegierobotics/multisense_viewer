@@ -7,6 +7,62 @@
 
 namespace VkRender::PathTracer {
 
+    //---------------------------------------------------------------------
+    //  Quadric patch ∩ ray   (object space, z-up)
+    //---------------------------------------------------------------------
+    SYCL_EXTERNAL bool intersectPatch(const Ray&  ray,
+                                      const OrientedPoint& P,
+                                      float& tHit,
+                                      float&               kHit,
+                                      bool &reflective)          // ‹NEW›
+
+    {
+        /* ------------------------------------------------------------------ *
+         * 1) intersect supporting plane  z = 0                                *
+         * ------------------------------------------------------------------ */
+        const float denom = ray.direction.z();
+        if (sycl::fabs(denom) < 1.0e-6f) return false;           // ray ‖ plane
+
+        const float t = -ray.origin.z() / denom;
+        if (t < 0.0f) return false;                              // behind origin
+
+        // 2) point of intersection in XY
+        const float3 pObj = ray.origin + t * ray.direction;
+
+        /* ------------------------------------------------------------------ *
+            * 3) quick reject outside axis-aligned support rectangle              *
+            * ------------------------------------------------------------------ */
+        /*
+        if (pObj.x() < P.minSupport.x() || pObj.x() > P.maxSupport.x() ||
+            pObj.y() < P.minSupport.y() || pObj.y() > P.maxSupport.y())
+            return false;
+        */
+
+        /* ------------------------------------------------------------------ *
+            * 4) evaluate β-kernel k(r)                                           *
+            *    - infer patch radius R  from max(|minSupport|, |maxSupport|)     *
+            * ------------------------------------------------------------------ */
+        const float2 sMin = P.minSupport;
+        const float2 sMax = P.maxSupport;
+
+        const float rMin = sycl::length(sMin);
+        const float rMax = sycl::length(sMax);
+
+        const float R = sycl::max(rMin, rMax);           // isotropic radius
+        const float r2 = (pObj.x()*pObj.x() + pObj.y()*pObj.y()) / (R*R);
+        if (r2 > 1.0f) return false;                             // safety
+        const float p  = 4.0f * sycl::exp(P.beta);               // exponent
+        const float k  = sycl::pow(1.0f - r2, p);                // kernel value
+        /* ------------------------------------------------------------------ *
+         * 5) decide material response                                         *
+         * ------------------------------------------------------------------ */
+        reflective = (k >= P.threshold);      // ≥ threshold: opaque / mirror
+        //  < threshold: transparent
+        kHit       = k;
+        tHit = t;
+        return true;
+    }
+
     SYCL_EXTERNAL bool intersectTriangle(const Ray &ray, const float3 v0, const float3 v1, const float3 v2, float &outT, float &outU,
     float &outV, float tMin, bool cullBF)     {
         constexpr float EPS   = 5.f * std::numeric_limits<float>::epsilon(); // 6e‑7

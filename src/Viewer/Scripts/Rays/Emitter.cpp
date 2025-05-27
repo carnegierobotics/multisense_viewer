@@ -40,13 +40,13 @@ namespace VkRender {
 
         rayParams->setOrigin(rayOrigin);
 
-        auto blasNodes = m_pathTracerSYCL->getBLASNodes();
-        auto tlasNodes = m_pathTracerSYCL->getTLASNodes();
+        auto blasNodes = m_PathTracerSetup->getBLASNodes();
+        auto tlasNodes = m_PathTracerSetup->getTLASNodes();
 
 
         PathTracer::Ray worldRay = PathTracer::makeRay(PathTracer::glm2sycl(rayOrigin), PathTracer::glm2sycl(rayDir));
 
-        auto sceneDescription = m_pathTracerSYCL->getSceneDescription();
+        auto sceneDescription = m_PathTracerSetup->getSceneDescription();
         PathTracer::Hit hit;
         bool intersected = PathTracer::PathTracerMeshKernel::intersectScene(worldRay, &hit, sceneDescription);
 
@@ -98,12 +98,12 @@ namespace VkRender {
 
     void Emitter::onCreate() {
         auto dev = m_context->getSyclDeviceSelector().getDevice(SYCLDeviceType::Default);
-        PathTracer::PathTracerSYCLCreateInfo pipelineSettings(dev);
+        PathTracer::PathTracerSetupCreateInfo pipelineSettings(dev);
         pipelineSettings.framebufferSize = 1920 * 1080 * 4 * 10 * sizeof(float4); // ~82 MB of framebuffers
         pipelineSettings.queue = dev->getQueue();
         pipelineSettings.device = dev;
         // Re-create your path-tracer with the updated settings:
-        m_pathTracerSYCL = std::make_unique<PathTracer::PathTracerSYCL>(pipelineSettings);
-        m_pathTracerSYCL->uploadScene(m_context->activeScene());
+        m_PathTracerSetup = std::make_unique<PathTracer::PathTracerSetup>(pipelineSettings);
+        m_PathTracerSetup->uploadScene(m_context->activeScene());
     }
 }

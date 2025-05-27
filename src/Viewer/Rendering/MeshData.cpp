@@ -99,16 +99,20 @@ namespace VkRender {
                 // Evaluate kernel
                 float bkValue = betaKernel(geodesic, params.b_beta);
 
-                bool keepVertex = (bkValue > params.threshold);
+                /*
                 if (!keepVertex) {
                     vertexMap[i * N + j] = -1;
                     continue;
                 }
+                */
+
+                float opacity = (bkValue > params.threshold) ? bkValue : 0.0f;
+
 
                 // Construct vertex
                 Vertex v{};
-                v.color = glm::vec4(getViridisColor(bkValue), 1.0f);
-                v.pos = glm::vec4(position, 0.0f);
+                v.color = glm::vec4(getViridisColor(bkValue), opacity);
+                v.pos = position;
                 v.normal = normal;
 
                 int newIndex = static_cast<int>(tmpVertices.size());

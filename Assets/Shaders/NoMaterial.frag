@@ -5,6 +5,7 @@ layout (location = 0) in vec2 vUV;
 layout (location = 1) in vec3 vNormal;
 layout (location = 2) in vec3 vWorldPos;
 layout (location = 3) flat in uint vInstIdx;
+layout (location = 4) in vec4 vertexColor;
 
 // Same push-constant block
 layout (push_constant) uniform BatchPC {
@@ -49,4 +50,7 @@ void main() {
 
     // use the gamma corrected color in the fragment
     outColor = vec4(mbo.baseColor);
+    if (mbo.useVertexColor < 0.5){
+        outColor = vertexColor;
+    }
 }

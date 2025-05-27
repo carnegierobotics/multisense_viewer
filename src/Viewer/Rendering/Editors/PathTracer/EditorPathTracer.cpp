@@ -24,9 +24,9 @@ namespace VkRender {
         m_editorCamera->setDefaultPosition({-270.0f, 75.0f}, 4.0f);
 
         auto dev = m_context->getSyclDeviceSelector().getDevice(SYCLDeviceType::Default);
-        PathTracer::PathTracerSYCLCreateInfo pipelineSettings(dev);
+        PathTracer::PathTracerSetupCreateInfo pipelineSettings(dev);
         pipelineSettings.framebufferSize = 960 * 600 * 4 * 5 * sizeof(float4); // 41mb of framebuffers
-        m_pathTracerSYCL = std::make_unique<PathTracer::PathTracerSYCL>(pipelineSettings);
+        m_PathTracerSetup = std::make_unique<PathTracer::PathTracerSetup>(pipelineSettings);
     }
 
     void EditorPathTracer::onEditorResize() {
@@ -61,7 +61,7 @@ namespace VkRender {
 
 
         PathTracer::EditorCamera editorCamera(m_editorCamera.get(), m_createInfo.width, m_createInfo.height);
-        m_pathTracerSYCL->uploadScene(scene, editorCamera);
+        m_PathTracerSetup->uploadScene(scene, editorCamera);
         Log::Logger::getInstance()->info("PathTracer loaded scene");
     }
 
@@ -76,25 +76,25 @@ namespace VkRender {
         auto dev = m_context->getSyclDeviceSelector().getDevice(imageUI->selectedDevice);
 
         if (dev->isDeviceAvailable()) {
-            PathTracer::PathTracerSYCLCreateInfo pipelineSettings(dev);
+            PathTracer::PathTracerSetupCreateInfo pipelineSettings(dev);
             pipelineSettings.framebufferSize = 960 * 600 * 4 * 5 * sizeof(float4); // 41mb of framebuffers
             pipelineSettings.queue = dev->getQueue();
             pipelineSettings.device = dev;
             // Re-create your path-tracer with the updated settings:
-            m_pathTracerSYCL = std::make_unique<PathTracer::PathTracerSYCL>(pipelineSettings);
+            m_PathTracerSetup = std::make_unique<PathTracer::PathTracerSetup>(pipelineSettings);
             // Upload scene (unchanged)
             PathTracer::EditorCamera editorCamera(m_editorCamera.get(),
                                                   m_createInfo.width,
                                                   m_createInfo.height);
-            m_pathTracerSYCL->uploadScene(m_context->activeScene(), editorCamera);
+            m_PathTracerSetup->uploadScene(m_context->activeScene(), editorCamera);
             Log::Logger::getInstance()->info("Updated path tracer settings, Using DeviceType: {}, Device: {}",
                                              syclDeviceTypeToString(imageUI->selectedDevice), dev->getDeviceName());
         } else {
             Log::Logger::getInstance()->warning(
                 "Failed to update Path Tracer execution Device to {}, reverting selection. Using Device: {}",
                 syclDeviceTypeToString(imageUI->selectedDevice),
-                m_pathTracerSYCL->getCreateInfo().device->getDeviceName());
-            imageUI->selectedDevice = m_pathTracerSYCL->getCreateInfo().device->getDeviceType();
+                m_PathTracerSetup->getCreateInfo().device->getDeviceName());
+            imageUI->selectedDevice = m_PathTracerSetup->getCreateInfo().device->getDeviceType();
         }
 
         /*
@@ -159,12 +159,12 @@ namespace VkRender {
 
         if (render) {
             if (renderToViewport) {
-                PathTracer::RenderSettings renderSettings(imageUI->numBounces, imageUI->photonCount);
+                PathTracer::RenderSettings renderSettings(imageUI->numBounces, 0, imageUI->photonCount);
 
                 PathTracer::EditorCamera editorCamera(m_editorCamera.get(), m_createInfo.width, m_createInfo.height, m_movedCamera);
-                m_pathTracerSYCL->updateDynamic(m_context->activeScene(), editorCamera);
-                m_pathTracerSYCL->renderFrame(renderSettings);
-                m_pathTracerSYCL->generateEditorImage(m_colorTexture, imageUI->gamma, imageUI->exposure);
+                m_PathTracerSetup->updateDynamic(m_context->activeScene(), editorCamera);
+                m_PathTracerSetup->renderFrame(renderSettings);
+                m_PathTracerSetup->generateEditorImage(m_colorTexture, imageUI->gamma, imageUI->exposure);
             } else {
             }
             bool newCamera = m_previousSceneCamera != activeCamera;
@@ -251,12 +251,12 @@ namespace VkRender {
 
             /* ───────────── draw TLAS, then BLAS (order is cosmetic) ─────────── */
             if (imageUI->showTLAS) {
-                const auto tlas = m_pathTracerSYCL->getTLASNodes();
+                const auto tlas = m_PathTracerSetup->getTLASNodes();
                 drawNodes(tlas, "TLASNode:",
                           [](const PathTracer::TLASNode &n) { return n.count == 1; });
             }
             if (imageUI->showBLAS) {
-                const auto blas = m_pathTracerSYCL->getBLASNodes();
+                const auto blas = m_PathTracerSetup->getBLASNodes();
                 drawNodes(blas, "BLASNode:",
                           [](const PathTracer::BVHNode &n) { return n.isLeaf(); });
             }

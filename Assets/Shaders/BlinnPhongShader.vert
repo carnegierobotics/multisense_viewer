@@ -32,6 +32,7 @@ layout(location=1) out vec3 vNormal;
 layout(location=2) out vec3 vWorldPos;
 /* you can still pass the instance index if you like */
 layout(location=3) flat out uint vInstIdx;
+layout(location=4) out vec4 vertexColor;
 
 void main() {
 	uint idx   = pc.transformBase + gl_InstanceIndex;
@@ -43,5 +44,6 @@ void main() {
 	vUV        = inUV;
 	vInstIdx   = gl_InstanceIndex;
 
+	vertexColor = inColor;
 	gl_Position = uGlobal.proj * uGlobal.view * world;
 }

@@ -166,7 +166,8 @@ namespace VkRender {
             Log::Logger::getInstance()->info("Deleting Entity with UUID: {} and Tag: {}",
                                              entity.getUUID().operator std::string(), entity.getName());
             if (entity.hasComponent<ScriptableComponent>()) {
-                entity.getComponent<ScriptableComponent>().instance->onDestroy();
+                if (entity.getComponent<ScriptableComponent>().instance)
+                    entity.getComponent<ScriptableComponent>().instance->onDestroy();
             }
             // Perform the deletion
             m_registry.destroy(entity);

@@ -2,8 +2,8 @@
 // Created by magnus on 5/2/25.
 //
 
-#ifndef PATHTRACERSYCL_H
-#define PATHTRACERSYCL_H
+#ifndef PathTracerSetup_H
+#define PathTracerSetup_H
 
 #include <Viewer/Rendering/Editors/ArcballCamera.h>
 #include <Viewer/Tools/SYCLDeviceSelector.h>
@@ -30,15 +30,15 @@ namespace VkRender::PathTracer {
         std::string name; // human-readable mesh name (or instance identifier)
     };
 
-    struct PathTracerSYCLCreateInfo {
+    struct PathTracerSetupCreateInfo {
         sycl::queue &queue;
         std::shared_ptr<SYCLDeviceSelector> device;
         uint32_t framebufferSize = 960 * 600 * 10; // 10 images of size 960x600x4
 
-        PathTracerSYCLCreateInfo() = delete;
+        PathTracerSetupCreateInfo() = delete;
 
         explicit
-        PathTracerSYCLCreateInfo(std::shared_ptr<SYCLDeviceSelector> dev) : device(dev), queue(dev->getQueue()) {
+        PathTracerSetupCreateInfo(std::shared_ptr<SYCLDeviceSelector> dev) : device(dev), queue(dev->getQueue()) {
         }
     };
 
@@ -49,9 +49,9 @@ namespace VkRender::PathTracer {
         bool movedSinceLastFrame = false;
     };
 
-    class PathTracerSYCL {
+    class PathTracerSetup {
     public:
-        explicit PathTracerSYCL(const PathTracerSYCLCreateInfo &createInfo) : m_queue(createInfo.queue),
+        explicit PathTracerSetup(const PathTracerSetupCreateInfo &createInfo) : m_queue(createInfo.queue),
                                                                               m_createInfo(createInfo) {
             std::memset(&m_sceneDescHost, 0, sizeof(m_sceneDescHost));
             std::memset(&m_sceneDescDevice, 0, sizeof(m_sceneDescDevice));
@@ -60,7 +60,7 @@ namespace VkRender::PathTracer {
             setupFrameBuffers();
         }
 
-        ~PathTracerSYCL();
+        ~PathTracerSetup();
 
         /** (re)allocates all GPU buffers that depend on scene topology */
         void uploadScene(const std::shared_ptr<Scene> &scene, EditorCamera editorCamera = EditorCamera());
@@ -85,7 +85,7 @@ namespace VkRender::PathTracer {
 
         void createEditorCamera(const std::shared_ptr<ArcballCamera> &camera, int32_t int32, int32_t height);
 
-        const PathTracerSYCLCreateInfo &getCreateInfo() { return m_createInfo; }
+        const PathTracerSetupCreateInfo &getCreateInfo() { return m_createInfo; }
 
         std::vector<BVHNode> getBLASNodes() { return m_blasNodes; }
         std::vector<TLASNode> getTLASNodes() { return m_tlasNodes; }
@@ -104,7 +104,7 @@ namespace VkRender::PathTracer {
         void buildSceneDesc();
 
         void buildBLASForAllMeshes();
-
+        void buildBLASForPointCloud();
         void buildTopLevelBVH();
 
         /*--- device clean‑up ---*/
@@ -119,7 +119,7 @@ namespace VkRender::PathTracer {
 
         /*----------------------------------------------*/
         sycl::queue m_queue;
-        PathTracerSYCLCreateInfo m_createInfo;
+        PathTracerSetupCreateInfo m_createInfo;
 
         FrameBuffer m_frameBuffers{};
         FrameBuffer d_frameBuffers{};
@@ -147,6 +147,8 @@ namespace VkRender::PathTracer {
         std::unordered_map<std::string, uint32_t> m_meshIndexMap;
 
         // CPU copies
+        std::vector<BVHNode> m_betaNodes;
+        std::vector<BLASRange> m_betaRanges;
         std::vector<BVHNode> m_blasNodes;
         std::vector<BLASRange> m_blasRanges;
         std::vector<TLASNode> m_tlasNodes;
@@ -155,8 +157,11 @@ namespace VkRender::PathTracer {
         BVHNode *d_blasNodes = nullptr;
         TLASNode *d_tlasNodes = nullptr;
         BLASRange *d_blasRanges = nullptr;
+        BVHNode * d_betaNodes;
+        BLASRange* d_betaRanges;
 
         // === Device USM pointers ===
+        OrientedPoint *d_points = nullptr;
         Vertex *d_vertices = nullptr;
         Triangle *d_tris = nullptr;
         MeshRange *d_meshRanges = nullptr;
@@ -183,4 +188,4 @@ namespace VkRender::PathTracer {
     };
 } // VkRender
 
-#endif //PATHTRACERSYCL_H
+#endif //PathTracerSetup_H

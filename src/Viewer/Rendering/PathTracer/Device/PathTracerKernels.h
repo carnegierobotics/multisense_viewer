@@ -7,6 +7,8 @@
 
 #include <sycl/sycl.hpp>
 
+#include "KernelHelpers.h"
+
 #include "Viewer/Rendering/PathTracer/GPUDataTypes.h"
 
 
@@ -41,22 +43,26 @@ namespace VkRender::PathTracer {
         }
 
 
-        SYCL_EXTERNAL static bool intersectBLAS(const Ray &rayO, uint32_t geomIdx, Hit &out, const SceneDesc &scene);
+        SYCL_EXTERNAL static bool intersectBLASMesh(const Ray &rayO, uint32_t geomIdx, Hit &out, const SceneDesc &scene);
+        SYCL_EXTERNAL static bool intersectBLASQuadric(const Ray &rayO, uint32_t geomIdx, Hit &out, const SceneDesc &scene);
 
         SYCL_EXTERNAL static bool intersectScene(const Ray &rayW, Hit *hit, const SceneDesc &scene);
+
+        float traceVisibility(const Ray &rayIn, float tMax, const SceneDesc &scene, PCG32& rng) const;
 
     private:
         SceneDesc *d_sceneDesc;
         RenderSettings d_sceneSettings;
         FrameBuffer d_framebuffer;
 
-        SYCL_EXTERNAL void traceOnePhoton(uint64_t photonID, uint32_t totalPhotonCount) const;
+        void traceOnePhoton(uint64_t photonID, uint32_t totalPhotonCount) const;
 
 
         SYCL_EXTERNAL void castContributions(
             const Hit& hitPoint,
             float throughput,
-            const float3& surfaceNormal) const;
+            const float3& surfaceNormal,
+            PCG32& rng) const;
     };
 }
 #endif //PATHTRACERKERNELS_H

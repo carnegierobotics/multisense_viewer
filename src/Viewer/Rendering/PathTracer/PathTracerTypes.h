@@ -5,8 +5,7 @@
 #ifndef PATHTRACERTYPES_H
 #define PATHTRACERTYPES_H
 
-#include <float.h>
-
+#include <glm/glm.hpp>
 #include <sycl/sycl.hpp>
 
 
@@ -139,7 +138,6 @@ struct  alignas(16) float3 {
 
     explicit float3(sycl::vec<float,4> const& b) : v{b.x(), b.y(), b.z()} {}
 
-
     /* implicit to base */
     operator sycl::vec<float, 3>() const { return v; }
 
@@ -151,6 +149,10 @@ struct  alignas(16) float3 {
     float3  operator-() const { return float3{ -v }; }
     float3  operator+() const { return *this; }          // optional
 
+    float3& operator=(const glm::vec3& c) noexcept {
+        v = { c.x, c.y, c.z };
+        return *this;
+    }
     /* helpers identical to sycl::vec API */
     float x() const { return v.x(); }
     float &x() { return v.x(); }

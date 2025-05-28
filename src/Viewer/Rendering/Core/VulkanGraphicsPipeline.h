@@ -5,11 +5,13 @@
 #ifndef MULTISENSE_VIEWER_VULKANGRAPHICSPIPELINE_H
 #define MULTISENSE_VIEWER_VULKANGRAPHICSPIPELINE_H
 
+
 #include <vulkan/vulkan_core.h>
 #include "Viewer/Application/pch.h"
 #include "VulkanDevice.h"
 
 namespace VkRender {
+    struct MaterialInstance;
 
     struct VulkanGraphicsPipelineCreateInfo {
         VulkanGraphicsPipelineCreateInfo() = delete;
@@ -33,6 +35,7 @@ namespace VkRender {
         bool depthTesting = VK_TRUE;
 
         VkPipelineLayout globalPipelineLayout = VK_NULL_HANDLE;
+        MaterialInstance* materialInstance = nullptr;
 
         std::string debugInfo;
         VkPipelineRasterizationStateCreateInfo rasterizationStateCreateInfo;

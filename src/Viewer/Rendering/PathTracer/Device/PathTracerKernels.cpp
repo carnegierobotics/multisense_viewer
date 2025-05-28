@@ -57,8 +57,6 @@ namespace VkRender::PathTracer {
 
         //stack[sp++] = 0; // root of this BLAS
 
-        constexpr float kRayEps = 0.0f; // ignore hits closer than this
-
         SmallStack<1024> stack;
         stack.push(0); // root
 
@@ -93,9 +91,7 @@ namespace VkRender::PathTracer {
 
                     /* ---- new call --------------------------------------------------------- */
                     if (intersectTriangle(rayO, A, B, C,
-                                          t, u, v,
-                                          kRayEps, /* tMin                */
-                                          false) /* double‑sided, i.e. culling */
+                                          t, u, v)
                         && t < bestT) {
                         bestT = t;
                         hitAny = true;
@@ -320,26 +316,40 @@ namespace VkRender::PathTracer {
             if (Tvis <= 0.0f) continue; // completely blocked
 
             // BRDF
-            const float brdf = kd / M_PIf; // diffuse ρ/π
-            const float cosHitCam = sycl::fabs(dot(surfaceNormal, dirToA));
-            float contrib_cam = contrib * brdf * cosHitCam;
+            float NoL   = sycl::max(dot(surfaceNormal, dirToA), 0.0f); // cos θ_i
+            float brdf  = kd / M_PIf;                                  // ρ / π
+            float contribCam = contrib * brdf;                   // Lambert
 
 
             // Attenuation (Geometry term)
             float cosCam = sycl::fabs(dot(-dirToA, cam.forward)); // cam.normal = forward
-            float G_cam = cosCam / (distToA * distToA); // cosNO from bounce loop
-            float weight = contrib_cam * G_cam * Tvis;
+            float G_cam = 1 / (distToA * distToA); // cosNO from bounce loop
+            float weight = contribCam * G_cam * Tvis;
 
 
             // perspective projection
             float4 clip = cam.proj * (cam.view * float4(hitPoint.hitPoint, 1.f));
-            float2 ndc = {clip.x() / clip.w(), clip.y() / clip.w()};
-            if (ndc.x() < -1.f || ndc.x() > 1.f || ndc.y() < -1.f || ndc.y() > 1.f)
+
+            /* 0)  reject anything that is on or behind the eye plane  */
+            if (clip.w() <= 0.0f)   //  <── missing guard
                 continue;
 
 
-            uint32_t px = uint32_t((ndc.x() * 0.5f + 0.5f) * cam.width);
-            uint32_t py = uint32_t((ndc.y() * 0.5f + 0.5f) * cam.height);
+            /* 1)  NDC                                                 */
+            float2 ndc = { clip.x() / clip.w(), clip.y() / clip.w() };
+            if (ndc.x() < -1.f || ndc.x() > 1.f ||
+                ndc.y() < -1.f || ndc.y() > 1.f)
+                continue;
+
+            /* 2)  raster coords (clamp to avoid the right/top fenceposts) */
+            uint32_t px = sycl::clamp(
+                uint32_t((ndc.x()*0.5f + 0.5f) * cam.width),
+                0u, cam.width  - 1);
+            uint32_t py = sycl::clamp(
+                uint32_t((ndc.y()*0.5f + 0.5f) * cam.height),
+                0u, cam.height - 1);
+
+
             uint32_t idx = cam.firstPixel + py * cam.width + px;
 
             float4 &dst = d_framebuffer.memory[idx];

@@ -30,7 +30,7 @@ namespace VkRender {
         bool usesVertexBuffers = false;
         uint32_t lastUpdatedVersion = 0;
 
-        glm::vec3 centroid; // Computed centroid, used for blend ordering
+        glm::vec3 centroid = glm::vec3(FLT_MAX); // Computed centroid, used for blend ordering
 
 
         void ensureInstanceBuffer(VkDeviceSize size, VulkanDevice& dev);

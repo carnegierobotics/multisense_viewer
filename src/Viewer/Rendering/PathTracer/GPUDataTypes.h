@@ -36,15 +36,25 @@ namespace VkRender::PathTracer {
 
     CHECK_16(Triangle);
 
+    enum PointType : uint32_t {
+        Gaussian2DPoint,
+        QuadricPoint
+    };
     struct alignas(16) OrientedPoint {
+        // QUadric version
         float c{};
         float threshold{};
         float beta{};
         float _pad0{}; // align next float2 to 16‑byte boundary
-        float2 minSupport{};
-        float2 maxSupport{};
         uint32_t material{};
         uint32_t _pad1{}; // 32 B
+        // 2DGS
+        float opacity;
+        float3 color{};
+        float covX;
+        float covY;
+        PointType type = QuadricPoint;
+        uint32_t _pad2{}; // 32 B
     };
 
     CHECK_16(OrientedPoint);

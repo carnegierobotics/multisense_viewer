@@ -13,12 +13,6 @@
 #include <vulkan/vulkan.h> // For Vulkan types
 
 namespace VkRender {
-    enum class RenderMode {
-        Opaque,
-        Transparent,
-        Wireframe,
-        // Add other render modes as needed
-    };
 
 
     struct PipelineInfo {
@@ -35,7 +29,7 @@ namespace VkRender {
     struct PipelineKey
     {
         /* ───────── fixed-function state ───────── */
-        RenderMode           renderMode      = RenderMode::Opaque;
+        AlphaMode           renderMode      = AlphaMode::Opaque;
         VkPrimitiveTopology  topology        = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         VkPolygonMode        polygonMode     = VK_POLYGON_MODE_FILL;
 

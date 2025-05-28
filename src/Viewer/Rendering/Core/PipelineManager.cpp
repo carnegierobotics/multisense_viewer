@@ -46,6 +46,7 @@ namespace VkRender {
         createInfo.vertexInputState = vertexInputStateCI;
         createInfo.debugInfo = renderPassInfo.debugName;
         createInfo.globalPipelineLayout = globalPipelineLayout;
+        createInfo.materialInstance = pipelineInfo.materialInstance;
 
         auto pipeline = std::make_shared<VulkanGraphicsPipeline>(createInfo);
         // Create the graphics pipeline using the pipeline layout

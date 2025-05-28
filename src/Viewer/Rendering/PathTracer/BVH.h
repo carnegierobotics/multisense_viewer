@@ -173,14 +173,26 @@ namespace VkRender::PathTracer {
             for (uint32_t i = 0; i < n.triCount; ++i) {
                 const OrientedPoint &P = pts[perm[n.leftFirst + i]];
 
-                /* 1. support radius given this patch’s kernel parameters */
-                const float R = radiusFromKernel(/*kernelScale*/ 1.0f, // change if per-patch
-                                                                 P.beta,
-                                                                 P.threshold);
-
                 /* 2. scale canonical rectangle by that radius            */
-                const float3 pMin = {-R, -R, -eps};
-                const float3 pMax = {R, R, eps};
+                float3 pMin, pMax;
+                switch (P.type) {
+                    case Gaussian2DPoint: {
+                        // 2-sigma ellipse: cover ±2·σx in X, ±2·σy in Y
+                        float rx = 2.0f * P.covX;
+                        float ry = 2.0f * P.covY;
+                        pMin = float3{-rx, -ry, -eps};
+                        pMax = float3{ rx,  ry,  eps};
+                        break;
+                    }
+
+                    case QuadricPoint: {
+                        // spherical support as before
+                        float R = radiusFromKernel(1.0f, P.beta, P.threshold);
+                        pMin = float3{-R, -R, -eps};
+                        pMax = float3{ R,  R,  eps};
+                        break;
+                    }
+                }
 
                 bmin = min(bmin, pMin);
                 bmax = max(bmax, pMax);
@@ -189,13 +201,30 @@ namespace VkRender::PathTracer {
             n.aabbMax = bmax;
         }
 
-        /* --------------------------------------------------------------------- */
+        //---------------------------------------------------------------------
+        //  Compute the patch’s axis-aligned centroid for splitting
+        //---------------------------------------------------------------------
         static float3 centroid(const OrientedPoint &P) {
-            return {
-                0.5f * (P.minSupport.x() + P.maxSupport.x()),
-                0.5f * (P.minSupport.y() + P.maxSupport.y()),
-                0.0f
-            };
+            switch (P.type) {
+                case Gaussian2DPoint: {
+                    // 2-sigma ellipse in X and Y
+                    float rx = 2.0f * P.covX;
+                    float ry = 2.0f * P.covY;
+                    // average of [-rx,rx] × [-ry,ry] is (0,0)
+                    // If your OrientedPoint also carries a translation/orientation,
+                    // multiply by its frame here.'
+                    return float3{0.0f, 0.0f, 0.0f};
+                }
+
+                case QuadricPoint: {
+                    // spherical support
+                    float R = radiusFromKernel(1.0f, P.beta, P.threshold);
+                    // average of [-R,R] is 0
+                    return float3{0.0f, 0.0f, 0.0f};
+                }
+            }
+            // fallback—shouldn’t happen
+            return float3{0.0f, 0.0f, 0.0f};
         }
 
         static void subdivide(const std::vector<OrientedPoint> &pts,

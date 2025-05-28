@@ -179,8 +179,7 @@ namespace VkRender::PathTracer {
                                          float &outT,
                                          float &outU,
                                          float &outV,
-                                         float tMin = 1e-4f,
-                                         bool cullBF = false);
+                                         float tMin = 1e-4f);
 
     SYCL_EXTERNAL bool intersectPatch(const Ray &ray,
                                       const OrientedPoint &P,

@@ -290,40 +290,42 @@ namespace VkRender::PathTracer {
             if (!mesh)
                 continue;
 
-            bool isMeshPointType = mc.meshDataType() == QUADRIC;
-
             std::string meshID = mc.getCacheIdentifier();
             if (m_meshIndexMap.count(meshID)) continue;
 
-            if (isMeshPointType) {
+            if ( mc.meshDataType() == QUADRIC) {
                 auto params = std::dynamic_pointer_cast<QuadricMeshParameters>(mc.meshParameters);
                 OrientedPoint point;
                 point.beta = params->b_beta;
                 point.c = params->c;
                 point.threshold = params->threshold;
-
-                /*
-                auto& transform = e.getComponent<TransformComponent>();
-                point.pos = glm2sycl( transform.getPosition());
-                glm::mat4 modelMatrix = transform.getTransform();
-                // Compute the inverse transpose for correct normal transformation
-                glm::mat3 normalMat = glm::inverseTranspose(glm::mat3(modelMatrix));
-                glm::vec3 defaultNormal(0.0f, 0.0f, 1.0f);
-                glm::vec3 rotatedNormal = glm::normalize(normalMat * defaultNormal);
-                point.normal = glm2sycl(rotatedNormal);
-                */
-
-                point.minSupport = glm2sycl(params->min);
-                point.maxSupport = glm2sycl(params->max);
+                point.type = QuadricPoint;
                 m_points.emplace_back(point);
-
                 // record mesh range
                 PointCloudRange range{};
                 range.pointCount = 1;
                 range.firstPoint = m_pointRanges.size();
                 m_pointRanges.push_back(range);
                 m_meshIndexMap[meshID] = static_cast<uint32_t>(m_pointRanges.size() - 1);
-            } else {
+            }
+            else if (mc.meshDataType() == GAUSSIAN_2D) {
+                auto params = std::dynamic_pointer_cast<Gaussian2DMeshParameters>(mc.meshParameters);
+                OrientedPoint point;
+                point.opacity = params->opacity;
+                point.color = params->color;
+                point.covX = params->covX;
+                point.covY = params->covY;
+                point.threshold = params->threshold;
+                point.type = Gaussian2DPoint;
+                m_points.emplace_back(point);
+                // record mesh range
+                PointCloudRange range{};
+                range.pointCount = 1;
+                range.firstPoint = m_pointRanges.size();
+                m_pointRanges.push_back(range);
+                m_meshIndexMap[meshID] = static_cast<uint32_t>(m_pointRanges.size() - 1);
+            }
+            else {
                 // base offsets
                 uint32_t vertBase = static_cast<uint32_t>(m_vertices.size());
                 uint32_t triBase = static_cast<uint32_t>(m_tris.size());
@@ -381,7 +383,7 @@ namespace VkRender::PathTracer {
             auto &mc = e.getComponent<MeshComponent>();
             if (!MeshManager::instance().getMeshData(mc).get())
                 continue;
-            bool isMeshPointType = mc.meshDataType() == QUADRIC;
+            bool isMeshPointType = mc.meshDataType() == QUADRIC || mc.meshDataType() == GAUSSIAN_2D;
 
 
             const std::string mid = mc.getCacheIdentifier();
@@ -729,7 +731,7 @@ namespace VkRender::PathTracer {
             /* 2) BVH build                                                */
             std::vector<BVHNode> localNodes;
             std::vector<uint32_t> perm;
-            QuadricBVH2D::build(localPts, localNodes, perm, 4);
+            QuadricBVH2D::build(localPts, localNodes, perm, 2);
 
             /* 3) optional: reorder global storage in BVH order            */
             {

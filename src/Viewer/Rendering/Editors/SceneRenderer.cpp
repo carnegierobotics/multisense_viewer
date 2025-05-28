@@ -190,6 +190,20 @@ namespace VkRender {
                 mc.getCacheIdentifier(), meshData, mc.meshDataType());
             if (!meshInst)
                 continue;
+            // calculate mesh centroid:
+            if (meshInst->centroid.x == FLT_MAX) {
+                glm::vec3 localCentroid(0.0f);
+                for (auto const &v: meshData->m_vertices) {
+                    localCentroid += v.pos;
+                }
+                localCentroid /= static_cast<float>(meshData->m_vertices.size());
+                // 2) transform to world‐space
+                auto &tc = ent.getComponent<TransformComponent>();
+                glm::mat4 M = tc.getTransform();
+                glm::vec4 c4 = M * glm::vec4(localCentroid, 1);
+                meshInst->centroid = glm::vec3(c4); // w is 1 for affine
+            }
+
 
             auto matInst = getMaterialInstance(ent);
             PipelineKey key = makeKey(mc, *meshInst, matInst.get(), ent);
@@ -201,7 +215,8 @@ namespace VkRender {
                 batch.mesh = meshInst;
                 batch.material = matInst;
                 batch.key = key;
-                batch.alphaMode = matInst->alphaMode; // or inspect materialComponent.alphaMode()
+                if (matInst)
+                    batch.alphaMode = matInst->alphaMode; // or inspect materialComponent.alphaMode()
             }
             batch.cpuInstanceTransform.push_back({tc.getTransform()}); // store locally
             if (ent.hasComponent<MaterialComponent>()) {
@@ -311,13 +326,12 @@ namespace VkRender {
         if (auto cam = m_activeCamera.lock()) {
             auto camPos = cam->matrices.position;
             std::sort(transparentBatches.begin(), transparentBatches.end(),
-                [&](InstanceBatch *a, InstanceBatch *b) {
-                    auto da = glm::length(a->mesh->centroid - camPos);
-                    auto db = glm::length(b->mesh->centroid - camPos);
-                    return da > db;  // far first
-                });
+                      [&](InstanceBatch *a, InstanceBatch *b) {
+                          auto da = glm::length(a->mesh->centroid - camPos);
+                          auto db = glm::length(b->mesh->centroid - camPos);
+                          return da > db; // far first
+                      });
         }
-
 
 
         // 2) Factor out the common draw code
@@ -345,21 +359,21 @@ namespace VkRender {
 
             BatchPC pc{batch->transformBase, batch->materialBase};
             vkCmdPushConstants(cb, m_pipelineLayout,
-                               VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT,
+                               VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
                                0, sizeof(pc), &pc);
 
-            RenderCommand rc{ pipeline, batch->mesh.get(), batch->material.get() };
+            RenderCommand rc{pipeline, batch->mesh.get(), batch->material.get()};
             bindResourcesAndDraw(commandBuffer, rc);
             m_stats.instanceTotal += batch->instanceCount;
         };
 
         // 3) Draw opaque first (with depth writes on, blending off)
-        for (auto *b : opaqueBatches) {
+        for (auto *b: opaqueBatches) {
             drawBatch(b);
         }
 
         // 4) Then draw transparent (depth writes off, blending on)
-        for (auto *b : transparentBatches) {
+        for (auto *b: transparentBatches) {
             drawBatch(b);
         }
 
@@ -493,6 +507,7 @@ namespace VkRender {
         auto it = m_materialInstances.find(entity.getUUID());
         if (it != m_materialInstances.end() && !matC.reloadShader) return it->second;
 
+
         auto mi = initializeMaterial(entity, matC);
         m_materialInstances[entity.getUUID()] = mi;
         return mi;
@@ -500,50 +515,53 @@ namespace VkRender {
 
     std::shared_ptr<MaterialInstance> SceneRenderer::initializeMaterial(
         Entity entity, const MaterialComponent &materialComponent) {
-        auto materialInstance = std::make_shared<MaterialInstance>();
+        auto materialInstance = std::make_shared<MaterialInstance>(); {
+            Utils::ScopedTimer timer("Texture Material Instance for entity: " + entity.getName());
 
-        auto texAsset = assetManager()->get<TextureAsset>(materialComponent.albedoTexturePath.string());
+            auto texAsset = assetManager()->get<TextureAsset>(materialComponent.albedoTexturePath.string());
 
-        VkImageCreateInfo imageCI = Populate::imageCreateInfo();
-        imageCI.imageType = VK_IMAGE_TYPE_2D;
-        imageCI.format = VK_FORMAT_R8G8B8A8_UNORM;
-        imageCI.extent.width = texAsset->width;
-        imageCI.extent.height = texAsset->height;
-        imageCI.extent.depth = texAsset->depth;
+            VkImageCreateInfo imageCI = Populate::imageCreateInfo();
+            imageCI.imageType = VK_IMAGE_TYPE_2D;
+            imageCI.format = VK_FORMAT_R8G8B8A8_UNORM;
+            imageCI.extent.width = texAsset->width;
+            imageCI.extent.height = texAsset->height;
+            imageCI.extent.depth = texAsset->depth;
 
-        imageCI.mipLevels = 1;
-        imageCI.arrayLayers = 1;
-        imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
-        imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
-        imageCI.usage =
-                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-        imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        VkImageViewCreateInfo imageViewCI = Populate::imageViewCreateInfo();
-        imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        imageViewCI.format = VK_FORMAT_R8G8B8A8_UNORM;
-        imageViewCI.subresourceRange.baseMipLevel = 0;
-        imageViewCI.subresourceRange.levelCount = 1;
-        imageViewCI.subresourceRange.baseArrayLayer = 0;
-        imageViewCI.subresourceRange.layerCount = 1;
-        imageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            imageCI.mipLevels = 1;
+            imageCI.arrayLayers = 1;
+            imageCI.samples = VK_SAMPLE_COUNT_1_BIT;
+            imageCI.tiling = VK_IMAGE_TILING_OPTIMAL;
+            imageCI.usage =
+                    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+            imageCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+            imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            VkImageViewCreateInfo imageViewCI = Populate::imageViewCreateInfo();
+            imageViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
+            imageViewCI.format = VK_FORMAT_R8G8B8A8_UNORM;
+            imageViewCI.subresourceRange.baseMipLevel = 0;
+            imageViewCI.subresourceRange.levelCount = 1;
+            imageViewCI.subresourceRange.baseArrayLayer = 0;
+            imageViewCI.subresourceRange.layerCount = 1;
+            imageViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 
-        VulkanImageCreateInfo vulkanImageCreateInfo(m_context->vkDevice(), m_context->allocator(), imageCI,
-                                                    imageViewCI);
-        vulkanImageCreateInfo.setLayout = true;
-        vulkanImageCreateInfo.srcLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        vulkanImageCreateInfo.dstLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        vulkanImageCreateInfo.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        vulkanImageCreateInfo.debugInfo = materialComponent.albedoTexturePath.string();
-        vulkanImageCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+            VulkanImageCreateInfo vulkanImageCreateInfo(m_context->vkDevice(), m_context->allocator(), imageCI,
+                                                        imageViewCI);
+            vulkanImageCreateInfo.setLayout = true;
+            vulkanImageCreateInfo.srcLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            vulkanImageCreateInfo.dstLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            vulkanImageCreateInfo.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            vulkanImageCreateInfo.debugInfo = materialComponent.albedoTexturePath.string();
+            vulkanImageCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 
-        auto vulkanImage = cache()->images.get(vulkanImageCreateInfo);
+            auto vulkanImage = cache()->images.get(vulkanImageCreateInfo);
 
-        VulkanTexture2DCreateInfo texCreateInfo{m_context->vkDevice(), texAsset};
-        texCreateInfo.image = vulkanImage;
+            VulkanTexture2DCreateInfo texCreateInfo{m_context->vkDevice(), texAsset};
+            texCreateInfo.image = vulkanImage;
 
-        auto vkTex = cache()->textures.get(texCreateInfo);
-        materialInstance->baseColorTexture = vkTex;
+            auto vkTex = cache()->textures.get(texCreateInfo);
+            materialInstance->baseColorTexture = vkTex;
+        }
+
 
         // 1 Load Shader code
         auto vsSPV = assetManager()->get<SPIRVAsset>(materialComponent.vertexShaderName.string());
@@ -568,6 +586,7 @@ namespace VkRender {
 
 
         materialInstance->alphaMode = materialComponent.alphaMode;
+
 
         Log::Logger::getInstance()->info("Created Material for Entity: {}", entity.getName());
         return materialInstance;

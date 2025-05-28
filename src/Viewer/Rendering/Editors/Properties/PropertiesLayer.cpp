@@ -704,7 +704,8 @@ namespace VkRender {
                     break;
                 }
                 case MeshDataType::GAUSSIAN_2D: {
-                    auto gaussianParameters = std::dynamic_pointer_cast<Gaussian2DMeshParameters>(component.meshParameters);
+                    auto gaussianParameters = std::dynamic_pointer_cast<Gaussian2DMeshParameters>(
+                        component.meshParameters);
                     if (gaussianParameters) {
                         bool paramsChanged = false;
                         paramsChanged |= ImGui::SliderFloat("Opacity", &gaussianParameters->opacity, 0.0f, 1.0f);
@@ -891,20 +892,48 @@ namespace VkRender {
 
 
                 if (ImGui::Button("Remove All")) {
-                    for (int i = 0; i < component.size(); ++i) {
-                        std::string quadricName =
-                                "Quadric " + std::to_string(
-                                    i) + ":" + entity.getName();
-                        auto entityInstance = m_context->activeScene()->
-                                getOrCreateEntityByName(quadricName);
-                        m_context->activeScene()->
-                                destroyEntityRecursively(
-                                    entityInstance);
+                    auto asset = component.gaussianAsset;
+                    for (int i = 0; i < asset->numPoints; ++i) {
+                        {
+                            std::string quadricName2dgs =
+                                   "2DGS " + std::to_string(
+                                       i) + ":" + entity.getName();
+                           auto entityInstance2dgs = m_context->activeScene()->
+                                   getOrCreateEntityByName(quadricName2dgs);
+                           m_context->activeScene()->
+                                   destroyEntityRecursively(
+                                       entityInstance2dgs);
+                        }
                     }
                     component.removeAllQuadrics();
                     quadricCount = component.size();
                 }
 
+                ImGui::SameLine();
+
+                if (ImGui::Button("Update All")) {
+                    auto gaussianAsset = component.gaussianAsset;
+
+                    // Generate Entities from PointCloudAsset
+                    for (int i = 0; i < gaussianAsset->numPoints; ++i) {
+                        std::string quadricName =
+                                "2DGS " + std::to_string(i) + ":" + m_selectionContext.getName();
+                        auto entityInstance = m_context->activeScene()->getOrCreateEntityByName(quadricName);
+                        entityInstance.setParent(m_selectionContext);
+                        auto &temp = entityInstance.getOrAddComponent<TemporaryComponent>();
+                                                // Get or create TransformComponent and set position and rotation.
+                        auto &transform = entityInstance.getOrAddComponent<TransformComponent>();
+                        transform.setPosition(gaussianAsset->positions[i]);
+                        transform.setRotationQuaternion(gaussianAsset->rotations[i]);
+
+                        // Apply parent's transformation.
+                        glm::mat4 parentMatrix = m_selectionContext.getComponent<TransformComponent>().getTransform();
+                        glm::mat4 worldMatrix = parentMatrix * transform.getTransform();
+                        transform.setTransform(worldMatrix);
+                    }
+                    component.removeAllQuadrics();
+                    quadricCount = component.size();
+                }
 
                 /*
                 // For a small number of quadrics, display all entries
@@ -1265,7 +1294,8 @@ namespace VkRender {
                     if (m_selectionContext.hasComponent<QuadricCollectionComponent>()) {
                         auto &pointcloudComponent = m_selectionContext.getComponent<QuadricCollectionComponent>();
                         pointcloudComponent.filePath = loadFileInfo.path;
-                        auto gaussianAsset = m_editor->getCreateInfo().assetManager->get<Gaussian2DAsset>(loadFileInfo.path.string());
+                        auto gaussianAsset = m_editor->getCreateInfo().assetManager->get<Gaussian2DAsset>(
+                            loadFileInfo.path.string());
                         // Now add quadrics to scene:
                         // Compute step such that we do not exceed 200 entities.
                         auto &visibility = m_selectionContext.getOrAddComponent<VisibleComponent>();
@@ -1287,13 +1317,15 @@ namespace VkRender {
                             //transform.setScale({gaussianAsset->scale_x[i], gaussianAsset->scale_y[i], 0.0f});
 
                             // Apply parent's transformation.
-                            glm::mat4 parentMatrix = m_selectionContext.getComponent<TransformComponent>().getTransform();
+                            glm::mat4 parentMatrix = m_selectionContext.getComponent<TransformComponent>().
+                                    getTransform();
                             glm::mat4 worldMatrix = parentMatrix * transform.getTransform();
                             transform.setTransform(worldMatrix);
                             // Setup MeshComponent with quadric parameters.
                             auto &mesh = entityInstance.getOrAddComponent<MeshComponent>(GAUSSIAN_2D);
                             mesh.polygonMode() = VK_POLYGON_MODE_FILL;
-                            auto meshParameters = std::dynamic_pointer_cast<Gaussian2DMeshParameters>(mesh.meshParameters);
+                            auto meshParameters = std::dynamic_pointer_cast<Gaussian2DMeshParameters>(
+                                mesh.meshParameters);
                             // Setup MaterialComponent.
                             auto &material = entityInstance.getOrAddComponent<MaterialComponent>();
                             material.useTexture = true;
@@ -1306,7 +1338,6 @@ namespace VkRender {
                             meshParameters->covX = gaussianAsset->scale_x[i];
                             meshParameters->covY = gaussianAsset->scale_y[i];
                             material.alphaMode = AlphaMode::Blend;
-
                         }
                     }
                 }

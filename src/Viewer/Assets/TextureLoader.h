@@ -33,19 +33,53 @@ namespace VkRender {
         }
         std::type_index assetType() const override {return typeid(TextureAsset);}
 
+
         std::shared_ptr<BaseAsset> load(const std::filesystem::path& key) override {
-            int w, h, c;
+            const auto keyStr = key.string();
+
+            // 1) Check cache under lock
+            {
+                std::lock_guard<std::mutex> lock(m_mutex);
+                auto it = m_textureCache.find(keyStr);
+                if (it != m_textureCache.end()) {
+                    return it->second;
+                }
+            }
+
+            // 2) Build full path
             std::filesystem::path path = Utils::getTexturePath() / key;
-            stbi_uc *data = stbi_load(path.string().c_str(), &w, &h, &c, STBI_rgb_alpha);
-            if (!data)
-                throw std::runtime_error("Failed to load Texture " + path.string());
-            c = 4; // TODO Force 4 channels, possibly make more flexible in the future if required for more difficult textures
-            std::vector<uint8_t> pixels(data, data + (w * h * c));
+            if (!std::filesystem::exists(path)) {
+                Log::Logger::getInstance()->error("TextureLoader: file not found: {}", path.string());
+                return nullptr;
+            }
+
+            // 3) Load pixels from disk
+            int w, h, c;
+            stbi_uc* data = stbi_load(path.string().c_str(), &w, &h, &c, STBI_rgb_alpha);
+            if (!data) {
+                Log::Logger::getInstance()->error("TextureLoader: failed to load image {}", path.string());
+                return nullptr;
+            }
+            c = 4; // force RGBA
+            size_t size = static_cast<size_t>(w) * h * c;
+            std::vector<uint8_t> pixels(data, data + size);
             stbi_image_free(data);
-            return std::make_shared<TextureAsset>(w, h, c, std::move(pixels));
+
+            // 4) Wrap in asset
+            auto asset = std::make_shared<TextureAsset>(w, h, c, std::move(pixels));
+
+            // 5) Cache and return
+            {
+                std::lock_guard<std::mutex> lock(m_mutex);
+                m_textureCache.emplace(keyStr, asset);
+            }
+            return asset;
         }
 
     private:
+        std::unordered_map<std::string, std::shared_ptr<BaseAsset>> m_textureCache;
+        std::mutex m_mutex;
+
         // Helper to check file extension
         bool hasExtension(const std::string &s, std::initializer_list<std::string> exts) const {
             auto ext = std::filesystem::path(s).extension().string();

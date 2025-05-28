@@ -4,8 +4,10 @@
 
 #include "VulkanGraphicsPipeline.h"
 
+#include <Viewer/Rendering/Components/MaterialComponent.h>
 #include <Viewer/Tools/Macros.h>
 
+#include "PipelineKey.h"
 #include "VulkanResourceManager.h"
 
 namespace VkRender {
@@ -62,15 +64,23 @@ namespace VkRender {
         blendAttachmentState.colorBlendOp = VK_BLEND_OP_ADD;
         blendAttachmentState.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
         blendAttachmentState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+
         blendAttachmentState.alphaBlendOp = VK_BLEND_OP_ADD;
 
         VkPipelineColorBlendStateCreateInfo colorBlendState =
                 Populate::pipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
-
-        VkPipelineDepthStencilStateCreateInfo depthStencilState = Populate::pipelineDepthStencilStateCreateInfo(
-            createInfo.depthTesting,
-            createInfo.depthTesting,
-            VK_COMPARE_OP_LESS_OR_EQUAL);
+        VkPipelineDepthStencilStateCreateInfo depthStencilState;
+        if (createInfo.materialInstance) {
+            depthStencilState = Populate::pipelineDepthStencilStateCreateInfo(
+                createInfo.depthTesting,
+                createInfo.materialInstance->alphaMode == AlphaMode::Opaque ? VK_TRUE : VK_FALSE,
+                VK_COMPARE_OP_LESS_OR_EQUAL);
+        } else {
+            depthStencilState = Populate::pipelineDepthStencilStateCreateInfo(
+                createInfo.depthTesting,
+                VK_FALSE,
+                VK_COMPARE_OP_LESS_OR_EQUAL);
+        }
 
         VkPipelineViewportStateCreateInfo viewportState =
                 Populate

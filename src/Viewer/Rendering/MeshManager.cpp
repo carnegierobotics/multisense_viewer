@@ -25,8 +25,8 @@ namespace VkRender{
             return it->second;
         }
         if (meshComponent.data()) {
+            Utils::ScopedTimer timer("Generating Material Instance for mesh: " + identifier);
             auto meshData = meshComponent.data()->generateMeshData();
-            Log::Logger::getInstance()->info("MeshManager: Generating mesh data for mesh: {}", identifier);
             meshDataCache[identifier] = meshData;
             return meshData;
         }

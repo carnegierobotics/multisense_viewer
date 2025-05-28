@@ -165,6 +165,9 @@ namespace VkRender {
                 m_PathTracerSetup->updateDynamic(m_context->activeScene(), editorCamera);
                 m_PathTracerSetup->renderFrame(renderSettings);
                 m_PathTracerSetup->generateEditorImage(m_colorTexture, imageUI->gamma, imageUI->exposure);
+                if (imageUI->saveImages) {
+                    m_PathTracerSetup->generateImages(imageUI->gamma, imageUI->exposure);
+                }
             } else {
             }
             bool newCamera = m_previousSceneCamera != activeCamera;

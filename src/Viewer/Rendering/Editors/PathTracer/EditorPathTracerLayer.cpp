@@ -114,6 +114,8 @@ namespace VkRender {
         ImGui::Text("Gamma:"); ImGui::SameLine();
         ImGui::SliderFloat("##Gamma", &imageUI->gamma, 1.0f, 10.0f, "%.2f");
 
+        ImGui::Text("Render Cameras to file:"); ImGui::SameLine();
+        imageUI->saveImages = ImGui::Button("Save");
         /*
             // Prepare dropdown items
             const char *kernels[PathTracer::KERNEL_TYPE_COUNT];

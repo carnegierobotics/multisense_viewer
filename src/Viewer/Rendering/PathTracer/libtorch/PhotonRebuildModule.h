@@ -6,21 +6,23 @@
 #define MULTISENSE_VIEWER_PHOTONREBUILDMODULE_H
 
 #include <torch/torch.h>
+
+#include <Viewer/Scenes/Scene.h>
+
 #include "Viewer/Rendering/PathTracer/libtorch/PhotonRebuildFunction.h"
 
-#include "Viewer/Rendering/PathTracer/PathTracer.h"
 // Wrap your raytracer in a Torch module
 namespace VkRender::PathTracer {
 
 
     class PhotonRebuildModule : public torch::nn::Module {
     public:
-        PhotonRebuildModule(PhotonTracer* rt, std::weak_ptr<Scene> scene);
+        PhotonRebuildModule(std::weak_ptr<Scene> scene);
         ~PhotonRebuildModule();
 
 
         // forward() will trigger a ray trace and return an image tensor
-        torch::Tensor forward(IterationInfo* i);
+        torch::Tensor forward();
 
         float* getRenderedImage();
         void freeData();
@@ -28,11 +30,8 @@ namespace VkRender::PathTracer {
         void uploadPathTracerFromTensor();
         void uploadSceneFromTensor(std::shared_ptr<Scene> scene);
 
-        GPUData m_data; // Todo rename
-        GPUDataTensors m_tensorData;
 
     private:
-        PhotonTracer* m_photonRebuild;
         void uploadTensorFromScene(std::weak_ptr<Scene> scene);
         torch::Tensor m_outputTensor;  // Store the output tenso
     };

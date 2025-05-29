@@ -56,9 +56,10 @@ if (ENABLE_PYTORCH)
     message(STATUS "[VkRenderINFO]: Attempting to find LibTorch")
     set(hipblas-common_DIR /opt/rocm-6.3.1/lib/cmake/hipblas-common)
     set(CMAKE_CUDA_ARCHITECTURES 89)
+    set(CMAKE_CUDA_COMPILER "/usr/local/cuda/bin/nvcc") ## TODO Support non-default installations
 
     find_package(Torch REQUIRED HINTS
-            /home/magnus/libraries/libtorch-cxx11-abi-shared-with-deps-2.5.1+cu124/libtorch
+            /home/magnus/libraries/libtorch-cxx11-abi-shared-with-deps-2.7.0+cu128/libtorch
             /home/magnus-desktop/libraries/libtorch-cxx11-abi-shared-with-deps-2.5.1+rocm6.2/libtorch
 
     )

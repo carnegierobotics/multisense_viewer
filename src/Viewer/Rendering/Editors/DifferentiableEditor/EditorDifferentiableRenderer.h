@@ -12,12 +12,9 @@
 #include "Viewer/Scenes/Scene.h"
 #include "Viewer/Rendering/Core/VulkanTexture.h"
 
-#include "Viewer/Rendering/PathTracer/PathTracer.h"
 #include "Viewer/Rendering/Editors/RenderCommand.h"
 #include "Viewer/Rendering/Editors/ArcballCamera.h"
-
 #include "Viewer/Rendering/PathTracer/libtorch/PhotonRebuildModule.h"
-
 #include <Viewer/Rendering/PathTracer/libtorch/SparseAdam.h>
 
 namespace VkRender
@@ -55,7 +52,6 @@ namespace VkRender
         uint32_t m_stepIteration = 0;
         uint32_t m_numAccumulated = 0;
         int m_numViewsOpt = 1;
-        PathTracer::PhotonTracer::RenderSettings m_renderSettings;
 
     private:
         std::vector<std::unique_ptr<Buffer>> m_shaderSelectionBuffer;
@@ -64,8 +60,6 @@ namespace VkRender
         std::shared_ptr<MeshInstance> m_meshInstances;
         std::shared_ptr<MaterialInstance> m_materialInstance;
         std::shared_ptr<VulkanTexture2D> m_colorTexture;
-
-        std::unique_ptr<PathTracer::PhotonTracer> m_pathTracer;
 
         std::shared_ptr<ArcballCamera> m_activeSceneCamera;
 

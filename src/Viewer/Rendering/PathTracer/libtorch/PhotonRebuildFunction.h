@@ -7,9 +7,6 @@
 #include <torch/torch.h>
 #include <vector>
 
-#include "Viewer/Rendering/PathTracer/PathTracer.h"
-
-
 namespace VkRender::PathTracer {
     /**
      * A custom autograd Function that calls your path tracer in forward(),
@@ -30,8 +27,6 @@ namespace VkRender::PathTracer {
         static torch::Tensor forward(
             torch::autograd::AutogradContext* ctx,
             // Non-tensor arguments can also be captured by custom means:
-            IterationInfo* settings,
-            PhotonTracer* pathTracer,
             torch::Tensor positions,
             torch::Tensor scales,
             torch::Tensor normals,

@@ -8,10 +8,7 @@
 #include "Viewer/Rendering/Editors/CommonEditorFunctions.h"
 #include "Viewer/Rendering/Editors/DifferentiableEditor/EditorDifferentiableRendererLayerUI.h"
 
-#include <OpenImageDenoise/oidn.hpp>
-
 #include <Viewer/Rendering/Components/ScriptableComponent.h>
-#include <Viewer/Scripts/Rays/GradientRay.h>
 
 #include <yaml-cpp/yaml.h>
 
@@ -73,6 +70,7 @@ namespace VkRender {
 
 
     void EditorDifferentiableRenderer::updatePathTracerSettings() {
+        /*
 
         auto imageUI = std::dynamic_pointer_cast<EditorDifferentiableRendererLayerUI>(m_ui);
         auto activeCamera = m_context->activeScene()->getActiveCamera();
@@ -170,6 +168,7 @@ namespace VkRender {
         m_accumulatedTensor = torch::Tensor();
         m_numAccumulated = 0;
         m_optimizer->zero_grad(); // Clear old gradients
+        */
     }
 
     void EditorDifferentiableRenderer::onUpdate() {
@@ -208,12 +207,13 @@ namespace VkRender {
                 }
             }
         }
-
+        /*
 
         // ----------------------------------------------------------
         // 1. Accumulate forward passes
         // ----------------------------------------------------------
         if (m_photonRebuildModule && (imageUI->step || imageUI->toggleStep)) {
+
             // Store camera entities (assuming there are exactly two cameras)
             CameraComponent *activeCamera = m_context->activeScene()->getActiveCamera();
             // Prepare path tracer forward settings
@@ -373,6 +373,7 @@ namespace VkRender {
                     m_context);
             }
         }
+        */
     }
 
 

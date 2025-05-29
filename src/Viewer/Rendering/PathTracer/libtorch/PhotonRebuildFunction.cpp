@@ -7,47 +7,23 @@
 #include <random>
 #include <stb_image.h>
 
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/quaternion.hpp>
-#include <OpenImageDenoise/oidn.hpp>
 #include <tiffio.h> // Make sure to include libtiff's header
 
+#include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <vector>
+#include <stdexcept>
+#include <nlohmann/json.hpp>
+#include <glm/glm.hpp>
+#include <limits>
+
 namespace VkRender::PathTracer {
-    static void saveImageAsPng(std::filesystem::path& filename, uint32_t width, uint32_t height, float* image) {
-        std::filesystem::path dir = filename.parent_path();
-
-        // Create directory if it doesn't exist
-        if (!dir.empty() && !std::filesystem::exists(dir)) {
-            std::filesystem::create_directories(dir);
-        }
 
 
-        std::vector<uint8_t> rgbDataPng(width * height * 3);
-
-        for (uint32_t y = 0; y < height; ++y) {
-            for (uint32_t x = 0; x < width; ++x) {
-                uint32_t pixelIndex = (y * width + x);
-                uint32_t rgbIndex = pixelIndex * 3;
-
-                // Assuming image is in RGBA format with float values in range [0.0, 1.0]
-                rgbDataPng[rgbIndex + 0] = static_cast<uint8_t>(image[pixelIndex] * 255.0f);
-                // R
-                rgbDataPng[rgbIndex + 1] = static_cast<uint8_t>(image[pixelIndex] * 255.0f);
-                // G
-                rgbDataPng[rgbIndex + 2] = static_cast<uint8_t>(image[pixelIndex] * 255.0f);
-                // B
-            }
-        }
-
-
-        // Write the image to a PNG file
-        if (!stbi_write_png(filename.replace_extension(".png").string().c_str(), width, height, 3,
-                            rgbDataPng.data(),
-                            width * 3)) {
-            throw std::runtime_error("Failed to write PNG file: " + filename.string());
-        }
-    }
-
-    static void save_gradient_to_png(torch::Tensor gradient, const std::filesystem::path& filename) {
+    static void save_gradient_to_png(torch::Tensor gradient, const std::filesystem::__cxx11::path& filename) {
         std::filesystem::path dir = filename.parent_path();
 
         // Create directory if it doesn't exist
@@ -193,44 +169,9 @@ namespace VkRender::PathTracer {
         file.close();
     }
 
-    static void denoiseImage(float* singleChannelImage, uint32_t width, uint32_t height,
-                             std::vector<float>& output) {
-        // Initialize OIDN device and commit
-        oidn::DeviceRef device = oidn::newDevice();
-        device.commit();
-        const uint32_t imageSize = width * height;
 
-        // Allocate input and output buffers for OIDN
-        oidn::BufferRef inputBuffer = device.newBuffer(imageSize * sizeof(float));
-        oidn::BufferRef outputBuffer = device.newBuffer(imageSize * sizeof(float));
-
-        // Copy input data to the device buffer
-        std::memcpy(inputBuffer.getData(), singleChannelImage, imageSize * sizeof(float));
-
-        // Create and configure the denoising filter
-        oidn::FilterRef filter = device.newFilter("RT");
-        filter.set("hdr", true);
-        filter.setImage("color", inputBuffer, oidn::Format::Float, width, height);
-        filter.setImage("output", outputBuffer, oidn::Format::Float, width, height);
-        filter.commit();
-
-        // Execute the filter
-        filter.execute();
-
-        // Check for errors from OIDN
-        const char* errorMessage;
-        if (device.getError(errorMessage) != oidn::Error::None) {
-            std::cerr << "OIDN Error: " << errorMessage << std::endl;
-            return;
-        }
-
-        // Retrieve the denoised image data
-        output.resize(imageSize);
-        std::memcpy(output.data(), outputBuffer.getData(), imageSize * sizeof(float));
-    }
 
     torch::Tensor PhotonRebuildFunction::forward(torch::autograd::AutogradContext* ctx,
-                                                 IterationInfo* iterationInfo, PhotonTracer* pathTracer,
                                                  torch::Tensor positions, torch::Tensor scales,
                                                  torch::Tensor normals, torch::Tensor emissions,
                                                  torch::Tensor colors,
@@ -247,11 +188,9 @@ namespace VkRender::PathTracer {
             positions, scales, normals, emissions, colors, specular, diffuse, quadrics,
             quadricPositions, quadricRotations
         });
-        ctx->saved_data["pathTracer"] = reinterpret_cast<int64_t>(pathTracer);
 
         // If you have non-tensor data you want in backward(), you can store
         // them as attributes:
-        ctx->saved_data["IterationInfo"] = reinterpret_cast<int64_t>(iterationInfo); // example
         // or store the pointer as a raw pointer or shared pointer if you prefer
         // (but be careful with lifetimes).
 
@@ -260,14 +199,6 @@ namespace VkRender::PathTracer {
 
         // Example pseudo-code:
 
-        pathTracer->update(iterationInfo->renderSettings);
-
-
-        // For illustration:
-        const PhotonTracer::PipelineSettings& photonTracerSettings = pathTracer->getPipelineSettings();
-        int64_t height = photonTracerSettings.height;
-        int64_t width = photonTracerSettings.width;
-        float* rawImage = pathTracer->getImage();
 
         // Suppose the path tracer writes out to pathTracer->m_imageMemory,
         // with shape [height * width] or [height * width * channels].
@@ -276,14 +207,11 @@ namespace VkRender::PathTracer {
 
         // e.g. a float[height * width]  (gray) or float[height * width * 3]
 
-        // Wrap it in a Torch tensor.
-        // Note from_blob does not take ownership, so we typically clone().
-        auto options = torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCPU);
-        auto output = torch::from_blob(rawImage, {height, width}, options).clone();
+
 
 
         // Return the rendered image
-        return output;
+        return torch::Tensor();
     }
 
     static void saveAsPng(std::filesystem::path filePath, int width, int height, void* data) {
@@ -402,15 +330,6 @@ namespace VkRender::PathTracer {
     }
 
 
-#include <filesystem>
-#include <fstream>
-#include <iostream>
-#include <vector>
-#include <stdexcept>
-#include <nlohmann/json.hpp>
-#include <glm/glm.hpp>
-#include <limits>
-
     // Your EntityDebugInfo definition
     struct EntityDebugInfo {
         std::vector<glm::vec3> L_mse_qc;
@@ -524,6 +443,7 @@ namespace VkRender::PathTracer {
         auto quadricPositions = saved[8];
         auto quadricRotations = saved[9];
 
+        /*
         // Retrieve the path tracer pointer
         auto pathTracerRaw = ctx->saved_data["pathTracer"].toInt();
         PhotonTracer* pathTracer = reinterpret_cast<PhotonTracer*>(pathTracerRaw);
@@ -678,6 +598,7 @@ namespace VkRender::PathTracer {
                 "debug/rendered_image/" + cameraName + "/" + std::to_string(iterationInfo->iteration) + ".png";
             saveTIFF(renderedImagePath.replace_extension("tiff"), width, height, image);
         }
+        */
 
         // Return them in the same order as forward inputs
         return {
@@ -691,7 +612,7 @@ namespace VkRender::PathTracer {
             torch::Tensor(), // specular
             torch::Tensor(), // diffuse
             torch::Tensor(), // gradQuadApperance
-            gradientQuadricPositions, // gradQUadPos
+            torch::Tensor(), // gradQuadApperance
             torch::Tensor() // gradQUadRot
         };
     }

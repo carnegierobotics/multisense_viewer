@@ -10,10 +10,9 @@
 #include "Viewer/Scenes/Entity.h"
 
 namespace VkRender::PathTracer {
-    PhotonRebuildModule::PhotonRebuildModule(PhotonTracer* rt, std::weak_ptr<Scene> scene)
-        : m_photonRebuild(rt) {
+    PhotonRebuildModule::PhotonRebuildModule(std::weak_ptr<Scene> scene) {
         // Optionally register parameters or buffers if needed
-        uploadTensorFromScene(std::move(scene));
+        //uploadTensorFromScene(std::move(scene));
     }
 
     PhotonRebuildModule::~PhotonRebuildModule() {
@@ -21,33 +20,15 @@ namespace VkRender::PathTracer {
     }
 
     torch::Tensor
-    PhotonRebuildModule::forward(IterationInfo* info) {
+    PhotonRebuildModule::forward() {
         // 1) Call PhotonTracer::update(...) or any function you want to do the actual path tracing
         //    In your case:  rt_->update(...);
 
 
-        // Simply call the custom autograd function
-        auto result = PhotonRebuildFunction::apply(
-            info,
-            m_photonRebuild,
-            m_tensorData.positions,
-            m_tensorData.scales,
-            m_tensorData.normals,
-            m_tensorData.emissions,
-            m_tensorData.colors,
-            m_tensorData.specular,
-            m_tensorData.diffuse,
-            m_tensorData.quadrics,
-            m_tensorData.quadricPositions,
-            m_tensorData.quadricRotations
-        );
-
-        m_outputTensor = result.clone(); // Clone to ensure ownership
-
-        return result;
+        return torch::Tensor();
     }
 
-    float* PhotonRebuildModule::getRenderedImage() {
+    float *PhotonRebuildModule::getRenderedImage() {
         if (m_outputTensor.defined()) {
             return m_outputTensor.data_ptr<float>(); // Get a float pointer to the tensor data
         }
@@ -55,17 +36,13 @@ namespace VkRender::PathTracer {
     }
 
     void PhotonRebuildModule::freeData() {
-        if (m_data.gaussianInputAssembly) {
-            free(m_data.gaussianInputAssembly);
-            m_data.gaussianInputAssembly = nullptr;
-        }
     }
 
     void PhotonRebuildModule::uploadPathTracerFromTensor() {
-        m_photonRebuild->uploadGaussiansFromTensors(m_tensorData);
     }
 
     void PhotonRebuildModule::uploadSceneFromTensor(std::shared_ptr<Scene> scene) {
+        /*
         // Get views of all the 2DGS Gaussian components in the scene.
         auto gaussianView = scene->getRegistry().view<LightSourceComponent>();
 
@@ -187,10 +164,12 @@ namespace VkRender::PathTracer {
                 i++;
             }
         }
+        */
     }
 
 
     void PhotonRebuildModule::uploadTensorFromScene(std::weak_ptr<Scene> scene) {
+        /*
         freeData();
         auto scenePtr = scene.lock();
         std::vector<GaussianInputAssembly> gaussianInputAssembly;
@@ -276,7 +255,6 @@ namespace VkRender::PathTracer {
             torch::TensorOptions().dtype(torch::kFloat32).device(torch::kCPU)
         ).clone().to(device).set_requires_grad(false);
 
-        /**  Appearance properties //// **/
         // Example for normals:
         std::vector<float> emissions;
         std::vector<glm::vec4> colors;
@@ -430,5 +408,6 @@ namespace VkRender::PathTracer {
 
         Log::Logger::getInstance()->info("Registrered and Uploaded {} Quadrics from scene to Tensors",
                                          m_data.numQuadrics);
+        */
     }
 }

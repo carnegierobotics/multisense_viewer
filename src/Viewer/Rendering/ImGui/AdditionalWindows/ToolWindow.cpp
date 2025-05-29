@@ -32,7 +32,6 @@ namespace VkRender {
         }
 
 
-        auto pathTracerUI = std::dynamic_pointer_cast<EditorPathTracerLayerUI>(m_editorPathTracer->ui());
         //pathTracerUI->kernelDevice = "GPU";
         //pathTracerUI->photonCount = 10000000;
         //pathTracerUI->numBounces = 0;
@@ -74,6 +73,7 @@ namespace VkRender {
         ImGui::Text("Dataset Generation");
         ImGui::Spacing();
 
+        /*
         // You can add more controls here as needed.
         auto pathTracerUI = std::dynamic_pointer_cast<EditorPathTracerLayerUI>(m_editorPathTracer->ui());
         auto optimizationUI = std::dynamic_pointer_cast<EditorDifferentiableRendererLayerUI>(m_diffRenderer->ui());
@@ -235,6 +235,7 @@ namespace VkRender {
 
         }
 
+*/
         // End the ImGui window.
         ImGui::End();
     }

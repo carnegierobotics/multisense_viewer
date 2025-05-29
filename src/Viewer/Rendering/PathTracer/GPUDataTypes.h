@@ -6,6 +6,9 @@
 #define GPUDATATYPES_H
 
 #include <cstdint>
+
+#include <Viewer/Scenes/Entity.h>
+
 #include "PathTracerTypes.h"
 
 namespace VkRender {
@@ -192,7 +195,7 @@ namespace VkRender::PathTracer {
         float3 forward{}; // 160
         uint32_t width{}, height{}; // 168
         uint32_t firstPixel{}; // 172
-        uint32_t _pad0{}; // 176
+        Entity entity;
     };
 
     CHECK_16(Camera);

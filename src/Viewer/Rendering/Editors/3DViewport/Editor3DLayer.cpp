@@ -101,12 +101,47 @@ namespace VkRender {
         ImGui::End();
     }
 
-
     void Editor3DLayer::drawSettingsTab() {
         auto imageUI = std::dynamic_pointer_cast<Editor3DViewportUI>(m_editor->ui());
         auto editor = reinterpret_cast<Editor3DViewport*>(m_editor);
 
         ImGui::Checkbox("Active camera", &imageUI->renderFromViewpoint);
+        if (imageUI->renderFromViewpoint)
+        {
+            auto scene = m_context->activeScene();
+            auto view  = scene->getRegistry().view<CameraComponent>();
+
+            // Scratch containers so we can map “index ←→ entity”.
+            static std::vector<Entity>        cameras;
+            static std::vector<std::string>   cameraNames;
+
+            cameras.clear();
+            cameraNames.clear();
+
+            for (auto e : view)
+            {
+                Entity ent(e, scene.get());
+                cameras.push_back(ent);
+                cameraNames.emplace_back(ent.getName());   // assumes getName() → std::string
+            }
+
+            if (!cameraNames.empty() &&
+                ImGui::BeginListBox("##CameraList", ImVec2(-FLT_MIN, 6 * ImGui::GetTextLineHeightWithSpacing())))
+            {
+                for (int i = 0; i < static_cast<int>(cameraNames.size()); ++i)
+                {
+                    bool isSelected = (i == m_selectedCameraIndex);
+                    if (ImGui::Selectable(cameraNames[i].c_str(), isSelected))
+                    {
+                        m_selectedCameraIndex                 = i;
+                        imageUI->viewpointEntity     = cameras[i];   // or whatever you store
+                    }
+                    if (isSelected) ImGui::SetItemDefaultFocus();
+                }
+                ImGui::EndListBox();
+            }
+        }
+
         //imageUI->saveNextFrame = ImGui::Button("Save");
         //imageUI->reloadViewportShader = ImGui::Button("Reload Shader");
         ImGui::SetNextItemWidth(100.0f);

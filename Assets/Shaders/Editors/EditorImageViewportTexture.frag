@@ -11,7 +11,7 @@ layout (binding = 1) uniform INFO {
 
 
 void main() {
-    vec3 value = texture(samplerColorMap, inUV).rgb; // Sample the single channel
+    vec3 value = texture(samplerColorMap, vec2(inUV.x, 1- inUV.y)).rgb; // Sample the single channel
 
     outColor = vec4(value, 1.0f);
 }

@@ -116,6 +116,17 @@ namespace VkRender {
 
         ImGui::Text("Render Cameras to file:"); ImGui::SameLine();
         imageUI->saveImages = ImGui::Button("Save");
+
+        ImGui::Separator();
+        ImGui::Text("Render Info:");
+        ImGui::Dummy(ImVec2(0.0f, 0.0f));
+        ImGui::Text("Total emitted:"); ImGui::SameLine();
+        if (imageUI->totalPhotonsEmitted >= 1e6) {
+            ImGui::Text("%d M", static_cast<int>(imageUI->totalPhotonsEmitted / 1000000));
+        } else {
+            ImGui::Text("%d", imageUI->totalPhotonsEmitted);
+        }
+
         /*
             // Prepare dropdown items
             const char *kernels[PathTracer::KERNEL_TYPE_COUNT];

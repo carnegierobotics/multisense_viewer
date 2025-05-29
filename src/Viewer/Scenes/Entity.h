@@ -131,18 +131,20 @@ namespace VkRender {
         }
 
         bool isVisible() {
-            if (!hasComponent<VisibleComponent>())
-                return true; // Default to visible if no component
-
-            bool visible = getComponent<VisibleComponent>().visible;
-            Entity parent = getParent();
-            while (parent) {
-                if (parent.hasComponent<VisibleComponent>()) {
-                    visible = visible && parent.getComponent<VisibleComponent>().visible;
-                }
-                parent = parent.getParent();
+            // 1) Check self
+            if (hasComponent<VisibleComponent>()) {
+                if (!getComponent<VisibleComponent>().visible)
+                    return false;   // I explicitly hid myself
             }
-            return visible;
+            // 2) Walk up parents
+            for (Entity parent = getParent(); parent; parent = parent.getParent()) {
+                if (parent.hasComponent<VisibleComponent>()) {
+                    if (!parent.getComponent<VisibleComponent>().visible)
+                        return false; // An ancestor is hidden
+                }
+            }
+            // 3) No one asked us to hide
+            return true;
         }
 
         // Check if this entity has children

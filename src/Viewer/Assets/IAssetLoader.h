@@ -8,6 +8,7 @@
 #include <memory>
 #include <string>
 #include <typeindex>
+#include <filesystem>
 
 namespace VkRender {
 

@@ -49,6 +49,10 @@ namespace VkRender::PathTracer {
         bool movedSinceLastFrame = false;
     };
 
+    struct RenderInfoOutput {
+        uint32_t frameID = 0;
+        uint64_t photonCount = 0;
+    };
     class PathTracerSetup {
     public:
         explicit PathTracerSetup(const PathTracerSetupCreateInfo &createInfo) : m_queue(createInfo.queue),
@@ -75,8 +79,10 @@ namespace VkRender::PathTracer {
         /** per‑frame fast update of transforms, animated emissive, … */
         void updateDynamic(const std::shared_ptr<Scene> &scene, EditorCamera editorCamera);
 
+        void resetImageMemory();
+
         /** launches photon + contribution kernels */
-        void renderFrame(const RenderSettings &settings);
+        RenderInfoOutput renderFrame(const RenderSettings &settings);
 
         /** copies the device framebuffer back to host */
         void generateImages(float gamma, float exposure);
@@ -116,6 +122,9 @@ namespace VkRender::PathTracer {
         T *deviceAlloc(size_t num) {
             return static_cast<T *>(sycl::malloc_device(sizeof(T) * num, m_queue));
         }
+        /* ---------------Runtime settings------------------*/
+        uint32_t m_frameID = 0;
+        uint64_t m_totalPhotons = 0;
 
         /*----------------------------------------------*/
         sycl::queue m_queue;

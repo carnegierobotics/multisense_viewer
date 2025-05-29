@@ -9,6 +9,7 @@
 #include <glm/gtc/quaternion.hpp>
 
 #include <Viewer/Rendering/Editors/EditorIncludes.h>
+#include <Viewer/Scenes/Entity.h>
 
 #include "Viewer/Rendering/ImGui/Layer.h"
 
@@ -18,6 +19,7 @@
 **/
 
 namespace VkRender {
+
     enum class OutputTextureImageType { Color, Depth };
 
     enum class DepthColorOption : int32_t {
@@ -36,6 +38,7 @@ namespace VkRender {
         // Depth color option selection (only relevant if Depth is selected)
         DepthColorOption depthColorOption = DepthColorOption::None;
         bool reloadViewportShader = false;
+        Entity viewpointEntity;
         // Constructor that copies everything from base EditorUI
         explicit Editor3DViewportUI(const EditorUI& baseUI) : EditorUI(baseUI) {
         }
@@ -85,6 +88,10 @@ namespace VkRender {
             glm::vec3 euler = glm::eulerAngles(q);
             rotation = glm::degrees(euler);
         }
+
+    private:
+        int m_selectedCameraIndex = -1;
+
     };
 }
 

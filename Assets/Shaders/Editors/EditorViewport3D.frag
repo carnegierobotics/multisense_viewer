@@ -6,6 +6,6 @@ layout (binding = 0) uniform sampler2D samplerColorMap;
 layout (location = 0) out vec4 outColor;
 
 void main() {
-    vec3 color = texture(samplerColorMap, inUV).rgb;
-    outColor = vec4(color, 1.0);
+    vec3 value = texture(samplerColorMap, vec2(inUV.x, 1- inUV.y)).rgb; // Sample the single channel
+    outColor = vec4(value, 1.0);
 }

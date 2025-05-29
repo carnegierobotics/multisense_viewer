@@ -99,7 +99,7 @@ namespace VkRender {
 
     private:
         bool m_updateTrigger = true;
-        bool m_activeCamera = false;
+        bool m_activeCamera = true;
 
     };
 }

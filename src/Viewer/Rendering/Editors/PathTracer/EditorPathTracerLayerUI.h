@@ -41,6 +41,8 @@ namespace VkRender {
         float exposure = 1.8f;
 
         bool saveImages = false;
+
+        uint64_t totalPhotonsEmitted;
     };
 }
 #endif //MULTISENSE_VIEWER_PATHTRACERLAYERUI_H

@@ -581,6 +581,9 @@ namespace Utils {
     static uint32_t crc32(const std::string &s) {
         return static_cast<uint32_t>(std::hash<std::string>{}(s)); // ok for demo
     }
+
+
+
 }
 
 #endif //MULTISENSE_VIEWER_UTILS_H

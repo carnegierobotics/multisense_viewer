@@ -21,7 +21,7 @@ namespace VkRender {
         m_shaderSelectionBuffer.resize(m_context->swapChainBuffers().size());
 
         m_editorCamera = std::make_shared<ArcballCamera>();
-        m_editorCamera->setDefaultPosition({-270.0f, 75.0f}, 4.0f);
+        m_editorCamera->setDefaultPosition({-120.0f, -65.0f}, 4.0f);
 
         auto dev = m_context->getSyclDeviceSelector().getDevice(SYCLDeviceType::Default);
         PathTracer::PathTracerSetupCreateInfo pipelineSettings(dev);
@@ -32,7 +32,7 @@ namespace VkRender {
     void EditorPathTracer::onEditorResize() {
         m_editorCamera = std::make_shared<ArcballCamera>(
             static_cast<float>(m_createInfo.width) / static_cast<float>(m_createInfo.height));
-        m_editorCamera->setDefaultPosition({-270.0f, 75.0f}, 4.0f);
+        m_editorCamera->setDefaultPosition({-120.0f, -65.0f}, 4.0f);
         auto imageUI = std::dynamic_pointer_cast<EditorPathTracerLayerUI>(m_ui);
 
         scaleViewportQuad();
@@ -53,7 +53,7 @@ namespace VkRender {
 
         m_editorCamera = std::make_shared<ArcballCamera>(
             static_cast<float>(m_createInfo.width) / static_cast<float>(m_createInfo.height));
-        m_editorCamera->setDefaultPosition({-270.0f, 75.0f}, 4.0f);
+        m_editorCamera->setDefaultPosition({-120.0f, -65.0f}, 4.0f);
 
         m_colorTexture = EditorUtils::createEmptyTexture(m_createInfo.width, m_createInfo.height,
                                                          VK_FORMAT_R8G8B8A8_UNORM, m_context);
@@ -163,11 +163,13 @@ namespace VkRender {
 
                 PathTracer::EditorCamera editorCamera(m_editorCamera.get(), m_createInfo.width, m_createInfo.height, m_movedCamera);
                 m_PathTracerSetup->updateDynamic(m_context->activeScene(), editorCamera);
-                m_PathTracerSetup->renderFrame(renderSettings);
+                PathTracer::RenderInfoOutput output = m_PathTracerSetup->renderFrame(renderSettings);
                 m_PathTracerSetup->generateEditorImage(m_colorTexture, imageUI->gamma, imageUI->exposure);
                 if (imageUI->saveImages) {
                     m_PathTracerSetup->generateImages(imageUI->gamma, imageUI->exposure);
                 }
+
+                imageUI->totalPhotonsEmitted = output.photonCount;
             } else {
             }
             bool newCamera = m_previousSceneCamera != activeCamera;
@@ -404,14 +406,14 @@ namespace VkRender {
         imageUI->clearImageMemory = false;
         m_previousSceneCamera = activeCamera;
         if (Input::isKeyPressed(GLFW_KEY_SPACE)) {
-            m_editorCamera->setDefaultPosition({-270.0f, 75.0f}, 4.0f);
+            m_editorCamera->setDefaultPosition({-120.0f, -65.0f}, 4.0f);
             m_movedCamera = true;
         }
 
         */
 
         if (Input::isKeyPressed(GLFW_KEY_SPACE)) {
-            m_editorCamera->setDefaultPosition({-270.0f, 75.0f}, 4.0f);
+            m_editorCamera->setDefaultPosition({-120.0f, -65.0f}, 4.0f);
             m_movedCamera = true;
         }
         m_movedCamera = false;
@@ -420,10 +422,10 @@ namespace VkRender {
 
     void EditorPathTracer::onMouseMove(const MouseButtons &mouse) {
         if (ui()->hovered && mouse.left && !ui()->resizeActive) {
-            m_editorCamera->rotate(mouse.dx, mouse.dy);
+            m_editorCamera->rotate(mouse.dx, -mouse.dy);
             m_movedCamera = true;
         } else if (ui()->hovered && mouse.right && !ui()->resizeActive) {
-            m_editorCamera->translate(mouse.dx, mouse.dy);
+            m_editorCamera->translate(-mouse.dx, -mouse.dy);
             m_movedCamera = true;
         }
     }

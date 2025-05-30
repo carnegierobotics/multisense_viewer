@@ -67,8 +67,6 @@ namespace VkRender::PathTracer {
         float3 aabbMax; // 32
         uint32_t leftFirst{}; // 36
         uint32_t triCount{}; // 40
-        uint32_t _pad0{}; // 44
-        uint32_t _pad1{}; // 48  ✓
         bool isLeaf() const {
             return triCount > 0;
         }
@@ -219,6 +217,7 @@ namespace VkRender::PathTracer {
         const TLASNode *tlasNodes = nullptr;
         const BVHNode *betaNodes = nullptr;
         const BLASRange *betaRanges = nullptr;
+        const uint32_t *triPerm = nullptr;
 
         /* appearance */
         const Material *materials = nullptr;

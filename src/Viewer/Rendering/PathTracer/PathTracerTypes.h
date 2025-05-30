@@ -275,5 +275,98 @@ sycl::vec<float, M> operator*(Matrix<M, 4> const &A, float4 const &v) {
 
 static_assert(sizeof(float3) == 16, "float3 must be 16 bytes");
 static_assert(alignof(float3) == 16, "float3 must be 16-byte aligned");
+static_assert(sizeof(float3x3) ==  3 * sizeof(sycl::vec<float,3>),
+              "float3x3 layout must stay row-major");
+static_assert(sizeof(float4x4) ==  4 * sizeof(sycl::vec<float,4>),
+              "float4x4 layout must stay row-major");
+
+/*------------- Make a 3×3 from the top-left of a 4×4 ------------------*/
+inline float3x3 linearPart(float4x4 const& m4)
+{
+    float3x3 m3;
+    for (int i = 0; i < 3; ++i)          // rows
+        for (int j = 0; j < 3; ++j)      // cols
+            m3.row[i][j] = m4.row[i][j];
+    return m3;
+}
+
+/*------------- Determinant of a 3×3 (needed for handedness test) ------*/
+inline float det(float3x3 const& m)
+{
+    auto& r = m.row;
+    return
+        r[0][0] * (r[1][1] * r[2][2] - r[1][2] * r[2][1]) -
+        r[0][1] * (r[1][0] * r[2][2] - r[1][2] * r[2][0]) +
+        r[0][2] * (r[1][0] * r[2][1] - r[1][1] * r[2][0]);
+}
+
+/*------------- Matrix-vector overload that returns *float3* -----------*/
+inline float3 operator*(float3x3 const& A, float3 const& v)
+{
+    sycl::vec<float,3> r = ::operator*<3,3>(A, static_cast<sycl::vec<float,3>>(v));
+    return float3{r};
+}
+
+/*------------- Transform a normal ------------------------------------*/
+inline float3 transformNormal(float3 const& n_obj, float4x4 const& obj2world)
+{
+    float3x3 M  = linearPart(obj2world);     // upper-left 3×3
+    float3x3 N  = transpose(inverse(M));     // (M⁻¹)ᵀ
+    float3   n  = normalize(N * n_obj);      // renormalise!
+
+    /* Optional: flip if the instance changes handedness */
+    if (det(M) < 0.0f) n = -n;
+
+    return n;
+}
+
+
+template<int MaxN = 256>
+   struct SmallStack {
+    uint32_t data[MaxN];
+    int sp = 0;
+
+    ACPP_UNIVERSAL_TARGET
+
+    bool push(uint32_t v) // returns false on overflow
+    {
+        if (sp >= MaxN) return false;
+        data[sp++] = v;
+        return true;
+    }
+
+    ACPP_UNIVERSAL_TARGET
+
+    uint32_t pop() // *call only when !empty()*
+    {
+        return data[--sp];
+    }
+
+    ACPP_UNIVERSAL_TARGET
+    bool empty() const { return sp == 0; }
+};
+
+template<typename T, int MaxN = 256>
+struct SmallStackBVH {
+    T      data[MaxN];
+    int    sp = 0;
+
+    ACPP_UNIVERSAL_TARGET
+    bool push(T v) {
+        if (sp >= MaxN) return false;
+        data[sp++] = v;
+        return true;
+    }
+
+    ACPP_UNIVERSAL_TARGET
+    T pop() {
+        return data[--sp];
+    }
+
+    ACPP_UNIVERSAL_TARGET
+    bool empty() const { return sp == 0; }
+};
+
+struct LeafRange { uint32_t node, first, count; };
 
 #endif //PATHTRACERTYPES_H

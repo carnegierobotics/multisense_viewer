@@ -321,10 +321,10 @@ namespace VkRender {
     void Editor3DViewport::onMouseMove(const MouseButtons &mouse) {
         if (ui()->hovered && mouse.left && !ui()->resizeActive && !ui()->occludedByGizmo) {
             // Multiply mouse deltas by dt in SECONDS
-            m_editorCamera->rotate(mouse.dx, -mouse.dy);
+            m_editorCamera->rotate(-mouse.dx, -mouse.dy);
 
         } else if (ui()->hovered && mouse.right && !ui()->resizeActive) {
-            m_editorCamera->translate(-mouse.dx, -mouse.dy);
+            m_editorCamera->translate(mouse.dx, -mouse.dy);
         }
     }
 

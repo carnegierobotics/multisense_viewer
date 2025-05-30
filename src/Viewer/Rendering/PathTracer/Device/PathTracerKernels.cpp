@@ -8,30 +8,6 @@
 #include "Viewer/Rendering/PathTracer/Device/KernelHelpers.h"
 
 namespace VkRender::PathTracer {
-    template<int MaxN = 256>
-    struct SmallStack {
-        uint32_t data[MaxN];
-        int sp = 0;
-
-        ACPP_UNIVERSAL_TARGET
-
-        bool push(uint32_t v) // returns false on overflow
-        {
-            if (sp >= MaxN) return false;
-            data[sp++] = v;
-            return true;
-        }
-
-        ACPP_UNIVERSAL_TARGET
-
-        uint32_t pop() // *call only when !empty()*
-        {
-            return data[--sp];
-        }
-
-        ACPP_UNIVERSAL_TARGET
-        bool empty() const { return sp == 0; }
-    };
 
     // ── PathTracerMeshKernel.cpp ────────────────────────────────────────────────
     // Returns the closest hit inside one mesh’s BLAS (object space)
@@ -51,17 +27,12 @@ namespace VkRender::PathTracer {
         bool hitAny = false;
         float3 invDir = safeInvDir(rayO.direction);
 
-        constexpr int kMaxStack = 256; // enough for ~500 k leaves in practice
-        //int stack[kMaxStack] = {-1};
-        //int sp = 0;
-
-        //stack[sp++] = 0; // root of this BLAS
-
-        SmallStack<1024> stack;
+        SmallStack<4096> stack;
         stack.push(0); // root
 
         while (!stack.empty()) {
             int nIdx = stack.pop();
+
             const BVHNode &N = nodes[nIdx];
 
             float tEntry;
@@ -87,7 +58,9 @@ namespace VkRender::PathTracer {
                     const float3 B = verts[T.v1].pos;
                     const float3 C = verts[T.v2].pos;
 
-                    float t, u, v;
+                    float t = FLT_MAX;
+                    float u = 0;
+                    float v = 0;
 
                     /* ---- new call --------------------------------------------------------- */
                     if (intersectTriangle(rayO, A, B, C,
@@ -186,10 +159,8 @@ namespace VkRender::PathTracer {
         bool anyHit = false;
         float3 invDir = safeInvDir(rayW.direction);;
 
-
         SmallStack<> stack;
         stack.push(0); // root
-
         float bestTWorld = std::numeric_limits<float>::infinity();
 
         while (!stack.empty()) {
@@ -295,7 +266,7 @@ namespace VkRender::PathTracer {
         float contrib,
         const float3 &surfaceNormal,
         PCG32 &rng) const {
-        constexpr float kEps = 1e-5f;
+        constexpr float kEps = std::numeric_limits<float>::epsilon();
         const SceneDesc &scene = *d_sceneDesc;
 
         size_t instanceID = scene.instances[hitPoint.instIdx].materialIndex;
@@ -315,15 +286,16 @@ namespace VkRender::PathTracer {
             float Tvis = traceVisibility(visRay, distToA - kEps, scene, rng);
             if (Tvis <= 0.0f) continue; // completely blocked
 
-            // BRDF
-            float NoL   = sycl::max(dot(surfaceNormal, dirToA), 0.0f); // cos θ_i
+            // BRDF to camera direction
             float brdf  = kd / M_PIf;                                  // ρ / π
             float contribCam = contrib * brdf;                   // Lambert
 
 
             // Attenuation (Geometry term)
-            float cosCam = sycl::fabs(dot(-dirToA, cam.forward)); // cam.normal = forward
-            float G_cam = 1 / (distToA * distToA); // cosNO from bounce loop
+            //float cosCam = sycl::fabs(dot(-dirToA, cam.forward)); // cam.normal = forward
+            float surfaceCos   = sycl::fabs(dot(surfaceNormal, dirToA));
+            float cameraCos    = sycl::fabs(dot(cam.forward, -dirToA));
+            float G_cam = (surfaceCos * cameraCos) / (distToA * distToA);
             float weight = contribCam * G_cam * Tvis;
 
 
@@ -333,7 +305,6 @@ namespace VkRender::PathTracer {
             /* 0)  reject anything that is on or behind the eye plane  */
             if (clip.w() <= 0.0f)   //  <── missing guard
                 continue;
-
 
             /* 1)  NDC                                                 */
             float2 ndc = { clip.x() / clip.w(), clip.y() / clip.w() };
@@ -375,6 +346,7 @@ namespace VkRender::PathTracer {
         const SceneDesc &scene = *d_sceneDesc;
         const RenderSettings &settings = d_sceneSettings;
 
+        float eps = 1e-4f;
 
         /* RNG --------------------------------------------------------------------- */
         PCG32 rng;
@@ -392,8 +364,7 @@ namespace VkRender::PathTracer {
         float pdfDir;
         sampleCosineHemisphere(rng, Lnorm, dir, pdfDir);
 
-        float cosNL = sycl::max(1e-5f, static_cast<float>(sycl::dot(dir, Lnorm)));
-        //float cosNL = sycl::dot(dir, Lnorm);
+        float cosNL = sycl::max(0.0f, static_cast<float>(sycl::dot(dir, Lnorm)));
 
         float perPhotonEnergy = 1.0f / static_cast<float>(totalPhotonCount);
         float throughput = light.radiance * cosNL / (pdfPos * pdfDir) * perPhotonEnergy;
@@ -414,6 +385,7 @@ namespace VkRender::PathTracer {
 
             /* ---- compute world-space surface normal ---------------------------- */
             float3 surfaceNormal; // will be set per-geometry
+            float3 worldNormal; // will be set per-geometry
             if (inst.geomType == GeometryType::Mesh) {
                 /* ----- triangle path (unchanged) -------------------------------- */
                 const Triangle &tri = scene.triangles[hit.primIdx];
@@ -424,7 +396,23 @@ namespace VkRender::PathTracer {
                 float w0 = 1.f - hit.u - hit.v;
                 float w1 = hit.u;
                 float w2 = hit.v;
-                surfaceNormal = normalize(w0 * v0.norm + w1 * v1.norm + w2 * v2.norm);
+                surfaceNormal    =   normalize(w0 * v0.norm + w1 * v1.norm + w2 * v2.norm); // Local surface normal:
+                worldNormal     = transformNormal(surfaceNormal, xfInst.objectToWorld);   // world-space
+
+                // World surface normal:
+
+                /* ---- (b)  geometric normal ---------------------------------------- */
+                float3 P0_obj = v0.pos;
+                float3 P1_obj = v1.pos;
+                float3 P2_obj = v2.pos;
+                float3 Ng_obj = normalize(sycl::cross(P1_obj - P0_obj, P2_obj - P0_obj));
+                //worldNormal     = transformNormal(Ng_obj, xfInst.objectToWorld);   // world-space
+
+                /* --- 3.  transform both to world space ------------------------------ */
+                //worldNormal = transformNormal(surfaceNormal, xfInst.objectToWorld);
+
+
+
             } else /* ---------------- quadric patch ------------------------ */
             {
 
@@ -447,13 +435,13 @@ namespace VkRender::PathTracer {
             // material parameters
             float kd = mat.diffuse * mat.baseColor;
             //---------------- camera contributions -----------------------------
-            castContributions(hit, throughput, surfaceNormal, rng);
+            castContributions(hit, throughput, worldNormal, rng);
 
             // sample direction  (keep your cosine-hemisphere sampler for now)
             float3 newDir;
             float pdfDir = 0.f;
-            sampleCosineHemisphere(rng, surfaceNormal, newDir, pdfDir);
-            const float cosNO = sycl::max(0.f, sycl::dot(surfaceNormal, newDir));
+            sampleCosineHemisphere(rng, worldNormal, newDir, pdfDir);
+            const float cosNO = sycl::max(0.f, sycl::dot(worldNormal, newDir));
             // If cosNO < 1e-4 the exact ratio kd cancels numerically.
             // Clamp the ratio instead of the cosine:
             const float minCos = 1e-5f;
@@ -481,7 +469,7 @@ namespace VkRender::PathTracer {
             }
 
             //---------------- spawn next ray -----------------------------------
-            ray = makeRay(hit.hitPoint + 1e-5f * newDir, newDir);
+            ray = makeRay(hit.hitPoint + eps * newDir, newDir);
         }
     }
 }

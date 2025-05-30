@@ -167,6 +167,11 @@ namespace VkRender::PathTracer {
         camera.pos = glm2sycl(editorCamera.camera->matrices.position);
         camera.proj = glm2sycl(editorCamera.camera->matrices.projection);
         camera.view = glm2sycl(editorCamera.camera->matrices.view);
+        glm::vec3 cameraNormal(0.0f, 0.0f, -1.0f);
+        glm::mat4 modelMatrix = editorCamera.camera->matrices.transform;
+        glm::mat3 normalMat = glm::inverseTranspose(glm::mat3(modelMatrix));
+        glm::vec3 rotatedNormal = glm::normalize(normalMat * cameraNormal);
+        camera.forward = glm2sycl(rotatedNormal);
 
         Log::Logger::getInstance()->trace("Updating Cameras");
         m_queue.memcpy(d_cameras, &camera, sizeof(Camera)); // Only copy first camera instance
@@ -612,6 +617,11 @@ namespace VkRender::PathTracer {
         m_queue.memcpy(d_tlasNodes, m_tlasNodes.data(),
                        m_tlasNodes.size() * sizeof(TLASNode));
 
+        // —— upload TLAS ————————————————————————————————
+        d_trianglePerm = deviceAlloc<uint32_t>(m_trianglePerm.size());
+        m_queue.memcpy(d_trianglePerm, m_trianglePerm.data(),
+                       m_trianglePerm.size() * sizeof(uint32_t));
+
 
         //—— fill SceneDesc ——
         m_sceneDescDevice.points = d_points;
@@ -629,6 +639,7 @@ namespace VkRender::PathTracer {
         m_sceneDescDevice.blasNodes = d_blasNodes;
         m_sceneDescDevice.betaNodes = d_betaNodes;
         m_sceneDescDevice.betaRanges = d_betaRanges;
+        m_sceneDescDevice.triPerm = d_trianglePerm;
 
         m_sceneDescDevice.pointCount = static_cast<uint32_t>(pointCount);
         m_sceneDescDevice.triCount = static_cast<uint32_t>(triCount);
@@ -656,6 +667,7 @@ namespace VkRender::PathTracer {
         m_sceneDescHost.betaNodes = m_betaNodes.data();
         m_sceneDescHost.betaRanges = m_betaRanges.data();
         m_sceneDescHost.tlasNodes = m_tlasNodes.data();
+        m_sceneDescHost.triPerm = m_trianglePerm.data();
 
 
         /* counts are identical */
@@ -668,6 +680,28 @@ namespace VkRender::PathTracer {
         m_sceneDescHost.materialCount = m_sceneDescDevice.materialCount;
         m_sceneDescHost.lightCount = m_sceneDescDevice.lightCount;
         m_sceneDescHost.cameraCount = m_sceneDescDevice.cameraCount;
+    }
+
+
+    static void gatherLeavesDFS(std::vector<BVHNode> &nodes,
+                                uint32_t root,
+                                std::vector<LeafRange> &out) {
+        struct StackItem {
+            uint32_t n;
+        };
+        SmallStack<256> st;
+        st.push({root});
+        while (!st.empty()) {
+            uint32_t idx = st.pop();
+            BVHNode &N = nodes[idx];
+            if (N.isLeaf()) {
+                out.push_back({idx, N.leftFirst, N.triCount});
+            } else {
+                // push right first so left is visited next (classic DFS)
+                st.push({N.leftFirst + 1});
+                st.push({N.leftFirst});
+            }
+        }
     }
 
     void PathTracerSetup::buildBLASForAllMeshes() {
@@ -717,7 +751,7 @@ namespace VkRender::PathTracer {
                             localVerts, // ← vertex array is required
                             localNodes,
                             triIdx,
-                            /*maxLeaf*/ 2);
+                            /*maxLeaf*/ 4);
 
             // ---------- A. reorder the global triangle array ---------------------------
             // global index where this mesh's triangles start
@@ -745,27 +779,15 @@ namespace VkRender::PathTracer {
             // 3.  Now patch the BVH nodes ----------------------------------------------
             //     (children still contiguous, only need global offset)
 
+            uint32_t firstNode = uint32_t(m_blasNodes.size());
+
+            // 4C) Patch all *leaf* nodes so their triangle slices shift by globalTriStart
             for (BVHNode &N: localNodes) {
-                if (N.isLeaf()) {
-                    N.leftFirst += globalTriStart; // only leaves need patching
-                }
+                if (N.isLeaf())
+                    N.leftFirst += globalTriStart;
             }
 
-#ifndef NDEBUG
-            for (const BVHNode& n : localNodes)
-                if (n.isLeaf())
-                    for (uint32_t k = 0; k < n.triCount; ++k) {
-                        uint32_t g = n.leftFirst + k;
-                        assert(g < m_tris.size()); // 1. triangle in range
-                        const Triangle& T = m_tris[g];
-                        assert(T.v0 < m_vertices.size() && // 2. vertices in range
-                            T.v1 < m_vertices.size() &&
-                            T.v2 < m_vertices.size());
-                    }
-#endif
-
             //---------------- 5.  Append to the big BLAS pool & record range -----
-            uint32_t firstNode = uint32_t(m_blasNodes.size());
             m_blasNodes.insert(m_blasNodes.end(),
                                localNodes.begin(), localNodes.end());
 

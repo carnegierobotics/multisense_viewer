@@ -161,13 +161,14 @@ namespace VkRender::PathTracer {
         std::vector<BVHNode> m_blasNodes;
         std::vector<BLASRange> m_blasRanges;
         std::vector<TLASNode> m_tlasNodes;
-
+        std::vector<uint32_t> m_trianglePerm; // BVH triangle permutation
         // device pointers
         BVHNode *d_blasNodes = nullptr;
         TLASNode *d_tlasNodes = nullptr;
         BLASRange *d_blasRanges = nullptr;
         BVHNode * d_betaNodes;
         BLASRange* d_betaRanges;
+        uint32_t* d_trianglePerm;
 
         // === Device USM pointers ===
         OrientedPoint *d_points = nullptr;

@@ -38,7 +38,7 @@ namespace VkRender {
         int averageLeafSize = 0;
         int maxDepth = 30;
         float gamma = 2.2f;
-        float exposure = 1.8f;
+        float exposure = 10.0f; //1.8f;
 
         bool saveImages = false;
 

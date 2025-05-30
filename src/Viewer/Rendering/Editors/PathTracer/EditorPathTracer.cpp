@@ -422,10 +422,10 @@ namespace VkRender {
 
     void EditorPathTracer::onMouseMove(const MouseButtons &mouse) {
         if (ui()->hovered && mouse.left && !ui()->resizeActive) {
-            m_editorCamera->rotate(mouse.dx, -mouse.dy);
+            m_editorCamera->rotate(-mouse.dx, -mouse.dy);
             m_movedCamera = true;
         } else if (ui()->hovered && mouse.right && !ui()->resizeActive) {
-            m_editorCamera->translate(-mouse.dx, -mouse.dy);
+            m_editorCamera->translate(mouse.dx, -mouse.dy);
             m_movedCamera = true;
         }
     }

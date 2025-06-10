@@ -18,6 +18,81 @@
 #include "Viewer/Rendering/PathTracer/BVH.h"
 #include "Viewer/Rendering/PathTracer/Device/KernelHelpers.h"
 
+#include <yaml-cpp/yaml.h>
+
+namespace YAML {
+    template<>
+    struct convert<float3> {
+        static Node encode(const float3 &v) {
+            Node node;
+            node.push_back(v.x());
+            node.push_back(v.y());
+            node.push_back(v.z());
+            return node;
+        }
+
+        static bool decode(const Node &node, float3 &v) {
+            if (!node.IsSequence() || node.size() != 3) return false;
+            v.x() = node[0].as<float>();
+            v.y() = node[1].as<float>();
+            v.z() = node[2].as<float>();
+            return true;
+        }
+    };
+
+    template<>
+    struct convert<float4x4> {
+        static Node encode(const float4x4 &m) {
+            Node node;
+            // each row is a sequence of 4 floats
+            for (size_t r = 0; r < 4; ++r) {
+                Node row;
+                for (size_t c = 0; c < 4; ++c)
+                    row.push_back(m.row[r][c]);
+                node.push_back(row);
+            }
+            return node;
+        }
+
+        static bool decode(const Node &node, float4x4 &m) {
+            if (!node.IsSequence() || node.size() != 4) return false;
+            for (size_t r = 0; r < 4; ++r) {
+                const Node &row = node[r];
+                if (!row.IsSequence() || row.size() != 4) return false;
+                for (size_t c = 0; c < 4; ++c)
+                    m.row[r][c] = row[c].as<float>();
+            }
+            return true;
+        }
+    };
+} // namespace YAML
+
+// ------------------------------------------------------------------
+// Emitter overloads: control how they appear when you do `out << myFloat3;`
+// ------------------------------------------------------------------
+YAML::Emitter &operator<<(YAML::Emitter &out, const float3 &v) {
+    out << YAML::Flow
+            << YAML::BeginSeq
+            << v.x() << v.y() << v.z()
+            << YAML::EndSeq;
+    return out;
+}
+
+YAML::Emitter &operator<<(YAML::Emitter &out, const float4x4 &m) {
+    // emit as sequence of 4 flow‐style row sequences
+    out << YAML::BeginSeq;
+    for (size_t r = 0; r < 4; ++r) {
+        out << YAML::Flow
+                << YAML::BeginSeq
+                << m.row[r][0]
+                << m.row[r][1]
+                << m.row[r][2]
+                << m.row[r][3]
+                << YAML::EndSeq;
+    }
+    out << YAML::EndSeq;
+    return out;
+}
 
 namespace VkRender::PathTracer {
     PathTracerSetup::~PathTracerSetup() {
@@ -123,7 +198,11 @@ namespace VkRender::PathTracer {
             cam.view = glm2sycl(cameraComponent.camera->matrices.view);
             cam.firstPixel = pixelOffset;
 
-            cam.forward = float3(0.0f, 0.0f, -1.0f);
+            glm::vec3 cameraNormal(0.0f, 0.0f, -1.0f);
+            glm::mat4 modelMatrix = cameraComponent.camera->matrices.transform;
+            glm::mat3 normalMat = glm::inverseTranspose(glm::mat3(modelMatrix));
+            glm::vec3 rotatedNormal = glm::normalize(normalMat * cameraNormal);
+            cam.forward = glm2sycl(rotatedNormal);
             cam.entity = e;
             pixelOffset += cam.width * cam.height * 4;
             m_cameras.push_back(cam);
@@ -224,62 +303,98 @@ namespace VkRender::PathTracer {
 
         event.wait();
 
+        m_photonCount = settings.photonCount;
         m_totalPhotons += settings.photonCount;
         m_frameID++;
 
         return {m_frameID, m_totalPhotons};
     }
 
-    void PathTracerSetup::generateImages(float gamma, float exposure) {
-        float gammaInv = 1.0f / gamma; // sRGB ≈ 1/2.2
+
+    void PathTracerSetup::generateImages(std::shared_ptr<EditorPathTracerLayerUI> imageUI) {
+        float gammaInv = 1.0f / imageUI->gamma; // sRGB ≈ 1/2.2
 
         if (!d_sceneDesc) {
             Log::Logger::getInstance()->error("Path Tracer has not been initialized");
         }
 
-        auto &ci = m_createInfo;
-        for (int i = 1; i < m_cameras.size(); ++i) {
-            auto &camera = m_cameras[i];
+        for (int camIdx = 1; camIdx < m_cameras.size(); ++camIdx) {
+            auto &camera = m_cameras[camIdx];
 
-            // 2) Convert to 8-bit RGBA
+            // --- 1) Read back float RGBA buffer
             size_t pixelCount = camera.width * camera.height;
             uint32_t imageSize = pixelCount * 4;
             float *hostMemory = new float[imageSize];
-            m_queue.memcpy(hostMemory, d_frameBuffers.memory + camera.firstPixel, imageSize * sizeof(float)).wait();
+            m_queue.memcpy(hostMemory, d_frameBuffers.memory + camera.firstPixel,
+                           imageSize * sizeof(float)).wait();
 
-            m_queue.fill(d_frameBuffers.memory + camera.firstPixel, 0.0f, imageSize); // Only copy first camera instance
-
-
-            std::vector<uint8_t> rgb8;
-            rgb8.resize(pixelCount * 3);
-            float *src = hostMemory;
+            // --- 2) Tonemap & gamma‐correct
+            std::vector<uint8_t> rgb8(pixelCount * 3);
             for (size_t i = 0; i < pixelCount; ++i) {
-                // clamp to [0,1], then map to [0,255]
-                float v = src[i * 4];
-
-                auto tonemap = [&](float L) {
-                    float Lm = 1.f - std::exp(-L * exposure); // filmic-ish
-                    return Lm;
-                };
-                v = tonemap(v);
-                v = std::pow(std::clamp(v, 0.f, 1.f), gammaInv);
-                rgb8[i * 3 + 0] = static_cast<uint8_t>(v * 255.f + 0.5f);
-                rgb8[i * 3 + 1] = static_cast<uint8_t>(v * 255.f + 0.5f);
-                rgb8[i * 3 + 2] = static_cast<uint8_t>(v * 255.f + 0.5f);
+                float L = hostMemory[i * 4];
+                float Lm = 1.f - std::exp(-L * imageUI->exposure);
+                float v = std::pow(std::clamp(Lm, 0.f, 1.f), gammaInv) * 255.f + 0.5f;
+                rgb8[i * 3 + 0] = static_cast<uint8_t>(v);
+                rgb8[i * 3 + 1] = static_cast<uint8_t>(v);
+                rgb8[i * 3 + 2] = static_cast<uint8_t>(v);
             }
-
-
-            std::filesystem::path fileName = camera.entity ? camera.entity.getName() : "default.png";
-            // Write the image to a PNG file
-            if (!stbi_write_png(fileName.string().c_str(), camera.width, camera.height, 3,
-                                rgb8.data(),
-                                camera.width * 3)) {
-                throw std::runtime_error("Failed to write PNG file: " + fileName.string());
-            }
-
             delete[] hostMemory;
+
+            // --- 3) Build paths
+            std::filesystem::path imgPath = camera.entity
+                                                ? std::filesystem::path(camera.entity.getName()).replace_extension(
+                                                    ".png")
+                                                : std::filesystem::path("default.png");
+            imgPath = imageUI->saveImagePath / imgPath;
+
+            std::filesystem::path yamlPath = imgPath;
+            yamlPath.replace_extension(".yaml");
+
+            // --- 4) Write PNG
+            if (!stbi_write_png(imgPath.string().c_str(),
+                                camera.width, camera.height,
+                                3, rgb8.data(), camera.width * 3)) {
+                throw std::runtime_error("Failed to write PNG file: " + imgPath.string());
+            }
+
+            // --- 5) Emit YAML metadata
+            YAML::Emitter out;
+            out << YAML::BeginMap;
+
+            // top‐level render settings
+            out << YAML::Key << "FrameID" << YAML::Value << m_frameID;
+            out << YAML::Key << "PhotonCount" << YAML::Value << m_photonCount;
+            out << YAML::Key << "TotalPhotons" << YAML::Value << m_totalPhotons;
+            out << YAML::Key << "Gamma" << YAML::Value << imageUI->gamma;
+            out << YAML::Key << "Exposure" << YAML::Value << imageUI->exposure;
+
+            // camera block
+            out << YAML::Key << "Camera" << YAML::Value << YAML::BeginMap;
+            out << YAML::Key << "Name" << YAML::Value<< (camera.entity ? camera.entity.getName() : "default");
+            out << YAML::Key << "Width" << YAML::Value << camera.width;
+            out << YAML::Key << "Height" << YAML::Value << camera.height;
+            out << YAML::Key << "Position" << YAML::Value << camera.pos; // uses your vec3 << overload
+            out << YAML::Key << "Forward" << YAML::Value << camera.forward; // vec3
+            out << YAML::Key << "ViewMatrix" << YAML::Value << camera.view; // float4x4
+            out << YAML::Key << "ProjectionMatrix" << YAML::Value << camera.proj; // float4x4
+            out << YAML::EndMap; // end camera map
+
+            out << YAML::EndMap; // end top‐level map
+
+            // write to disk
+            std::ofstream fout(yamlPath);
+            if (!fout) {
+                Log::Logger::getInstance()->error("Cannot open YAML file: {}", yamlPath.string());
+            } else {
+                fout << out.c_str();
+                fout.close();
+            }
+
+            // --- 6) Advance frame
+            ++m_frameID;
         }
     }
+
 
     void PathTracerSetup::generateEditorImage(const std::shared_ptr<VulkanTexture2D> &viewportTexture, float gamma,
                                               float exposure) {

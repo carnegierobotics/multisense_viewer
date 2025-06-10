@@ -64,6 +64,7 @@ namespace VkRender {
 
         ~Application() override = default;
 
+
         /**
          * @brief Returns the singleton instance of the Application.
          * @return Reference to the Application instance.
@@ -104,6 +105,16 @@ namespace VkRender {
         VulkanDevice &vkDevice() { return *m_vulkanDevice; }
 
         std::shared_ptr<UsageMonitor> usageMonitor() { return m_usageMonitor; }
+
+
+        std::shared_ptr<EditorUI> getPathTracerUI() {
+            for (auto&  editor : m_editors) {
+                if (editor->getCreateInfo().editorTypeDescription == EditorType::PathTracer) {
+                    return editor->ui();
+                }
+            }
+            return nullptr;
+        }
 
         // TODO we should collect per frame info like this somewhere
         float deltaTime() { return m_lastFrameTime; }

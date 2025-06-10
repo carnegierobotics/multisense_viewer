@@ -6,6 +6,7 @@
 #define MULTISENSE_VIEWER_EDITORPROPERTIES
 
 #include "Viewer/Rendering/Editors/Editor.h"
+#include "Viewer/Rendering/Editors/PathTracer/EditorPathTracerLayerUI.h"
 
 namespace VkRender {
 
@@ -15,6 +16,8 @@ namespace VkRender {
 
         explicit EditorProperties(EditorCreateInfo &createInfo, UUID uuid = UUID()) : Editor(
                 createInfo, uuid) {
+
+            addUIData<EditorPathTracerLayerUI>(); // TODO remove
 
             addUI("EditorUILayer");
             addUI("PropertiesLayer");

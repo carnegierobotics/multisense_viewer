@@ -40,7 +40,9 @@ namespace VkRender::LayerUtils {
         LOAD_SCENE,
         SAVE_SCENE_AS,
         SAVE_PROJECT_AS,
+        SELECT_PATH_TRACER_OUTPUT_FOLDER,
         SELECT_FOLDER,
+        YAML_RENDER_SETTINGS_FILE,
     } FileTypeLoadFlow;
 
     struct LoadFileInfo {
@@ -569,7 +571,7 @@ namespace VkRender::LayerUtils {
     /// @param tabs        array of VerticalIconTab
     /// @param tabCount    size of the array
     /// @param currentTab  in/out: selected tab index
-    static void drawVerticalIconTabs(
+    static void drawVerticalIconLeftPopupTabs(
         const VerticalIconTab* tabs,
         int tabCount,
         int& currentTab,
@@ -639,6 +641,78 @@ namespace VkRender::LayerUtils {
         ImGui::EndChild();
         // restore style
         style.ItemSpacing.x = savedItemSpacingX;
+    }
+
+    static void drawVerticalIconRightPopupTabs(
+        const VerticalIconTab* tabs,
+        int tabCount,
+        int& currentTab,
+        Editor* editor) {
+        // 1) sizes
+        const float barWidth = 24.f;
+        const float btnSize = 20.f;
+        const ImVec2 iconSize = {btnSize, btnSize};
+        // 2) save & tighten horizontal spacing
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.0f, 0.0f));
+        // ───────────────────────────────────────────────────
+        //  B) Left: the icon strip, fixed width
+        // ───────────────────────────────────────────────────
+        ImGui::SetNextWindowPos(ImVec2(editor->ui()->layoutConstants.borderSize, editor->ui()->layoutConstants.uiYOffset));
+        ImGui::BeginChild(
+            "##icon_bar",
+            ImVec2(barWidth, 0),
+            false,
+            ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+
+        for (int i = 0; i < tabCount; i++) {
+            ImGui::PushID(i);
+            bool sel = (currentTab == i);
+            // highlight if selected
+            if (sel) {
+                ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.30f, 0.44f, 0.60f, 1.f));
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.32f, 0.49f, 0.68f, 1.f));
+                ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.80f, 0.80f, 0.90f, 1.f));
+            }
+            ImGui::PushFont(editor->guiResources().fontIcons);
+            bool pressed = ImGui::Button(tabs[i].icon, iconSize);
+            ImGui::PopFont();
+            if (pressed) {
+                if (sel) currentTab = -1; // clicked active ⇒ hide
+                else currentTab = i; // clicked new ⇒ show
+            }
+            // optional hover tooltip
+            if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort) && tabs[i].tooltip)
+                ImGui::SetTooltip("%s", tabs[i].tooltip);
+            if (sel)
+                ImGui::PopStyleColor(3);
+            ImGui::PopID();
+        }
+        ImGui::EndChild();
+        ImGui::PopStyleVar();
+        ImGui::PopStyleVar();
+        // ───────────────────────────────────────────────────
+        //  A) Right: the page content, fixed width
+        // ───────────────────────────────────────────────────
+        if (currentTab >= 0) {
+            ImGui::SetNextWindowPos(ImVec2(barWidth,
+                                           editor->ui()->layoutConstants.uiYOffset));
+            ImGui::PushStyleColor(ImGuiCol_ChildBg, Colors::CRLGray424MainTransparent);
+            ImGui::BeginChild(
+                "##page",
+                ImVec2(tabs->pageWidth - barWidth, tabs->pageHeight), // fixed width, full height
+                ImGuiChildFlags_AlwaysUseWindowPadding,
+                ImGuiWindowFlags_NoScrollbar); // ImGuiWindowFlags_AlwaysAutoResize
+            // draw the selected tab’s content
+            if (currentTab >= 0 && currentTab < tabCount)
+                tabs[currentTab].draw();
+            ImGui::EndChild();
+            ImGui::PopStyleColor();
+            // put next child on same line
+            ImGui::SameLine();
+        }
+        // restore style
     }
 }
 

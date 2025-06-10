@@ -19,12 +19,16 @@ namespace VkRender {
 
         bool reloadRenderer = false;
         bool render = false;
+        bool renderUntilTarget = false;
+        bool resetPathTracer = false;
         bool renderToViewport = true;
 
         SYCLDeviceType selectedDevice = SYCLDeviceType::CPU;
         int photonCount = 1000; // default photon count
-        int photonExponent = 2; // 10^6 = 1 000 000 default
+        int photonExponent = 3; // 10^6 = 1 000 000 default
+        int targetPhotonExponent = photonExponent  + 1; // 10^6 = 1 000 000 default
         int numBounces = 8;
+        int targetPhotonCount = 1e7; // 10 Million
 
         // BVH stuff
         bool showBVH = false;
@@ -41,8 +45,9 @@ namespace VkRender {
         float exposure = 10.0f; //1.8f;
 
         bool saveImages = false;
+        std::filesystem::path saveImagePath;
 
-        uint64_t totalPhotonsEmitted;
+        uint64_t totalPhotonsEmitted = 0;
     };
 }
 #endif //MULTISENSE_VIEWER_PATHTRACERLAYERUI_H

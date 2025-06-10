@@ -36,13 +36,13 @@ namespace VkRender {
         // Create the parent window
         ImGui::Begin("EditorPathTracerLayer", nullptr, window_flags);
 
-        static int currentTab = 0; // keep outside the loop
+        static int currentTab = -1; // keep outside the loop
         const VerticalIconTab kTabs[] =
         {
-            {ICON_FA_TV, "Renderer Settings", [this] { drawRendererSettingsTab(); }, 300.0f},
+            //{ICON_FA_TV, "Renderer Settings", [this] { drawRendererSettingsTab(); }, 300.0f},
             {ICON_FA_BUG, "Debug", [this] {drawDebugViewTab(); }, 300.0f},
         };
-        LayerUtils::drawVerticalIconTabs(kTabs, IM_ARRAYSIZE(kTabs), currentTab, m_editor);
+        LayerUtils::drawVerticalIconLeftPopupTabs(kTabs, IM_ARRAYSIZE(kTabs), currentTab, m_editor);
 
         ImGui::End();
     }
@@ -69,123 +69,6 @@ namespace VkRender {
 
     }
 
-    void EditorPathTracerLayer::drawRendererSettingsTab() {
-        auto imageUI = std::dynamic_pointer_cast<EditorPathTracerLayerUI>(m_editor->ui());
-        imageUI->reloadRenderer = ImGui::Button("Upload scene");
-        ImGui::Checkbox("Render", &imageUI->render);
-        ImGui::Checkbox("To Viewport", &imageUI->renderToViewport);
-        // --- Device selector as a dropdown ---
-        ImGui::Text("Compute Device:");
-        ImGui::SetNextItemWidth(100.0f);
-        {
-            // the labels in the dropdown
-            const char* deviceNames[] = {"CPU", "GPU"};
-            // we keep an int for Combo, matching our enum values
-            int current = static_cast<int>(imageUI->selectedDevice);
-            if (ImGui::Combo("##ComputeDevice", &current, deviceNames, IM_ARRAYSIZE(deviceNames))) {
-                imageUI->selectedDevice = static_cast<SYCLDeviceType>(current);
-            }
-        }
-
-        // --- New: Photon count slider ---
-        // Photon count slider in steps of 10
-        // We scale down by 10 for the slider then re-scale back up so it only ever hits multiples of 10.
-        ImGui::Text("Photon Count:");
-        ImGui::SetNextItemWidth(150.0f);
-        {
-            // slider from exponent 0..7
-            int expo = imageUI->photonExponent;
-            if (ImGui::SliderInt("##PhotonExp", &expo, 0, 7, "%d")) {
-                imageUI->photonExponent = expo;
-                imageUI->photonCount = static_cast<int>(std::pow(10, expo));
-            }
-            ImGui::Text("%d", imageUI->photonCount);
-        }
-
-        ImGui::Text("Num Bounces:"); ImGui::SameLine();
-        ImGui::SliderInt("##Bounces", &imageUI->numBounces, 1,  128);
-
-        ImGui::Separator();
-        ImGui::Text("Camera Options");
-
-        ImGui::Text("Exposure:"); ImGui::SameLine();
-        ImGui::SliderFloat("##Exposure", &imageUI->exposure, 0.0f, 10.0f, "%.2f");
-
-        ImGui::Text("Gamma:"); ImGui::SameLine();
-        ImGui::SliderFloat("##Gamma", &imageUI->gamma, 1.0f, 10.0f, "%.2f");
-
-        ImGui::Text("Render Cameras to file:"); ImGui::SameLine();
-        imageUI->saveImages = ImGui::Button("Save");
-
-        ImGui::Separator();
-        ImGui::Text("Render Info:");
-        ImGui::Dummy(ImVec2(0.0f, 0.0f));
-        ImGui::Text("Total emitted:"); ImGui::SameLine();
-        if (imageUI->totalPhotonsEmitted >= 1e6) {
-            ImGui::Text("%d M", static_cast<int>(imageUI->totalPhotonsEmitted / 1000000));
-        } else {
-            ImGui::Text("%d", imageUI->totalPhotonsEmitted);
-        }
-
-        /*
-            // Prepare dropdown items
-            const char *kernels[PathTracer::KERNEL_TYPE_COUNT];
-
-            for (int i = 0; i < PathTracer::KERNEL_TYPE_COUNT; ++i) {
-                kernels[i] = PathTracer::KernelTypeToString(static_cast<PathTracer::KernelType>(i));
-            }
-            // Render ImGui combo box
-            ImGui::SetNextItemWidth(100.0f);
-            if (ImGui::Combo("##Render Kernel", &imageUI->selectedKernelIndex, kernels,
-                             PathTracer::KERNEL_TYPE_COUNT)) {
-                // Update the kernel based on selection
-            }
-            imageUI->kernel = static_cast<PathTracer::KernelType>(imageUI->selectedKernelIndex);
-
-
-            // Dropdown for selecting render kernel
-            const char *selections[] = {"CPU", "GPU"}; // TODO This should come from selectSyclDevices
-            ImGui::SetNextItemWidth(100.0f);
-            if (ImGui::Combo("##Select Device Type", &imageUI->selectedDeviceIndex, selections,
-                             IM_ARRAYSIZE(selections))) {
-                imageUI->switchKernelDevice = true;
-                imageUI->kernelDevice = selections[imageUI->selectedDeviceIndex];
-            }
-
-
-            if (ImGui::Button("Clear image memory")) {
-                imageUI->clearImageMemory = true;
-            }
-
-            const int sliderMin = 1;
-            const int sliderMax = 10000000;
-
-            ImGui::SetNextItemWidth(150);
-            if (ImGui::SliderInt("PhotonCount", &imageUI->photonCount, sliderMin, sliderMax, "%d",
-                                 ImGuiSliderFlags_Logarithmic)) {
-                // Normalize to the nearest 10,000 and ensure it's at least 1000
-                //imageUI->photonCount = std::max((imageUI->photonCount + 5000) / 10000 * 10000, sliderMin);
-            }
-                    ImGui::SetNextItemWidth(100);
-            if (ImGui::SliderInt("Light Bounces", &imageUI->numBounces, 1, 100)) {
-                imageUI->clearImageMemory = true;
-            };
-                    ImGui::SetNextItemWidth(100);
-            ImGui::SliderFloat("Gamma", &imageUI->shaderSelection.gammaCorrection, 0, 8);
-
-                    imageUI->saveImage = ImGui::Button("Save");
-
-
-            // new row
-            auto *editor = dynamic_cast<EditorPathTracer *>(m_editor);
-            if (editor && editor->getRenderInformation())
-                ImGui::Text("Frame Number: %u", editor->getRenderInformation()->frameID);
-
-            ImGui::SameLine();
-            ImGui::Checkbox("Apply Beta dist.", &imageUI->applyBetaContribution);
-
-            */
-    }
 
     /** Called once upon this object destruction **/
     void EditorPathTracerLayer::onDetach() {

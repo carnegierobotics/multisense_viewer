@@ -583,7 +583,39 @@ namespace Utils {
     }
 
 
+    static void openFileExplorer(const std::filesystem::path &path) {
+        if (!std::filesystem::exists(path))
+            return;
 
+        // If it’s a file, reveal its parent folder; otherwise open the folder itself
+        std::filesystem::path toOpen =
+            std::filesystem::is_directory(path) ? path : path.parent_path();
+
+#if defined(_WIN32)
+        // Non-blocking: hands off to Explorer and returns immediately
+        HINSTANCE result = ShellExecuteA(
+            /*hwnd=*/nullptr,
+            /*verb=*/"open",
+            /*file=*/toOpen.string().c_str(),
+            /*params=*/nullptr,
+            /*dir=*/nullptr,
+            /*show=*/SW_SHOWDEFAULT
+        );
+        if (reinterpret_cast<intptr_t>(result) <= 32) {
+            Log::Logger::getInstance()->error(
+                "ShellExecuteA failed with code {}", reinterpret_cast<intptr_t>(result)
+            );
+        }
+
+#elif defined(__linux__)
+        // Fire-and-forget thread so the UI thread never blocks
+        const std::string cmd = "xdg-open \"" + toOpen.string() + "\"";
+        std::thread([cmd]() {
+            std::system(cmd.c_str());
+        }).detach();
+
+#endif
+    }
 }
 
 #endif //MULTISENSE_VIEWER_UTILS_H

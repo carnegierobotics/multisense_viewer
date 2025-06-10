@@ -46,7 +46,7 @@ namespace VkRender {
             {ICON_FA_GEAR, "Settings", [this] { drawSettingsTab(); }},
             {ICON_FA_LIFE_RING, "Gizmos", [] { ImGui::Text("TODO "); }},
         };
-        LayerUtils::drawVerticalIconTabs(kTabs, IM_ARRAYSIZE(kTabs), currentTab, m_editor);
+        LayerUtils::drawVerticalIconLeftPopupTabs(kTabs, IM_ARRAYSIZE(kTabs), currentTab, m_editor);
 
         static int selection = 0;
         if (Input::isKeyClicked(GLFW_KEY_Q)) {

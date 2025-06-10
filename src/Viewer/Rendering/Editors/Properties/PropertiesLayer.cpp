@@ -9,8 +9,12 @@
 #include <Viewer/Assets/QuadricLoader.h>
 #include <Viewer/Assets/Gaussian2DAssetLoader.h>
 #include <Viewer/Rendering/Components/ScriptableComponent.h>
+#include <Viewer/Rendering/Editors/PathTracer/EditorPathTracerLayerUI.h>
+#include <Viewer/Rendering/ImGui/IconsFontAwesome6.h>
 #include <Viewer/Scenes/CameraController.h>
 #include <Viewer/Scripts/VectorScripts.h>
+
+#include <yaml-cpp/yaml.h>
 
 #include "Viewer/Rendering/Components/LightSourceComponent.h"
 #include "Viewer/Rendering/Components/Components.h"
@@ -25,6 +29,42 @@
 #include "Viewer/Rendering/Editors/CommonEditorFunctions.h"
 
 namespace VkRender {
+    /** Called once per frame **/
+    void PropertiesLayer::onUIRender() {
+        m_selectionContext = m_context->getSelectedEntity();
+        ImVec2 window_pos = ImVec2(0.0f, m_editor->ui()->layoutConstants.uiYOffset); // Position (x, y)
+        ImVec2 window_size = ImVec2(m_editor->ui()->width, m_editor->ui()->height - window_pos.y);
+        // Size (width, height)
+        // Set window flags to remove decorations
+        ImGuiWindowFlags window_flags =
+                ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove |
+                ImGuiWindowFlags_NoResize |
+                ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoScrollbar;
+
+        // Set next window position and size
+        ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always);
+        ImGui::SetNextWindowSize(window_size, ImGuiCond_Always);
+
+        // Create the parent window
+        ImGui::Begin("PropertiesLayer", nullptr, window_flags);
+
+        static int currentTab = 0; // keep outside the loop
+        const VerticalIconTab kTabs[] =
+        {
+            {ICON_FA_TV, "Path Tracer", [this] { drawRendererSettingsTab(); }, window_size.x, window_size.y},
+            {ICON_FA_LIFE_RING, "Reconstruction", [this] { reconstructionTab(); }, window_size.x, window_size.y},
+            {ICON_FA_GEAR, "Settings", [this] { objectProperties(); }, window_size.x, window_size.y},
+
+        };
+        LayerUtils::drawVerticalIconRightPopupTabs(kTabs, IM_ARRAYSIZE(kTabs), currentTab, m_editor);
+
+
+        checkFileImportCompletion();
+        checkFolderImportCompletion();
+
+        ImGui::End();
+    }
+
     /** Called once upon this object creation**/
     void PropertiesLayer::onAttach() {
     }
@@ -36,6 +76,9 @@ namespace VkRender {
     void PropertiesLayer::setScene(std::weak_ptr<Scene> scene) {
         Layer::setScene(scene);
         m_selectionContext = Entity(); // reset selectioncontext
+    }
+
+    void PropertiesLayer::reconstructionTab() {
     }
 
     bool PropertiesLayer::drawVec3Control(const std::string &label, glm::vec3 &values, float resetValue = 0.0f,
@@ -823,7 +866,8 @@ namespace VkRender {
 
 
         drawComponent<VisibleComponent>("Visible", entity, [this](VisibleComponent &component) {
-            ImGui::Text("Turn on/off Visibility"); ImGui::SameLine();
+            ImGui::Text("Turn on/off Visibility");
+            ImGui::SameLine();
             ImGui::Checkbox("##", &component.visible);
         });
 
@@ -961,26 +1005,7 @@ namespace VkRender {
         });
     }
 
-
-    /** Called once per frame **/
-    void PropertiesLayer::onUIRender() {
-        m_selectionContext = m_context->getSelectedEntity();
-        ImVec2 window_pos = ImVec2(0.0f, m_editor->ui()->layoutConstants.uiYOffset); // Position (x, y)
-        ImVec2 window_size = ImVec2(m_editor->ui()->width, m_editor->ui()->height - window_pos.y);
-        // Size (width, height)
-        // Set window flags to remove decorations
-        ImGuiWindowFlags window_flags =
-                ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove |
-                ImGuiWindowFlags_NoResize |
-                ImGuiWindowFlags_NoBringToFrontOnFocus;
-
-        // Set next window position and size
-        ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always);
-        ImGui::SetNextWindowSize(window_size, ImGuiCond_Always);
-
-        // Create the parent window
-        ImGui::Begin("PropertiesLayer", nullptr, window_flags);
-
+    void PropertiesLayer::objectProperties() {
         ImGui::Text("Entity Properties");
         std::shared_ptr<Scene> scene = m_context->activeScene();
         if (ImGui::Button("Delete This Entity")) {
@@ -991,12 +1016,246 @@ namespace VkRender {
         if (m_selectionContext) {
             drawComponents(m_selectionContext);
         }
-
-        checkFileImportCompletion();
-        checkFolderImportCompletion();
-
-        ImGui::End();
     }
+
+
+    void PropertiesLayer::drawRendererSettingsTab() {
+        //auto imageUI = std::dynamic_pointer_cast<EditorPathTracerLayerUI>(m_editor->ui());
+
+        auto imageUI = m_context->getPathTracerUI();
+        if (!imageUI)
+            return;
+
+        auto pathTracer = std::dynamic_pointer_cast<EditorPathTracerLayerUI>(imageUI);
+
+        pathTracer->reloadRenderer = ImGui::Button("Upload scene");
+        ImGui::Checkbox("Render", &pathTracer->render);
+        ImGui::Checkbox("To Viewport", &pathTracer->renderToViewport);
+        // --- Device selector as a dropdown ---
+        ImGui::Text("Compute Device:");
+        ImGui::SetNextItemWidth(100.0f); {
+            // the labels in the dropdown
+            const char *deviceNames[] = {"CPU", "GPU"};
+            // we keep an int for Combo, matching our enum values
+            int current = static_cast<int>(pathTracer->selectedDevice);
+            if (ImGui::Combo("##ComputeDevice", &current, deviceNames, IM_ARRAYSIZE(deviceNames))) {
+                pathTracer->selectedDevice = static_cast<SYCLDeviceType>(current);
+            }
+        }
+
+        // --- New: Photon count slider ---
+        // Photon count slider in steps of 10
+        // We scale down by 10 for the slider then re-scale back up so it only ever hits multiples of 10.
+        ImGui::Text("Photon Count:");
+        ImGui::SetNextItemWidth(150.0f); {
+            // slider from exponent 0..7
+            int expo = pathTracer->photonExponent;
+            if (ImGui::SliderInt("##PhotonExp", &expo, 0, 7, "%d")) {
+                pathTracer->photonExponent = expo;
+                pathTracer->photonCount = static_cast<int>(std::pow(10, expo));
+            }
+
+            ImGui::Text("Value:");
+            ImGui::SameLine();
+            if (pathTracer->photonCount >= 1e6) {
+                ImGui::Text("%d M", pathTracer->photonCount / 1000000);
+            } else {
+                ImGui::Text("%lu", pathTracer->photonCount);
+            }
+        }
+
+        ImGui::Text("Num Bounces:");
+        ImGui::SameLine();
+        ImGui::SliderInt("##Bounces", &pathTracer->numBounces, 1, 128);
+
+        ImGui::Separator();
+        ImGui::Text("Camera Options");
+
+        ImGui::Text("Exposure:");
+        ImGui::SameLine();
+        ImGui::SliderFloat("##Exposure", &pathTracer->exposure, 0.0f, 10.0f, "%.2f");
+
+        ImGui::Text("Gamma:");
+        ImGui::SameLine();
+        ImGui::SliderFloat("##Gamma", &pathTracer->gamma, 1.0f, 10.0f, "%.2f");
+
+        ImGui::Text("Render Cameras to file:");
+        ImGui::SameLine();
+        if (ImGui::Button("Set Save Location")) {
+
+            auto& userSetting = ApplicationConfig::getInstance().getUserSetting();
+            auto openLocation = std::filesystem::exists(userSetting.lastActiveScenePath.parent_path())
+                        ? userSetting.lastActiveScenePath.parent_path()
+                        : Utils::getSystemHomePath();
+
+            EditorUtils::openImportFolderDialog(
+                "name", openLocation,
+                LayerUtils::SELECT_PATH_TRACER_OUTPUT_FOLDER,
+                &m_loadFileFuture
+            );
+        }
+
+        ImGui::SameLine();
+        if (ImGui::Button("Open")) {
+
+            if (std::filesystem::exists(pathTracer->saveImagePath)) {
+                Utils::openFileExplorer(pathTracer->saveImagePath);
+            }
+        }
+
+        ImGui::Text("Current Save location: %s", pathTracer->saveImagePath.string().c_str());
+
+        pathTracer->saveImages = ImGui::Button("Save");
+
+
+        ImGui::Separator();
+        ImGui::Text("Render Info:");
+        ImGui::Dummy(ImVec2(0.0f, 0.0f));
+        ImGui::Text("Total emitted:");
+        ImGui::SameLine();
+        if (pathTracer->totalPhotonsEmitted >= 1e6) {
+            ImGui::Text("%d M", static_cast<int>(pathTracer->totalPhotonsEmitted / 1000000));
+        } else {
+            ImGui::Text("%lu", pathTracer->totalPhotonsEmitted);
+        }
+
+        ImGui::Dummy(ImVec2(0.0f, 0.0f));
+        ImGui::Separator();
+        ImGui::Dummy(ImVec2(0.0f, 0.0f));
+
+        ImGui::Text("Start Render");
+
+
+        // --- 1) “Stop at” photon‐count target ---
+        ImGui::Text("Stop at photons:");
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(150.0f);
+        int texpo = pathTracer->targetPhotonExponent;
+        if (ImGui::SliderInt("##TargetExp", &texpo, 0, 9, "%d")) {
+            pathTracer->targetPhotonExponent = texpo;
+            pathTracer->targetPhotonCount = static_cast<uint64_t>(std::pow(10, texpo));
+
+            ImGui::Text("Current target is: %d", pathTracer->targetPhotonCount);
+            ImGui::SameLine();
+            if (pathTracer->targetPhotonCount >= 1e6) {
+                ImGui::Text("%d M", static_cast<int>(pathTracer->targetPhotonCount / 1000000));
+            } else {
+                ImGui::Text("%lu", pathTracer->targetPhotonCount);
+            }
+
+        }
+
+        ImGui::PushFont(m_editor->guiResources().fontIcons);
+        if (ImGui::Button(ICON_FA_FILE_IMPORT)) {
+            std::vector<std::string> types{".yaml", ".yml"};
+            EditorUtils::openImportFileDialog(
+                "Load Render Settings", types,
+                LayerUtils::YAML_RENDER_SETTINGS_FILE,
+                &m_loadFileFuture
+            );
+            pathTracer->reloadRenderer = true;
+        }
+        ImGui::PopFont();
+
+        ImGui::Separator();
+
+        // --- 2) Play/Stop buttons ---
+        ImGui::Text("Render Control:");
+        ImGui::SameLine();
+        // assumes you have ICON_FA_PLAY and ICON_FA_STOP defined
+        ImGui::PushFont(m_editor->guiResources().fontIcons);
+        if (ImGui::Button(ICON_FA_PLAY)) {
+            pathTracer->totalPhotonsEmitted = 0; // reset counter
+            pathTracer->reloadRenderer = true;
+            pathTracer->renderUntilTarget = true;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button(ICON_FA_STOP)) {
+            pathTracer->renderUntilTarget = false; // stop the loop
+        }
+        ImGui::PopFont();
+
+        // --- 1.b) Progress towards the target ---
+        float fraction = 0.0f;
+        if (pathTracer->targetPhotonCount > 0) {
+            fraction = static_cast<float>(pathTracer->totalPhotonsEmitted) /
+                       static_cast<float>(pathTracer->targetPhotonCount);
+            fraction = std::clamp(fraction, 0.0f, 1.0f);
+        }
+        // build an overlay label like "123M / 200M"
+        char buf[64];
+        if (pathTracer->totalPhotonsEmitted >= 1000000 || pathTracer->targetPhotonCount >= 1000000) {
+            snprintf(buf, sizeof(buf), "%.1fM / %.1fM",
+                     pathTracer->totalPhotonsEmitted / 1e6f,
+                     pathTracer->targetPhotonCount / 1e6f);
+        } else {
+            snprintf(buf, sizeof(buf), "%lu / %d",
+                     pathTracer->totalPhotonsEmitted,
+                     pathTracer->targetPhotonCount);
+        }
+        ImGui::ProgressBar(fraction, ImVec2(-1, 0), buf);
+
+        ImGui::Separator();
+        /*
+            // Prepare dropdown items
+            const char *kernels[PathTracer::KERNEL_TYPE_COUNT];
+
+            for (int i = 0; i < PathTracer::KERNEL_TYPE_COUNT; ++i) {
+                kernels[i] = PathTracer::KernelTypeToString(static_cast<PathTracer::KernelType>(i));
+            }
+            // Render ImGui combo box
+            ImGui::SetNextItemWidth(100.0f);
+            if (ImGui::Combo("##Render Kernel", &pathTracer->selectedKernelIndex, kernels,
+                             PathTracer::KERNEL_TYPE_COUNT)) {
+                // Update the kernel based on selection
+            }
+            pathTracer->kernel = static_cast<PathTracer::KernelType>(imageUI->selectedKernelIndex);
+
+
+            // Dropdown for selecting render kernel
+            const char *selections[] = {"CPU", "GPU"}; // TODO This should come from selectSyclDevices
+            ImGui::SetNextItemWidth(100.0f);
+            if (ImGui::Combo("##Select Device Type", &imageUI->selectedDeviceIndex, selections,
+                             IM_ARRAYSIZE(selections))) {
+                imageUI->switchKernelDevice = true;
+                imageUI->kernelDevice = selections[imageUI->selectedDeviceIndex];
+            }
+
+
+            if (ImGui::Button("Clear image memory")) {
+                imageUI->clearImageMemory = true;
+            }
+
+            const int sliderMin = 1;
+            const int sliderMax = 10000000;
+
+            ImGui::SetNextItemWidth(150);
+            if (ImGui::SliderInt("PhotonCount", &imageUI->photonCount, sliderMin, sliderMax, "%d",
+                                 ImGuiSliderFlags_Logarithmic)) {
+                // Normalize to the nearest 10,000 and ensure it's at least 1000
+                //imageUI->photonCount = std::max((imageUI->photonCount + 5000) / 10000 * 10000, sliderMin);
+            }
+                    ImGui::SetNextItemWidth(100);
+            if (ImGui::SliderInt("Light Bounces", &imageUI->numBounces, 1, 100)) {
+                imageUI->clearImageMemory = true;
+            };
+                    ImGui::SetNextItemWidth(100);
+            ImGui::SliderFloat("Gamma", &imageUI->shaderSelection.gammaCorrection, 0, 8);
+
+                    imageUI->saveImage = ImGui::Button("Save");
+
+
+            // new row
+            auto *editor = dynamic_cast<EditorPathTracer *>(m_editor);
+            if (editor && editor->getRenderInformation())
+                ImGui::Text("Frame Number: %u", editor->getRenderInformation()->frameID);
+
+            ImGui::SameLine();
+            ImGui::Checkbox("Apply Beta dist.", &imageUI->applyBetaContribution);
+
+            */
+    }
+
 
     /** Called once upon this object destruction **/
     void PropertiesLayer::onDetach() {
@@ -1016,6 +1275,62 @@ namespace VkRender {
     PropertiesLayer::handleSelectedFileOrFolder(const LayerUtils::LoadFileInfo &loadFileInfo) {
         if (!loadFileInfo.path.empty()) {
             switch (loadFileInfo.filetype) {
+                case LayerUtils::SELECT_PATH_TRACER_OUTPUT_FOLDER: {
+                    auto imageUI = m_context->getPathTracerUI();
+                    auto pathTracer = std::dynamic_pointer_cast<EditorPathTracerLayerUI>(imageUI);
+                    if (!pathTracer) break;
+
+                    pathTracer->saveImagePath = loadFileInfo.path;
+                    Log::Logger::getInstance()->info("Set PathTracer output folder to {}",
+                                                     loadFileInfo.path.string().c_str());
+                }
+                break;
+                case LayerUtils::YAML_RENDER_SETTINGS_FILE: {
+                    try {
+                        YAML::Node cfg = YAML::LoadFile(loadFileInfo.path);
+                        auto imageUI = m_context->getPathTracerUI();
+                        auto pathTracer = std::dynamic_pointer_cast<EditorPathTracerLayerUI>(imageUI);
+                        if (!pathTracer) break;
+
+                        // top‐level
+                        //if (cfg["FrameID"])      pathTracer->frameID             = cfg["FrameID"].as<uint32_t>();
+                        if (cfg["Gamma"]) pathTracer->gamma = cfg["Gamma"].as<float>();
+                        if (cfg["Exposure"]) pathTracer->exposure = cfg["Exposure"].as<float>();
+
+                        // read and set photon counts first
+                        if (cfg["PhotonCount"]) {
+                            pathTracer->photonCount = cfg["PhotonCount"].as<int>();
+                            // compute decimal exponent (floor of log10), clamp to zero if count ≤ 0
+                            if (pathTracer->photonCount > 0) {
+                                pathTracer->photonExponent = static_cast<int>(
+                                    std::floor(std::log10(pathTracer->photonCount))
+                                );
+                            } else {
+                                pathTracer->photonExponent = 0;
+                            }
+                        }
+
+                        if (cfg["TotalPhotons"]) {
+                            pathTracer->targetPhotonCount = cfg["TotalPhotons"].as<int>();
+                            if (pathTracer->targetPhotonCount > 0) {
+                                pathTracer->targetPhotonExponent = static_cast<int>(
+                                    std::floor(std::log10(pathTracer->targetPhotonCount))
+                                );
+                            } else {
+                                pathTracer->targetPhotonExponent = 0;
+                            }
+                        }
+
+                        Log::Logger::getInstance()->info("Loaded render settings from {}",
+                                                         loadFileInfo.path.string().c_str());
+                    } catch (const std::exception &e) {
+                        Log::Logger::getInstance()->error(
+                            "Failed to load YAML settings '{}': {}",
+                            loadFileInfo.path.string(), e.what()
+                        );
+                    }
+                }
+                break;
                 case LayerUtils::TEXTURE_FILE: {
                     auto &materialComponent = m_selectionContext.getComponent<MaterialComponent>();
                     materialComponent.albedoTexturePath = loadFileInfo.path;

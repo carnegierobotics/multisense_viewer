@@ -24,11 +24,17 @@ namespace VkRender {
 
         void setScene(std::weak_ptr<Scene> scene) override;
 
+        void reconstructionTab();
+
     public:
         template<typename T, typename UIFunction>
         void drawComponent(const std::string &name, Entity entity, UIFunction uiFunction);
 
         void drawComponents(Entity entity);
+
+        void objectProperties();
+
+        void drawRendererSettingsTab();
 
         bool m_tmp = false; // TODO remove
         bool m_visibility = true;

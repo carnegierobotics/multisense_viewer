@@ -75,6 +75,7 @@ namespace VkRender {
         const char* tooltip; // Shown on hover (optional)
         std::function<void()> draw; // Lambda that draws the page
         float pageWidth = 180.0f;
+        float pageHeight = 0.0f;
     };
 
     /** @brief Handle which is the MAIN link between ''frontend and backend'' */

@@ -314,10 +314,10 @@ namespace VkRender::PathTracer {
 
             /* 2)  raster coords (clamp to avoid the right/top fenceposts) */
             uint32_t px = sycl::clamp(
-                uint32_t((ndc.x()*0.5f + 0.5f) * cam.width),
+                static_cast<uint32_t>((ndc.x() * 0.5f + 0.5f) * cam.width),
                 0u, cam.width  - 1);
             uint32_t py = sycl::clamp(
-                uint32_t((ndc.y()*0.5f + 0.5f) * cam.height),
+                static_cast<uint32_t>((ndc.y() * 0.5f + 0.5f) * cam.height),
                 0u, cam.height - 1);
 
 
@@ -349,19 +349,19 @@ namespace VkRender::PathTracer {
         float eps = 1e-4f;
 
         /* RNG --------------------------------------------------------------------- */
-        PCG32 rng;
+        PCG32 rng{};
         rng.seed(photonID);
 
         //-------------------- 1) sample area light -------------------------------
-        float3 Lpos, Lnorm;
-        float pdfPos;
+        float3 Lpos{}, Lnorm{};
+        float pdfPos = 0.0f;
         uint32_t lightIdx = scene.lightCount - 1;
         const MeshLight &light = scene.lights[lightIdx];
         sampleMeshLight(light, rng, Lpos, Lnorm, pdfPos);
 
         //-------------------- 2) launch first ray --------------------------------
-        float3 dir;
-        float pdfDir;
+        float3 dir{};
+        float pdfDir = 0.0f;
         sampleCosineHemisphere(rng, Lnorm, dir, pdfDir);
 
         float cosNL = sycl::max(0.0f, static_cast<float>(sycl::dot(dir, Lnorm)));
@@ -393,6 +393,7 @@ namespace VkRender::PathTracer {
                 const Vertex &v1 = scene.vertices[tri.v1];
                 const Vertex &v2 = scene.vertices[tri.v2];
 
+                // Interpolated normal
                 float w0 = 1.f - hit.u - hit.v;
                 float w1 = hit.u;
                 float w2 = hit.v;
@@ -400,16 +401,13 @@ namespace VkRender::PathTracer {
                 worldNormal     = transformNormal(surfaceNormal, xfInst.objectToWorld);   // world-space
 
                 // World surface normal:
-
                 /* ---- (b)  geometric normal ---------------------------------------- */
                 float3 P0_obj = v0.pos;
                 float3 P1_obj = v1.pos;
                 float3 P2_obj = v2.pos;
                 float3 Ng_obj = normalize(sycl::cross(P1_obj - P0_obj, P2_obj - P0_obj));
-                //worldNormal     = transformNormal(Ng_obj, xfInst.objectToWorld);   // world-space
+                worldNormal     = transformNormal(Ng_obj, xfInst.objectToWorld);   // world-space
 
-                /* --- 3.  transform both to world space ------------------------------ */
-                //worldNormal = transformNormal(surfaceNormal, xfInst.objectToWorld);
 
 
 

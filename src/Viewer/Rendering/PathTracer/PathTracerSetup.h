@@ -6,6 +6,7 @@
 #define PathTracerSetup_H
 
 #include <Viewer/Rendering/Editors/ArcballCamera.h>
+#include <Viewer/Rendering/Editors/PathTracer/EditorPathTracerLayerUI.h>
 #include <Viewer/Tools/SYCLDeviceSelector.h>
 
 #include "Viewer/Rendering/Core/VulkanTexture.h"
@@ -85,7 +86,7 @@ namespace VkRender::PathTracer {
         RenderInfoOutput renderFrame(const RenderSettings &settings);
 
         /** copies the device framebuffer back to host */
-        void generateImages(float gamma, float exposure);
+        void generateImages(std::shared_ptr<EditorPathTracerLayerUI> ptr);
 
         void generateEditorImage(const std::shared_ptr<VulkanTexture2D> &viewportTexture, float gamma, float exposure);
 
@@ -125,6 +126,7 @@ namespace VkRender::PathTracer {
         /* ---------------Runtime settings------------------*/
         uint32_t m_frameID = 0;
         uint64_t m_totalPhotons = 0;
+        uint32_t m_photonCount = 0;
 
         /*----------------------------------------------*/
         sycl::queue m_queue;

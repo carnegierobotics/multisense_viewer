@@ -60,8 +60,7 @@ namespace VkRender {
         scaleViewportQuad();
 
 
-        PathTracer::EditorCamera editorCamera(m_editorCamera.get(), m_createInfo.width, m_createInfo.height);
-        m_PathTracerSetup->uploadScene(scene, editorCamera);
+        updatePathTracerSettings();
         Log::Logger::getInstance()->info("PathTracer loaded scene");
     }
 
@@ -150,7 +149,8 @@ namespace VkRender {
     void EditorPathTracer::onUpdate() {
         auto imageUI = std::dynamic_pointer_cast<EditorPathTracerLayerUI>(m_ui);
 
-        bool saveImagesFromRecording = imageUI->totalPhotonsEmitted == imageUI->targetPhotonCount && imageUI->renderUntilTarget;
+        bool saveImagesFromRecording = imageUI->totalPhotonsEmitted == imageUI->targetPhotonCount && imageUI->
+                                       renderUntilTarget;
 
         if (imageUI->saveImages || saveImagesFromRecording) {
             m_PathTracerSetup->generateImages(imageUI);
@@ -164,33 +164,38 @@ namespace VkRender {
             updatePathTracerSettings();
         }
 
-
-        auto activeCamera = m_context->activeScene()->getActiveCamera();
-        bool renderToViewport = imageUI->renderToViewport;
-        bool render = imageUI->render || imageUI->renderUntilTarget;
+        bool render = (imageUI->render || imageUI->renderUntilTarget) && !imageUI->renderGradient;
 
         if (render) {
-            if (renderToViewport) {
-                PathTracer::RenderSettings renderSettings(imageUI->numBounces, 0, imageUI->photonCount);
+            PathTracer::RenderSettings renderSettings(imageUI->numBounces, 0, imageUI->photonCount);
 
+            PathTracer::EditorCamera editorCamera(m_editorCamera.get(), m_createInfo.width, m_createInfo.height,
+                                                  m_movedCamera);
+            m_PathTracerSetup->updateDynamic(m_context->activeScene(), editorCamera);
+            PathTracer::RenderInfoOutput output = m_PathTracerSetup->renderFrame(renderSettings);
+            m_PathTracerSetup->generateEditorImage(m_colorTexture, imageUI->gamma, imageUI->exposure);
+
+            imageUI->totalPhotonsEmitted = output.photonCount;
+        }
+
+        bool renderGradient = imageUI->renderGradient && !render;
+
+        if (renderGradient) {
+            PathTracer::RenderSettings renderSettings(imageUI->numBounces, 0, imageUI->photonCount);
+
+
+            // Load GT image and compute residual
+            if (imageUI->totalPhotonsEmitted == imageUI->targetPhotonCount) {
+                PathTracer::RenderInfoOutput output = m_PathTracerSetup->radiativeBackprop(imageUI, renderSettings);
+            } else {
                 PathTracer::EditorCamera editorCamera(m_editorCamera.get(), m_createInfo.width, m_createInfo.height,
                                                       m_movedCamera);
                 m_PathTracerSetup->updateDynamic(m_context->activeScene(), editorCamera);
-                PathTracer::RenderInfoOutput output = m_PathTracerSetup->renderFrame(renderSettings);
                 m_PathTracerSetup->generateEditorImage(m_colorTexture, imageUI->gamma, imageUI->exposure);
-
-
+                PathTracer::RenderInfoOutput output = m_PathTracerSetup->renderFrame(renderSettings);
                 imageUI->totalPhotonsEmitted = output.photonCount;
-            } else {
             }
-            bool newCamera = m_previousSceneCamera != activeCamera;
         }
-
-        // ── 3) simple rainbow palette ─────────────────────────────────────────────
-        static const glm::vec3 palette[7] = {
-            {1, 0, 0}, {1, 0.5f, 0}, {1, 1, 0}, {0, 1, 0},
-            {0, 1, 1}, {0, 0, 1}, {1, 0, 1}
-        };
 
 
         if (imageUI->showBVH) {

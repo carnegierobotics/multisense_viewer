@@ -8,6 +8,7 @@
 #include <glm/gtc/matrix_inverse.hpp>
 
 #include "PathTracerTypes.h"
+#include "Viewer/Rendering/PathTracer/Device/PathTracerAdjointKernel.h"
 
 #include <Viewer/Rendering/MeshManager.h>
 #include <Viewer/Rendering/Components/LightSourceComponent.h>
@@ -106,9 +107,16 @@ namespace VkRender::PathTracer {
         if (m_frameBuffers.memory) {
             free(m_frameBuffers.memory);
         }
+        if (m_frameBuffers.residuals) {
+            free(m_frameBuffers.residuals);
+        }
         if (d_frameBuffers.memory) {
             sycl::free(d_frameBuffers.memory, m_queue);
             d_frameBuffers.memory = nullptr;
+        }
+        if (d_frameBuffers.residuals) {
+            sycl::free(d_frameBuffers.residuals, m_queue);
+            d_frameBuffers.residuals = nullptr;
         }
         auto &ci = m_createInfo;
         uint32_t blockSize = ci.framebufferSize;
@@ -118,6 +126,7 @@ namespace VkRender::PathTracer {
         memset(m_frameBuffers.memory, 0, blockSize);
         m_frameBuffers.frameBufferSize = blockSize;
 
+
         Log::Logger::getInstance()->info("Creating framebuffers on device with size: {:.2f}Mb", blockSize / 1e6);
 
         auto *deviceMemory = deviceAlloc<float>(blockSize);
@@ -125,6 +134,21 @@ namespace VkRender::PathTracer {
         d_frameBuffers.frameBufferSize = blockSize;
 
         Log::Logger::getInstance()->info("Done Creating Framebuffers");
+
+
+        uint32_t residualBlockSize = 600 * 600 * 4;
+        Log::Logger::getInstance()->info("Creating residuals buffer on host with size: {:.2f}Mb", residualBlockSize / 1e6);
+        m_frameBuffers.residuals = static_cast<float *>(malloc(residualBlockSize));
+        memset(m_frameBuffers.residuals, 0, residualBlockSize);
+        m_frameBuffers.residualBufferSize = residualBlockSize;
+
+        Log::Logger::getInstance()->info("Creating residuals buffer on host with size: {:.2f}Mb", residualBlockSize / 1e6);
+        auto *deviceMemoryResiduals = deviceAlloc<float>(residualBlockSize);
+        d_frameBuffers.residuals = deviceMemoryResiduals;
+        d_frameBuffers.residualBufferSize = residualBlockSize;
+        Log::Logger::getInstance()->info("Done Creating Residuals buffer");
+
+
     }
 
     void PathTracerSetup::uploadScene(const std::shared_ptr<Scene> &scene, EditorCamera editorCamera) {
@@ -170,6 +194,8 @@ namespace VkRender::PathTracer {
             cam.pos = glm2sycl(editorCamera.camera->matrices.position);
             cam.proj = glm2sycl(editorCamera.camera->matrices.projection);
             cam.view = glm2sycl(editorCamera.camera->matrices.view);
+            cam.invProj = glm2sycl(glm::inverse(editorCamera.camera->matrices.projection));
+            cam.invView = glm2sycl(glm::inverse(editorCamera.camera->matrices.view));
             cam.firstPixel = pixelOffset;
 
             glm::vec3 cameraNormal(0.0f, 0.0f, -1.0f);
@@ -196,6 +222,8 @@ namespace VkRender::PathTracer {
             cam.pos = glm2sycl(transformComponent.getPosition());
             cam.proj = glm2sycl(cameraComponent.camera->matrices.projection);
             cam.view = glm2sycl(cameraComponent.camera->matrices.view);
+            cam.invProj = glm2sycl(glm::inverse(cameraComponent.camera->matrices.projection));
+            cam.invView = glm2sycl(glm::inverse(cameraComponent.camera->matrices.view));
             cam.firstPixel = pixelOffset;
 
             glm::vec3 cameraNormal(0.0f, 0.0f, -1.0f);
@@ -287,6 +315,11 @@ namespace VkRender::PathTracer {
         }
         m_totalPhotons = 0;
         m_frameID = 0;
+
+        // Residuals buffer:
+        uint32_t residualBlockSize = 600 * 600 * 4;
+        m_queue.fill(d_frameBuffers.residuals, 0.0f, residualBlockSize); // Only copy first camera instance
+
     }
 
     RenderInfoOutput PathTracerSetup::renderFrame(const RenderSettings &settings) {
@@ -310,6 +343,125 @@ namespace VkRender::PathTracer {
         return {m_frameID, m_totalPhotons};
     }
 
+    RenderInfoOutput PathTracerSetup::radiativeBackprop(std::shared_ptr<EditorPathTracerLayerUI> imageUI,
+                                                        const RenderSettings &settings) {
+
+
+        if (!d_sceneDesc) {
+            Log::Logger::getInstance()->error("Path Tracer has not been initialized");
+        }
+        Utils::ScopedTimer timer("PathTracer: RenderFrame");
+
+        // calculate residual
+        // - Load reference image
+        std::vector<float> residual;
+
+        auto &camera = m_cameras[1];
+
+        std::string name = camera.entity.getName();
+        std::string gtPath = imageUI->gtFolderPath.string() + "/" + name + ".pfm";
+
+        int gtW, gtH, gtC; // will be populated by loadPFM
+        std::vector<float> gtData; // flattened, size = gtW*gtH*gtC
+        if (!Utils::loadPFM(gtPath, gtData, gtW, gtH, gtC)) {
+            throw std::runtime_error("Failed to load GT PFM: " + gtPath);
+        }
+        if (gtW != camera.width || gtH != camera.height || gtC != 1) {
+            throw std::runtime_error("Size mismatch between GT and render for " + name);
+        }
+
+        // 1) read back your device float RGBA buffer
+        size_t pixelCount = camera.width * camera.height;
+        uint32_t imageSize = pixelCount * 4;
+        float *hostMemory = new float[imageSize];
+        float *floatImageAfterTonemap = new float[pixelCount];
+
+        m_queue.memcpy(hostMemory,
+                       d_frameBuffers.memory + camera.firstPixel,
+                       imageSize * sizeof(float)).wait();
+
+        // 2) compute residual in linear domain
+        //    Here we take only the “R” channel of GT (gtC>=1) vs. your L=hostMemory[r]
+        //    If you want full-rgba residual, set channels accordingly.
+        std::vector<uint8_t> rgb8(pixelCount * 3);
+
+        residual.resize(pixelCount);
+        float gammaInv = 1.0f / imageUI->gamma; // sRGB ≈ 1/2.2
+        for (size_t i = 0; i < pixelCount; ++i) {
+            float L = hostMemory[i * 4];
+
+            float Lm = 1.f - std::exp(-L * imageUI->exposure);
+            float val = std::pow(std::clamp(Lm, 0.f, 1.f), gammaInv);
+
+            floatImageAfterTonemap[i] = val;
+            float v = val * 255.f + 0.5f;
+            rgb8[i * 3 + 0] = static_cast<uint8_t>(v);
+            rgb8[i * 3 + 1] = static_cast<uint8_t>(v);
+            rgb8[i * 3 + 2] = static_cast<uint8_t>(v);
+
+            float L_gt = gtData[i * gtC + 0];
+            residual[i] = val - L_gt;
+        }
+
+        delete[] hostMemory;
+
+        // 3) write out the residual as a single-channel PFM
+        std::filesystem::path outPath = imageUI->gtFolderPath / "optimization" / std::filesystem::path(
+                                            name + "_residual.pfm");
+        Utils::savePFM(outPath, residual.data(), camera.width, camera.height, 1);
+
+
+        // --- 4) Write pfm
+        std::filesystem::path pfmImagePath = outPath.replace_filename(name + "_measured").replace_extension(".pfm");
+        Utils::savePFM(pfmImagePath, floatImageAfterTonemap, camera.width, camera.height, 1);
+        delete[] floatImageAfterTonemap;
+
+        // --- 4) Write PNG
+        std::filesystem::path pngImagePath = outPath.replace_filename(name + "_measured").replace_extension(".png");
+
+        if (!stbi_write_png(pngImagePath.string().c_str(),
+                            camera.width, camera.height,
+                            3, rgb8.data(), camera.width * 3)) {
+            throw std::runtime_error("Failed to write PNG file: " + pngImagePath.string());
+        }
+
+
+        sycl::range<2> threadsPerBlock(16, 16);
+        sycl::range<2> numBlocks(
+            (camera.height + threadsPerBlock[0] - 1) / threadsPerBlock[0],
+            (camera.width + threadsPerBlock[1] - 1) / threadsPerBlock[1]);
+
+
+        auto event = m_queue.submit(
+            [scene=d_sceneDesc, fb = d_frameBuffers, config=settings, threadsPerBlock, numBlocks](sycl::handler &cgh) {
+                PathTracerAdjointKernel kernel(scene, fb, config);
+                cgh.parallel_for(sycl::nd_range<2>(numBlocks * threadsPerBlock, threadsPerBlock), kernel);
+            });
+
+        event.wait();
+
+
+        /*
+        uint32_t residualBlockSize = 600 * 600 * 4;
+        m_queue.fill(d_frameBuffers.residuals, 0.0f, residualBlockSize); // Only copy first camera instance
+        // 1) read back your device float RGBA buffer
+
+        float *residualsHostMemory = new float[residualBlockSize];
+        m_queue.memcpy(residualsHostMemory,
+                       d_frameBuffers.residuals,
+                       residualBlockSize * sizeof(float)).wait();
+
+        // 3) write out the residual as a single-channel PFM
+        std::filesystem::path analyticResidual = outPath.replace_filename(name + "_analytic").replace_extension(".png");
+
+        Utils::savePFM(analyticResidual, residualsHostMemory, camera.width, camera.height, 1);
+
+        delete[] residualsHostMemory;
+        */
+
+        return {m_frameID, m_totalPhotons};
+    }
+
 
     void PathTracerSetup::generateImages(std::shared_ptr<EditorPathTracerLayerUI> imageUI) {
         float gammaInv = 1.0f / imageUI->gamma; // sRGB ≈ 1/2.2
@@ -325,6 +477,7 @@ namespace VkRender::PathTracer {
             size_t pixelCount = camera.width * camera.height;
             uint32_t imageSize = pixelCount * 4;
             float *hostMemory = new float[imageSize];
+            float *floatImageAfterTonemap = new float[pixelCount];
             m_queue.memcpy(hostMemory, d_frameBuffers.memory + camera.firstPixel,
                            imageSize * sizeof(float)).wait();
 
@@ -333,12 +486,13 @@ namespace VkRender::PathTracer {
             for (size_t i = 0; i < pixelCount; ++i) {
                 float L = hostMemory[i * 4];
                 float Lm = 1.f - std::exp(-L * imageUI->exposure);
-                float v = std::pow(std::clamp(Lm, 0.f, 1.f), gammaInv) * 255.f + 0.5f;
+                float val = std::pow(std::clamp(Lm, 0.f, 1.f), gammaInv);
+                floatImageAfterTonemap[i] = val;
+                float v = val * 255.f + 0.5f;
                 rgb8[i * 3 + 0] = static_cast<uint8_t>(v);
                 rgb8[i * 3 + 1] = static_cast<uint8_t>(v);
                 rgb8[i * 3 + 2] = static_cast<uint8_t>(v);
             }
-            delete[] hostMemory;
 
             // --- 3) Build paths
             std::filesystem::path imgPath = camera.entity
@@ -349,6 +503,14 @@ namespace VkRender::PathTracer {
 
             std::filesystem::path yamlPath = imgPath;
             yamlPath.replace_extension(".yaml");
+
+            std::filesystem::path pfmPath = imgPath;
+            pfmPath.replace_extension(".pfm");
+
+            Utils::savePFM(pfmPath, floatImageAfterTonemap, camera.width, camera.height, 1);
+
+            delete[] hostMemory;
+            delete[] floatImageAfterTonemap;
 
             // --- 4) Write PNG
             if (!stbi_write_png(imgPath.string().c_str(),
@@ -370,7 +532,7 @@ namespace VkRender::PathTracer {
 
             // camera block
             out << YAML::Key << "Camera" << YAML::Value << YAML::BeginMap;
-            out << YAML::Key << "Name" << YAML::Value<< (camera.entity ? camera.entity.getName() : "default");
+            out << YAML::Key << "Name" << YAML::Value << (camera.entity ? camera.entity.getName() : "default");
             out << YAML::Key << "Width" << YAML::Value << camera.width;
             out << YAML::Key << "Height" << YAML::Value << camera.height;
             out << YAML::Key << "Position" << YAML::Value << camera.pos; // uses your vec3 << overload
@@ -609,6 +771,27 @@ namespace VkRender::PathTracer {
 
             m_transforms.push_back(xf);
         }
+
+        //----------------------------------------------------------
+        // build parameter → slot mapping
+        //----------------------------------------------------------
+        m_kdOffset.resize(m_materials.size());
+        m_vtxOffset.resize(m_vertices.size());
+
+        uint32_t slot = 0;
+
+        // diffuse kd  (1 float each)
+        for (uint32_t i=0;i<m_materials.size();++i){
+            m_kdOffset[i]={slot,1}; slot+=1;
+        }
+
+        // optional: vertex positions  (3 floats each)
+        for (uint32_t v=0; v<m_vertices.size(); ++v){
+            m_vtxOffset[v]={slot,3}; slot+=3;
+        }
+
+        m_totalParamSlots = slot;
+
     }
 
     void PathTracerSetup::collectLights(const std::shared_ptr<Scene> &scene) {
@@ -795,6 +978,26 @@ namespace VkRender::PathTracer {
         m_sceneDescHost.materialCount = m_sceneDescDevice.materialCount;
         m_sceneDescHost.lightCount = m_sceneDescDevice.lightCount;
         m_sceneDescHost.cameraCount = m_sceneDescDevice.cameraCount;
+
+
+        // Radiative Backpropagation parameters:
+        /* ---- upload parameter offset tables -------------------------------- */
+        d_kdOffset = deviceAlloc<ParamOffset>(m_kdOffset.size());
+        m_queue.memcpy(d_kdOffset, m_kdOffset.data(),
+                       m_kdOffset.size() * sizeof(ParamOffset));
+
+        d_vtxOffset = deviceAlloc<ParamOffset>(m_vtxOffset.size());
+        m_queue.memcpy(d_vtxOffset, m_vtxOffset.data(),
+                       m_vtxOffset.size() * sizeof(ParamOffset));
+
+        /* ---- allocate gradient vector (zero-initialised) ------------------- */
+        d_gradAll = deviceAlloc<float>(m_totalParamSlots);
+        m_queue.fill(d_gradAll, 0.f, m_totalParamSlots);   // set to 0 once at init
+
+        /* ---- expose to SceneDesc so kernels can reach them ----------------- */
+        m_sceneDescDevice.kdOffset  = d_kdOffset;
+        m_sceneDescDevice.vtxOffset = d_vtxOffset;
+        m_sceneDescDevice.gradAll   = d_gradAll;
     }
 
 

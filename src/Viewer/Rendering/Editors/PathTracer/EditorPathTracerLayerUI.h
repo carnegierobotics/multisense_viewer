@@ -48,6 +48,10 @@ namespace VkRender {
         std::filesystem::path saveImagePath;
 
         uint64_t totalPhotonsEmitted = 0;
+
+        // Reconstruction
+        std::filesystem::path gtFolderPath;
+        bool renderGradient = false;
     };
 }
 #endif //MULTISENSE_VIEWER_PATHTRACERLAYERUI_H

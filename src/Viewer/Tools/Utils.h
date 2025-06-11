@@ -74,11 +74,12 @@ namespace Utils {
         clock::time_point _start;
 
         ScopedTimer(const std::string &name)
-          : _name(name), _start(clock::now()) {}
+            : _name(name), _start(clock::now()) {
+        }
 
         ~ScopedTimer() {
             auto end = clock::now();
-            auto ms  = std::chrono::duration<double, std::milli>(end - _start).count();
+            auto ms = std::chrono::duration<double, std::milli>(end - _start).count();
             Log::Logger::getInstance()->info("[TIMER] {:<40} : {:6.2f} ms", _name, ms);
         }
     };
@@ -102,6 +103,7 @@ namespace Utils {
     static std::filesystem::path getModelsPath() {
         return {"Assets/Models"};
     }
+
     static std::filesystem::path getProjectsPath() {
         return {"Assets/Projects"};
     }
@@ -117,7 +119,6 @@ namespace Utils {
         if (std::find(v.begin(), v.end(), str) != v.end())
             return true;
         return false;
-
     }
 
     /**@brief small utility function. Usage of this makes other code more readable */
@@ -153,18 +154,19 @@ namespace Utils {
                                    {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
                                    VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
     }
+
     // Create an m_Image memory barrier for changing the layout of
     // an m_Image and put it into an active command buffer
     // See chapter 11.4 "Image Layout" for details
 
     inline void setImageLayout(
-            VkCommandBuffer cmdbuffer,
-            VkImage image,
-            VkImageLayout oldImageLayout,
-            VkImageLayout newImageLayout,
-            VkImageSubresourceRange subresourceRange,
-            VkPipelineStageFlags srcStageMask,
-            VkPipelineStageFlags dstStageMask) {
+        VkCommandBuffer cmdbuffer,
+        VkImage image,
+        VkImageLayout oldImageLayout,
+        VkImageLayout newImageLayout,
+        VkImageSubresourceRange subresourceRange,
+        VkPipelineStageFlags srcStageMask,
+        VkPipelineStageFlags dstStageMask) {
         // Create an m_Image barrier object
         VkImageMemoryBarrier imageMemoryBarrier{};
         imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -274,30 +276,31 @@ namespace Utils {
                 imageMemoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
                 break;
             default:
-                Log::Logger::getInstance()->error("Missing Source layouts implementation. No Image transition completed");
+                Log::Logger::getInstance()->error(
+                    "Missing Source layouts implementation. No Image transition completed");
                 break;
         }
 
         // Put barrier inside setup command buffer
         vkCmdPipelineBarrier(
-                cmdbuffer,
-                srcStageMask,
-                dstStageMask,
-                0,
-                0, nullptr,
-                0, nullptr,
-                1, &imageMemoryBarrier);
+            cmdbuffer,
+            srcStageMask,
+            dstStageMask,
+            0,
+            0, nullptr,
+            0, nullptr,
+            1, &imageMemoryBarrier);
     }
 
     // Fixed sub resource on first mip level and layer
     inline void setImageLayout(
-            VkCommandBuffer cmdbuffer,
-            VkImage image,
-            VkImageAspectFlags aspectMask,
-            VkImageLayout oldImageLayout,
-            VkImageLayout newImageLayout,
-            VkPipelineStageFlags srcStageMask,
-            VkPipelineStageFlags dstStageMask) {
+        VkCommandBuffer cmdbuffer,
+        VkImage image,
+        VkImageAspectFlags aspectMask,
+        VkImageLayout oldImageLayout,
+        VkImageLayout newImageLayout,
+        VkPipelineStageFlags srcStageMask,
+        VkPipelineStageFlags dstStageMask) {
         VkImageSubresourceRange subresourceRange = {};
         subresourceRange.aspectMask = aspectMask;
         subresourceRange.baseMipLevel = 0;
@@ -319,14 +322,13 @@ namespace Utils {
         bufferCopyRegion.imageExtent.depth = 1;
 
         vkCmdCopyBufferToImage(
-                cmdBuffer,
-                buffer,
-                image,
-                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                1,
-                &bufferCopyRegion
+            cmdBuffer,
+            buffer,
+            image,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            1,
+            &bufferCopyRegion
         );
-
     }
 
 
@@ -406,10 +408,10 @@ namespace Utils {
         return value ? "true" : "false";
     }
 
-/**
- * Returns the systemCache path for Windows/Ubuntu. If it doesn't exist it is created
- * @return path to cache folder
- */
+    /**
+     * Returns the systemCache path for Windows/Ubuntu. If it doesn't exist it is created
+     * @return path to cache folder
+     */
     static std::filesystem::path getSystemCachePath() {
         // ON windows this file should be places in the user cache folder //
 #ifdef WIN32
@@ -430,7 +432,7 @@ namespace Utils {
             std::error_code ec;
             if (std::filesystem::create_directories(multiSenseCachePath, ec)) {
                 Log::Logger::getInstance((multiSenseCachePath / "logger.log").string())->info(
-                        "Created cache directory {}", multiSenseCachePath.string());
+                    "Created cache directory {}", multiSenseCachePath.string());
             } else {
                 Log::Logger::getInstance()->error("Failed to create cache directory {}. Error Code: {}",
                                                   multiSenseCachePath.string(), ec.value());
@@ -467,7 +469,7 @@ namespace Utils {
     }
 
 
-    static std::filesystem::path getRuntimeConfigFilePath(){
+    static std::filesystem::path getRuntimeConfigFilePath() {
         return getSystemCachePath() / "AppRuntimeConfig.yaml";
     }
 
@@ -476,7 +478,7 @@ namespace Utils {
         std::transform(str.begin(), str.end(), lowered_str.begin(),
                        [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
-        std::regex pattern(expression, std::regex_constants::icase);  // icase for case-insensitive matching
+        std::regex pattern(expression, std::regex_constants::icase); // icase for case-insensitive matching
         return std::regex_search(lowered_str, pattern);
     }
 
@@ -523,11 +525,11 @@ namespace Utils {
         if (!out) {
             throw std::runtime_error("Failed to open TIFF file for writing.");
         }
-        TIFFSetField(out, TIFFTAG_IMAGEWIDTH, width);  // set the width of the image
-        TIFFSetField(out, TIFFTAG_IMAGELENGTH, height);    // set the height of the image
-        TIFFSetField(out, TIFFTAG_SAMPLESPERPIXEL, samplesPerPixel);   // set number of channels per pixel
-        TIFFSetField(out, TIFFTAG_BITSPERSAMPLE, 32);    // set the size of the channels
-        TIFFSetField(out, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT);    // set the origin of the image.
+        TIFFSetField(out, TIFFTAG_IMAGEWIDTH, width); // set the width of the image
+        TIFFSetField(out, TIFFTAG_IMAGELENGTH, height); // set the height of the image
+        TIFFSetField(out, TIFFTAG_SAMPLESPERPIXEL, samplesPerPixel); // set number of channels per pixel
+        TIFFSetField(out, TIFFTAG_BITSPERSAMPLE, 32); // set the size of the channels
+        TIFFSetField(out, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT); // set the origin of the image.
         //   Some other essential fields to set that you do not have to understand for now.
         TIFFSetField(out, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
         TIFFSetField(out, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
@@ -589,7 +591,7 @@ namespace Utils {
 
         // If it’s a file, reveal its parent folder; otherwise open the folder itself
         std::filesystem::path toOpen =
-            std::filesystem::is_directory(path) ? path : path.parent_path();
+                std::filesystem::is_directory(path) ? path : path.parent_path();
 
 #if defined(_WIN32)
         // Non-blocking: hands off to Explorer and returns immediately
@@ -615,6 +617,124 @@ namespace Utils {
         }).detach();
 
 #endif
+    }
+
+
+    inline bool hostIsLittleEndian() {
+        const uint16_t one = 1;
+        return *reinterpret_cast<const uint8_t *>(&one) == 1;
+    }
+
+
+    static void savePFM(const std::filesystem::path &filename,
+                        const float *image,
+                        uint32_t width,
+                        uint32_t height,
+                        uint32_t channels) {
+        if (channels != 1 && channels != 3)
+            throw std::runtime_error("savePFM: channels must be 1 or 3");
+
+        // ── create output directory if needed ────────────────────────────────
+        if (!filename.parent_path().empty())
+            std::filesystem::create_directories(filename.parent_path());
+
+        std::ofstream file(filename, std::ios::binary);
+        if (!file)
+            throw std::runtime_error("savePFM: cannot open " + filename.string());
+
+        // ── header ───────────────────────────────────────────────────────────
+        file << (channels == 3 ? "PF\n" : "Pf\n");
+        file << width << ' ' << height << '\n';
+
+        // Negative scale → little-endian, positive → big-endian
+        file << (hostIsLittleEndian() ? -1.0f : 1.0f) << '\n';
+
+        // ── write pixel data bottom-to-top ───────────────────────────────────
+        const size_t rowStride = static_cast<size_t>(width) * channels;
+        for (int y = static_cast<int>(height) - 1; y >= 0; --y) {
+            const float *row = image + static_cast<size_t>(y) * rowStride;
+            file.write(reinterpret_cast<const char *>(row),
+                       rowStride * sizeof(float));
+        }
+
+        if (!file)
+            throw std::runtime_error("savePFM: error writing data");
+    }
+
+    /// Byte-swap a 32-bit float in-place
+    inline void swap32(float &v) {
+        uint8_t *p = reinterpret_cast<uint8_t *>(&v);
+        std::swap(p[0], p[3]);
+        std::swap(p[1], p[2]);
+    }
+
+
+
+    /// Read next non-empty / non-comment line
+    inline bool readNonCommentLine(std::ifstream &ifs, std::string &out) {
+        while (std::getline(ifs, out)) {
+            if (out.empty()) continue;
+            if (out[0] == '#') continue;
+            return true;
+        }
+        return false;
+    }
+
+    static bool loadPFM(const std::string &filename,
+                        std::vector<float> &data,
+                        int &width,
+                        int &height,
+                        int &channels) {
+        std::ifstream file(filename, std::ios::binary);
+        if (!file) return false;
+
+        std::string line;
+
+        // ── 1) Magic word ───────────────────────────────────────────────────────────
+        if (!readNonCommentLine(file, line)) return false;
+        if (line == "PF") channels = 3;
+        else if (line == "Pf") channels = 1;
+        else return false; // not a PFM
+
+        // ── 2) Dimensions ──────────────────────────────────────────────────────────
+        if (!readNonCommentLine(file, line)) return false; {
+            std::istringstream ss(line);
+            ss >> width >> height;
+            if (!ss || width <= 0 || height <= 0) return false;
+        }
+
+        // ── 3) Scale factor & file endianness ──────────────────────────────────────
+        if (!readNonCommentLine(file, line)) return false;
+        float scale = std::stof(line);
+        bool fileLittleEndian = (scale < 0.f);
+        if (scale == 0.f) return false;
+        scale = std::abs(scale); // keep magnitude only
+
+        // ── 4) Pixel data ──────────────────────────────────────────────────────────
+        const size_t count = static_cast<size_t>(width) * height * channels;
+        data.resize(count);
+        file.read(reinterpret_cast<char *>(data.data()), count * sizeof(float));
+        if (static_cast<size_t>(file.gcount()) != count * sizeof(float)) return false;
+
+        // ── 5) Fix endianness if needed ────────────────────────────────────────────
+        if (fileLittleEndian != hostIsLittleEndian())
+            for (float &v: data) swap32(v);
+
+        // ── 6) Apply scale (HDR exposure stored in file) ───────────────────────────
+        if (scale != 1.f)
+            for (float &v: data) v *= scale;
+
+        // ── 7) Flip vertically (PFM stores rows bottom-to-top) ─────────────────────
+        const size_t rowStride = static_cast<size_t>(width) * channels;
+        for (int y = 0; y < height / 2; ++y) {
+            float *rowTop = data.data() + y * rowStride;
+            float *rowBottom = data.data() + (height - 1 - y) * rowStride;
+            std::memcpy(rowTop, rowTop, 0); // dummy to silence some static analyzers
+            for (size_t x = 0; x < rowStride; ++x)
+                std::swap(rowTop[x], rowBottom[x]);
+        }
+
+        return true;
     }
 }
 

@@ -229,6 +229,12 @@ inline float3 operator/(float3 a, float s)
     return { a.x()*inv, a.y()*inv, a.z()*inv };
 }
 
+inline float4 operator/(float4 a, float s)
+{
+    float inv = 1.f / s;
+    return { a.x()*inv, a.y()*inv, a.z()*inv , a.w()*inv };
+}
+
 inline float3 min(float3 a, float3 b) { return sycl::min(a.v, b.v); }
 inline float3 max(float3 a, float3 b) { return sycl::max(a.v, b.v); }
 inline float dot(float3 a, float3 b) { return sycl::dot(a.v, b.v); }

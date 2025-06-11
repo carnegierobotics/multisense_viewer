@@ -315,6 +315,7 @@ if (ENABLE_SYCL)
             src/Viewer/Tools/SYCLDeviceSelector.cpp
 
             src/Viewer/Rendering/PathTracer/Device/PathTracerKernels.cpp
+            src/Viewer/Rendering/PathTracer/Device/PathTracerAdjointKernel.cpp
 
     )
     list(APPEND SOURCE_FILES ${SYCL_SOURCES})

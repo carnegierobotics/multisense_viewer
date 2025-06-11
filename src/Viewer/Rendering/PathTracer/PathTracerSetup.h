@@ -85,6 +85,8 @@ namespace VkRender::PathTracer {
         /** launches photon + contribution kernels */
         RenderInfoOutput renderFrame(const RenderSettings &settings);
 
+        RenderInfoOutput radiativeBackprop(std::shared_ptr<EditorPathTracerLayerUI> imageUI, const RenderSettings &settings);
+
         /** copies the device framebuffer back to host */
         void generateImages(std::shared_ptr<EditorPathTracerLayerUI> ptr);
 
@@ -197,6 +199,15 @@ namespace VkRender::PathTracer {
         uint32_t m_materialCount = 0;
         uint32_t m_lightCount = 0;
         uint32_t m_cameraCount = 0;
+
+        // === Radiative Backpropagation ===
+        std::vector<ParamOffset> m_kdOffset;   // size = m_materials.size()
+        std::vector<ParamOffset> m_vtxOffset;  // size = m_vertices.size()
+        ParamOffset * d_kdOffset;
+        ParamOffset * d_vtxOffset;
+        float      * d_gradAll;   // ← the one big vector
+        uint32_t                  m_totalParamSlots = 0;
+
     };
 } // VkRender
 

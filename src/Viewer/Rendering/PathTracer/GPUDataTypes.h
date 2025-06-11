@@ -8,7 +8,6 @@
 #include <cstdint>
 
 #include <Viewer/Scenes/Entity.h>
-
 #include "PathTracerTypes.h"
 
 namespace VkRender {
@@ -16,6 +15,8 @@ namespace VkRender {
 }
 
 namespace VkRender::PathTracer {
+
+
     /*────────────────────────────────────────────────────────────────────────────*/
     /*  Helper macro – verify every struct is 16‑byte aligned & sized             */
     /*────────────────────────────────────────────────────────────────────────────*/
@@ -189,6 +190,8 @@ namespace VkRender::PathTracer {
     struct alignas(16) Camera {
         float4x4 view{}; //  64
         float4x4 proj{}; // 128
+        float4x4 invView{}; //  64
+        float4x4 invProj{}; // 128
         float3 pos{}; // 144
         float3 forward{}; // 160
         uint32_t width{}, height{}; // 168
@@ -197,6 +200,14 @@ namespace VkRender::PathTracer {
     };
 
     CHECK_16(Camera);
+
+    //--------------------------------------------------------------------
+    // Parameter indexing (done once on the CPU before any kernel launch)
+    //--------------------------------------------------------------------
+    struct ParamOffset {
+        uint32_t start;   // first slot in d_gradAll
+        uint32_t dim;     // 1 for scalar, 3 for float3, ...
+    };
 
     /*************************  Scene descriptor *********************/
     struct alignas(16) SceneDesc {
@@ -226,6 +237,11 @@ namespace VkRender::PathTracer {
         /* cameras */
         const Camera *cameras = nullptr;
 
+        /* Parameter Gradients */
+        ParamOffset * kdOffset;
+        ParamOffset * vtxOffset;
+        float      * gradAll;
+
         /* counts */
         uint32_t triCount{}, vertexCount{}, meshCount{};
         uint32_t pointCount{}, pointCloudCount{};
@@ -234,6 +250,7 @@ namespace VkRender::PathTracer {
         uint32_t cameraCount{};
         uint32_t photonCount{}; // keep 4‑byte – pad below
         uint32_t _pad0{}; //  4  →  make size multiple of 16
+
     };
 
     CHECK_16(SceneDesc);
@@ -252,6 +269,11 @@ namespace VkRender::PathTracer {
         uint32_t frameBufferSize{0};
         uint32_t _pad0{};
         uint64_t _pad1{}; // 16
+
+        float* residuals = nullptr;
+        uint32_t residualBufferSize{0};
+        uint64_t _pad2{}; // 16
+
     };
 
     CHECK_16(FrameBuffer);
@@ -283,6 +305,8 @@ namespace VkRender::PathTracer {
     };
 
     CHECK_16(Hit);
+
+
 
 #undef CHECK_16
 } // namespace VkRender::PathTracer

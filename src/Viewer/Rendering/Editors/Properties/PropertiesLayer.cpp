@@ -79,6 +79,39 @@ namespace VkRender {
     }
 
     void PropertiesLayer::reconstructionTab() {
+        auto imageUI = m_context->getPathTracerUI();
+        if (!imageUI)
+            return;
+        auto pathTracer = std::dynamic_pointer_cast<EditorPathTracerLayerUI>(imageUI);
+
+        if (ImGui::Button("Set GT Image")) {
+
+            auto& userSetting = ApplicationConfig::getInstance().getUserSetting();
+            auto openLocation = std::filesystem::exists(userSetting.lastActiveScenePath.parent_path())
+                        ? userSetting.lastActiveScenePath.parent_path()
+                        : Utils::getSystemHomePath();
+
+            EditorUtils::openImportFolderDialog(
+                "Set GT folder", openLocation,
+                LayerUtils::SELECT_PATH_TRACER_GT_FOLDER,
+                &m_loadFileFuture
+            );
+        }
+
+        ImGui::SameLine();
+        if (ImGui::Button("Open")) {
+
+            if (std::filesystem::exists(pathTracer->gtFolderPath)) {
+                Utils::openFileExplorer(pathTracer->gtFolderPath);
+            }
+        }
+
+        ImGui::Text("Current GT location:");
+        ImGui::Text("Path: %s", pathTracer->gtFolderPath.string().c_str());
+
+        if (!pathTracer->gtFolderPath.empty())
+            ImGui::Checkbox("Radiative Backprop", &pathTracer->renderGradient);
+
     }
 
     bool PropertiesLayer::drawVec3Control(const std::string &label, glm::vec3 &values, float resetValue = 0.0f,
@@ -957,6 +990,7 @@ namespace VkRender {
 
                 if (ImGui::Button("Remove All")) {
                     auto asset = component.gaussianAsset;
+                    if (asset) {
                     for (int i = 0; i < asset->numPoints; ++i) {
                         {
                             std::string quadricName2dgs =
@@ -969,13 +1003,14 @@ namespace VkRender {
                                         entityInstance2dgs);
                         }
                     }
+                    }
                     component.removeAllQuadrics();
                     quadricCount = component.size();
                 }
 
                 ImGui::SameLine();
 
-                if (ImGui::Button("Update All")) {
+                if (ImGui::Button("Update All") && component.gaussianAsset) {
                     auto gaussianAsset = component.gaussianAsset;
 
                     // Generate Entities from PointCloudAsset
@@ -1275,6 +1310,61 @@ namespace VkRender {
     PropertiesLayer::handleSelectedFileOrFolder(const LayerUtils::LoadFileInfo &loadFileInfo) {
         if (!loadFileInfo.path.empty()) {
             switch (loadFileInfo.filetype) {
+                case LayerUtils::SELECT_PATH_TRACER_GT_FOLDER: {
+                    auto imageUI = m_context->getPathTracerUI();
+                    auto pathTracer = std::dynamic_pointer_cast<EditorPathTracerLayerUI>(imageUI);
+                    if (!pathTracer) break;
+
+                    pathTracer->gtFolderPath = loadFileInfo.path;
+                    Log::Logger::getInstance()->info("Set PathTracer gtFolderPath to {}",
+                                                     loadFileInfo.path.string().c_str());
+
+                      try {
+                        YAML::Node cfg = YAML::LoadFile(loadFileInfo.path / "Camera.yaml");
+                        auto imageUI = m_context->getPathTracerUI();
+                        auto pathTracer = std::dynamic_pointer_cast<EditorPathTracerLayerUI>(imageUI);
+                        if (!pathTracer) break;
+
+                        // top‐level
+                        //if (cfg["FrameID"])      pathTracer->frameID             = cfg["FrameID"].as<uint32_t>();
+                        if (cfg["Gamma"]) pathTracer->gamma = cfg["Gamma"].as<float>();
+                        if (cfg["Exposure"]) pathTracer->exposure = cfg["Exposure"].as<float>();
+
+                        // read and set photon counts first
+                        if (cfg["PhotonCount"]) {
+                            pathTracer->photonCount = cfg["PhotonCount"].as<int>();
+                            // compute decimal exponent (floor of log10), clamp to zero if count ≤ 0
+                            if (pathTracer->photonCount > 0) {
+                                pathTracer->photonExponent = static_cast<int>(
+                                    std::floor(std::log10(pathTracer->photonCount))
+                                );
+                            } else {
+                                pathTracer->photonExponent = 0;
+                            }
+                        }
+
+                        if (cfg["TotalPhotons"]) {
+                            pathTracer->targetPhotonCount = cfg["TotalPhotons"].as<int>();
+                            if (pathTracer->targetPhotonCount > 0) {
+                                pathTracer->targetPhotonExponent = static_cast<int>(
+                                    std::floor(std::log10(pathTracer->targetPhotonCount))
+                                );
+                            } else {
+                                pathTracer->targetPhotonExponent = 0;
+                            }
+                        }
+
+                        Log::Logger::getInstance()->info("Loaded render settings from {}",
+                                                         loadFileInfo.path.string().c_str());
+                    } catch (const std::exception &e) {
+                        Log::Logger::getInstance()->error(
+                            "Failed to load YAML settings '{}': {}",
+                            loadFileInfo.path.string(), e.what()
+                        );
+                    }
+
+                }
+                break;
                 case LayerUtils::SELECT_PATH_TRACER_OUTPUT_FOLDER: {
                     auto imageUI = m_context->getPathTracerUI();
                     auto pathTracer = std::dynamic_pointer_cast<EditorPathTracerLayerUI>(imageUI);

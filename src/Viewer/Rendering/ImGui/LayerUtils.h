@@ -41,6 +41,7 @@ namespace VkRender::LayerUtils {
         SAVE_SCENE_AS,
         SAVE_PROJECT_AS,
         SELECT_PATH_TRACER_OUTPUT_FOLDER,
+        SELECT_PATH_TRACER_GT_FOLDER,
         SELECT_FOLDER,
         YAML_RENDER_SETTINGS_FILE,
     } FileTypeLoadFlow;

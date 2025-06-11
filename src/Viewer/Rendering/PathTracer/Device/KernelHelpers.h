@@ -269,6 +269,60 @@ namespace VkRender::PathTracer {
         return v - 2.f * sycl::dot(n, v) * n;
     }
 
+    //------------------------------------------------------------------------------
+//  sampleCameraRay
+//  ---------------------------------------------------------------------------
+//  • Generates one primary ray for pixel (px,py) with a random tent–jitter
+//    inside the pixel footprint.
+//  • Returns
+//      – ray origin        (cam.pos)
+//      – ray direction     (unit length, world space)
+//      – pdfDir            p(ω)  in units “probability per steradian”
+//                           under *uniform sampling of the pixel area*.
+//    For a classic pin-hole model each pixel covers an equal solid angle when
+//    projected through the lens ⇒ pdfDir = 1 / (# pixels).
+//
+//  The routine assumes:
+//      Camera::width,   Camera::height              – raster resolution
+//      Camera::pos                                  – world-space eye
+//      Camera::invProj, Camera::invView (float4x4)  – pre-computed inverses
+//------------------------------------------------------------------------------
+SYCL_EXTERNAL inline void sampleCameraRay(
+        uint32_t px, uint32_t py,
+        const Camera &cam,
+        PCG32      &rng,
+        float3     &outOrigin,
+        float3     &outDir,
+        float      &outPdfDir)
+{
+    /* ---------------------------------------------------- */
+    /* 1)  sub-pixel jitter                                 */
+    /* ---------------------------------------------------- */
+    float u = rng.nextFloat();          // [0,1)
+    float v = rng.nextFloat();          // [0,1)
+
+    float ndcX = ( (float(px) + u) / float(cam.width ) ) * 2.f - 1.f; // [-1,1]
+    float ndcY = ( (float(py) + v) / float(cam.height) ) * 2.f - 1.f; // [-1,1]
+
+    /* ---------------------------------------------------- */
+    /* 2)  back-project to world space                      */
+    /* ---------------------------------------------------- */
+    float4 clip = float4{ ndcX, ndcY, -1.f, 1.f };           // on the near plane
+    float4 view = cam.invProj * clip;
+    view          = view / view.w();                               // de-homogenise
+    float4 world = cam.invView * view;
+
+    float3 target = float3{ world.x(), world.y(), world.z() };
+
+    /* ---------------------------------------------------- */
+    /* 3)  output ray + pdf                                 */
+    /* ---------------------------------------------------- */
+    outOrigin = cam.pos;
+    outDir    = ::normalize(target - cam.pos);
+
+    const float numPixels = float(cam.width * cam.height);
+    outPdfDir  = 1.0f / numPixels;               // uniform per-pixel solid angle
+}
     /*
     // specular Blinn‑Phong lobe sampling – returns dir and pdf
     SYCL_EXTERNAL inline void sampleBlinnPhongSpecular(

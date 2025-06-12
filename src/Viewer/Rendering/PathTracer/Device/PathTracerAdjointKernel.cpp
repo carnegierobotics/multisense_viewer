@@ -7,7 +7,7 @@
 #include <Viewer/Rendering/PathTracer/PathTracerTypes.h>
 
 namespace VkRender::PathTracer {
-    void PathTracerAdjointKernel::traceAdjoint(int px, int py, int iteration) const {
+    SYCL_EXTERNAL void PathTracerAdjointKernel::traceAdjoint(int px, int py) const {
         const SceneDesc &scene = *d_sceneDesc;
         const RenderSettings &settings = d_sceneSettings;
         const Camera &camera = d_sceneDesc->cameras[1];
@@ -15,8 +15,7 @@ namespace VkRender::PathTracer {
 
         /* RNG --------------------------------------------------------------------- */
         PCG32 rng{};
-        rng.seed(d_sceneDesc->cameras[1].width *
-d_sceneDesc->cameras[1].height * iteration + (py * d_sceneDesc->cameras[1].width + px));
+        rng.seed((d_sceneDesc->cameras[1].width * d_sceneDesc->cameras[1].height * settings.randomSeed) + (py * d_sceneDesc->cameras[1].width + px));
 
         // 1) Compute pixel index and residual δy at (px,py)
         uint32_t pixelID = py * d_sceneDesc->cameras[1].width + px;
@@ -35,16 +34,13 @@ d_sceneDesc->cameras[1].height * iteration + (py * d_sceneDesc->cameras[1].width
             Hit hit;
             if (!intersectScene(ray, &hit, scene)) break;
 
-            /* ---- fetch instance + material once for both geom types ------------ */
             const Instance &inst = scene.instances[hit.instIdx];
             const Transform &xfInst = scene.transforms[inst.transformIndex];
             const Material &mat = scene.materials[inst.materialIndex];
 
-            /* ---- compute world-space surface normal ---------------------------- */
             float3 surfaceNormal; // will be set per-geometry
             float3 worldNormal; // will be set per-geometry
             if (inst.geomType == GeometryType::Mesh) {
-                /* ----- triangle path (unchanged) -------------------------------- */
                 const Triangle &tri = scene.triangles[hit.primIdx];
                 const Vertex &v0 = scene.vertices[tri.v0];
                 const Vertex &v1 = scene.vertices[tri.v1];
@@ -58,7 +54,6 @@ d_sceneDesc->cameras[1].height * iteration + (py * d_sceneDesc->cameras[1].width
                 worldNormal = transformNormal(surfaceNormal, xfInst.objectToWorld); // world-space
 
                 // World surface normal:
-                /* ---- (b)  geometric normal ---------------------------------------- */
                 float3 P0_obj = v0.pos;
                 float3 P1_obj = v1.pos;
                 float3 P2_obj = v2.pos;
@@ -97,7 +92,6 @@ d_sceneDesc->cameras[1].height * iteration + (py * d_sceneDesc->cameras[1].width
             // … identical to your photon loop …
 
             ray = makeRay(hit.hitPoint + eps * newDir, newDir);
-            break;
         }
     }
 

@@ -263,6 +263,7 @@ namespace VkRender::PathTracer {
         uint32_t maxBounces{32};
         uint32_t iteration = 0;
         uint64_t photonCount{1000}; // 16
+        int64_t randomSeed{-1};
     };
 
     CHECK_16(RenderSettings);

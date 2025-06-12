@@ -336,8 +336,13 @@ namespace VkRender::PathTracer {
         }
         Utils::ScopedTimer timer("PathTracer: RenderFrame");
 
-
-        auto event = m_queue.submit([scene=d_sceneDesc, fb = d_frameBuffers, config=settings](sycl::handler &cgh) {
+        auto conf = settings;
+        std::random_device rd;
+        std::mt19937_64 rng(rd());
+        std::uniform_int_distribution<uint32_t> dist;
+        // 4) Draw one seed value:
+        conf.randomSeed = dist(rng);
+        auto event = m_queue.submit([scene=d_sceneDesc, fb = d_frameBuffers, config=conf](sycl::handler &cgh) {
             PathTracerMeshKernel kernel(scene, fb, config);
             cgh.parallel_for(sycl::range<1>(config.photonCount), kernel);
         });
@@ -413,6 +418,10 @@ namespace VkRender::PathTracer {
 
         delete[] hostMemory;
 
+        uint32_t residualBlockSize = 600 * 600 * 4;
+        m_queue.fill(d_frameBuffers.residuals, 0.0f, residualBlockSize).wait(); // Only copy first camera instance
+
+
         m_queue.memcpy(d_frameBuffers.residuals,
                residual.data(),
                pixelCount * sizeof(float)).wait();
@@ -437,6 +446,7 @@ namespace VkRender::PathTracer {
             throw std::runtime_error("Failed to write PNG file: " + pngImagePath.string());
         }
 
+        m_queue.fill(d_sceneDesc->gradAll, 0.0f, m_totalParamSlots).wait(); // Only copy first camera instance
 
         sycl::range<2> threadsPerBlock(16, 16);
         sycl::range<2> numBlocks(
@@ -445,7 +455,6 @@ namespace VkRender::PathTracer {
 
         m_sceneDescDevice.gradDebugMaterialID  = imageUI->gradMaterialID;
         d_sceneDesc->gradDebugMaterialID  = imageUI->gradMaterialID;
-
 
         auto conf = settings;
         conf.iteration = m_backpropIterations;
@@ -463,8 +472,26 @@ namespace VkRender::PathTracer {
                        d_sceneDesc->gradAll,
                        m_totalParamSlots * sizeof(float)).wait();
         // 3) write out the residual as a single-channel PFM
-        delete[] allGradientsHost;
 
+        std::filesystem::path csvPath = imageUI->gtFolderPath
+                                          / "optimization"
+                                          / std::filesystem::path("all_gradients.csv");
+
+        std::ofstream out(csvPath);
+        if (!out) {
+            throw std::runtime_error("Failed to open CSV for gradients: " + csvPath.string());
+        }
+
+        // Optional header
+        out << "paramIndex,gradient\n";
+
+        for (uint32_t i = 0; i < m_totalParamSlots; ++i) {
+            out << i << ',' << allGradientsHost[i] << '\n';
+        }
+
+        out.close();
+        Log::Logger::getInstance()->info("Wrote all_gradients.csv with {} entries", m_totalParamSlots);
+        delete[] allGradientsHost;
 
         const Camera &camDbg = m_cameras[1];               // ← same cam you rendered
         size_t nPix  = camDbg.width * camDbg.height;
@@ -814,10 +841,12 @@ namespace VkRender::PathTracer {
             m_kdOffset[i]={slot,1}; slot+=1;
         }
 
+        /*
         // optional: vertex positions  (3 floats each)
         for (uint32_t v=0; v<m_vertices.size(); ++v){
             m_vtxOffset[v]={slot,3}; slot+=3;
         }
+        */
 
         m_totalParamSlots = slot;
 

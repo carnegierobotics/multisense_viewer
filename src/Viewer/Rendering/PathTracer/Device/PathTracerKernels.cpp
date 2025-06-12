@@ -350,7 +350,7 @@ namespace VkRender::PathTracer {
 
         /* RNG --------------------------------------------------------------------- */
         PCG32 rng{};
-        rng.seed(photonID);
+        rng.seed(photonID * d_sceneSettings.randomSeed);
 
         //-------------------- 1) sample area light -------------------------------
         float3 Lpos{}, Lnorm{};

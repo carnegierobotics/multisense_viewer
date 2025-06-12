@@ -7,7 +7,7 @@
 #include <Viewer/Rendering/PathTracer/PathTracerTypes.h>
 
 namespace VkRender::PathTracer {
-    void PathTracerAdjointKernel::traceAdjoint(int px, int py) const {
+    void PathTracerAdjointKernel::traceAdjoint(int px, int py, int iteration) const {
         const SceneDesc &scene = *d_sceneDesc;
         const RenderSettings &settings = d_sceneSettings;
         const Camera &camera = d_sceneDesc->cameras[1];
@@ -15,7 +15,8 @@ namespace VkRender::PathTracer {
 
         /* RNG --------------------------------------------------------------------- */
         PCG32 rng{};
-        rng.seed(px * py);
+        rng.seed(d_sceneDesc->cameras[1].width *
+d_sceneDesc->cameras[1].height * iteration + (py * d_sceneDesc->cameras[1].width + px));
 
         // 1) Compute pixel index and residual δy at (px,py)
         uint32_t pixelID = py * d_sceneDesc->cameras[1].width + px;
@@ -73,6 +74,17 @@ namespace VkRender::PathTracer {
             float delta = (Li * adjWeight) / M_PIf;
             addToGradBuffer<1>( scene.gradAll, kd.start, { delta } );
 
+            // NEW: write per-pixel gradient image, but only if this is obj-1
+            if(inst.materialIndex == scene.gradDebugMaterialID) {
+                uint32_t pxIdx = py * camera.width + px;   // 2-D → 1-D
+                sycl::atomic_ref<float,
+                    sycl::memory_order::relaxed,
+                    sycl::memory_scope::device,
+                    sycl::access::address_space::global_space>
+                    cell( scene.gradKdImage[pxIdx] );
+                cell += delta;                            // add Δ once per path
+            }
+
             // ---------- 3)  propagate importance to next bounce ------------
             float3 newDir{};
             float pdfDir = 1.0f;
@@ -85,6 +97,7 @@ namespace VkRender::PathTracer {
             // … identical to your photon loop …
 
             ray = makeRay(hit.hitPoint + eps * newDir, newDir);
+            break;
         }
     }
 

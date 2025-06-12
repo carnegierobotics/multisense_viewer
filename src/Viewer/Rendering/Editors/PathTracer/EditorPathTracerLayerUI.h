@@ -41,8 +41,8 @@ namespace VkRender {
         int currentBVHLevel = 0;
         int averageLeafSize = 0;
         int maxDepth = 30;
-        float gamma = 2.2f;
-        float exposure = 10.0f; //1.8f;
+        float gamma = 2.8f;
+        float exposure = 4.6f; //1.8f;
 
         bool saveImages = false;
         std::filesystem::path saveImagePath;
@@ -52,6 +52,8 @@ namespace VkRender {
         // Reconstruction
         std::filesystem::path gtFolderPath;
         bool renderGradient = false;
+        int gradMaterialID = 0;
+        bool printMaterialID = false;
     };
 }
 #endif //MULTISENSE_VIEWER_PATHTRACERLAYERUI_H

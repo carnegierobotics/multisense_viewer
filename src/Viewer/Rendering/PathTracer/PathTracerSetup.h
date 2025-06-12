@@ -99,6 +99,7 @@ namespace VkRender::PathTracer {
         std::vector<BVHNode> getBLASNodes() { return m_blasNodes; }
         std::vector<TLASNode> getTLASNodes() { return m_tlasNodes; }
         SceneDesc& getSceneDescription() { return m_sceneDescHost; }
+        void printMaterialIDs();
 
     private:
         /*--- helpers called only from uploadScene() ---*/
@@ -109,6 +110,7 @@ namespace VkRender::PathTracer {
         void collectLights(const std::shared_ptr<Scene> &scene);
 
         void collectCameras(const std::shared_ptr<Scene> &scene, EditorCamera editorCamera);
+
 
         void buildSceneDesc();
 
@@ -136,9 +138,10 @@ namespace VkRender::PathTracer {
 
         FrameBuffer m_frameBuffers{};
         FrameBuffer d_frameBuffers{};
-        // BLAS DEBUG NAMES
+        // DEBUG NAMES
         std::vector<std::string> m_meshNames; ///< same length as m_meshRanges
         std::vector<std::string> m_blasNames; ///< same length as m_blasRanges
+        std::vector<std::string> m_materialNames;
 
         // BVH
         //std::vector<BVHNode> m_bvhNodes;
@@ -206,7 +209,9 @@ namespace VkRender::PathTracer {
         ParamOffset * d_kdOffset;
         ParamOffset * d_vtxOffset;
         float      * d_gradAll;   // ← the one big vector
+        float      * d_gradKdImage;   // deub gimage
         uint32_t                  m_totalParamSlots = 0;
+        uint32_t m_backpropIterations = 0;
 
     };
 } // VkRender

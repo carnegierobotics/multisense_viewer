@@ -112,6 +112,9 @@ namespace VkRender {
         if (!pathTracer->gtFolderPath.empty())
             ImGui::Checkbox("Radiative Backprop", &pathTracer->renderGradient);
 
+        pathTracer->printMaterialID = ImGui::Button("Print MaterialIDs");
+        ImGui::SliderInt("MaterialID", &pathTracer->gradMaterialID, 0, 10);
+
     }
 
     bool PropertiesLayer::drawVec3Control(const std::string &label, glm::vec3 &values, float resetValue = 0.0f,

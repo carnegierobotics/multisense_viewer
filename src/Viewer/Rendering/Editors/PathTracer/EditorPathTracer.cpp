@@ -149,6 +149,10 @@ namespace VkRender {
     void EditorPathTracer::onUpdate() {
         auto imageUI = std::dynamic_pointer_cast<EditorPathTracerLayerUI>(m_ui);
 
+        if (imageUI->printMaterialID) {
+            m_PathTracerSetup->printMaterialIDs();
+        }
+
         bool saveImagesFromRecording = imageUI->totalPhotonsEmitted == imageUI->targetPhotonCount && imageUI->
                                        renderUntilTarget;
 

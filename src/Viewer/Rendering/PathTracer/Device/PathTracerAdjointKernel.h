@@ -36,7 +36,7 @@ namespace VkRender::PathTracer {
                     py >= d_sceneDesc->cameras[1].height)
                     return;
 
-                traceAdjoint(px, py);
+                traceAdjoint(px, py, d_sceneSettings.iteration);
         }
 
 
@@ -50,7 +50,7 @@ namespace VkRender::PathTracer {
         RenderSettings d_sceneSettings;
         FrameBuffer d_framebuffer;
 
-        void traceAdjoint(int px, int py) const;
+        void traceAdjoint(int px, int py, int iteration) const;
 
         // atomicAdd to the big vector (handles scalar or vector parameters)
         template<int Dim>

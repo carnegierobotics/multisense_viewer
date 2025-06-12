@@ -243,6 +243,14 @@ namespace VkRender::PathTracer {
         }
     }
 
+    void PathTracerSetup::printMaterialIDs() {
+        auto logger = Log::Logger::getInstance();
+        logger->info("=== Material slots (entity name → materialIndex) ===");
+        for (size_t i = 0; i < m_materials.size(); ++i) {
+            logger->info("  [{}] '{}' → materialIndex = {}", i, m_materialNames[i], i);
+        }
+        logger->info("======================================================");
+    }
 
     void PathTracerSetup::updateDynamic(const std::shared_ptr<Scene> &scene, EditorCamera editorCamera) {
         Utils::ScopedTimer timer("PathTracer: Update Dynamic Data");
@@ -405,6 +413,10 @@ namespace VkRender::PathTracer {
 
         delete[] hostMemory;
 
+        m_queue.memcpy(d_frameBuffers.residuals,
+               residual.data(),
+               pixelCount * sizeof(float)).wait();
+
         // 3) write out the residual as a single-channel PFM
         std::filesystem::path outPath = imageUI->gtFolderPath / "optimization" / std::filesystem::path(
                                             name + "_residual.pfm");
@@ -431,33 +443,49 @@ namespace VkRender::PathTracer {
             (camera.height + threadsPerBlock[0] - 1) / threadsPerBlock[0],
             (camera.width + threadsPerBlock[1] - 1) / threadsPerBlock[1]);
 
+        m_sceneDescDevice.gradDebugMaterialID  = imageUI->gradMaterialID;
+        d_sceneDesc->gradDebugMaterialID  = imageUI->gradMaterialID;
 
+
+        auto conf = settings;
+        conf.iteration = m_backpropIterations;
         auto event = m_queue.submit(
-            [scene=d_sceneDesc, fb = d_frameBuffers, config=settings, threadsPerBlock, numBlocks](sycl::handler &cgh) {
+            [scene=d_sceneDesc, fb = d_frameBuffers, config=conf, threadsPerBlock, numBlocks](sycl::handler &cgh) {
                 PathTracerAdjointKernel kernel(scene, fb, config);
                 cgh.parallel_for(sycl::nd_range<2>(numBlocks * threadsPerBlock, threadsPerBlock), kernel);
             });
 
         event.wait();
 
-
-        /*
-        uint32_t residualBlockSize = 600 * 600 * 4;
-        m_queue.fill(d_frameBuffers.residuals, 0.0f, residualBlockSize); // Only copy first camera instance
         // 1) read back your device float RGBA buffer
-
-        float *residualsHostMemory = new float[residualBlockSize];
-        m_queue.memcpy(residualsHostMemory,
-                       d_frameBuffers.residuals,
-                       residualBlockSize * sizeof(float)).wait();
-
+        float *allGradientsHost = new float[m_totalParamSlots];
+        m_queue.memcpy(allGradientsHost,
+                       d_sceneDesc->gradAll,
+                       m_totalParamSlots * sizeof(float)).wait();
         // 3) write out the residual as a single-channel PFM
-        std::filesystem::path analyticResidual = outPath.replace_filename(name + "_analytic").replace_extension(".png");
+        delete[] allGradientsHost;
 
-        Utils::savePFM(analyticResidual, residualsHostMemory, camera.width, camera.height, 1);
 
-        delete[] residualsHostMemory;
-        */
+        const Camera &camDbg = m_cameras[1];               // ← same cam you rendered
+        size_t nPix  = camDbg.width * camDbg.height;
+
+        std::vector<float> gradImgHost(nPix);
+        m_queue.memcpy(gradImgHost.data(),
+                       d_sceneDesc->gradKdImage,
+                       nPix * sizeof(float)).wait();
+
+        /* ------------------------------------------------------------------ */
+        /* 3)  write the gradient image to disk (PFM, 1 channel)              */
+        /* ------------------------------------------------------------------ */
+        std::filesystem::path gradPath = imageUI->gtFolderPath /
+                                         "optimization" /
+                                         std::filesystem::path("dI_dkd1.pfm");
+
+        Utils::savePFM(gradPath,
+                       gradImgHost.data(),
+                       camDbg.width, camDbg.height, 1);
+
+        m_backpropIterations++;
 
         return {m_frameID, m_totalPhotons};
     }
@@ -752,6 +780,7 @@ namespace VkRender::PathTracer {
 
             uint32_t matIdx = static_cast<uint32_t>(m_materials.size());
             m_materials.push_back(gpuMat);
+            m_materialNames.push_back(name);
 
             // --- 3) record the instance record pointing at mesh+material+transform ---
             uint32_t xfIdx = static_cast<uint32_t>(m_transforms.size());
@@ -994,10 +1023,16 @@ namespace VkRender::PathTracer {
         d_gradAll = deviceAlloc<float>(m_totalParamSlots);
         m_queue.fill(d_gradAll, 0.f, m_totalParamSlots);   // set to 0 once at init
 
+        /* ---- allocate gradient debug image (zero-initialised) ------------------- */
+        size_t nPix = 600 * 600;
+        d_gradKdImage = deviceAlloc<float>(nPix);
+        m_queue.fill(d_gradKdImage, 0.f, nPix);   // set to 0 once at init
+
         /* ---- expose to SceneDesc so kernels can reach them ----------------- */
         m_sceneDescDevice.kdOffset  = d_kdOffset;
         m_sceneDescDevice.vtxOffset = d_vtxOffset;
         m_sceneDescDevice.gradAll   = d_gradAll;
+        m_sceneDescDevice.gradKdImage   = d_gradKdImage;
     }
 
 

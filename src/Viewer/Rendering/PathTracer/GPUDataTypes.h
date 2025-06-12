@@ -238,9 +238,12 @@ namespace VkRender::PathTracer {
         const Camera *cameras = nullptr;
 
         /* Parameter Gradients */
-        ParamOffset * kdOffset;
-        ParamOffset * vtxOffset;
-        float      * gradAll;
+        ParamOffset * kdOffset = nullptr;
+        ParamOffset * vtxOffset = nullptr;
+        float      * gradAll = nullptr;
+        // -- Gradient Debug
+        float* gradKdImage = nullptr;
+        uint32_t gradDebugMaterialID = 0;
 
         /* counts */
         uint32_t triCount{}, vertexCount{}, meshCount{};
@@ -258,7 +261,7 @@ namespace VkRender::PathTracer {
     /*************************  Misc *********************************/
     struct alignas(16) RenderSettings {
         uint32_t maxBounces{32};
-        uint32_t _pad0{};
+        uint32_t iteration = 0;
         uint64_t photonCount{1000}; // 16
     };
 

@@ -215,23 +215,14 @@ namespace VkRender::PathTracer {
             u = 1.0f - u;
             v = 1.0f - v;
         }
-        // object-space position
-        float3 pObj =
+        // world-space position
+        outPos =
                 light.v0[tri]
                 + u * light.edge1[tri]
                 + v * light.edge2[tri];
 
-        // 3) Transform to world‐space
-        //   assume objectToWorld is a sycl::float4x4
-        float4 pH = light.transform.objectToWorld * float4{pObj, 1.0f};
-        outPos = float3{pH.x(), pH.y(), pH.z()};
-
-        float3x3 rotation = float3x3(light.transform.objectToWorld); // drop translation
-        float3x3 normalMat = transpose(inverse(rotation)); // inverse‐transpose
-
-
         // --- 3) Return the surface normal and the PDF for position ----
-        outN = normalize(normalMat * light.normal[tri]);
+        outN = light.normal[tri];
         // PDF = 1 / total emissive area (uniform over mesh surface)
         outPdf = 1.0f / light.totalArea;
     }

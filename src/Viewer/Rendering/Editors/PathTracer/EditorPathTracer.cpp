@@ -250,6 +250,7 @@ namespace VkRender {
                         mesh.polygonMode() = VK_POLYGON_MODE_LINE;
                         auto &mat = ent.addComponent<MaterialComponent>();
                         mat.fragmentShaderName = "NoMaterial.frag";
+                        mat.useTexture = true;
                         ent.addComponent<VisibleComponent>();
                         ent.addComponent<RasterizerRenderingComponent>();
                     }

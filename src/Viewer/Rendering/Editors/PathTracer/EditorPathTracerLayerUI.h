@@ -24,11 +24,11 @@ namespace VkRender {
         bool renderToViewport = true;
 
         SYCLDeviceType selectedDevice = SYCLDeviceType::CPU;
-        int photonCount = 1000; // default photon count
-        int photonExponent = 3; // 10^6 = 1 000 000 default
-        int targetPhotonExponent = photonExponent  + 1; // 10^6 = 1 000 000 default
-        int numBounces = 8;
-        int targetPhotonCount = 1e7; // 10 Million
+        int photonCount = 1e6; // default photon count
+        int photonExponent = 6; // 10^6 = 1 000 000 default
+        int targetPhotonExponent = photonExponent  + 2; // 10^8 = 100 000 000  default
+        int targetPhotonCount = 1e8; // 10 Million
+        int numBounces = 1;
 
         // BVH stuff
         bool showBVH = false;

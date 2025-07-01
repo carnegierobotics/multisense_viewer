@@ -124,8 +124,8 @@ namespace VkRender::PathTracer {
     inline void buildOrthonormalBasis(const float3 &n, float3 &u, float3 &v) {
         // pick the axis least parallel to n
         float3 a = (fabs(n.x()) > 0.9f) ? float3(0, 1, 0) : float3(1, 0, 0);
-        u = ::normalize(sycl::cross(a, n));
-        v = sycl::cross(n, u); // already normalized
+        u = ::normalize(cross(a, n));
+        v = cross(n, u); // already normalized
     }
 
     // ─────────────────────────────────────────────────────────────────────────────

@@ -55,7 +55,7 @@ namespace VkRender::PathTracer {
         RenderSettings d_sceneSettings;
         FrameBuffer d_framebuffer;
 
-        void traceOnePhoton(uint64_t photonID, uint32_t totalPhotonCount) const;
+        SYCL_EXTERNAL void traceOnePhoton(uint64_t photonID, uint32_t totalPhotonCount) const;
 
 
         SYCL_EXTERNAL void castContributions(

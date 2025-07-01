@@ -278,7 +278,7 @@ namespace VkRender::PathTracer {
             const Camera &cam = scene.cameras[camID];
 
             float3 toAperture = cam.pos - hitPoint.hitPoint;
-            float distToA = sycl::length(toAperture);
+            float distToA = length(toAperture);
             float3 dirToA = toAperture / distToA;
 
             // visibility
@@ -364,7 +364,7 @@ namespace VkRender::PathTracer {
         float pdfDir = 0.0f;
         sampleCosineHemisphere(rng, Lnorm, dir, pdfDir);
 
-        float cosNL = sycl::max(0.0f, static_cast<float>(sycl::dot(dir, Lnorm)));
+        float cosNL = sycl::max(0.0f, static_cast<float>(dot(dir, Lnorm)));
 
         float perPhotonEnergy = 1.0f / static_cast<float>(totalPhotonCount);
         float throughput = light.radiance * cosNL / (pdfPos * pdfDir) * perPhotonEnergy;
@@ -405,7 +405,7 @@ namespace VkRender::PathTracer {
                 float3 P0_obj = v0.pos;
                 float3 P1_obj = v1.pos;
                 float3 P2_obj = v2.pos;
-                float3 Ng_obj = normalize(sycl::cross(P1_obj - P0_obj, P2_obj - P0_obj));
+                float3 Ng_obj = normalize(cross(P1_obj - P0_obj, P2_obj - P0_obj));
                 worldNormal     = transformNormal(Ng_obj, xfInst.objectToWorld);   // world-space
 
 
@@ -439,7 +439,7 @@ namespace VkRender::PathTracer {
             float3 newDir;
             float pdfDir = 0.f;
             sampleCosineHemisphere(rng, worldNormal, newDir, pdfDir);
-            const float cosNO = sycl::max(0.f, sycl::dot(worldNormal, newDir));
+            const float cosNO = sycl::max(0.f, dot(worldNormal, newDir));
             // If cosNO < 1e-4 the exact ratio kd cancels numerically.
             // Clamp the ratio instead of the cosine:
             const float minCos = 1e-5f;

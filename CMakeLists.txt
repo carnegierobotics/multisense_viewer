@@ -133,7 +133,7 @@ if (ENABLE_SYCL)
     endif ()
 
     if (SYCL_IMPLEMENTATION STREQUAL "dpcpp")
-        set(CMAKE_CXX_COMPILER "/home/magnus/sycl_workspace/llvm/build/bin/clang++")
+        set(CMAKE_CXX_COMPILER "/home/magnus/sycl_workspace/linux-sycl-6.1.0/bin/clang++")
 
         if (CMAKE_BUILD_TYPE STREQUAL "Release")
             set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsycl -O3 -fsycl-targets=${SYCL_TARGET} ${SYCL_TARGET_OPTIONS}")

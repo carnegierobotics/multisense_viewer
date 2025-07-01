@@ -90,22 +90,22 @@ namespace VkRender::PathTracer {
         const float3 e1 = v1 - v0;
         const float3 e2 = v2 - v0;
 
-        const float3 h  = sycl::cross(ray.direction, e2);
-        const float  a  = sycl::dot(e1, h);
+        const float3 h  = cross(ray.direction, e2);
+        const float  a  = dot(e1, h);
 
         // 1. Parallel?
         if (sycl::fabs(a) < 1.0e-4f) return false;
 
         const float  f  = 1.0f / a;
         const float3 s  = ray.origin - v0;
-        const float  u  = f * sycl::dot(s, h);
+        const float  u  = f * dot(s, h);
         if (u < 0.0f || u > 1.0f) return false;
 
-        const float3 q  = sycl::cross(s, e1);
-        const float  v  = f * sycl::dot(ray.direction, q);
+        const float3 q  = cross(s, e1);
+        const float  v  = f * dot(ray.direction, q);
         if (v < 0.0f || u + v > 1.0f) return false;
 
-        const float  t  = f * sycl::dot(e2, q);
+        const float  t  = f * dot(e2, q);
         if (t <= tMin) return false;  // behind the ray or farther than a previous hit
 
         outT = t;

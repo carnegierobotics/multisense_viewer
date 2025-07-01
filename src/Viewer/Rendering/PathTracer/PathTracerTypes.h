@@ -237,7 +237,9 @@ inline float4 operator/(float4 a, float s)
 
 inline float3 min(float3 a, float3 b) { return sycl::min(a.v, b.v); }
 inline float3 max(float3 a, float3 b) { return sycl::max(a.v, b.v); }
+inline float3 cross(float3 a, float3 b) { return sycl::cross(a.v, b.v); }
 inline float dot(float3 a, float3 b) { return sycl::dot(a.v, b.v); }
+inline float length(float3 a) { return sycl::length(a.v); }
 
 
 /*
@@ -332,7 +334,6 @@ template<int MaxN = 256>
     uint32_t data[MaxN];
     int sp = 0;
 
-    ACPP_UNIVERSAL_TARGET
 
     bool push(uint32_t v) // returns false on overflow
     {
@@ -341,14 +342,12 @@ template<int MaxN = 256>
         return true;
     }
 
-    ACPP_UNIVERSAL_TARGET
 
     uint32_t pop() // *call only when !empty()*
     {
         return data[--sp];
     }
 
-    ACPP_UNIVERSAL_TARGET
     bool empty() const { return sp == 0; }
 };
 
@@ -357,19 +356,16 @@ struct SmallStackBVH {
     T      data[MaxN];
     int    sp = 0;
 
-    ACPP_UNIVERSAL_TARGET
     bool push(T v) {
         if (sp >= MaxN) return false;
         data[sp++] = v;
         return true;
     }
 
-    ACPP_UNIVERSAL_TARGET
     T pop() {
         return data[--sp];
     }
 
-    ACPP_UNIVERSAL_TARGET
     bool empty() const { return sp == 0; }
 };
 

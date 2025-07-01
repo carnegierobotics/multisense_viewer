@@ -57,7 +57,7 @@ namespace VkRender::PathTracer {
                 float3 P0_obj = v0.pos;
                 float3 P1_obj = v1.pos;
                 float3 P2_obj = v2.pos;
-                float3 Ng_obj = normalize(sycl::cross(P1_obj - P0_obj, P2_obj - P0_obj));
+                float3 Ng_obj = normalize(cross(P1_obj - P0_obj, P2_obj - P0_obj));
                 worldNormal = transformNormal(Ng_obj, xfInst.objectToWorld); // world-space
             }
 

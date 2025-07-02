@@ -433,6 +433,7 @@ namespace VkRender::PathTracer {
             // material parameters
             float kd = mat.diffuse * mat.baseColor;
             //---------------- camera contributions -----------------------------
+            //if (bounce == settings.maxBounces - 1)
             castContributions(hit, throughput, worldNormal, rng);
 
             // sample direction  (keep your cosine-hemisphere sampler for now)

@@ -61,7 +61,7 @@ namespace VkRender {
         Log::Logger::getInstance()->info(
             "Selected device: {} [{}]",
             m_device.get_info<sycl::info::device::name>(),
-            m_device.is_gpu() ? "GPU" : m_device.is_cpu() ? "CPU" : m_device.is_host() ? "Host" : "Other"
+            m_device.is_gpu() ? "GPU" : m_device.is_cpu() ? "CPU" : m_device.is_cpu() ? "Host" : "Other"
         );
 
         // 2) Build a queue on that device, with in-order property + async handler:

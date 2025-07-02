@@ -892,8 +892,8 @@ namespace VkRender::PathTracer {
                 float3 v0 = {P0.x, P0.y, P0.z};
                 float3 e1 = {P1.x - P0.x, P1.y - P0.y, P1.z - P0.z};
                 float3 e2 = {P2.x - P0.x, P2.y - P0.y, P2.z - P0.z};
-                float3 n = sycl::normalize(sycl::cross(e1, e2));
-                float area = 0.5f * sycl::length(sycl::cross(e1, e2));
+                float3 n = normalize(cross(e1, e2));
+                float area = 0.5f * length(cross(e1, e2));
 
                 meshLight.addTriangle(v0, e1, e2, n, area);
             }
@@ -1269,8 +1269,8 @@ namespace VkRender::PathTracer {
                     bz ? root.aabbMax.z() : root.aabbMin.z()
                 };
                 float3 pW = toWorldPoint(pObj, xf);
-                wmin = sycl::min(wmin, pW);
-                wmax = sycl::max(wmax, pW);
+                wmin = min(wmin, pW);
+                wmax = max(wmax, pW);
             }
             boxes.push_back({wmin, wmax, i});
         }
@@ -1287,8 +1287,8 @@ namespace VkRender::PathTracer {
             /* compute bounds of current set */
             float3 bmin{FLT_MAX}, bmax{-FLT_MAX};
             for (int i = start; i < end; ++i) {
-                bmin = sycl::min(bmin, boxes[i].bmin);
-                bmax = sycl::max(bmax, boxes[i].bmax);
+                bmin = min(bmin, boxes[i].bmin);
+                bmax = max(bmax, boxes[i].bmax);
             }
             N.aabbMin = bmin;
             N.aabbMax = bmax;
@@ -1305,8 +1305,8 @@ namespace VkRender::PathTracer {
                 float3 cmin{FLT_MAX}, cmax{-FLT_MAX};
                 for (int i = start; i < end; ++i) {
                     float3 cent = (boxes[i].bmin + boxes[i].bmax) * 0.5f;
-                    cmin = sycl::min(cmin, cent);
-                    cmax = sycl::max(cmax, cent);
+                    cmin = min(cmin, cent);
+                    cmax = max(cmax, cent);
                 }
                 float3 ext = cmax - cmin;
                 int axis = (ext.x() > ext.y() && ext.x() > ext.z()) ? 0 : (ext.y() > ext.z()) ? 1 : 2;

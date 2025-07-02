@@ -102,8 +102,8 @@ namespace VkRender::PathTracer {
         float3 t0 = (node.aabbMin - ray.origin) * invDir;
         float3 t1 = (node.aabbMax - ray.origin) * invDir;
 
-        float3 tmin3 = sycl::min(t0, t1);
-        float3 tmax3 = sycl::max(t0, t1);
+        float3 tmin3 = min(t0, t1);
+        float3 tmax3 = max(t0, t1);
 
         float tmin = sycl::fmax(sycl::fmax(tmin3.x(), tmin3.y()), tmin3.z());
         float tmax = sycl::fmin(sycl::fmin(tmax3.x(), tmax3.y()), tmax3.z());
@@ -130,8 +130,8 @@ namespace VkRender::PathTracer {
         float3 t0 = (node.aabbMin - ray.origin) * invDir;
         float3 t1 = (node.aabbMax - ray.origin) * invDir;
 
-        float3 tmin3 = sycl::min(t0, t1);
-        float3 tmax3 = sycl::max(t0, t1);
+        float3 tmin3 = min(t0, t1);
+        float3 tmax3 = max(t0, t1);
 
         float tmin = sycl::fmax(sycl::fmax(tmin3.x(), tmin3.y()), tmin3.z());
         float tmax = sycl::fmin(sycl::fmin(tmax3.x(), tmax3.y()), tmax3.z());
@@ -249,15 +249,15 @@ namespace VkRender::PathTracer {
 
         // build an ONB around n
         float3 up = sycl::fabs(n.z()) < .999f ? float3{0, 0, 1} : float3{1, 0, 0};
-        float3 tang = ::normalize(sycl::cross(up, n));
-        float3 bit = sycl::cross(n, tang);
+        float3 tang = ::normalize(cross(up, n));
+        float3 bit = cross(n, tang);
 
         outDir = normalize(x * tang + y * bit + z * n);
-        outPdf = sycl::max(0.f, sycl::dot(outDir, n)) / M_PIf; // cosθ/π
+        outPdf = sycl::max(0.f, dot(outDir, n)) / M_PIf; // cosθ/π
     }
 
     SYCL_EXTERNAL inline float3 reflect(const float3 &v, const float3 &n) {
-        return v - 2.f * sycl::dot(n, v) * n;
+        return v - 2.f * dot(n, v) * n;
     }
 
     //------------------------------------------------------------------------------
@@ -340,8 +340,8 @@ SYCL_EXTERNAL inline void sampleCameraRay(
         outDir = ::normalize(reflect(-omegaIn, h));
 
         // 3. pdf  p(ωo) = (s+2)/(2π) (n·h)^s  (n·h)/(4 |h·ωi|)
-        float nh = sycl::max(0.f, sycl::dot(n, h));
-        float hi = sycl::max(0.f, sycl::dot(h, -omegaIn));
+        float nh = sycl::max(0.f, dot(n, h));
+        float hi = sycl::max(0.f, dot(h, -omegaIn));
         outPdf = ((shininess + 2.f) * nh * sycl::pow(nh, shininess)) /
                  (2.f * M_PIf * 4.f * hi + 1e-7f); // 1e-7 to avoid /0
     }

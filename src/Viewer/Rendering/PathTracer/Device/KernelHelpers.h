@@ -144,9 +144,10 @@ namespace VkRender::PathTracer {
         if (tmax < 0.0f) return false;
 
         /* 3.  Already found a closer hit in the SAME SPACE                   */
-        if (tmin > tMaxLimit) return false;
 
-        tEntry = sycl::fmax(tmin, 0.0f); // clamp if origin is inside
+        if (tmin > tMaxLimit) return false;
+        constexpr float kEps = 1e-4f;
+        tEntry = sycl::fmax(tmin, kEps); // clamp if origin is inside
         return true;
     }
 

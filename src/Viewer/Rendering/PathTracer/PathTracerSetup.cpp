@@ -110,6 +110,9 @@ namespace VkRender::PathTracer {
         if (m_frameBuffers.residuals) {
             free(m_frameBuffers.residuals);
         }
+        if (m_frameBuffers.photonHits) {
+            free(m_frameBuffers.photonHits);
+        }
         if (d_frameBuffers.memory) {
             sycl::free(d_frameBuffers.memory, m_queue);
             d_frameBuffers.memory = nullptr;
@@ -117,6 +120,10 @@ namespace VkRender::PathTracer {
         if (d_frameBuffers.residuals) {
             sycl::free(d_frameBuffers.residuals, m_queue);
             d_frameBuffers.residuals = nullptr;
+        }
+        if (d_frameBuffers.photonHits) {
+            sycl::free(d_frameBuffers.photonHits, m_queue);
+            d_frameBuffers.photonHits = nullptr;
         }
         auto &ci = m_createInfo;
         uint32_t blockSize = ci.framebufferSize;
@@ -137,18 +144,37 @@ namespace VkRender::PathTracer {
 
 
         uint32_t residualBlockSize = 600 * 600 * 4;
-        Log::Logger::getInstance()->info("Creating residuals buffer on host with size: {:.2f}Mb", residualBlockSize / 1e6);
+        Log::Logger::getInstance()->info("Creating residuals buffer on host with size: {:.2f}Mb",
+                                         residualBlockSize / 1e6);
         m_frameBuffers.residuals = static_cast<float *>(malloc(residualBlockSize));
         memset(m_frameBuffers.residuals, 0, residualBlockSize);
         m_frameBuffers.residualBufferSize = residualBlockSize;
 
-        Log::Logger::getInstance()->info("Creating residuals buffer on host with size: {:.2f}Mb", residualBlockSize / 1e6);
+        Log::Logger::getInstance()->info("Creating residuals buffer on host with size: {:.2f}Mb",
+                                         residualBlockSize / 1e6);
         auto *deviceMemoryResiduals = deviceAlloc<float>(residualBlockSize);
         d_frameBuffers.residuals = deviceMemoryResiduals;
         d_frameBuffers.residualBufferSize = residualBlockSize;
         Log::Logger::getInstance()->info("Done Creating Residuals buffer");
 
 
+        // Photon Map
+        uint32_t photonMapSize = 1e8;
+        Log::Logger::getInstance()->info("Creating photon hit buffer on host with size: {:.2f}Mb", photonMapSize / 1e6);
+        m_frameBuffers.photonHits = static_cast<Photon *>(malloc(photonMapSize));
+        memset(m_frameBuffers.photonHits, 0, photonMapSize);
+        m_frameBuffers.photonHitBufferSize = photonMapSize;
+
+        Log::Logger::getInstance()->info("Creating photon hit buffer on host with size: {:.2f}Mb", photonMapSize / 1e6);
+        auto *photonHitBuffer = deviceAlloc<Photon>(photonMapSize);
+        d_frameBuffers.photonHits = photonHitBuffer;
+        d_frameBuffers.photonHitBufferSize = photonMapSize;
+        Log::Logger::getInstance()->info("Done Creating photon hit buffer buffer");
+
+        Photon photon;
+        photon.position = {0.0f};
+        photon.power = -1.0f;
+        m_queue.fill(d_frameBuffers.photonHits, photon, photonMapSize).wait(); // Only copy first camera instance
     }
 
     void PathTracerSetup::uploadScene(const std::shared_ptr<Scene> &scene, EditorCamera editorCamera) {
@@ -328,6 +354,15 @@ namespace VkRender::PathTracer {
         uint32_t residualBlockSize = 600 * 600 * 4;
         m_queue.fill(d_frameBuffers.residuals, 0.0f, residualBlockSize); // Only copy first camera instance
 
+        // Photon map
+        uint32_t photonMapSize = 1e8;
+        Photon photon;
+        photon.position = {0.0f};
+        photon.power = -1.0f;
+        m_queue.fill(d_frameBuffers.photonHits, photon, photonMapSize).wait(); // Only copy first camera instance
+
+        m_queue.fill(m_sceneDescDevice.photonMapHitCount, static_cast<uint32_t>(0), sizeof(uint32_t)).wait(); // Only copy first camera instance
+
     }
 
     RenderInfoOutput PathTracerSetup::renderFrame(const RenderSettings &settings) {
@@ -358,8 +393,6 @@ namespace VkRender::PathTracer {
 
     RenderInfoOutput PathTracerSetup::radiativeBackprop(std::shared_ptr<EditorPathTracerLayerUI> imageUI,
                                                         const RenderSettings &settings) {
-
-
         if (!d_sceneDesc) {
             Log::Logger::getInstance()->error("Path Tracer has not been initialized");
         }
@@ -423,8 +456,8 @@ namespace VkRender::PathTracer {
 
 
         m_queue.memcpy(d_frameBuffers.residuals,
-               residual.data(),
-               pixelCount * sizeof(float)).wait();
+                       residual.data(),
+                       pixelCount * sizeof(float)).wait();
 
         // 3) write out the residual as a single-channel PFM
         std::filesystem::path outPath = imageUI->gtFolderPath / "optimization" / std::filesystem::path(
@@ -453,8 +486,8 @@ namespace VkRender::PathTracer {
             (camera.height + threadsPerBlock[0] - 1) / threadsPerBlock[0],
             (camera.width + threadsPerBlock[1] - 1) / threadsPerBlock[1]);
 
-        m_sceneDescDevice.gradDebugMaterialID  = imageUI->gradMaterialID;
-        d_sceneDesc->gradDebugMaterialID  = imageUI->gradMaterialID;
+        m_sceneDescDevice.gradDebugMaterialID = imageUI->gradMaterialID;
+        d_sceneDesc->gradDebugMaterialID = imageUI->gradMaterialID;
 
         auto conf = settings;
         conf.iteration = m_backpropIterations;
@@ -474,8 +507,8 @@ namespace VkRender::PathTracer {
         // 3) write out the residual as a single-channel PFM
 
         std::filesystem::path csvPath = imageUI->gtFolderPath
-                                          / "optimization"
-                                          / std::filesystem::path("all_gradients.csv");
+                                        / "optimization"
+                                        / std::filesystem::path("all_gradients.csv");
 
         std::ofstream out(csvPath);
         if (!out) {
@@ -493,8 +526,8 @@ namespace VkRender::PathTracer {
         Log::Logger::getInstance()->info("Wrote all_gradients.csv with {} entries", m_totalParamSlots);
         delete[] allGradientsHost;
 
-        const Camera &camDbg = m_cameras[1];               // ← same cam you rendered
-        size_t nPix  = camDbg.width * camDbg.height;
+        const Camera &camDbg = m_cameras[1]; // ← same cam you rendered
+        size_t nPix = camDbg.width * camDbg.height;
 
         std::vector<float> gradImgHost(nPix);
         m_queue.memcpy(gradImgHost.data(),
@@ -610,8 +643,83 @@ namespace VkRender::PathTracer {
             // --- 6) Advance frame
             ++m_frameID;
         }
+
+        // Write out the photon map
+        // --- 1) Read back float RGBA buffer
+        uint32_t photonMapSize = 1e8;
+        std::vector<Photon> photonHits(photonMapSize);
+        m_queue.memcpy(photonHits.data(), d_frameBuffers.photonHits, photonMapSize * sizeof(Photon)).wait();
+
+        std::filesystem::path plyPath = imageUI->saveImagePath / "photons.ply";
+
+        writePhotonPLY(photonHits, plyPath);
+
+        Photon photon;
+        photon.position = {0.0f};
+        photon.power = -1.0f;
+        m_queue.fill(d_frameBuffers.photonHits, photon, photonMapSize).wait(); // Only copy first camera instance
     }
 
+
+    // ── writePhotonPLY : dumps N photons to binary-little-endian PLY ──────
+    void PathTracerSetup::writePhotonPLY(const std::vector<Photon> &photons,
+                                         const std::string &filename) {
+        const std::size_t N = photons.size();
+        if (N == 0) {
+            std::cerr << "[writePhotonPLY] photon array is empty.\n";
+            return;
+        }
+
+        /* 1. flatten into contiguous float arrays ------------------------- */
+        std::vector<float> positions;
+        std::vector<uint8_t> powers;
+        positions.reserve(N * 3);
+        powers.reserve(N * 3);
+
+        float scale = 255.0f;
+
+        uint32_t numPhotons = 0;
+        for (const Photon &ph: photons) {
+            if (ph.power <= 0.0f)
+                continue;
+
+            positions.push_back(ph.position.x());
+            positions.push_back(ph.position.y());
+            positions.push_back(ph.position.z());
+            powers.push_back(static_cast<uint8_t>(ph.power * scale));
+            powers.push_back(static_cast<uint8_t>(ph.power * scale));
+            powers.push_back(static_cast<uint8_t>(ph.power * scale));
+            numPhotons++;
+        }
+
+        /* 2. assemble the PLY file --------------------------------------- */
+        tinyply::PlyFile ply;
+
+        ply.add_properties_to_element(
+            /*element*/ "vertex",
+                        /*prop names*/ {"x", "y", "z"},
+                        tinyply::Type::FLOAT32,
+                        numPhotons,
+                        reinterpret_cast<uint8_t *>(positions.data()),
+                        tinyply::Type::INVALID, 0);
+
+        ply.add_properties_to_element("vertex",
+                                      {"red", "green", "blue"},
+                                      tinyply::Type::UINT8, numPhotons,
+                                      reinterpret_cast<uint8_t *>(powers.data()),
+                                      tinyply::Type::INVALID, 0);
+
+        /* 3. write to disk -------------------------------------------------- */
+        std::ofstream ofs(filename, std::ios::out | std::ios::binary);
+        if (!ofs)
+            throw std::runtime_error("failed to open " + filename);
+
+        ply.write(ofs, /*isBinary*/ true); // binary-little-endian
+        ofs.close();
+
+        std::cout << "[writePhotonPLY] wrote "
+                << N << " photons to " << filename << '\n';
+    }
 
     void PathTracerSetup::generateEditorImage(const std::shared_ptr<VulkanTexture2D> &viewportTexture, float gamma,
                                               float exposure) {
@@ -837,8 +945,9 @@ namespace VkRender::PathTracer {
         uint32_t slot = 0;
 
         // diffuse kd  (1 float each)
-        for (uint32_t i=0;i<m_materials.size();++i){
-            m_kdOffset[i]={slot,1}; slot+=1;
+        for (uint32_t i = 0; i < m_materials.size(); ++i) {
+            m_kdOffset[i] = {slot, 1};
+            slot += 1;
         }
 
         /*
@@ -849,7 +958,6 @@ namespace VkRender::PathTracer {
         */
 
         m_totalParamSlots = slot;
-
     }
 
     void PathTracerSetup::collectLights(const std::shared_ptr<Scene> &scene) {
@@ -978,6 +1086,9 @@ namespace VkRender::PathTracer {
         m_queue.memcpy(d_trianglePerm, m_trianglePerm.data(),
                        m_trianglePerm.size() * sizeof(uint32_t));
 
+        d_photonHitCounter = deviceAlloc<uint32_t>(1);
+        m_queue.fill(d_photonHitCounter, static_cast<uint32_t>(0), sizeof(uint32_t)).wait();
+        m_sceneDescDevice.photonMapHitCount = d_photonHitCounter;
 
         //—— fill SceneDesc ——
         m_sceneDescDevice.points = d_points;
@@ -996,6 +1107,7 @@ namespace VkRender::PathTracer {
         m_sceneDescDevice.betaNodes = d_betaNodes;
         m_sceneDescDevice.betaRanges = d_betaRanges;
         m_sceneDescDevice.triPerm = d_trianglePerm;
+
 
         m_sceneDescDevice.pointCount = static_cast<uint32_t>(pointCount);
         m_sceneDescDevice.triCount = static_cast<uint32_t>(triCount);
@@ -1050,18 +1162,18 @@ namespace VkRender::PathTracer {
 
         /* ---- allocate gradient vector (zero-initialised) ------------------- */
         d_gradAll = deviceAlloc<float>(m_totalParamSlots);
-        m_queue.fill(d_gradAll, 0.f, m_totalParamSlots);   // set to 0 once at init
+        m_queue.fill(d_gradAll, 0.f, m_totalParamSlots); // set to 0 once at init
 
         /* ---- allocate gradient debug image (zero-initialised) ------------------- */
         size_t nPix = 600 * 600;
         d_gradKdImage = deviceAlloc<float>(nPix);
-        m_queue.fill(d_gradKdImage, 0.f, nPix);   // set to 0 once at init
+        m_queue.fill(d_gradKdImage, 0.f, nPix); // set to 0 once at init
 
         /* ---- expose to SceneDesc so kernels can reach them ----------------- */
-        m_sceneDescDevice.kdOffset  = d_kdOffset;
+        m_sceneDescDevice.kdOffset = d_kdOffset;
         m_sceneDescDevice.vtxOffset = d_vtxOffset;
-        m_sceneDescDevice.gradAll   = d_gradAll;
-        m_sceneDescDevice.gradKdImage   = d_gradKdImage;
+        m_sceneDescDevice.gradAll = d_gradAll;
+        m_sceneDescDevice.gradKdImage = d_gradKdImage;
     }
 
 

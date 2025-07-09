@@ -48,6 +48,35 @@ namespace VkRender::PathTracer {
 
         SYCL_EXTERNAL static bool intersectScene(const Ray &rayW, Hit *hit, const SceneDesc &scene);
 
+        SYCL_EXTERNAL  void storePhoton(const float3 &P,
+                             const float &flux) const
+        {
+            /* --- atomic fetch-add to grab a slot --------------------------- */
+            sycl::atomic_ref<unsigned int,
+                        sycl::memory_order::relaxed,
+                        sycl::memory_scope::device,
+                        sycl::access::address_space::global_space>
+                    photonCount(d_sceneDesc->photonCount);
+
+            uint32_t idx = photonCount.load();
+
+            if (idx >= 1e8) return;          // buffer full → drop sample
+
+            //d_framebuffer.photonHits[idx].position   = P;
+            //d_framebuffer.photonHits[idx].power = flux;         // already world-space
+
+            /*
+            sycl::atomic_ref<unsigned int,
+                        sycl::memory_order::relaxed,
+                        sycl::memory_scope::device,
+                        sycl::access::address_space::global_space>
+                    photonHitCounter(*d_sceneDesc->photonMapHitCount);
+
+            photonHitCounter.fetch_add(static_cast<unsigned int>(1));
+            */
+
+        }
+
         float traceVisibility(const Ray &rayIn, float tMax, const SceneDesc &scene, PCG32& rng) const;
 
     private:

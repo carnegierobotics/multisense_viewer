@@ -209,6 +209,13 @@ namespace VkRender::PathTracer {
         uint32_t dim;     // 1 for scalar, 3 for float3, ...
     };
 
+
+    // Storage for the photon map
+    struct Photon {
+        float3 position;
+        float power = -1.0f;
+    };
+
     /*************************  Scene descriptor *********************/
     struct alignas(16) SceneDesc {
         /* geometry */
@@ -245,14 +252,17 @@ namespace VkRender::PathTracer {
         float* gradKdImage = nullptr;
         uint32_t gradDebugMaterialID = 0;
 
+        // -- Photon maps
+        Photon* photonHits = nullptr;
+        uint32_t* photonMapHitCount= nullptr; // keep 4‑byte – pad below
+
         /* counts */
         uint32_t triCount{}, vertexCount{}, meshCount{};
         uint32_t pointCount{}, pointCloudCount{};
         uint32_t instanceCount{}, transformCount{};
         uint32_t materialCount{}, lightCount{};
         uint32_t cameraCount{};
-        uint32_t photonCount{}; // keep 4‑byte – pad below
-        uint32_t _pad0{}; //  4  →  make size multiple of 16
+        uint32_t photonCount = 0; // keep 4‑byte – pad below
 
     };
 
@@ -278,6 +288,8 @@ namespace VkRender::PathTracer {
         uint32_t residualBufferSize{0};
         uint64_t _pad2{}; // 16
 
+        Photon* photonHits = nullptr;
+        uint32_t photonHitBufferSize = 0;
     };
 
     CHECK_16(FrameBuffer);

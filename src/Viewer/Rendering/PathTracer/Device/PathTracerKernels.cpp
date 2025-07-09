@@ -64,7 +64,7 @@ namespace VkRender::PathTracer {
 
                     /* ---- new call --------------------------------------------------------- */
                     if (intersectTriangle(rayO, A, B, C,
-                                          t, u, v)
+                                          t, u, v, 1e-4f)
                         && t < bestT) {
                         bestT = t;
                         hitAny = true;
@@ -103,7 +103,7 @@ namespace VkRender::PathTracer {
         int sp = 0;
         stack[sp++] = 0; // push root
 
-        constexpr float kRayEps = 0.0f; // ignore hits closer than this
+        constexpr float kRayEps = 1e-4f; // ignore hits closer than this
 
         while (sp) {
             int nIdx = stack[--sp];
@@ -266,7 +266,7 @@ namespace VkRender::PathTracer {
         float contrib,
         const float3 &surfaceNormal,
         PCG32 &rng) const {
-        constexpr float kEps = std::numeric_limits<float>::epsilon();
+        constexpr float kEps = 1e-4f;
         const SceneDesc &scene = *d_sceneDesc;
 
         size_t instanceID = scene.instances[hitPoint.instIdx].materialIndex;
@@ -366,7 +366,8 @@ namespace VkRender::PathTracer {
 
         float cosNL = sycl::max(0.0f, static_cast<float>(dot(dir, Lnorm)));
 
-        float perPhotonEnergy = 1.0f / static_cast<float>(totalPhotonCount);
+        //float perPhotonEnergy = 1.0f / static_cast<float>(totalPhotonCount);
+        float perPhotonEnergy = 1.0f;
         float throughput = light.radiance * cosNL / (pdfPos * pdfDir) * perPhotonEnergy;
 
         Ray ray = makeRay(Lpos, dir);
@@ -406,7 +407,7 @@ namespace VkRender::PathTracer {
                 float3 P1_obj = v1.pos;
                 float3 P2_obj = v2.pos;
                 float3 Ng_obj = normalize(cross(P1_obj - P0_obj, P2_obj - P0_obj));
-                worldNormal     = transformNormal(Ng_obj, xfInst.objectToWorld);   // world-space
+                //worldNormal     = transformNormal(Ng_obj, xfInst.objectToWorld);   // world-space
 
 
 
@@ -429,6 +430,8 @@ namespace VkRender::PathTracer {
                 float3 nObj = float3(0.f, 0.f, 1.f);
                 surfaceNormal = nObj;
             }
+
+            storePhoton(hit.hitPoint, throughput);
 
             // material parameters
             float kd = mat.diffuse * mat.baseColor;
@@ -468,7 +471,11 @@ namespace VkRender::PathTracer {
             }
 
             //---------------- spawn next ray -----------------------------------
-            ray = makeRay(hit.hitPoint + eps * newDir, newDir);
+            constexpr float kSceneEps = 1e-3f;   // same constant everywhere
+            float sign = sycl::copysign(1.0f, dot(newDir, worldNormal));
+            float3 origin = hit.hitPoint + worldNormal * (sign * kSceneEps);
+            ray = makeRay(origin, newDir);
+
         }
     }
 }

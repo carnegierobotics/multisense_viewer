@@ -90,6 +90,8 @@ namespace VkRender::PathTracer {
         /** copies the device framebuffer back to host */
         void generateImages(std::shared_ptr<EditorPathTracerLayerUI> ptr);
 
+        void writePhotonPLY(const std::vector<Photon> &photons, const std::string& filename = "photons.ply");
+
         void generateEditorImage(const std::shared_ptr<VulkanTexture2D> &viewportTexture, float gamma, float exposure);
 
         void createEditorCamera(const std::shared_ptr<ArcballCamera> &camera, int32_t int32, int32_t height);
@@ -169,13 +171,17 @@ namespace VkRender::PathTracer {
         std::vector<BLASRange> m_blasRanges;
         std::vector<TLASNode> m_tlasNodes;
         std::vector<uint32_t> m_trianglePerm; // BVH triangle permutation
+        std::vector<Photon> m_photonHits; // Map of photons hits
+        uint32_t m_photonHitCounter; // Map of photons hits
         // device pointers
         BVHNode *d_blasNodes = nullptr;
         TLASNode *d_tlasNodes = nullptr;
         BLASRange *d_blasRanges = nullptr;
-        BVHNode * d_betaNodes;
-        BLASRange* d_betaRanges;
-        uint32_t* d_trianglePerm;
+        BVHNode * d_betaNodes = nullptr;
+        BLASRange* d_betaRanges = nullptr;
+        uint32_t* d_trianglePerm = nullptr;
+        Photon* d_photonHits = nullptr;
+        uint32_t* d_photonHitCounter = nullptr;
 
         // === Device USM pointers ===
         OrientedPoint *d_points = nullptr;

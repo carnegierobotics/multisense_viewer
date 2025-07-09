@@ -153,6 +153,11 @@ struct  alignas(16) float3 {
         v = { c.x, c.y, c.z };
         return *this;
     }
+
+    float3& operator=(const float& val) noexcept {
+        v = {val, val, val};
+        return *this;
+    }
     /* helpers identical to sycl::vec API */
     float x() const { return v.x(); }
     float &x() { return v.x(); }

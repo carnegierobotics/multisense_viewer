@@ -431,7 +431,7 @@ namespace VkRender::PathTracer {
                 surfaceNormal = nObj;
             }
 
-            storePhoton(hit.hitPoint, throughput);
+            //storePhoton(hit.hitPoint, throughput);
 
             // material parameters
             float kd = mat.diffuse * mat.baseColor;

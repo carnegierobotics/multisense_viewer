@@ -479,6 +479,8 @@ namespace VkRender::PathTracer {
             throw std::runtime_error("Failed to write PNG file: " + pngImagePath.string());
         }
 
+        Log::Logger::getInstance()->info("Wrote {} to {}. Parameter slots: {}", name, pngImagePath.string(), m_totalParamSlots);
+
         m_queue.fill(d_sceneDesc->gradAll, 0.0f, m_totalParamSlots).wait(); // Only copy first camera instance
 
         sycl::range<2> threadsPerBlock(16, 16);
@@ -489,6 +491,9 @@ namespace VkRender::PathTracer {
         m_sceneDescDevice.gradDebugMaterialID = imageUI->gradMaterialID;
         d_sceneDesc->gradDebugMaterialID = imageUI->gradMaterialID;
 
+        Log::Logger::getInstance()->info("Reset gradient image. Launching backprop kernel...");
+
+
         auto conf = settings;
         conf.iteration = m_backpropIterations;
         auto event = m_queue.submit(
@@ -498,6 +503,7 @@ namespace VkRender::PathTracer {
             });
 
         event.wait();
+        Log::Logger::getInstance()->info("Ran Radiative Backprop");
 
         // 1) read back your device float RGBA buffer
         float *allGradientsHost = new float[m_totalParamSlots];

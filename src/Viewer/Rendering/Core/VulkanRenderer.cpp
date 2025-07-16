@@ -616,9 +616,7 @@ namespace VkRender {
         Log::Logger::getInstance()->trace("Submitting render commands");
         std::unique_lock<std::mutex> lock(queueSubmitMutex);
         VkSemaphore waitSemaphores[] = {
-            //semaphores[currentFrame].computeComplete,
             semaphores[currentFrame].presentComplete,
-            //updateVulkan
         };
         VkPipelineStageFlags waitStages[] = {
             VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,

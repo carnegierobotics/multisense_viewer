@@ -15,7 +15,9 @@ namespace VkRender::PathTracer {
 
         /* RNG --------------------------------------------------------------------- */
         PCG32 rng{};
-        rng.seed((d_sceneDesc->cameras[1].width * d_sceneDesc->cameras[1].height * settings.randomSeed) + (py * d_sceneDesc->cameras[1].width + px));
+        rng.seed(
+            (d_sceneDesc->cameras[1].width * d_sceneDesc->cameras[1].height * settings.randomSeed) + (
+                py * d_sceneDesc->cameras[1].width + px));
 
         // 1) Compute pixel index and residual δy at (px,py)
         uint32_t pixelID = py * d_sceneDesc->cameras[1].width + px;
@@ -63,23 +65,25 @@ namespace VkRender::PathTracer {
 
             // ---------- 1)  incident radiance via photon map or NEE ---------
             float Li = 1.0f; // Biased gradient estimateIncidentRadiance(hit); // reuse your photon map
-
+            if (inst.materialIndex == scene.gradDebugMaterialID) {
             // ---------- 2)  accumulate gradient for this material ----------
             const ParamOffset kd = scene.kdOffset[inst.materialIndex];
             float delta = (Li * adjWeight) / M_PIf;
-            addToGradBuffer<1>( scene.gradAll, kd.start, { delta } );
+            addToGradBuffer<1>(scene.gradAll, kd.start, {delta});
 
-            // NEW: write per-pixel gradient image, but only if this is obj-1
-            if(inst.materialIndex == scene.gradDebugMaterialID) {
-                uint32_t pxIdx = py * camera.width + px;   // 2-D → 1-D
-                sycl::atomic_ref<float,
-                    sycl::memory_order::relaxed,
-                    sycl::memory_scope::device,
-                    sycl::access::address_space::global_space>
-                    cell( scene.gradKdImage[pxIdx] );
-                cell += delta;                            // add Δ once per path
+                // NEW: write per-pixel gradient image, but only if this is obj-1
+                //
+                    uint32_t pxIdx = py * camera.width + px; // 2-D → 1-D
+                    sycl::atomic_ref<float,
+                                sycl::memory_order::relaxed,
+                                sycl::memory_scope::device,
+                                sycl::access::address_space::global_space>
+                            cell(scene.gradKdImage[pxIdx]);
+                    cell += delta;
+                    // add Δ once per path
+                //
+
             }
-
             // ---------- 3)  propagate importance to next bounce ------------
             float3 newDir{};
             float pdfDir = 1.0f;

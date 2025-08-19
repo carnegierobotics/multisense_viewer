@@ -177,7 +177,7 @@ namespace VkRender {
                                                   m_movedCamera);
             m_PathTracerSetup->updateDynamic(m_context->activeScene(), editorCamera);
             PathTracer::RenderInfoOutput output = m_PathTracerSetup->renderFrame(renderSettings);
-            m_PathTracerSetup->generateEditorImage(m_colorTexture, imageUI->gamma, imageUI->exposure);
+            m_PathTracerSetup->generateEditorImage(m_colorTexture, imageUI);
 
             imageUI->totalPhotonsEmitted = output.photonCount;
         }
@@ -195,7 +195,7 @@ namespace VkRender {
                 PathTracer::EditorCamera editorCamera(m_editorCamera.get(), m_createInfo.width, m_createInfo.height,
                                                       m_movedCamera);
                 m_PathTracerSetup->updateDynamic(m_context->activeScene(), editorCamera);
-                m_PathTracerSetup->generateEditorImage(m_colorTexture, imageUI->gamma, imageUI->exposure);
+                m_PathTracerSetup->generateEditorImage(m_colorTexture, imageUI);
                 PathTracer::RenderInfoOutput output = m_PathTracerSetup->renderFrame(renderSettings);
                 imageUI->totalPhotonsEmitted = output.photonCount;
             }

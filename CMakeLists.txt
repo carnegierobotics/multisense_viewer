@@ -171,6 +171,10 @@ if (ENABLE_SYCL)
         # Print a message showing which targets are being used
         message(STATUS "[VkRenderINFO]: Using AdaptiveCpp with targets: ${ACPP_TARGETS} to project name ${PROJECT_NAME}")
         add_sycl_to_target(TARGET ${PROJECT_NAME} TARGETS ${ACPP_TARGETS})
+
+        find_package(OpenImageDenoise 2 REQUIRED HINTS /home/magnus/projects/oidn-2.3.3.x86_64.linux/lib/cmake/OpenImageDenoise-2.3.3)  # OIDN 2.x
+        target_link_libraries(${PROJECT_NAME} PRIVATE OpenImageDenoise)
+
     else ()
         message(FATAL_ERROR "[VkRenderERROR]: Unknown SYCL backend. Choose either 'dpcpp' or 'adaptivecpp'.")
     endif ()

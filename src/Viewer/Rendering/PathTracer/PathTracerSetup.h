@@ -92,7 +92,7 @@ namespace VkRender::PathTracer {
 
         void writePhotonPLY(const std::vector<Photon> &photons, const std::string& filename = "photons.ply");
 
-        void generateEditorImage(const std::shared_ptr<VulkanTexture2D> &viewportTexture, float gamma, float exposure);
+        void generateEditorImage(const std::shared_ptr<VulkanTexture2D> &viewportTexture, std::shared_ptr<EditorPathTracerLayerUI> imageUI);
 
         void createEditorCamera(const std::shared_ptr<ArcballCamera> &camera, int32_t int32, int32_t height);
 

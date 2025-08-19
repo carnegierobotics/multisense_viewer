@@ -21,7 +21,7 @@ namespace VkRender {
         bool render = false;
         bool renderUntilTarget = false;
         bool resetPathTracer = false;
-        bool renderToViewport = true;
+        bool denoiseImage = false;
 
         SYCLDeviceType selectedDevice = SYCLDeviceType::CPU;
         int photonCount = 1e6; // default photon count

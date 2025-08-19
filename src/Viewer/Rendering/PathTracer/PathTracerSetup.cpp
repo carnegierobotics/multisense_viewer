@@ -20,6 +20,7 @@
 #include "Viewer/Rendering/PathTracer/Device/KernelHelpers.h"
 
 #include <yaml-cpp/yaml.h>
+#include <OpenImageDenoise/oidn.hpp>
 
 namespace YAML {
     template<>
@@ -361,8 +362,8 @@ namespace VkRender::PathTracer {
         photon.power = -1.0f;
         m_queue.fill(d_frameBuffers.photonHits, photon, photonMapSize).wait(); // Only copy first camera instance
 
-        m_queue.fill(m_sceneDescDevice.photonMapHitCount, static_cast<uint32_t>(0), sizeof(uint32_t)).wait(); // Only copy first camera instance
-
+        m_queue.fill(m_sceneDescDevice.photonMapHitCount, static_cast<uint32_t>(0), sizeof(uint32_t)).wait();
+        // Only copy first camera instance
     }
 
     RenderInfoOutput PathTracerSetup::renderFrame(const RenderSettings &settings) {
@@ -479,7 +480,8 @@ namespace VkRender::PathTracer {
             throw std::runtime_error("Failed to write PNG file: " + pngImagePath.string());
         }
 
-        Log::Logger::getInstance()->info("Wrote {} to {}. Parameter slots: {}", name, pngImagePath.string(), m_totalParamSlots);
+        Log::Logger::getInstance()->info("Wrote {} to {}. Parameter slots: {}", name, pngImagePath.string(),
+                                         m_totalParamSlots);
 
         m_queue.fill(d_sceneDesc->gradAll, 0.0f, m_totalParamSlots).wait(); // Only copy first camera instance
 
@@ -575,19 +577,96 @@ namespace VkRender::PathTracer {
             m_queue.memcpy(hostMemory, d_frameBuffers.memory + camera.firstPixel,
                            imageSize * sizeof(float)).wait();
 
-            // --- 2) Tonemap & gamma‐correct
-            std::vector<uint8_t> rgb8(pixelCount * 3);
-            for (size_t i = 0; i < pixelCount; ++i) {
-                float L = hostMemory[i * 4];
-                float Lm = 1.f - std::exp(-L * imageUI->exposure);
-                float val = std::pow(std::clamp(Lm, 0.f, 1.f), gammaInv);
-                floatImageAfterTonemap[i] = val;
-                float v = val * 255.f + 0.5f;
-                rgb8[i * 3 + 0] = static_cast<uint8_t>(v);
-                rgb8[i * 3 + 1] = static_cast<uint8_t>(v);
-                rgb8[i * 3 + 2] = static_cast<uint8_t>(v);
+            // Optional denoising (linear HDR, before exposure/gamma)
+            std::unique_ptr<float[]> denoisedRGB; // Float3 buffer if we denoise
+            if (imageUI->denoiseImage) {
+                try {
+                    // Prepare an RGB buffer for OIDN (Float3)
+                    std::unique_ptr<float[]> colorRGB{new float[pixelCount * 3]};
+                    // If you already have RGB in hostMemory use those; otherwise replicate R->RGB.
+                    // Assuming R,G,B are valid in hostMemory:
+                    for (size_t i = 0; i < pixelCount; ++i) {
+                        const float r = hostMemory[i * 4 + 0];
+                        const float g = hostMemory[i * 4 + 1];
+                        const float b = hostMemory[i * 4 + 2];
+                        colorRGB[i * 3 + 0] = r;
+                        colorRGB[i * 3 + 1] = g;
+                        colorRGB[i * 3 + 2] = b;
+                    }
+
+                    denoisedRGB.reset(new float[pixelCount * 3]);
+
+                    // Create OIDN device (CPU by default; you can switch to SYCL device later)
+                    oidn::DeviceRef device = oidn::newDevice(); // default: CPU
+                    device.commit();
+
+                    // Classic ray tracing denoiser
+                    oidn::FilterRef filter = device.newFilter("RT");
+                    filter.set("hdr", true); // input is HDR linear
+                    filter.set("cleanAux", true); // noisy/noisy aux acceptable; harmless here
+
+                    // Set images with row/byte strides (contiguous here)
+                    filter.setImage("color",
+                                    colorRGB.get(), oidn::Format::Float3,
+                                    camera.width, camera.height,
+                                    /*byteOffset*/ 0,
+                                    /*bytePixelStride*/ sizeof(float) * 3,
+                                    /*byteRowStride*/ sizeof(float) * 3 * camera.width);
+                    filter.setImage("output",
+                                    denoisedRGB.get(), oidn::Format::Float3,
+                                    camera.width, camera.height,
+                                    0, sizeof(float) * 3, sizeof(float) * 3 * camera.width);
+
+                    // (Optional) If you have auxiliary buffers:
+                    // filter.setImage("albedo",  albedoPtr,  oidn::Format::Float3, w, h, ...);
+                    // filter.setImage("normal",  normalPtr,  oidn::Format::Float3, w, h, ...);
+
+                    filter.commit();
+                    filter.execute();
+
+                    // Check for errors
+                    const char *errMsg = nullptr;
+                    if (device.getError(errMsg) != oidn::Error::None) {
+                        Log::Logger::getInstance()->warning(
+                            "{}", std::string("OIDN warning: ") + (errMsg ? errMsg : ""));
+                        // Fall back to non-denoised path by clearing pointer
+                        denoisedRGB.reset();
+                    }
+                } catch (const std::exception &e) {
+                    Log::Logger::getInstance()->error("{}", std::string("OIDN exception: ") + e.what());
+                    denoisedRGB.reset();
+                }
             }
 
+            // --- 2) Tonemap & gamma‐correct to 8-bit grayscale
+            std::vector<uint8_t> rgb8(pixelCount * 3);
+
+            // Use denoised RGB (if present) to compute luminance; else use raw
+            for (size_t i = 0; i < pixelCount; ++i) {
+                float L_linear;
+                if (denoisedRGB) {
+                    // Luminance from denoised RGB
+                    const float r = denoisedRGB[i * 3 + 0];
+                    const float g = denoisedRGB[i * 3 + 1];
+                    const float b = denoisedRGB[i * 3 + 2];
+                    // Rec.709 luminance
+                    L_linear = 0.2126f * r + 0.7152f * g + 0.0722f * b;
+                } else {
+                    // Fallback: use R as your original code did
+                    L_linear = hostMemory[i * 4 + 0];
+                }
+
+                // Simple photographic tonemap with exposure
+                const float Lm = 1.f - std::exp(-L_linear * imageUI->exposure);
+                const float val = std::pow(std::clamp(Lm, 0.f, 1.f), gammaInv);
+
+                floatImageAfterTonemap[i] = val;
+                const float v = val * 255.f + 0.5f;
+                const uint8_t u8 = static_cast<uint8_t>(std::clamp(v, 0.f, 255.f));
+                rgb8[i * 3 + 0] = u8;
+                rgb8[i * 3 + 1] = u8;
+                rgb8[i * 3 + 2] = u8;
+            }
             // --- 3) Build paths
             std::filesystem::path imgPath = camera.entity
                                                 ? std::filesystem::path(camera.entity.getName()).replace_extension(
@@ -727,54 +806,118 @@ namespace VkRender::PathTracer {
                 << N << " photons to " << filename << '\n';
     }
 
-    void PathTracerSetup::generateEditorImage(const std::shared_ptr<VulkanTexture2D> &viewportTexture, float gamma,
-                                              float exposure) {
+    void PathTracerSetup::generateEditorImage(const std::shared_ptr<VulkanTexture2D> &viewportTexture,
+                                              std::shared_ptr<EditorPathTracerLayerUI> imageUI) {
         Utils::ScopedTimer timer("PathTracer: Generate Editor Image");
 
-        float gammaInv = 1.0f / gamma; // sRGB ≈ 1/2.2
+        const float gammaInv = 1.0f / imageUI->gamma;
 
         if (!d_sceneDesc) {
             Log::Logger::getInstance()->error("Path Tracer has not been initialized");
+            return;
         }
 
         const auto &camera = m_cameras.front();
         const uint32_t width = camera.width;
         const uint32_t height = camera.height;
         const size_t pixelCount = static_cast<size_t>(width) * height;
-        const size_t floatComponents = pixelCount * 4; // 4 floats per pixel (RGBA32F)s
+        const size_t floatComponents = pixelCount * 4; // RGBA32F
         const size_t floatByteSize = floatComponents * sizeof(float);
 
-        // 1) Copy float32 RGBA image from device to host scratch buffer
-        Log::Logger::getInstance()->trace("PathTracerSetup::generateEditorImage(): {}/{}",
-                                          static_cast<float>(floatByteSize) / 1000000.0f,
-                                          static_cast<float>(m_createInfo.framebufferSize) / 1000000.0f);
+        Log::Logger::getInstance()->trace("PathTracerSetup::generateEditorImage(): {}/{} MB",
+                                          static_cast<float>(floatByteSize) / 1.0e6f,
+                                          static_cast<float>(m_createInfo.framebufferSize) / 1.0e6f);
 
+        // 1) Copy device -> host
+        std::vector<float> hostRGBA(floatComponents);
+        m_queue.memcpy(hostRGBA.data(), d_frameBuffers.memory, floatByteSize).wait();
 
-        m_queue.memcpy(m_frameBuffers.memory, d_frameBuffers.memory, floatByteSize).wait();
-        // 2) Convert to 8-bit RGBA
-        std::vector<uint8_t> rgba8;
-        rgba8.resize(pixelCount * 4);
-        float *src = reinterpret_cast<float *>(m_frameBuffers.memory);
+        // 1b) Optional denoising (linear HDR)
+        std::unique_ptr<float[]> denoisedRGB; // Float3 buffer if we denoise
+        if (imageUI->denoiseImage) {
+            try {
+                std::unique_ptr<float[]> colorRGB{new float[pixelCount * 3]};
+                for (size_t i = 0; i < pixelCount; ++i) {
+                    colorRGB[i * 3 + 0] = hostRGBA[i * 4 + 0];
+                    colorRGB[i * 3 + 1] = hostRGBA[i * 4 + 1];
+                    colorRGB[i * 3 + 2] = hostRGBA[i * 4 + 2];
+                }
+
+                denoisedRGB.reset(new float[pixelCount * 3]);
+
+                // 1) Create device (SYCL/GPU)
+                oidn::DeviceRef device = oidn::newDevice(oidn::DeviceType::CPU);
+                device.commit();
+
+                // 2) Create a device-accessible buffer and upload your RGB floats
+                const size_t bytes = sizeof(float) * 3 * width * height;
+                oidn::BufferRef colorBuf = device.newBuffer(bytes);
+                colorBuf.write(0, bytes, colorRGB.get());   // upload host -> device buffer
+
+                oidn::BufferRef outBuf   = device.newBuffer(bytes);
+
+                // 3) Set images using buffers (no raw pointers)
+                oidn::FilterRef filter = device.newFilter("RT");
+                filter.set("hdr", false);
+
+                filter.setImage("color",  colorBuf, oidn::Format::Float3,
+                                width, height, /*byteOffset*/0,
+                                /*bytePixelStride*/ sizeof(float)*3,
+                                /*byteRowStride*/  sizeof(float)*3*width);
+
+                filter.setImage("output", outBuf,   oidn::Format::Float3,
+                                width, height, 0,
+                                sizeof(float)*3,
+                                sizeof(float)*3*width);
+
+                filter.commit();
+                filter.execute();
+
+                // 4) Download result back to host memory you own
+                outBuf.read(0, bytes, denoisedRGB.get());
+
+                const char *errMsg = nullptr;
+                if (device.getError(errMsg) != oidn::Error::None) {
+                    Log::Logger::getInstance()->warning("OIDN warning: {}", errMsg ? errMsg : "");
+                    denoisedRGB.reset();
+                }
+            } catch (const std::exception &e) {
+                Log::Logger::getInstance()->error("OIDN exception: {}", e.what());
+                denoisedRGB.reset();
+            }
+        }
+
+        // 2) Tonemap & gamma-correct to 8-bit RGBA (currently grayscale)
+        std::vector<uint8_t> rgba8(pixelCount * 4);
         for (size_t i = 0; i < pixelCount; ++i) {
-            // clamp to [0,1], then map to [0,255]
-            float v = src[i * 4];
+            float L_linear;
+            if (denoisedRGB) {
+                const float r = denoisedRGB[i * 3 + 0];
+                const float g = denoisedRGB[i * 3 + 1];
+                const float b = denoisedRGB[i * 3 + 2];
+                L_linear = 0.2126f * r + 0.7152f * g + 0.0722f * b; // Rec.709
+            } else {
+                // fallback: luminance approx from raw RGB
+                const float r = hostRGBA[i * 4 + 0];
+                const float g = hostRGBA[i * 4 + 1];
+                const float b = hostRGBA[i * 4 + 2];
+                L_linear = 0.2126f * r + 0.7152f * g + 0.0722f * b;
+            }
 
-            auto tonemap = [&](float L) {
-                float Lm = 1.f - std::exp(-L * exposure); // filmic-ish
-                return Lm;
-            };
-            v = tonemap(v);
+            const float Lm = 1.f - std::exp(-L_linear * imageUI->exposure);
+            const float val = std::pow(std::clamp(Lm, 0.f, 1.f), gammaInv);
+            const uint8_t u8 = static_cast<uint8_t>(std::clamp(val * 255.f + 0.5f, 0.f, 255.f));
 
-            v = std::pow(std::clamp(v, 0.f, 1.f), gammaInv);
-
-            rgba8[i * 4 + 0] = static_cast<uint8_t>(v * 255.f + 0.5f);
-            rgba8[i * 4 + 1] = static_cast<uint8_t>(v * 255.f + 0.5f);
-            rgba8[i * 4 + 2] = static_cast<uint8_t>(v * 255.f + 0.5f);
+            rgba8[i * 4 + 0] = u8;
+            rgba8[i * 4 + 1] = u8;
+            rgba8[i * 4 + 2] = u8;
             rgba8[i * 4 + 3] = 255;
         }
-        // 3) Upload RGBA8 image to the Vulkan texture
+
+        // 3) Upload to Vulkan texture
         viewportTexture->loadImage(rgba8.data());
     }
+
 
     void PathTracerSetup::collectGeometry(const std::shared_ptr<Scene> &scene) {
         Utils::ScopedTimer timer("PathTracer: Collect Geometry");

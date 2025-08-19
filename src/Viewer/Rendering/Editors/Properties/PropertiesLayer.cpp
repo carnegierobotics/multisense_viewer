@@ -1068,7 +1068,7 @@ namespace VkRender {
 
         pathTracer->reloadRenderer = ImGui::Button("Upload scene");
         ImGui::Checkbox("Render", &pathTracer->render);
-        ImGui::Checkbox("To Viewport", &pathTracer->renderToViewport);
+        ImGui::Checkbox("Denoiser", &pathTracer->denoiseImage);
         // --- Device selector as a dropdown ---
         ImGui::Text("Compute Device:");
         ImGui::SetNextItemWidth(100.0f); {

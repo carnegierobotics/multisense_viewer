@@ -5,6 +5,7 @@
 #ifndef SCENESERIALIZER_H
 #define SCENESERIALIZER_H
 
+#include <yaml-cpp/yaml.h>
 
 #include "Viewer/Scenes/Scene.h"
 #include "Viewer/Application/pch.h"
@@ -22,6 +23,9 @@ namespace VkRender {
         bool deserialize(const std::filesystem::path& filePath);
         bool deserializeRuntime(const std::filesystem::path& filePath);
 
+
+        bool deserializeYAML(const YAML::Node& data);
+        bool deserializeXML(const std::filesystem::path& filePath);
 
     private:
         std::shared_ptr<Scene> m_scene;

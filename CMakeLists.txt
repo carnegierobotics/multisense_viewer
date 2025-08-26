@@ -164,8 +164,8 @@ if (ENABLE_SYCL)
             target_compile_options(${PROJECT_NAME} PRIVATE -O0 -g)
             message(STATUS "[VkRenderINFO]: Compiling using AdaptiveCpp without optimization")
         endif ()
-        target_link_options(${PROJECT_NAME} PRIVATE -L/usr/lib/llvm-14/lib)
-        target_compile_options(${PROJECT_NAME} PRIVATE -I/usr/lib/llvm-14/lib/clang/14.0.0/include)
+        #target_link_options(${PROJECT_NAME} PRIVATE -L/usr/lib/llvm-14/lib)
+        #target_compile_options(${PROJECT_NAME} PRIVATE -I/usr/lib/llvm-14/lib/clang/14.0.0/include)
 
         find_package(AdaptiveCpp REQUIRED)
         # Print a message showing which targets are being used

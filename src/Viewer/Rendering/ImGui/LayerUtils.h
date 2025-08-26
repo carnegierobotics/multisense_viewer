@@ -38,6 +38,7 @@ namespace VkRender::LayerUtils {
         VERTEX_SHADER_FILE,
         FRAGMENT_SHADER_FILE,
         LOAD_SCENE,
+        LOAD_SCENE_XML,
         SAVE_SCENE_AS,
         SAVE_PROJECT_AS,
         SELECT_PATH_TRACER_OUTPUT_FOLDER,

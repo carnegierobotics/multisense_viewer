@@ -504,20 +504,36 @@ namespace VkRender {
         throw std::runtime_error("Not implemented");
     }
 
-
     bool SceneSerializer::deserialize(const std::filesystem::path &filePath) {
-        // TODO sanitize input
-        std::ifstream stream(filePath);
-        std::stringstream stringStream;
-        stringStream << stream.rdbuf();
+        if (filePath.extension() == ".multisense") {
+            std::ifstream stream(filePath);
+            std::stringstream stringStream;
+            stringStream << stream.rdbuf();
+            YAML::Node data = YAML::Load(stringStream.str());
+            return deserializeYAML(data);
+        }
 
-        YAML::Node data = YAML::Load(stringStream.str());
+        if (filePath.extension() == ".xml") {
+            return deserializeXML(filePath);
+        }
+        //Log::Logger::getInstance()->info("Loaded scene: {} from {}", filePath.filename().string(), filePath.string());
+
+        return false;
+    }
+
+    bool SceneSerializer::deserializeXML(const std::filesystem::path &filePath) {
+
+
+        return true;
+    }
+
+    bool SceneSerializer::deserializeYAML(const YAML::Node& data) {
+        // TODO sanitize input
+
         if (!data["Scene"])
             return false;
         std::string sceneName = data["Scene"].as<std::string>();
-        std::string assetsPath = filePath.parent_path().string(); // TODO fix the relative assets path
 
-        Log::Logger::getInstance()->info("Deserializing scene: {} from: {}", sceneName, filePath.string());
         auto entities = data["Entities"];
         if (entities) {
             std::unordered_map<uint64_t, Entity> entityMap;
@@ -907,7 +923,6 @@ namespace VkRender {
         }
 
 
-        Log::Logger::getInstance()->info("Loaded scene: {} from {}", filePath.filename().string(), filePath.string());
 
         return true;
     }

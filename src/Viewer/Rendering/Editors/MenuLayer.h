@@ -23,7 +23,7 @@ namespace VkRender {
         void onAttach() override {
 #ifdef __linux__
             int argc = 0;
-            char** argv = NULL;
+            char **argv = NULL;
             gtk_init(&argc, &argv); // Initialize GTK
 #endif
         }
@@ -56,7 +56,7 @@ namespace VkRender {
                         auto projectDir = Utils::getProjectsPath(); // This should return a vector of project file paths
                         std::vector<std::filesystem::path> projectFiles;
                         if (std::filesystem::exists(projectDir) && std::filesystem::is_directory(projectDir)) {
-                            for (const auto& entry : std::filesystem::directory_iterator(projectDir)) {
+                            for (const auto &entry: std::filesystem::directory_iterator(projectDir)) {
                                 if (entry.is_regular_file() && entry.path().extension() == ".project") {
                                     // Use your project file extension
                                     projectFiles.push_back(entry.path());
@@ -64,7 +64,7 @@ namespace VkRender {
                             }
                         }
 
-                        for (const auto& projectFile : projectFiles) {
+                        for (const auto &projectFile: projectFiles) {
                             bool isCurrentProject = m_context->isCurrentProject(
                                 projectFile.filename().replace_extension().string());
 
@@ -82,7 +82,7 @@ namespace VkRender {
                         }
 
                         if (ImGui::MenuItem("Save current layout as Project..", nullptr)) {
-                            auto& userSetting = ApplicationConfig::getInstance().getUserSetting();
+                            auto &userSetting = ApplicationConfig::getInstance().getUserSetting();
                             auto openLocation = std::filesystem::exists(userSetting.lastActiveScenePath.parent_path())
                                                     ? userSetting.lastActiveScenePath.parent_path()
                                                     : Utils::getSystemHomePath();
@@ -95,11 +95,21 @@ namespace VkRender {
 
                     // Scenes Menu
                     if (ImGui::BeginMenu("Scenes")) {
-                        auto& userSetting = ApplicationConfig::getInstance().getUserSetting();
+                        auto &userSetting = ApplicationConfig::getInstance().getUserSetting();
 
                         if (ImGui::MenuItem("New Scene", nullptr)) {
                             m_context->newScene();
                             userSetting.lastActiveScenePath.clear();
+                        }
+                        if (ImGui::MenuItem("New Scene From xml", nullptr)) {
+                            auto openLocation = std::filesystem::exists(userSetting.lastActiveScenePath.parent_path())
+                                                    ? userSetting.lastActiveScenePath.parent_path()
+                                                    : Utils::getSystemHomePath();
+
+                            std::vector<std::string> types{"xml"};
+                            EditorUtils::openImportFileDialog("Load Scene XML", types, LayerUtils::LOAD_SCENE_XML,
+                                                              &loadFileFuture, openLocation);
+
                         }
 
                         if (std::filesystem::exists(userSetting.lastActiveScenePath)) {
@@ -165,55 +175,66 @@ namespace VkRender {
         }
 
         void
-        handleSelectedFileOrFolder(const LayerUtils::LoadFileInfo& loadFileInfo) {
+        handleSelectedFileOrFolder(const LayerUtils::LoadFileInfo &loadFileInfo) {
             if (!loadFileInfo.path.empty()) {
                 switch (loadFileInfo.filetype) {
-                case LayerUtils::LOAD_SCENE: {
-                    auto scene = m_context->newScene();
-                    if (scene) {
-                        SceneSerializer serializer(scene);
-                        serializer.deserialize(loadFileInfo.path);
-                        auto& userSetting = ApplicationConfig::getInstance().getUserSetting();
-                        userSetting.lastActiveScenePath = loadFileInfo.path;
-                        userSetting.assetsPath = loadFileInfo.path.parent_path();
+                    case LayerUtils::LOAD_SCENE_XML: {
+                        auto scene = m_context->newScene();
+                        if (scene) {
+                            SceneSerializer serializer(scene);
+                            serializer.deserialize(loadFileInfo.path);
+                            auto &userSetting = ApplicationConfig::getInstance().getUserSetting();
+                            userSetting.lastActiveScenePath = loadFileInfo.path;
+                            userSetting.assetsPath = loadFileInfo.path.parent_path();
+                        }
                     }
-                }
-                break;
-                case LayerUtils::SAVE_SCENE_AS: {
-                    auto scene = m_context->activeScene();
-                    if (scene) {
-                        auto& userSetting = ApplicationConfig::getInstance().getUserSetting();
-                        auto path = loadFileInfo.path;
-                        SceneSerializer serializer(scene);
-                        serializer.serialize(path);
-                        userSetting.lastActiveScenePath = path;
-                        userSetting.assetsPath = path.parent_path();
-                    }
-                }
-                break;
-                case LayerUtils::SAVE_PROJECT_AS: {
-                    auto project = m_context->getCurrentProject();
-                    project.projectName = loadFileInfo.path.filename().replace_extension().string();
-                    ProjectSerializer serializer(project);
-                    serializer.serialize(loadFileInfo.path);
-                    serializer.serialize(Utils::getProjectsPath() / loadFileInfo.path.filename());
-                    ApplicationConfig::getInstance().getUserSetting().projectName = project.projectName;
-                }
-                break;
-                case LayerUtils::SELECT_FOLDER: {
-                    auto scene = m_context->activeScene();
-                    if (scene) {
-                        std::filesystem::path assetsBasePath = loadFileInfo.path;
-                        SceneSerializer serializer(scene);
-                        serializer.deserialize(assetsBasePath);
-                        auto& userSetting = ApplicationConfig::getInstance().getUserSetting();
-                        userSetting.lastActiveScenePath = loadFileInfo.path;
-                        userSetting.assetsPath = loadFileInfo.path.parent_path();
-                    }
-                }
-                break;
-                default:
                     break;
+                    case LayerUtils::LOAD_SCENE: {
+                        auto scene = m_context->newScene();
+                        if (scene) {
+                            SceneSerializer serializer(scene);
+                            serializer.deserialize(loadFileInfo.path);
+                            auto &userSetting = ApplicationConfig::getInstance().getUserSetting();
+                            userSetting.lastActiveScenePath = loadFileInfo.path;
+                            userSetting.assetsPath = loadFileInfo.path.parent_path();
+                        }
+                    }
+                    break;
+                    case LayerUtils::SAVE_SCENE_AS: {
+                        auto scene = m_context->activeScene();
+                        if (scene) {
+                            auto &userSetting = ApplicationConfig::getInstance().getUserSetting();
+                            auto path = loadFileInfo.path;
+                            SceneSerializer serializer(scene);
+                            serializer.serialize(path);
+                            userSetting.lastActiveScenePath = path;
+                            userSetting.assetsPath = path.parent_path();
+                        }
+                    }
+                    break;
+                    case LayerUtils::SAVE_PROJECT_AS: {
+                        auto project = m_context->getCurrentProject();
+                        project.projectName = loadFileInfo.path.filename().replace_extension().string();
+                        ProjectSerializer serializer(project);
+                        serializer.serialize(loadFileInfo.path);
+                        serializer.serialize(Utils::getProjectsPath() / loadFileInfo.path.filename());
+                        ApplicationConfig::getInstance().getUserSetting().projectName = project.projectName;
+                    }
+                    break;
+                    case LayerUtils::SELECT_FOLDER: {
+                        auto scene = m_context->activeScene();
+                        if (scene) {
+                            std::filesystem::path assetsBasePath = loadFileInfo.path;
+                            SceneSerializer serializer(scene);
+                            serializer.deserialize(assetsBasePath);
+                            auto &userSetting = ApplicationConfig::getInstance().getUserSetting();
+                            userSetting.lastActiveScenePath = loadFileInfo.path;
+                            userSetting.assetsPath = loadFileInfo.path.parent_path();
+                        }
+                    }
+                    break;
+                    default:
+                        break;
                 }
             }
         }

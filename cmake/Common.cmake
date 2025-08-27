@@ -261,6 +261,25 @@ else()
     target_include_directories(${PROJECT_NAME} PRIVATE ${ASSIMP_DIR}/include)
 endif()
 
+# Path to the assimp submodule
+set(PUGIXML_DIR "${EXTERNAL_DIR}/pugixml-1.15")
+
+if (NOT EXISTS "${PROJECT_SOURCE_DIR}/${PUGIXML_DIR}/CMakeLists.txt")
+    message(FATAL_ERROR
+            "Assimp not found in ${PROJECT_SOURCE_DIR}/${PUGIXML_DIR}/CMakeLists.txt.\n"
+            "Did you forget to run:\n"
+            "   git submodule update --init ${EXTERNAL_DIR}/assimp"
+    )
+else()
+    message(STATUS "Adding Assimp from: ${PUGIXML_DIR}")
+    # Pull in assimp’s own CMake build
+    add_subdirectory(${PUGIXML_DIR})
+    # Make sure our target knows about it
+    target_include_directories(${PROJECT_NAME} PRIVATE ${PUGIXML_DIR}/src)
+    target_link_libraries(${PROJECT_NAME} PRIVATE pugixml::pugixml)
+
+endif()
+
 # Generate version file
 function(GenerateVersionFile)
     file(WRITE ${CMAKE_SOURCE_DIR}/Assets/Generated/VersionInfo "VERSION=${PROJECT_VERSION}\nSERVER=${CRL_SERVER_IP}\nPROTOCOL=${CRL_SERVER_PROTOCOL}\nDESTINATION=${CRL_SERVER_DESTINATION}\nDESTINATION_VERSIONINFO=${CRL_SERVER_VERSIONINFO_DESTINATION}\nLOG_LEVEL=${VIEWER_LOG_LEVEL}")

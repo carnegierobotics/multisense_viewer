@@ -6,12 +6,14 @@
 #define SCENESERIALIZER_H
 
 #include <yaml-cpp/yaml.h>
+#include <pugixml.hpp>
 
 #include "Viewer/Scenes/Scene.h"
 #include "Viewer/Application/pch.h"
 
 
 namespace VkRender {
+
     class SceneSerializer {
 
     public:
@@ -29,6 +31,10 @@ namespace VkRender {
 
     private:
         std::shared_ptr<Scene> m_scene;
+
+    private:
+        bool loadShape(const pugi::xml_node& shape);
+        bool loadSensorToCamera(const pugi::xml_node& sensor);
     };
 }
 

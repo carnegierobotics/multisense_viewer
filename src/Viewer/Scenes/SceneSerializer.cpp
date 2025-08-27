@@ -3,6 +3,13 @@
 //
 
 #include <yaml-cpp/yaml.h>
+#include <pugixml.hpp>
+
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/matrix_decompose.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 #include "Viewer/Scenes/SceneSerializer.h"
 
@@ -209,7 +216,7 @@ namespace VkRender {
         }
 
         if (entity.hasComponent<ScriptableComponent>()) {
-            auto& scriptComp = entity.getComponent<ScriptableComponent>();
+            auto &scriptComp = entity.getComponent<ScriptableComponent>();
             out << YAML::Key << "ScriptableComponent";
             out << YAML::BeginMap;
             out << YAML::Key << "ScriptName";
@@ -383,7 +390,7 @@ namespace VkRender {
             out << YAML::BeginMap;
             // Serialize positions
             out << YAML::Key << "Flux";
-            out << YAML::Value <<  component.flux;
+            out << YAML::Value << component.flux;
 
             out << YAML::EndMap;
         }
@@ -422,7 +429,7 @@ namespace VkRender {
             out << YAML::Key << "Min";
             out << YAML::Value << YAML::BeginSeq;
             for (const auto &pos: component.min) {
-                out << YAML::Flow << YAML::BeginSeq << pos.x << pos.y <<YAML::EndSeq;
+                out << YAML::Flow << YAML::BeginSeq << pos.x << pos.y << YAML::EndSeq;
             }
             out << YAML::EndSeq;
 
@@ -521,13 +528,299 @@ namespace VkRender {
         return false;
     }
 
-    bool SceneSerializer::deserializeXML(const std::filesystem::path &filePath) {
 
+    // --- small utils ---
+    static inline float attrf(const pugi::xml_node &n, const char *name, float def = 0.f) {
+        if (auto a = n.attribute(name)) return a.as_float(def);
+        return def;
+    }
+
+    static inline int attri(const pugi::xml_node &n, const char *name, int def = 0) {
+        if (auto a = n.attribute(name)) return a.as_int(def);
+        return def;
+    }
+
+    static inline std::string attrs(const pugi::xml_node &n, const char *name, const std::string &def = {}) {
+        if (auto a = n.attribute(name)) return a.value();
+        return def;
+    }
+
+    static glm::vec3 parse_csv_vec3(const std::string &s, glm::vec3 def = glm::vec3(0)) {
+        glm::vec3 v = def;
+        float a = def.x, b = def.y, c = def.z;
+        if (sscanf(s.c_str(), "%f , %f , %f", &a, &b, &c) == 3) v = glm::vec3(a, b, c);
+        return v;
+    }
+
+    static glm::vec3 parse_rgb(const pugi::xml_node &n) {
+        // Mitsuba rgb value="r,g,b"
+        return parse_csv_vec3(attrs(n, "value", "1,1,1"));
+    }
+
+    // Compose Mitsuba <transform name="to_world"> children in order:
+    // <translate x y z>, <scale x y z>, <rotate x y z angle>, <lookat origin/target/up>
+    // Mitsuba applies *in listed order*; we’ll left-multiply to accumulate.
+    static glm::mat4 parse_to_world(const pugi::xml_node &transformNode) {
+        glm::mat4 M(1.0f);
+        for (auto child: transformNode.children()) {
+            std::string n = child.name();
+            if (n == "translate") {
+                glm::vec3 t(attrf(child, "x", 0), attrf(child, "y", 0), attrf(child, "z", 0));
+                M = M * glm::translate(glm::mat4(1), t);
+            } else if (n == "scale") {
+                glm::vec3 s(attrf(child, "x", 1), attrf(child, "y", 1), attrf(child, "z", 1));
+                M = M * glm::scale(glm::mat4(1), s);
+            } else if (n == "rotate") {
+                // axis-angle; Mitsuba uses unit axis (x,y,z) and angle in degrees
+                glm::vec3 axis(attrf(child, "x", 0), attrf(child, "y", 0), attrf(child, "z", 0));
+                float deg = attrf(child, "angle", 0);
+                float rad = glm::radians(deg);
+                if (glm::length(axis) > 0) axis = glm::normalize(axis);
+                // glm::rotate(angle, axis)
+                M = M * glm::rotate(glm::mat4(1), rad, axis);
+            } else if (n == "lookat") {
+                glm::vec3 o = parse_csv_vec3(attrs(child, "origin", "0,0,0"));
+                glm::vec3 t = parse_csv_vec3(attrs(child, "target", "0,0,-1"));
+                glm::vec3 up = parse_csv_vec3(attrs(child, "up", "0,1,0"));
+                // NOTE: Mitsuba's lookat produces to_world; glm::lookAt gives a view matrix.
+                // We need the *object-to-world* that maps local -Z forward to face target.
+                // One way: invert the view matrix.
+                glm::mat4 view = glm::lookAt(o, t, up);
+                glm::mat4 to_world = glm::inverse(view);
+                M = M * to_world;
+            }
+        }
+        return M;
+    }
+
+    // Decompose TRS for your TransformComponent
+    static void decompose_trs(const glm::mat4 &M, glm::vec3 &T, glm::quat &R, glm::vec3 &S) {
+        glm::vec3 skew;
+        glm::vec4 persp;
+        glm::decompose(M, S, R, T, skew, persp);
+        // glm::decompose returns conjugate orientation; optional: R = glm::conjugate(R);
+    }
+
+
+    bool SceneSerializer::loadSensorToCamera(const pugi::xml_node &sensor) {
+        // Create a camera entity
+        Entity e = m_scene->createEntity("Camera");
+        auto &cam = e.addComponent<CameraComponent>();
+        cam.cameraType = CameraComponent::PINHOLE; // Mitsuba "perspective"
+        cam.cameraSettings.flipY = true;
+        auto& mat = e.addComponent<MaterialComponent>();
+        auto& mesh = e.addComponent<MeshComponent>(CAMERA_GIZMO_PINHOLE);
+        mesh.polygonMode() = VK_POLYGON_MODE_LINE;
+
+        // --- Film (W,H) ---
+        uint32_t W = 768, H = 576;
+        if (auto film = sensor.child("film")) {
+            if (auto n = film.find_child_by_attribute("integer","name","width"))  W = attri(n,"value",W);
+            if (auto n = film.find_child_by_attribute("integer","name","height")) H = attri(n,"value",H);
+        }
+        const float aspect = (H>0) ? float(W)/float(H) : 1.0f;
+
+        // --- FOV (deg) ---
+        float fov_deg = 45.0f;
+        if (auto fovNode = sensor.find_child_by_attribute("float", "name", "fov"))
+            fov_deg = attrf(fovNode, "value", fov_deg);
+
+        std::string axis = "x"; // Mitsuba default when fov is provided
+        if (auto axisNode = sensor.find_child_by_attribute("string", "name", "fov_axis"))
+            axis = axisNode.attribute("value").as_string();
+
+        // --- Compute fx, fy, cx, cy ---
+        float fx = 0.f, fy = 0.f;
+        const float fov_rad = glm::radians(fov_deg);
+
+        if (axis == "y") {
+            // vertical fov provided
+            const float yf = fov_rad;
+            const float xf = 2.0f * std::atan(std::tan(yf*0.5f) * aspect);
+            fx = (float(W) * 0.5f) / std::tan(xf * 0.5f);
+            fy = (float(H) * 0.5f) / std::tan(yf * 0.5f);
+        } else {
+            // default: horizontal fov provided
+            const float xf = fov_rad;
+            const float yf = 2.0f * std::atan(std::tan(xf*0.5f) / aspect);
+            fx = (float(W) * 0.5f) / std::tan(xf * 0.5f);
+            fy = (float(H) * 0.5f) / std::tan(yf * 0.5f);
+        }
+
+        const float cx = float(W) * 0.5f;
+        const float cy = float(H) * 0.5f;
+
+        // push into your camera component
+        cam.pinholeParameters.fx = fx;
+        cam.pinholeParameters.fy = fy;
+        cam.pinholeParameters.cx = cx;
+        cam.pinholeParameters.cy = cy;
+        cam.pinholeParameters.width  = W;
+        cam.pinholeParameters.height = H;
+
+        // to_world (lookat / TRS)
+        glm::mat4 M(1.f);
+        if (auto tw = sensor.find_child_by_attribute("transform", "name", "to_world")) {
+            M = parse_to_world(tw);
+        }
+        glm::vec3 T, S;
+        glm::quat R;
+        decompose_trs(M, T, R, S);
+        auto &tc = e.getComponent<TransformComponent>();
+        tc.setPosition(T);
+        tc.setRotationQuaternion(R);
+        tc.setScale(S);
+
+        cam.updateParametersChanged();
+        return true;
+    }
+
+
+    bool SceneSerializer::loadShape(const pugi::xml_node &shape) {
+        std::string type = attrs(shape, "type", "");
+        if (type.empty()) return false;
+
+        // Create entity per shape
+        Entity e = m_scene->createEntity(type);
+
+        //decompose_trs(M, T, R, S);
+        auto &tc = e.getComponent<TransformComponent>();
+
+
+
+        // Transform
+        glm::mat4 M(1.f);
+        if (auto tw = shape.find_child_by_attribute("transform", "name", "to_world")) {
+
+            glm::vec3 T, S;
+            glm::quat R;
+            for (auto child: tw.children()) {
+                std::string n = child.name();
+                if (n == "translate") {
+                    glm::vec3 t(attrf(child, "x", 0), attrf(child, "y", 0), attrf(child, "z", 0));
+                    T = t;
+                } else if (n == "scale") {
+                    glm::vec3 s(attrf(child, "x", 1), attrf(child, "y", 1), attrf(child, "z", 1));
+                    S = s;
+                } else if (n == "rotate") {
+                    // axis-angle; Mitsuba uses unit axis (x,y,z) and angle in degrees
+                    glm::vec3 axis(attrf(child, "x", 0), attrf(child, "y", 0), attrf(child, "z", 0));
+                    float deg = attrf(child, "angle", 0);
+                    float rad = glm::radians(deg);
+                    if (glm::length(axis) > 0)
+                        axis = glm::normalize(axis);
+                    // glm::rotate(angle, axis)
+                    R = glm::quat_cast(glm::rotate(glm::mat4(1), rad, axis));
+                }
+            }
+
+            tc.setPosition(T);
+            tc.setRotationQuaternion(R);
+            tc.setScale(S * 2.0f);
+        }
+
+
+        // Mesh component
+        MeshDataType meshType = MeshDataType::PLANE; // your enum
+        std::filesystem::path modelPath{}; // N/A for analytic shapes
+        if (type == "rectangle") {
+            // in your system: create a parametric quad/canvas. If you already have a "CYLINDER/QUADRIC",
+            // you can make a "QUAD" parameters type; here we just tag a mesh with no file.
+            auto &mesh = e.addComponent<MeshComponent>(meshType, modelPath);
+            mesh.polygonMode() = VK_POLYGON_MODE_FILL;
+            // If you support a specific Rectangle/Plane parameters object, attach it here
+        } else {
+            // extend later: sphere, cube, obj, etc.
+            auto &mesh = e.addComponent<MeshComponent>(meshType, modelPath);
+            mesh.polygonMode() = VK_POLYGON_MODE_FILL;
+        }
+
+        // Material: via <ref id="..."> or inline <bsdf>
+        glm::vec3 Kd(0.8f);
+
+
+        auto &mat = e.addComponent<MaterialComponent>();
+        mat.albedo = glm::vec4(Kd, 1.0f);
+        mat.alphaMode = AlphaMode::Opaque;
+        mat.diffuse = 1.0f; // if your shader splits these channels
+        mat.specular = 0.0f;
+
+        // Emitter? (area light)
+        if (auto emitter = shape.child("emitter")) {
+            std::string etype = attrs(emitter, "type", "");
+            if (etype == "area") {
+                glm::vec3 L = glm::vec3(1.f);
+                if (auto rgb = emitter.find_child_by_attribute("rgb", "name", "radiance")) {
+                    L = parse_rgb(rgb);
+                }
+                // In your system you have LightSourceComponent with 'flux' (float).
+                // A precise conversion would be: flux ≈ π * radiance * area * (integrated cosine over hemisphere).
+                // For a start, keep it simple and store average intensity:
+                auto &light = e.addComponent<LightSourceComponent>();
+                light.flux = ((L.x + L.y + L.z) / 3.0f) / 100.0f;
+                // TODO: improve with actual area * π, and keep color in material.emission
+                mat.emission = (L.x + L.y + L.z) / 3.0f;
+            }
+        }
+
+        // Optional visibility, grouping, rasterizer flags:
+        e.addComponent<VisibleComponent>().visible = true;
+        return true;
+    }
+
+
+    bool SceneSerializer::deserializeXML(const std::filesystem::path &filePath) {
+        pugi::xml_document doc;
+        pugi::xml_parse_result ok = doc.load_file(filePath.string().c_str());
+        if (!ok) {
+            Log::Logger::getInstance()->error("XML parse error: {}", ok.description());
+            return false;
+        }
+
+        pugi::xml_node scene = doc.child("scene");
+        if (!scene) {
+            Log::Logger::getInstance()->error("Missing <scene> root");
+            return false;
+        }
+
+
+        // (2) sensor -> camera
+        if (auto sensor = scene.child("sensor")) {
+            loadSensorToCamera(sensor);
+        } else {
+            Log::Logger::getInstance()->warning("No <sensor> found; creating default camera");
+            // optionally create a default camera entity here…
+        }
+
+        // (3) shapes
+        for (auto shape: scene.children("shape")) {
+            loadShape(shape);
+        }
+
+        // (4) integrator/sampler/film if you want to store them on the Scene or a component
+        if (auto integrator = scene.child("integrator")) {
+            std::string type = attrs(integrator, "type", "");
+            // store on scene settings if you have such a struct
+            // m_scene->renderSettings.integrator = type;
+        }
+        if (auto sensor = scene.child("sensor")) {
+            if (auto sampler = sensor.child("sampler")) {
+                if (auto sc = sampler.find_child_by_attribute("integer", "name", "sample_count")) {
+                    int spp = attri(sc, "value", 1);
+                    // m_scene->renderSettings.spp = spp;
+                }
+            }
+            if (auto film = sensor.child("film")) {
+                if (auto w = film.find_child_by_attribute("integer", "name", "width")) {
+                    // already set in camera above, but you can store globally too
+                }
+            }
+        }
 
         return true;
     }
 
-    bool SceneSerializer::deserializeYAML(const YAML::Node& data) {
+    bool SceneSerializer::deserializeYAML(const YAML::Node &data) {
         // TODO sanitize input
 
         if (!data["Scene"])
@@ -879,27 +1172,25 @@ namespace VkRender {
                     deserializeFloatArray(component.kernelScale, "KernelScale", expectedSize, 1.0f);
                     deserializeFloatArray(component.threshold, "Threshold", expectedSize, 0.01f);
                     deserializeFloatArray(component.beta, "Beta", expectedSize, 0.0f);
-
                 }
 
 
                 auto scriptNode = entity["ScriptableComponent"];
                 if (scriptNode) {
-                    auto& scriptComp = deserializedEntity.addComponent<ScriptableComponent>();
+                    auto &scriptComp = deserializedEntity.addComponent<ScriptableComponent>();
                     std::string storedScriptName = scriptNode["ScriptName"].as<std::string>();
 
                     if (storedScriptName == std::string(getTypeName<DefaultController>())) {
                         scriptComp.bind<DefaultController>();
                     } else if (storedScriptName == std::string(getTypeName<VectorScripts>())) {
                         scriptComp.bind<VectorScripts>();
-                    }else if (storedScriptName == std::string(getTypeName<ContributionRay>())) {
+                    } else if (storedScriptName == std::string(getTypeName<ContributionRay>())) {
                         scriptComp.bind<ContributionRay>();
                     }
                 }
 
                 // Store the entity in the map
                 entityMap[entityId] = deserializedEntity;
-
             }
 
             for (auto entityNode: entities) {
@@ -918,10 +1209,7 @@ namespace VkRender {
                     }
                 }
             }
-
-
         }
-
 
 
         return true;
